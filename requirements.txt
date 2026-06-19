@@ -29,11 +29,11 @@ email-validator==1.3.1
 et-xmlfile==1.1.0
 Flask==3.1.3
 Flask-Admin==2.2.0
-Flask-Cors==4.0.2
+Flask-Cors==6.0.2
 Flask-JWT-Extended==4.7.4
 Flask-Login==0.6.3
 Flask-Mail==0.9.1
-flask-marshmallow==0.14.0
+flask-marshmallow==1.5.0
 Flask-Migrate==4.0.4
 Flask-Principal==0.4.0
 Flask-QRcode==3.1.0
@@ -60,8 +60,8 @@ Jinja2==3.1.6
 jmespath==1.0.1
 Mako==1.3.12
 MarkupSafe==2.1.3
-marshmallow==3.18.0
-marshmallow-sqlalchemy==0.28.1
+marshmallow==4.3.0
+marshmallow-sqlalchemy==1.5.0
 multidict==6.0.4
 numpy==1.23.3
 oauth2client==4.1.2
