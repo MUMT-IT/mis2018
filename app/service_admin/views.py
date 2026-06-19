@@ -6728,8 +6728,8 @@ def generate_quotation():
     code = request.args.get('code')
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
-    request_paths = {'bacteria': 'service_admin.generate_bacteria_quotation',
-                     'disinfection': 'service_admin.generate_virus_disinfection_quotation',
+    request_paths = {'bacteria_disinfection': 'service_admin.generate_bacteria_quotation',
+                     'virus_disinfection': 'service_admin.generate_virus_disinfection_quotation',
                      'air_disinfection': 'service_admin.generate_virus_air_disinfection_quotation',
                      'heavymetal': 'service_admin.generate_heavy_metal_quotation',
                      'foodsafety': 'service_admin.generate_food_safety_quotation',
@@ -6758,7 +6758,7 @@ def generate_bacteria_quotation():
         quote_details = {}
         quote_prices = {}
         data = service_request.data
-        form = BacteriaRequestForm(data=data)
+        form = BacteriaDisinfectionRequestForm(data=data)
 
         for _, row in df_price.iterrows():
             if row['field_group'] not in quote_column_names:
