@@ -61,8 +61,8 @@
                             {% endif %}
                             <div class="field" style="margin-top: 1em">
                                 <div class="buttons is-centered">
-                                    <a class="button is-light" href="{{ url_for('comp_tracker.create_repair_approval',
-                                        repair_approval_id=rep_approval.id, record_id=rep_approval.record_id) }}"
+                                    <a class="button is-light" href="{{ url_for('comp_tracker.edit_repair_approval',
+                                        repair_approval_id=repair_approval_id, temp=temp, menu=menu, tab=tab) }}"
                                     >
                                         ย้อนกลับ
                                     </a>
