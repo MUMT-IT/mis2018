@@ -238,8 +238,7 @@ class ComplaintRecord(db.Model):
 
     @property
     def grand_total(self):
-        return sum(spare_part.total_price or 0 for repair_company in self.repair_companies
-                   for spare_part in repair_company.spare_parts)
+        return sum(spare_part.total_price or 0 for spare_part in self.spare_parts)
 
     @property
     def get_print_of_repair(self):
