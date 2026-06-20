@@ -390,9 +390,10 @@ class ComplaintRepairCompany(db.Model):
     contact_phone_number = db.Column('contact_phone_number', db.String(), info={'label': 'เบอร์โทร'})
     repair_offer_price = db.Column('repair_offer_price', db.Numeric(), info={'label': 'ราคาซ่อมที่เสนอ'})
     detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียดการซ่อมจากบริษัท'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_companies'))
-    created_at = db.Column('created_at', db.DateTime(timezone=True))
 
     def __str__(self):
         return f'บริษัทที่ส่งซ่อม : {self.company_name}, ราคาซ่อมที่เสนอ : {self.repair_offer_price}, รายละเอียด : {self.detail}'
