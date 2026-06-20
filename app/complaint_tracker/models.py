@@ -566,6 +566,11 @@ class ComplaintRepairApproval(db.Model):
                                 foreign_keys=[canceller_id])
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_approvals'))
+    requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
+    requester = db.relationship(StaffAccount, backref=db.backref('requested_repair_approvals'), foreign_keys=[requester_id])
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('approved_repair_approvals'),
+                                foreign_keys=[approver_id])
     owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
     owner = db.relationship(StaffAccount, backref=db.backref('owned_repair_approvals'), foreign_keys=[owner_id])
 
