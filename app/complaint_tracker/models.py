@@ -411,9 +411,6 @@ class ComplaintSparePart(db.Model):
     vendor_phone_number = db.Column('vendor_phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์ผู้ขาย'})
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-    repair_company_id = db.Column('repair_company_id', db.ForeignKey('complaint_repair_companies.id'))
-    repair_company = db.relationship(ComplaintRepairCompany, backref=db.backref('spare_parts'),
-                                     foreign_keys=[repair_company_id])
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('spare_parts'))
 
