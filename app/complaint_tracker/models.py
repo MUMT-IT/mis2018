@@ -414,6 +414,8 @@ class ComplaintSparePart(db.Model):
     repair_company_id = db.Column('repair_company_id', db.ForeignKey('complaint_repair_companies.id'))
     repair_company = db.relationship(ComplaintRepairCompany, backref=db.backref('spare_parts'),
                                      foreign_keys=[repair_company_id])
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('spare_parts'))
 
     def __str__(self):
         return self.item
