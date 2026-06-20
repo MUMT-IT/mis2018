@@ -123,15 +123,19 @@ class ComplaintRepairApprovalForm(ModelForm):
     mhesi_no_date = DateField('วันที่ออกเลขอว.', widget=TextInput())
     receipt_date = DateField('วันที่รับเอกสาร', widget=TextInput(), validators=[Optional()],)
     repair_type = RadioField('ประเภทใบอนุมัติหลักการซ่อม', choices=[('เร่งด่วน', 'เร่งด่วน'),
-                                                                  ('ไม่เร่งด่วน (ซื้อ/จ้าง)', 'ไม่เร่งด่วน (ซื้อ/จ้าง)'),
-                                                                  ])
+                                                                      ('ไม่เร่งด่วน (ซื้อ/จ้าง)', 'ไม่เร่งด่วน (ซื้อ/จ้าง)'),
+                                                                      ])
     principle_approval_type = RadioField('ประเภทการขออนุมัติ', choices=[('ซื้อ', 'ซื้อ'), ('จ้าง', 'จ้าง'), ('จ้างซ่อม', 'จ้างซ่อม')], validate_choice=False)
     cost_center = QuerySelectField(query_factory=lambda: CostCenter.query.all(), get_label='id',
-                                   allow_blank=True, blank_text='กรุณาเลือกรหัสศูนย์ต้นทุน',  render_kw={'required': True})
+                                       allow_blank=True, blank_text='กรุณาเลือกรหัสศูนย์ต้นทุน')
     io_code = QuerySelectField(query_factory=lambda: IOCode.query.all(), get_label='id', allow_blank=True,
-                               blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน',  render_kw={'required': True})
+                                   blank_text='กรุณาเลือกรหัสใบสั่งงานภายใน')
     product_code = QuerySelectField(query_factory=lambda: ProductCode.query.all(), get_label='product_code',
-                                    allow_blank=True, blank_text='กรุณาเลือกผลผลิต',  render_kw={'required': True})
+                                        allow_blank=True, blank_text='กรุณาเลือกผลผลิต')
+    requester = QuerySelectField(query_factory=lambda: StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False)).all(),
+                                         allow_blank=True, blank_text='กรุณาเลือกผู้ขออนุมัติ',  get_label="fullname")
+    approver = QuerySelectField(query_factory=lambda: StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False)).all(),
+                                        allow_blank=True, blank_text='กรุณาเลือกผู้อนุมัติ',  get_label="fullname")
 
 
 class ComplaintCommitteeForm(ModelForm):
