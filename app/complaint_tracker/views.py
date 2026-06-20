@@ -1527,27 +1527,27 @@ def check_priority():
     return resp
 
 
-@complaint_tracker.route('/issue/spare-part/add/<int:repair_company_id>', methods=['GET', 'POST'])
+@complaint_tracker.route('/issue/spare-part/add/<int:record_id>', methods=['GET', 'POST'])
 @complaint_tracker.route('/issue/spare-part/edit/<int:spare_part_id>', methods=['GET', 'POST'])
 @login_required
-def create_spare_part(repair_company_id=None, spare_part_id=None):
-    if repair_company_id:
+def create_spare_part(record_id=None, spare_part_id=None):
+    if record_id:
         form = ComplaintSparePartForm()
     else:
         spare_part = ComplaintSparePart.query.get(spare_part_id)
         form = ComplaintSparePartForm(obj=spare_part)
     if form.validate_on_submit():
-        if repair_company_id:
+        if record_id:
             spare_part = ComplaintSparePart()
         form.populate_obj(spare_part)
-        if repair_company_id:
-            spare_part.repair_company_id = repair_company_id
+        if record_id:
+            spare_part.record_id = record_id
             spare_part.created_at = arrow.now('Asia/Bangkok').datetime
         else:
             spare_part.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(spare_part)
         db.session.commit()
-        if repair_company_id:
+        if record_id:
             flash('เพิ่มข้อมูลสำเร็จ', 'success')
             resp = make_response(render_template('complaint_tracker/spare_part_template.html',
                                                  spare_part=spare_part))
@@ -1558,7 +1558,7 @@ def create_spare_part(repair_company_id=None, spare_part_id=None):
             resp.headers['HX-Refresh'] = 'true'
         return resp
     return render_template('complaint_tracker/modal/create_spare_part_modal.html', form=form,
-                           repair_company_id=repair_company_id, spare_part_id=spare_part_id)
+                           record_id=record_id, spare_part_id=spare_part_id)
 
 
 @complaint_tracker.route('/issue/spare-part/delete/<int:spare_part_id>', methods=['GET', 'DELETE'])
