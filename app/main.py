@@ -785,7 +785,8 @@ from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard, Province, District, Subdistrict, Zipcode)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard, Province, District, Subdistrict, Zipcode,
+                        CostCenterAuthority)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
@@ -847,6 +848,7 @@ class ProductCodeAdminModel(ModelView):
 
 
 admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='Finance'))
+admin.add_views(ModelView(CostCenterAuthority, db.session, category='Finance'))
 
 from app.eduqa import eduqa_bp as eduqa_blueprint
 from app.eduqa.models import *
