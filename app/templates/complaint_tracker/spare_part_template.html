@@ -47,8 +47,8 @@
 <tr id="spare_part_footer" hx-swap-oob="outerHTML" class="has-background-info">
     <td colspan="4" class="has-text-centered has-text-white has-text-weight-bold">ค่าใช้จ่ายทั้งหมด</td>
     <td class="has-text-centered has-text-white has-text-weight-bold">
-        {% if spare_part.repair_company.record.grand_total %}
-            {{ "{:,.2f}".format(spare_part.repair_company.record.grand_total) }} บาท
+        {% if spare_part.record.grand_total %}
+            {{ "{:,.2f}".format(spare_part.record.grand_total) }} บาท
         {% else %}
             0.00 บาท
         {% endif %}
