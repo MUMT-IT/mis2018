@@ -88,7 +88,7 @@
                                 <h5 class="title is-size-4">รายละเอียดข้อมูลผู้แจ้ง</h5>
                             </div>
                             <div class="column has-text-right is-narrow">
-                                {% if record.topic.category.no == 1 and record.comments and record.reports %}
+                                {% if record.topic.code == 'runied' and record.comments and record.reports %}
                                     {% if record.repairs %}
                                         {% for repair in record.repairs %}
                                             <a class="button is-info is-outlined is-rounded"
@@ -187,33 +187,44 @@
                                 </div>
                             {% endif %}
                             {% if record.topic.code == 'runied' %}
-                                <div class="field">
-                                    <label class="label">{{ form.procurement_location.label }}</label>
-                                    <div class="control">
-                                        {{ form.procurement_location(class='js-example-basic-single') }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">ครุภัณฑ์</label>
-                                    <div class="field has-addons">
+                                {% if record.is_editable %}
+                                    <div class="field">
+                                        <label class="label">{{ form.procurement_location.label }}</label>
                                         <div class="control">
-                                            <a class="button is-success is-small is-rounded is-outlined"
-                                               href="{{ url_for('comp_tracker.scan_qr_code_complaint',
-                                                code=record.topic.code, cat='admin', record_id=record.id, tab=tab) }}">
-                                                <span class="icon"><i class="fas fa-qrcode"></i></span>
-                                                <span>Scan QR Code ครุภัณฑ์</span>
-                                             </a>
+                                            {{ form.procurement_location(class='js-example-basic-single') }}
                                         </div>
-                                        <div class="control">
-                                            <a class="button is-info is-small is-rounded is-outlined"
-                                               href="{{ url_for('comp_tracker.add_procurement_number',
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">ครุภัณฑ์</label>
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-success is-small is-rounded is-outlined"
+                                                   href="{{ url_for('comp_tracker.scan_qr_code_complaint',
                                                     code=record.topic.code, cat='admin', record_id=record.id, tab=tab) }}">
-                                                <span class="icon"><i class="fas fa-pencil-alt"></i></span>
-                                                <span>กรอกเลขครุภัณฑ์</span>
-                                            </a>
+                                                    <span class="icon"><i class="fas fa-qrcode"></i></span>
+                                                    <span>Scan QR Code ครุภัณฑ์</span>
+                                                 </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-info is-small is-rounded is-outlined"
+                                                   href="{{ url_for('comp_tracker.add_procurement_number',
+                                                        code=record.topic.code, cat='admin', record_id=record.id, tab=tab) }}">
+                                                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                                    <span>กรอกเลขครุภัณฑ์</span>
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                {% else %}
+                                    <div class="field">
+                                        <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
+                                        <div class="control">
+                                            <input class="input" disabled
+                                                   value="{% if record.procurement_location %} {{ record.procurement_location }}
+                                                          {% else %} {{ 'ไม่ระบุ' }} {% endif %}">
+                                        </div>
+                                    </div>
+                                {% endif %}
                             {% endif %}
                             {% if record.procurements %}
                                 <div class="field">
@@ -934,8 +945,7 @@
                                                 {% endif %}
                                                 </thead>
                                                 <tbody id="spare_parts">
-                                                    {% for repair_company in record.repair_companies %}
-                                                        {% for spare_part in repair_company.spare_parts|sort(attribute='created_at') %}
+                                                        {% for spare_part in record.spare_parts|sort(attribute='created_at') %}
                                                             <tr>
                                                                 <td>{{ spare_part.item or '' }}</td>
                                                                 <td>{{ spare_part.quantity or '' }}</td>
@@ -974,7 +984,8 @@
                                                                                 </a>
                                                                             </div>
                                                                             <div class="control">
-                                                                                <a hx-delete="{{ url_for('comp_tracker.delete_spare_part', spare_part_id=spare_part.id) }}"
+                                                                                <a hx-delete="{{ url_for('comp_tracker.delete_spare_part',
+                                                                                   spare_part_id=spare_part.id) }}"
                                                                                    hx-confirm="ท่านต้องการลบรายการนี้ใช่หรือไม่"
                                                                                    class="button is-danger is-small is-rounded is-outlined"
                                                                                 >
@@ -1010,18 +1021,16 @@
                                         </div>
                                         <div id="spare-part-form"></div>
                                         {% if record.is_editable %}
-                                            {% for repair_company in record.repair_companies %}
-                                                <a class='button is-link is-rounded'
-                                                   style="margin-bottom: 1.5em"
-                                                   hx-swap="innerHTML"
-                                                   hx-target="#spare-part-form"
-                                                   hx-get="{{ url_for('comp_tracker.create_spare_part',
-                                                           repair_company_id=repair_company.id) }}"
-                                                >
-                                                    <span class="icon"><i class="fas fa-plus"></i></span>
-                                                    <span>เพิ่ม</span>
-                                                </a>
-                                            {% endfor %}
+                                            <a class='button is-link is-rounded'
+                                               style="margin-bottom: 1.5em"
+                                               hx-swap="innerHTML"
+                                               hx-target="#spare-part-form"
+                                               hx-get="{{ url_for('comp_tracker.create_spare_part',
+                                             record_id=record.id) }}"
+                                            >
+                                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                                <span>เพิ่ม</span>
+                                            </a>
                                         {% endif %}
                                     </div>
                                 </div>
