@@ -2629,7 +2629,8 @@ def edit_repair_approval(repair_approval_id):
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
         form.populate_obj(repair_approval)
-        if form.cost_center.data and form.io_code.data and form.product_code.data:
+        if (form.cost_center.data and form.io_code.data and form.product_code.data and form.approver.data and
+            form.requester.data):
             repair_approval.is_print = True
             repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(repair_approval)
@@ -2643,12 +2644,12 @@ def edit_repair_approval(repair_approval_id):
                                             tab=tab))
             else:
                 return redirect(url_for('comp_tracker.edit_committee', repair_approval_id=repair_approval.id,
-                                        temp=temp, tab=tab, menu=menu))
+                                        temp=temp, tab=tab, menu=menu, repair_approval=repair_approval))
         else:
             flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
             return render_template('complaint_tracker/edit_repair_approval.html',
                                    repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id,
-                                   tamp=temp, tab=tab, menu=menu)
+                                   tamp=temp, tab=tab, menu=menu, repair_approval=repair_approval)
     return render_template('complaint_tracker/edit_repair_approval.html',
                            repair_approval_id=repair_approval_id, form=form, record_id=repair_approval.record_id, temp=temp,
                            tab=tab, menu=menu, repair_approval=repair_approval)
@@ -2746,7 +2747,8 @@ def edit_committee(repair_approval_id):
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
-    return render_template('complaint_tracker/committee_form.html', form=form, rep_approval=rep_approval)
+    return render_template('complaint_tracker/committee_form.html', form=form, temp=temp,
+                           tab=tab, menu=menu, repair_approval_id=repair_approval_id, rep_approval=rep_approval)
 
 
 @complaint_tracker.route('/repair_approval/note/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
