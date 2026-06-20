@@ -945,60 +945,59 @@
                                                 {% endif %}
                                                 </thead>
                                                 <tbody id="spare_parts">
-                                                        {% for spare_part in record.spare_parts|sort(attribute='created_at') %}
-                                                            <tr>
-                                                                <td>{{ spare_part.item or '' }}</td>
-                                                                <td>{{ spare_part.quantity or '' }}</td>
-                                                                <td>{{ spare_part.unit or '' }}</td>
-                                                                <td>
-                                                                    {% if spare_part.unit_price %}
-                                                                        {{ "{:,.2f}".format(spare_part.unit_price) }}
-                                                                    {% else %}
-                                                                        {{ '' }}
-                                                                    {% endif %}
-                                                                </td>
-                                                                <td>
-                                                                    {% if spare_part.total_price %}
-                                                                        {{ "{:,.2f}".format(spare_part.total_price) }}
-                                                                    {% else %}
-                                                                        {{ '' }}
-                                                                    {% endif %}
-                                                                </td>
-                                                                <td>{{ spare_part.store_name or '' }}</td>
-                                                                <td>{{ spare_part.vendor_name or '' }}</td>
-                                                                <td>{{ spare_part.vendor_phone_number or '' }}</td>
-                                                                <td>
-                                                                    {% if record.is_editable %}
-                                                                        <div class="field has-addons">
-                                                                            <div class="control">
-                                                                                <a class='button is-warning is-small is-rounded is-outlined'
-                                                                                   style="margin-bottom: 1.5em"
-                                                                                   hx-swap="innerHTML"
-                                                                                   hx-target="#spare-part-form"
-                                                                                   hx-get="{{ url_for('comp_tracker.create_spare_part',
-                                                                                   spare_part_id=spare_part.id) }}"
-                                                                                >
-                                                                                    <span class="icon">
-                                                                                        <i class="fas fa-pencil-alt has-text-warning"></i>
-                                                                                    </span>
-                                                                                </a>
-                                                                            </div>
-                                                                            <div class="control">
-                                                                                <a hx-delete="{{ url_for('comp_tracker.delete_spare_part',
-                                                                                   spare_part_id=spare_part.id) }}"
-                                                                                   hx-confirm="ท่านต้องการลบรายการนี้ใช่หรือไม่"
-                                                                                   class="button is-danger is-small is-rounded is-outlined"
-                                                                                >
-                                                                                    <span class="icon">
-                                                                                        <i class="far fa-trash-alt has-text-danger"></i>
-                                                                                    </span>
-                                                                                </a>
-                                                                            </div>
+                                                    {% for spare_part in record.spare_parts|sort(attribute='created_at') %}
+                                                        <tr>
+                                                            <td>{{ spare_part.item or '' }}</td>
+                                                            <td>{{ spare_part.quantity or '' }}</td>
+                                                            <td>{{ spare_part.unit or '' }}</td>
+                                                            <td>
+                                                                {% if spare_part.unit_price %}
+                                                                    {{ "{:,.2f}".format(spare_part.unit_price) }}
+                                                                {% else %}
+                                                                    {{ '' }}
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                {% if spare_part.total_price %}
+                                                                    {{ "{:,.2f}".format(spare_part.total_price) }}
+                                                                {% else %}
+                                                                    {{ '' }}
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>{{ spare_part.store_name or '' }}</td>
+                                                            <td>{{ spare_part.vendor_name or '' }}</td>
+                                                            <td>{{ spare_part.vendor_phone_number or '' }}</td>
+                                                            <td>
+                                                                {% if record.is_editable %}
+                                                                    <div class="field has-addons">
+                                                                        <div class="control">
+                                                                            <a class='button is-warning is-small is-rounded is-outlined'
+                                                                               style="margin-bottom: 1.5em"
+                                                                               hx-swap="innerHTML"
+                                                                               hx-target="#spare-part-form"
+                                                                               hx-get="{{ url_for('comp_tracker.create_spare_part',
+                                                                               spare_part_id=spare_part.id) }}"
+                                                                            >
+                                                                                <span class="icon">
+                                                                                    <i class="fas fa-pencil-alt has-text-warning"></i>
+                                                                                </span>
+                                                                            </a>
                                                                         </div>
-                                                                    {% endif %}
-                                                                </td>
-                                                            </tr>
-                                                        {% endfor %}
+                                                                        <div class="control">
+                                                                            <a hx-delete="{{ url_for('comp_tracker.delete_spare_part',
+                                                                               spare_part_id=spare_part.id) }}"
+                                                                               hx-confirm="ท่านต้องการลบรายการนี้ใช่หรือไม่"
+                                                                               class="button is-danger is-small is-rounded is-outlined"
+                                                                            >
+                                                                                <span class="icon">
+                                                                                    <i class="far fa-trash-alt has-text-danger"></i>
+                                                                                </span>
+                                                                            </a>
+                                                                        </div>
+                                                                    </div>
+                                                                {% endif %}
+                                                            </td>
+                                                        </tr>
                                                     {% endfor %}
                                                 </tbody>
                                                 <tfoot>

@@ -418,6 +418,15 @@ pdpa_coordinators = db.Table('pdpa_coordinators',
 
 from app.staff.models import StaffAccount
 
+class CostCenterAuthority(db.Model):
+    __tablename__ = 'cost_center_authorities'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    cost_center = db.Column('cost_center', db.String(), nullable=False)
+    secretary_id = db.Column('secretary_id', db.ForeignKey('staff_account.id'))
+    secretary = db.relationship(StaffAccount, foreign_keys=[secretary_id])
+    head_id = db.Column('head_id', db.ForeignKey('staff_account.id'))
+    head = db.relationship(StaffAccount, foreign_keys=[head_id])
+
 
 class CoreService(db.Model):
     __tablename__ = 'db_core_services'
