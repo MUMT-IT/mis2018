@@ -69,6 +69,26 @@
                             </div>
                         </div>
                     </div>
+                    <div class="field-body" style="margin-bottom: .8em; margin-top: .8em">
+                        <div class="field">
+                            <label class="label">
+                                ผู้ขออนุมัติ
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.requester(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                ผู้อนุมัติ
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.approver(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                    </div>
                     <div class="buttons is-centered">
                         <input type="submit" class="button is-success"
                                 {% if repair_approval.repair_type == 'เร่งด่วน' %}
