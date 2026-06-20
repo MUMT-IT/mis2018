@@ -85,7 +85,11 @@
                                 </td>
                                 <td>{{ repair_approval.purchase_type }}</td>
                                 <td>
-                                    {{ "{:,.2f}".format(repair_approval.price) }}
+                                    {% if repair_approval.price %}
+                                        {{ "{:,.2f}".format(repair_approval.price) }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
                                 </td>
                                 <td>{{ repair_approval.budget_year }}</td>
                                 <td>{{ repair_approval.reason }}</td>
