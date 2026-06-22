@@ -2641,14 +2641,13 @@ def edit_repair_approval(repair_approval_id):
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
         form.populate_obj(repair_approval)
-        if (form.cost_center.data and form.io_code.data and form.product_code.data and form.approver.data and
-            form.requester.data):
+        if (form.cost_center.data and form.io_code.data and form.product_code.data):
             repair_approval.is_print = True
             repair_approval.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(repair_approval)
             db.session.commit()
-            flash('แก้ไขข้อมูลสำเร็จ', 'success')
             if repair_approval.repair_type == 'เร่งด่วน':
+                flash('แก้ไขข้อมูลสำเร็จ', 'success')
                 if temp == 'index':
                     return redirect(url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu))
                 else:
@@ -2719,39 +2718,6 @@ def edit_committee(repair_approval_id):
             db.session.add(committee)
             db.session.commit()
         flash('บันทึกข้อมูลสำเร็จ', 'success')
-        # if rep_approval.get_other_org == True:
-        #     scheme = 'http' if current_app.debug else 'https'
-        #     link = url_for("comp_tracker.repair_approval_index", tab='new', _external=True, _scheme=scheme)
-        #     if committees:
-        #         title = f'''แจ้งแก้ไขใบอนุมัติหลักการซ่อม {rep_approval.item}'''
-        #         message = f'''เจ้าหน้าที่ได้ดำเนินการแก้ไขข้อมูลใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
-        #         message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
-        #         message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
-        #     else:
-        #         title = f'''แจ้งออกใบอนุมัติหลักการซ่อม {rep_approval.item}'''
-        #         message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
-        #         message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
-        #         message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
-        #         if rep_approval.record.complainant:
-        #             msg = (
-        #                 f'เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'
-        #                 f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
-        #             message_for_complainant = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'''
-        #             message_for_complainant += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
-        #
-        #             send_mail([rep_approval.record.complainant.email + '@mahidol.ac.th'], title,
-        #                       message_for_complainant)
-        #             if not current_app.debug:
-        #                 try:
-        #                     line_bot_api.push_message(to=rep_approval.record.complainant.line_id,
-        #                                               messages=TextSendMessage(text=msg))
-        #                 except LineBotApiError:
-        #                     pass
-        #             else:
-        #                 print('msg :', msg, 'line :', rep_approval.record.complainant.line_id)
-        #     if rep_approval.owner.personal_info.org.secretary_staff:
-        #         send_mail([secretary.email + '@mahidol.ac.th' for secretary in rep_approval.owner.personal_info.org.secretary_staff],
-        #                   title, message)
         if temp == 'index':
             return redirect(url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu))
         else:
