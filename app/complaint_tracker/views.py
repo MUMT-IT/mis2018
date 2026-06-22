@@ -2519,6 +2519,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
     approver_id = None
     record = ComplaintRecord.query.get(record_id)
     has_procurement = True if record.procurements else False
+    requester = record.complainant if record.complainant else current_user
+    owner_id = requester.id
+
     if repair_approval_id:
         rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
         form = ComplaintRepairApprovalForm(obj=rep_approval)
@@ -2529,19 +2532,20 @@ def create_repair_approval(record_id, repair_approval_id=None):
         for procurement in record.procurements:
             cost_center= procurement.cost_center[:-1]
             cost_center_auth = StaffCostCenterAuthority.query.filter(StaffCostCenterAuthority.cost_center == cost_center).first()
-            requester = record.complainant if record.complainant else current_user
             org = Org.query.filter_by(name=requester.personal_info.org.name).first()
             if not form.item.data:
                 form.item.data = f'เลขครุภัณฑ์ {procurement.procurement_no} {procurement.name}'
             if cost_center_auth:
                 if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
                         (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
+                    owner_id = cost_center_auth.secretary_id
                     requester_id = cost_center_auth.secretary_id
                     approver_id = cost_center_auth.head_id
                     form.name.data = cost_center_auth.secretary.fullname
                     form.position.data = f"หัวหน้า{cost_center_auth.secretary.personal_info.org.name}"
                     get_organization(org=cost_center_auth.secretary.personal_info.org, form=form)
                 else:
+                    owner_id = requester.id
                     requester_id = requester.id
                     approver_id = cost_center_auth.head_id
                     form.name.data = requester.fullname
@@ -2568,6 +2572,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.record_id = record_id
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
             rep_approval.creator_id = current_user.id
+            rep_approval.requester_id = requester_id
+            rep_approval.approver_id = approver_id
+            rep_approval.owner_id = owner_id
         else:
             rep_approval.updated_at = arrow.now('Asia/Bangkok').datetime
 
@@ -2580,8 +2587,6 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.receipt_date = None
             rep_approval.supplier = None
             rep_approval.loan_no = None
-        rep_approval.requester_id = requester_id
-        rep_approval.approver_id = approver_id
         rep_approval.is_print = False
         rep_approval.reviewed_at = None
         db.session.add(rep_approval)
@@ -2867,34 +2872,37 @@ def generate_repair_approval_pdf(repair_approval):
     )
 
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
-    org_name = repair_approval.owner.personal_info.org.name
-    org = Org.query.filter_by(name=org_name).first()
-    staff = StaffAccount.query.filter_by(email=org.head).first()
     mhesi_no = '''<font name="SarabunBold">ที่</font>'''
-    if org.name == 'หน่วยข้อมูลและสารสนเทศ':
-        head = "ผู้ช่วยศาสตราจารย์ ดร.ลิขิต ปรียานนท์"
-        organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
-    elif org.name == 'หน่วยซ่อมบำรุง':
-        head = "รองศาสตราจารย์ ดร.กลมรัตน์ โพธิ์ปิ่น"
-        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
-    elif org.parent and org.parent.parent:
-        head = staff.fullname
-        organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
-    elif org.parent and not org.parent.parent:
-        head = staff.fullname
-        organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number or ''}"
+
+    if repair_approval.requester:
+        org_name = repair_approval.requester.personal_info.org.name
+        org = Org.query.filter_by(name=org_name).first()
+        requester = f"{repair_approval.requester.fullname}"
+        if org.name == 'หน่วยข้อมูลและสารสนเทศ':
+            organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
+        elif org.parent and org.parent.parent:
+            organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
+        elif org.parent and not org.parent.parent:
+            organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number or ''}"
+        else:
+            organization_text = f"{org.name}<br/>โทร {org.phone_number or ''}"
     else:
-        head = staff.fullname
-        organization_text = f"{org.name}<br/>โทร {org.phone_number or ''}"
+        requester = f""
+        organization_text = f"{repair_approval.organization}"
+
+    if repair_approval.approver:
+        approver = f"{repair_approval.approver.fullname}"
+    else:
+        approver = f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
     organization_info = Paragraph(organization_text, style=header_right_style)
     person = Table([
         [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
-        [Paragraph(f'({repair_approval.name})', center_style), ''],
+        [Paragraph(f'({requester})', center_style), ''],
         ['', ''],
         ['', ''],
         ['', ''],
         [Paragraph('ลงชื่อ', center_style), Paragraph('หัวหน้าภาค / ศูนย์ฯ', center_style)],
-        [Paragraph(f'({head})', center_style), ''],
+        [Paragraph(f'({approver})', center_style), ''],
     ], colWidths=[160, 160])
     person.setStyle(TableStyle([
         ('SPAN', (0, 1), (1, 1)),
