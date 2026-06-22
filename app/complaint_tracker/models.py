@@ -539,7 +539,8 @@ class ComplaintRepairApproval(db.Model):
     receipt_number = db.Column('receipt_number', db.String(), info={'label': 'เลขที่'})
     receipt_date = db.Column('receipt_date', db.Date(), info={'label': 'วันที่'})
     purchase_type = db.Column('purchase_type', db.String(), info={'label': 'ประเภทการซื้อ',
-                                                                  'choices': [('รายได้ส่วนงาน', 'รายได้ส่วนงาน'),
+                                                                  'choices': [('', 'กรุณาเลือกประเภทการซื้อ'),
+                                                                              ('รายได้ส่วนงาน', 'รายได้ส่วนงาน'),
                                                                               ('เงินงบประมาณแผ่นดิน', 'เงินงบประมาณแผ่นดิน')
                                                                               ]
                                                                   })
