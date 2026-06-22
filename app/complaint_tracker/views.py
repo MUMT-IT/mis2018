@@ -2528,6 +2528,12 @@ def create_repair_approval(record_id, repair_approval_id=None):
     else:
         form = ComplaintRepairApprovalForm()
 
+    if not form.reason.data:
+        form.reason.data = f"{record.organization}ไม่สามารถซ่อมเองได้" if record.organization else f"ไม่สามารถซ่อมเองได้"
+
+    if not form.detail.data:
+        form.detail.data = f"{record.organization}ไม่สามารถซ่อมเองได้ สมควรส่งบริษัทซ่อม" if record.organization else f"ไม่สามารถซ่อมเองได้ สมควรส่งบริษัทซ่อม"
+
     if record.procurements:
         for procurement in record.procurements:
             cost_center= procurement.cost_center[:-1]
