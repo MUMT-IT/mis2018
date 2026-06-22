@@ -123,8 +123,7 @@
                                     <div class="field">
                                         <div class="control mb-2">
                                             <a class="button is-small is-info is-outlined is-rounded"
-                                               {% if repair_approval.cost_center and repair_approval.io_code and
-                                                    repair_approval.product_code %}
+                                               {% if repair_approval.has_data_complete %}
                                                     @click="printRepairApproval({{ repair_approval.id }})"
                                                {% else %}
                                                     @click="warnAlert({{ repair_approval.id }})"
