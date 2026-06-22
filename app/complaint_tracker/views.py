@@ -2518,6 +2518,7 @@ def create_repair_approval(record_id, repair_approval_id=None):
     requester_id = None
     approver_id = None
     record = ComplaintRecord.query.get(record_id)
+    has_procurement = True if record.procurements else False
     if repair_approval_id:
         rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
         form = ComplaintRepairApprovalForm(obj=rep_approval)
@@ -2537,9 +2538,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
                         (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
                     requester_id = cost_center_auth.secretary_id
                     approver_id = cost_center_auth.head_id
-                    form.name.data = cost_center_auth.requester.fullname
-                    form.position.data = f"หัวหน้า{cost_center_auth.requester.personal_info.org.name}"
-                    get_organization(org=cost_center_auth.requester.personal_info.org, form=form)
+                    form.name.data = cost_center_auth.secretary.fullname
+                    form.position.data = f"หัวหน้า{cost_center_auth.secretary.personal_info.org.name}"
+                    get_organization(org=cost_center_auth.secretary.personal_info.org, form=form)
                 else:
                     requester_id = requester.id
                     approver_id = cost_center_auth.head_id
@@ -2622,7 +2623,7 @@ def create_repair_approval(record_id, repair_approval_id=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/repair_approval_form.html', form=form, record_id=record_id,
-                           repair_approval_id=repair_approval_id, record=record)
+                           repair_approval_id=repair_approval_id, record=record, has_procurement=has_procurement)
 
 
 @complaint_tracker.route('/repair-approval/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
