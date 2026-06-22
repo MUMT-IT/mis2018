@@ -1035,8 +1035,8 @@ class StaffShiftRole(db.Model):
         return self.role
 
 
-class StaffCostCenter(db.Model):
-    __tablename__ = 'staff_cost_centers'
+class StaffCostCenterAuthority(db.Model):
+    __tablename__ = 'staff_cost_center_authorities'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     cost_center = db.Column('cost_center', db.String(), nullable=False)
     secretary_id = db.Column('secretary_id', db.ForeignKey('staff_account.id'))
