@@ -4,6 +4,14 @@
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        .readonly-style {
+            background-color: #f5f5f5;
+            border: none;
+            color: #7a7a7a;
+            cursor: not-allowed;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
     {% include "nav.html" %}
@@ -55,8 +63,7 @@
                                             <span class="has-text-danger">*</span>
                                         </label>
                                         <div class="control">
-                                            {{ form.name(class='input', style="background-color: #f5f5f5; border: none;
-                                                color: #7a7a7a; cursor: not-allowed;") }}
+                                            {{ form.name(class='input readonly-style', readonly=True) }}
                                         </div>
                                     </div>
                                     <div class="field">
@@ -65,8 +72,7 @@
                                             <span class="has-text-danger">*</span>
                                         </label>
                                         <div class="control">
-                                            {{ form.position(class='input', style="background-color: #f5f5f5; border: none;
-                                                color: #7a7a7a; cursor: not-allowed;", readonly=True) }}
+                                            {{ form.position(class='input readonly-style', readonly=True) }}
                                         </div>
                                     </div>
                                 </div>
@@ -77,8 +83,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="control">
-                                    {{ form.organization(class='input', style="background-color: #f5f5f5; border: none;
-                                        color: #7a7a7a; cursor: not-allowed;", readonly=True) }}
+                                    {{ form.organization(class='input readonly-style', readonly=True) }}
                                 </div>
                             </div>
                             <div class="field" id="purpose-field" style="display:none;">
@@ -265,8 +270,12 @@
     <script>
         $(document).ready(function () {
             function showField() {
+                var hasProcurement = {{ has_procurement|tojson }};
                 var repairType = document.querySelector('input[name="repair_type"]:checked')?.value;
                 var creatorField = document.getElementById("creator-field");
+                var name = document.querySelector('input[name="name"]');
+                var position = document.querySelector('input[name="position"]');
+                var organization = document.querySelector('input[name="organization"]');
                 var receiptNumber = document.querySelector('input[name="receipt_number"]');
                 var receiptDate = document.querySelector('input[name="receipt_date"]');
                 var receiptField = document.getElementById('receipt-field');
@@ -291,6 +300,27 @@
                     purposeField.style.display = 'none';
                     purpose.required = false;
                     submitButton.value = 'บันทึก';
+                    if (hasProcurement === true) {
+                        name.readOnly = true;
+                        name.required = false;
+                        name.classList.add('readonly-style');
+                        position.readOnly = true;
+                        position.required = false;
+                        position.classList.add('readonly-style');
+                        organization.readOnly = true;
+                        organization.required = false;
+                        organization.classList.add('readonly-style');
+                    } else {
+                        name.readOnly = false;
+                        name.required = true;
+                        name.classList.remove('readonly-style');
+                        position.readOnly = false;
+                        position.required = true;
+                        position.classList.remove('readonly-style');
+                        organization.readOnly = false
+                        organization.required = true
+                        organization.classList.remove('readonly-style');
+                    }
                 } else {
                     creatorField.style.display = "none";
                     receiptField.style.display = "none";
@@ -303,7 +333,17 @@
                     principleApprovalTypeField.style.display = 'block';
                     purposeField.style.display = 'block';
                     purpose.required = true;
-                    submitButton.value = 'บันทึกและดำเนินการต่อ';
+                    submitButton.value = 'บันทึก';
+
+                    if (hasProcurement === true) {
+                        organization.readOnly = true;
+                        organization.required = false;
+                        organization.classList.add('readonly-style');
+                    } else {
+                        organization.readOnly = false;
+                        organization.required = true;
+                        organization.classList.remove('readonly-style');
+                    }
                 }
             }
             showField();
