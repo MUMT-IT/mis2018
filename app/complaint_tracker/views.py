@@ -2845,27 +2845,41 @@ def generate_repair_approval_pdf(repair_approval):
 
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
     mhesi_no = '''<font name="SarabunBold">ที่</font>'''
+    blank_phone = (
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
+    )
 
     if repair_approval.requester:
         org_name = repair_approval.requester.personal_info.org.name
         org = Org.query.filter_by(name=org_name).first()
         requester = f"{repair_approval.requester.fullname}"
         if org.name == 'หน่วยข้อมูลและสารสนเทศ':
-            organization_text = f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
+            organization_text = (f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>"
+                                 f"โทร {org.phone_number or blank_phone}")
         elif org.parent and org.parent.parent:
-            organization_text = f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>โทร {org.phone_number or ''}"
+            organization_text = (f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>"
+                                 f"โทร {org.phone_number or blank_phone}")
         elif org.parent and not org.parent.parent:
-            organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number or ''}"
+            organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number or blank_phone}"
         else:
-            organization_text = f"{org.name}<br/>โทร {org.phone_number or ''}"
+            organization_text = f"{org.name}<br/>โทร {org.phone_number or blank_phone}"
     else:
-        requester = f""
-        organization_text = f"{repair_approval.organization}"
+        requester = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+        organization_text = (f"{repair_approval.organization}<br/>โทร &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                             f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                             f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
 
     if repair_approval.approver:
         approver = f"{repair_approval.approver.fullname}"
     else:
-        approver = f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+        approver = (f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
     organization_info = Paragraph(organization_text, style=header_right_style)
     person = Table([
         [Paragraph('ลงชื่อ', center_style), Paragraph('ผู้ขออนุมัติ', center_style)],
