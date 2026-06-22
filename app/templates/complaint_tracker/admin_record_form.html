@@ -103,8 +103,7 @@
                                             <div class="field has-addons">
                                                 <div class="control">
                                                     <a class="button is-info is-outlined is-rounded"
-                                                       {% if rep_approval.cost_center and rep_approval.io_code and
-                                                            rep_approval.product_code %}
+                                                       {% if rep_approval.has_data_complete %}
                                                             @click="printRepairApproval({{ rep_approval.id }})"
                                                        {% else %}
                                                             @click="warnAlert({{ rep_approval.id }})"
