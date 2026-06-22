@@ -336,10 +336,14 @@
                     submitButton.value = 'บันทึก';
 
                     if (hasProcurement === true) {
+                        name.required = false;
+                        position.required = false;
                         organization.readOnly = true;
                         organization.required = false;
                         organization.classList.add('readonly-style');
                     } else {
+                        name.required = false;
+                        position.required = false;
                         organization.readOnly = false;
                         organization.required = true;
                         organization.classList.remove('readonly-style');
