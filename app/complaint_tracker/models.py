@@ -2,7 +2,7 @@
 import os
 import boto3
 from pytz import timezone
-from sqlalchemy import func
+from sqlalchemy import func, true
 from app.main import db
 from flask_login import current_user
 from app.models import CostCenter, IOCode, ProductCode
@@ -576,6 +576,14 @@ class ComplaintRepairApproval(db.Model):
 
     def __str__(self):
         return self.item
+
+    @property
+    def has_data_complete(self):
+        if (self.price and self.budget_year and self.purchase_type and self.cost_center and
+                self.io_code and self.product_code):
+            return True
+        else:
+            return False
 
     @property
     def status(self):
