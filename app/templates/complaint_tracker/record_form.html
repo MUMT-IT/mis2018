@@ -26,6 +26,15 @@
                           hx-encoding="multipart/form-data"
                     >
                         {{ form.hidden_tag() }}
+                        {% if procurement %}
+                            <input type="hidden" name="procurement_no" value="{{ procurement.procurement_no }}">
+                        {% elif request.args.get('pro_number') %}
+                            <input type="hidden" name="pro_number" value="{{ request.args.get('pro_number') }}">
+                        {% endif %}
+                        {% if room %}
+                            <input type="hidden" name="number" value="{{ room.number }}">
+                            <input type="hidden" name="location" value="{{ room.location }}">
+                        {% endif %}
                         {% if topic.code == 'runied' %}
                             <div class="field">
                                 <div class="buttons is-centered">
