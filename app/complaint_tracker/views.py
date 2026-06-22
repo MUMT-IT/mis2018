@@ -35,11 +35,10 @@ from app.complaint_tracker.models import *
 from app.main import mail
 from ..main import csrf
 from flask_mail import Message
-
 from ..models import Org
 from ..procurement.models import ProcurementDetail
 from ..roles import admin_permission
-from ..staff.models import StaffPersonalInfo
+from ..staff.models import StaffPersonalInfo, StaffCostCenterAuthority
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -1039,10 +1038,10 @@ def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
     ComplaintRecordForm = create_record_form(record_id=None, topic_id=topic_id)
     form = ComplaintRecordForm()
-    room_number = request.args.get('number')
-    location = request.args.get('location')
-    procurement_no = request.args.get('procurement_no')
-    pro_number = request.args.get('pro_number')
+    room_number = request.values.get('number')
+    location = request.values.get('location')
+    procurement_no = request.values.get('procurement_no')
+    pro_number = request.values.get('pro_number')
     is_admin = False
     if not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด':
         return redirect(url_for('auth.login'))
@@ -2516,31 +2515,37 @@ def repair_approval_index():
 @complaint_tracker.route('/admin/repair-approval/edit/<int:record_id>/<int:repair_approval_id>', methods=['GET', 'POST'])
 @login_required
 def create_repair_approval(record_id, repair_approval_id=None):
+    requester_id = None
+    approver_id = None
     record = ComplaintRecord.query.get(record_id)
     if repair_approval_id:
         rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
         form = ComplaintRepairApprovalForm(obj=rep_approval)
     else:
         form = ComplaintRepairApprovalForm()
-    org_name = record.complainant.personal_info.org.name if record.complainant else current_user.personal_info.org.name
-    org = Org.query.filter_by(name=org_name).first()
-    if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
-            (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
-        staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-        owner_id = staff.id
-        form.name.data = staff.fullname
-        form.position.data = f"หัวหน้า{staff.personal_info.org.name}"
-        get_organization(org=staff.personal_info.org, form=form)
-    else:
-        user = record.complainant or current_user
-        owner_id = user.id
-        form.name.data = user.fullname
-        form.position.data = record.complainant.personal_info.position
-        get_organization(org=record.complainant.personal_info.org, form=form)
 
-    if record.procurements and not form.item.data:
+    if record.procurements:
         for procurement in record.procurements:
-            form.item.data = f'เลขครุภัณฑ์ {procurement.procurement_no} {procurement.name}'
+            cost_center= procurement.cost_center[:-1]
+            cost_center_auth = StaffCostCenterAuthority.query.filter(StaffCostCenterAuthority.cost_center == cost_center).first()
+            requester = record.complainant if record.complainant else current_user
+            org = Org.query.filter_by(name=requester.personal_info.org.name).first()
+            if not form.item.data:
+                form.item.data = f'เลขครุภัณฑ์ {procurement.procurement_no} {procurement.name}'
+            if cost_center_auth:
+                if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+                        (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
+                    requester_id = cost_center_auth.secretary_id
+                    approver_id = cost_center_auth.head_id
+                    form.name.data = cost_center_auth.requester.fullname
+                    form.position.data = f"หัวหน้า{cost_center_auth.requester.personal_info.org.name}"
+                    get_organization(org=cost_center_auth.requester.personal_info.org, form=form)
+                else:
+                    requester_id = requester.id
+                    approver_id = cost_center_auth.head_id
+                    form.name.data = requester.fullname
+                    form.position.data = requester.personal_info.position
+                    get_organization(org=requester.personal_info.org, form=form)
 
     if form.validate_on_submit():
         if not repair_approval_id:
@@ -2562,7 +2567,6 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.record_id = record_id
             rep_approval.created_at = arrow.now('Asia/Bangkok').datetime
             rep_approval.creator_id = current_user.id
-            rep_approval.owner_id = owner_id
         else:
             rep_approval.updated_at = arrow.now('Asia/Bangkok').datetime
 
@@ -2575,6 +2579,8 @@ def create_repair_approval(record_id, repair_approval_id=None):
             rep_approval.receipt_date = None
             rep_approval.supplier = None
             rep_approval.loan_no = None
+        rep_approval.requester_id = requester_id
+        rep_approval.approver_id = approver_id
         rep_approval.is_print = False
         rep_approval.reviewed_at = None
         db.session.add(rep_approval)
@@ -2616,7 +2622,7 @@ def create_repair_approval(record_id, repair_approval_id=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('complaint_tracker/repair_approval_form.html', form=form, record_id=record_id,
-                           repair_approval_id=repair_approval_id)
+                           repair_approval_id=repair_approval_id, record=record)
 
 
 @complaint_tracker.route('/repair-approval/edit/<int:repair_approval_id>', methods=['GET', 'POST'])
