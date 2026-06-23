@@ -1231,7 +1231,7 @@ def edit_record_admin(record_id):
                                 line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
-            if record.status != old_status and record.complainant:
+            if record.status != old_status:
                 if record.status_id:
                     rec = ComplaintRecordStatusAssociation(status_id=record.status_id, record_id=record_id,
                                                            updated_at=arrow.now('Asia/Bangkok').datetime)
@@ -1512,7 +1512,12 @@ def edit_invited(record_id=None, investigator_id=None, coordinator_id=None):
 @complaint_tracker.route('/complaint/user', methods=['GET'])
 @login_required
 def complainant_index():
-    records = ComplaintRecord.query.filter_by(complainant=current_user)
+    records = ComplaintRecord.query.filter(
+        or_(
+            ComplaintRecord.participants.any(StaffAccount.id == current_user.id),
+            ComplaintRecord.complainant_id == current_user.id
+        )
+    ).all()
     is_admin = True if ComplaintAdmin.query.filter_by(admin=current_user).first() else False
     return render_template('complaint_tracker/complainant_index.html', records=records, is_admin=is_admin)
 
