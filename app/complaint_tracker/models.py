@@ -163,6 +163,13 @@ class ComplaintRecord(db.Model):
         ('หน่วยซ่อมบำรุง', 'หน่วยซ่อมบำรุง '),
         ('หน่วยข้อมูลและสารสนเทศ', 'หน่วยข้อมูลและสารสนเทศ')
     ]})
+    repair_status = db.Column('repair_status', db.String(), info={'label': 'สถานะการซ่อม',
+                                                                  'choices': [
+                                                                      ('None', 'กรุณาเลือกสถานะการซ่อม'),
+                                                                      ('ซ่อมเองได้', 'ซ่อมเองได้'),
+                                                                      ('ส่งบริษัทซ่อม', 'ส่งบริษัทซ่อม'),
+                                                                      ('แทงจำหน่าย', 'แทงจำหน่าย')
+                                                                  ]})
     status_id = db.Column('status', db.ForeignKey('complaint_statuses.id'))
     status = db.relationship(ComplaintStatus, backref=db.backref('records', cascade='all, delete-orphan'))
     type_id = db.Column('type_id', db.ForeignKey('complaint_types.id'))
