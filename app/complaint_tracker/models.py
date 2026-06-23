@@ -189,8 +189,6 @@ class ComplaintRecord(db.Model):
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
-    is_disposed = db.Column('is_disposed', db.Boolean(), default=False)
-
     def __str__(self):
         return self.desc
 
