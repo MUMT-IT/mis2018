@@ -65,6 +65,8 @@ def create_record_form(record_id, topic_id):
         if topic_id:
             subtopic = QuerySelectField('ด้านที่เกี่ยวข้อง', query_factory=lambda: ComplaintSubTopic.query.filter_by(topic_id=topic_id),
                                         allow_blank=True, blank_text='กรุณาเลือกด้านที่เกี่ยวข้อง', get_label='subtopic')
+            participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False)).all(),
+                                                    get_label='fullname')
         type = QuerySelectField('ประเภท', query_factory=lambda: ComplaintType.query.all(), allow_blank=True,
                                 blank_text='กรุณาเลือกประเภท', get_label='type')
         tags = QuerySelectMultipleFieldAppendable('แท็กเรื่อง', query_factory=lambda: ComplaintTag.query.all(),
@@ -73,8 +75,6 @@ def create_record_form(record_id, topic_id):
                                                     allow_blank=True, blank_text='กรุณาเลือกสถานที่ตั้งครุภัณฑ์ปัจจุบัน')
         room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
                                                     allow_blank=True, blank_text='กรุณาเลือกห้อง')
-        participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False)).all(),
-                                                get_label='fullname')
         file_upload = FileField('File Upload')
         repair_companies = FieldList(FormField(ComplaintRepairCompanyForm, default=ComplaintRepairCompany), min_entries=1)
     return ComplaintRecordForm
