@@ -3192,6 +3192,11 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 
+def _profile_consolidated_is_reimbursable(receipt):
+    profile_invoices = [t for t in receipt.invoices if t.billed and t.test_item.profile]
+    return bool(profile_invoices) and all(t.reimbursable for t in profile_invoices)
+
+
 def generate_receipt_pdf(receipt, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
@@ -3307,6 +3312,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     number_test = 0
     total_profile_price = 0
     total_special_price = 0
+    consolidated_profile_is_reimbursable = _profile_consolidated_is_reimbursable(receipt)
     if receipt.print_profile_note:
         profile_tests = [t for t in receipt.record.ordered_tests if t.profile]
         if profile_tests:
@@ -3323,8 +3329,13 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                             Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
+                    if consolidated_profile_is_reimbursable:
+                        item[2], item[3] = item[3], item[2]
                     items.append(item)
                     total_special_price += profile_price
+                    if consolidated_profile_is_reimbursable:
+                        total_profile_price += profile_price
+                        total_special_price -= profile_price
                     total += profile_price
                 else:
                     for t in receipt.record.ordered_tests:
@@ -3341,7 +3352,12 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                             Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
+                    if consolidated_profile_is_reimbursable:
+                        item[2], item[3] = item[3], item[2]
                     items.append(item)
+                    if consolidated_profile_is_reimbursable:
+                        total_profile_price += total_special_price
+                        total_special_price = 0
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
