@@ -73,6 +73,8 @@ def create_record_form(record_id, topic_id):
                                                     allow_blank=True, blank_text='กรุณาเลือกสถานที่ตั้งครุภัณฑ์ปัจจุบัน')
         room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
                                                     allow_blank=True, blank_text='กรุณาเลือกห้อง')
+        participants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False)).all(),
+                                                get_label='fullname')
         file_upload = FileField('File Upload')
         repair_companies = FieldList(FormField(ComplaintRepairCompanyForm, default=ComplaintRepairCompany), min_entries=1)
     return ComplaintRecordForm
