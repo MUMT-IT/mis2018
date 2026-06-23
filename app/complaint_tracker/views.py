@@ -1251,28 +1251,29 @@ def edit_record_admin(record_id):
                 message += f'''ขอบคุณค่ะ\n'''
                 message += f'''ระบบรับแจ้งปัญหาหรือข้อร้องเรียน\n'''
                 message += f'''คณะเทคนิคการแพทย์'''
-                if not current_app.debug:
-                    if record.complainant:
-                        try:
-                            line_bot_api.push_message(to=record.complainant.line_id, messages=TextSendMessage(text=msg))
-                        except LineBotApiError:
-                            pass
-                        send_mail([record.complainant.email + '@mahidol.ac.th'], title, message)
-                    if record.participants:
-                        for participant in record.participants:
+                if record.participants or record.complainant:
+                    if not current_app.debug:
+                        if record.complainant:
                             try:
-                                line_bot_api.push_message(to=participant.line_id, messages=TextSendMessage(text=msg))
+                                line_bot_api.push_message(to=record.complainant.line_id, messages=TextSendMessage(text=msg))
                             except LineBotApiError:
                                 pass
-                        send_mail([participant.email + '@mahidol.ac.th' for participant in record.participants], title, message)
-                else:
-                    if record.complainant:
-                        print('line_id :', record.complainant.line_id, 'msg :', msg, 'user_email', record.complainant.email,
-                              'message_email', message)
-                    if record.participants:
-                        print('line_id :', [participant.line_id for participant in record.participants], 'msg :', msg,
-                              'user_email', [participant.email + '@mahidol.ac.th' for participant in record.participants],
-                              'message_email', message)
+                            send_mail([record.complainant.email + '@mahidol.ac.th'], title, message)
+                        if record.participants:
+                            for participant in record.participants:
+                                try:
+                                    line_bot_api.push_message(to=participant.line_id, messages=TextSendMessage(text=msg))
+                                except LineBotApiError:
+                                    pass
+                            send_mail([participant.email + '@mahidol.ac.th' for participant in record.participants], title, message)
+                    else:
+                        if record.complainant:
+                            print('line_id :', record.complainant.line_id, 'msg :', msg, 'user_email', record.complainant.email,
+                                  'message_email', message)
+                        if record.participants:
+                            print('line_id :', [participant.line_id for participant in record.participants], 'msg :', msg,
+                                  'user_email', [participant.email + '@mahidol.ac.th' for participant in record.participants],
+                                  'message_email', message)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
                                statuses=statuses)
@@ -2642,19 +2643,38 @@ def create_repair_approval(record_id, repair_approval_id=None):
             message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
             message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
             message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
-        if rep_approval.record.complainant:
-            msg = (f'เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'
+        msg = (f'เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'
                         f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
-            message_for_complainant = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'''
-            message_for_complainant += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
-            send_mail([rep_approval.record.complainant.email + '@mahidol.ac.th'], title, message_for_complainant)
+        message_for_complainant = f'''เจ้าหน้าที่ได้ดำเนินการออกใบอนุมัติหลักการซ่อมสำหรับรายการ {rep_approval.item} เรียบร้อยแล้ว\n\n'''
+        message_for_complainant += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+        if (rep_approval.record.complainant or rep_approval.record.procurements) and not repair_approval_id:
             if not current_app.debug:
-                try:
-                    line_bot_api.push_message(to=rep_approval.record.complainant.line_id, messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
+                if rep_approval.record.complainant:
+                    try:
+                        line_bot_api.push_message(to=rep_approval.record.complainant.line_id,
+                                                  messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+                    send_mail([rep_approval.record.complainant.email + '@mahidol.ac.th'], title, message)
+                if rep_approval.record.participants:
+                    for participant in rep_approval.record.participants:
+                        try:
+                            line_bot_api.push_message(to=participant.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
+                    send_mail([participant.email + '@mahidol.ac.th' for participant in rep_approval.record.participants],
+                              title, message)
             else:
-                print('msg :', msg, 'line :', rep_approval.record.complainant.line_id)
+                if rep_approval.record.complainant:
+                    print('line_id :', rep_approval.record.complainant.line_id, 'msg :', msg, 'user_email',
+                          rep_approval.record.complainant.email,
+                          'message_email', message)
+                if rep_approval.record.participants:
+                    print('line_id :', [participant.line_id for participant in rep_approval.record.participants], 'msg :',
+                          msg,
+                          'user_email',
+                          [participant.email + '@mahidol.ac.th' for participant in rep_approval.record.participants],
+                          'message_email', message)
         if secretary:
             send_mail([secretary.email + '@mahidol.ac.th'], title, message)
         flash('บันทึกข้อมูลสำเร็จ', 'success')
