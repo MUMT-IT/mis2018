@@ -43,6 +43,12 @@ complaint_record_tag_assoc = db.Table('complaint_record_tag_assoc',
                                       db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
                                       )
 
+complaint_record_participant_assoc = db.Table('complaint_record_participant_assoc',
+                                          db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                          db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                          db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                          )
+
 
 class ComplaintCategory(db.Model):
     __tablename__ = 'complaint_categories'
