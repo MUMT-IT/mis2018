@@ -1251,14 +1251,28 @@ def edit_record_admin(record_id):
                 message += f'''ขอบคุณค่ะ\n'''
                 message += f'''ระบบรับแจ้งปัญหาหรือข้อร้องเรียน\n'''
                 message += f'''คณะเทคนิคการแพทย์'''
-                send_mail([record.complainant.email + '@mahidol.ac.th'], title, message)
                 if not current_app.debug:
-                    try:
-                        line_bot_api.push_message(to=record.complainant.line_id, messages=TextSendMessage(text=msg))
-                    except LineBotApiError:
-                        pass
+                    if record.complainant:
+                        try:
+                            line_bot_api.push_message(to=record.complainant.line_id, messages=TextSendMessage(text=msg))
+                        except LineBotApiError:
+                            pass
+                        send_mail([record.complainant.email + '@mahidol.ac.th'], title, message)
+                    if record.participants:
+                        for participant in record.participants:
+                            try:
+                                line_bot_api.push_message(to=participant.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
+                        send_mail([participant.email + '@mahidol.ac.th' for participant in record.participants], title, message)
                 else:
-                    print('line_id :', record.complainant.line_id, 'msg :', msg)
+                    if record.complainant:
+                        print('line_id :', record.complainant.line_id, 'msg :', msg, 'user_email', record.complainant.email,
+                              'message_email', message)
+                    if record.participants:
+                        print('line_id :', [participant.line_id for participant in record.participants], 'msg :', msg,
+                              'user_email', [participant.email + '@mahidol.ac.th' for participant in record.participants],
+                              'message_email', message)
         return render_template('complaint_tracker/admin_record_form.html', form=form, record=record, tab=tab,
                                file_url=file_url, admins=admins, investigators=investigators, coordinators=coordinators,
                                statuses=statuses)

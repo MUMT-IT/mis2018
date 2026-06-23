@@ -146,7 +146,7 @@ class ComplaintRecord(db.Model):
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่อง',
-                                                                      'choices': [('None', 'กรุณาเลือกช่องทางรับเรื่อง'),
+                                                                      'choices': [('', 'กรุณาเลือกช่องทางรับเรื่อง'),
                                                                                   ('Website ของคณะเทคนิคการแพทย์', 'Website ของคณะเทคนิคการแพทย์'),
                                                                                   ('QR Code', 'QR Code'),
                                                                                   ('จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์', 'จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์'),
