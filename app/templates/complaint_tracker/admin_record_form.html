@@ -375,6 +375,18 @@
                                     </div>
                                 </div>
                             {% endif %}
+                            {% if record.participants %}
+                                <div class="field">
+                                    <label class="label">ผู้เกี่ยวข้อง</label>
+                                    <div class="control">
+                                        {% for participant in record.participants %}
+                                            <span class="tag is-rounded is-info is-light">
+                                                {{ participant.fullname }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
                             {% if coordinators %}
                                 {% if not coordinators.received_datetime %}
                                     <div class="buttons is-centered" style="margin-top: 1.2em">
@@ -417,8 +429,8 @@
                                                 {% if record.tags %}
                                                     {% for tag in record.tags %}
                                                         <span class="tag is-rounded is-info">
-                                                        {{ tag }}
-                                                    </span>
+                                                            {{ tag }}
+                                                        </span>
                                                     {% endfor %}
                                                 {% else %}
                                                     <span class="tag is-rounded">

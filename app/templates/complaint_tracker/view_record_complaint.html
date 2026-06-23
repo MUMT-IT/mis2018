@@ -254,11 +254,21 @@
                                     </div>
                                 </div>
                             {% endif %}
-                            {% if record.channel_receive and record.channel_receive != 'None' %}
+                            <div class="field">
+                                <label class="label">ช่องทางรับเรื่อง</label>
+                                <div class="control">
+                                    {{ record.channel_receive or 'ไม่ระบุ' }}
+                                </div>
+                            </div>
+                            {% if record.participants %}
                                 <div class="field">
-                                    <label class="label">ช่องทางรับเรื่อง</label>
+                                    <label class="label">ผู้เกี่ยวข้อง</label>
                                     <div class="control">
-                                        {{ record.channel_receive }}
+                                        {% for participant in record.participants %}
+                                            <span class="tag is-rounded is-info is-light">
+                                                {{ participant.fullname }}
+                                            </span>
+                                        {% endfor %}
                                     </div>
                                 </div>
                             {% endif %}

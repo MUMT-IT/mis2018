@@ -135,9 +135,20 @@
                     <div class="field">
                         <label class="label">ช่องทางรับเรื่อง</label>
                         <div class="control">
-                            {{ record.channel_receive }}
+                            {{ record.channel_receive or 'ไม่ระบุ' }}
                         </div>
                     </div>
+                    {% if record.participants %}
+                        <div class="field">
+                            <label class="label">ผู้เกี่ยวข้อง</label>
+                            <div class="control">
+                                {% for participant in record.participants %}
+                                    <span class="tag is-rounded is-info is-light">
+                                        {{ participant.fullname }}
+                                    </span>{% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
                     <div class="field">
                         <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
                     </div>
