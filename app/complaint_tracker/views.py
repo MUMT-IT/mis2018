@@ -1137,6 +1137,8 @@ def edit_record_admin(record_id):
                             else pro_number).first()
             record.procurements.clear()
             record.procurements.append(procurement)
+            db.session.add(record)
+            db.session.commit()
         coordinators = ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() \
             if ComplaintCoordinator.query.filter_by(coordinator=current_user, record_id=record_id).first() else None
         for i in record.investigators:
