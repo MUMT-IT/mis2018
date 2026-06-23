@@ -2282,16 +2282,10 @@ def generate_repair_pdf(repair):
         style=style_sheet['ThaiStyleBold']
     )
 
-    if repair.record.complainant:
-        org_name = repair.record.complainant.personal_info.org.name
-        complainant = repair.record.complainant.fullname
-        phone_number = repair.record.complainant.personal_info.org.phone_number or ''
-        head = repair.get_head_org
-    else:
-        org_name = current_user.personal_info.org.name
-        complainant = current_user.fullname
-        phone_number = current_user.personal_info.org.phone_number or ''
-        head = repair.get_head_org
+    org_name = repair.owner.personal_info.org.name
+    complainant = repair.record.complainant.fullname
+    phone_number = repair.owner.personal_info.org.phone_number or ''
+    head = repair.get_head_org
 
     created_at = arrow.get(repair.record.created_at.astimezone(localtz)).format(fmt='DD/MM/YYYY', locale='th-th')
     erp_code = ''
