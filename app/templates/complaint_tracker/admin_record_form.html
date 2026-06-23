@@ -128,7 +128,7 @@
                                         {% endfor %}
                                     {% else %}
                                         {% if record.is_editable %}
-                                            {% if record.is_disposed %}
+                                            {% if record.repair_status == 'แทงจำหน่าย' %}
                                                 <a hx-post="{{ url_for('comp_tracker.create_repair', record_id=record.id) }}"
                                                    hx-confirm="ท่านต้องการออกใบแจ้งซ่อมของรายการนี้ใช่หรือไม่"
                                                    class="button is-info is-outlined is-rounded"
@@ -291,8 +291,6 @@
                                         </tbody>
                                     </table>
                                 </div>
-{#                            {% else %}#}
-
                             {% endif %}
                             <div class="field">
                                 <label class="label">รายละเอียด</label>
@@ -315,7 +313,7 @@
                             <div class="field">
                                 <label class="label">ช่องทางรับเรื่อง</label>
                                 <div class="control">
-                                    <input class="input" disabled value="{{ record.channel_receive }}">
+                                    <input class="input" disabled value="{{ record.channel_receive or '' }}">
                                 </div>
                             </div>
                             {% if record.fl_name %}
@@ -433,9 +431,15 @@
                                     {% if record.topic.category.no == 1 %}
                                         <div class="field">
                                             <label class="label">{{ form.organization.label }}</label>
-                                            <div class="select">
-                                                {{ form.organization(required=true) }}
-                                            </div>
+                                            {% if record.is_editable %}
+                                                <div class="select">
+                                                    {{ form.organization(required=true) }}
+                                                </div>
+                                            {% else %}
+                                                <div class="control">
+                                                    {{ record.organization }}
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     {% endif %}
                                     <div class="field">
@@ -467,18 +471,20 @@
                                             {% endif %}
                                         </div>
                                     </div>
-                                    {% if record.topic.category.no == 1 %}
-                                        <div class="field" style="margin-top: .8em">
-                                            <label class="label">สถานะการแทงจำหน่าย</label>
-                                            <div class="field">
-                                                {% if record.is_editable %}
-                                                    <label class="checkbox"> {{ form.is_disposed() }} แทงจำหน่าย</label>
-                                                {% else %}
-                                                    {{ record.has_disposed }}
-                                                {% endif %}
-                                            </div>
+                                    {% if record.topic.code == 'runied' %}
+                                        <div class="field">
+                                            <label class="label">{{ form.repair_method.label }}</label>
+                                            {% if record.is_editable %}
+                                                <div class="select">
+                                                    {{ form.repair_method() }}
+                                                </div>
+                                            {% else %}
+                                                <div class="control">
+                                                    {{ record.repair_method or 'ไม่ระบุ' }}
+                                                </div>
+                                            {% endif %}
                                         </div>
-                                        {% if record.is_disposed %}
+                                        {% if record.repair_status == 'แทงจำหน่าย' %}
                                             <div class="field" style="margin-top: .8em">
                                                 <label class="label">ใบแจ้งซ่อม</label>
                                                 <div class="control">
@@ -862,7 +868,7 @@
                                 {% endif %}
                             </div>
                         {% endif %}
-                        {% if record.topic.category.no == 1 %}
+                        {% if record.topic.code == 'runied' %}
                             <div id="repair_company_field">
                                 <h5 class="title is-size-4">รายละเอียดบริษัทที่ส่งซ่อม</h5>
                                 <div class="box">

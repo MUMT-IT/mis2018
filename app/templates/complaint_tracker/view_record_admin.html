@@ -216,6 +216,14 @@
                             {% endif %}
                         </div>
                     </div>
+                    {% if record.topic.code == 'runied' %}
+                        <div class="field">
+                            <label class="label">รูปแบบการซ่อม</label>
+                            <div class="control">
+                                {{ record.repair_method or 'ไม่ระบุ' }}
+                            </div>
+                        </div>
+                    {% endif %}
                     <div class="field">
                         <label class="label">รายชื่อผู้รับผิดชอบ</label>
                         <div class="control">
