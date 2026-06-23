@@ -488,26 +488,15 @@ class ComplaintRepair(db.Model):
 
     @property
     def get_head_org(self):
-        if self.record.complainant:
-            if self.record.complainant.personal_info.org.head:
-                staff = StaffAccount.query.filter_by(email=self.record.complainant.personal_info.org.head).first()
-                head = staff.fullname
-            elif (not self.record.complainant.personal_info.org.head and self.record.complainant.personal_info.org.parent
-                and self.record.complainant.personal_info.org.parent.head):
-                staff = StaffAccount.query.filter_by(email= self.record.complainant.personal_info.org.parent.head).first()
-                head = staff.fullname
-            else:
-                head = None
+        if self.owner.personal_info.org.head:
+            staff = StaffAccount.query.filter_by(email=self.owner.personal_info.org.head).first()
+            head = staff.fullname
+        elif (not self.owner.personal_info.org.head and self.owner.personal_info.org.parent
+            and self.owner.personal_info.org.parent.head):
+            staff = StaffAccount.query.filter_by(email= self.owner.personal_info.org.parent.head).first()
+            head = staff.fullname
         else:
-            if current_user.personal_info.org.head:
-                staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-                head = staff.fullname
-            elif (not current_user.personal_info.org.head and current_user.personal_info.org.parent
-                    and current_user.personal_info.org.parent.head):
-                staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.parent.head).first()
-                head = staff.fullname
-            else:
-                head = None
+            head = None
         return head
 
 
