@@ -2173,46 +2173,51 @@ def repair_index():
 @login_required
 def create_repair(record_id):
     record = ComplaintRecord.query.get(record_id)
-    org_name = record.complainant.personal_info.org.name if record.complainant else current_user.personal_info.org.name
-    org = Org.query.filter_by(name=org_name).first()
-    if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
-            (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
-        staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-        owner_id = staff.id
-    else:
-        user = record.complainant or current_user
-        owner_id = user.id
+    requester = record.complainant if record.complainant else current_user
+    owner_id = requester.id
+    secretary = None
+
+    if record.procurements:
+        for procurement in record.procurements:
+            cost_center = procurement.cost_center[:-1]
+            cost_center_auth = StaffCostCenterAuthority.query.filter(StaffCostCenterAuthority.cost_center == cost_center).first()
+            org = Org.query.filter_by(name=requester.personal_info.org.name).first()
+            if cost_center_auth:
+                secretary = cost_center_auth.secretary
+                if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+                        (org.parent and org.parent.name == 'สำนักงานคณบดี') or (org.name == 'สำนักงานคณบดี')):
+                    owner_id = cost_center_auth.secretary_id
+                else:
+                    owner_id = requester.id
     repair = ComplaintRepair(record_id=record_id, created_at=arrow.now('Asia/Bangkok').datetime, owner_id=owner_id)
     db.session.add(repair)
     db.session.commit()
-    if repair.get_other_org == True:
-        scheme = 'http' if current_app.debug else 'https'
-        link = url_for("comp_tracker.repair_index", tab='new', _external=True, _scheme=scheme)
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for("comp_tracker.repair_index", tab='new', _external=True, _scheme=scheme)
+    if secretary:
         title = f'''แจ้งออกใบแจ้งซ่อมรายการเลขที่ {repair.record.id}'''
         message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว กรุณาดำเนินการในขั้นตอนถัดไปตามกระบวนการที่เกี่ยวข้อง\n'''
         message += f'''ท่านสามารถดำเนินการพิมพ์เอกสารได้ที่ลิงก์ด้านล่าง\n{link}\n\n'''
         message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
-        if repair.record.complainant:
-            msg = (
-                f'เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'
-                f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
-            message_for_complainant = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'''
-            message_for_complainant += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+        send_mail(
+            [secretary.email + '@mahidol.ac.th'], title, message)
+    if repair.record.complainant:
+        msg = (
+            f'เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'
+            f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
+        title = f'''แจ้งออกใบแจ้งซ่อมรายการเลขที่ {repair.record.id}'''
+        message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'''
+        message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
 
-            send_mail([repair.record.complainant.email + '@mahidol.ac.th'], title,
-                          message_for_complainant)
-            if not current_app.debug:
-                try:
-                    line_bot_api.push_message(to=repair.record.complainant.line_id,
-                                                messages=TextSendMessage(text=msg))
-                except LineBotApiError:
-                    pass
-            else:
-                print('msg :', msg, 'line :', repair.record.complainant.line_id)
-        if repair.record.complainant.personal_info.org.secretary_staff:
-            send_mail(
-                [secretary.email + '@mahidol.ac.th' for secretary in repair.record.complainant.personal_info.org.secretary_staff],
-                title, message)
+        send_mail([repair.record.complainant.email + '@mahidol.ac.th'], title, message)
+        if not current_app.debug:
+            try:
+                line_bot_api.push_message(to=repair.record.complainant.line_id,
+                                          messages=TextSendMessage(text=msg))
+            except LineBotApiError:
+                pass
+        else:
+            print('msg :', msg, 'line :', repair.record.complainant.line_id)
     flash('ออกใบแจ้งซ่อมสำเร็จ', 'success')
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
@@ -2623,8 +2628,8 @@ def create_repair_approval(record_id, repair_approval_id=None):
                     pass
             else:
                 print('msg :', msg, 'line :', rep_approval.record.complainant.line_id)
-            if secretary:
-                send_mail([secretary.email + '@mahidol.ac.th'], title, message)
+        if secretary:
+            send_mail([secretary.email + '@mahidol.ac.th'], title, message)
         flash('บันทึกข้อมูลสำเร็จ', 'success')
         return redirect(url_for('comp_tracker.edit_record_admin', record_id=record_id))
     else:
