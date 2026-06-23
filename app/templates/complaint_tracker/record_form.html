@@ -175,6 +175,14 @@
                                 {{ form.desc(class="textarea is-danger") }}
                             </div>
                         </div>
+                        {% if topic.category.category and not topic.category.category.startswith("ปัญหา") %}
+                            <div class="field">
+                                <label class="label">ผู้เกี่ยวข้อง</label>
+                                <div class="control">
+                                    {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                              <label class="label">แนบไฟล์หลักฐาน</label>
                             <div class="file">
@@ -261,6 +269,9 @@
         });
         $('.js-example-basic-single').select2({
             width: '100%'
+        });
+        $('.js-example-basic-multiple').select2({
+            width: '100%',
         });
         window.document.addEventListener("closeModal", function() {
             htmx.removeClass(htmx.find('#add-pro-number-modal'), "is-active")
