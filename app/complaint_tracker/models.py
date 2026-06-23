@@ -169,9 +169,9 @@ class ComplaintRecord(db.Model):
         ('หน่วยซ่อมบำรุง', 'หน่วยซ่อมบำรุง '),
         ('หน่วยข้อมูลและสารสนเทศ', 'หน่วยข้อมูลและสารสนเทศ')
     ]})
-    repair_status = db.Column('repair_status', db.String(), info={'label': 'สถานะการซ่อม',
+    repair_method = db.Column('repair_method', db.String(), info={'label': 'รูปแบบการซ่อม',
                                                                   'choices': [
-                                                                      ('None', 'กรุณาเลือกสถานะการซ่อม'),
+                                                                      ('', 'กรุณาเลือกสถานะการซ่อม'),
                                                                       ('ซ่อมเองได้', 'ซ่อมเองได้'),
                                                                       ('ส่งบริษัทซ่อม', 'ส่งบริษัทซ่อม'),
                                                                       ('แทงจำหน่าย', 'แทงจำหน่าย')
@@ -202,6 +202,9 @@ class ComplaintRecord(db.Model):
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
+    participants = db.relationship(StaffAccount, secondary=complaint_record_participant_assoc,
+                                   backref=db.backref('complaint_records', cascade='all, delete-orphan', single_parent=True))
+
     def __str__(self):
         return self.desc
 
