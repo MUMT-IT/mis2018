@@ -2222,23 +2222,35 @@ def create_repair(record_id):
         message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
         send_mail(
             [secretary.email + '@mahidol.ac.th'], title, message)
-    if repair.record.complainant:
-        msg = (
-            f'เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'
-            f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
-        title = f'''แจ้งออกใบแจ้งซ่อมรายการเลขที่ {repair.record.id}'''
-        message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'''
-        message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
-
-        send_mail([repair.record.complainant.email + '@mahidol.ac.th'], title, message)
+    msg = (
+        f'เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'
+        f'ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์')
+    title = f'''แจ้งออกใบแจ้งซ่อมรายการเลขที่ {repair.record.id}'''
+    message = f'''เจ้าหน้าที่ได้ดำเนินการออกใบแจ้งซ่อมสำหรับรายการเลขที่ {repair.record.id} เรียบร้อยแล้ว\n\n'''
+    message += f'''ขอบคุณค่ะ\nระบบรับแจ้งปัญหาหรือข้อร้องเรียน\nคณะเทคนิคการแพทย์'''
+    if repair.record.complainant or repair.record.procurements:
         if not current_app.debug:
-            try:
-                line_bot_api.push_message(to=repair.record.complainant.line_id,
-                                          messages=TextSendMessage(text=msg))
-            except LineBotApiError:
-                pass
+            if repair.record.complainant:
+                try:
+                    line_bot_api.push_message(to=repair.record.complainant.line_id, messages=TextSendMessage(text=msg))
+                except LineBotApiError:
+                    pass
+                send_mail([repair.record.complainant.email + '@mahidol.ac.th'], title, message)
+            if repair.record.participants:
+                for participant in repair.record.participants:
+                    try:
+                        line_bot_api.push_message(to=participant.line_id, messages=TextSendMessage(text=msg))
+                    except LineBotApiError:
+                        pass
+                send_mail([participant.email + '@mahidol.ac.th' for participant in repair.record.participants], title, message)
         else:
-            print('msg :', msg, 'line :', repair.record.complainant.line_id)
+            if repair.record.complainant:
+                print('line_id :', repair.record.complainant.line_id, 'msg :', msg, 'user_email', repair.record.complainant.email,
+                      'message_email', message)
+            if repair.record.participants:
+                print('line_id :', [participant.line_id for participant in repair.record.participants], 'msg :', msg,
+                      'user_email', [participant.email + '@mahidol.ac.th' for participant in repair.record.participants],
+                      'message_email', message)
     flash('ออกใบแจ้งซ่อมสำเร็จ', 'success')
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
