@@ -2555,6 +2555,8 @@ def create_repair_approval(record_id, repair_approval_id=None):
     requester = record.complainant if record.complainant else current_user
     owner_id = requester.id
     secretary = None
+    ComplaintRepairApprovalForm = create_repair_approval_form(is_used=False)
+
     if repair_approval_id:
         rep_approval = ComplaintRepairApproval.query.get(repair_approval_id)
         form = ComplaintRepairApprovalForm(obj=rep_approval)
@@ -2693,6 +2695,7 @@ def edit_repair_approval(repair_approval_id):
     menu = request.args.get('menu')
     temp = request.args.get('temp')
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    ComplaintRepairApprovalForm = create_repair_approval_form(is_used=True)
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
         form.populate_obj(repair_approval)
@@ -2789,6 +2792,7 @@ def edit_committee(repair_approval_id):
 def create_note(repair_approval_id):
     status = ComplaintStatus.query.filter_by(code='completed').first()
     repair_approval = ComplaintRepairApproval.query.get(repair_approval_id)
+    ComplaintRepairApprovalForm = create_repair_approval_form(is_used=False)
     form = ComplaintRepairApprovalForm(obj=repair_approval)
     if form.validate_on_submit():
         form.populate_obj(repair_approval)
