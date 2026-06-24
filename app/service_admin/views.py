@@ -324,6 +324,64 @@ def bacteria_sterility_test_request_data(service_request, type):
     return values
 
 
+def bacteria_antimicrobial_activity_request_data(service_request, type):
+    data = service_request.data
+    form = BacteriaAntimicrobialActivityRequestForm(data=data)
+    values = []
+    product_header = False
+    test_header = False
+    for field in form:
+        if field.type == 'FieldList':
+            if not test_header:
+                values.append({'type': 'header', 'data': 'รายการทดสอบ'})
+                test_header = True
+            if not any([fd.data for fd in field if fd.type != 'HiddenField' and fd.type != 'FieldList']):
+                continue
+            for fd in field:
+                for fname, fn in fd._fields.items():
+                    if fn.type == 'FieldList':
+                        rows = []
+                        for entry in fn.entries:
+                            row = {}
+                            for f_name, f in entry._fields.items():
+                                label = f.label.text
+                                if label != 'CSRF Token':
+                                    if label.startswith("เชื้อ"):
+                                        data = ', '.join(f.data) if isinstance(f.data, list) else str(f.data or '')
+                                        if type == 'form':
+                                            row[label] = f"<i>{data}</i>"
+                                        else:
+                                            row[label] = f"<font name='SarabunItalic'>{data}</font>"
+                                    else:
+                                        row[label] = f.data
+                            rows.append(row)
+                        if rows:
+                            values.append({'type': 'table', 'data': rows})
+                    else:
+                        if fn.data:
+                            label = fn.label.text
+                            value = ', '.join(fn.data) if fn.type == 'CheckboxField' else fn.data
+                            if fn.type == 'HiddenField':
+                                values.append({'type': 'content_header', 'data': f"{value}"})
+                            else:
+                                values.append({'type': 'text', 'data': f"{label} : {value}"})
+        else:
+            if not product_header:
+                values.append({'type': 'header', 'data': 'ข้อมูลผลิตภัณฑ์'})
+                product_header = True
+            if field.data:
+                label = field.label.text
+                if field.type == 'CheckboxField':
+                    value = ', '.join(field.data)
+                    values.append({'type': 'text', 'data': f"{label} : {value}"})
+                elif field.type == 'BooleanField':
+                    values.append({'type': 'bool', 'data': f"{label}"})
+                else:
+                    value = field.data
+                    values.append({'type': 'text', 'data': f"{label} : {value}"})
+    return values
+
+
 def virus_disinfection_request_data(service_request, type):
     data = service_request.data
     form = VirusDisinfectionRequestForm(data=data)
@@ -722,6 +780,7 @@ def toxicology_request_data(service_request, type):
 
 request_data_paths = {'bacteria_disinfection': bacteria_disinfection_request_data,
                       'sterility_test': bacteria_sterility_test_request_data,
+                      'antimicrobial_activity': bacteria_antimicrobial_activity_request_data,
                       'virus_disinfection': virus_disinfection_request_data,
                       'air_disinfection': virus_air_disinfection_request_data,
                       'heavymetal': heavymetal_request_data,
