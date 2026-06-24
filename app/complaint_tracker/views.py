@@ -2334,9 +2334,14 @@ def generate_repair_pdf(repair):
             procurement_name = procurement.name
             if procurement.records:
                 for record in procurement.records:
-                    location = record.location.location or ''
-                    floor = record.location.floor or ''
-                    room = record.location.number or ''
+                    if record.location:
+                        location = record.location.location
+                        floor = record.location.floor
+                        room = record.location.number
+                    else:
+                        location = ''
+                        floor = ''
+                        room = ''
             else:
                 location = ''
                 floor = ''
