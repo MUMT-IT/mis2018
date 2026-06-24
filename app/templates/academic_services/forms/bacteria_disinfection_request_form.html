@@ -738,15 +738,6 @@
                 });
             });
 
-            surfaceTypeInput.prop('required', true)
-                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกขนิดพื้นผิว')");
-
-            surfaceTypeInput.on('change', function () {
-                surfaceTypeInput.each(function () {
-                    this.setCustomValidity('');
-                });
-            });
-
             sterilizationMethodInput.prop('required', true)
                 .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีการฆ่าเชื้อ')");
 
@@ -775,6 +766,25 @@
 
             testMethodInput.on('change', validateTestMethod);
 
+            function validateSurfaceType() {
+                const count = surfaceTypeInput.filter(':checked').length;
+                if (count == 0) {
+                    surfaceTypeInput.prop('required', true);
+                    surfaceTypeInput.each(function () {
+                        this.setCustomValidity('กรุณาเลือกชนิดพื้นผิวอย่างน้อย 1 รายการ');
+                    });
+                } else {
+                    surfaceTypeInput.prop('required', false);
+                    surfaceTypeInput.each(function () {
+                        this.setCustomValidity('');
+                    });
+                }
+            }
+
+            validateSurfaceType();
+
+            surfaceTypeInput.on('change', validateSurfaceType);
+
             function validateQualitativeAndQuantitativeTest() {
                 const qualitativeChecked = qualitativeTestInput.is(':checked');
                 const quantitativeChecked = quantitativeTestInput.is(':checked');
@@ -789,28 +799,10 @@
             quantitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
         }
 
-        function showSurfaceTypeOtherInput(subform) {
-            const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
-            const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
-            const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
-
-            if (surfaceTypeField && surfaceTypeField.includes('อื่น ๆ')) {
-                surfaceTypeOtherField.show();
-                surfaceTypeOtherInput.prop('required', true);
-            } else {
-                surfaceTypeOtherField.hide();
-                surfaceTypeOtherInput.val('');
-            }
-        }
-
         $('.subform-card').each(function () {
             const subform = $(this);
             toggleTable(subform);
             addRequiredField(subform);
-            showSurfaceTypeOtherInput(subform);
-            subform.find('input[type="radio"][name$="surface_type"]').change(function () {
-                showSurfaceTypeOtherInput(subform);
-            });
         });
     </script>
 {% endblock %}

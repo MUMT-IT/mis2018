@@ -223,7 +223,7 @@
                 {% endif %}
             {% endif %}
         {% endfor %}
-        {% if product_type == 'liquid'  %}
+        {% if product_type == 'liquid' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_bacteria_liquid_condition_form',
                     name=fields.name) }}"
@@ -232,7 +232,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'spray'  %}
+        {% elif product_type == 'spray' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_bacteria_spray_condition_form',
                     name=fields.name) }}"
@@ -241,7 +241,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'sheet'  %}
+        {% elif product_type == 'sheet' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_bacteria_sheet_condition_form',
                     name=fields.name) }}"
@@ -250,7 +250,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'after_wash'  %}
+        {% elif product_type == 'after_wash' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_bacteria_after_wash_condition_form',
                     name=fields.name) }}"
@@ -259,7 +259,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'in_wash'  %}
+        {% elif product_type == 'in_wash' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_bacteria_in_wash_condition_form',
                     name=fields.name) }}"
@@ -268,7 +268,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'alcohol_based'  %}
+        {% elif product_type == 'alcohol_based' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_bacteria_alcohol_based_condition_form',
                     name=fields.name) }}"
@@ -277,7 +277,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'antibacterial_treated'  %}
+        {% elif product_type == 'antibacterial_treated' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_bacteria_antibacterial_treated_condition_form',
                     name=fields.name) }}"
@@ -286,7 +286,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'dish_wash'  %}
+        {% elif product_type == 'dish_wash' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_bacteria_dish_wash_condition_form',
                     name=fields.name) }}"
@@ -375,15 +375,6 @@
             });
         });
 
-        surfaceTypeInput.prop('required', true)
-            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกขนิดพื้นผิว')");
-
-        surfaceTypeInput.on('change', function () {
-            surfaceTypeInput.each(function () {
-                this.setCustomValidity('');
-            });
-        });
-
         sterilizationMethodInput.prop('required', true)
             .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีการฆ่าเชื้อ')");
 
@@ -412,6 +403,25 @@
 
         testMethodInput.on('change', validateTestMethod);
 
+        function validateSurfaceType() {
+            const count = surfaceTypeInput.filter(':checked').length;
+            if (count == 0) {
+                surfaceTypeInput.prop('required', true);
+                surfaceTypeInput.each(function () {
+                    this.setCustomValidity('กรุณาเลือกชนิดพื้นผิวอย่างน้อย 1 รายการ');
+                });
+            } else {
+                surfaceTypeInput.prop('required', false);
+                surfaceTypeInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            }
+        }
+
+        validateSurfaceType();
+
+        surfaceTypeInput.on('change', validateSurfaceType);
+
         function validateQualitativeAndQuantitativeTest() {
             const qualitativeChecked = qualitativeTestInput.is(':checked');
             const quantitativeChecked = quantitativeTestInput.is(':checked');
@@ -426,28 +436,9 @@
         quantitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
     }
 
-    function showSurfaceTypeOtherInput(subform) {
-        const surfaceTypeField = subform.find('input[type="radio"][name$="surface_type"]:checked').val();
-        const surfaceTypeOtherInput = subform.find('input[name$="surface_type_other"]');
-        const surfaceTypeOtherField = surfaceTypeOtherInput.closest('.field');
-
-        if (surfaceTypeField && surfaceTypeField.includes('อื่น ๆ')) {
-            surfaceTypeOtherField.show();
-            surfaceTypeOtherInput.prop('required', true);
-        } else {
-            surfaceTypeOtherField.hide();
-            surfaceTypeOtherInput.prop('required', false)
-            surfaceTypeOtherInput.val('');
-        }
-    }
-
     $('.subform-card').each(function () {
         const subform = $(this);
         toggleTable(subform);
         addRequiredField(subform);
-        showSurfaceTypeOtherInput(subform);
-        subform.find('input[type="radio"][name$="surface_type"]').change(function () {
-            showSurfaceTypeOtherInput(subform);
-        });
     });
 </script>
