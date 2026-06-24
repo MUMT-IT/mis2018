@@ -128,7 +128,7 @@
                                         {% endfor %}
                                     {% else %}
                                         {% if record.is_editable %}
-                                            {% if record.repair_status == 'แทงจำหน่าย' %}
+                                            {% if record.repair_method == 'แทงจำหน่าย' %}
                                                 <a hx-post="{{ url_for('comp_tracker.create_repair', record_id=record.id) }}"
                                                    hx-confirm="ท่านต้องการออกใบแจ้งซ่อมของรายการนี้ใช่หรือไม่"
                                                    class="button is-info is-outlined is-rounded"
@@ -496,7 +496,7 @@
                                                 </div>
                                             {% endif %}
                                         </div>
-                                        {% if record.repair_status == 'แทงจำหน่าย' %}
+                                        {% if record.repair_method == 'แทงจำหน่าย' %}
                                             <div class="field" style="margin-top: .8em">
                                                 <label class="label">ใบแจ้งซ่อม</label>
                                                 <div class="control">
