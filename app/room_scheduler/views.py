@@ -10,8 +10,7 @@ from datetime import datetime, timedelta
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for, current_app, make_response
 from flask_login import login_required, current_user
-from linebot.exceptions import LineBotApiError
-from linebot.models import TextSendMessage
+from app.linebot_compat import LineBotApiError, TextSendMessage
 from psycopg2.extras import DateTimeRange
 from sqlalchemy import or_
 from sqlalchemy.sql import text

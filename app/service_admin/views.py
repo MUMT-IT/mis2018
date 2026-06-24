@@ -15,8 +15,7 @@ from base64 import b64decode
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from sqlalchemy.orm import make_transient, joinedload
-from linebot.exceptions import LineBotApiError
-from linebot.models import TextSendMessage
+from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.auth.views import line_bot_api
 from app.academic_services.forms import *
 from app.e_sign_api import e_sign

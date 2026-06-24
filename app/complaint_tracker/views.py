@@ -12,8 +12,7 @@ from bahttext import bahttext
 from flask import render_template, flash, redirect, url_for, request, make_response, jsonify, current_app, send_file, abort
 from flask_login import current_user
 from flask_login import login_required
-from linebot.exceptions import LineBotApiError
-from linebot.models import TextSendMessage
+from app.linebot_compat import LineBotApiError, TextSendMessage
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm

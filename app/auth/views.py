@@ -19,7 +19,7 @@ from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import requests
 from requests_oauthlib import OAuth2Session
-from linebot import (LineBotApi, WebhookHandler)
+from app.linebot_compat import LineBotApi, WebhookHandler
 
 LINE_CLIENT_ID = app.config['LINE_CLIENT_ID']
 LINE_CLIENT_SECRET = app.config['LINE_CLIENT_SECRET']

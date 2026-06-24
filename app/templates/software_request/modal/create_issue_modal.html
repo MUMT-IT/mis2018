@@ -102,32 +102,30 @@
         htmx.addClass(htmx.find('#issue-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
     })
-    $(document).ready(() => {
-        moment.locale('th');
-        $('[id$="staff"]').select2({
-            width: '100%'
-        });
-        $('[id$="phase"]').select2({
-            width: '100%',
-            tags: true
-        });
-        $('input[name="deadline"]').daterangepicker({
-            singleDatePicker: true,
-            showDropdowns: true,
-            autoUpdateInput: false,
-            {% if form.deadline.data %}
-                startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
-            {% endif %}
-            locale: {
-                format: 'YYYY-MM-DD',
-                cancelLabel: 'Clear'
-            },
-        });
-        $('input[name="deadline"]').on('apply.daterangepicker', function (ev, picker) {
-            $(this).val(picker.startDate.format('YYYY-MM-DD'));
-        });
-        $('input[name="deadline"]').on('cancel.daterangepicker', function () {
-            $(this).val('');
-        });
+    moment.locale('th');
+    $('#issue-modal [id$="staff"]').select2({
+        width: '100%'
+    });
+    $('#issue-modal [id$="phase"]').select2({
+        width: '100%',
+        tags: true
+    });
+    $('#issue-modal input[name="deadline"]').daterangepicker({
+        singleDatePicker: true,
+        showDropdowns: true,
+        autoUpdateInput: false,
+        {% if form.deadline.data %}
+            startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
+        {% endif %}
+        locale: {
+            format: 'YYYY-MM-DD',
+            cancelLabel: 'Clear'
+        },
+    });
+    $('#issue-modal input[name="deadline"]').on('apply.daterangepicker', function (ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD'));
+    });
+    $('#issue-modal input[name="deadline"]').on('cancel.daterangepicker', function () {
+        $(this).val('');
     });
 </script>

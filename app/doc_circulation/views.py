@@ -4,7 +4,7 @@ import os
 import datetime
 
 import requests
-from linebot.exceptions import LineBotApiError
+from app.linebot_compat import LineBotApiError
 from werkzeug.utils import secure_filename
 
 from . import docbp
@@ -16,10 +16,11 @@ from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.models import Org
 from app.auth.views import line_bot_api
-from linebot.models import *
+from app.linebot_compat import *
 from flask_mail import Message
 
 from app.main import mail
+from app.google_credential_utils import load_google_credentials_json
 
 bkk = timezone('Asia/Bangkok')
 
@@ -27,7 +28,7 @@ bkk = timezone('Asia/Bangkok')
 
 FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+json_keyfile = load_google_credentials_json()
 
 letter_header_image = '1Z1wYogBY-S1QMPfdZwnlpqHcYr_UZ0u-'
 letter_header_image_for_head = '1KCkyDRa-_5Uc0aSbCFXv8hZ2MfbORT4D'
@@ -236,6 +237,8 @@ def create_bubble_message_recipient(round_org, member):
 
 
 def initialize_gdrive():
+    if not json_keyfile:
+        return None
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)

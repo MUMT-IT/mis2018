@@ -370,8 +370,18 @@ class BDDFeature(db.Model):
         index=True,
         nullable=False,
     )
+    software_issue_id = db.Column(
+        'software_issue_id',
+        db.ForeignKey('software_issues.id'),
+        index=True,
+        nullable=True,
+    )
     software_request = db.relationship(
         SoftwareRequestDetail,
+        backref=db.backref('bdd_features', cascade='all, delete-orphan'),
+    )
+    software_issue = db.relationship(
+        SoftwareIssues,
         backref=db.backref('bdd_features', cascade='all, delete-orphan'),
     )
     feature_title = db.Column('feature_title', db.String(), nullable=False)
@@ -384,7 +394,7 @@ class BDDFeature(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
 
     def __repr__(self):
-        return f'<BDDFeature id={self.id} title={self.feature_title!r}>'
+        return f'<BDDFeature id={self.id} issue_id={self.software_issue_id} title={self.feature_title!r}>'
 
 
 class BDDTestRun(db.Model):

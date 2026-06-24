@@ -5,7 +5,7 @@ import arrow
 import pandas as pd
 from dateutil import parser
 from flask_login import login_required, current_user
-from linebot.exceptions import LineBotApiError
+from app.linebot_compat import LineBotApiError
 from pandas import read_excel, isna, DataFrame
 
 from app.eduqa.models import EduQAInstructor
@@ -21,7 +21,7 @@ import pytz
 from sqlalchemy import and_, desc, cast, Date, or_, extract
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
-from linebot.models import TextSendMessage
+from app.linebot_compat import TextSendMessage
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 import requests
@@ -36,6 +36,7 @@ from app.roles import admin_permission, hr_permission, secretary_permission, man
 from app.staff.models import *
 from app.url_utils import external_url
 from app.auth.views import _normalize_staff_email
+from app.google_credential_utils import load_google_credentials_json
 
 from app.comhealth.views import allowed_file
 
@@ -51,10 +52,13 @@ EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
 }
 
 gauth = GoogleAuth()
-keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+keyfile_dict = load_google_credentials_json()
 scopes = ['https://www.googleapis.com/auth/drive']
-gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
-drive = GoogleDrive(gauth)
+if keyfile_dict:
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
+    drive = GoogleDrive(gauth)
+else:
+    drive = None
 
 tz = pytz.timezone('Asia/Bangkok')
 
