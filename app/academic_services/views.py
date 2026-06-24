@@ -248,7 +248,7 @@ def bacteria_sterility_test_request_data(service_request, type):
     for field in form:
         if field.data:
             label = field.label.text
-            if field.label == 'test_method':
+            if field.name == 'test_method':
                 if not test_header:
                     values.append({'type': 'header', 'data': 'รายการทดสอบ'})
                     test_header = True
