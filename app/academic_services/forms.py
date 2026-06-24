@@ -319,10 +319,9 @@ class BacteriaSprayConditionForm(FlaskForm):
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)',
                                       'ทดสอบแบบทำความสะอาดและฆ่าเชื้อในขั้นตอนเดียว (one-step cleaner)')],
                                   validators=[Optional()])
-    spray_surface_type = RadioField('ชนิดพื้นผิว', choices=[('พื้นผิวแข็งไม่มีรูพรุน', 'พื้นผิวแข็งไม่มีรูพรุน'),
-                                                            ('อื่น ๆ', 'อื่น ๆ โปรดระบุ')],
-                                    validators=[Optional()])
-    spray_surface_type_other = StringField('ระบุ', render_kw={'class': 'input'})
+    spray_surface_type = CheckboxField('ชนิดพื้นผิว',
+                                       choices=[(c, c) for c in ['พื้นผิวแข็งไม่มีรูพรุน', 'พื้นผิวอ่อนนุ่มมีรูพรุน (ผ้า cotton)']],
+                                       validators=[Optional()])
     spray_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง'), ('ไม่เจือจาง', 'ไม่เจือจาง')],
                                 validators=[Optional()])
     spray_organism_fields = FieldList(FormField(BacteriaSprayTestConditionForm), min_entries=1)
