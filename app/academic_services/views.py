@@ -1537,6 +1537,21 @@ def remove_bacteria_alcohol_based_condition_form():
     return ""
 
 
+@academic_services.route('/request/bacteria_soap_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_soap_condition_form():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.soap_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.soap_condition_field) > 0:
+        form.soap_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.soap_condition_field.append_entry(entry)
+    return ""
+
+
 @academic_services.route('/request/bacteria_antibacterial_treated_condition_form/remove', methods=['DELETE'])
 def remove_bacteria_antibacterial_treated_condition_form():
     field_name = request.args.get('name')
