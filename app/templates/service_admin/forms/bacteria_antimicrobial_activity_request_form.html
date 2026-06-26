@@ -1,4 +1,4 @@
-{% extends "academic_services/service_base.html" %}
+{% extends "base.html" %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
@@ -24,7 +24,7 @@
     </style>
 {% endblock %}
 {% block page_content %}
-    {% include "academic_services/customer_nav.html" %}
+    {% include "service_admin/admin_nav.html" %}
     {% include 'messages.html' %}
     <section class="section">
         <div class="container">
@@ -65,7 +65,7 @@
                                         </label>
                                         <div class="select is-fullwidth">
                                             {{ form.product_appearance(
-                                                        **{'hx-get': url_for("academic_services.get_product_appearance_other",
+                                                        **{'hx-get': url_for("service_admin.get_product_appearance_other",
                                                           request_id=request_id),
                                                          'hx-target': '#product-appearance-other-container',
                                                          'hx-swap': 'innerHTML',
@@ -155,7 +155,7 @@
                                         </label>
                                         <div class="select is-fullwidth">
                                             {{ form.product_storage(
-                                                    **{'hx-get': url_for("academic_services.get_product_storage_other",
+                                                    **{'hx-get': url_for("service_admin.get_product_storage_other",
                                                         request_id=request_id),
                                                         'hx-target': '#product-storage-other-container',
                                                         'hx-swap': 'innerHTML',
@@ -300,7 +300,7 @@
                                                                                     {% endfor %}
                                                                                     <td style="border: none">
                                                                                         <a class="button is-danger is-outlined"
-                                                                                           hx-delete="{{ url_for('academic_services.remove_bacteria_antimicrobial_activity_organism_form_entry',
+                                                                                           hx-delete="{{ url_for('service_admin.remove_bacteria_antimicrobial_activity_organism_form_entry',
                                                                                            name=entry.name) }}"
                                                                                            hx-target="closest tr"
                                                                                            hx-swap="outerHTML"
@@ -313,7 +313,7 @@
                                                                             <tr>
                                                                                 <td style="border: none">
                                                                                     <a class="button is-info is-outlined is-rounded"
-                                                                                       hx-post="{{ url_for('academic_services.add_bacteria_antimicrobial_activity_organism_form_entry',
+                                                                                       hx-post="{{ url_for('service_admin.add_bacteria_antimicrobial_activity_organism_form_entry',
                                                                                        name=entry.name) }}"
                                                                                        hx-target="previous tr"
                                                                                        hx-swap="afterend"
@@ -339,7 +339,7 @@
                                                             {% endif %}
                                                         {% endfor %}
                                                         <button type="button" class="button is-danger is-rounded is-small"
-                                                            hx-delete="{{ url_for('academic_services.remove_bacteria_antimicrobial_activity_condition_form',
+                                                            hx-delete="{{ url_for('service_admin.remove_bacteria_antimicrobial_activity_condition_form',
                                                             name=entry.name) }}"
                                                             hx-target="closest .subform-card"
                                                             hx-swap="outerHTML"
@@ -359,7 +359,7 @@
                             <div class="field">
                                 <div class="select">
                                     {{ form.product_type(
-                                        **{'hx-post': url_for("academic_services.get_bacteria_antimicrobial_activity_condition_form",
+                                        **{'hx-post': url_for("service_admin.get_bacteria_antimicrobial_activity_condition_form",
                                         code=code),
                                         'hx-include': 'closest form',
                                         'hx-target': '#condition-fields',
@@ -463,14 +463,14 @@
         function updateSolventOtherRequirement(row) {
             const selectedSolvent = row.find('input[type="radio"][name$="solvent_used"]:checked').val() || '';
             const solventUsedOtherInput = row.find('input[type="text"][name$="solvent_used_other"]');
-
+    
             if (!solventUsedOtherInput.length) {
                 return;
             }
-
+    
             const isOtherSelected = selectedSolvent === 'อื่น ๆ';
             solventUsedOtherInput.prop('required', isOtherSelected);
-
+    
             if (isOtherSelected) {
                 solventUsedOtherInput.prop('disabled', false);
                 solventUsedOtherInput
@@ -484,29 +484,29 @@
                 });
             }
         }
-
+    
         function toggleTable(subform) {
             const table = subform.find('table');
-
+    
             table.find('tbody tr').each(function () {
                 const row = $(this);
                 if (row.find('input[name$="sample_quantity"]').length || row.find('input[name$="solvent_used"]').length) {
                     const sampleQuantityInput = row.find('input[type="text"][name$="sample_quantity"]');
                     const solventUsedInput = row.find('input[type="radio"][name$="solvent_used"]');
                     const solventUsedOtherInput = row.find('input[type="text"][name$="solvent_used_other"]');
-
+    
                     if (sampleQuantityInput.length) {
                         sampleQuantityInput
                             .prop('required', true)
                             .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
                             .attr('oninput', "this.setCustomValidity('')");
                     }
-
+    
                     if (solventUsedInput.length) {
                         solventUsedInput
                             .prop('required', true)
                             .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกตัวทำละลายที่ใช้')");
-
+    
                         solventUsedInput.off('change.antimicrobial').on('change.antimicrobial', function () {
                             solventUsedInput.each(function () {
                                 this.setCustomValidity('');
@@ -514,29 +514,29 @@
                             updateSolventOtherRequirement(row);
                         });
                     }
-
+    
                     if (solventUsedOtherInput.length) {
                         solventUsedOtherInput.attr('oninput', "this.setCustomValidity('')");
                     }
-
+    
                     updateSolventOtherRequirement(row);
                 }
             });
         }
-
+    
         function addRequiredField(subform) {
             const testMethodInput = subform.find('input[name$="test_method"]');
-
+    
             testMethodInput.prop('required', true)
                 .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีการทดสอบ')");
-
+    
             testMethodInput.off('change.antimicrobial').on('change.antimicrobial', function () {
                 testMethodInput.each(function () {
                     this.setCustomValidity('');
                 });
             });
         }
-
+    
         $('.subform-card').each(function () {
             const subform = $(this);
             toggleTable(subform);

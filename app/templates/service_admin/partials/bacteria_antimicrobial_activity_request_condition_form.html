@@ -1,4 +1,4 @@
-﻿<div class="card subform-card mb-4" id="{{ fields.name }}">
+<div class="card subform-card mb-4" id="{{ fields.name }}">
     <header class="card-header">
         <p class="card-header-title">{{ fields.label }}</p>
     </header>
@@ -47,7 +47,7 @@
                                     {% endfor %}
                                     <td style="border: none">
                                         <a class="button is-danger is-outlined"
-                                           hx-delete="{{ url_for('academic_services.remove_bacteria_antimicrobial_activity_organism_form_entry',
+                                           hx-delete="{{ url_for('service_admin.remove_bacteria_antimicrobial_activity_organism_form_entry',
                                            name=fields.name) }}"
                                            hx-target="closest tr"
                                            hx-swap="outerHTML"
@@ -60,7 +60,7 @@
                             <tr>
                                 <td style="border: none">
                                     <a class="button is-info is-outlined is-rounded"
-                                       hx-post="{{ url_for('academic_services.add_bacteria_antimicrobial_activity_organism_form_entry',
+                                       hx-post="{{ url_for('service_admin.add_bacteria_antimicrobial_activity_organism_form_entry',
                                        name=fields.name) }}"
                                        hx-target="previous tr"
                                        hx-swap="afterend"
@@ -86,7 +86,7 @@
             {% endif %}
         {% endfor %}
         <button type="button" class="button is-danger is-rounded is-small"
-            hx-delete="{{ url_for('academic_services.remove_bacteria_antimicrobial_activity_condition_form',
+            hx-delete="{{ url_for('service_admin.remove_bacteria_antimicrobial_activity_condition_form',
             name=fields.name) }}"
             hx-target="closest .subform-card"
             hx-swap="outerHTML"
