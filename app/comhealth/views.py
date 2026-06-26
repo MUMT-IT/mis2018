@@ -7,7 +7,9 @@ import json
 import os
 import re
 import secrets
+import tempfile
 import time
+import zipfile
 from collections import OrderedDict, defaultdict
 from io import BytesIO
 from urllib.parse import urljoin
@@ -721,15 +723,250 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
     output.seek(0)
     return send_file(output,download_name='recepits_all.xlsx')
 
+
+def _money(value):
+    return float(value or 0)
+
+
+def _parse_schedule_date_to_iso(schedule_date):
+    if not schedule_date:
+        return ''
+    schedule_date = schedule_date.strip()
+    for date_format in ('%d/%m/%Y', '%Y-%m-%d'):
+        try:
+            return dt_module.datetime.strptime(schedule_date, date_format).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return ''
+
+
+def _checkin_datetime_for_record(record):
+    if not record.checkin_datetime:
+        return ''
+    return record.checkin_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _customer_citizen_id(customer):
+    if not customer or not customer.info or not customer.info.data:
+        return ''
+    for key in ('citizen_id', 'id_card', 'national_id', 'personal_id', 'บัตรประชาชน', 'เลขบัตรประชาชน'):
+        value = customer.info.data.get(key)
+        if value:
+            return value
+    return ''
+
+
+def _test_column_name(test_item):
+    if not test_item or not test_item.test:
+        return ''
+    return test_item.test.name or test_item.test.code or ''
+
+
+def _receipt_codes_for_record(record):
+    receipts = sorted(
+        [receipt for receipt in record.receipts if receipt.code and not receipt.cancelled],
+        key=lambda receipt: receipt.created_datetime or receipt.id
+    )
+    return ', '.join([receipt.code for receipt in receipts])
+
+
+def _paid_amount_for_record(record):
+    return sum([
+        _money(receipt.paid_amount)
+        for receipt in record.receipts
+        if receipt.paid and not receipt.cancelled
+    ])
+
+
+def _comhealth_export_records_query(service_id):
+    return (
+        ComHealthRecord.query
+        .execution_options(stream_results=True)
+        .options(
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.dept),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.division),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.emptype),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.info),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.test),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.profile),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.group),
+            selectinload(ComHealthRecord.receipts),
+        )
+        .filter(
+            ComHealthRecord.service_id == service_id,
+            ComHealthRecord.labno.isnot(None),
+            ComHealthRecord.labno != ''
+        )
+        .order_by(ComHealthRecord.labno.asc(), ComHealthRecord.id.asc())
+    )
+
+
+def _split_ordered_tests_for_export(record):
+    profile_items = sorted(
+        [item for item in record.ordered_tests if item.profile],
+        key=lambda item: (item.profile.name if item.profile else '', item.test.name if item.test else '')
+    )
+    other_items = sorted(
+        [item for item in record.ordered_tests if not item.profile],
+        key=lambda item: (item.group.name if item.group else '', item.test.name if item.test else '')
+    )
+    return profile_items, other_items
+
+
+def _detail_rows_from_record(record, location):
+    customer = record.customer
+    patient_name = '{} {} {}'.format(
+        customer.title or '',
+        customer.firstname or '',
+        customer.lastname or ''
+    ).strip() if customer else ''
+    hn = customer.hn if customer and customer.hn else ''
+    checkin_datetime = _checkin_datetime_for_record(record)
+    profile_items, other_items = _split_ordered_tests_for_export(record)
+    rows = []
+    for item in profile_items + other_items:
+        test_type = 'Profile' if item.profile else 'Other'
+        profile_or_group = item.profile.name if item.profile else (item.group.name if item.group else '')
+        rows.append({
+            'Location': location,
+            'Checkin date': checkin_datetime,
+            'Lab Number': record.labno,
+            'HN': hn,
+            'Patient': patient_name,
+            'Test Type': test_type,
+            'Profile/Group Name': profile_or_group,
+            'Description': item.test.desc if item.test else '',
+            'Test Code': item.test.code if item.test else '',
+            'Test Name': item.test.name if item.test else '',
+            'Unit Price': _money(item.price),
+        })
+    return rows
+
+
+def _non_reimbursable_row_from_record(record, test_columns, row_number):
+    customer = record.customer
+    profile_items, other_items = _split_ordered_tests_for_export(record)
+    profile_names = sorted({item.profile.name for item in profile_items if item.profile})
+    non_reimbursable_items = [
+        item for item in other_items
+        if item.test and not item.test.reimbursable
+    ]
+    row = {
+        'ลำดับ': row_number,
+        'LabNo': record.labno,
+        'คำนำหน้า': customer.title if customer and customer.title else '',
+        'ชื่อ': customer.firstname if customer and customer.firstname else '',
+        'นามสกุล': customer.lastname if customer and customer.lastname else '',
+        'อายุ': customer.age_years if customer and customer.age_years is not None else '',
+        'บัตรประชาชน': _customer_citizen_id(customer),
+        'รหัสพนักงาน': customer.emp_id if customer and customer.emp_id else '',
+        'ฝ่าย': customer.dept.name if customer and customer.dept else '',
+        'กอง': customer.division.name if customer and customer.division else '',
+        'แผนก': customer.unit if customer and customer.unit else '',
+        'ประเภทพนักงาน': customer.emptype.name if customer and customer.emptype else '',
+        'Profile Names': ', '.join(profile_names),
+        'Sum Other Test': sum([_money(item.price) for item in non_reimbursable_items]),
+        'เลขที่ใบเสร็จ': _receipt_codes_for_record(record),
+        'เงินที่ได้': _paid_amount_for_record(record),
+        'note': record.note or '',
+    }
+    for column_name in test_columns:
+        row[column_name] = ''
+    for item in non_reimbursable_items:
+        column_name = _test_column_name(item)
+        if column_name in test_columns:
+            current_value = row.get(column_name, '')
+            if current_value in ('', None):
+                current_value = 0
+            row[column_name] = current_value + _money(item.price)
+    return row
+
+
+def _collect_non_reimbursable_test_columns(service_id):
+    test_columns = OrderedDict()
+    for record in _comhealth_export_records_query(service_id).yield_per(200):
+        if not record.ordered_tests:
+            continue
+        _, other_items = _split_ordered_tests_for_export(record)
+        for item in other_items:
+            if item.test and not item.test.reimbursable:
+                column_name = _test_column_name(item)
+                if column_name:
+                    test_columns[column_name] = None
+    return list(test_columns.keys())
+
+
+def _write_csv_file(file_path, fieldnames, row_iterable):
+    with open(file_path, 'w', encoding='utf-8-sig', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames, extrasaction='ignore')
+        writer.writeheader()
+        for row in row_iterable:
+            writer.writerow(row)
+
+
+@comhealth.route('/services/<int:service_id>/finance/export_tests/<schedule_date_thaiform>')
+@login_required
+def export_finance_test_items(service_id, schedule_date_thaiform):
+    service = ComHealthService.query.get_or_404(service_id)
+    detail_columns = [
+        'Location', 'Checkin date', 'Lab Number', 'HN', 'Patient',
+        'Test Type', 'Profile/Group Name', 'Description', 'Test Code',
+        'Test Name', 'Unit Price'
+    ]
+    non_reimbursable_columns = [
+        'ลำดับ', 'LabNo', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 'อายุ',
+        'บัตรประชาชน', 'รหัสพนักงาน', 'ฝ่าย', 'กอง', 'แผนก', 'ประเภทพนักงาน',
+        'Profile Names'
+    ]
+    non_reimbursable_test_columns = _collect_non_reimbursable_test_columns(service_id)
+    non_reimbursable_columns.extend(non_reimbursable_test_columns)
+    non_reimbursable_columns.extend(['Sum Other Test', 'เลขที่ใบเสร็จ', 'เงินที่ได้', 'note'])
+
+    def detail_rows_csv():
+        for record in _comhealth_export_records_query(service_id).yield_per(200):
+            if not record.ordered_tests:
+                continue
+            for row in _detail_rows_from_record(record, service.location):
+                yield row
+
+    def non_reimbursable_rows_csv():
+        row_number = 0
+        for record in _comhealth_export_records_query(service_id).yield_per(200):
+            if not record.ordered_tests:
+                continue
+            row_number += 1
+            yield _non_reimbursable_row_from_record(record, non_reimbursable_test_columns, row_number)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        detail_path = os.path.join(temp_dir, 'Test_Detail.csv')
+        non_reimbursable_path = os.path.join(temp_dir, 'เบิกไม่ได้.csv')
+
+        _write_csv_file(detail_path, detail_columns, detail_rows_csv())
+        _write_csv_file(non_reimbursable_path, non_reimbursable_columns, non_reimbursable_rows_csv())
+
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.write(detail_path, arcname='Test_Detail.csv')
+            zip_file.write(non_reimbursable_path, arcname='เบิกไม่ได้.csv')
+
+    output.seek(0)
+    filename = 'comhealth_test_items_{}_{}.zip'.format(service_id, schedule_date_thaiform)
+    return send_file(output, download_name=filename, as_attachment=True, mimetype='application/zip')
+
+
+@comhealth.route('/services/<int:service_id>/finance/export_tests', methods=['POST'])
+@login_required
+def export_finance_test_items_from_form(service_id):
+    return export_finance_test_items(service_id, 'all')
+
 @comhealth.route('/services/<int:service_id>/finance/summary',methods=('GET', 'POST'))
 @login_required
 def finance_summary(service_id):
     schedule_date_thaiform = ''
+    scheduledate_value = ''
     if request.method == 'POST':
-        schedule_date = request.form.get('scheduledate')
-        if schedule_date:
-            schedule_date_string = schedule_date.split('/')
-            schedule_date_thaiform = schedule_date_string[2] + '-' + f'{int(schedule_date_string[1]):02n}' + '-' + f'{int(schedule_date_string[0]):02n}'
+        scheduledate_value = request.form.get('scheduledate', '')
+        schedule_date_thaiform = _parse_schedule_date_to_iso(scheduledate_value)
 
     service = ComHealthService.query.get(service_id)
     totals_paid_cash = 0
@@ -739,6 +976,8 @@ def finance_summary(service_id):
     count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
+            if not receipt.created_datetime:
+                continue
             created_date_string = receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d")
             if receipt.paid and receipt.cancelled == False and created_date_string == schedule_date_thaiform:
                 totals_paid_amount += receipt.paid_amount
@@ -751,7 +990,8 @@ def finance_summary(service_id):
                     totals_paid_card += receipt.paid_amount
     return render_template('comhealth/finance_summary.html', service=service,totals_paid_amount=totals_paid_amount,
                            totals_paid_cash=totals_paid_cash,totals_paid_QR=totals_paid_QR,totals_paid_card=totals_paid_card,
-                           count_receipts=count_receipts,schedule_date_thaiform=schedule_date_thaiform)
+                           count_receipts=count_receipts,schedule_date_thaiform=schedule_date_thaiform,
+                           scheduledate_value=scheduledate_value)
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
