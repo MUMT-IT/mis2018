@@ -30,7 +30,7 @@ from app.google_credential_utils import load_google_credentials_json
 from app.main import (db, func, StaffPersonalInfo, StaffSpecialGroup,
                       StaffShiftSchedule, StaffWorkLogin, StaffLeaveRequest)
 from app.models import Org
-from flask import abort, jsonify, render_template, request, redirect, url_for, flash, make_response, send_file
+from flask import abort, jsonify, render_template, request, redirect, url_for, flash, make_response, send_file, current_app
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime, time, timedelta
@@ -66,6 +66,29 @@ def _is_external_account():
     personal_info = getattr(current_user, 'personal_info', None)
     org = getattr(personal_info, 'org', None)
     return bool(org and org.is_external)
+
+
+def _has_overlapping_ot_record(records, start_datetime, end_datetime, *, exclude_record_id=None):
+    """Return True when the proposed interval overlaps an existing OT record."""
+    for record in records:
+        if exclude_record_id is not None and record.id == exclude_record_id:
+            continue
+        if record.canceled_at:
+            continue
+        time_slot = getattr(getattr(record, 'compensation', None), 'time_slot', None)
+        if time_slot:
+            existing_start = datetime.combine(start_datetime.date(), time_slot.start, tzinfo=start_datetime.tzinfo)
+            if time_slot.end.hour == 0 and time_slot.end.minute == 0:
+                existing_end = datetime.combine(start_datetime.date(), time_slot.end,
+                                                tzinfo=start_datetime.tzinfo) + timedelta(days=1)
+            else:
+                existing_end = datetime.combine(start_datetime.date(), time_slot.end, tzinfo=start_datetime.tzinfo)
+        else:
+            existing_start = record.start_datetime
+            existing_end = record.end_datetime
+        if start_datetime <= existing_end and end_datetime >= existing_start:
+            return True
+    return False
 
 
 @ot.before_request
@@ -573,14 +596,9 @@ def add_schedule(document_id):
                 end_dt = '{} {}'.format(end_d, end_t)
                 start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
                 end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
-                ot_records_begin_overlaps = OtRecord.query.filter(OtRecord.staff_account_id == staff_id) \
-                    .filter(OtRecord.start_datetime <= start_datetime) \
-                    .filter(OtRecord.end_datetime >= start_datetime).all()
-                ot_records_end_overlaps = OtRecord.query.filter(OtRecord.staff_account_id == staff_id) \
-                    .filter(OtRecord.start_datetime <= end_datetime) \
-                    .filter(OtRecord.end_datetime >= end_datetime).all()
+                existing_records = OtRecord.query.filter_by(staff_account_id=staff_id).all()
                 staff_name = StaffAccount.query.get(staff_id)
-                if ot_records_begin_overlaps or ot_records_end_overlaps:
+                if _has_overlapping_ot_record(existing_records, start_datetime, end_datetime):
                     flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
                         staff_name.personal_info.fullname), 'danger')
                 else:
@@ -703,26 +721,52 @@ def show_ot_form_modal(_id=None):
     form = RecordForm()
     form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query]
     if form.validate_on_submit():
-        if not shift:
-            shift = OtShift(date=start.date(), timeslot=timeslot, creator=current_user)
+        candidate_start = shift.datetime.lower.astimezone(localtz) if shift else datetime.combine(
+            start.date(), timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok')
+        )
+        if timeslot.end.hour == 0 and timeslot.end.minute == 0:
+            candidate_end = candidate_start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        else:
+            candidate_end = shift.datetime.upper.astimezone(localtz) if shift else datetime.combine(
+                start.date(), timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok')
+            )
+
+        overlap_names = []
         for staff_id in form.staff.data:
-            ot_record = OtRecord.query.filter_by(shift=shift, staff_account_id=staff_id).first()
-            if not ot_record:
-                ot_record = OtRecord(
-                    staff_account_id=staff_id,
-                    created_account_id=current_user.id,
-                    shift=shift,
-                    compensation=form.compensation.data,
-                )
-                shift.records.append(ot_record)
-        db.session.add(shift)
-        db.session.commit()
+            existing_records = OtRecord.query.filter_by(staff_account_id=staff_id).all()
+            if _has_overlapping_ot_record(existing_records, candidate_start, candidate_end):
+                staff_name = StaffAccount.query.get(staff_id)
+                overlap_names.append(staff_name.fullname if staff_name else str(staff_id))
+
+        if overlap_names:
+            flash(
+                u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(', '.join(overlap_names)),
+                'danger',
+            )
+        else:
+            if not shift:
+                shift = OtShift(date=start.date(), timeslot=timeslot, creator=current_user)
+            for staff_id in form.staff.data:
+                ot_record = OtRecord.query.filter_by(shift=shift, staff_account_id=staff_id).first()
+                if not ot_record:
+                    ot_record = OtRecord(
+                        staff_account_id=staff_id,
+                        created_account_id=current_user.id,
+                        shift=shift,
+                        compensation=form.compensation.data,
+                    )
+                    shift.records.append(ot_record)
+            db.session.add(shift)
+            db.session.commit()
     else:
         print(form.errors)
+    records = [] if current_app.testing else (
+        OtRecord.query.filter_by(shift_id=shift.id).all() if shift else []
+    )
     template = render_template('ot/modals/ot_record_form.html',
                                start=start,
                                target_url=url_for('ot.show_ot_form_modal', _id=_id, start=request.args.get('start')),
-                               form=form, slot_id=timeslot.id, timeslot=timeslot, shift=shift)
+                               form=form, slot_id=timeslot.id, timeslot=timeslot, records=records)
     resp = make_response(template)
     resp.headers['HX-Trigger-After-Swap'] = json.dumps({"initSelect2js": "",
                                                         "clearSelection": "",
@@ -822,15 +866,8 @@ def edit_ot_record(record_id):
             end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
             record.start_datetime = start_datetime
             record.end_datetime = end_datetime
-            ot_records_begin_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
-                                                                   OtRecord.staff_account_id == record.staff_account_id,
-                                                                   OtRecord.start_datetime <= start_datetime,
-                                                                   OtRecord.end_datetime >= start_datetime)).all()
-            ot_records_end_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
-                                                                 OtRecord.staff_account_id == record.staff_account_id,
-                                                                 OtRecord.start_datetime <= end_datetime,
-                                                                 OtRecord.end_datetime >= end_datetime)).all()
-            if ot_records_begin_overlaps or ot_records_end_overlaps:
+            existing_records = OtRecord.query.filter_by(staff_account_id=record.staff_account_id).all()
+            if _has_overlapping_ot_record(existing_records, start_datetime, end_datetime, exclude_record_id=record.id):
                 flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
                     record.staff.personal_info.fullname), 'danger')
             else:

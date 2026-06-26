@@ -224,7 +224,7 @@ class OtRecord(db.Model):
     document = db.relationship(OtDocumentApproval, backref=db.backref('ot_records'))
     round_id = db.Column('round_id', db.ForeignKey('ot_round_request.id'))
     round = db.relationship('OtRoundRequest', backref=db.backref('ot_records'))
-    canceled_at = db.Column('canceled_at', db.DateTime(timezone=True), default=datetime.now())
+    canceled_at = db.Column('canceled_at', db.DateTime(timezone=True))
     canceled_by_account_id = db.Column('canceled_by_account_id', db.ForeignKey('staff_account.id'))
     total_hours = db.Column('total_hours', db.Integer())
     total_minutes = db.Column('total_minutes', db.Integer())
@@ -300,4 +300,3 @@ class OtRoundRequest(db.Model):
     verified_by_account_id = db.Column('verified_by_account_id', db.ForeignKey('staff_account.id'))
     verified_by = db.relationship(StaffAccount, backref=db.backref('ot_round_verified_by'),
                                   foreign_keys=[verified_by_account_id])
-

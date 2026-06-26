@@ -150,7 +150,7 @@ def login(is_admin=False):
         next_url = request.args.get('next', url_for('index'))
         return _handle_password_login(form, external_only=False, next_url=next_url)
 
-    return render_template('/auth/login.html',
+    return render_template('auth/login.html',
                            form=form,
                            errors=form.errors,
                            linking_line=linking_line,
@@ -169,7 +169,7 @@ def login_external():
         return _handle_password_login(form, external_only=True)
 
     return render_template(
-        '/auth/login_external.html',
+        'auth/login_external.html',
         form=form,
         errors=form.errors,
     )
@@ -199,7 +199,7 @@ def account():
 
     approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id).all()
 
-    return render_template('/auth/account.html',
+    return render_template('auth/account.html',
                            approvers=approvers,
                            line_profile=session.get('line_profile', {}))
 

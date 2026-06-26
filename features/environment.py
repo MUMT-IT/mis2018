@@ -1,142 +1,105 @@
 import os
-import sys
-import types
-from types import SimpleNamespace
-
-from flask import Flask
-from flask_login import LoginManager
+import tempfile
+from pathlib import Path
 
 
-class _DummyResponse:
-    status_code = 200
+_TEST_TABLE_NAMES = [
+    'roles',
+    'user_roles',
+    'orgs',
+    'staff_personal_info',
+    'staff_employments',
+    'staff_job_positions',
+    'staff_academic_position',
+    'staff_academic_position_records',
+    'staff_account',
+    'service_admins',
+    'staff_leave_types',
+    'staff_leave_quota',
+    'staff_leave_used_quota',
+    'ot_payment_announce',
+    'ot_timeslots',
+    'ot_job_roles',
+    'ot_compensation_rate',
+    'ot_document_approval',
+    'ot_announce_document_assoc',
+    'ot_staff_assoc',
+    'ot_round_request',
+    'ot_shifts',
+    'ot_record',
+]
 
-    def json(self):
-        return {}
 
-    def raise_for_status(self):
-        return None
+def _selected_tables(db):
+    return [db.metadata.tables[name] for name in _TEST_TABLE_NAMES if name in db.metadata.tables]
 
 
-def _install_import_stubs(app):
-    pydrive_auth_stub = types.ModuleType('pydrive.auth')
+def _reset_selected_tables(db):
+    tables = _selected_tables(db)
+    if not tables:
+        raise RuntimeError('No BDD test tables were registered')
+    db.session.remove()
+    db.metadata.drop_all(bind=db.engine, tables=tables)
+    db.metadata.create_all(bind=db.engine, tables=tables)
 
-    class GoogleAuth:
-        def __init__(self, *args, **kwargs):
-            self.credentials = None
 
-    class ServiceAccountCredentials:
-        @classmethod
-        def from_json_keyfile_dict(cls, *args, **kwargs):
-            return object()
-
-    pydrive_auth_stub.GoogleAuth = GoogleAuth
-    pydrive_auth_stub.ServiceAccountCredentials = ServiceAccountCredentials
-    sys.modules['pydrive.auth'] = pydrive_auth_stub
-
-    pydrive_drive_stub = types.ModuleType('pydrive.drive')
-
-    class GoogleDrive:
-        def __init__(self, *args, **kwargs):
-            pass
-
-    pydrive_drive_stub.GoogleDrive = GoogleDrive
-    sys.modules['pydrive.drive'] = pydrive_drive_stub
-
-    staff_pkg_stub = types.ModuleType('app.staff')
-    staff_pkg_stub.__path__ = []
-    sys.modules['app.staff'] = staff_pkg_stub
-
-    staff_models_stub = types.ModuleType('app.staff.models')
-
-    class StaffLeaveApprover:
-        pass
-
-    class _StaffAccountQuery:
-        def filter_by(self, **kwargs):
-            return self
-
-        def first(self):
-            return None
-
-    class StaffAccount:
-        query = _StaffAccountQuery()
-
-        @classmethod
-        def get_account_by_external_email(cls, email):
-            registry = app.config.setdefault('BEHAVE_USER_REGISTRY', {})
-            return registry.get((email or '').strip().lower())
-
-    staff_models_stub.StaffAccount = StaffAccount
-    staff_models_stub.StaffLeaveApprover = StaffLeaveApprover
-    sys.modules['app.staff.models'] = staff_models_stub
-
-    main_stub = types.ModuleType('app.main')
-    main_stub.app = app
-    main_stub.db = SimpleNamespace(session=SimpleNamespace(
-        add=lambda *args, **kwargs: None,
-        commit=lambda *args, **kwargs: None,
-        query=lambda *args, **kwargs: SimpleNamespace(filter_by=lambda **_kwargs: SimpleNamespace(first=lambda: None)),
-    ))
-    main_stub.mail = SimpleNamespace(send=lambda *args, **kwargs: None)
-    sys.modules['app.main'] = main_stub
+def _pop_app_context_if_active(context):
+    app_context = getattr(context, 'app_context', None)
+    if app_context is None:
+        return
+    if getattr(app_context, '_cv_tokens', None):
+        app_context.pop()
 
 
 def before_all(context):
     os.environ.setdefault('SECRET_KEY', 'behave-test-secret')
+    os.environ.setdefault('PUBLIC_BASE_URL', 'http://localhost')
+    os.environ.setdefault('LINE_CLIENT_ID', 'behave-line-client-id')
+    os.environ.setdefault('LINE_CLIENT_SECRET', 'behave-line-client-secret')
+    os.environ.setdefault('LINE_MESSAGE_API_ACCESS_TOKEN', 'behave-line-access-token')
+    os.environ.setdefault('LINE_MESSAGE_API_CLIENT_SECRET', 'behave-line-message-secret')
+    fd, db_path = tempfile.mkstemp(prefix='behave-mis-', suffix='.sqlite3')
+    os.close(fd)
+    context.db_path = db_path
+    os.environ['DATABASE_URL'] = f'sqlite:///{db_path}'
 
-    app = Flask('behave-test')
+    from app.main import app, db
+
     app.config.update(
         TESTING=True,
         WTF_CSRF_ENABLED=False,
-        SECRET_KEY=os.environ['SECRET_KEY'],
-        LINE_CLIENT_ID='behave-line-client-id',
-        LINE_CLIENT_SECRET='behave-line-client-secret',
-        LINE_MESSAGE_API_ACCESS_TOKEN='behave-line-access-token',
-        LINE_MESSAGE_API_CLIENT_SECRET='behave-line-message-secret',
-        PUBLIC_BASE_URL='http://localhost',
         SERVER_NAME='localhost',
         PREFERRED_URL_SCHEME='http',
     )
-
-    _install_import_stubs(app)
-
-    from app.auth import authbp as auth_blueprint
-
-    login_manager = LoginManager()
-    login_manager.init_app(app)
-
-    @login_manager.user_loader
-    def load_user(user_id):
-        registry = app.config.setdefault('BEHAVE_USER_REGISTRY', {})
-        return registry.get(str(user_id))
-
-    @app.route('/external')
-    def external_landing():
-        return (
-            'External Employee Portal\n'
-            'External employee access only\n'
-        )
-
-    app.register_blueprint(auth_blueprint, url_prefix='/auth')
+    app.jinja_env.globals.setdefault('csrf_token', lambda: '')
 
     context.app = app
-    context.login_manager = login_manager
+    context.db = db
     context.app_context = app.app_context()
     context.app_context.push()
+    _reset_selected_tables(db)
 
 
 def after_all(context):
-    if hasattr(context, 'app_context'):
-        context.app_context.pop()
+    _pop_app_context_if_active(context)
+    if getattr(context, 'db_path', None):
+        try:
+            Path(context.db_path).unlink(missing_ok=True)
+        except TypeError:
+            if Path(context.db_path).exists():
+                Path(context.db_path).unlink()
 
 
 def before_scenario(context, scenario):
+    _pop_app_context_if_active(context)
+    context.app_context = context.app.app_context()
+    context.app_context.push()
     context.client = context.app.test_client()
-    context.patches = []
-    context.fake_user = None
-    context.app.config['BEHAVE_USER_REGISTRY'] = {}
+    context.app.jinja_env.globals.setdefault('csrf_token', lambda: '')
+    with context.client.session_transaction() as session:
+        session.clear()
+    _reset_selected_tables(context.db)
 
 
 def after_scenario(context, scenario):
-    while context.patches:
-        context.patches.pop().stop()
+    context.db.session.remove()
