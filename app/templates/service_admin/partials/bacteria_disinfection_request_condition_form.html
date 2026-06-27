@@ -101,6 +101,15 @@
                                         >
                                             <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                         </a>
+                                    {% elif product_type == 'soap_reduction' %}
+                                        <a class="button is-danger is-outlined"
+                                           hx-delete="{{ url_for('service_admin.remove_bacteria_soap_reduction_organism_form_entry',
+                                               name=fields.name) }}"
+                                           hx-target="closest tr"
+                                           hx-swap="outerHTML"
+                                        >
+                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                        </a>
                                     {% elif product_type == 'antibacterial_treated' %}
                                         <a class="button is-danger is-outlined"
                                            hx-delete="{{ url_for('service_admin.remove_bacteria_antibacterial_treated_organism_form_entry',
@@ -110,7 +119,7 @@
                                         >
                                             <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                         </a>
-                                    {% elif product_type == 'dish_wash' %}
+                                    {% else %}
                                         <a class="button is-danger is-outlined"
                                            hx-delete="{{ url_for('service_admin.remove_bacteria_dish_wash_organism_form_entry',
                                                name=fields.name) }}"
@@ -185,6 +194,16 @@
                                         <span class="icon"><i class="fas fa-plus"></i></span>
                                         <span>เพิ่ม</span>
                                     </a>
+                                {% elif product_type == 'soap_reduction' %}
+                                    <a class="button is-info is-outlined is-rounded"
+                                       hx-post="{{ url_for('service_admin.add_bacteria_soap_reduction_organism_form_entry',
+                                           name=fields.name) }}"
+                                       hx-target="previous tr"
+                                       hx-swap="afterend"
+                                    >
+                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                        <span>เพิ่ม</span>
+                                    </a>
                                 {% elif product_type == 'antibacterial_treated' %}
                                     <a class="button is-info is-outlined is-rounded"
                                        hx-post="{{ url_for('service_admin.add_bacteria_antibacterial_treated_organism_form_entry',
@@ -195,7 +214,7 @@
                                         <span class="icon"><i class="fas fa-plus"></i></span>
                                         <span>เพิ่ม</span>
                                     </a>
-                                {% elif product_type == 'dish_wash' %}
+                                {% else %}
                                     <a class="button is-info is-outlined is-rounded"
                                        hx-post="{{ url_for('service_admin.add_bacteria_dish_wash_organism_form_entry',
                                            name=fields.name) }}"
@@ -277,6 +296,15 @@
             >
                 ลบ
             </button>
+        {% elif product_type == 'soap_reduction' %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('service_admin.remove_bacteria_soap_reduction_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
         {% elif product_type == 'antibacterial_treated' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('service_admin.remove_bacteria_antibacterial_treated_condition_form',
@@ -286,7 +314,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'dish_wash' %}
+        {% else %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('service_admin.remove_bacteria_dish_wash_condition_form',
                     name=fields.name) }}"
@@ -367,7 +395,7 @@
         });
 
         dilutionInput.prop('required', true)
-            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือการเจือจาง')");
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกการเจือจาง')");
 
         dilutionInput.on('change', function () {
             dilutionInput.each(function () {

@@ -353,6 +353,15 @@
                                                                                             >
                                                                                                 <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                                                                             </a>
+                                                                                        {% elif entry_name == 'soap_reduction_condition_field' %}
+                                                                                            <a class="button is-danger is-outlined"
+                                                                                               hx-delete="{{ url_for('academic_services.remove_bacteria_soap_reduction_organism_form_entry',
+                                                                                               name=entry.name) }}"
+                                                                                               hx-target="closest tr"
+                                                                                               hx-swap="outerHTML"
+                                                                                            >
+                                                                                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                            </a>
                                                                                         {% elif entry_name == 'antibacterial_treated_condition_field' %}
                                                                                             <a class="button is-danger is-outlined"
                                                                                                hx-delete="{{ url_for('academic_services.remove_bacteria_antibacterial_treated_organism_form_entry',
@@ -362,7 +371,7 @@
                                                                                             >
                                                                                                 <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                                                                             </a>
-                                                                                        {% elif entry_name == 'dish_wash_condition_field' %}
+                                                                                        {% else %}
                                                                                             <a class="button is-danger is-outlined"
                                                                                                hx-delete="{{ url_for('academic_services.remove_bacteria_dish_wash_organism_form_entry',
                                                                                                name=entry.name) }}"
@@ -437,6 +446,16 @@
                                                                                             <span class="icon"><i class="fas fa-plus"></i></span>
                                                                                             <span>เพิ่ม</span>
                                                                                         </a>
+                                                                                    {% elif entry_name == 'soap_reduction_condition_field' %}
+                                                                                        <a class="button is-info is-outlined is-rounded"
+                                                                                           hx-post="{{ url_for('academic_services.add_bacteria_soap_reduction_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                           hx-target="previous tr"
+                                                                                           hx-swap="afterend"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                            <span>เพิ่ม</span>
+                                                                                        </a>
                                                                                     {% elif entry_name == 'antibacterial_treated_condition_field' %}
                                                                                         <a class="button is-info is-outlined is-rounded"
                                                                                            hx-post="{{ url_for('academic_services.add_bacteria_antibacterial_treated_organism_form_entry',
@@ -447,7 +466,7 @@
                                                                                             <span class="icon"><i class="fas fa-plus"></i></span>
                                                                                             <span>เพิ่ม</span>
                                                                                         </a>
-                                                                                    {% elif entry_name == 'dish_wash_condition_field' %}
+                                                                                    {% else %}
                                                                                         <a class="button is-info is-outlined is-rounded"
                                                                                            hx-post="{{ url_for('academic_services.add_bacteria_dish_wash_organism_form_entry',
                                                                                            name=entry.name) }}"
@@ -529,6 +548,15 @@
                                                             >
                                                                 ลบ
                                                             </button>
+                                                        {% elif entry_name == 'soap_reduction_condition_field'  %}
+                                                            <button type="button" class="button is-danger is-rounded is-small"
+                                                                    hx-delete="{{ url_for('academic_services.remove_bacteria_soap_reduction_condition_form',
+                                                                    name=entry.name) }}"
+                                                                    hx-target="closest .subform-card"
+                                                                    hx-swap="outerHTML"
+                                                            >
+                                                                ลบ
+                                                            </button>
                                                         {% elif entry_name == 'antibacterial_treated_condition_field'  %}
                                                             <button type="button" class="button is-danger is-rounded is-small"
                                                                     hx-delete="{{ url_for('academic_services.remove_bacteria_antibacterial_treated_condition_form',
@@ -538,7 +566,7 @@
                                                             >
                                                                 ลบ
                                                             </button>
-                                                        {% elif entry_name == 'dish_wash_condition_field'  %}
+                                                        {% else  %}
                                                             <button type="button" class="button is-danger is-rounded is-small"
                                                                     hx-delete="{{ url_for('academic_services.remove_bacteria_dish_wash_condition_form',
                                                                     name=entry.name) }}"
