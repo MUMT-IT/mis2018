@@ -275,7 +275,7 @@ class BacteriaLiquidTestConditionForm(FlaskForm):
 
 
 class BacteriaLiquidConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    liquid_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดของเหลว หรือชนิดผง ที่ละลายน้้าได้',
                                render_kw={'class': 'input is-danger'})
     liquid_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Use-Dilution 60 carriers',
@@ -307,7 +307,7 @@ class BacteriaSprayTestConditionForm(FlaskForm):
 
 
 class BacteriaSprayConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    spray_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อบนพื้นผิวไม่มีรูพรุนชนิดฉีดพ่นธรรมดา หรือ ฉีดพ่นอัดก๊าซ',
                                render_kw={'class': 'input is-danger'})
     spray_test_method = CheckboxField('วิธีทดสอบ',
@@ -334,7 +334,7 @@ class BacteriaSheetTestConditionForm(FlaskForm):
 
 
 class BacteriaSheetConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    sheet_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อชนิดแผ่น',
                                render_kw={'class': 'input is-danger'})
     sheet_test_method = CheckboxField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Qualitative test 60 carriers',
@@ -359,7 +359,7 @@ class BacteriaAfterWashTestConditionForm(FlaskForm):
 
 
 class BacteriaAfterWashConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    after_wash_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)',
                                render_kw={'class': 'input is-danger'})
     after_wash_qualitative_test = RadioField('วิธีทดสอบเชิงคุณภาพ',
@@ -388,7 +388,7 @@ class BacteriaInWashTestConditionForm(FlaskForm):
 
 
 class BacteriaInWashConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    in_wash_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)',
                                render_kw={'class': 'input is-danger'})
     in_wash_test_method = RadioField('วิธีทดสอบเชิงปริมาณ',
@@ -406,7 +406,7 @@ class BacteriaAlcoholBasedTestConditionForm(FlaskForm):
 
 
 class BacteriaAlcoholBasedConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    alcohol_based_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)',
                                render_kw={'class': 'input is-danger'})
     alcohol_based_test = RadioField('วิธีทดสอบ',
@@ -428,7 +428,7 @@ class BacteriaSoapReductionTestConditionForm(FlaskForm):
 
 
 class BacteriaSoapReductionConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    soap_reduction_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-การลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
                                render_kw={'class': 'input is-danger'})
     soap_reduction_test = RadioField('วิธีทดสอบ',
@@ -449,7 +449,7 @@ class BacteriasSoapInhibitionTestConditionForm(FlaskForm):
 
 
 class BacteriaSoapInhibitionConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    soap_inhibition_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-สารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก.',
                                render_kw={'class': 'input is-danger'})
     soap_inhibition_test = RadioField('วิธีทดสอบ',
@@ -469,7 +469,7 @@ class BacteriaAntibacterialTreatedTestConditionForm(FlaskForm):
 
 
 class BacteriaAntibacterialTreatedConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    antibacterial_treated_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='Antibacterial-treated Surface (plastic and other non-porous surface)',
                                render_kw={'class': 'input is-danger'})
     antibacterial_treated_test = RadioField('วิธีทดสอบ',
@@ -501,7 +501,7 @@ class BacteriaDishWashTestConditionForm(FlaskForm):
 
 
 class BacteriaDishWashConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    dish_wash_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ล้างจาน (Dish Wash Detergent)',
                                render_kw={'class': 'input is-danger'})
     dish_wash_test = RadioField('วิธีทดสอบ',
@@ -769,7 +769,7 @@ class BacteriaAntimicrobialActivityTestConditionForm(FlaskForm):
 
 
 class BacteriaAntimicrobialActivityConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทการทดสอบ',
+    antimicrobial_product_type = HiddenField('ประเภทการทดสอบ',
                                default='การทดสอบประสิทธิภาพการยับยังเชื้อแบคทีเรีย (Antimicrobial Activity)',
                                render_kw={'class': 'input is-danger'})
     antimicrobial_test_method = RadioField('วิธีทดสอบ',
@@ -909,7 +909,7 @@ class VirusLiquidTestConditionForm(FlaskForm):
 
 
 class VirusLiquidConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    liquid_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อ ชนิดของเหลว ชนิดผง หรือชนิดเม็ดที่ละลายน้ำได้',
                                render_kw={'class': 'input is-danger'})
     liquid_test_method = RadioField('วิธีทดสอบ',
@@ -941,7 +941,7 @@ class VirusSprayTestConditionForm(FlaskForm):
 
 
 class VirusSprayConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+    spray_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ฆ่าเชื้อ ชนิดฉีดพ่น',
                                render_kw={'class': 'input is-danger'})
     spray_inject_type = RadioField('ประเภทการฉีด',
@@ -973,7 +973,7 @@ class VirusCoatTestConditionForm(FlaskForm):
 
 
 class VirusCoatConditionForm(FlaskForm):
-    product_type = HiddenField('ประเภทผลิตภัณฑ์', default='ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป',
+    coat_product_type = HiddenField('ประเภทผลิตภัณฑ์', default='ผลิตภัณฑ์ฆ่าเชื้อที่เคลือบบนพื้นผิวสำเร็จรูป',
                                render_kw={'class': 'input is-danger'})
     coat_test_method = RadioField('วิธีทดสอบ', choices=[(c, c) for c in ['วิธีทดสอบ Modified ASTM E1053-20']],
                                   validators=[Optional()])
@@ -1103,7 +1103,7 @@ class VirusSurfaceDisinfectionTestConditionForm(FlaskForm):
 
 
 class VirusSurfaceDisinfectionConditionForm(FlaskForm):
-    product_type = HiddenField('รายการทดสอบ',
+    surface_disinfection_product_type = HiddenField('รายการทดสอบ',
                                default='การฆ่าเชื้อบนพื้นผิว',
                                render_kw={'class': 'input is-danger'})
     surface_disinfection_clean_type = RadioField(
