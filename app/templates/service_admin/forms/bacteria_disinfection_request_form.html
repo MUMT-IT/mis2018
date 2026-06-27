@@ -358,6 +358,15 @@
                                                                                         >
                                                                                             <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                                                                         </a>
+                                                                                    {% elif entry_name == 'soap_inhibition_condition_field' %}
+                                                                                        <a class="button is-danger is-outlined"
+                                                                                           hx-delete="{{ url_for('service_admin.remove_bacteria_soap_inhibition_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                           hx-target="closest tr"
+                                                                                           hx-swap="outerHTML"
+                                                                                        >
+                                                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                        </a>
                                                                                     {% elif entry_name == 'antibacterial_treated_condition_field' %}
                                                                                         <a class="button is-danger is-outlined"
                                                                                            hx-delete="{{ url_for('service_admin.remove_bacteria_antibacterial_treated_organism_form_entry',
@@ -447,6 +456,16 @@
                                                                                 {% elif entry_name == 'soap_reduction_condition_field' %}
                                                                                     <a class="button is-info is-outlined is-rounded"
                                                                                        hx-post="{{ url_for('service_admin.add_bacteria_soap_reduction_organism_form_entry',
+                                                                                           name=entry.name) }}"
+                                                                                       hx-target="previous tr"
+                                                                                       hx-swap="afterend"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                        <span>เพิ่ม</span>
+                                                                                    </a>
+                                                                                {% elif entry_name == 'soap_inhibition_condition_field' %}
+                                                                                    <a class="button is-info is-outlined is-rounded"
+                                                                                       hx-post="{{ url_for('service_admin.add_bacteria_soap_inhibition_organism_form_entry',
                                                                                            name=entry.name) }}"
                                                                                        hx-target="previous tr"
                                                                                        hx-swap="afterend"
@@ -549,6 +568,16 @@
                                                         {% elif entry_name == 'soap_reduction_condition_field' %}
                                                             <a class="button is-info is-outlined is-rounded"
                                                                hx-post="{{ url_for('service_admin.add_bacteria_soap_reduction_organism_form_entry',
+                                                               name=entry.name) }}"
+                                                               hx-target="previous tr"
+                                                               hx-swap="afterend"
+                                                            >
+                                                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                <span>เพิ่ม</span>
+                                                            </a>
+                                                        {% elif entry_name == 'soap_inhibition_condition_field' %}
+                                                            <a class="button is-info is-outlined is-rounded"
+                                                               hx-post="{{ url_for('service_admin.add_bacteria_soap_inhibition_organism_form_entry',
                                                                name=entry.name) }}"
                                                                hx-target="previous tr"
                                                                hx-swap="afterend"
@@ -765,7 +794,7 @@
             });
 
             dilutionInput.prop('required', true)
-                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือการเจือจาง')");
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกการเจือจาง')");
 
             dilutionInput.on('change', function () {
                 dilutionInput.each(function () {
