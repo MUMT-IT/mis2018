@@ -257,7 +257,7 @@ bacteria_dish_wash_organisms = [
 bacteria_antimicrobial_organisms = [
     'S. aureus ATCC 6538',
     'S. enteria ATCC 10708',
-    'P. aeruginosa ATCC 15442'
+    'P. aeruginosa ATCC 15442',
     'E. coli ATCC 10536',
     'T. mentagrophytes',
     'T. rubrum',
@@ -415,6 +415,50 @@ class BacteriaAlcoholBasedConditionForm(FlaskForm):
                                             '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34°C)')],
                                   validators=[Optional()])
     alcohol_based_organism_fields = FieldList(FormField(BacteriaAlcoholBasedTestConditionForm), min_entries=1)
+
+
+class BacteriaSoapReductionTestConditionForm(FlaskForm):
+    soap_reduction_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_alcohol_based_organisms], validators=[Optional()])
+    soap_reduction_ratio = StringField('อัตราส่วนเจือจางผลิตภัณฑ์', validators=[Optional()], render_kw={'class': 'input',
+                                                                                                 'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
+    soap_reduction_per_water = StringField('ต่อน้ำ', validators=[Optional()], render_kw={'class': 'input',
+                                                                                  'placeholder': 'เช่น 1 ส่วน หรือ 1 ml'})
+    soap_reduction_time_duration = StringField('ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า (นาที)', validators=[Optional()],
+                                        render_kw={'class': 'input', 'placeholder': 'เช่น 1 นาที'})
+
+
+class BacteriaSoapReductionConditionForm(FlaskForm):
+    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+                               default='ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-การลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
+                               render_kw={'class': 'input is-danger'})
+    soap_reduction_test = RadioField('วิธีทดสอบ',
+                                  choices=[('ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
+                                            'ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019 '
+                                            '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34°C)')
+                                          ],
+                                  validators=[Optional()])
+    soap_reduction_dilution = RadioField('การเจือจาง', choices=[('เจือจาง', 'เจือจาง (วิธี EN 1276:2019 ทดสอบที่ 50% Final Concentration)'),
+                                                                ('ไม่เจือจาง', 'ไม่เจือจาง')],
+                                validators=[Optional()])
+    soap_reduction_organism_fields = FieldList(FormField(BacteriaSoapReductionTestConditionForm), min_entries=1)
+
+
+class BacteriasSoapInhibitionTestConditionForm(FlaskForm):
+    soap_inhibition_organism = SelectField('เชื้อ', choices=[(c, c) for c in bacteria_antibacterial_treated_organisms],
+                                           validators=[Optional()])
+
+
+class BacteriaSoapInhibitionConditionForm(FlaskForm):
+    product_type = HiddenField('ประเภทผลิตภัณฑ์',
+                               default='ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-สารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก.',
+                               render_kw={'class': 'input is-danger'})
+    soap_inhibition_test = RadioField('วิธีทดสอบ',
+                                  choices=[('ทดสอบประสิทธิภาพสารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก. เจือจาง '
+                                            '0.4 กรัม 9.6 มิลลิลิตร',
+                                            'ทดสอบประสิทธิภาพสารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก เจือจาง '
+                                            '0.4 กรัม  9.6 มิลลิลิตร')],
+                                  validators=[Optional()])
+    soap_inhibition_organism_fields = FieldList(FormField(BacteriasSoapInhibitionTestConditionForm), min_entries=1)
 
 
 class BacteriaAntibacterialTreatedTestConditionForm(FlaskForm):
@@ -575,6 +619,8 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
                                                            ('in_wash',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)'),
                                                            ('alcohol_based', 'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)'),
+                                                           ('soap_reduction', 'ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-การลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019'),
+                                                           ('soap_inhibition', 'ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-สารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก.'),
                                                            ('antibacterial_treated', 'Antibacterial-treated Surface (plastic and other non-porous surface)'),
                                                            ('dish_wash', 'ผลิตภัณฑ์ล้างจาน (Dish Wash Detergent)')])
     liquid_condition_field = FieldList(FormField(BacteriaLiquidConditionForm,
@@ -592,6 +638,12 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
     alcohol_based_condition_field = FieldList(FormField(BacteriaAlcoholBasedConditionForm,
                                                         'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)'),
                                               min_entries=0)
+    soap_reduction_condition_field = FieldList(FormField(BacteriaSoapReductionConditionForm,
+                                                         'ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-การลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019'),
+                                               min_entries=0)
+    soap_inhibition_condition_field = FieldList(FormField(BacteriaSoapInhibitionConditionForm,
+                                                          'ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-สารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก.'),
+                                                min_entries=0)
     antibacterial_treated_condition_field = FieldList(FormField(BacteriaAntibacterialTreatedConditionForm,
                                                                 'Antibacterial-treated Surface (plastic and other non-porous surface)'),
                                                       min_entries=0)
