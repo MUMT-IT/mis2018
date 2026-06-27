@@ -1537,18 +1537,18 @@ def remove_bacteria_alcohol_based_condition_form():
     return ""
 
 
-@academic_services.route('/request/bacteria_soap_condition_form/remove', methods=['DELETE'])
-def remove_bacteria_soap_condition_form():
+@academic_services.route('/request/bacteria_soap_reduction_condition_form/remove', methods=['DELETE'])
+def remove_bacteria_soap_reduction_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
     temp_entries = []
-    for entry in form.soap_condition_field:
+    for entry in form.soap_reduction_condition_field:
         if entry.name != field_name:
             temp_entries.append(entry)
-    while len(form.soap_condition_field) > 0:
-        form.soap_condition_field.pop_entry()
+    while len(form.soap_reduction_condition_field) > 0:
+        form.soap_reduction_condition_field.pop_entry()
     for entry in temp_entries:
-        form.soap_condition_field.append_entry(entry)
+        form.soap_reduction_condition_field.append_entry(entry)
     return ""
 
 
@@ -1915,6 +1915,62 @@ def remove_bacteria_alcohol_based_organism_form_entry():
             entry.alcohol_based_organism_fields.pop_entry()
         for new_entry in temp_entries:
             entry.alcohol_based_organism_fields.append_entry(new_entry)
+    return ""
+
+
+@academic_services.route('/request/bacteria_soap_reduction_organism_form_entry/add', methods=['POST'])
+def add_bacteria_soap_reduction_organism_form_entry():
+    resp = ""
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    for entry in form.soap_reduction_condition_field:
+        if entry.name == field_name:
+            entry.soap_reduction_organism_fields.append_entry()
+            item_form = entry.soap_reduction_organism_fields[-1]
+            template = """
+                <tr>
+                    <td style="border: none">
+                        <div class="select">{}</div>
+                    </td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">
+                        <a class="button is-danger is-outlined"
+                            hx-delete="{}" 
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            """
+            resp = template.format(item_form.soap_reduction_organism(),
+                                   item_form.soap_reduction_ratio(class_='input'),
+                                   item_form.soap_reduction_per_water(class_='input'),
+                                   item_form.soap_reduction_time_duration(class_='input', required=True,
+                                                                  oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                                  oninput="this.setCustomValidity('')"),
+                                   url_for('academic_services.remove_bacteria_soap_reduction_organism_form_entry',
+                                           name=item_form.name)
+                                   )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/request/bacteria_soap_reduction_organism_form_entry/remove', methods=['DELETE'])
+def remove_bacteria_soap_reduction_organism_form_entry():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.soap_reduction_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+        while len(entry.soap_reduction_organism_fields) > 0:
+            entry.soap_reduction_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.soap_reduction_organism_fields.append_entry(new_entry)
     return ""
 
 

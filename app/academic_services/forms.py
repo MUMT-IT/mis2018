@@ -407,7 +407,7 @@ class BacteriaAlcoholBasedTestConditionForm(FlaskForm):
 
 class BacteriaAlcoholBasedConditionForm(FlaskForm):
     alcohol_based_product_type = HiddenField('ประเภทผลิตภัณฑ์',
-                               default='ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)',
+                               default='ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็นส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)',
                                render_kw={'class': 'input is-danger'})
     alcohol_based_test = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
@@ -618,7 +618,7 @@ class BacteriaDisinfectionRequestForm(FlaskForm):
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ตกค้างหลังซัก (After Wash Claim)'),
                                                            ('in_wash',
                                                             'ผลิตภัณฑ์ฆ่าเชื้อที่ใช้ในกระบวนการซักผ้า-ผลิตภัณฑ์ที่อ้างสรรพคุณฤทธิ์ฆ่าเชื้อขณะซัก (In Wash Claim)'),
-                                                           ('alcohol_based', 'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็ยส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)'),
+                                                           ('alcohol_based', 'ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็นส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)'),
                                                            ('soap_reduction', 'ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-การลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019'),
                                                            ('soap_inhibition', 'ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-สารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก.'),
                                                            ('antibacterial_treated', 'Antibacterial-treated Surface (plastic and other non-porous surface)'),
