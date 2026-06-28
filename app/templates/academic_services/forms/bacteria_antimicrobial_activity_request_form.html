@@ -485,12 +485,12 @@
             solventUsedOtherInput.prop('required', isOtherSelected);
 
             if (isOtherSelected) {
-                solventUsedOtherInput.prop('disabled', false);
+                solventUsedOtherInput.prop('readonly', false);
                 solventUsedOtherInput
                     .attr('oninvalid', "this.setCustomValidity('กรุณาระบุ')")
                     .attr('oninput', "this.setCustomValidity('')");
             } else {
-                solventUsedOtherInput.prop('disabled', true);
+                solventUsedOtherInput.prop('readonly', true);
                 solventUsedOtherInput.val('');
                 solventUsedOtherInput.each(function () {
                     this.setCustomValidity('');
