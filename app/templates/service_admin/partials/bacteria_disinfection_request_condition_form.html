@@ -492,9 +492,19 @@
         quantitativeTestInput.on('change', validateQualitativeAndQuantitativeTest);
     }
 
-    $('.subform-card').each(function () {
-        const subform = $(this);
-        toggleTable(subform);
-        addRequiredField(subform);
+    function initSubforms() {
+        $('.subform-card').each(function () {
+            const subform = $(this);
+            toggleTable(subform);
+            addRequiredField(subform);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initSubforms();
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function () {
+        initSubforms();
     });
 </script>
