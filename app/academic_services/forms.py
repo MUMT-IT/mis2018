@@ -473,10 +473,10 @@ class BacteriaAntibacterialTreatedConditionForm(FlaskForm):
                                default='Antibacterial-treated Surface (plastic and other non-porous surface)',
                                render_kw={'class': 'input is-danger'})
     antibacterial_treated_analysis_method = RadioField('วิธีทดสอบ',
-                                  choices=[('ทดสอบประสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801',
-                                            'ทดสอบประสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801'),
-                                           ('ทดสอบประสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011',
-                                            'ทดสอบประสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011')],
+                                  choices=[('ทดสอบประสิทธิภาพการยับยั้งเชื้อแบคทีเรีย วิธีทดสอบ JIS Z 2801',
+                                            'ทดสอบประสิทธิภาพการยับยั้งเชื้อแบคทีเรีย วิธีทดสอบ JIS Z 2801'),
+                                           ('ทดสอบประสิทธิภาพการยับยั้งเชื้อแบคทีเรีย วิธีทดสอบ ISO 22196:2011',
+                                            'ทดสอบประสิทธิภาพการยับยั้งเชื้อแบคทีเรีย วิธีทดสอบ ISO 22196:2011')],
                                   validators=[Optional()])
     antibacterial_treated_sterilization_method = RadioField('วิธีการฆ่าเชื้อ',
                                                   choices=[
