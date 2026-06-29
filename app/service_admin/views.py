@@ -4495,7 +4495,7 @@ def generate_bacteria_request_pdf(service_request):
                             )
 
     data = []
-    first_page_limit = 700
+    first_page_limit = 650
     current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',
@@ -4755,9 +4755,8 @@ def generate_bacteria_request_pdf(service_request):
                 headers = list(rows[0].keys())
                 raw_widths = []
                 for h in headers:
-                    w = stringWidth(str(h), detail_style.fontName, detail_style.fontSize)
                     if h == headers[0]:
-                        w = 80
+                        w = 85
                     elif h == headers[-2]:
                         w = 108
                     elif h == headers[-1]:
@@ -4987,7 +4986,7 @@ def generate_bacteria_sterility_test_request_pdf(service_request):
                             )
 
     data = []
-    first_page_limit = 700
+    first_page_limit = 650
     current_height = 0
     header_style = ParagraphStyle(
         'HeaderStyle',

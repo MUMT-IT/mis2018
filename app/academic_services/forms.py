@@ -473,10 +473,10 @@ class BacteriaAntibacterialTreatedConditionForm(FlaskForm):
                                default='Antibacterial-treated Surface (plastic and other non-porous surface)',
                                render_kw={'class': 'input is-danger'})
     antibacterial_treated_analysis_method = RadioField('วิธีทดสอบ',
-                                  choices=[('ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801',
-                                            'ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801'),
-                                           ('ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011',
-                                            'ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011')],
+                                  choices=[('ทดสอบประสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801',
+                                            'ทดสอบประสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801'),
+                                           ('ทดสอบประสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011',
+                                            'ทดสอบประสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011')],
                                   validators=[Optional()])
     antibacterial_treated_sterilization_method = RadioField('วิธีการฆ่าเชื้อ',
                                                   choices=[
@@ -505,8 +505,8 @@ class BacteriaDishWashConditionForm(FlaskForm):
                                default='ผลิตภัณฑ์ล้างจาน (Dish Wash Detergent)',
                                render_kw={'class': 'input is-danger'})
     dish_wash_analysis_method = RadioField('วิธีทดสอบ',
-                                  choices=[('ทดสอบปริะสิทธิภาพการฆ่าเชื้อโรคในฟองน้ำ วิธีทดสอบ Quantitative test, log (%) reduction',
-                                            'ทดสอบปริะสิทธิภาพการฆ่าเชื้อโรคในฟองน้ำ วิธีทดสอบ Quantitative test, log (%) reduction')
+                                  choices=[('ทดสอบประสิทธิภาพการฆ่าเชื้อโรคในฟองน้ำ วิธีทดสอบ Quantitative test log (%) reduction',
+                                            'ทดสอบประสิทธิภาพการฆ่าเชื้อโรคในฟองน้ำ วิธีทดสอบ Quantitative test log (%) reduction')
                                            ],
                                   validators=[Optional()])
     dish_wash_organism_fields = FieldList(FormField(BacteriaDishWashTestConditionForm), min_entries=1)
