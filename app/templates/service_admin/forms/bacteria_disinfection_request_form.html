@@ -50,6 +50,7 @@
                                     {{ form.active_substance.label }}
                                     เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
                                     <span class="has-text-danger">*</span>
+                                    <span class="help is-danger">หมายเหตุ : ข้อมูลจะแสดงในใบรายงานผลและจะไม่สามารถแก้ไขได้หลังทำการทดสอบ</span>
                                 </label>
                                 <div class="control">
                                     {{ form.active_substance(class='textarea',
@@ -623,14 +624,6 @@
                                         'hx-target': '#condition-fields',
                                          'hx-swap': 'beforeend',
                                          'hx-trigger': 'change'}) }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="box">
-                            <div class="field">
-                                <div class="control">
-                                    {{ form.read_document() }}
-                                    {{ form.read_document.label }}
                                 </div>
                             </div>
                         </div>
