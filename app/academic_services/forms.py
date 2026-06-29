@@ -409,7 +409,7 @@ class BacteriaAlcoholBasedConditionForm(FlaskForm):
     alcohol_based_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ที่มีแอลกอฮอล์เป็นส่วนประกอบ เพื่อสุขภาพอนามัยสำหรับมือ (Alcohol-based Hand sanitizer)',
                                render_kw={'class': 'input is-danger'})
-    alcohol_based_test = RadioField('วิธีทดสอบ',
+    alcohol_based_analysis_method = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
                                             'ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019 '
                                             '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34°C)')],
@@ -431,7 +431,7 @@ class BacteriaSoapReductionConditionForm(FlaskForm):
     soap_reduction_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-การลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
                                render_kw={'class': 'input is-danger'})
-    soap_reduction_test = RadioField('วิธีทดสอบ',
+    soap_reduction_analysis_method = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019',
                                             'ทดสอบประสิทธิภาพการลดปริมาณเชื้อ วิธีทดสอบ EN 1276:2019 '
                                             '(ทดสอบในสภาวะสกปรก (dirty condition) ที่อุณหภูมิ 34°C)')
@@ -452,7 +452,7 @@ class BacteriaSoapInhibitionConditionForm(FlaskForm):
     soap_inhibition_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์สบู่/สบู่เหลวล้างมือ-สารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก.',
                                render_kw={'class': 'input is-danger'})
-    soap_inhibition_test = RadioField('วิธีทดสอบ',
+    soap_inhibition_analysis_method = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบประสิทธิภาพสารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก. เจือจาง '
                                             '0.4 กรัม 9.6 มิลลิลิตร',
                                             'ทดสอบประสิทธิภาพสารระงับเชื้อ ตามมาตรฐานผลิตภัณฑ์อุตสาหกรรม มอก. 29-2545 ภาคผนวก ก เจือจาง '
@@ -472,7 +472,7 @@ class BacteriaAntibacterialTreatedConditionForm(FlaskForm):
     antibacterial_treated_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='Antibacterial-treated Surface (plastic and other non-porous surface)',
                                render_kw={'class': 'input is-danger'})
-    antibacterial_treated_test = RadioField('วิธีทดสอบ',
+    antibacterial_treated_analysis_method = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801',
                                             'ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ JIS Z 2801'),
                                            ('ทดสอบปริะสิทธิภาพการยับยั้งเชื้อแยคทีเรีย วิธีทดสอบ ISO 22196:2011',
@@ -504,7 +504,7 @@ class BacteriaDishWashConditionForm(FlaskForm):
     dish_wash_product_type = HiddenField('ประเภทผลิตภัณฑ์',
                                default='ผลิตภัณฑ์ล้างจาน (Dish Wash Detergent)',
                                render_kw={'class': 'input is-danger'})
-    dish_wash_test = RadioField('วิธีทดสอบ',
+    dish_wash_analysis_method = RadioField('วิธีทดสอบ',
                                   choices=[('ทดสอบปริะสิทธิภาพการฆ่าเชื้อโรคในฟองน้ำ วิธีทดสอบ Quantitative test, log (%) reduction',
                                             'ทดสอบปริะสิทธิภาพการฆ่าเชื้อโรคในฟองน้ำ วิธีทดสอบ Quantitative test, log (%) reduction')
                                            ],

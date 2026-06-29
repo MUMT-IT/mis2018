@@ -783,7 +783,7 @@
         function addRequiredField(subform) {
             const testMethodInput = subform.find('input[name$="test_method"]');
             const cleanTypeInput = subform.find('input[name$="clean_type"]');
-            const testInput = subform.find('input[name$="test"]');
+            const analysisMethodInput = subform.find('input[name$="analysis_method"]');
             const dilutionInput = subform.find('input[name$="dilution"]');
             const surfaceTypeInput = subform.find('input[name$="surface_type"]');
             const sterilizationMethodInput = subform.find('input[name$="sterilization_method"]');
@@ -799,11 +799,11 @@
                 });
             });
 
-            testInput.prop('required', true)
+            analysisMethodInput.prop('required', true)
                 .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีทดสอบ')");
 
-            testInput.on('change', function () {
-                testInput.each(function () {
+            analysisMethodInput.on('change', function () {
+                analysisMethodInput.each(function () {
                     this.setCustomValidity('');
                 });
             });
