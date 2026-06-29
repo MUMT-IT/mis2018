@@ -482,8 +482,22 @@
             const qualitativeChecked = qualitativeTestInput.is(':checked');
             const quantitativeChecked = quantitativeTestInput.is(':checked');
 
-            if (qualitativeChecked) quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
-            if (quantitativeChecked) qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+            if (!qualitativeChecked && !quantitativeChecked) {
+                qualitativeTestInput.prop('required', true)
+                    .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีทดสอบเชิงคุณภาพหรือเชิงปริมาณ')");
+            } else if (qualitativeChecked) {
+                quantitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                qualitativeTestInput.prop('required', false);
+                qualitativeTestInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            } else if (quantitativeChecked) {
+                qualitativeTestInput.closest('.field').find('label .has-text-danger').remove();
+                qualitativeTestInput.prop('required', false);
+                qualitativeTestInput.each(function () {
+                    this.setCustomValidity('');
+                });
+            }
         }
 
         validateQualitativeAndQuantitativeTest();
