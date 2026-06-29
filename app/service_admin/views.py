@@ -1471,6 +1471,7 @@ def add_bacteria_liquid_organism_form_entry():
                     </td>
                     <td style="border: none">{}</td>
                     <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
                     <td style="border: none">
                         <a class="button is-danger is-outlined"
                             hx-delete="{}" 
@@ -1484,6 +1485,7 @@ def add_bacteria_liquid_organism_form_entry():
             """
             resp = template.format(item_form.liquid_organism(),
                                    item_form.liquid_ratio(class_='input'),
+                                   item_form.liquid_per_water(class_='input'),
                                    item_form.liquid_time_duration(class_='input', required=True,
                                                                   oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
                                                                   oninput="this.setCustomValidity('')"),
@@ -1526,6 +1528,8 @@ def add_bacteria_spray_organism_form_entry():
                     <td style="border: none">{}</td>
                     <td style="border: none">{}</td>
                     <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
+                    <td style="border: none">{}</td>
                     <td style="border: none">
                         <a class="button is-danger is-outlined"
                             hx-delete="{}" 
@@ -1540,10 +1544,16 @@ def add_bacteria_spray_organism_form_entry():
             resp = template.format(item_form.spray_organism(),
                                    item_form.spray_ratio(class_='input'),
                                    item_form.spray_per_water(class_='input'),
+                                   item_form.spray_distance(class_='input', required=True,
+                                                            oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                            oninput="this.setCustomValidity('')"),
+                                   item_form.spray_of_time(class_='input', required=True,
+                                                           oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
+                                                           oninput="this.setCustomValidity('')"),
                                    item_form.spray_time_duration(class_='input', required=True,
                                                                   oninvalid="this.setCustomValidity('กรุณากรอกข้อมูล')",
                                                                   oninput="this.setCustomValidity('')"),
-                                   url_for('academic_services.remove_bacteria_spray_organism_form_entry',
+                                   url_for('service_admin.remove_bacteria_spray_organism_form_entry',
                                            name=item_form.name)
                                    )
     resp = make_response(resp)
@@ -1600,6 +1610,21 @@ def add_bacteria_sheet_organism_form_entry():
                                    )
     resp = make_response(resp)
     return resp
+
+
+@service_admin.route('/request/bacteria_sheet_organism_form_entry/remove', methods=['DELETE'])
+def remove_bacteria_sheet_organism_form_entry():
+    field_name = request.args.get('name')
+    form = BacteriaDisinfectionRequestForm()
+    temp_entries = []
+    for entry in form.sheet_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+        while len(entry.sheet_organism_fields) > 0:
+            entry.sheet_organism_fields.pop_entry()
+        for new_entry in temp_entries:
+            entry.sheet_organism_fields.append_entry(new_entry)
+    return ""
 
 
 @service_admin.route('/request/bacteria_after_wash_organism_form_entry/add', methods=['POST'])
