@@ -547,14 +547,16 @@
 
             productType.value = '';
             productType.selectedIndex = 0;
-            productType.dispatchEvent(new Event('change', { bubbles: true }));
+            productType.setCustomValidity('');
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            clearProductType();
             validateProductType();
         });
 
         document.body.addEventListener('htmx:afterSwap', function () {
+            clearProductType();
             validateProductType();
         });
 
