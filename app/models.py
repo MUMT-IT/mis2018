@@ -341,7 +341,6 @@ class ProductCode(db.Model):
     def product_code(self):
         return '{} {}'.format(self.id, self.name)
 
-
 class OrgSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Org
@@ -417,7 +416,6 @@ pdpa_coordinators = db.Table('pdpa_coordinators',
                              )
 
 from app.staff.models import StaffAccount
-
 
 class CoreService(db.Model):
     __tablename__ = 'db_core_services'

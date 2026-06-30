@@ -298,31 +298,48 @@
     {{ super() }}
     <script>
         function validateProductType() {
-            const product_type = document.getElementById('product_type');
-            const subforms = document.querySelector('.subform-card');
-            if (subforms == null) {
-                product_type.required = true;
-                product_type.oninvalid = function () {
+            const productType = document.getElementById('product_type');
+            const hasSubform = document.querySelector('.subform-card') !== null;
+
+            if (!productType) return;
+
+            if (!hasSubform) {
+                productType.required = true;
+                productType.oninvalid = function () {
                     this.setCustomValidity('กรุณาเลือกประเภทผลิตภัณฑ์');
                 };
-                product_type.oninput = function () {
+                productType.oninput = function () {
                     this.setCustomValidity('');
                 };
             } else {
-                product_type.required = false;
-                product_type.setCustomValidity('');
-                product_type.oninvalid = null;
-                product_type.oninput = null;
+                productType.required = false;
+                productType.setCustomValidity('');
+                productType.oninvalid = null;
+                productType.oninput = null;
             }
         }
 
-        validateProductType();
-        document.addEventListener('change', validateProductType);
-    </script>
-    <script>
-        document.addEventListener('click', function (e) {
+        function clearProductType() {
             const productType = document.getElementById('product_type');
+            if (!productType) return;
+
+            productType.value = '';
             productType.selectedIndex = 0;
+            productType.setCustomValidity('');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            clearProductType();
+            validateProductType();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            clearProductType();
+            validateProductType();
+        });
+
+        document.getElementById('product_type')?.addEventListener('change', function () {
+            validateProductType();
         });
     </script>
     <script>
@@ -380,14 +397,24 @@
             }
         }
 
-        $('.subform-card').each(function () {
-            const subform = $(this);
-            toggleTable(subform);
-            addRequiredField(subform);
-            showClenTypeOtherInput(subform);
-            subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+        function initSubforms() {
+            $('.subform-card').each(function () {
+                const subform = $(this);
+                toggleTable(subform);
+                addRequiredField(subform);
                 showClenTypeOtherInput(subform);
+                subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+                    showClenTypeOtherInput(subform);
+                });
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initSubforms();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            initSubforms();
         });
     </script>
 {% endblock %}
