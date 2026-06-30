@@ -7404,13 +7404,31 @@ def quotation_index():
 
 label_map = {
     "liquid_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
-    "liquid_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
+    "liquid_per_water": "ต่อน้ำ",
+    "liquid_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
     "spray_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
-    "spray_distance": "ระยะห่างในการฉีดพ่น (cm)",
-    "spray_of_time": "ระยะเวลาฉีดพ่น (วินาที)",
-    "spray_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
-    "coat_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ (วินาที/นาที)",
-    "surface_disinfection_period_test": "ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ (นาที/ชั่วโมง)"
+    "spray_per_water": "ต่อน้ำ",
+    "spray_distance": "ระยะห่างในการฉีดพ่น",
+    "spray_of_time": "ระยะเวลาฉีดพ่น",
+    "spray_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
+    "sheet_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
+    "in_wash_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
+    "in_wash_per_water": "ต่อน้ำ",
+    "in_wash_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า",
+    "after_wash_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
+    "after_wash_per_water": "ต่อน้ำ",
+    "after_wash_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับผ้า",
+    "alcohol_based_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
+    "soap_reduction_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
+    "soap_reduction_per_water": "ต่อน้ำ",
+    "soap_reduction_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
+    "antibacterial_treated_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
+    "dish_wash_ratio": "อัตราส่วนเจือจางผลิตภัณฑ์",
+    "dish_wash_per_water": "ต่อน้ำ",
+    "dish_wash_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
+    "antimicrobial_sample_quantity" : "ปริมาณตัวอย่าง",
+    "coat_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
+    "surface_disinfection_period_test": "ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ"
 }
 
 
@@ -7420,7 +7438,7 @@ def generate_quotation():
     code = request.args.get('code')
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
-    request_paths = {'bacteria_disinfection': 'service_admin.generate_bacteria_quotation',
+    request_paths = {'bacteria_disinfection': 'service_admin.generate_bacteria_disinfection_quotation',
                      'virus_disinfection': 'service_admin.generate_virus_disinfection_quotation',
                      'air_disinfection': 'service_admin.generate_virus_air_disinfection_quotation',
                      'heavymetal': 'service_admin.generate_heavy_metal_quotation',
@@ -7434,8 +7452,8 @@ def generate_quotation():
     return redirect(url_for(request_paths[code], menu=menu, request_id=request_id))
 
 
-@service_admin.route('/quotation/bacteria/generate', methods=['GET', 'POST'])
-def generate_bacteria_quotation():
+@service_admin.route('/quotation/bacteria/disinfection/generate', methods=['GET', 'POST'])
+def generate_bacteria_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
@@ -7447,17 +7465,17 @@ def generate_bacteria_quotation():
         sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
         quote_column_names = {}
-        quote_details = {}
+        quote_details = []
         quote_prices = {}
         data = service_request.data
         form = BacteriaDisinfectionRequestForm(data=data)
-
         for _, row in df_price.iterrows():
             if row['field_group'] not in quote_column_names:
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
                 quote_column_names[row['field_group']].add(field_name.strip())
             key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
@@ -7466,20 +7484,38 @@ def generate_bacteria_quotation():
         for field in form:
             if field.label.text not in quote_column_names:
                 continue
-            keys = []
-            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
-            for key in list(itertools.combinations(keys, len(quote_column_names[field.label.text]))):
-                sorted_key_ = sorted(''.join([k[1] for k in key]))
+
+            required_cols = quote_column_names[field.label.text]
+            records = walk_form_field_records(field, required_cols)
+            for record in records:
+                present_cols = {re.sub(r'_\d+$', '', n) for n, _ in record}
+                if not required_cols.issubset(present_cols):
+                    continue
+
+                sorted_key_ = sorted(''.join(
+                    [value if ('organism' in label or 'test_method' in label or 'product_type' in label or 'clean_type' in label
+                               or 'qualitative_test' in label or 'quantitative_test' in label or 'analysis_method' in label
+                               or 'sterilization_method' in label)
+                     else '' for
+                     label, value in record]))
+
                 p_key = ''.join(sorted_key_).replace(' ', '')
-                values = ', '.join(
-                    [f"<i>{k[1]}</i>" if "organism" in k[0] and k[1] != "None" else k[1] for k in key])
+                values = ('<br/>'
+                .join(
+                    [
+                        f"<i>{value}</i>" if "organism" in label and value != "None"
+                        else f"{label_map[label]} : {value}" if not (
+                                ('test_method' in label or 'product_type' in label or 'clean_type' in label
+                               or 'qualitative_test' in label or 'quantitative_test' in label or 'analysis_method' in label
+                               or 'sterilization_method' in label) and value != "None"
+                        ) else value
+                        for label, value in record
+                        if value and value != "None"
+                    ]))
 
                 if p_key in quote_prices:
                     prices = quote_prices[p_key]
-                    if p_key in quote_details:
-                        quote_details[p_key]["quantity"] += 1
-                    else:
-                        quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                    quote_details.append({"value": values, "price": prices, "quantity": 1})
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
                                      name=service_request.quotation_name,
@@ -7493,7 +7529,7 @@ def generate_bacteria_quotation():
         db.session.add(service_request)
         db.session.commit()
         sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
-        for _, (_, item) in enumerate(quote_details.items()):
+        for item in quote_details:
             quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
                                                   item=item['value'],
                                                   quantity=item['quantity'],
