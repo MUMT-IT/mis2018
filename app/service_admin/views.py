@@ -7765,15 +7765,8 @@ def generate_virus_disinfection_quotation():
             if row['field_group'] not in quote_column_names:
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
-                if 'product_type' in field_name:
-                    field_name = '_'.join(field_name.split('_')[-2:])
                 quote_column_names[row['field_group']].add(field_name.strip())
-            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
-            keys = [
-                '_'.join(r.split('_')[-2:]) if 'product_type' in r else r
-                for r in row[4:].astype(str)
-            ]
-            key = sorted_field_group + ''.join(sorted(''.join(keys))).replace(' ', '')
+            key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
@@ -7788,15 +7781,16 @@ def generate_virus_disinfection_quotation():
                 present_cols = {re.sub(r'_\d+$', '', n) for n, _ in record}
                 if not required_cols.issubset(present_cols):
                     continue
-                sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
+
                 sorted_key_ = sorted(''.join([value if ('organism' in label or 'test_method' in label or 'product_type' in label) else '' for label, value in record]))
-                p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                p_key = ''.join(sorted_key_).replace(' ', '')
                 values = ('<br/>'
                 .join(
                     [
                      f"<i>{value}</i>" if "organism" in label and value != "None"
-                    else value if ("product_type" in label or "test_method" in label) and value != "None"
-                    else f"{label_map[label]} : {value}"
+                    else f"{label_map[label]} : {value}" if not ("product_type" in label or "test_method" in label)
+                                                            and value != "None"
+                    else value
                     for label, value in record
                     if value and value != "None"
                 ]))
@@ -7866,15 +7860,8 @@ def generate_virus_air_disinfection_quotation():
             if row['field_group'] not in quote_column_names:
                 quote_column_names[row['field_group']] = set()
             for field_name in row['field_name'].split(','):
-                if 'product_type' in field_name:
-                    field_name = '_'.join(field_name.split('_')[-2:])
                 quote_column_names[row['field_group']].add(field_name.strip())
-            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
-            keys = [
-                '_'.join(r.split('_')[-2:]) if 'product_type' in r else r
-                for r in row[4:].astype(str)
-            ]
-            key = sorted_field_group + ''.join(sorted(''.join(keys))).replace(' ', '')
+            key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
@@ -7890,17 +7877,16 @@ def generate_virus_air_disinfection_quotation():
                 present_cols = {re.sub(r'_\d+$', '', n) for n, _ in record}
                 if not required_cols.issubset(present_cols):
                     continue
-                sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
                 sorted_key_ = sorted(''.join(
                     [value if ('organism' in label or 'clean_type' in label or 'product_type' in label) else '' for
                      label, value in record]))
-                p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+                p_key = ''.join(sorted_key_).replace(' ', '')
                 values = ('<br/>'
                     .join(
                         [
                             f"<i>{value}</i>" if "organism" in label and value != "None"
-                            else value if ("product_type" in label or "clean_type" in label) and value != "None"
-                            else f"{label_map[label]} : {value}"
+                            else f"{label_map[label]} : {value}" if not ("product_type" in label or "clean_type" in label) and value != "None"
+                            else value
                             for label, value in record
                             if value and value != "None"
                         ])
