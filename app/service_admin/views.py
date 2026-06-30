@@ -7427,6 +7427,7 @@ label_map = {
     "dish_wash_per_water": "ต่อน้ำ",
     "dish_wash_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
     "antimicrobial_sample_quantity" : "ปริมาณตัวอย่าง",
+    "antimicrobial_solvent_used": "ตัวละลายที่ใช้",
     "coat_time_duration": "ระยะเวลาที่ผลิตภัณฑ์สัมผัสกับเชื้อ",
     "surface_disinfection_period_test": "ระยะเวลาที่ต้องการทดสอบเพื่อทำลายเชื้อ"
 }
@@ -7440,6 +7441,7 @@ def generate_quotation():
     request_id = request.args.get('request_id')
     request_paths = {'bacteria_disinfection': 'service_admin.generate_bacteria_disinfection_quotation',
                      'sterility_test': 'service_admin.generate_bacteria_sterility_test_quotation',
+                     'antimicrobial_activity': 'service_admin.generate_bacteria_antimicrobial_activity_quotation',
                      'virus_disinfection': 'service_admin.generate_virus_disinfection_quotation',
                      'air_disinfection': 'service_admin.generate_virus_air_disinfection_quotation',
                      'heavymetal': 'service_admin.generate_heavy_metal_quotation',
@@ -7638,6 +7640,107 @@ def generate_bacteria_sterility_test_quotation():
     else:
         return render_template('service_admin/quotation_created_confirmation_page.html',
                                quotation_id=quotation.id, request_no=service_request.request_no)
+
+
+@service_admin.route('/quotation/bacteria/antimicrobial_activity/generate', methods=['GET', 'POST'])
+def generate_bacteria_antimicrobial_activity_quotation():
+    menu = request.args.get('menu')
+    request_id = request.args.get('request_id')
+    service_request = ServiceRequest.query.get(request_id)
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    if not quotation:
+        sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
+        gc = get_credential()
+        wksp = gc.open_by_key(sheet_price_id)
+        sheet_price = wksp.worksheet(service_request.sub_lab.code)
+        df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
+        quote_details = []
+        quote_prices = {}
+        data = service_request.data
+        form = BacteriaAntimicrobialActivityRequestForm(data=data)
+        for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in row['field_name'].split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
+            key = ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+
+            if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
+                quote_prices[key] = row['government_price']
+            else:
+                quote_prices[key] = row['other_price']
+
+        for field in form:
+            if field.label.text not in quote_column_names:
+                continue
+
+            required_cols = quote_column_names[field.label.text]
+            records = walk_form_field_records(field, required_cols)
+            for record in records:
+                present_cols = {re.sub(r'_\d+$', '', n) for n, _ in record}
+                if not required_cols.issubset(present_cols):
+                    continue
+
+                sorted_key_ = sorted(''.join(
+                    [value if ('organism' in label or 'test_method' in label or 'product_type' in label
+                               or 'solvent_used' in label and not 'solvent_used_other' in label)
+                     else '' for
+                     label, value in record]))
+
+                p_key = ''.join(sorted_key_).replace(' ', '')
+                values = ('<br/>'
+                .join(
+                    [
+                        f"<i>{value}</i>" if "organism" in label and value != "None"
+                        else f"{label_map[label]} : {value}" if not (('test_method' in label or 'product_type' in label
+                                                                      or 'solvent_used_other' in label) and value != "None"
+                        ) else value
+                        for label, value in record
+                        if value and value != "None"
+                    ]))
+
+                if p_key in quote_prices:
+                    prices = quote_prices[p_key]
+                    quote_details.append({"value": values, "price": prices, "quantity": 1})
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
+                                     name=service_request.quotation_name,
+                                     address=service_request.quotation_issue_address,
+                                     taxpayer_identification_no=service_request.taxpayer_identification_no,
+                                     creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(quotation)
+        quotation_no.count += 1
+        status_id = get_status(3)
+        service_request.status_id = status_id
+        db.session.add(service_request)
+        db.session.commit()
+        sequence_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        for item in quote_details:
+            quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                  item=item['value'],
+                                                  quantity=item['quantity'],
+                                                  unit_price=item['price'],
+                                                  total_price=int(item['quantity']) * item['price'])
+            sequence_no.count += 1
+            db.session.add(quotation_item)
+            db.session.commit()
+        if service_request.report_languages:
+            for rl in service_request.report_languages:
+                quotation_item = ServiceQuotationItem(sequence=sequence_no.number, quotation_id=quotation.id,
+                                                      item=rl.report_language.item,
+                                                      quantity=1,
+                                                      unit_price=rl.report_language.price,
+                                                      total_price=rl.report_language.price)
+                sequence_no.count += 1
+                db.session.add(quotation_item)
+                db.session.commit()
+        flash('ร่างใบเสนอราคาสำเร็จ กรุณาดำเนินการตรวจสอบข้อมูล', 'success')
+        return redirect(
+            url_for('service_admin.create_quotation_for_admin', quotation_id=quotation.id, tab='draft', menu=menu))
+    else:
+        return render_template('service_admin/quotation_created_confirmation_page.html',
+                               quotation_id=quotation.id, request_no=service_request.request_no, menu=menu)
 
 
 @service_admin.route('/quotation/virus/disinfection/generate', methods=['GET', 'POST'])
