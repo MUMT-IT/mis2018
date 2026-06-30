@@ -15,7 +15,8 @@
                     <label class="label">กรอกวันออกตรวจ (ค.ศ.)</label>
                 </div>
                 <div class="field">
-                    <input class="input" type="text" id="scheduledate" placeholder="01/12/2025" name="scheduledate">
+                    <input class="input" type="text" id="scheduledate" placeholder="01/12/2025" name="scheduledate"
+                           value="{{ scheduledate_value or '' }}">
                 </div>
                 <div class="field">
                     <input class="button is-dark" type="submit" value="Submit">
@@ -62,6 +63,14 @@
             </span>
             <span>Excel ใบเสร็จรับเงินที่ยกเลิก</span>
         </a>
+        <button class="button is-warning" type="submit"
+                formaction="{{ url_for('comhealth.export_finance_test_items_from_form', service_id=service.id) }}"
+                formmethod="post">
+            <span class="icon">
+                <i class="fas fa-vial"></i>
+            </span>
+            <span>Export CSV รายการตรวจ</span>
+        </button>
         </form>
     </div>
 </section>
@@ -71,7 +80,10 @@
     <script>
     $(document).ready(function() {
         var date = new Date();
-        document.getElementById("scheduledate").value = date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear();
+        var scheduledate = document.getElementById("scheduledate");
+        if (!scheduledate.value) {
+            scheduledate.value = date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear();
+        }
     })
     </script>
 {% endblock %}
