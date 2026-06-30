@@ -120,17 +120,15 @@ def _seed_ot_fixtures(context, existing_start, existing_end, new_start, new_end)
 
 @given('an employee already has an OT shift from "{start}" to "{end}"')
 def step_impl(context, start, end):
-    existing_start = datetime.strptime(start, '%Y-%m-%d %H:%M')
-    existing_end = datetime.strptime(end, '%Y-%m-%d %H:%M')
-    new_start = datetime.strptime('2026-03-01 21:00', '%Y-%m-%d %H:%M')
-    new_end = datetime.strptime('2026-03-01 23:00', '%Y-%m-%d %H:%M')
-    _seed_ot_fixtures(context, existing_start, existing_end, new_start, new_end)
+    context.existing_start = datetime.strptime(start, '%Y-%m-%d %H:%M')
+    context.existing_end = datetime.strptime(end, '%Y-%m-%d %H:%M')
 
 
 @when('I create another OT shift for the same employee from "{start}" to "{end}"')
 def step_impl(context, start, end):
-    context.overlap_start = datetime.strptime(start, '%Y-%m-%d %H:%M')
-    context.overlap_end = datetime.strptime(end, '%Y-%m-%d %H:%M')
+    new_start = datetime.strptime(start, '%Y-%m-%d %H:%M')
+    new_end = datetime.strptime(end, '%Y-%m-%d %H:%M')
+    _seed_ot_fixtures(context, context.existing_start, context.existing_end, new_start, new_end)
 
     login_response = context.client.post(
         '/auth/login',

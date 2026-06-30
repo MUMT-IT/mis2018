@@ -68,6 +68,7 @@ def step_impl(context):
     from app.staff.models import StaffAccount
 
     assert context.response.status_code == 200
+    assert context.response.request.path == '/external'
     body = context.response.get_data(as_text=True)
     assert 'External Employee Portal' in body
     assert 'External employee access only' in body
@@ -75,3 +76,5 @@ def step_impl(context):
     account = StaffAccount.query.filter_by(external_email=context.external_email).first()
     assert account is not None
     assert account.id == context.external_account_id
+    assert account.personal_info.org is not None
+    assert account.personal_info.org.is_external is True

@@ -2,6 +2,8 @@ import os
 import tempfile
 from pathlib import Path
 
+from sqlalchemy import event
+
 
 _TEST_TABLE_NAMES = [
     'roles',
@@ -17,6 +19,8 @@ _TEST_TABLE_NAMES = [
     'staff_leave_types',
     'staff_leave_quota',
     'staff_leave_used_quota',
+    'staff_work_logins',
+    'staff_request_work_logins',
     'ot_payment_announce',
     'ot_timeslots',
     'ot_job_roles',
@@ -77,6 +81,10 @@ def before_all(context):
     context.db = db
     context.app_context = app.app_context()
     context.app_context.push()
+    if db.engine.url.get_backend_name() == 'sqlite':
+        @event.listens_for(db.engine, 'connect')
+        def _register_sqlite_timezone(dbapi_connection, _connection_record):
+            dbapi_connection.create_function('timezone', 2, lambda _tz, value: value)
     _reset_selected_tables(db)
 
 

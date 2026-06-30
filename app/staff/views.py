@@ -4675,7 +4675,10 @@ def staff_edit_pwd(staff_id):
         db.session.commit()
         flash('แก้ไขรหัสผ่านเรียบร้อย')
         return redirect(url_for('staff.staff_search_to_change_pwd'))
-    return render_template('staff/staff_search_to_change_pwd.html')
+    staff_email = StaffAccount.query.filter_by(id=staff_id).first()
+    if not staff_email:
+        abort(404)
+    return render_template('staff/staff_edit_pwd.html', account=staff_email)
 
 
 @staff.route('/for-hr/staff-info/search-account/send-reset-pwd/<int:staff_id>', methods=['POST'])

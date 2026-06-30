@@ -83,5 +83,11 @@ def step_impl(context):
 
     created_account = StaffAccount.query.filter_by(external_email='external.employee@example.com').first()
     assert created_account is not None
+    assert created_account.email == 'external.employee'
+    assert created_account.personal_info.org is not None
+    assert created_account.personal_info.org.is_external is True
     assert context.response.status_code == 200
     assert context.response.request.path == f'/staff/for-hr/staff-info/search-account/edit-pwd/{created_account.id}'
+    body = context.response.get_data(as_text=True)
+    assert 'แก้ไขรหัสผ่านของ' in body
+    assert 'ตั้งรหัสผ่านใหม่' in body
