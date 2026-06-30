@@ -4,6 +4,28 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="75">
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                   data-target="navbarBasicExample">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                    <span class="navbar-item">
+                    <a class="button is-outlined" href="{{ url_for('procurement.user_first') }}">
+                        <span>Home</span>
+                    </a>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
     <section class="section">
         <style>
             .thumbnail-wrapper {
@@ -153,6 +175,12 @@
                                            {% if item.qr_code_attached %}checked{% endif %}>
                                     ติด QR Code แล้ว
                                 </label>
+                            </div>
+                            <div class="field">
+                                <label class="label">อัปเดตเมื่อ</label>
+                                <div class="control">
+                                    {{ current_record.updated_at|localdatetime if current_record and current_record.updated_at else '-' }}
+                                </div>
                             </div>
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">

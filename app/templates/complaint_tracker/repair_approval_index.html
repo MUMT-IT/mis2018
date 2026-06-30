@@ -85,7 +85,11 @@
                                 </td>
                                 <td>{{ repair_approval.purchase_type }}</td>
                                 <td>
-                                    {{ "{:,.2f}".format(repair_approval.price) }}
+                                    {% if repair_approval.price %}
+                                        {{ "{:,.2f}".format(repair_approval.price) }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
                                 </td>
                                 <td>{{ repair_approval.budget_year }}</td>
                                 <td>{{ repair_approval.reason }}</td>
@@ -119,8 +123,7 @@
                                     <div class="field">
                                         <div class="control mb-2">
                                             <a class="button is-small is-info is-outlined is-rounded"
-                                               {% if repair_approval.cost_center and repair_approval.io_code and
-                                                    repair_approval.product_code %}
+                                               {% if repair_approval.has_data_complete %}
                                                     @click="printRepairApproval({{ repair_approval.id }})"
                                                {% else %}
                                                     @click="warnAlert({{ repair_approval.id }})"
@@ -137,7 +140,8 @@
                                             <div class="control mb-2">
                                                 <a class="button is-warning is-outlined is-rounded is-small"
                                                    href="{{ url_for('comp_tracker.edit_repair_approval',
-                                                   repair_approval_id=repair_approval.id, temp='index', menu=menu)}}"
+                                                   repair_approval_id=repair_approval.id, temp='index', menu=menu,
+                                                   tab=tab)}}"
                                                 >
                                                     <span class="icon"><i class="fas fa-pen"></i></span>
                                                     <span>Edit</span>
@@ -184,7 +188,7 @@
                         cancelButtonColor: "#d33",
                         cancelButtonText: "ยกเลิก",
                         confirmButtonText: "กรอกข้อมูล",
-                        text: 'กรุณาดำเนินการกรอกข้อมูล Cost Center (รหัสศูนย์ต้นทุน), IO Code (รหัสใบสั่งงานภายใน) และ Product Code (ผลผลิต) ให้ครบถ้วนก่อนดำเนินการพิมพ์ใบอนุมัติหลักการซ่อม'
+                        text: 'กรุณาดำเนินการกรอกข้อมูลให้ครบถ้วนก่อนดำเนินการพิมพ์ใบอนุมัติหลักการซ่อม'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             var tab = '{{ tab }}';

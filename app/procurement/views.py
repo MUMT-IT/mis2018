@@ -569,9 +569,9 @@ def get_procurement_search_data():
         data.append({
             'thumbnail': ('<img style="display:block; width:56px; height:56px; object-fit:cover;" '
                           'src="{}" alt="thumbnail">'.format(image_thumbnail_url)) if image_thumbnail_url else '',
-            'check': '<a href="{}"><i class="far fa-check-circle"></i></a>'.format(
+            'view': '<a href="{}"><i class="fas fa-search"></i></a>'.format(
                 url_for(
-                    'procurement.view_procurement_on_scan',
+                    'procurement.view_procurement_for_mumt',
                     procurement_no=item.procurement_no
                 )
             ),
@@ -1260,6 +1260,18 @@ def qrcode_scan_mumt():
     return render_template('procurement/scan_qrcode_for_mumt.html')
 
 
+@procurement.route('/scan-qrcode/user-scan-or-search', methods=['GET'])
+@login_required
+def user_scan_or_search():
+    return render_template('procurement/user_scan_or_search.html')
+
+
+@procurement.route('/scan-qrcode/user-find-item', methods=['GET'])
+@login_required
+def user_find_item():
+    return render_template('procurement/user_find_item.html')
+
+
 @procurement.route('/scan-qrcode/info/view')
 @procurement.route('/scan-qrcode/info/view/procurement_no/<string:procurement_no>')
 def view_procurement_on_scan(procurement_no=None):
@@ -1442,10 +1454,12 @@ def view_procurement_for_mumt(procurement_no=None):
         item = ProcurementDetail.query.get(procurement_id)
     if procurement_no:
         items = ProcurementDetail.query.filter_by(procurement_no=procurement_no).all()
-        for qr_item in items:
-            qr_item.qr_code_attached = True
-            db.session.add(qr_item)
-        db.session.commit()
+        from_scan = request.args.get('from_scan') == '1'
+        if from_scan:
+            for qr_item in items:
+                qr_item.qr_code_attached = True
+                db.session.add(qr_item)
+            db.session.commit()
         item_count = len(items)
         if item_count > 1:
             return redirect(url_for('procurement.view_sub_items', procurement_no=procurement_no,

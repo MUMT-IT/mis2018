@@ -312,6 +312,7 @@ class ServiceLab(db.Model):
 class ServiceSubLab(db.Model):
     __tablename__ = 'service_sub_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
     sub_lab = db.Column('sub_lab', db.String())
     lab_information = db.Column('lab_information', db.Text(), info={'label': 'ข้อมูลห้องปฏิบัติการทดสอบ'})
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})

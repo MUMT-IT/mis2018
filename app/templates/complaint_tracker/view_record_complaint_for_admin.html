@@ -208,9 +208,21 @@
                             <div class="field">
                                 <label class="label">ช่องทางรับเรื่อง</label>
                                 <div class="control">
-                                    {{ record.channel_receive }}
+                                    {{ record.channel_receive or 'ไม่ระบุ' }}
                                 </div>
                             </div>
+                            {% if record.participants %}
+                                <div class="field">
+                                    <label class="label">ผู้เกี่ยวข้อง</label>
+                                    <div class="control">
+                                        {% for participant in record.participants %}
+                                            <span class="tag is-rounded is-info is-light">
+                                                {{ participant.fullname }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
                             {% if record.fl_name %}
                                 <div class="field">
                                     <label class="label">ข้อมูลติดต่อผู้แจ้ง</label>
@@ -317,12 +329,14 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="field">
-                                <label class="label">สถานะการแทงจำหน่าย</label>
-                                <div class="control">
-                                    {{ record.has_disposed }}
+                            {% if record.topic.code == 'runied' %}
+                                <div class="field">
+                                    <label class="label">รูปแบบการซ่อม</label>
+                                    <div class="control">
+                                        {{ record.repair_method or 'ไม่ระบุ' }}
+                                    </div>
                                 </div>
-                            </div>
+                            {% endif %}
                             <div class="field">
                                 <label class="label">วันที่คาดว่าจะเสร็จ</label>
                                 <div class="control">

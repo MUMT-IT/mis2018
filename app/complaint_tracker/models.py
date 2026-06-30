@@ -2,7 +2,7 @@
 import os
 import boto3
 from pytz import timezone
-from sqlalchemy import func
+from sqlalchemy import func, true
 from app.main import db
 from flask_login import current_user
 from app.models import CostCenter, IOCode, ProductCode
@@ -42,6 +42,12 @@ complaint_record_tag_assoc = db.Table('complaint_record_tag_assoc',
                                       db.Column('tag_id', db.Integer, db.ForeignKey('complaint_tags.id')),
                                       db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
                                       )
+
+complaint_record_participant_assoc = db.Table('complaint_record_participant_assoc',
+                                          db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                          db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                          db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                          )
 
 
 class ComplaintCategory(db.Model):
@@ -140,7 +146,7 @@ class ComplaintRecord(db.Model):
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่อง',
-                                                                      'choices': [('None', 'กรุณาเลือกช่องทางรับเรื่อง'),
+                                                                      'choices': [('', 'กรุณาเลือกช่องทางรับเรื่อง'),
                                                                                   ('Website ของคณะเทคนิคการแพทย์', 'Website ของคณะเทคนิคการแพทย์'),
                                                                                   ('QR Code', 'QR Code'),
                                                                                   ('จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์', 'จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์'),
@@ -163,6 +169,13 @@ class ComplaintRecord(db.Model):
         ('หน่วยซ่อมบำรุง', 'หน่วยซ่อมบำรุง '),
         ('หน่วยข้อมูลและสารสนเทศ', 'หน่วยข้อมูลและสารสนเทศ')
     ]})
+    repair_method = db.Column('repair_method', db.String(), info={'label': 'รูปแบบการซ่อม',
+                                                                  'choices': [
+                                                                      ('', 'กรุณาเลือกสถานะการซ่อม'),
+                                                                      ('ซ่อมเองได้', 'ซ่อมเองได้'),
+                                                                      ('ส่งบริษัทซ่อม', 'ส่งบริษัทซ่อม'),
+                                                                      ('แทงจำหน่าย', 'แทงจำหน่าย')
+                                                                  ]})
     status_id = db.Column('status', db.ForeignKey('complaint_statuses.id'))
     status = db.relationship(ComplaintStatus, backref=db.backref('records', cascade='all, delete-orphan'))
     type_id = db.Column('type_id', db.ForeignKey('complaint_types.id'))
@@ -189,7 +202,8 @@ class ComplaintRecord(db.Model):
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
-    is_disposed = db.Column('is_disposed', db.Boolean(), default=False)
+    participants = db.relationship(StaffAccount, secondary=complaint_record_participant_assoc,
+                                   backref=db.backref('complaint_records', cascade='all, delete-orphan', single_parent=True))
 
     def __str__(self):
         return self.desc
@@ -238,8 +252,7 @@ class ComplaintRecord(db.Model):
 
     @property
     def grand_total(self):
-        return sum(spare_part.total_price or 0 for repair_company in self.repair_companies
-                   for spare_part in repair_company.spare_parts)
+        return sum(spare_part.total_price or 0 for spare_part in self.spare_parts)
 
     @property
     def get_print_of_repair(self):
@@ -390,9 +403,10 @@ class ComplaintRepairCompany(db.Model):
     contact_phone_number = db.Column('contact_phone_number', db.String(), info={'label': 'เบอร์โทร'})
     repair_offer_price = db.Column('repair_offer_price', db.Numeric(), info={'label': 'ราคาซ่อมที่เสนอ'})
     detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียดการซ่อมจากบริษัท'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_companies'))
-    created_at = db.Column('created_at', db.DateTime(timezone=True))
 
     def __str__(self):
         return f'บริษัทที่ส่งซ่อม : {self.company_name}, ราคาซ่อมที่เสนอ : {self.repair_offer_price}, รายละเอียด : {self.detail}'
@@ -411,9 +425,8 @@ class ComplaintSparePart(db.Model):
     vendor_phone_number = db.Column('vendor_phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์ผู้ขาย'})
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-    repair_company_id = db.Column('repair_company_id', db.ForeignKey('complaint_repair_companies.id'))
-    repair_company = db.relationship(ComplaintRepairCompany, backref=db.backref('spare_parts'),
-                                     foreign_keys=[repair_company_id])
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('spare_parts'))
 
     def __str__(self):
         return self.item
@@ -489,26 +502,15 @@ class ComplaintRepair(db.Model):
 
     @property
     def get_head_org(self):
-        if self.record.complainant:
-            if self.record.complainant.personal_info.org.head:
-                staff = StaffAccount.query.filter_by(email=self.record.complainant.personal_info.org.head).first()
-                head = staff.fullname
-            elif (not self.record.complainant.personal_info.org.head and self.record.complainant.personal_info.org.parent
-                and self.record.complainant.personal_info.org.parent.head):
-                staff = StaffAccount.query.filter_by(email= self.record.complainant.personal_info.org.parent.head).first()
-                head = staff.fullname
-            else:
-                head = None
+        if self.owner.personal_info.org.head:
+            staff = StaffAccount.query.filter_by(email=self.owner.personal_info.org.head).first()
+            head = staff.fullname
+        elif (not self.owner.personal_info.org.head and self.owner.personal_info.org.parent
+            and self.owner.personal_info.org.parent.head):
+            staff = StaffAccount.query.filter_by(email= self.owner.personal_info.org.parent.head).first()
+            head = staff.fullname
         else:
-            if current_user.personal_info.org.head:
-                staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-                head = staff.fullname
-            elif (not current_user.personal_info.org.head and current_user.personal_info.org.parent
-                    and current_user.personal_info.org.parent.head):
-                staff = StaffAccount.query.filter_by(email=current_user.personal_info.org.parent.head).first()
-                head = staff.fullname
-            else:
-                head = None
+            head = None
         return head
 
 
@@ -540,7 +542,8 @@ class ComplaintRepairApproval(db.Model):
     receipt_number = db.Column('receipt_number', db.String(), info={'label': 'เลขที่'})
     receipt_date = db.Column('receipt_date', db.Date(), info={'label': 'วันที่'})
     purchase_type = db.Column('purchase_type', db.String(), info={'label': 'ประเภทการซื้อ',
-                                                                  'choices': [('รายได้ส่วนงาน', 'รายได้ส่วนงาน'),
+                                                                  'choices': [('', 'กรุณาเลือกประเภทการซื้อ'),
+                                                                              ('รายได้ส่วนงาน', 'รายได้ส่วนงาน'),
                                                                               ('เงินงบประมาณแผ่นดิน', 'เงินงบประมาณแผ่นดิน')
                                                                               ]
                                                                   })
@@ -567,11 +570,24 @@ class ComplaintRepairApproval(db.Model):
                                 foreign_keys=[canceller_id])
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_approvals'))
+    requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
+    requester = db.relationship(StaffAccount, backref=db.backref('requested_repair_approvals'), foreign_keys=[requester_id])
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('approved_repair_approvals'),
+                                foreign_keys=[approver_id])
     owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
     owner = db.relationship(StaffAccount, backref=db.backref('owned_repair_approvals'), foreign_keys=[owner_id])
 
     def __str__(self):
         return self.item
+
+    @property
+    def has_data_complete(self):
+        if (self.price and self.budget_year and self.purchase_type and self.cost_center and
+                self.io_code and self.product_code):
+            return True
+        else:
+            return False
 
     @property
     def status(self):

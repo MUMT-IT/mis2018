@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <style>
+        html,
+        body {
+            font-family: 'Open Sans';
+        }
+
+        .page-shell {
+            min-height: calc(100vh - 3rem);
+            display: flex;
+            align-items: center;
+        }
+
+        .hero-card {
+            width: 100%;
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .action-box {
+            max-width: 360px;
+            margin: 0 auto 1rem;
+        }
+
+        .action-box .box {
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .action-box a {
+            display: block;
+            width: 100%;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="75">
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                   data-target="navbarBasicExample">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                    <span class="navbar-item">
+                    <a class="button is-outlined" href="{{ url_for('procurement.user_first') }}">
+                        <span>Home</span>
+                    </a>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="hero is-fullheight is-default is-bold">
+        <div class="hero-body">
+            <div class="container has-text-centered page-shell">
+                <div class="hero-card">
+                    <div class="has-text-centered">
+                        <h1 class="title is-2">
+                            ดูข้อมูลครุภัณฑ์
+                        </h1>
+                        <h2 class="subtitle is-4">
+                            เลือกวิธีค้นหาข้อมูลครุภัณฑ์ได้จากเมนูด้านล่าง
+                        </h2>
+                    </div>
+                    <div class="columns is-centered">
+                        <div class="column is-6">
+                            <div class="action-box">
+                                <div class="box">
+                                    <a href="{{ url_for('procurement.user_find_item') }}">
+                                        <span class="icon is-large"><i class="fas fa-search fa-4x"></i></span><br><br>
+                                        <span class="is-size-4">Search</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="action-box">
+                                <div class="box">
+                                    <a href="{{ url_for('procurement.qrcode_scan_mumt') }}">
+                                        <span class="icon is-large"><i class="fas fa-qrcode fa-4x"></i></span><br><br>
+                                        <span class="is-size-4">Scan QR Code</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

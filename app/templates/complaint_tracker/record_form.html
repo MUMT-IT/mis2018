@@ -26,15 +26,24 @@
                           hx-encoding="multipart/form-data"
                     >
                         {{ form.hidden_tag() }}
+                        {% if procurement %}
+                            <input type="hidden" name="procurement_no" value="{{ procurement.procurement_no }}">
+                        {% elif request.args.get('pro_number') %}
+                            <input type="hidden" name="pro_number" value="{{ request.args.get('pro_number') }}">
+                        {% endif %}
+                        {% if room %}
+                            <input type="hidden" name="number" value="{{ room.number }}">
+                            <input type="hidden" name="location" value="{{ room.location }}">
+                        {% endif %}
                         {% if topic.code == 'runied' %}
                             <div class="field">
                                 <div class="buttons is-centered">
                                     <a class="button is-success is-outlined" href="{{ url_for('comp_tracker.scan_qr_code_complaint',
-                                        code=topic.code) }}">
+                                        code=topic.code, cat='user') }}">
                                         Scan QR Code ครุภัณฑ์
                                      </a>
                                     <a class="button is-info is-outlined" href="{{ url_for('comp_tracker.add_procurement_number',
-                                            code=topic.code) }}">
+                                            code=topic.code, cat='user') }}">
                                         กรอกเลขครุภัณฑ์
                                     </a>
                                 </div>
@@ -166,6 +175,14 @@
                                 {{ form.desc(class="textarea is-danger") }}
                             </div>
                         </div>
+                        {% if topic.category.category and not topic.category.category.startswith("ปัญหา") %}
+                            <div class="field">
+                                <label class="label">ผู้เกี่ยวข้อง</label>
+                                <div class="control">
+                                    {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
+                                </div>
+                            </div>
+                        {% endif %}
                         <div class="field">
                              <label class="label">แนบไฟล์หลักฐาน</label>
                             <div class="file">
@@ -252,6 +269,9 @@
         });
         $('.js-example-basic-single').select2({
             width: '100%'
+        });
+        $('.js-example-basic-multiple').select2({
+            width: '100%',
         });
         window.document.addEventListener("closeModal", function() {
             htmx.removeClass(htmx.find('#add-pro-number-modal'), "is-active")

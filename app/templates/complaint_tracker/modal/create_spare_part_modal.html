@@ -3,7 +3,7 @@
         <div class="modal-card">
             <header class="modal-card-head">
                 <p class="modal-card-title" align="center">
-                    {% if repair_company_id %}
+                    {% if record_id %}
                         Add Spare Part
                     {% else %}
                         Edit Spare Part
@@ -13,8 +13,8 @@
             </header>
             <section class="modal-card-body">
                 <form
-                    {% if repair_company_id %}
-                        hx-post="{{ url_for('comp_tracker.create_spare_part', repair_company_id=repair_company_id) }}"
+                    {% if record_id %}
+                        hx-post="{{ url_for('comp_tracker.create_spare_part', record_id=record_id) }}"
                     {% else %}
                         hx-post="{{ url_for('comp_tracker.create_spare_part', spare_part_id=spare_part_id) }}"
                     {% endif %}

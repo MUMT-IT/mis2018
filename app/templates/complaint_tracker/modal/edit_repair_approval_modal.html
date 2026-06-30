@@ -8,6 +8,32 @@
         <section class="modal-card-body">
             <form hx-post="{{ url_for('comp_tracker.edit_repair_approval', repair_approval_id=repair_approval_id) }}">
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <div class="field">
+                    <label class="label">
+                        วงเงินที่ซื้อหรือจ้าง
+                    </label>
+                    <div class="control">
+                        {{ form.price(class='input', require=true) }}
+                    </div>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <label class="label">
+                            ประเภทการขอเบิกจ่ายเงิน
+                        </label>
+                        <div class="select">
+                            {{ form.purchase_type(require=true) }}
+                        </div>
+                    </div>
+                    <div class="field" style='width:100%'>
+                        <label class="label">
+                            ประจำปีงบประมาณ
+                        </label>
+                        <div class="control">
+                            {{ form.budget_year(class='input', require=true) }}
+                        </div>
+                    </div>
+                </div>
                 <div class="field-body" style="margin-bottom: .8em; margin-top: .8em">
                     <div class="field">
                         <label class="label">
@@ -51,7 +77,7 @@
         htmx.addClass(htmx.find('#repair-approval-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#repair-approval-modal'), "is-active", 500)
     })
-    $(document).ready(()=> {
+    $(document).ready(() => {
         $('.js-example-basic-single').select2({
             width: '100%'
         });

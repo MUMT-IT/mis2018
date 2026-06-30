@@ -147,7 +147,7 @@
                 {% endif %}
             {% endif %}
         {% endfor %}
-        {% if product_type == 'liquid'  %}
+        {% if product_type == 'liquid' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_virus_liquid_condition_form',
                     name=fields.name) }}"
@@ -156,7 +156,7 @@
             >
                 ลบ
             </button>
-        {% elif product_type == 'spray'  %}
+        {% elif product_type == 'spray' %}
             <button type="button" class="button is-danger is-rounded is-small"
                     hx-delete="{{ url_for('academic_services.remove_virus_spray_condition_form',
                     name=fields.name) }}"
@@ -305,20 +305,30 @@
         }
     }
 
-    $('.subform-card').each(function () {
-        const subform = $(this);
-        toggleTable(subform);
-        addRequiredField(subform);
-        toggleSurfaceTypeInput(subform);
-        showSurfaceTypeOtherInput(subform);
-
-        subform.find('input[type="radio"][name$="test_method"]').change(function () {
+    function initSubforms() {
+        $('.subform-card').each(function () {
+            const subform = $(this);
+            toggleTable(subform);
+            addRequiredField(subform);
             toggleSurfaceTypeInput(subform);
             showSurfaceTypeOtherInput(subform);
-        });
 
-        subform.find('input[type="radio"][name$="surface_type"]').change(function () {
-            showSurfaceTypeOtherInput(subform);
+            subform.find('input[type="radio"][name$="test_method"]').change(function () {
+                toggleSurfaceTypeInput(subform);
+                showSurfaceTypeOtherInput(subform);
+            });
+
+            subform.find('input[type="radio"][name$="surface_type"]').change(function () {
+                showSurfaceTypeOtherInput(subform);
+            });
         });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initSubforms();
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function () {
+        initSubforms();
     });
 </script>

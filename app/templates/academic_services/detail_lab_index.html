@@ -53,7 +53,7 @@
                 </div>
                 <div class="column">
                     {% for lab in labs %}
-                        {% for sub_lab in lab.sub_labs %}
+                        {% for sub_lab in lab.sub_labs|sort(attribute='no') %}
                             <div class="card">
                                 <div class="card-content">
                                     <div class="media">
