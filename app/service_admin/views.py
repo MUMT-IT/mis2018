@@ -2,26 +2,24 @@ import itertools
 import re
 import uuid
 import qrcode
-from collections import Counter
 import arrow
 import pandas
 from io import BytesIO
 from bahttext import bahttext
-from markupsafe import Markup
 from pytz import timezone
 from datetime import date
 from base64 import b64decode
-
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfbase.pdfmetrics import stringWidth
 from sqlalchemy.orm import make_transient, joinedload
 from linebot.exceptions import LineBotApiError
 from linebot.models import TextSendMessage
 from app.auth.views import line_bot_api
-from app.academic_services.forms import *
+from app.academic_services.forms import BacteriaSterilityTestRequestForm, BacteriaAntimicrobialActivityRequestForm, \
+    VirusAirDisinfectionRequestForm, BacteriaDisinfectionRequestForm, VirusDisinfectionRequestForm, \
+    HeavyMetalRequestForm, FoodSafetyRequestForm, ProteinIdentificationRequestForm, SDSPageRequestForm, \
+    QuantitativeRequestForm, MetabolomicRequestForm, EndotoxinRequestForm, ToxicologyRequestForm
 from app.e_sign_api import e_sign
 from app.models import Org
-from app.room_scheduler.views import new_event
 from app.scb_payment_service.views import generate_qrcode
 from app.service_admin import service_admin
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
@@ -8574,13 +8572,9 @@ def create_quotation_for_admin(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     request_data = request_data_paths[quotation.request.sub_lab.code]
     datas = request_data(quotation.request, type='form')
-    quotation.quotation_items = sorted(quotation.quotation_items, key=lambda x: x.sequence)
-    ServiceQuotationForm = create_quotation_form(is_use=True)
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
-        db.session.add(quotation)
-        db.session.commit()
         if action == 'approve':
             scheme = 'http' if current_app.debug else 'https'
             status_id = get_status(4)
@@ -8588,8 +8582,6 @@ def create_quotation_for_admin(quotation_id):
             quotation.request.status_id = status_id
             db.session.add(quotation)
             db.session.commit()
-            customer_name = quotation.customer_name.replace(' ', '_')
-            title_prefix = 'คุณ' if quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
             admins = (
                 ServiceAdmin.query
                 .join(ServiceSubLab)
@@ -8602,14 +8594,8 @@ def create_quotation_for_admin(quotation_id):
                 if email:
                     title = f'''รายการขออนุมัติใบเสนอราคา'''
                     message = f'''เรียน หัวหน้าห้องปฏิบัติการ{quotation.request.sub_lab.lab.lab}\n\n'''
-                    # message += f'''ใบเสนอราคาเลขที่ : {quotation.quotation_no}\n'''
-                    # message += f'''ลูกค้า : {quotation.customer_name}\n'''
-                    # message += f'''ในนาม : {quotation.name}\n'''
-                    # message += f'''อ้างอิงจากใบคำขอรับบริการเลขที่ : {quotation.request.request_no}\n'''
                     message += f'''มีใบเสนอราคาเลขที่ {quotation.quotation_no} ที่รอการอนุมัติใบเสนอราคา ท่านสามารถตรวจสอบและดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
                     message += f'''{quotation_link}\n\n'''
-                    # message += f'''เจ้าหน้าที่ห้องปฏิบัติการ\n'''
-                    # message += f'''{quotation.creator.fullname}\n'''
                     message += f'''ระบบงานบริการวิชาการ'''
                     msg = ('ใบเสนอราคาเลขที่ {}\n' \
                            'ออกในนาม {}\n' \
@@ -8647,7 +8633,7 @@ def create_quotation_for_admin(quotation_id):
 def add_quotation_item(quotation_id):
     menu = request.args.get('menu')
     tab = request.args.get('tab')
-    ServiceQuotationItemForm = create_quotation_item_form(is_form=True)
+    ServiceQuotationItemForm = create_quotation_item_form(is_created=True)
     quotation = ServiceQuotation.query.get(quotation_id)
     form = ServiceQuotationItemForm()
     if form.validate_on_submit():
@@ -8669,6 +8655,29 @@ def add_quotation_item(quotation_id):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/modal/add_quotation_item_modal.html', form=form, tab=tab,
                            menu=menu, quotation_id=quotation_id)
+
+
+@service_admin.route('/quotation/item/edit/<int:quotation_item_id>', methods=['GET', 'POST'])
+def edit_discount_quotation(quotation_item_id):
+    menu = request.args.get('menu')
+    tab = request.args.get('tab')
+    ServiceQuotationItemForm = create_quotation_item_form(is_created=False)
+    quotation_item = ServiceQuotationItem.query.get(quotation_item_id)
+    sequence = quotation_item.sequence
+    form = ServiceQuotationItemForm(obj=quotation_item)
+    if form.validate_on_submit():
+        form.populate_obj(quotation_item)
+        quotation_item.sequence = sequence
+        db.session.add(quotation_item)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('service_admin/modal/edit_discount_quotation_modal.html', form=form, tab=tab,
+                           menu=menu, quotation_item_id=quotation_item_id, quotation_item=quotation_item)
 
 
 @service_admin.route('/quotation/item/delete/<int:quotation_item_id>', methods=['GET', 'DELETE'])
@@ -8787,7 +8796,7 @@ def enter_password_for_sign_digital(quotation_id):
 def disapprove_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
-    ServiceQuotationForm = create_quotation_form(is_use=False)
+    # ServiceQuotationForm = create_quotation_form(is_use=False)
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
