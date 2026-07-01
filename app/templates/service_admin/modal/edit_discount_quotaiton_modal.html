@@ -1,0 +1,91 @@
+<div class="modal is-active animate__animated" id="edit-discount-quotation-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title" align="center">
+                Add Quotation Item
+            </p>
+            <button type="button" id="cancelDiscountButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('service_admin.edit_discount_quotation', quotation_item_id=quotation_item_id,
+                tab=tab, menu=menu) }}"
+            >
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <div class="field">
+                    <label class="label">
+                        ประเภทส่วนลด
+                    </label>
+                    <div class="select">
+                        {{ form.discount_type(required=True) }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        ส่วนลด
+                    </label>
+                    <div class="control">
+                        {{ form.discount(class='input', required=True) }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        ราคารวม
+                    </label>
+                    <div class="control" id="netPrice">
+                         {{ "{:,.2f}".format(quotation_item.total_price) }} บาท
+                    </div>
+                </div>
+                <div class="field ">
+                    <div class="buttons is-centered">
+                        <a id="cancelDiscountModalBtn" class="button">ยกเลิก</a>
+                        <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelDiscountButton").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#edit-discount-quotation-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#edit-discount-quotation-modal'), "is-active", 500)
+    })
+    window.document.getElementById("cancelDiscountModalBtn").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#edit-discount-quotation-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#edit-discount-quotation-modal'), "is-active", 500)
+    })
+
+    const totalPrice = {{ quotation_item.total_price|tojson }};
+    const discountInput = document.getElementById('discount');
+    const discountType = document.getElementById('discount_type');
+    const netPrice = document.getElementById('netPrice');
+
+    function updateNetPrice() {
+        let discount = Number(discountInput.value) || 0;
+        let finalPrice = totalPrice;
+
+        if (discountType.value === 'เปอร์เซ็นต์') {
+            if (discount > 100) {
+                discount = 100;
+                discountInput.value = 100;
+            }
+            finalPrice = totalPrice - (totalPrice * discount / 100);
+        } else {
+            if (discount > totalPrice) {
+                discount = totalPrice;
+                discountInput.value = totalPrice;
+            }
+            finalPrice = totalPrice - discount;
+        }
+
+        netPrice.textContent = finalPrice.toLocaleString('th-TH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ' บาท';
+    }
+
+    updateNetPrice();
+    discountInput.addEventListener('input', updateNetPrice);
+    discountType.addEventListener('change', updateNetPrice);
+</script>
