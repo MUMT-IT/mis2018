@@ -20,10 +20,6 @@
             overflow-wrap: break-word;
             word-break: break-word;
         }
-        table {
-            table-layout: fixed;
-            width: 100%;
-        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -239,19 +235,17 @@
                             <div class="field">
                                 <div class="control">
                                     <table class="table is-fullwidth">
-                                        <th class="has-text-centered">ลำดับ</th>
+                                        <th class="has-text-centered" style="width: 1em">ลำดับ</th>
                                         <th class="has-text-centered">รายการ</th>
-                                        <th class="has-text-centered">จำนวน</th>
+                                        <th class="has-text-centered" style="width: 1em">จำนวน</th>
                                         <th class="has-text-centered">ราคา</th>
                                         <th class="has-text-centered">จำนวนเงิน</th>
-                                        <th class="has-text-centered" style="width: 12em">ส่วนลด</th>
+                                        <th class="has-text-centered">ส่วนลด</th>
                                         <th class="has-text-centered">ราคารวม</th>
                                         <th></th>
                                         <tbody>
                                         {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
-                                            <tr data-index="{{ loop.index0 }}"
-                                                data-total-price="{{ quotation_item.total_price }}"
-                                            >
+                                            <tr>
                                                 <td class="has-text-centered">{{ quotation_item.sequence }}</td>
                                                 <td>{{ quotation_item.item|safe }}</td>
                                                 <td class="has-text-centered">{{ quotation_item.quantity }}</td>
@@ -261,22 +255,18 @@
                                                 <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.total_price) }}
                                                 </td>
-                                                {% with qt_form = form.quotation_items[loop.index0] %}
-                                                    <td>
-                                                        <div class="field">
-                                                            <label class="label">ประเภทส่วนลด</label>
-                                                            <div class="select">
-                                                                {{ qt_form.discount_type() }}
-                                                            </div>
-                                                        </div>
-                                                        <div class="field">
-                                                            <label class="label">ส่วนลด</label>
-                                                            <div class="control">
-                                                                {{ qt_form.discount(class='input') }}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                {% endwith %}
+                                                <td class="has-text-right">
+                                                    {{ "{:,.2f}".format(quotation_item.discount_price()) }}
+                                                    <a hx-swap="innerHTML"
+                                                       hx-target="#quotation_item"
+                                                       hx-get="{{ url_for('service_admin.edit_discount_quotation', quotation_item_id=quotation_item.id,
+                                                       menu=menu, tab=tab) }}"
+                                                    >
+                                                        <span class="icon">
+                                                            <i class="fas fa-pen"></i>
+                                                        </span>
+                                                    </a>
+                                                </td>
                                                 <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.net_price()) }}
                                                 </td>
@@ -295,41 +285,12 @@
                                         <tfoot>
                                         <tr>
                                             <th colspan="6" class="has-text-right">รวมเป็นเงินทั้งสิ้น</th>
-                                            <th id="total-sum">0 บาท</th>
+                                            <th colspan="2" class="has-text-right">{{ "{:,.2f}".format(quotation.grand_total()) }} บาท</th>
                                         </tr>
                                         </tfoot>
                                     </table>
                                 </div>
                             </div>
-                            {#                            <div class="field">#}
-                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
-                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่สำหรับจัดส่งเอกสาร</p>#}
-                            {#                                </div>#}
-                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
-                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ถึง</p>#}
-                            {#                                    <div style="margin-left: 1.75rem;">#}
-                            {#                                        {{ quotation.request.receive_name }}#}
-                            {#                                    </div>#}
-                            {#                                </div>#}
-                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
-                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">ที่อยู่</p>#}
-                            {#                                    <div style="margin-left: 1.75rem;">#}
-                            {#                                        {{ quotation.request.receive_address }}#}
-                            {#                                    </div>#}
-                            {#                                </div>#}
-                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
-                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">เบอร์โทรศัพท์</p>#}
-                            {#                                    <div style="margin-left: 1.75rem;">#}
-                            {#                                        {{ quotation.request.receive_phone_number }}#}
-                            {#                                    </div>#}
-                            {#                                </div>#}
-                            {#                                <div class="mb-4 is-flex is-align-items-center">#}
-                            {#                                    <p class="subtitle is-6 mb-1 has-text-weight-semibold">อีเมล</p>#}
-                            {#                                    <div style="margin-left: 1.75rem;">#}
-                            {#                                        {{ quotation.request.customer.contact_email }}#}
-                            {#                                    </div>#}
-                            {#                                </div>#}
-                            {#                            </div>#}
                             <div class="buttons is-centered">
                                 <div id="quotation_item"></div>
                                 <a class="button is-info"
@@ -349,11 +310,11 @@
                             <a class="button" href="{{ url_for('service_admin.quotation_index', menu=menu, tab=tab) }}">
                                 ย้อนกลับ
                             </a>
-                            <div class="control">
-                                <button type="submit" name="action" value="save" class="button is-primary">
-                                    บันทึกข้อมูล
-                                </button>
-                            </div>
+{#                            <div class="control">#}
+{#                                <button type="submit" name="action" value="save" class="button is-primary">#}
+{#                                    บันทึกข้อมูล#}
+{#                                </button>#}
+{#                            </div>#}
                             <div class="control">
                                 <button type="submit" name="action" value="approve" class="button is-success">
                                     เสนอหัวหน้าอนุมัติ
@@ -415,232 +376,5 @@
                 {% endif %}
             {% endwith %}
         });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const getTotalPrice = (row) => {
-                const raw = String(row.dataset.totalPrice || '').replace(/,/g, '').trim();
-                const value = Number(raw);
-                return Number.isFinite(value) ? value : 0;
-            };
-
-            const insertAtSelection = (el, insertedText) => {
-                const current = String(el.value || '');
-                const start = Number.isFinite(el.selectionStart) ? el.selectionStart : current.length;
-                const end = Number.isFinite(el.selectionEnd) ? el.selectionEnd : start;
-                return current.slice(0, start) + insertedText + current.slice(end);
-            };
-
-            const parseNumber = (value) => {
-                const raw = String(value || '').trim().replace(/\s/g, '');
-                if (raw === '' || raw === '.') return NaN;
-                let cleaned = raw;
-                if (!cleaned.includes('.') && cleaned.includes(',')) {
-                    const lastComma = cleaned.lastIndexOf(',');
-                    cleaned = cleaned.slice(0, lastComma).replace(/,/g, '') + '.' + cleaned.slice(lastComma + 1);
-                } else {
-                    cleaned = cleaned.replace(/,/g, '');
-                }
-
-                if (cleaned === '' || cleaned === '.') return NaN;
-                return Number(cleaned);
-            };
-
-            const recalcRow = (row, discountInput, discountTypeSelect) => {
-                const totalPrice = getTotalPrice(row);
-                const isPercent = discountTypeSelect.value === 'เปอร์เซ็นต์';
-                const cap = isPercent ? 100 : totalPrice;
-
-                let discountValue = parseNumber(discountInput.value);
-                if (!Number.isFinite(discountValue) || discountValue < 0) discountValue = 0;
-
-                const effectiveDiscount = Math.min(discountValue, cap);
-                let finalPrice = isPercent
-                    ? totalPrice * (1 - (effectiveDiscount / 100))
-                    : totalPrice - effectiveDiscount;
-                if (finalPrice < 0) finalPrice = 0;
-
-                const finalCell = row.querySelector('td:nth-child(7)');
-                if (finalCell) {
-                    finalCell.textContent = finalPrice.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                    });
-                }
-                updateTotalSum();
-            };
-
-            const wireRow = (row) => {
-                const discountInput = row.querySelector('input[name$="-discount"]');
-                const discountTypeSelect = row.querySelector('select[name$="-discount_type"]');
-                if (!discountInput || !discountTypeSelect) return;
-                if (discountInput.dataset.discountWired === '1') return;
-                discountInput.dataset.discountWired = '1';
-
-                const capForRow = () => (discountTypeSelect.value === 'เปอร์เซ็นต์' ? 100 : getTotalPrice(row));
-
-                const applyInputMode = () => {
-                    const isPercent = discountTypeSelect.value === 'เปอร์เซ็นต์';
-                    discountInput.setAttribute('type', 'text');
-                    discountInput.setAttribute('inputmode', isPercent ? 'numeric' : 'decimal');
-                    discountInput.setAttribute('autocomplete', 'off');
-                    discountInput.setAttribute('pattern', isPercent ? '\\d*' : '[0-9]*[.,]?[0-9]*');
-                };
-
-                applyInputMode();
-
-                const wouldBeValid = (nextValue) => {
-                    const next = String(nextValue || '').trim().replace(/\s/g, '');
-
-                    let normalized = next;
-                    if (!normalized.includes('.') && normalized.includes(',')) {
-                        const lastComma = normalized.lastIndexOf(',');
-                        normalized = normalized.slice(0, lastComma).replace(/,/g, '') + '.' + normalized.slice(lastComma + 1);
-                    } else {
-                        normalized = normalized.replace(/,/g, '');
-                    }
-
-                    if (normalized !== '' && /[^\d.]/.test(normalized)) return false;
-
-                    const dotCount = (normalized.match(/\./g) || []).length;
-                    if (dotCount > 1) return false;
-                    if (discountTypeSelect.value === 'เปอร์เซ็นต์' && normalized.includes('.')) return false;
-
-                    const n = parseNumber(normalized);
-                    if (!Number.isFinite(n)) return true; // allow empty / "." while typing
-                    return n <= capForRow() + 1e-9;
-                };
-
-                discountInput.addEventListener('beforeinput', (e) => {
-                    if (!e || typeof e.inputType !== 'string') return;
-                    if (e.inputType.startsWith('delete')) return;
-                    if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') return;
-
-                    const inserted = e.data;
-                    if (inserted == null || inserted === '') return;
-
-                    const next = insertAtSelection(discountInput, inserted);
-                    if (!wouldBeValid(next)) e.preventDefault();
-                });
-
-                discountInput.addEventListener('keydown', (e) => {
-                    if (e.ctrlKey || e.metaKey || e.altKey) return;
-
-                    const allowedKeys = ['Backspace', 'Tab', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter'];
-                    if (allowedKeys.includes(e.key)) return;
-
-                    const rawKey = e.code === 'NumpadDecimal' || e.key === 'Decimal' ? '.' : e.key;
-                    const keyChar = rawKey === ',' ? '.' : rawKey;
-
-                    if (discountTypeSelect.value === 'เปอร์เซ็นต์' && keyChar === '.') {
-                        e.preventDefault();
-                        return;
-                    }
-
-                    if (!/^\d$/.test(keyChar) && keyChar !== '.') {
-                        e.preventDefault();
-                        return;
-                    }
-
-                    if (keyChar !== e.key) {
-                        e.preventDefault();
-                        const next = insertAtSelection(discountInput, keyChar);
-                        if (!wouldBeValid(next)) return;
-                        discountInput.value = next;
-                        recalcRow(row, discountInput, discountTypeSelect);
-                        return;
-                    }
-
-                    const next = insertAtSelection(discountInput, keyChar);
-                    if (!wouldBeValid(next)) e.preventDefault();
-                });
-
-                discountInput.addEventListener('paste', (e) => {
-                    const text = e.clipboardData ? e.clipboardData.getData('text') : '';
-                    if (!text) return;
-
-                    e.preventDefault();
-
-                    const cleaned = String(text).trim();
-                    const next = insertAtSelection(discountInput, cleaned);
-                    if (!wouldBeValid(next)) return;
-
-                    let stored = String(next || '').trim().replace(/\s/g, '');
-                    if (!stored.includes('.') && stored.includes(',')) {
-                        const lastComma = stored.lastIndexOf(',');
-                        stored = stored.slice(0, lastComma).replace(/,/g, '') + '.' + stored.slice(lastComma + 1);
-                    } else {
-                        stored = stored.replace(/,/g, '');
-                    }
-                    discountInput.value = stored;
-                    recalcRow(row, discountInput, discountTypeSelect);
-                });
-
-                discountInput.addEventListener('input', () => recalcRow(row, discountInput, discountTypeSelect));
-
-                discountInput.addEventListener('blur', () => {
-                    const cap = capForRow();
-                    const isPercent = discountTypeSelect.value === 'เปอร์เซ็นต์';
-
-                    let discountValue = parseNumber(discountInput.value);
-                    if (!Number.isFinite(discountValue) || discountValue < 0) discountValue = 0;
-
-                    if (discountValue > cap + 1e-9) {
-                        discountInput.value = isPercent ? '100' : cap.toFixed(2);
-                    }
-                    recalcRow(row, discountInput, discountTypeSelect);
-                });
-
-                discountTypeSelect.addEventListener('change', () => {
-                    discountInput.value = '';
-                    applyInputMode();
-                    recalcRow(row, discountInput, discountTypeSelect);
-                });
-
-                recalcRow(row, discountInput, discountTypeSelect);
-            };
-
-            const wireAllRows = () => {
-                document.querySelectorAll('tr[data-index]').forEach(wireRow);
-            };
-
-            wireAllRows();
-            document.body.addEventListener('htmx:afterSettle', wireAllRows);
-
-            const form = document.querySelector('form');
-            if (form) {
-                form.addEventListener('submit', () => {
-                    document.querySelectorAll('tr[data-index]').forEach((row) => {
-                        const discountInput = row.querySelector('input[name$="-discount"]');
-                        const discountTypeSelect = row.querySelector('select[name$="-discount_type"]');
-                        if (!discountInput || !discountTypeSelect) return;
-
-                        const cap = discountTypeSelect.value === 'เปอร์เซ็นต์' ? 100 : getTotalPrice(row);
-                        let discountValue = parseNumber(discountInput.value);
-                        if (!Number.isFinite(discountValue) || discountValue < 0) discountValue = 0;
-                        if (discountValue > cap + 1e-9) {
-                            discountInput.value = discountTypeSelect.value === 'เปอร์เซ็นต์' ? '100' : cap.toFixed(2);
-                        }
-                    });
-                });
-            }
-        });
-
-        function updateTotalSum() {
-            let sum = 0;
-            document.querySelectorAll('tr[data-index]').forEach(row => {
-                const netPriceCell = row.querySelector('td:nth-child(7)');
-                const text = netPriceCell.textContent.replace(/,/g, '');
-                const value = parseFloat(text) || 0;
-                sum += value;
-            });
-            document.getElementById('total-sum').textContent =
-                sum.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                });
-        }
-
-        updateTotalSum();
     </script>
 {% endblock %}
