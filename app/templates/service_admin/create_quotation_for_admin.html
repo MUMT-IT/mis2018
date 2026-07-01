@@ -257,15 +257,17 @@
                                                 </td>
                                                 <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.discount_price()) }}
-                                                    <a hx-swap="innerHTML"
-                                                       hx-target="#quotation_item"
-                                                       hx-get="{{ url_for('service_admin.edit_discount_quotation', quotation_item_id=quotation_item.id,
-                                                       menu=menu, tab=tab) }}"
-                                                    >
-                                                        <span class="icon">
-                                                            <i class="fas fa-pen"></i>
-                                                        </span>
-                                                    </a>
+                                                    {% if quotation_item.total_price != 0 %}
+                                                        <a hx-swap="innerHTML"
+                                                           hx-target="#quotation_item"
+                                                           hx-get="{{ url_for('service_admin.edit_discount_quotation', quotation_item_id=quotation_item.id,
+                                                           menu=menu, tab=tab) }}"
+                                                        >
+                                                            <span class="icon">
+                                                                <i class="fas fa-pen"></i>
+                                                            </span>
+                                                        </a>
+                                                    {% endif %}
                                                 </td>
                                                 <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.net_price()) }}
