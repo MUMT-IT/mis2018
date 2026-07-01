@@ -3,7 +3,7 @@
     <div class="modal-card">
         <header class="modal-card-head">
             <p class="modal-card-title" align="center">
-                Add Quotation Item
+                Edit Discount
             </p>
             <button type="button" id="cancelDiscountButton" class="delete" aria-label="close"></button>
         </header>
@@ -56,10 +56,10 @@
         htmx.removeClass(htmx.find('#edit-discount-quotation-modal'), "is-active", 500)
     })
 
-    const totalPrice = {{ quotation_item.total_price|tojson }};
-    const discountInput = document.getElementById('discount');
-    const discountType = document.getElementById('discount_type');
-    const netPrice = document.getElementById('netPrice');
+    window.totalPrice = {{ quotation_item.total_price|tojson }};
+    window.discountInput = document.getElementById('discount');
+    window.discountType = document.getElementById('discount_type');
+    window.netPrice = document.getElementById('netPrice');
 
     function updateNetPrice() {
         let discount = Number(discountInput.value) || 0;
