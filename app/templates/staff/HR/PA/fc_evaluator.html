@@ -10,6 +10,21 @@
                     <h1 class="subtitle" style="color: #cd0930">FC จะเฉพาะกลุ่มสายสนับสนุน</h1>
                 </div>
             </div>
+            <div class="field">
+                <label class="label">รอบการประเมิน</label>
+                <div class="select">
+                    <select v-model="round" v-on:change="proceed()">
+                        <option value="">ทั้งหมด</option>
+                        <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                    </select>
+                </div>
+                <div class="select">
+                    <select v-model="department" v-on:change="proceed()">
+                        <option value="">ทั้งหมด</option>
+                        <option v-for="d in departments" v-bind:value="d.id" key="d.id"><% d.name %></option>
+                    </select>
+                </div>
+            </div>
             <div class="columns">
                 <div class="column">
                     <div class="buttons is-centered">
@@ -88,5 +103,32 @@
         $(document).ready(function () {
             $('#roundTable').DataTable();
         });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dep|tojson|safe }},
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                const params = new URLSearchParams()
+                if (this.department !== null && this.department !== '') {
+                    params.append('deptid', this.department)
+                }
+                if (this.round !== null && this.round !== '') {
+                    params.append('roundid', this.round)
+                }
+                const query = params.toString()
+                window.location.href = "/pa/hr/fc/evaluator" + (query ? "?" + query : "")
+            }
+        }
+    })
     </script>
 {% endblock %}
