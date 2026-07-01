@@ -125,26 +125,22 @@ def crate_address_form(use_type=False):
     return ServiceCustomerAddressForm
 
 
-def create_quotation_item_form(is_form=False):
+def create_quotation_item_form(is_created=False):
     class ServiceQuotationItemForm(ModelForm):
         class Meta:
             model = ServiceQuotationItem
-            if is_form == True:
+            if is_created == True:
                 exclude = ['total_price']
-            if is_form == False:
+            else:
                 exclude = ['item', 'quantity', 'unit_price', 'total_price']
 
     return ServiceQuotationItemForm
 
 
-def create_quotation_form(is_use=False):
-    class ServiceQuotationForm(ModelForm):
-        class Meta:
-            model = ServiceQuotation
-            exclude = ['digital_signature']
-        if is_use == True:
-            quotation_items = FieldList(FormField(create_quotation_item_form(is_form=False), default=ServiceQuotationItem))
-    return ServiceQuotationForm
+class ServiceQuotationForm(ModelForm):
+    class Meta:
+        model = ServiceQuotation
+        exclude = ['digital_signature']
 
 
 class ServiceSampleForm(ModelForm):
