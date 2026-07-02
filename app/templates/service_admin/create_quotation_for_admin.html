@@ -20,6 +20,18 @@
             overflow-wrap: break-word;
             word-break: break-word;
         }
+
+        #record {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        #record th,
+        #record td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: break-word;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -138,7 +150,7 @@
                                             </ul>
                                         {% endif %}
                                     {% elif item.type == 'table' %}
-                                        <table class="table is-bordered is-striped is-fullwidth mt-2">
+                                        <table id="record" class="table is-bordered is-striped is-fullwidth mt-2">
                                             <thead>
                                             <tr>
                                                 {% for col in item.data[0].keys() %}
@@ -235,14 +247,14 @@
                             <div class="field">
                                 <div class="control">
                                     <table class="table is-fullwidth">
-                                        <th class="has-text-centered" style="width: 1em">ลำดับ</th>
-                                        <th class="has-text-centered">รายการ</th>
-                                        <th class="has-text-centered" style="width: 1em">จำนวน</th>
+                                        <th class="has-text-centered" style="width: 10px">ลำดับ</th>
+                                        <th class="has-text-centered" style="width: 550px">รายการ</th>
+                                        <th class="has-text-centered">จำนวน</th>
                                         <th class="has-text-centered">ราคา</th>
                                         <th class="has-text-centered">จำนวนเงิน</th>
                                         <th class="has-text-centered">ส่วนลด</th>
                                         <th class="has-text-centered">ราคารวม</th>
-                                        <th></th>
+                                        <th style="width: 1em"></th>
                                         <tbody>
                                         {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
                                             <tr>
@@ -258,6 +270,7 @@
                                                 <td class="has-text-right">
                                                     {{ "{:,.2f}".format(quotation_item.discount_price()) }}
                                                     {% if quotation_item.total_price != 0 %}
+                                                        <br/>
                                                         <a hx-swap="innerHTML"
                                                            hx-target="#quotation_item"
                                                            hx-get="{{ url_for('service_admin.edit_discount_quotation', quotation_item_id=quotation_item.id,
@@ -274,7 +287,7 @@
                                                 </td>
                                                 <td class="has-text-centered">
                                                     <a @click="warn('{{ quotation_item.id }}')"
-                                                       class="button is-danger is-outlined"
+                                                       class="button is-danger is-outlined is-small"
                                                     >
                                                         <span class="icon">
                                                             <i class="fas fa-trash"></i>
