@@ -1745,7 +1745,7 @@ def format_buddhist_date_range(start_date, end_date):
     return f'{start_text} - {end_text}'
 
 
-def build_custom_ot_report_workbook(records_df, cal_start, cal_end):
+def build_custom_ot_report_workbook(records_df, cal_start, cal_end, selected_signatory=None):
     report_df = records_df[records_df['payment'].notna()].copy()
     workbook = Workbook()
     workbook.remove(workbook.active)
@@ -1772,7 +1772,7 @@ def build_custom_ot_report_workbook(records_df, cal_start, cal_end):
     write_total_payment_custom_sheet(workbook, report_df)
     write_summary_report_custom_sheet(workbook, renamed_df, cal_end)
     write_timesheet_custom_sheet(workbook, renamed_df)
-    write_finance_form_custom_sheet(workbook, renamed_df, cal_start, cal_end)
+    write_finance_form_custom_sheet(workbook, renamed_df, cal_start, cal_end, selected_signatory=selected_signatory)
 
     output = io.BytesIO()
     workbook.save(output)
@@ -1894,10 +1894,13 @@ def write_timesheet_custom_sheet(workbook, renamed_df):
         sheet.append(list(row))
 
 
-def write_finance_form_custom_sheet(workbook, renamed_df, cal_start, cal_end):
+def write_finance_form_custom_sheet(workbook, renamed_df, cal_start, cal_end, selected_signatory=None):
     sheet = workbook.create_sheet('ฟอร์มที่ต้องส่งให้การเงิน')
     row_no = 1
     date_range_text = format_buddhist_date_range(cal_start.date(), cal_end.date())
+    prepared_by_name = _signatory_display_name(selected_signatory)
+    controller_name = _signer_display_name(selected_signatory)
+    controller_position = _signer_display_position(selected_signatory)
 
     grouped = renamed_df.groupby(['ชื่อ', 'รหัสบุคคล', 'ตำแหน่งงาน'], sort=True)
     for group_key in grouped.groups:
@@ -1948,14 +1951,14 @@ def write_finance_form_custom_sheet(workbook, renamed_df, cal_start, cal_end):
         sheet.cell(row=row_no, column=3).value = ' ผู้ปฏิบัติงาน'
 
         row_no += 2
-        sheet.cell(row=row_no, column=5).value = '(ผศ.พญ.สุมนา มัสอูดี)'
+        sheet.cell(row=row_no, column=1).value = f'({prepared_by_name})' if prepared_by_name else ''
+        sheet.merge_cells(start_row=row_no, start_column=1, end_row=row_no, end_column=2)
+        sheet.cell(row=row_no, column=3).value = 'ผู้จัดทำ'
+        sheet.cell(row=row_no, column=5).value = f'({controller_name})' if controller_name else ''
         sheet.merge_cells(start_row=row_no, start_column=5, end_row=row_no, end_column=7)
 
         row_no += 1
-        sheet.cell(row=row_no, column=1).value = '(นางสาวศศิลิยา  สุทัศน์กุล)'
-        sheet.merge_cells(start_row=row_no, start_column=1, end_row=row_no, end_column=2)
-        sheet.cell(row=row_no, column=3).value = 'ผู้จัดทำ'
-        sheet.cell(row=row_no, column=5).value = 'หัวหน้าศูนย์เทคนิคการแพทย์และรังสีเทคนิคนานาชาติ'
+        sheet.cell(row=row_no, column=5).value = controller_position or ''
         sheet.merge_cells(start_row=row_no, start_column=5, end_row=row_no, end_column=7)
 
         row_no += 1
@@ -2481,7 +2484,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
         else:
             df = pd.DataFrame(all_records)
             selected_signatory = None
-            if announcement_id and format == 'finance-pdf':
+            if announcement_id and format in ('finance-pdf', 'report'):
                 announcement = OtPaymentAnnounce.query.get(announcement_id)
                 if announcement:
                     signatories = list(announcement.signatories)
@@ -2492,7 +2495,8 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                         selected_signatory = next((signatory for signatory in signatories
                                                    if signatory.report_creator_staff), None)
             if format == 'report':
-                output = build_custom_ot_report_workbook(df, cal_start, cal_end)
+                output = build_custom_ot_report_workbook(df, cal_start, cal_end,
+                                                         selected_signatory=selected_signatory)
             elif format == 'finance-pdf':
                 output = build_finance_pdf(df, cal_start, cal_end, selected_signatory=selected_signatory)
             else:
