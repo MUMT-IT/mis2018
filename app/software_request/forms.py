@@ -1,7 +1,7 @@
 from sqlalchemy import or_
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import TextAreaField, DateField, SelectField
+from wtforms import TextAreaField, DateField, SelectField, BooleanField, HiddenField
 from flask_login import current_user
 from wtforms.validators import DataRequired, InputRequired
 
@@ -125,12 +125,32 @@ def create_test_result_form(detail_id, has_note=False):
     class SoftwareRequestTestResultForm(ModelForm):
         class Meta:
             model = SoftwareRequestTestResult
+
         if not has_note:
-            issue = QuerySelectFieldRequired('Requirement',
-                                             query_factory=lambda: SoftwareIssues.query.filter(SoftwareIssues.tested_at != None,
-                                                                                               SoftwareIssues.software_request_detail_id==detail_id).all(),
-                                             allow_blank=True,
-                                             blank_text='กรุณาเลือก Requirement',
-                                             get_label='issue',
-                                             render_kw={'required': True})
+            issue = QuerySelectFieldRequired(
+                'Requirement',
+                query_factory=lambda: SoftwareIssues.query.filter(
+                    SoftwareIssues.tested_at != None,
+                    SoftwareIssues.software_request_detail_id == detail_id
+                ).all(),
+                allow_blank=True,
+                blank_text='กรุณาเลือก Requirement',
+                get_label='issue',
+                render_kw={'required': True}
+            )
+
     return SoftwareRequestTestResultForm
+
+
+def create_bdd_feature_form():
+    class BDDFeatureForm(ModelForm):
+        class Meta:
+            model = BDDFeature
+            only = ['feature_title', 'gherkin_text', 'reviewed_by_human']
+
+        requirement = TextAreaField('Requirement', validators=[DataRequired()])
+        feature_id = HiddenField()
+        issue_id = HiddenField()
+        reviewed_by_human = BooleanField('ตรวจสอบโดยมนุษย์แล้ว')
+
+    return BDDFeatureForm

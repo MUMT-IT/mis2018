@@ -2,11 +2,12 @@ import logging
 import os
 import smtplib
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time
 from email.message import EmailMessage
 
 import requests
 from apscheduler.schedulers.blocking import BlockingScheduler
+import pytz
 
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO'))
 logger = logging.getLogger(__name__)
@@ -257,6 +258,19 @@ def send_line_reminder_no_status_today():
     _run_job(job_name, _job)
 
 
+def send_checkin_reminder():
+    job_name = 'send_checkin_reminder'
+
+    def _job():
+        from app.staff.views import send_missing_checkin_reminders
+
+        bangkok = pytz.timezone('Asia/Bangkok')
+        cutoff_dt = bangkok.localize(datetime.combine(datetime.now(bangkok).date(), time(8, 50)))
+        send_missing_checkin_reminders(cutoff_dt)
+
+    _run_job(job_name, _job)
+
+
 scheduler = BlockingScheduler()
 scheduler.add_job(send_event_notification,
                   'cron', day_of_week='mon-fri',
@@ -282,5 +296,10 @@ scheduler.add_job(send_line_reminder_no_status_today,
                   'cron', day_of_week='mon-fri',
                   hour='15',
                   minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_checkin_reminder,
+                  'cron', day_of_week='mon-fri',
+                  hour='8',
+                  minute='50',
                   timezone='Asia/Bangkok')
 scheduler.start()

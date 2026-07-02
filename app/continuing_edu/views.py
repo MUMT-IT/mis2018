@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash
 
 from werkzeug.security import generate_password_hash
 
-from flask import  render_template, request, jsonify, flash, redirect, url_for, make_response, session, Response
+from flask import  render_template, request, jsonify, flash, redirect, url_for, make_response, session
 
 from . import ce_bp
 from .models import (
@@ -35,10 +35,6 @@ from werkzeug.exceptions import NotFound
 
 from app.main import mail, csrf
 from flask_mail import Message
-try:
-    from weasyprint import HTML
-except Exception:
-    HTML = None
 
 import os, secrets, time
 import re
@@ -2012,81 +2008,6 @@ def confirm_registration(event_id):
 
             msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
             if msg:
-                # Try attach PDF invoice
-                if HTML is not None:
-                    try:
-                        payment_qr_url = os.environ.get('PAYMENT_QR_URL')
-                        promptpay_id = os.environ.get('PROMPTPAY_ID')
-                        bank_info = os.environ.get('BANK_INFO')
-                        payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
-                        # Build invoice context for PDF (seller info + VAT breakdown)
-                        invoice = getattr(pay, 'invoice', None)
-                        invoice_no = None
-                        if invoice and getattr(invoice, 'invoice_no', None):
-                            invoice_no = invoice.invoice_no
-                        else:
-                            fallback_id = (invoice.id if invoice else pay.id)
-                            invoice_no = f"INV{int(fallback_id):06d}"
-                        vat_rate_raw = os.getenv('INVOICE_VAT_RATE', os.getenv('VAT_RATE', '0'))
-                        try:
-                            vat_rate = float(vat_rate_raw) if vat_rate_raw not in (None, '') else 0.0
-                        except Exception:
-                            vat_rate = 0.0
-                        vat_included = (os.getenv('INVOICE_VAT_INCLUDED', 'false').strip().lower() in ('1', 'true', 'yes', 'y'))
-                        amount_total = float(getattr(pay, 'payment_amount', 0) or 0)
-                        if vat_rate > 0:
-                            if vat_included:
-                                subtotal = amount_total / (1.0 + vat_rate)
-                                vat_amount = amount_total - subtotal
-                                total = amount_total
-                            else:
-                                subtotal = amount_total
-                                vat_amount = subtotal * vat_rate
-                                total = subtotal + vat_amount
-                        else:
-                            subtotal = amount_total
-                            vat_amount = 0.0
-                            total = amount_total
-                        invoice_meta = {
-                            'invoice_no': invoice_no,
-                            'invoice_date': (invoice.created_at if invoice and getattr(invoice, 'created_at', None) else pay.payment_date),
-                            'due_date': (invoice.created_at if invoice and getattr(invoice, 'created_at', None) else pay.payment_date),
-                            'due_days': 0,
-                            'vat_rate': vat_rate,
-                            'vat_included': vat_included,
-                            'subtotal': round(subtotal, 2),
-                            'vat_amount': round(vat_amount, 2),
-                            'total': round(total, 2),
-                        }
-                        seller = {
-                            'name_th': os.getenv('INVOICE_SELLER_NAME_TH', ''),
-                            'name_en': os.getenv('INVOICE_SELLER_NAME_EN', ''),
-                            'address_th': os.getenv('INVOICE_SELLER_ADDRESS_TH', ''),
-                            'address_en': os.getenv('INVOICE_SELLER_ADDRESS_EN', ''),
-                            'tax_id': os.getenv('INVOICE_SELLER_TAX_ID', ''),
-                            'branch': os.getenv('INVOICE_SELLER_BRANCH', ''),
-                            'phone': os.getenv('INVOICE_SELLER_PHONE', ''),
-                            'email': os.getenv('INVOICE_SELLER_EMAIL', ''),
-                        }
-
-                        html = render_template(
-                            'continueing_edu/invoice.html',
-                            payment=pay,
-                            member=member,
-                            texts=texts,
-                            current_lang=lang,
-                            payment_qr_url=payment_qr_url,
-                            promptpay_id=promptpay_id,
-                            bank_info=bank_info,
-                            payment_instructions=payment_instructions,
-                            pdf_available=True,
-                            invoice_meta=invoice_meta,
-                            seller=seller,
-                        )
-                        pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
-                        msg.attach(f"invoice_{invoice_no}.pdf", 'application/pdf', pdf_bytes)
-                    except Exception:
-                        pass
                 mail.send(msg)
         except Exception:
             pass
@@ -2461,28 +2382,6 @@ def _mark_payment_paid_and_notify(payment_id, lang='en'):
     email_html = render_template('continueing_edu/_payment_success_email.html', payment=payment, event=payment.event_entity, member=member, texts=texts, current_lang=lang)
     msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
     if msg:
-        if HTML is not None:
-            try:
-                payment_qr_url = os.environ.get('PAYMENT_QR_URL')
-                promptpay_id = os.environ.get('PROMPTPAY_ID')
-                bank_info = os.environ.get('BANK_INFO')
-                payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
-                html = render_template(
-                    'continueing_edu/invoice.html',
-                    payment=payment,
-                    member=member,
-                    texts=texts,
-                    current_lang=lang,
-                    payment_qr_url=payment_qr_url,
-                    promptpay_id=promptpay_id,
-                    bank_info=bank_info,
-                    payment_instructions=payment_instructions,
-                    pdf_available=True,
-                )
-                pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
-                msg.attach(f"invoice_INV-{payment.id}.pdf", 'application/pdf', pdf_bytes)
-            except Exception:
-                pass
         mail.send(msg)
 
 
@@ -2595,28 +2494,6 @@ def process_credit_card(payment_id):
                 email_html = render_template('continueing_edu/_payment_success_email.html', payment=payment, event=payment.event_entity, member=member, texts=texts, current_lang=lang)
                 msg = Message(subject=subj, body=body, html=email_html, recipients=[member.email]) if getattr(member, 'email', None) else None
                 if msg:
-                    if HTML is not None:
-                        try:
-                            payment_qr_url = os.environ.get('PAYMENT_QR_URL')
-                            promptpay_id = os.environ.get('PROMPTPAY_ID')
-                            bank_info = os.environ.get('BANK_INFO')
-                            payment_instructions = os.environ.get('PAYMENT_INSTRUCTIONS')
-                            html = render_template(
-                                'continueing_edu/invoice.html',
-                                payment=payment,
-                                member=member,
-                                texts=texts,
-                                current_lang=lang,
-                                payment_qr_url=payment_qr_url,
-                                promptpay_id=promptpay_id,
-                                bank_info=bank_info,
-                                payment_instructions=payment_instructions,
-                                pdf_available=True,
-                            )
-                            pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
-                            msg.attach(f"invoice_INV-{payment.id}.pdf", 'application/pdf', pdf_bytes)
-                        except Exception:
-                            pass
                     mail.send(msg)
             except Exception:
                 pass
@@ -2999,7 +2876,7 @@ def view_invoice(payment_id):
     return render_template('continueing_edu/invoice.html', payment=pay, member=user, texts=texts, current_lang=lang,
                            payment_qr_url=payment_qr_url, promptpay_id=promptpay_id, bank_info=bank_info,
                            payment_instructions=payment_instructions, payment_gateway_url=payment_gateway_url,
-                           pdf_available=(HTML is not None), invoice_meta=invoice_meta, seller=seller)
+                           pdf_available=False, invoice_meta=invoice_meta, seller=seller)
 
 
 @ce_bp.route('/payment/<int:payment_id>/invoice.pdf')
@@ -3104,15 +2981,11 @@ def download_invoice_pdf(payment_id):
         bank_info=bank_info,
         payment_instructions=payment_instructions,
         payment_gateway_url=os.environ.get('PAYMENT_GATEWAY_URL'),
-        pdf_available=True,
+        pdf_available=False,
         invoice_meta=invoice_meta,
         seller=seller,
     )
-    pdf_bytes = HTML(string=html, base_url=request.host_url).write_pdf()
-    resp = make_response(pdf_bytes)
-    resp.headers['Content-Type'] = 'application/pdf'
-    resp.headers['Content-Disposition'] = f'attachment; filename="invoice_{invoice_meta.get("invoice_no", "INV%06d" % pay.id)}.pdf"'
-    return resp
+    return html
 
 
 @ce_bp.route('/receipt/<int:receipt_id>')
@@ -3146,14 +3019,8 @@ def view_receipt_pdf(receipt_id):
     if pay.member_id != user.id:
         flash(texts.get('not_allowed', 'Not allowed.'), 'danger')
         return redirect(url_for('continuing_edu.my_payments', lang=lang))
-    if HTML is None:
-        flash('PDF rendering library is not available on server.', 'danger')
-        return redirect(url_for('continuing_edu.view_receipt', receipt_id=receipt_id, lang=lang))
     html = render_template('continueing_edu/receipt_pdf.html', receipt=rc, payment=pay, member=user, texts=texts, current_lang=lang)
-    pdf = HTML(string=html, base_url=request.url_root).write_pdf()
-
-    filename = f"receipt_{rc.receipt_number}.pdf"
-    return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
+    return html
 
 
 # -----------------------------
@@ -3238,17 +3105,11 @@ def certificate_pdf(reg_id):
     # If already generated, redirect to stored location
     if reg.certificate_url:
         url = reg.certificate_presigned_url()
-        return redirect(url or reg.certificate_url)
-    if HTML is None:
-        flash('PDF rendering library is not available on server.', 'danger')
-        return redirect(url_for('continuing_edu.my_registrations', lang=lang))
-    # Generate on the fly
+        if url:
+            return redirect(url)
+        return redirect(reg.certificate_url)
     context = build_certificate_context(reg, lang=lang, base_url=request.url_root)
-    html = render_template('continueing_edu/certificate_pdf.html', **context)
-    pdf = HTML(string=html, base_url=request.url_root).write_pdf()
-   
-    filename = f"certificate_{reg.member_id}_{reg.event_entity_id}.pdf"
-    return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
+    return render_template('continueing_edu/certificate_pdf.html', **context)
 
 
 @ce_bp.route('/certificate/<int:reg_id>/view')

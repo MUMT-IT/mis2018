@@ -19,8 +19,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, \
     PageBreak
 from sqlalchemy.orm import make_transient
-from linebot.exceptions import LineBotApiError
-from linebot.models import TextSendMessage
+from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.auth.views import line_bot_api
 from app.main import app, get_credential
 from app.url_utils import external_url

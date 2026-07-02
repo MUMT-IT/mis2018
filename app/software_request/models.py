@@ -356,3 +356,68 @@ class SoftwareRequestTestResult(db.Model):
             return 'is-success'
         else:
             return 'is-danger'
+
+
+# BDD traceability objects are kept separate from SoftwareRequestDetail so the
+# legacy request workflow stays unchanged while we add AI-assisted feature
+# generation and test execution history.
+class BDDFeature(db.Model):
+    __tablename__ = 'bdd_features'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    software_request_id = db.Column(
+        'software_request_id',
+        db.ForeignKey('software_request_details.id'),
+        index=True,
+        nullable=False,
+    )
+    software_issue_id = db.Column(
+        'software_issue_id',
+        db.ForeignKey('software_issues.id'),
+        index=True,
+        nullable=True,
+    )
+    software_request = db.relationship(
+        SoftwareRequestDetail,
+        backref=db.backref('bdd_features', cascade='all, delete-orphan'),
+    )
+    software_issue = db.relationship(
+        SoftwareIssues,
+        backref=db.backref('bdd_features', cascade='all, delete-orphan'),
+    )
+    feature_title = db.Column('feature_title', db.String(), nullable=False)
+    gherkin_text = db.Column('gherkin_text', db.Text(), nullable=False)
+    feature_file_path = db.Column('feature_file_path', db.String(), nullable=True)
+    generated_by_ai = db.Column('generated_by_ai', db.Boolean(), nullable=False, default=False)
+    reviewed_by_human = db.Column('reviewed_by_human', db.Boolean(), nullable=False, default=False)
+    version = db.Column('version', db.Integer(), nullable=False, default=1)
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+
+    def __repr__(self):
+        return f'<BDDFeature id={self.id} issue_id={self.software_issue_id} title={self.feature_title!r}>'
+
+
+class BDDTestRun(db.Model):
+    __tablename__ = 'bdd_test_runs'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    bdd_feature_id = db.Column(
+        'bdd_feature_id',
+        db.ForeignKey('bdd_features.id'),
+        index=True,
+        nullable=False,
+    )
+    bdd_feature = db.relationship(
+        BDDFeature,
+        backref=db.backref('bdd_test_runs', cascade='all, delete-orphan'),
+    )
+    status = db.Column('status', db.String(), nullable=False, index=True)
+    scenario_count = db.Column('scenario_count', db.Integer(), nullable=False, default=0)
+    passed_count = db.Column('passed_count', db.Integer(), nullable=False, default=0)
+    failed_count = db.Column('failed_count', db.Integer(), nullable=False, default=0)
+    undefined_count = db.Column('undefined_count', db.Integer(), nullable=False, default=0)
+    executed_by = db.Column('executed_by', db.String(), nullable=False)
+    report_path = db.Column('report_path', db.String(), nullable=True)
+    executed_at = db.Column('executed_at', db.DateTime(timezone=True), index=True)
+
+    def __repr__(self):
+        return f'<BDDTestRun id={self.id} status={self.status!r}>'

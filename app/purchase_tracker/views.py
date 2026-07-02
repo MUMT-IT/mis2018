@@ -24,13 +24,14 @@ from .models import PurchaseTrackerAccount, PurchaseTrackerForm
 from flask_mail import Message
 from ..main import mail
 from ..roles import finance_procurement_permission
+from app.google_credential_utils import load_google_credentials_json
 
 # Upload images for Google Drive
 
 
 FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+json_keyfile = load_google_credentials_json()
 
 bangkok = timezone('Asia/Bangkok')
 
@@ -101,6 +102,8 @@ def add_account():
 
 
 def initialize_gdrive():
+    if not json_keyfile:
+        return None
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
@@ -492,4 +495,3 @@ def dashboard_info_download():
 #     data.append(Spacer(1, 12))
 #
 #     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
-

@@ -29,6 +29,7 @@ from flask_restful import Api
 from wtforms.validators import InputRequired
 
 import os
+from sqlalchemy.orm.exc import DetachedInstanceError
 import re
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
@@ -119,15 +120,24 @@ dbutils = AppGroup('dbutils')
 
 @principal.identity_loader
 def load_identity_when_session_expires():
-    if hasattr(current_user, 'id'):
-        return Identity(current_user.id)
+    try:
+        user_id = getattr(current_user, 'id', None)
+    except DetachedInstanceError:
+        return None
+    if user_id:
+        return Identity(user_id)
 
 
 def create_app():
     """Create app based on the config setting
     """
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('://', 'ql://', 1)
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        raise RuntimeError('DATABASE_URL environment variable is not set')
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['LINE_CLIENT_ID'] = os.environ.get('LINE_CLIENT_ID')
@@ -1159,6 +1169,8 @@ admin.add_views(ModelView(SoftwareRequestDetail, db.session, category='Software 
 admin.add_views(ModelView(SoftwareRequestTimeline, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareIssues, db.session, category='Software Request'))
 admin.add_views(ModelView(SoftwareRequestTestResult, db.session, category='Software Request'))
+admin.add_views(ModelView(BDDFeature, db.session, category='Software Request'))
+admin.add_views(ModelView(BDDTestRun, db.session, category='Software Request'))
 
 from app.models import Dataset, DataFile
 

@@ -5,10 +5,9 @@ import gspread
 import os
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_cors import cross_origin
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage, FlexSendMessage, BubbleContainer, \
-    BoxComponent, ImageComponent, MessageAction, TextComponent, ButtonComponent, URIAction, CarouselContainer, \
-    ImagemapSendMessage, BaseSize, MessageImagemapAction, ImagemapArea, URIImagemapAction, \
+from app.linebot_compat import InvalidSignatureError, MessageEvent, TextMessage, TextSendMessage, FlexSendMessage, \
+    BubbleContainer, BoxComponent, ImageComponent, MessageAction, TextComponent, ButtonComponent, URIAction, \
+    CarouselContainer, ImagemapSendMessage, BaseSize, MessageImagemapAction, ImagemapArea, URIImagemapAction, \
     FillerComponent
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
@@ -19,7 +18,7 @@ from . import health_service_blueprint as hs
 from app.main import csrf, app
 from pytz import timezone
 from flask_login import login_required, current_user
-from linebot import (LineBotApi, WebhookHandler)
+from app.linebot_compat import LineBotApi, WebhookHandler
 from ..main import db, get_json_keyfile
 
 localtz = timezone('Asia/Bangkok')

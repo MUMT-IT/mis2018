@@ -28,6 +28,7 @@ from flask_mail import Message
 
 from ..academic_services.models import ServiceResult
 from ..main import mail, s3, S3_BUCKET_NAME
+from app.google_credential_utils import load_google_credentials_json
 from sqlalchemy import cast, Date, and_
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
@@ -43,7 +44,7 @@ ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 
 FOLDER_ID = "1k_k0fAKnEEZaO3fhKwTLhv2_ONLam0-c"
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+json_keyfile = load_google_credentials_json()
 
 
 ALLOWED_EXTENSION = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
@@ -752,6 +753,8 @@ def require_new_receipt(receipt_id):
 
 
 def initialize_gdrive():
+    if not json_keyfile:
+        return None
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
