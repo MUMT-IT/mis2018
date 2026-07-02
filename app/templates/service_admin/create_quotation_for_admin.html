@@ -30,7 +30,7 @@
         #record td {
             word-wrap: break-word;
             overflow-wrap: break-word;
-            white-space: break-word;
+            word-break: break-word;
         }
     </style>
 {% endblock %}
@@ -247,14 +247,14 @@
                             <div class="field">
                                 <div class="control">
                                     <table class="table is-fullwidth">
-                                        <th class="has-text-centered" style="width: 10px">ลำดับ</th>
-                                        <th class="has-text-centered" style="width: 550px">รายการ</th>
+                                        <th class="has-text-centered">ลำดับ</th>
+                                        <th class="has-text-centered" style="width: 30em">รายการ</th>
                                         <th class="has-text-centered">จำนวน</th>
                                         <th class="has-text-centered">ราคา</th>
                                         <th class="has-text-centered">จำนวนเงิน</th>
                                         <th class="has-text-centered">ส่วนลด</th>
                                         <th class="has-text-centered">ราคารวม</th>
-                                        <th style="width: 1em"></th>
+                                        <th></th>
                                         <tbody>
                                         {% for quotation_item in quotation.quotation_items|sort(attribute='sequence') %}
                                             <tr>
