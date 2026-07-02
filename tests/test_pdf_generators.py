@@ -383,7 +383,7 @@ def test_ot_finance_pdf_generator_returns_pdf_buffer(ot_views):
     _assert_pdf_buffer(buffer)
 
 
-def test_issue_certificate_generates_pdf_and_updates_registration(certificate_utils, monkeypatch):
+def test_issue_certificate_updates_registration_status_and_timestamp(certificate_utils, monkeypatch):
     issued = SimpleNamespace(id=99)
     reg = SimpleNamespace(
         member_id=10,
@@ -395,44 +395,12 @@ def test_issue_certificate_generates_pdf_and_updates_registration(certificate_ut
         certificate_issued_date=None,
     )
 
-    calls = {}
-
-    def fake_render_template(template_name, **context):
-        calls["template"] = template_name
-        calls["context"] = context
-        return "<html><body>certificate</body></html>"
-
-    class FakeHTML:
-        def __init__(self, *, string, base_url):
-            calls["html_string"] = string
-            calls["base_url"] = base_url
-
-        def write_pdf(self):
-            return b"%PDF-1.4\n% test certificate\n"
-
-    certificate_utils.render_template = fake_render_template
-    certificate_utils.HTML = FakeHTML
     certificate_utils.ensure_certificate_status = lambda *_args, **_kwargs: issued
-    certificate_utils._delete_certificate_file = lambda *_args, **_kwargs: None
     certificate_utils.db = SimpleNamespace(session=SimpleNamespace(add=lambda *_args, **_kwargs: None, commit=lambda: None))
-    monkeypatch.setenv("CE_CERT_STORAGE", "s3")
-    monkeypatch.setenv("BUCKETEER_BUCKET_NAME", "test-bucket")
-
-    main = sys.modules["app.main"]
-    uploads = []
-
-    def fake_put_object(**kwargs):
-        uploads.append(kwargs)
-
-    main.s3 = SimpleNamespace(put_object=fake_put_object)
 
     result = certificate_utils.issue_certificate(reg, base_url="https://example.com/")
 
     assert result is reg
     assert reg.certificate_status_id == issued.id
     assert reg.certificate_issued_date is not None
-    assert reg.certificate_url == uploads[0]["Key"]
-    assert calls["template"] == "continueing_edu/certificate_pdf.html"
-    assert calls["base_url"] == "https://example.com/"
-    assert uploads and uploads[0]["Bucket"] == "test-bucket"
-    assert uploads[0]["ContentType"] == "application/pdf"
+    assert reg.certificate_url is None

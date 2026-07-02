@@ -51,11 +51,17 @@ def _ensure_employee(context, employee_code):
         'code': employee_code,
         'account': account,
         'gps_times': [],
+        'gps_place': 'gj',
         'target_date': None,
         'work_login': None,
+        'work_login_count': 0,
         'last_geo_response': None,
         'first_geo_response': None,
         'geo_responses': [],
+        'qrcode_times': [],
+        'qrcode_responses': [],
+        'first_qrcode_response': None,
+        'last_qrcode_response': None,
         'time_report_records': [],
     }
     context.checkin_employees[employee_code] = employee
@@ -105,12 +111,46 @@ def _post_geo_checkin(context, fixed_dt, place='salaya'):
     return response.get_json()
 
 
+def _post_qrcode_checkin(context, fixed_dt, employee):
+    qr_exp_datetime = BANGKOK_TZ.localize(
+        datetime.combine(employee['target_date'], datetime.strptime('23:59:59', '%H:%M:%S').time())
+    )
+    with patch('app.staff.views.datetime', _frozen_datetime_class(fixed_dt)), patch(
+        'app.staff.views.line_bot_api.push_message',
+        return_value=None,
+    ):
+        response = context.client.post(
+            '/staff/login-scan',
+            json={
+                'data': {
+                    'lat': '13.0000',
+                    'long': '100.0000',
+                    'qrCodeExpDateTime': qr_exp_datetime.strftime('%d/%m/%Y %H:%M:%S'),
+                    'thName': f"{employee['account'].personal_info.th_firstname} {employee['account'].personal_info.th_lastname}",
+                    'enName': f"{employee['account'].personal_info.en_firstname} {employee['account'].personal_info.en_lastname}",
+                }
+            },
+        )
+    assert response.status_code == 200, response.get_data(as_text=True)
+    return response.get_json()
+
+
 def _fetch_time_report(context, target_date):
     start = BANGKOK_TZ.localize(datetime.combine(target_date, datetime.min.time())).isoformat()
     end = BANGKOK_TZ.localize(datetime.combine(target_date, datetime.max.time())).isoformat()
     response = context.client.get('/staff/api/time-report', query_string={'start': start, 'end': end})
     assert response.status_code == 200, response.get_data(as_text=True)
     return response.get_json()
+
+
+def _fetch_raw_work_login_count(employee, target_date):
+    from app.staff.models import StaffWorkLogin
+
+    date_id = StaffWorkLogin.generate_date_id(target_date)
+    return StaffWorkLogin.query.filter_by(
+        staff_id=employee['account'].id,
+        date_id=date_id,
+    ).count()
 
 
 @given('the normal work period is from "{start}" to "{end}"')
@@ -123,6 +163,16 @@ def step_impl(context, start, end):
 def step_impl(context, employee_code, date_value):
     employee = _ensure_employee(context, employee_code)
     context.active_employee = employee_code
+    employee['gps_place'] = 'gj'
+    employee['target_date'] = _parse_date(date_value)
+    employee['gps_times'] = [_parse_time(row['time']) for row in context.table]
+
+
+@given('employee "{employee_code}" has GPS check-in records at place "{place}" on "{date_value}" at')
+def step_impl(context, employee_code, place, date_value):
+    employee = _ensure_employee(context, employee_code)
+    context.active_employee = employee_code
+    employee['gps_place'] = place
     employee['target_date'] = _parse_date(date_value)
     employee['gps_times'] = [_parse_time(row['time']) for row in context.table]
 
@@ -131,8 +181,17 @@ def step_impl(context, employee_code, date_value):
 def step_impl(context, employee_code, date_value):
     employee = _ensure_employee(context, employee_code)
     context.active_employee = employee_code
+    employee['gps_place'] = 'gj'
     employee['target_date'] = _parse_date(date_value)
     employee['gps_times'] = []
+
+
+@given('employee "{employee_code}" has QR check-in records on "{date_value}" at')
+def step_impl(context, employee_code, date_value):
+    employee = _ensure_employee(context, employee_code)
+    context.active_employee = employee_code
+    employee['target_date'] = _parse_date(date_value)
+    employee['qrcode_times'] = [_parse_time(row['time']) for row in context.table]
 
 
 @when('the system derives normal attendance for employee "{employee_code}" on "{date_value}"')
@@ -147,22 +206,66 @@ def step_impl(context, employee_code, date_value):
 
     for scan_time in employee['gps_times']:
         fixed_dt = BANGKOK_TZ.localize(datetime.combine(target_date, scan_time)).astimezone(UTC)
-        geo_response = _post_geo_checkin(context, fixed_dt, place='gj')
+        geo_response = _post_geo_checkin(context, fixed_dt, place=employee.get('gps_place') or 'gj')
         employee['geo_responses'].append(geo_response)
         employee['last_geo_response'] = geo_response
         if employee['first_geo_response'] is None:
             employee['first_geo_response'] = geo_response
 
     date_id = StaffWorkLogin.generate_date_id(target_date)
+    employee['work_login_count'] = StaffWorkLogin.query.filter_by(
+        staff_id=employee['account'].id,
+        date_id=date_id,
+    ).count()
     employee['work_login'] = StaffWorkLogin.query.filter_by(
         staff_id=employee['account'].id,
         date_id=date_id,
-    ).first()
+    ).order_by(StaffWorkLogin.start_datetime.asc()).first()
+    employee['time_report_records'] = _fetch_time_report(context, target_date)
+
+
+@when('the system derives QR attendance for employee "{employee_code}" on "{date_value}"')
+def step_impl(context, employee_code, date_value):
+    from app.staff.models import StaffWorkLogin
+
+    employee = _ensure_employee(context, employee_code)
+    context.active_employee = employee_code
+    target_date = _parse_date(date_value)
+    employee['target_date'] = target_date
+    _login_employee(context, employee)
+
+    for scan_time in employee['qrcode_times']:
+        fixed_dt = BANGKOK_TZ.localize(datetime.combine(target_date, scan_time)).astimezone(UTC)
+        qrcode_response = _post_qrcode_checkin(context, fixed_dt, employee)
+        employee['qrcode_responses'].append(qrcode_response)
+        employee['last_qrcode_response'] = qrcode_response
+        if employee['first_qrcode_response'] is None:
+            employee['first_qrcode_response'] = qrcode_response
+
+    employee['gps_times'] = list(employee['qrcode_times'])
+    employee['first_geo_response'] = employee['first_qrcode_response']
+    employee['last_geo_response'] = employee['last_qrcode_response']
+
+    date_id = StaffWorkLogin.generate_date_id(target_date)
+    employee['work_login_count'] = StaffWorkLogin.query.filter_by(
+        staff_id=employee['account'].id,
+        date_id=date_id,
+    ).count()
+    employee['work_login'] = StaffWorkLogin.query.filter_by(
+        staff_id=employee['account'].id,
+        date_id=date_id,
+    ).order_by(StaffWorkLogin.start_datetime.asc()).first()
     employee['time_report_records'] = _fetch_time_report(context, target_date)
 
 
 def _current_employee(context):
     return context.checkin_employees[context.active_employee]
+
+
+@then('the employee should have {expected_count:d} work login rows for the day')
+def step_impl(context, expected_count):
+    employee = _current_employee(context)
+    assert employee['work_login_count'] == expected_count
 
 
 def _to_bangkok(dt):
