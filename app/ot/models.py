@@ -40,6 +40,10 @@ class OtPaymentAnnounce(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship(Org)
+    signatories = db.relationship('OtAnnouncementSignatory',
+                                  backref=db.backref('announcement'),
+                                  cascade='all, delete-orphan',
+                                  order_by='OtAnnouncementSignatory.sort_order')
 
     def __str__(self):
         return self.topic
@@ -50,6 +54,26 @@ class OtPaymentAnnounce(db.Model):
         for doc in self.approved_documents:
             eligible_staff |= set(doc.staff)
         return eligible_staff
+
+
+class OtAnnouncementSignatory(db.Model):
+    __tablename__ = 'ot_announcement_signatories'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'), nullable=False)
+    report_creator_staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'), nullable=True)
+    report_creator_staff = db.relationship(StaffAccount, foreign_keys=[report_creator_staff_account_id])
+    report_creator_position = db.Column('position', db.String(), nullable=True, info={'label': u'ตำแหน่งผู้จัดทำ'})
+    signer_staff_account_id = db.Column('signer_staff_account_id', db.ForeignKey('staff_account.id'), nullable=True)
+    signer_staff = db.relationship(StaffAccount, foreign_keys=[signer_staff_account_id],
+                                   backref=db.backref('ot_announcement_signings',
+                                                      foreign_keys=[signer_staff_account_id]))
+    signer_position = db.Column('signer_position', db.String(), nullable=True, info={'label': u'ตำแหน่งผู้ลงนาม'})
+    sort_order = db.Column('sort_order', db.Integer(), default=0, nullable=False)
+
+    def __str__(self):
+        creator_name = self.report_creator_staff.fullname if self.report_creator_staff else ''
+        signer_name = self.signer_staff.fullname if self.signer_staff else ''
+        return f'{creator_name} / {signer_name}'
 
 
 class OtCompensationRate(db.Model):

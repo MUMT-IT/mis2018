@@ -23,7 +23,7 @@
         <div class="column is-9">
             <div id="popup"></div>
             <nav class="panel is-info">
-                <p class="panel-heading">หน่วยงาน</p>
+                <p class="panel-heading">ปฏิบัติงานให้หน่วยงาน</p>
                 {% for an in announcements %}
                     {% set org_id = an.org.id if an.org else an.org_id %}
                     {% if org_id %}

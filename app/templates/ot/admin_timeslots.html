@@ -8,7 +8,12 @@
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">จัดการช่วงเวลา OT</h1>
-                <a class="button is-light" href="{{ url_for('ot.announcement') }}">ไปหน้า ประกาศ</a>
+                <a class="button is-info is-light" href="{{ url_for('ot.announcement') }}">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>ไปหน้า ประกาศ</span>
+                </a>
             </div>
         </div>
 
@@ -21,7 +26,7 @@
                             <label class="label">{{ form.announcement.label.text }}</label>
                             <div class="control">
                                 <div class="select is-fullwidth">
-                                    {{ form.announcement() }}
+                                    {{ form.announcement(id='announcementSelect') }}
                                 </div>
                             </div>
                         </div>
@@ -52,7 +57,14 @@
                         <div class="field">
                             <label class="label">{{ form.color.label.text }}</label>
                             <div class="control">
-                                {{ form.color(class="input", placeholder="#1f77b4") }}
+                                <div class="buttons has-addons">
+                                    {% for option in form.color %}
+                                        <label class="button" style="background-color: {{ option.data }}; border-color: #ddd;">
+                                            {{ option() }}
+                                            <span class="ml-2">{{ option.label.text }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                         <div class="field">
@@ -86,7 +98,7 @@
                         </thead>
                         <tbody>
                             {% for timeslot in timeslots %}
-                                <tr>
+                                <tr data-announcement-id="{{ timeslot.announcement.id if timeslot.announcement else '' }}">
                                     <td>{{ timeslot.id }}</td>
                                     <td>{{ timeslot.announcement.topic if timeslot.announcement else '-' }}</td>
                                     <td>{{ timeslot.work_for_org.name if timeslot.work_for_org else '-' }}</td>
@@ -109,9 +121,29 @@
 {{ super() }}
 <script>
     $(document).ready(function () {
-        $('#timeslotTable').DataTable({
+        const announcementSelect = document.getElementById('announcementSelect');
+        const table = $('#timeslotTable').DataTable({
             pageLength: 10
         });
+
+        $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+            if (settings.nTable.id !== 'timeslotTable') {
+                return true;
+            }
+            const selectedAnnouncementId = announcementSelect ? announcementSelect.value : '';
+            if (!selectedAnnouncementId) {
+                return true;
+            }
+            const row = table.row(dataIndex).node();
+            return row && row.getAttribute('data-announcement-id') === selectedAnnouncementId;
+        });
+
+        if (announcementSelect) {
+            announcementSelect.addEventListener('change', function () {
+                table.draw();
+            });
+            table.draw();
+        }
     });
 </script>
 {% endblock %}

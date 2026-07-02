@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">{% if editing_job_role %}แก้ไขตำแหน่งงาน{% else %}จัดการตำแหน่งงาน OT{% endif %}</h1>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-5">
+                <div class="box">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.announcement.label.text }}</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    {{ form.announcement() }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.work_for_org.label.text }}</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    {{ form.work_for_org() }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.role.label.text }}</label>
+                            <div class="control">
+                                {{ form.role(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-right">
+                            <div class="control">
+                                <button class="button is-primary" type="submit">
+                                    {% if editing_job_role %}บันทึก{% else %}เพิ่ม{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="column is-7">
+                <div class="box">
+                    <table id="jobRoleTable" class="table is-striped is-fullwidth">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ประกาศ</th>
+                                <th>หน่วยงาน</th>
+                                <th>ตำแหน่งงาน</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job_role in job_roles %}
+                                <tr>
+                                    <td>{{ job_role.id }}</td>
+                                    <td>{{ job_role.announcement.topic if job_role.announcement else '-' }}</td>
+                                    <td>{{ job_role.work_for_org.name if job_role.work_for_org else '-' }}</td>
+                                    <td>{{ job_role.role or '-' }}</td>
+                                    <td>
+                                        <a class="button is-small is-link is-light" href="{{ url_for('ot.announcement_edit_job_role', job_role_id=job_role.id) }}">Edit</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.announcement') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function () {
+        $('#jobRoleTable').DataTable({
+            pageLength: 10
+        });
+    });
+</script>
+{% endblock %}

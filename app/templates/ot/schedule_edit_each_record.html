@@ -105,7 +105,12 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('ot.summary_ot_each_document', document_id=record.document_id, month=record.start_datetime.date().month, year=record.start_datetime.date().year) }}" class="button is-danger">Cancel</a>
+                                <a class="button is-info is-light" href="{{ url_for('ot.summary_ot_each_document', document_id=record.document_id, month=record.start_datetime.date().month, year=record.start_datetime.date().year) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                                    <span>กลับ</span>
+                                </a>
                             </div>
                         </div>
                     </form>
@@ -157,6 +162,5 @@
     });
 </script>
 {% endblock %}
-
 
 

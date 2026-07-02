@@ -167,6 +167,15 @@ def admin_index():
 @login_required
 def admin_timeslots():
     form = OtTimeSlotForm()
+    selected_announcement_id = request.args.get('announcement_id', type=int)
+    selected_announcement = None
+    if selected_announcement_id:
+        selected_announcement = OtPaymentAnnounce.query.get(selected_announcement_id)
+    if not selected_announcement:
+        selected_announcement = OtPaymentAnnounce.query.order_by(OtPaymentAnnounce.id).first()
+    if selected_announcement and not form.announcement.data:
+        form.announcement.data = selected_announcement
+
     timeslots = OtTimeSlot.query.order_by(OtTimeSlot.announcement_id, OtTimeSlot.start).all()
 
     if request.method == 'POST' and form.validate_on_submit():
@@ -180,9 +189,27 @@ def admin_timeslots():
         db.session.add(timeslot)
         db.session.commit()
         flash(u'เพิ่มช่วงเวลาเรียบร้อยแล้ว', 'success')
-        return redirect(url_for('ot.admin_timeslots'))
+        return redirect(url_for('ot.admin_timeslots', announcement_id=timeslot.announcement_id))
 
-    return render_template('ot/admin_timeslots.html', form=form, timeslots=timeslots)
+    return render_template('ot/admin_timeslots.html',
+                           form=form,
+                           timeslots=timeslots,
+                           selected_announcement=selected_announcement)
+
+
+def _configure_compensation_job_role_query(form):
+    announcement = form.announcement.data
+    work_for_org = form.work_for_org.data
+
+    def query_factory():
+        if not announcement or not work_for_org:
+            return []
+        query = OtJobRole.query
+        query = query.filter_by(announce_id=announcement.id)
+        query = query.filter_by(work_for_org_id=work_for_org.id)
+        return query.order_by(OtJobRole.role).all()
+
+    form.ot_job_role.query_factory = query_factory
 
 
 @ot.route('/api/announcements/<int:announcement_id>/timeslots')
@@ -195,11 +222,47 @@ def get_announcement_timeslots(announcement_id):
     } for slot in timeslots])
 
 
+@ot.route('/api/announcements/<int:announcement_id>/job-roles')
+@login_required
+def get_announcement_job_roles(announcement_id):
+    work_for_org_id = request.args.get('work_for_org_id', type=int)
+    query = OtJobRole.query.filter_by(announce_id=announcement_id)
+    if work_for_org_id:
+        query = query.filter_by(work_for_org_id=work_for_org_id)
+    job_roles = query.order_by(OtJobRole.role).all()
+    return jsonify([{
+        'id': role.id,
+        'label': role.role,
+    } for role in job_roles])
+
+
 @ot.route('/orgs/<int:org_id>/announcement-list-modal')
 @login_required
 def list_announcement_modal(org_id):
     announcements = OtPaymentAnnounce.query.filter_by(org_id=org_id)
     return render_template('ot/modals/announcements.html', announcements=announcements)
+
+
+def _reset_announce_signatories(form, signatories=None, default_prepared_by=None):
+    while form.signatories.entries:
+        form.signatories.pop_entry()
+    if signatories:
+        ordered_signatories = sorted(signatories, key=lambda item: (item.sort_order, item.id))
+        for signatory in ordered_signatories:
+            entry = form.signatories.append_entry()
+            entry.form.report_creator_staff.data = signatory.report_creator_staff
+            entry.form.report_creator_position.data = signatory.report_creator_position
+            entry.form.signer_staff.data = signatory.signer_staff
+            entry.form.signer_position.data = signatory.signer_position
+    else:
+        entry = form.signatories.append_entry()
+        entry.form.report_creator_staff.data = current_user if current_user else None
+        entry.form.report_creator_position.data = default_prepared_by.get('position') if default_prepared_by else ''
+        entry.form.signer_staff.data = None
+        entry.form.signer_position.data = ''
+        if default_prepared_by:
+            form.signatories.entries[0].form.report_creator_staff.data = default_prepared_by.get('staff')
+            form.signatories.entries[0].form.report_creator_position.data = default_prepared_by.get('position')
 
 
 @ot.route('/announce')
@@ -218,10 +281,21 @@ def announcement():
 @login_required
 def announcement_create_document():
     form = OtPaymentAnnounceForm()
+    if request.method == 'GET':
+        default_prepared_by = None
+        if current_user.personal_info:
+            default_prepared_by = {
+                'staff': current_user,
+                'position': current_user.personal_info.position or '',
+            }
+        _reset_announce_signatories(form, default_prepared_by=default_prepared_by)
     if request.method == 'POST':
         if form.validate_on_submit():
             payment = OtPaymentAnnounce()
-            form.populate_obj(payment)
+            payment.topic = form.topic.data
+            payment.org = form.org.data
+            payment.announce_at = form.announce_at.data
+            payment.start_datetime = form.start_datetime.data
             drive = initialize_gdrive()
             if form.upload.data:
                 upload_file = form.upload.data
@@ -242,6 +316,17 @@ def announcement_create_document():
                     payment.upload_file_url = file_drive['id']
                     payment.file_name = file_name
             payment.staff = current_user
+            payment.signatories = []
+            for index, signatory_form in enumerate(form.signatories.entries):
+                if not (signatory_form.form.report_creator_staff.data or signatory_form.form.signer_staff.data):
+                    continue
+                payment.signatories.append(OtAnnouncementSignatory(
+                    report_creator_staff=signatory_form.form.report_creator_staff.data,
+                    report_creator_position=signatory_form.form.report_creator_position.data,
+                    signer_staff=signatory_form.form.signer_staff.data,
+                    signer_position=signatory_form.form.signer_position.data,
+                    sort_order=index,
+                ))
             db.session.add(payment)
             db.session.commit()
             flash(u'เพิ่มประกาศเรียบร้อยแล้ว', 'success')
@@ -257,10 +342,21 @@ def announcement_create_document():
 def announcement_edit_document(announcement_id):
     payment = OtPaymentAnnounce.query.get_or_404(announcement_id)
     form = OtPaymentAnnounceForm(obj=payment)
+    if request.method == 'GET':
+        default_prepared_by = None
+        if payment.staff and payment.staff.personal_info:
+            default_prepared_by = {
+                'staff': payment.staff,
+                'position': payment.staff.personal_info.position or '',
+            }
+        _reset_announce_signatories(form, payment.signatories, default_prepared_by=default_prepared_by)
     if request.method == 'POST':
         if form.validate_on_submit():
             original_staff = payment.staff
-            form.populate_obj(payment)
+            payment.topic = form.topic.data
+            payment.org = form.org.data
+            payment.announce_at = form.announce_at.data
+            payment.start_datetime = form.start_datetime.data
             payment.staff = original_staff
             if form.upload.data:
                 drive = initialize_gdrive()
@@ -281,6 +377,17 @@ def announcement_edit_document(announcement_id):
                     flash('ไฟล์ที่แนบมา ถูกบันทึกบน Google drive เรียบร้อยแล้ว', 'success')
                     payment.upload_file_url = file_drive['id']
                     payment.file_name = file_name
+            payment.signatories = []
+            for index, signatory_form in enumerate(form.signatories.entries):
+                if not (signatory_form.form.report_creator_staff.data or signatory_form.form.signer_staff.data):
+                    continue
+                payment.signatories.append(OtAnnouncementSignatory(
+                    report_creator_staff=signatory_form.form.report_creator_staff.data,
+                    report_creator_position=signatory_form.form.report_creator_position.data,
+                    signer_staff=signatory_form.form.signer_staff.data,
+                    signer_position=signatory_form.form.signer_position.data,
+                    sort_order=index,
+                ))
             db.session.add(payment)
             db.session.commit()
             flash(u'แก้ไขประกาศเรียบร้อยแล้ว', 'success')
@@ -305,6 +412,8 @@ def announcement_compensations(announcement_id):
 @login_required
 def announcement_add_compensation():
     form = OtCompensationRateForm()
+    if getattr(current_user, 'personal_info', None) and current_user.personal_info.org:
+        form.work_at_org.data = current_user.personal_info.org
     announcement_id = request.args.get('announcement_id', type=int)
     selected_announcement = None
     if request.method == 'GET' and announcement_id:
@@ -314,10 +423,18 @@ def announcement_add_compensation():
     elif request.method == 'POST':
         selected_announcement = form.announcement.data
 
+    _configure_compensation_job_role_query(form)
+
     if selected_announcement:
         form.time_slot.query_factory = lambda announcement_id=selected_announcement.id: OtTimeSlot.query.filter_by(announcement_id=announcement_id).all()
     else:
         form.time_slot.query_factory = lambda: []
+    job_roles_data = [{
+        'id': role.id,
+        'announcement_id': role.announce_id,
+        'work_for_org_id': role.work_for_org_id,
+        'label': role.role,
+    } for role in OtJobRole.query.order_by(OtJobRole.announce_id, OtJobRole.work_for_org_id, OtJobRole.role).all()]
     if request.method == 'POST':
         if form.validate_on_submit():
             compensation = OtCompensationRate()
@@ -330,7 +447,51 @@ def announcement_add_compensation():
             return redirect(url_for('ot.announcement'))
         else:
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
-    return render_template('ot/announce_compensation.html', form=form)
+    return render_template('ot/announce_compensation.html', form=form, job_roles_data=job_roles_data)
+
+
+@ot.route('/announce/job-roles', methods=['GET', 'POST'])
+@login_required
+def announcement_job_roles():
+    form = OtJobRoleForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            job_role = OtJobRole()
+            form.populate_obj(job_role)
+            db.session.add(job_role)
+            db.session.commit()
+            flash(u'เพิ่มตำแหน่งงานเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('ot.announcement_job_roles'))
+        else:
+            for field, err in form.errors.items():
+                flash('{} {}'.format(field, err), 'danger')
+    job_roles = OtJobRole.query.order_by(OtJobRole.announce_id, OtJobRole.work_for_org_id, OtJobRole.role).all()
+    return render_template('ot/announce_job_roles.html',
+                           form=form,
+                           job_roles=job_roles,
+                           editing_job_role=None)
+
+
+@ot.route('/announce/job-roles/<int:job_role_id>', methods=['GET', 'POST'])
+@login_required
+def announcement_edit_job_role(job_role_id):
+    job_role = OtJobRole.query.get_or_404(job_role_id)
+    form = OtJobRoleForm(obj=job_role)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(job_role)
+            db.session.add(job_role)
+            db.session.commit()
+            flash(u'แก้ไขตำแหน่งงานเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('ot.announcement_job_roles'))
+        else:
+            for field, err in form.errors.items():
+                flash('{} {}'.format(field, err), 'danger')
+    job_roles = OtJobRole.query.order_by(OtJobRole.announce_id, OtJobRole.work_for_org_id, OtJobRole.role).all()
+    return render_template('ot/announce_job_roles.html',
+                           form=form,
+                           job_roles=job_roles,
+                           editing_job_role=job_role)
 
 
 @ot.route('/announce/edit-compensation/<int:com_id>', methods=['GET', 'POST'])
@@ -338,13 +499,26 @@ def announcement_add_compensation():
 def announcement_edit_compensation(com_id):
     compensation = OtCompensationRate.query.get(com_id)
     form = OtCompensationRateForm(obj=compensation)
+    if compensation.work_at_org:
+        form.work_at_org.data = compensation.work_at_org
+    elif getattr(current_user, 'personal_info', None) and current_user.personal_info.org:
+        form.work_at_org.data = current_user.personal_info.org
     selected_announcement = form.announcement.data or compensation.announcement
     if request.method == 'POST':
         selected_announcement = form.announcement.data
+
+    _configure_compensation_job_role_query(form)
+
     if selected_announcement:
         form.time_slot.query_factory = lambda announcement_id=selected_announcement.id: OtTimeSlot.query.filter_by(announcement_id=announcement_id).all()
     else:
         form.time_slot.query_factory = lambda: []
+    job_roles_data = [{
+        'id': role.id,
+        'announcement_id': role.announce_id,
+        'work_for_org_id': role.work_for_org_id,
+        'label': role.role,
+    } for role in OtJobRole.query.order_by(OtJobRole.announce_id, OtJobRole.work_for_org_id, OtJobRole.role).all()]
     if request.method == 'POST':
         if form.validate_on_submit():
             form.populate_obj(compensation)
@@ -354,7 +528,10 @@ def announcement_edit_compensation(com_id):
             return redirect(url_for('ot.announcement'))
         else:
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
-    return render_template('ot/announce_compensation.html', form=form, compensation=compensation)
+    return render_template('ot/announce_compensation.html',
+                           form=form,
+                           compensation=compensation,
+                           job_roles_data=job_roles_data)
 
 
 @ot.route('/document-approval')
@@ -1347,7 +1524,11 @@ def view_staff_monthly_records(staff_id, announcement_id):
 @login_required
 @manager_permission.union(secretary_permission).require()
 def view_shifts(announcement_id):
-    return render_template('ot/all_staff_calendar.html', announcement_id=announcement_id)
+    announcement = OtPaymentAnnounce.query.get_or_404(announcement_id)
+    return render_template('ot/all_staff_calendar.html',
+                           announcement_id=announcement_id,
+                           announcement=announcement,
+                           signatories=announcement.signatories)
 
 
 @ot.route('/api/announcements/<int:announcement_id>/ot_shifts')
@@ -1784,7 +1965,43 @@ def write_finance_form_custom_sheet(workbook, renamed_df, cal_start, cal_end):
         row_no += 3
 
 
-def build_finance_pdf(records_df, cal_start, cal_end):
+def _signatory_display_name(signatory):
+    if not signatory:
+        return ''
+    if signatory.report_creator_staff:
+        return signatory.report_creator_staff.fullname
+    return ''
+
+
+def _signatory_display_position(signatory):
+    if not signatory:
+        return ''
+    if signatory.report_creator_position:
+        return signatory.report_creator_position
+    if signatory.report_creator_staff and signatory.report_creator_staff.personal_info:
+        return signatory.report_creator_staff.personal_info.position or ''
+    return ''
+
+
+def _signer_display_name(signatory):
+    if not signatory:
+        return ''
+    if signatory.signer_staff:
+        return signatory.signer_staff.fullname
+    return ''
+
+
+def _signer_display_position(signatory):
+    if not signatory:
+        return ''
+    if signatory.signer_position:
+        return signatory.signer_position
+    if signatory.signer_staff and signatory.signer_staff.personal_info:
+        return signatory.signer_staff.personal_info.position or ''
+    return ''
+
+
+def build_finance_pdf(records_df, cal_start, cal_end, selected_signatory=None):
     report_df = records_df[records_df['payment'].notna()].copy()
     renamed_df = report_df.copy()
     if 'staff' in renamed_df.columns:
@@ -1882,24 +2099,36 @@ def build_finance_pdf(records_df, cal_start, cal_end):
         story.append(detail_table)
         story.append(Spacer(1, 5 * mm))
 
+        prepared_by_name = _signatory_display_name(selected_signatory)
+        controller_name = _signer_display_name(selected_signatory)
+        controller_position = _signer_display_position(selected_signatory)
+
         footer_rows = [
-            ['', '', '', '', Paragraph('ข้าพเจ้าขอรับรองว่ามีการปฏิบัติงาน ตามวันเวลาดังกล่าวจริง ', center_style), '', ''],
-            [Paragraph(f'({fullname})', center_style), '', Paragraph('ผู้ปฏิบัติงาน', center_style), '', '', '', ''],
-            ['', '', '', '', '', '', ''],
-            ['', '', '', '', Paragraph('(ผศ.พญ.สุมนา มัสอูดี)', center_style), '', ''],
-            [Paragraph('(นางสาวศศิลิยา  สุทัศน์กุล)', center_style), '', Paragraph('ผู้จัดทำ', center_style), '',
-             Paragraph('หัวหน้าศูนย์เทคนิคการแพทย์และรังสีเทคนิคนานาชาติ', center_style), '', ''],
-            ['', '', '', Paragraph('ผู้ควบคุมการปฏิบัติงาน', center_style), '', '', ''],
+            [
+                Paragraph(f'({fullname})<br/>ผู้ปฏิบัติงาน', center_style),
+                Paragraph('ข้าพเจ้าขอรับรองว่ามีการปฏิบัติงาน ตามวันเวลาดังกล่าวจริง', center_style),
+            ],
+            [
+                Paragraph(f'({prepared_by_name})<br/>ผู้จัดทำ' if prepared_by_name else '<br/>ผู้จัดทำ', center_style),
+                Paragraph(
+                    f'({controller_name})<br/>{controller_position} ผู้ควบคุมการปฏิบัติงาน'
+                    if controller_name or controller_position
+                    else '<br/><br/>ผู้ควบคุมการปฏิบัติงาน',
+                    center_style,
+                ),
+            ],
         ]
-        footer_table = Table(footer_rows, colWidths=[28 * mm, 18 * mm, 22 * mm, 20 * mm, 35 * mm, 20 * mm, 22 * mm])
+        footer_table = Table(footer_rows, colWidths=[90 * mm, 90 * mm], rowHeights=[18 * mm, 28 * mm])
         footer_table.setStyle(TableStyle([
-            ('SPAN', (4, 0), (6, 0)),
-            ('SPAN', (0, 1), (1, 1)),
-            ('SPAN', (4, 3), (6, 3)),
-            ('SPAN', (0, 4), (1, 4)),
-            ('SPAN', (4, 4), (6, 4)),
-            ('SPAN', (3, 5), (6, 5)),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 3 * mm),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3 * mm),
+            ('VALIGN', (0, 0), (-1, 0), 'TOP'),
+            ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('LINEBELOW', (0, 0), (-1, 0), 0, colors.white),
+            ('LINEBELOW', (0, 1), (-1, 1), 0, colors.white),
         ]))
         story.append(footer_table)
 
@@ -2120,6 +2349,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
     cal_end = request.args.get('end')
     download = request.args.get('download')
     format = request.args.get('format', 'timesheet')
+    selected_signatory_id = request.args.get('signatory_id', type=int)
     if _is_external_account():
         if staff_id is not None and staff_id != current_user.id:
             abort(403)
@@ -2250,10 +2480,21 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                 df.to_excel(writer, sheet_name='counts')
         else:
             df = pd.DataFrame(all_records)
+            selected_signatory = None
+            if announcement_id and format == 'finance-pdf':
+                announcement = OtPaymentAnnounce.query.get(announcement_id)
+                if announcement:
+                    signatories = list(announcement.signatories)
+                    if selected_signatory_id:
+                        selected_signatory = next((signatory for signatory in signatories
+                                                   if signatory.id == selected_signatory_id), None)
+                    if not selected_signatory:
+                        selected_signatory = next((signatory for signatory in signatories
+                                                   if signatory.report_creator_staff), None)
             if format == 'report':
                 output = build_custom_ot_report_workbook(df, cal_start, cal_end)
             elif format == 'finance-pdf':
-                output = build_finance_pdf(df, cal_start, cal_end)
+                output = build_finance_pdf(df, cal_start, cal_end, selected_signatory=selected_signatory)
             else:
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='xlsxwriter') as writer:

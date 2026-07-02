@@ -3,7 +3,7 @@ from wtforms.validators import DataRequired
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import SelectMultipleField, SelectField, DateField, FieldList, FormField, StringField
+from wtforms import SelectMultipleField, SelectField, DateField, FieldList, FormField, StringField, RadioField
 from wtforms.widgets import ListWidget, CheckboxInput
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.ot.models import *
@@ -18,6 +18,26 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
+class OtAnnouncementSignatoryForm(FlaskForm):
+    class Meta:
+        csrf = False
+
+    report_creator_staff = QuerySelectField(u'ผู้จัดทำ',
+                                            query_factory=lambda: StaffAccount.get_active_accounts(),
+                                            get_label='fullname',
+                                            allow_blank=True,
+                                            blank_text='กรุณาเลือกรายชื่อ',
+                                            validators=[DataRequired()])
+    report_creator_position = StringField(u'ตำแหน่งผู้จัดทำ', validators=[DataRequired()])
+    signer_staff = QuerySelectField(u'ผู้ลงนาม',
+                                    query_factory=lambda: StaffAccount.get_active_accounts(),
+                                    get_label='fullname',
+                                    allow_blank=True,
+                                    blank_text='กรุณาเลือกรายชื่อ',
+                                    validators=[DataRequired()])
+    signer_position = StringField(u'ตำแหน่งผู้ลงนาม', validators=[DataRequired()])
+
+
 class OtPaymentAnnounceForm(ModelForm):
     class Meta:
         model = OtPaymentAnnounce
@@ -29,6 +49,7 @@ class OtPaymentAnnounceForm(ModelForm):
     org = QuerySelectField(u'หน่วยงาน',
                            get_label='name',
                            query_factory=lambda: Org.query.all())
+    signatories = FieldList(FormField(OtAnnouncementSignatoryForm), min_entries=0)
     upload = FileField('File Upload')
 
 
@@ -53,6 +74,16 @@ class OtCompensationRateForm(ModelForm):
                                     query_factory=lambda: Org.query.all())
 
 
+class OtJobRoleForm(FlaskForm):
+    announcement = QuerySelectField(u'ประกาศ',
+                                    get_label='topic',
+                                    query_factory=lambda: OtPaymentAnnounce.query.all())
+    work_for_org = QuerySelectField(u'หน่วยงานที่ปฏิบัติงาน',
+                                    get_label='name',
+                                    query_factory=lambda: Org.query.all())
+    role = StringField(u'ตำแหน่งงาน', validators=[DataRequired()])
+
+
 class OtTimeSlotForm(FlaskForm):
     announcement = QuerySelectField(u'ประกาศ',
                                     get_label='topic',
@@ -62,7 +93,12 @@ class OtTimeSlotForm(FlaskForm):
                                     query_factory=lambda: Org.query.all())
     start = SelectField(u'เริ่มเวลา', validators=[DataRequired()])
     end = SelectField(u'สิ้นสุดเวลา', validators=[DataRequired()])
-    color = StringField(u'สี')
+    color = RadioField(u'สี', choices=[
+        ('#fac696', '#fac696'),
+        ('#cce5ff', '#cce5ff'),
+        ('#d4edda', '#d4edda'),
+        ('#f8d7da', '#f8d7da'),
+    ], validators=[DataRequired()], default='#fac696')
     note = StringField(u'หมายเหตุ')
 
     def __init__(self, *args, **kwargs):
