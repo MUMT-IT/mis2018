@@ -145,24 +145,19 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
                     print(date_time.date(), END_FISCAL_DATE.date(), current_end_fiscal_date.date())
                     if last_year_quota:
                         last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
-                        print('last year')
                     else:
                         last_year_quota = max_cum_quota
                     before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
-                    print('quota limitt', max_cum_quota, before_cut_max_quota)
                 else:
                     quota_limit = this_year_quota.quota_days
-                    print('quota limitt this year', this_year_quota.quota_days)
             else:
                 if last_year_quota:
                     last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
-                    print('quota last year')
                 else:
                     last_year_quota = max_cum_quota
                 before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
-                print('quota limit last', max_cum_quota, before_cut_max_quota)
         else:
             quota_limit = quota.max_per_year
     else:
@@ -308,19 +303,26 @@ def show_leave_info():
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
     pending_days = defaultdict(float)
-    for req in current_user.leave_requests:
-        used_quota = current_user.personal_info.get_total_leaves(req.quota.id,
-                                                                 tz.localize(START_FISCAL_DATE),
-                                                                 tz.localize(END_FISCAL_DATE))
-        leave_type = str(req.quota.leave_type)
-        cum_days[leave_type] = used_quota
-        pending_day = current_user.personal_info.get_total_pending_leaves_request \
-            (req.quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
-        pending_days[leave_type] = pending_day
     for quota in current_user.personal_info.employment.quota:
-        quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
+        this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year,
+                                                              leave_type_id=quota.leave_type_id).first()
+        if this_year_quota:
+            quota_limit = this_year_quota.quota_days
+            used_quota = this_year_quota.used_days
+            pending_day = this_year_quota.pending_days
+        else:
+            quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
+            used_quota = current_user.personal_info.get_total_leaves(quota.id,
+                                                                     tz.localize(START_FISCAL_DATE),
+                                                                     tz.localize(END_FISCAL_DATE))
+            pending_day = current_user.personal_info.get_total_pending_leaves_request \
+                (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
         can_request = quota.leave_type.requester_self_added
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit, can_request)
+
+        leave_type = str(quota.leave_type)
+        cum_days[leave_type] = used_quota
+        pending_days[leave_type] = pending_day
 
     is_approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     approvers = StaffLeaveApprover.query.filter_by(requester=current_user, is_active=True).all()
@@ -521,9 +523,12 @@ def request_for_leave(quota_id=None):
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
         this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year,
-                                                              leave_type_id=quota_id).first()
+                                                              leave_type_id=quota.leave_type_id).first()
 
-        quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
+        if this_year_quota:
+            quota_limit = this_year_quota.quota_days
+        else:
+            quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
 
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(
@@ -664,9 +669,12 @@ def request_for_leave_period(quota_id=None):
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
 
-        this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, leave_type_id=quota_id,
+        this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, leave_type_id=quota.leave_type_id,
                                                               fiscal_year=END_FISCAL_DATE.year).first()
-        quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
+        if this_year_quota:
+            quota_limit = this_year_quota.quota_days
+        else:
+            quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(
                                                                      END_FISCAL_DATE)) if not this_year_quota else this_year_quota.used_days
