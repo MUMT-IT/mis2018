@@ -1089,7 +1089,7 @@ def get_requests():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.notin_([1, 23]),
+            ServiceStatus.status_id.notin_([1, 2]),
             ServiceAdmin.admin_id == current_user.id
 
         )
