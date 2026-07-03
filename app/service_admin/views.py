@@ -6531,7 +6531,7 @@ def create_invoice(quotation_id):
             db.session.add(invoice_item)
             db.session.commit()
         db.session.commit()
-        status_id = get_status(16)
+        status_id = get_status(18)
         quotation.request.status_id = status_id
         db.session.add(quotation)
         db.session.add(invoice)
@@ -6564,7 +6564,7 @@ def approve_invoice(invoice_id):
         invoice_for_central_admin_url = url_for("service_admin.view_invoice_for_central_admin", invoice_id=invoice.id,
                                                 menu=menu, _external=True,
                                                 tab=tab, _scheme=scheme)
-        status_id = get_status(19)
+        status_id = get_status(21)
         invoice.quotation.request.status_id = status_id
         invoice.assistant_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.assistant_id = current_user.id
@@ -6611,7 +6611,7 @@ def approve_invoice(invoice_id):
                 else:
                     print('message_email', message, 'message_line', msg)
     elif admin == 'supervisor':
-        status_id = get_status(18)
+        status_id = get_status(20)
         invoice.quotation.request.status_id = status_id
         invoice.head_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.head_id = current_user.id
@@ -6652,7 +6652,7 @@ def approve_invoice(invoice_id):
                 else:
                     print('message_email', message, 'message_line', msg)
     else:
-        status_id = get_status(17)
+        status_id = get_status(19)
         invoice.sent_at = arrow.now('Asia/Bangkok').datetime
         invoice.sender_id = current_user.id
         invoice.quotation.request.status_id = status_id
@@ -6698,7 +6698,7 @@ def upload_invoice_file(invoice_id):
     form = ServiceInvoiceForm(obj=invoice)
     if form.validate_on_submit():
         form.populate_obj(invoice)
-        status_id = get_status(20)
+        status_id = get_status(22)
         file = form.file_upload.data
         invoice.quotation.request.status_id = status_id
         invoice.file_attached_id = current_user.id
@@ -7116,7 +7116,7 @@ def add_payment():
     if form.validate_on_submit():
         payment = ServicePayment()
         form.populate_obj(payment)
-        status_id = get_status(21)
+        status_id = get_status(23)
         file = form.file_upload.data
         if (file and form.paid_at.data and form.payment_type.data and form.amount_paid.data):
             payment.invoice_id = invoice_id
@@ -9465,7 +9465,7 @@ def view_invoice_for_finance(invoice_id):
 
 @service_admin.route('/invoice/payment/confirm/<int:invoice_id>', methods=['GET', 'POST'])
 def confirm_payment(invoice_id):
-    status_id = get_status(22)
+    status_id = get_status(24)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
     if not payment:
         invoice = ServiceInvoice.query.get(invoice_id)
@@ -9494,7 +9494,7 @@ def confirm_payment(invoice_id):
 
 @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
 def cancel_payment(invoice_id):
-    status_id = get_status(20)
+    status_id = get_status(22)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
     db.session.delete(payment)
     db.session.commit()

@@ -6963,7 +6963,7 @@ def add_payment():
         if form.validate_on_submit():
             payment = ServicePayment()
             form.populate_obj(payment)
-            status_id = get_status(21)
+            status_id = get_status(23)
             file = form.file_upload.data
             if (file and form.paid_at.data and form.payment_type.data and form.amount_paid.data):
                 payment.invoice_id = invoice_id
@@ -7055,7 +7055,7 @@ def view_invoice(invoice_id):
 @academic_services.route('/customer/request/cancel/<int:request_id>', methods=['GET'])
 def cancel_request(request_id):
     menu = request.args.get('menu')
-    status_id = get_status(23)
+    status_id = get_status(2)
     service_request = ServiceRequest.query.get(request_id)
     service_request.status_id = status_id
     db.session.add(service_request)
