@@ -6016,7 +6016,7 @@ def get_quotation_addresses():
 @academic_services.route('/customer/request/quotation/<int:request_id>', methods=['GET', 'POST'])
 def request_quotation(request_id):
     menu = request.args.get('menu')
-    status_id = get_status(2)
+    status_id = get_status(3)
     service_request = ServiceRequest.query.get(request_id)
     service_request.status_id = status_id
     db.session.add(service_request)
@@ -6377,7 +6377,7 @@ def export_quotation_pdf(quotation_id):
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
-    status_id = get_status(6)
+    status_id = get_status(8)
     scheme = 'http' if current_app.debug else 'https'
     quotation = ServiceQuotation.query.get(quotation_id)
     quotation.confirmed_at = arrow.now('Asia/Bangkok').datetime
@@ -6432,7 +6432,7 @@ def reject_quotation(quotation_id):
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
-        status_id = get_status(7)
+        status_id = get_status(9)
         quotation.canceller_id = current_user.id
         quotation.cancelled_at = arrow.now('Asia/Bangkok').datetime
         quotation.request.status_id = status_id

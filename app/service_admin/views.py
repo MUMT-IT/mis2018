@@ -7524,7 +7524,7 @@ def generate_bacteria_disinfection_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7607,7 +7607,7 @@ def generate_bacteria_sterility_test_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7708,7 +7708,7 @@ def generate_bacteria_antimicrobial_activity_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7802,7 +7802,7 @@ def generate_virus_disinfection_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7899,7 +7899,7 @@ def generate_virus_air_disinfection_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7985,7 +7985,7 @@ def generate_heavy_metal_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8080,7 +8080,7 @@ def generate_food_safety_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8168,7 +8168,7 @@ def generate_protein_identification_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8267,7 +8267,7 @@ def generate_sds_page_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8358,7 +8358,7 @@ def generate_quantitative_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8442,7 +8442,7 @@ def generate_endotoxin_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8530,7 +8530,7 @@ def generate_toxicology_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8576,7 +8576,7 @@ def create_quotation_for_admin(quotation_id):
         form.populate_obj(quotation)
         if action == 'approve':
             scheme = 'http' if current_app.debug else 'https'
-            status_id = get_status(4)
+            status_id = get_status(5)
             quotation.sent_at = arrow.now('Asia/Bangkok').datetime
             quotation.request.status_id = status_id
             db.session.add(quotation)
@@ -8710,9 +8710,8 @@ def approval_quotation_for_supervisor(quotation_id):
     if not quotation.approved_at:
         if request.method == 'POST':
             if quotation.digital_signature is None:
-
                 try:
-                    status_id = get_status(5)
+                    status_id = get_status(7)
                     password = request.form.get('password')
                     quotation.approver_id = current_user.id
                     quotation.approved_at = arrow.now('Asia/Bangkok').datetime
@@ -8800,7 +8799,7 @@ def disapprove_quotation(quotation_id):
     if form.validate_on_submit():
         form.populate_obj(quotation)
         if form.note.data:
-            status_id = get_status(24)
+            status_id = get_status(6)
             quotation.disapprover_id = current_user.id
             quotation.disapproved_at = arrow.now('Asia/Bangkok').datetime
             quotation.request.status_id = status_id
