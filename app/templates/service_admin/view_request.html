@@ -213,7 +213,7 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                {% if service_request.status.status_id == 2 and service_request.admin_id %}
+                                {% if service_request.status.status_id == 3 and service_request.admin_id %}
                                     <a class="button is-info is-rounded is-small mb-2"
                                        href="{{ url_for('service_admin.generate_quotation',
                                             request_id=service_request.id, code=service_request.sub_lab.code, menu='quotation',
@@ -230,7 +230,7 @@
                                         <span class="icon"><i class="fas fa-pen"></i></span>
                                         <span>แก้ไขข้อมูลคำขอ</span>
                                     </a>
-                                {% elif service_request.status.status_id == 2 %}
+                                {% elif service_request.status.status_id == 3 %}
                                     <a class="button is-info is-rounded is-small mb-2"
                                        href="{{ url_for('service_admin.generate_quotation',
                                             request_id=service_request.id, code=service_request.sub_lab.code, menu='quotation',
@@ -239,7 +239,7 @@
                                         <span class="icon"><i class="fas fa-file-invoice"></i></span>
                                         <span>ออกใบเสนอราคา</span>
                                     </a>
-                                {% elif (service_request.status.status_id == 10 and not service_request.get_result()) or
+                                {% elif (service_request.status.status_id == 11 and not service_request.get_result()) or
                                         (service_request.get_result() and service_request.get_result().sent_at == None) %}
                                     <a class="button is-primary is-rounded is-small mb-2"
                                             {% if result_id %}
