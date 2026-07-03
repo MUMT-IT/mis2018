@@ -4233,29 +4233,31 @@ def create_customer_detail(request_id):
 @login_required
 def request_index():
     menu = request.args.get('menu')
+    ids = list(range(1, 25))
+
     status_groups = {
         'all': {
-            'id': list(range(1, 24)),
+            'id': ids,
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },
         'send_request': {
-            'id': [1, 2],
+            'id': [1],
             'name': 'รอส่งคำขอรับบริการ',
             'icon': '<i class="fas fa-paper-plane"></i>'
         },
         'confirm_quotation': {
-            'id': [3, 4, 5],
+            'id': [7],
             'name': 'รอยืนยันใบเสนอราคา',
             'icon': '<i class="fas fa-file-invoice"></i>'
         },
         'send_sample': {
-            'id': [6, 8, 9],
+            'id': [12],
             'name': 'รอส่งตัวอย่าง',
             'icon': '<i class="fas fa-truck"></i>'
         },
         'wait_test': {
-            'id': [10],
+            'id': [11],
             'name': 'รอทดสอบตัวอย่าง',
             'icon': '<i class="fas fa-vial"></i>'
         },
@@ -4265,19 +4267,19 @@ def request_index():
         #     'icon': '<i class="fas fa-file-alt"></i>'
         # },
         'wait_payment': {
-            'id': [20, 21],
+            'id': [22, 23],
             'name': 'รอชำระเงิน',
             'icon': '<i class="fas fa-money-check-alt"></i>'
         },
         'download_report': {
-            'id': [22],
+            'id': [24],
             'name': 'ใบรายงานผลฉบับจริง',
             'icon': '<i class="fas fa-download"></i>'
         }
     }
 
     for key, group in status_groups.items():
-        group_ids = [i for i in group['id'] if i != 7 and i != 23]
+        group_ids = [i for i in group['id'] if i != 2 and i != 9]
 
         query = (
             ServiceRequest.query

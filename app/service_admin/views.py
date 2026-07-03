@@ -1011,8 +1011,7 @@ def request_index():
             admin = True
         sub_labs.append(a.sub_lab.code)
 
-    ids = list(range(2, 23))
-    ids.append(24)
+    ids = list(range(3, 25))
 
     status_groups = {
         'all': {
@@ -1021,19 +1020,19 @@ def request_index():
             'icon': '<i class="fas fa-list-ul"></i>'
         },
         'create_quotation': {
-            'id': [2, 3, 4, 5, 24],
+            'id': [3, 4, 5, 6],
             'name': 'รอออก/ยืนยันใบเสนอราคา',
             'color': 'is-info',
             'icon': '<i class="fas fa-file-invoice"></i>'
         },
         'received_sample': {
-            'id': [6, 8, 9],
+            'id': [8, 10],
             'name': 'รอรับตัวอย่าง',
             'color': 'is-info',
             'icon': '<i class="fas fa-people-carry"></i>'
         },
         'waiting_test': {
-            'id': [10],
+            'id': [11],
             'name': 'รอทดสอบตัวอย่าง',
             'color': 'is-info',
             'icon': '<i class="fas fa-vial"></i>'
@@ -1045,19 +1044,19 @@ def request_index():
         #     'icon': '<i class="fas fa-file-alt"></i>'
         # },
         'create_invoice': {
-            'id': [13, 16, 17, 18, 19],
-            'name': 'รอออก/ยืนยันใบแจ้งหนี้',
+            'id': [15, 18, 19, 20, 21],
+            'name': 'รอออก/อนุมัติใบแจ้งหนี้',
             'color': 'is-info',
             'icon': '<i class="fas fa-file-invoice-dollar"></i>'
         },
         'wait_payment': {
-            'id': [20, 21],
+            'id': [22, 23],
             'name': 'รอชำระเงิน',
             'color': 'is-info',
             'icon': '<i class="fas fa-money-check-alt"></i>'
         },
         'confirm_payment': {
-            'id': [22],
+            'id': [24],
             'name': 'ชำระเงินสำเร็จ',
             'color': 'is-light',
             'icon': '<i class="fas fa-check"></i>'
@@ -1065,7 +1064,7 @@ def request_index():
     }
 
     for key, group in status_groups.items():
-        group_ids = [i for i in group['id'] if i != 7]
+        group_ids = [i for i in group['id'] if i != 9 and i!= 12]
         query = (
             ServiceRequest.query
             .join(ServiceRequest.status)
