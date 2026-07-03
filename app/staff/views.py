@@ -2550,7 +2550,7 @@ def _parse_checkin_reminder_cutoff(date_value, time_value):
     return tz.localize(datetime.combine(target_date, parsed_time))
 
 
-def _build_missing_checkin_recipients(cutoff_dt, records=None):
+def _build_missing_checkin_recipients(cutoff_dt, records=None, staff_email=None):
     day_start = cutoff_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     if records is None:
         records = StaffWorkLogin.query.filter(
@@ -2568,6 +2568,8 @@ def _build_missing_checkin_recipients(cutoff_dt, records=None):
         if not getattr(staff_account, 'line_id', None):
             continue
         if getattr(staff_account.personal_info, 'academic_staff', None) is True:
+            continue
+        if staff_email and staff_account.email != staff_email:
             continue
         if staff_account.id in checked_in_staff_ids:
             continue
@@ -2685,6 +2687,7 @@ def _line_remind_missing_checkin_impl():
         if not admin_permission.can():
             abort(403)
 
+    staff_email = _normalize_staff_email(request.values.get('email')).lower()
     cutoff_dt = _parse_checkin_reminder_cutoff(
         request.values.get('date'),
         request.values.get('time'),
@@ -2702,7 +2705,7 @@ def _line_remind_missing_checkin_impl():
         }
         return jsonify(payload)
 
-    recipients = _build_missing_checkin_recipients(cutoff_dt)
+    recipients = _build_missing_checkin_recipients(cutoff_dt, staff_email=staff_email or None)
     preview = [
         {'staff_id': staff_account.id, 'staff_name': staff_account.fullname}
         for staff_account in recipients
@@ -2714,10 +2717,13 @@ def _line_remind_missing_checkin_impl():
             'cutoff': cutoff_dt.isoformat(),
             'recipient_count': len(preview),
             'recipients': preview,
+            'staff_email': staff_email or None,
         })
 
     summary = send_missing_checkin_reminders(cutoff_dt)
     summary['message'] = 'success'
+    if staff_email:
+        summary['staff_email'] = staff_email
     return jsonify(summary)
 
 
