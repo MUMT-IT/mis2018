@@ -186,7 +186,7 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                {% if invoice.quotation.request.status.status_id == 16 and admin %}
+                                {% if invoice.quotation.request.status.status_id == 18 and admin %}
                                     <a class="button is-success is-rounded is-small mb-2"
                                        href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
                                            admin='admin', menu=menu, tab='pending_supervisor') }}"
@@ -194,8 +194,8 @@
                                         <span class="icon"><i class="fas fa-check"></i></span>
                                         <span>เสนอหัวหน้าอนุมัติ</span>
                                     </a>
-                                {% elif (invoice.quotation.request.status.status_id == 17 and supervisor) or
-                                        (invoice.quotation.request.status.status_id == 18 and assistant) %}
+                                {% elif (invoice.quotation.request.status.status_id == 19 and supervisor) or
+                                        (invoice.quotation.request.status.status_id == 20 and assistant) %}
                                     <a class="button is-success is-rounded is-small mb-2"
                                             {% if supervisor %}
                                        href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
