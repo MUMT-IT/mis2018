@@ -4279,7 +4279,7 @@ def sample_verification(sample_id):
             form.process()
         if form.validate_on_submit():
             form.populate_obj(sample)
-            status_id = get_status(10)
+            status_id = get_status(11)
             sample.received_at = arrow.now('Asia/Bangkok').datetime
             sample.receiver_id = current_user.id
             sample.request.status_id = status_id

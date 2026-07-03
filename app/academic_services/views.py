@@ -6743,7 +6743,7 @@ def create_sample_appointment(sample_id):
                        _external=True, _scheme=scheme)
         customer_name = sample.request.customer.customer_name.replace(' ', '_')
         if admins:
-            if sample.request.status.status_id == 9:
+            if sample.request.status.status_id == 10:
                 title = f'''รายการแก้ไขนัดหมายส่งตัวอย่าง'''
                 message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.lab.lab}\n\n'''
                 # message += f'''ใบคำขอรับบริการเลขที่ {sample.request.request_no}\n'''
@@ -6806,8 +6806,8 @@ def create_sample_appointment(sample_id):
                     title, message)
             else:
                 print('message', message)
-        if sample.request.status.status_id == 6:
-            status_id = get_status(9)
+        if sample.request.status.status_id == 8:
+            status_id = get_status(10)
             sample.request.status_id = status_id
             db.session.add(sample)
             db.session.commit()
