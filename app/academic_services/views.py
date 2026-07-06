@@ -6686,6 +6686,7 @@ def sample_index():
                                   ServiceSample.received_at == None, ServiceSample.rejected_at == None)
     received_query = query.filter(ServiceSample.received_at != None)
     reject_query = query.filter(ServiceSample.rejected_at != None)
+    reject_count = query.filter(ServiceSample.rejected_at != None, ServiceSample.is_rescheduled == False)
 
     if tab == 'schedule':
         samples = schedule_query
@@ -6698,7 +6699,8 @@ def sample_index():
     else:
         samples = query
     return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab,
-                           schedule_count=schedule_query.count(), delivery_count=delivery_query.count())
+                           schedule_count=schedule_query.count(), delivery_count=delivery_query.count(),
+                           reject_count=reject_count.count())
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
@@ -6837,7 +6839,8 @@ def confirm_sample_appointment_page(request_id):
 def reject_sample_appointment_page(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('academic_services/reject_sample_appointment.html', menu=menu, tab=tab)
+    return render_template('academic_services/reject_sample_appointment.html', menu=menu, tab=tab,
+                           sample_id=sample_id)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
