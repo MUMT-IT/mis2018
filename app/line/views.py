@@ -3,7 +3,7 @@ import os
 
 import dateutil.parser
 import arrow
-from linebot.models.flex_message import ImageComponent
+from app.linebot_compat import ImageComponent
 import requests
 from flask import request, url_for, jsonify
 from calendar import Calendar
@@ -15,10 +15,9 @@ from app.auth.views import line_bot_api, handler
 from datetime import datetime
 from app.main import csrf, app
 from app.staff.models import StaffLeaveQuota, StaffAccount
-from linebot.exceptions import InvalidSignatureError, LineBotApiError
-from linebot.models import (MessageEvent, TextMessage, TextSendMessage, BubbleContainer, BoxComponent, TextComponent,
-                            FlexSendMessage, CarouselContainer, FillerComponent, ButtonComponent, URIAction,
-                            MessageAction)
+from app.linebot_compat import (InvalidSignatureError, LineBotApiError, MessageEvent, TextMessage, TextSendMessage,
+                                BubbleContainer, BoxComponent, TextComponent, FlexSendMessage, CarouselContainer,
+                                FillerComponent, ButtonComponent, URIAction, MessageAction)
 import pytz
 
 from ..room_scheduler.models import RoomEvent

@@ -1,4 +1,6 @@
+import json
 import os
+import re
 from datetime import timedelta
 import arrow
 import  pytz
@@ -13,23 +15,29 @@ from flask_login import login_required, current_user
 from app.roles import it_permission, software_request_permission
 from app.software_request import software_request
 from app.software_request.forms import create_request_form, create_timeline_form, SoftwareRequestIssueForm, \
-    create_test_result_form
+    create_test_result_form, create_bdd_feature_form
 from app.software_request.models import *
+from app.google_credential_utils import load_google_credentials_json
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 
 localtz = pytz.timezone('Asia/Bangkok')
+TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
+TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 gauth = GoogleAuth()
-keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+keyfile_dict = load_google_credentials_json()
 scopes = ['https://www.googleapis.com/auth/drive']
-gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
-drive = GoogleDrive(gauth)
+if keyfile_dict:
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
+    drive = GoogleDrive(gauth)
+else:
+    drive = None
 
 FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+json_keyfile = load_google_credentials_json()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'}
 
@@ -40,10 +48,19 @@ def send_mail(recp, title, message):
 
 
 def initialize_gdrive():
+    if not json_keyfile:
+        return None
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
     return GoogleDrive(gauth)
+
+
+def _request_flag(name, default=False):
+    raw_value = request.values.get(name)
+    if raw_value is None:
+        return default
+    return str(raw_value).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
 
 
 def update_test_result(test_result, status, note):
@@ -67,6 +84,131 @@ def update_test_result(test_result, status, note):
 def _get_drive_embed_url(file_id):
     # Avoid a metadata round-trip just to render an already-known Drive file link.
     return f'https://drive.google.com/file/d/{file_id}/preview'
+
+
+def _extract_typhoon_json(raw_text):
+    if not raw_text:
+        raise ValueError('Empty Typhoon response.')
+    payload = raw_text.strip()
+    if payload.startswith('```'):
+        payload = re.sub(r'^```(?:json)?\s*', '', payload)
+        payload = re.sub(r'\s*```$', '', payload)
+    match = re.search(r'\{.*\}', payload, flags=re.DOTALL)
+    if match:
+        payload = match.group(0)
+    return json.loads(payload)
+
+
+def _build_bdd_feature_prompt(issue, requirement_text=None):
+    request_detail = issue.software_request_detail
+    request_title = (request_detail.title or '').strip() if request_detail else ''
+    request_description = (request_detail.description or '').strip() if request_detail else ''
+    issue_text = (requirement_text if requirement_text is not None else issue.issue or '').strip()
+    issue_label = (issue.label or '').strip()
+    phase_name = issue.phase.phase if issue.phase else ''
+    deadline = issue.deadline.isoformat() if issue.deadline else ''
+
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'You are an expert business analyst and BDD author. '
+                'The source requirement text may be Thai, but the output must be English only. Do not use Thai in the output. '
+                'Generate a realistic Gherkin feature for a software request using the details provided. '
+                'Do not write a simple rule or a generic template. '
+                'Capture the user goal, behavior, acceptance criteria, and sensible edge cases. '
+                'Write concise but useful Gherkin with a clear feature title and multiple scenarios when appropriate. '
+                'Return JSON only with keys feature_title and gherkin_text. '
+                'The gherkin_text value must start with "Feature:" and contain valid Gherkin structure. '
+                'Keep all output in English.'
+            )
+        },
+        {
+            'role': 'user',
+            'content': json.dumps({
+                'software_request_title': request_title,
+                'software_request_description': request_description,
+                'requirement_text': issue_text,
+                'requirement_type': issue_label,
+                'phase': phase_name,
+                'deadline': deadline,
+            }, ensure_ascii=False, indent=2),
+        }
+    ]
+
+
+def _call_typhoon_bdd_feature(issue, requirement_text=None):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.2,
+            'max_tokens': 1200,
+            'messages': _build_bdd_feature_prompt(issue, requirement_text=requirement_text),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    parsed = _extract_typhoon_json(content)
+    feature_title = str(parsed.get('feature_title') or '').strip()
+    gherkin_text = str(parsed.get('gherkin_text') or '').strip()
+    if not feature_title or not gherkin_text:
+        raise ValueError('Missing feature_title or gherkin_text in Typhoon response.')
+    if not gherkin_text.startswith('Feature:'):
+        raise ValueError('Typhoon response must return Gherkin text starting with "Feature:".')
+    return {
+        'feature_title': feature_title,
+        'gherkin_text': gherkin_text,
+    }
+
+
+def _build_bdd_feature_form(issue, feature, feature_exists):
+    BDDFeatureForm = create_bdd_feature_form()
+    form = BDDFeatureForm(obj=feature) if feature else BDDFeatureForm()
+    form.issue_id.data = issue.id
+    if feature and feature.id:
+        form.feature_id.data = feature.id
+    elif feature_exists:
+        # Keep editing the existing saved record even when the UI is showing a fresh Typhoon draft.
+        existing_feature = _get_bdd_feature_for_issue(issue)
+        if existing_feature:
+            form.feature_id.data = existing_feature.id
+    return form
+
+
+def _set_bdd_feature_form_defaults(form, issue, requirement_text=None, reviewed_by_human=None):
+    form.requirement.data = requirement_text if requirement_text is not None else (issue.issue or '')
+    if reviewed_by_human is not None:
+        form.reviewed_by_human.data = bool(reviewed_by_human)
+
+
+def _render_bdd_feature_modal(issue, feature, feature_exists, generation_error=None, form=None,
+                              requirement_text=None, reviewed_by_human=None):
+    form = form or _build_bdd_feature_form(issue, feature, feature_exists)
+    _set_bdd_feature_form_defaults(
+        form,
+        issue,
+        requirement_text=requirement_text,
+        reviewed_by_human=reviewed_by_human,
+    )
+    return render_template(
+        'software_request/modal/create_bdd_feature_modal.html',
+        form=form,
+        issue=issue,
+        feature=feature,
+        feature_exists=feature_exists,
+        generation_error=generation_error,
+    )
 
 
 def _build_admin_request_query(tab):
@@ -476,6 +618,150 @@ def update_request(detail_id):
             flash(er, 'danger')
     return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
                            file_url=file_url, appointment_date=appointment_date)
+
+
+def _get_bdd_feature_for_issue(issue):
+    return BDDFeature.query.filter_by(software_issue_id=issue.id).order_by(
+        BDDFeature.version.desc(),
+        BDDFeature.id.desc(),
+    ).first()
+
+
+@software_request.route('/admin/request/bdd_feature/create/<int:issue_id>', methods=['GET', 'POST'])
+def create_bdd_feature(issue_id):
+    issue = SoftwareIssues.query.get_or_404(issue_id)
+    existing_feature = _get_bdd_feature_for_issue(issue)
+    feature_exists = existing_feature is not None
+    generation_error = None
+    feature = existing_feature
+    requirement_text = (issue.issue or '').strip()
+    reviewed_by_human = existing_feature.reviewed_by_human if existing_feature else False
+    if request.method == 'POST':
+        requirement_text = (request.form.get('requirement') or requirement_text).strip()
+        reviewed_by_human = _request_flag('reviewed_by_human')
+    if not feature:
+        try:
+            typhoon_feature = _call_typhoon_bdd_feature(issue, requirement_text=requirement_text)
+            feature = BDDFeature(
+                software_request_id=issue.software_request_detail_id,
+                software_issue_id=issue.id,
+                feature_title=typhoon_feature['feature_title'],
+                gherkin_text=typhoon_feature['gherkin_text'],
+                generated_by_ai=True,
+                reviewed_by_human=False,
+                version=1,
+                created_at=arrow.now('Asia/Bangkok').datetime,
+                updated_at=arrow.now('Asia/Bangkok').datetime,
+            )
+        except Exception as exc:
+            current_app.logger.warning('Typhoon BDD feature generation failed for issue %s: %s', issue.id, exc)
+            generation_error = 'BDD feature generation is currently unavailable. Please try again later.'
+    form = _build_bdd_feature_form(issue, feature, feature_exists)
+    form_html = _render_bdd_feature_modal(
+        issue=issue,
+        feature=feature,
+        feature_exists=feature_exists,
+        generation_error=generation_error,
+        form=form,
+        requirement_text=requirement_text,
+        reviewed_by_human=reviewed_by_human,
+    )
+    if request.method == 'POST' and form.validate_on_submit():
+        feature_id = form.feature_id.data
+        if feature_id:
+            feature = BDDFeature.query.get_or_404(int(feature_id))
+        else:
+            if generation_error:
+                flash(generation_error, 'danger')
+                return make_response(_render_bdd_feature_modal(
+                    issue=issue,
+                    feature=None,
+                    feature_exists=False,
+                    generation_error=generation_error,
+                    form=_build_bdd_feature_form(issue, None, False),
+                    requirement_text=form.requirement.data,
+                    reviewed_by_human=form.reviewed_by_human.data,
+                ))
+            next_version = (db.session.query(func.max(BDDFeature.version)).filter(
+                BDDFeature.software_issue_id == issue.id,
+            ).scalar() or 0) + 1
+            feature = BDDFeature(
+                software_request_id=issue.software_request_detail_id,
+                software_issue_id=issue.id,
+                version=next_version,
+                generated_by_ai=True,
+                created_at=arrow.now('Asia/Bangkok').datetime,
+            )
+        issue.issue = (form.requirement.data or '').strip()
+        issue.updated_at = arrow.now('Asia/Bangkok').datetime
+        issue.updater = current_user
+        db.session.add(issue)
+        feature.feature_title = form.feature_title.data
+        feature.gherkin_text = form.gherkin_text.data
+        feature.reviewed_by_human = bool(form.reviewed_by_human.data)
+        feature.software_request_id = issue.software_request_detail_id
+        feature.software_issue_id = issue.id
+        feature.generated_by_ai = True
+        feature.updated_at = arrow.now('Asia/Bangkok').datetime
+        if not feature.version:
+            feature.version = 1
+        if not feature.created_at:
+            feature.created_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(feature)
+        db.session.commit()
+        flash('บันทึก Gherkin feature เรียบร้อยแล้ว', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    elif request.method == 'POST':
+        if generation_error and not feature_exists:
+            flash(generation_error, 'danger')
+        else:
+            flash(f'{form.errors}', 'danger')
+    return form_html
+
+
+@software_request.route('/admin/request/bdd_feature/regenerate/<int:issue_id>', methods=['GET'])
+@software_request.route('/admin/request/bdd_feature/regenerate/<int:issue_id>', methods=['POST'])
+def regenerate_bdd_feature(issue_id):
+    issue = SoftwareIssues.query.get_or_404(issue_id)
+    existing_feature = _get_bdd_feature_for_issue(issue)
+    feature_exists = existing_feature is not None
+    requirement_text = (request.values.get('requirement') or issue.issue or '').strip()
+    reviewed_by_human = _request_flag('reviewed_by_human')
+    try:
+        typhoon_feature = _call_typhoon_bdd_feature(issue, requirement_text=requirement_text)
+        feature = BDDFeature(
+            software_request_id=issue.software_request_detail_id,
+            software_issue_id=issue.id,
+            feature_title=typhoon_feature['feature_title'],
+            gherkin_text=typhoon_feature['gherkin_text'],
+            generated_by_ai=True,
+            reviewed_by_human=reviewed_by_human,
+            version=existing_feature.version if existing_feature else 1,
+            created_at=existing_feature.created_at if existing_feature and existing_feature.created_at else arrow.now('Asia/Bangkok').datetime,
+            updated_at=arrow.now('Asia/Bangkok').datetime,
+        )
+        return _render_bdd_feature_modal(
+            issue=issue,
+            feature=feature,
+            feature_exists=feature_exists,
+            form=_build_bdd_feature_form(issue, feature, feature_exists),
+            requirement_text=requirement_text,
+            reviewed_by_human=reviewed_by_human,
+        )
+    except Exception as exc:
+        current_app.logger.warning('Typhoon BDD feature regeneration failed for issue %s: %s', issue.id, exc)
+        flash('BDD feature generation is currently unavailable. Please try again later.', 'danger')
+        return _render_bdd_feature_modal(
+            issue=issue,
+            feature=existing_feature,
+            feature_exists=feature_exists,
+            generation_error='BDD feature generation is currently unavailable. Please try again later.',
+            form=_build_bdd_feature_form(issue, existing_feature, feature_exists),
+            requirement_text=requirement_text,
+            reviewed_by_human=reviewed_by_human,
+        )
 
 
 @software_request.route('/admin/request/timeline/add/<int:detail_id>', methods=['GET', 'POST'])

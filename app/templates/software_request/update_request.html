@@ -265,6 +265,7 @@
                                                 <th>สถานะ</th>
                                                 <th>Deadline</th>
                                                 <th>ผู้รับผิดชอบ</th>
+                                                <th>BDD</th>
                                             </tr>
                                             </thead>
                                             <tbody>
@@ -305,10 +306,23 @@
                                                     </td>
                                                     <td>{{ issue.deadline|localdate or '' }}</td>
                                                     <td>{{ issue.staff.fullname }}</td>
+                                                    <td>
+                                                        {% if detail.status == 'อนุมัติ' %}
+                                                            <a class="button is-small is-rounded is-primary is-outlined"
+                                                               hx-get="{{ url_for('software_request.create_bdd_feature', issue_id=issue.id, tab=tab) }}"
+                                                               hx-target="#bdd_feature_form"
+                                                               hx-swap="innerHTML">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-feather-alt"></i>
+                                                                </span>
+                                                            </a>
+                                                        {% endif %}
+                                                    </td>
                                                 </tr>
                                             {% endfor %}
                                             </tbody>
                                         </table>
+                                        <div id="bdd_feature_form"></div>
                                         {% if detail.status == 'อนุมัติ' %}
                                             <div id="issue_form"></div>
                                             <a class="button is-info is-rounded"

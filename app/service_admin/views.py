@@ -11,8 +11,7 @@ from datetime import date
 from base64 import b64decode
 from reportlab.lib.pagesizes import A4
 from sqlalchemy.orm import make_transient, joinedload
-from linebot.exceptions import LineBotApiError
-from linebot.models import TextSendMessage
+from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.auth.views import line_bot_api
 from app.academic_services.forms import BacteriaSterilityTestRequestForm, BacteriaAntimicrobialActivityRequestForm, \
     VirusAirDisinfectionRequestForm, BacteriaDisinfectionRequestForm, VirusDisinfectionRequestForm, \

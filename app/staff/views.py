@@ -5,7 +5,7 @@ import arrow
 import pandas as pd
 from dateutil import parser
 from flask_login import login_required, current_user
-from linebot.exceptions import LineBotApiError
+from app.linebot_compat import LineBotApiError
 from pandas import read_excel, isna, DataFrame
 
 from app.eduqa.models import EduQAInstructor
@@ -21,7 +21,7 @@ import pytz
 from sqlalchemy import and_, desc, cast, Date, or_, extract
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
-from linebot.models import TextSendMessage
+from app.linebot_compat import TextSendMessage, FlexSendMessage, BubbleContainer, BoxComponent, TextComponent
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 import requests
@@ -36,6 +36,7 @@ from app.roles import admin_permission, hr_permission, secretary_permission, man
 from app.staff.models import *
 from app.url_utils import external_url
 from app.auth.views import _normalize_staff_email
+from app.google_credential_utils import load_google_credentials_json
 
 from app.comhealth.views import allowed_file
 
@@ -51,10 +52,13 @@ EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
 }
 
 gauth = GoogleAuth()
-keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+keyfile_dict = load_google_credentials_json()
 scopes = ['https://www.googleapis.com/auth/drive']
-gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
-drive = GoogleDrive(gauth)
+if keyfile_dict:
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
+    drive = GoogleDrive(gauth)
+else:
+    drive = None
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -91,6 +95,84 @@ def generate_file_url(file_url):
                                     Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
                                     ExpiresIn=3600)
     return url
+
+
+def _create_work_login_record(staff_account, now, lat, lon, *, qrcode_exp_datetime=None, note=None):
+    date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
+    num_scans = StaffWorkLogin.query.filter_by(date_id=date_id, staff=staff_account).count() + 1
+    record = StaffWorkLogin(
+        date_id=date_id,
+        staff=staff_account,
+        lat=float(lat),
+        long=float(lon),
+        start_datetime=now,
+        num_scans=num_scans,
+        note=note,
+    )
+    if qrcode_exp_datetime:
+        record.qrcode_in_exp_datetime = qrcode_exp_datetime.astimezone(pytz.utc)
+    db.session.add(record)
+    db.session.commit()
+    activity = 'checked in' if num_scans == 1 else 'checked out'
+    return record, activity, num_scans
+
+
+def _to_bangkok(dt):
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=pytz.utc)
+    return dt.astimezone(tz)
+
+
+def _daily_work_login_rows(records):
+    grouped = defaultdict(list)
+    for rec in records:
+        if not rec.start_datetime:
+            continue
+        grouped[(rec.staff_id, _to_bangkok(rec.start_datetime).date())].append(rec)
+
+    rows = []
+    fallback_dt = datetime.min.replace(tzinfo=pytz.utc)
+    for (staff_id, local_day), day_records in grouped.items():
+        day_records.sort(key=lambda rec: (_to_bangkok(rec.start_datetime) or fallback_dt, rec.id))
+        first = day_records[0]
+        last = day_records[-1]
+        start_dt = _to_bangkok(first.start_datetime) if first.start_datetime else None
+        end_dt = None
+        if last.end_datetime:
+            end_dt = _to_bangkok(last.end_datetime)
+        elif len(day_records) > 1 and last.start_datetime:
+            end_dt = _to_bangkok(last.start_datetime)
+
+        start_expired = None
+        if first.start_datetime and first.qrcode_in_exp_datetime:
+            start_expired = _to_bangkok(first.start_datetime) > _to_bangkok(first.qrcode_in_exp_datetime)
+
+        end_reference = last.end_datetime or (last.start_datetime if len(day_records) > 1 else None)
+        end_expired = None
+        end_qrcode_exp = last.qrcode_out_exp_datetime or last.qrcode_in_exp_datetime
+        if end_reference and end_qrcode_exp:
+            end_expired = _to_bangkok(end_reference) > _to_bangkok(end_qrcode_exp)
+
+        lat = float(first.lat) if first.lat is not None else ''
+        lon = float(first.long) if first.long is not None else ''
+        rows.append({
+            'staff_id': staff_id,
+            'date': local_day,
+            'staff_name': first.staff.fullname,
+            'start': start_dt.isoformat() if start_dt else None,
+            'end': end_dt.isoformat() if end_dt else None,
+            'lat': lat,
+            'lon': lon,
+            'start_expired': start_expired,
+            'end_expired': end_expired,
+            'location': '<a href="https://maps.google.com/?q={},{}">Click</a>'.format(lat, lon)
+            if lat != '' and lon != '' else '',
+        })
+
+    rows.sort(key=lambda row: (row['date'], row['staff_name']))
+    return rows
 
 
 def get_fiscal_date(date):
@@ -2207,11 +2289,7 @@ def hr_login_summary_report():
     return render_template('staff/hr_login_summary_report.html')
 
 
-@staff.route('/login-scan', methods=['GET', 'POST'])
-@csrf.exempt
-@admin_permission.require()
-@login_required
-def login_scan():
+def _handle_login_scan_request(template_name, *, note):
     DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
 
     if request.method == 'POST':
@@ -2239,37 +2317,14 @@ def login_scan():
 
         if person:
             now = datetime.now(pytz.utc)
-            date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
-            record = StaffWorkLogin.query \
-                .filter_by(date_id=date_id, staff=person.staff_account).first()
-            # office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
-            # office_startdt = office_startdt.replace(tzinfo=pytz.utc)
-            # office_enddt = datetime.strptime(u'{} {}'.format(now.date(), office_endtime), DATETIME_FORMAT)
-            # office_enddt = office_enddt.replace(tzinfo=pytz.utc)
-
-            # use the first login of the day as the checkin time.
-            # use the last login of the day as the checkout time.
-            if not record:
-                num_scans = 1
-                record = StaffWorkLogin(
-                    date_id=date_id,
-                    staff=person.staff_account,
-                    lat=float(lat),
-                    long=float(long),
-                    start_datetime=now,
-                    num_scans=num_scans,
-                    qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
-                )
-                activity = 'checked in'
-            else:
-                # status = "Late" if morning > 0 else "On time"
-                num_scans = record.num_scans + 1 if record.num_scans else 1
-                record.qrcode_out_exp_datetime = qrcode_exp_datetime.astimezone(pytz.utc)
-                record.end_datetime = now
-                record.num_scans = num_scans
-                activity = 'checked out'
-            db.session.add(record)
-            db.session.commit()
+            record, activity, num_scans = _create_work_login_record(
+                person.staff_account,
+                now,
+                lat,
+                long,
+                qrcode_exp_datetime=qrcode_exp_datetime,
+                note=note,
+            )
             try:
                 if activity == 'checked in':
                     msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
@@ -2284,7 +2339,15 @@ def login_scan():
         else:
             return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
 
-    return render_template('staff/login_scan.html')
+    return render_template(template_name)
+
+
+@staff.route('/login-scan', methods=['GET', 'POST'])
+@csrf.exempt
+@admin_permission.require()
+@login_required
+def login_scan():
+    return _handle_login_scan_request('staff/login_scan.html', note='qrcode')
 
 
 @staff.route('/clockin-clockout/request/', methods=['GET', 'POST'])
@@ -2429,106 +2492,220 @@ def approved_for_clockin_clockout(request_id):
 @admin_permission.require()
 @login_required
 def login_scan_gj():
-    DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
-
-    if request.method == 'POST':
-        req_data = request.get_json()
-        lat = req_data['data'].get('lat', '0.0')
-        long = req_data['data'].get('long', '0.0')
-        th_name = req_data['data'].get('thName')
-        en_name = req_data['data'].get('enName')
-        qrcode_exp_datetime = datetime.strptime(req_data['data'].get('qrCodeExpDateTime'), DATETIME_FORMAT)
-        qrcode_exp_datetime = qrcode_exp_datetime.replace(tzinfo=tz)
-        if th_name:
-            name = th_name.split(' ')
-            # some lastnames contain spaces
-            fname, lname = name[0], ' '.join(name[1:])
-            lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(th_firstname=fname, th_lastname=lname).first()
-        elif en_name:
-            fname, lname = en_name.split(' ')
-            lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(en_firstname=fname, en_lastname=lname).first()
-        else:
-            return jsonify({'message': 'The QR Code is not valid.'}), 400
-
-        if person:
-            now = datetime.now(pytz.utc)
-            date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
-            record = StaffWorkLogin(
-                date_id=date_id,
-                staff=person.staff_account,
-                lat=float(lat),
-                long=float(long),
-                start_datetime=now,
-                num_scans=1,
-                qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
-            )
-            try:
-                msg = f'ท่านได้ทำสแกนเข้า/ออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
-                line_bot_api.push_message(to=person.staff_account.line_id,
-                                          messages=TextSendMessage(text=msg))
-            except LineBotApiError:
-                pass
-            db.session.add(record)
-            db.session.commit()
-            return jsonify({'message': 'success',
-                            'activity': 'checked in',
-                            'name': person.fullname,
-                            'time': now.isoformat(),
-                            'numScans': 1}
-                           )
-        else:
-            return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
-
-    return render_template('staff/login_scan_gj.html')
+    return _handle_login_scan_request('staff/login_scan_gj.html', note='gj')
 
 
 @staff.route('/api/login-records')
 @login_required
 def get_login_records():
     date = request.args.get('date')
-    dept_id = request.args.get('dept_id', int)
+    dept_id = request.args.get('dept_id', type=int) or current_user.personal_info.org_id
     if not date:
         date = datetime.today()
     else:
         date = datetime.strptime(date, '%d/%m/%Y')
+    rows = _daily_work_login_rows(
+        StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date) == date
+        ).all()
+    )
     events = []
-    staff_list = {}
-    for rec in StaffWorkLogin.query.filter(
-            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date) == date):
-        if rec.staff_id not in staff_list:
-            s = StaffAccount.query.get(rec.staff_id)
-            if s.personal_info.org_id != int(dept_id):
+    staff_cache = {}
+    for row in rows:
+        staff_id = row['staff_id']
+        if staff_id not in staff_cache:
+            staff = StaffAccount.query.get(staff_id)
+            if not staff or not staff.personal_info or staff.personal_info.org_id != dept_id:
+                staff_cache[staff_id] = None
                 continue
-            staff_list[rec.staff_id] = s.fullname
-            name = s.fullname
-        else:
-            name = staff_list[rec.staff_id]
-
-        if rec.start_datetime and rec.qrcode_in_exp_datetime:
-            start_expired = rec.start_datetime > rec.qrcode_in_exp_datetime
-        else:
-            start_expired = None
-        if rec.end_datetime and rec.qrcode_out_exp_datetime:
-            end_expired = rec.end_datetime > rec.qrcode_out_exp_datetime
-        else:
-            end_expired = None
-        lat = float(rec.lat) if rec.lat else ''
-        lon = float(rec.long) if rec.long else ''
+            staff_cache[staff_id] = staff.fullname
+        if staff_cache[staff_id] is None:
+            continue
         events.append({
-            'staff_name': name,
-            'start': rec.start_datetime.astimezone(tz).isoformat() if rec.start_datetime else None,
-            'end': rec.end_datetime.astimezone(tz).isoformat() if rec.end_datetime else None,
-            'lat': lat,
-            'lon': lon,
-            'start_expired': start_expired,
-            'end_expired': end_expired,
-            'location': '<a href="https://maps.google.com/?q={},{}">Click</a>'.format(lat, lon) if lat and lon else '',
+            'staff_name': staff_cache[staff_id],
+            'start': row['start'],
+            'end': row['end'],
+            'lat': row['lat'],
+            'lon': row['lon'],
+            'start_expired': row['start_expired'],
+            'end_expired': row['end_expired'],
+            'location': row['location'],
         })
     return jsonify({'data': events})
+
+
+def _parse_checkin_reminder_cutoff(date_value, time_value):
+    target_date = datetime.now(tz).date() if not date_value else datetime.strptime(date_value, '%d/%m/%Y').date()
+    target_time = time_value or '09:00'
+    parsed_time = None
+    for time_format in ('%H:%M:%S', '%H:%M'):
+        try:
+            parsed_time = datetime.strptime(target_time, time_format).time()
+            break
+        except ValueError:
+            continue
+    if parsed_time is None:
+        raise ValueError('Invalid time format. Use HH:MM or HH:MM:SS.')
+    return tz.localize(datetime.combine(target_date, parsed_time))
+
+
+def _build_missing_checkin_recipients(cutoff_dt, records=None):
+    day_start = cutoff_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    if records is None:
+        records = StaffWorkLogin.query.filter(
+            func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= day_start,
+            func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) < cutoff_dt,
+        ).all()
+    eligible_records = [
+        rec for rec in records
+        if rec.staff_id and rec.start_datetime and _to_bangkok(rec.start_datetime) < cutoff_dt
+    ]
+    checked_in_staff_ids = {rec.staff_id for rec in eligible_records}
+
+    recipients = []
+    for staff_account in StaffAccount.get_active_accounts():
+        if not getattr(staff_account, 'line_id', None):
+            continue
+        if getattr(staff_account.personal_info, 'academic_staff', None) is True:
+            continue
+        if staff_account.id in checked_in_staff_ids:
+            continue
+        recipients.append(staff_account)
+    return recipients
+
+
+def _build_missing_checkin_reminder_message(staff_account, cutoff_dt):
+    cutoff_label = cutoff_dt.astimezone(tz).strftime('%H:%M')
+    return (
+        f'สวัสดี {staff_account.fullname} วันนี้ยังไม่พบการสแกนเข้างานก่อนเวลา {cutoff_label} '
+        f'ถ้าเริ่มปฏิบัติงานแล้ว รบกวนสแกนเข้างานในระบบด้วยนะครับ'
+    )
+
+
+def _build_missing_checkin_reminder_flex(cutoff_dt):
+    cutoff_date = cutoff_dt.astimezone(tz).strftime('%d/%m/%Y')
+    return FlexSendMessage(
+        alt_text='Check In Reminder',
+        contents=BubbleContainer(
+            body=BoxComponent(
+                layout='vertical',
+                contents=[
+                    TextComponent(
+                        text='Check In Reminder',
+                        weight='bold',
+                        size='xl',
+                    ),
+                    BoxComponent(
+                        layout='vertical',
+                        margin='lg',
+                        spacing='sm',
+                        contents=[
+                            BoxComponent(
+                                layout='baseline',
+                                spacing='sm',
+                                contents=[
+                                    TextComponent(
+                                        text='ท่านยังไม่ได้ลงชื่อเข้างานในวันนี้ กรุณาเช็คอินเข้างานหากท่านมาถึงคณะแล้ว',
+                                        wrap=True,
+                                        color='#666666',
+                                        size='sm',
+                                        flex=5,
+                                    )
+                                ],
+                            ),
+                            BoxComponent(
+                                layout='baseline',
+                                spacing='sm',
+                                contents=[
+                                    TextComponent(
+                                        text=cutoff_date,
+                                        color='#aaaaaa',
+                                        size='sm',
+                                        flex=1,
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ),
+    )
+
+
+def _get_holiday_for_date(target_date):
+    return Holidays.query.filter(cast(Holidays.holiday_date, Date) == target_date).first()
+
+
+def send_missing_checkin_reminders(cutoff_dt):
+    holiday = _get_holiday_for_date(cutoff_dt.astimezone(tz).date())
+    if holiday:
+        return {
+            'cutoff': cutoff_dt.isoformat(),
+            'holiday_name': holiday.holiday_name,
+            'recipient_count': 0,
+            'sent_count': 0,
+            'failed_count': 0,
+        }
+
+    recipients = _build_missing_checkin_recipients(cutoff_dt)
+    sent_count = 0
+    failed_count = 0
+    for staff_account in recipients:
+        try:
+            line_bot_api.push_message(
+                to=staff_account.line_id,
+                messages=_build_missing_checkin_reminder_flex(cutoff_dt),
+            )
+            sent_count += 1
+        except LineBotApiError:
+            failed_count += 1
+    return {
+        'cutoff': cutoff_dt.isoformat(),
+        'recipient_count': len(recipients),
+        'sent_count': sent_count,
+        'failed_count': failed_count,
+    }
+
+
+@staff.route('/admin/line-remind-missing-checkin', methods=['GET', 'POST'])
+@admin_permission.require()
+@login_required
+def line_remind_missing_checkin():
+    cutoff_dt = _parse_checkin_reminder_cutoff(
+        request.values.get('date'),
+        request.values.get('time'),
+    )
+    holiday = _get_holiday_for_date(cutoff_dt.astimezone(tz).date())
+    if holiday:
+        payload = {
+            'cutoff': cutoff_dt.isoformat(),
+            'holiday_name': holiday.holiday_name,
+            'message': 'preview' if request.method == 'GET' else 'success',
+            'recipient_count': 0,
+            'recipients': [],
+            'sent_count': 0,
+            'failed_count': 0,
+        }
+        return jsonify(payload)
+
+    recipients = _build_missing_checkin_recipients(cutoff_dt)
+    preview = [
+        {'staff_id': staff_account.id, 'staff_name': staff_account.fullname}
+        for staff_account in recipients
+    ]
+
+    if request.method == 'GET':
+        return jsonify({
+            'message': 'preview',
+            'cutoff': cutoff_dt.isoformat(),
+            'recipient_count': len(preview),
+            'recipients': preview,
+        })
+
+    summary = send_missing_checkin_reminders(cutoff_dt)
+    summary['message'] = 'success'
+    return jsonify(summary)
 
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
@@ -2714,11 +2891,12 @@ def send_summary_data():
     logins = []
     for emp in employees:
         if tab in ['login', 'all']:
-            # TODO: recheck staff login model
-            for rec in StaffWorkLogin.query.filter_by(staff=emp.staff_account) \
-                    .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
-                                    .between(cal_start, cal_end)):
-                end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
+            for row in _daily_work_login_rows(
+                StaffWorkLogin.query.filter_by(staff=emp.staff_account)
+                .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))
+                .all()
+            ):
+                end = row['end']
                 border_color = '#ffffff' if end else '#f56956'
                 text_color = '#ffffff'
                 bg_color = '#7d9df0'
@@ -2739,9 +2917,9 @@ def send_summary_data():
                     bg_color = '#ffff66'
                 '''
                 logins.append({
-                    'id': rec.id,
-                    'start': rec.start_datetime.astimezone(tz).isoformat() if rec.start_datetime else None,
-                    'end': end.isoformat() if end else None,
+                    'id': f"{row['staff_id']}-{row['date'].isoformat()}",
+                    'start': row['start'],
+                    'end': end,
                     'status': 'Done' if end else 'Not done',
                     'title': u'{}'.format(emp.th_firstname),
                     'backgroundColor': bg_color,
@@ -2866,27 +3044,19 @@ def export_login_summary():
     query = query.join(StaffAccount, aliased=True) \
         .filter(StaffAccount.personal_info.has(org_id=current_user.personal_info.org_id))
     records = []
-    for rec in query:
-        if rec.start_datetime and rec.qrcode_in_exp_datetime:
-            start_expired = rec.start_datetime > rec.qrcode_in_exp_datetime
-        else:
-            start_expired = None
-        if rec.end_datetime and rec.qrcode_out_exp_datetime:
-            end_expired = rec.end_datetime > rec.qrcode_out_exp_datetime
-        else:
-            end_expired = None
-        lat = float(rec.lat) if rec.lat else ''
-        lon = float(rec.long) if rec.long else ''
+    for row in _daily_work_login_rows(query.all()):
+        start = row['start']
+        end = row['end']
         records.append({
-            'staff_name': rec.staff.fullname,
-            'startdate': rec.start_datetime.astimezone(tz).strftime('%Y-%m-%d') if rec.start_datetime else '',
-            'starttime': rec.start_datetime.astimezone(tz).strftime('%H:%M:%S') if rec.start_datetime else '',
-            'enddate': rec.end_datetime.astimezone(tz).strftime('%Y-%m-%d') if rec.end_datetime else '',
-            'endtime': rec.end_datetime.astimezone(tz).strftime('%H:%M:%S') if rec.end_datetime else '',
-            'lat': lat,
-            'lon': lon,
-            'start_expired': start_expired,
-            'end_expired': end_expired,
+            'staff_name': row['staff_name'],
+            'startdate': datetime.fromisoformat(start).strftime('%Y-%m-%d') if start else '',
+            'starttime': datetime.fromisoformat(start).strftime('%H:%M:%S') if start else '',
+            'enddate': datetime.fromisoformat(end).strftime('%Y-%m-%d') if end else '',
+            'endtime': datetime.fromisoformat(end).strftime('%H:%M:%S') if end else '',
+            'lat': row['lat'],
+            'lon': row['lon'],
+            'start_expired': row['start_expired'],
+            'end_expired': row['end_expired'],
         })
     columns = [
         'staff_name', 'startdate', 'starttime', 'start_expired', 'enddate',
@@ -4358,20 +4528,23 @@ def send_time_report_data():
         cal_start = parser.isoparse(cal_start)
     if cal_end:
         cal_end = parser.isoparse(cal_end)
+    rows = _daily_work_login_rows(
+        StaffWorkLogin.query
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))
+        .filter_by(staff=current_user)
+        .all()
+    )
     records = []
-    for rec in StaffWorkLogin.query \
-            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end)) \
-            .filter_by(staff=current_user):
+    for row in rows:
         # The event object is a dict object with a 'summary' key.
         text_color = '#ffffff'
         bg_color = '#4da6ff'
         border_color = '#ffffff'
-        end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
         records.append({
-            'id': rec.id,
-            'start': rec.start_datetime.astimezone(tz).isoformat(),
-            'end': end.isoformat() if end else None,
-            'title': u'{}'.format(rec.staff.personal_info.th_firstname),
+            'id': f"{row['staff_id']}-{row['date'].isoformat()}",
+            'start': row['start'],
+            'end': row['end'],
+            'title': u'{}'.format(current_user.personal_info.th_firstname),
             'backgroundColor': bg_color,
             'borderColor': border_color,
             'textColor': text_color,
@@ -4679,7 +4852,10 @@ def staff_edit_pwd(staff_id):
         db.session.commit()
         flash('แก้ไขรหัสผ่านเรียบร้อย')
         return redirect(url_for('staff.staff_search_to_change_pwd'))
-    return render_template('staff/staff_search_to_change_pwd.html')
+    staff_email = StaffAccount.query.filter_by(id=staff_id).first()
+    if not staff_email:
+        abort(404)
+    return render_template('staff/staff_edit_pwd.html', account=staff_email)
 
 
 @staff.route('/for-hr/staff-info/search-account/send-reset-pwd/<int:staff_id>', methods=['POST'])
@@ -5294,42 +5470,13 @@ def geo_checkin():
         lat = req_data['data'].get('lat', '0.0')
         lon = req_data['data'].get('lon', '0.0')
         now = datetime.now(pytz.utc)
-        date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
-
-        if place == 'gj':
-            num_scans = 1
-            record = StaffWorkLogin(
-                date_id=date_id,
-                staff=current_user,
-                lat=float(lat),
-                long=float(lon),
-                start_datetime=now,
-                num_scans=num_scans,
-            )
-            activity = ''
-        else:
-            # use the first login of the day as the checkin time.
-            # use the last login of the day as the checkout time.
-            record = StaffWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
-
-            if not record:
-                num_scans = 1
-                record = StaffWorkLogin(
-                    date_id=date_id,
-                    staff=current_user,
-                    lat=float(lat),
-                    long=float(lon),
-                    start_datetime=now,
-                    num_scans=num_scans,
-                )
-                activity = 'checked in'
-            else:
-                num_scans = record.num_scans + 1 if record.num_scans else 1
-                record.end_datetime = now
-                record.num_scans = num_scans
-                activity = 'checked out'
-        db.session.add(record)
-        db.session.commit()
+        record, activity, num_scans = _create_work_login_record(
+            current_user,
+            now,
+            lat,
+            lon,
+            note=place,
+        )
         try:
             if activity == 'checked in':
                 msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {now.astimezone(tz).strftime("%d/%m/%Y %H:%M:%S")}'

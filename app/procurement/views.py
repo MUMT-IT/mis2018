@@ -14,8 +14,7 @@ from flask import render_template, request, flash, redirect, url_for, send_file,
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
-from linebot.exceptions import LineBotApiError
-from linebot.models import TextSendMessage
+from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.auth.views import line_bot_api
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
@@ -33,6 +32,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from app.google_credential_utils import load_google_credentials_json
 
 from ..main import csrf
 from ..roles import procurement_committee_permission, procurement_permission, finance_permission, \
@@ -48,7 +48,7 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 
 FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+json_keyfile = load_google_credentials_json()
 
 bangkok = timezone('Asia/Bangkok')
 tz = pytz.timezone('Asia/Bangkok')
