@@ -210,13 +210,22 @@
                             var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + menu + '&tab=' + tab;
                             if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
                                 var add_url = '/service_admin/sample/verification/add/' + data + '?menu=' + menu + '&tab=' + tab;
+                                var reject_url = '/service_admin/sample/reject/' + data + '?menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-warning is-rounded" ' + 'href=' + add_url + '>' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-clipboard-check"></i>' +
                                     '</span>' +
-                                    '<span>ดำเนินการและยืนยันรับตัวอย่าง</span>' +
+                                    '<span>ตรวจรับตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-danger is-rounded" ' + 'href=' + reject_url + '>' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-clipboard-check"></i>' +
+                                    '</span>' +
+                                    '<span>ปฏิเสธรับตัวอย่าง</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '<div class="control">' +
