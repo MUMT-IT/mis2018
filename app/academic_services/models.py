@@ -471,7 +471,8 @@ class ServiceRequest(db.Model):
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
             'quotation_id': [quotation.id for quotation in self.quotations if quotation.disapproved_at == None] if self.quotations else None,
-            'sample_id': [sample.id for sample in self.samples] if self.samples else None,
+            'sample_id': [sample.id for sample in self.samples if not sample.rejected_at] if self.samples else None,
+            'reject_sample_id': [sample.id for sample in self.samples if sample.rejected_at] if self.samples else None,
             'customer_status_color': self.status.customer_status_color if self.status else None,
             'quotation_sent_at': ', '.join(str(quotation.sent_at) for quotation in self.quotations
                                            if quotation.sent_at) if self.quotations else None,
@@ -770,6 +771,7 @@ class ServiceSample(db.Model):
             'note': self.note if self.note else None,
             'received_at': self.received_at,
             'received_by': self.received_by.fullname if self.received_by else None,
+            'rejected_at': self.rejected_at if self.rejected_at else None,
             'request_no': self.request.request_no if self.request else None,
             'sample_condition_status': self.sample_condition_status,
             'sample_condition_status_color': self.sample_condition_status_color,
@@ -864,7 +866,7 @@ class ServiceSample(db.Model):
     def admin_status_color(self):
         if self.received_at:
             color = 'is-success'
-        if self.rejected_at:
+        elif self.rejected_at:
             color = 'is-danger'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             color = 'is-warning'

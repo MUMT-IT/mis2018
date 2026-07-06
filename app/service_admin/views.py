@@ -4279,8 +4279,8 @@ def sample_verification(sample_id):
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
     if not sample.received_at:
-        # if request.method == 'GET':
-        #     form.process()
+        if request.method == 'GET':
+            form.process()
         if form.validate_on_submit():
             form.populate_obj(sample)
             status_id = get_status(11)
