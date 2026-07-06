@@ -75,6 +75,8 @@ def _has_overlapping_ot_record(records, start_datetime, end_datetime, *, exclude
             continue
         if record.canceled_at:
             continue
+        if record.start_datetime.date() != start_datetime.date():
+            continue
         time_slot = getattr(getattr(record, 'compensation', None), 'time_slot', None)
         if time_slot:
             existing_start = datetime.combine(start_datetime.date(), time_slot.start, tzinfo=start_datetime.tzinfo)
@@ -863,7 +865,7 @@ def reset_slot_selector(announcement_id):
         slots += f'<option value="timeslot-{slot.id}" >{slot}</option>'
 
     template = f'''
-        <label class="label htmx-indicator has-text-danger">Loading..</label>
+        <label class="label htmx-indicator has-text-danger">กรุณาเลือกช่วงเวลา</label>
         <div class="select">
             <select name="slot-id" hx-trigger="change"
                     hx-target="#shift-table"
