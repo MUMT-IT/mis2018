@@ -4190,8 +4190,9 @@ def sample_index():
     schedule_query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                                   ServiceSample.received_at == None)
     delivery_query = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
-                                  ServiceSample.received_at == None)
+                                  ServiceSample.received_at == None, ServiceSample.rejected_at == None)
     received_query = query.filter(ServiceSample.received_at != None)
+    reject_query = query.filter(ServiceSample.rejected_at != None)
 
     if api == 'true':
         if tab == 'schedule':
@@ -4200,6 +4201,8 @@ def sample_index():
             query = delivery_query
         elif tab == 'received':
             query = received_query
+        elif tab == 'reject':
+            query = reject_query
 
         records_total = query.count()
         search = request.args.get('search[value]')
@@ -4245,6 +4248,8 @@ def get_samples():
                              ServiceSample.received_at == None)
     elif tab == 'received':
         query = query.filter(ServiceSample.received_at != None)
+    elif tab == 'reject':
+        query = query.filter(ServiceSample.rejected_at != None, ServiceSample.is_rescheduled == False)
     else:
         query = query
     records_total = query.count()
@@ -4274,8 +4279,8 @@ def sample_verification(sample_id):
     sample = ServiceSample.query.get(sample_id)
     form = ServiceSampleForm(obj=sample)
     if not sample.received_at:
-        if request.method == 'GET':
-            form.process()
+        # if request.method == 'GET':
+        #     form.process()
         if form.validate_on_submit():
             form.populate_obj(sample)
             status_id = get_status(11)
@@ -4294,7 +4299,7 @@ def sample_verification(sample_id):
             # link = url_for("academic_services.request_index", menu='request', _external=True, _scheme=scheme)
             title = f'''แจ้งตรวจรับตัวอย่างจากคำขอรับบริการ'''
             message = f'''เรียน {title_prefix}{sample.request.customer.customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว '''
+            message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว\n'''
             message += f'''เจ้าหน้าที่จะดำเนินการตรวจวิเคราะห์ และจัดทำรายงานผลการตรวจวิเคราะห์ต่อไป\n'''
             # message += f'''ท่านสามารถติดตามสถานะการตรวจวิเคราะห์ได้ที่ลิงก์ด้านล่างนี้้\n'''
             # message += f'''{link}\n\n'''
@@ -4312,6 +4317,44 @@ def sample_verification(sample_id):
         return render_template('service_admin/sample_verify_page.html', request_no=sample.request.request_no,
                                menu=menu, tab='received')
     return render_template('service_admin/sample_verification_form.html', form=form, menu=menu, tab=tab,
+                           request_no=sample.request.request_no)
+
+
+@service_admin.route('/sample/reject/<int:sample_id>', methods=['GET', 'POST'])
+@login_required
+def reject_sample(sample_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    sample = ServiceSample.query.get(sample_id)
+    form = ServiceSampleForm(obj=sample)
+    if form.validate_on_submit():
+        form.populate_obj(sample)
+        status_id = get_status(12)
+        sample.rejected_at = arrow.now('Asia/Bangkok').datetime
+        sample.rejecter_id = current_user.id
+        sample.request.status_id = status_id
+        db.session.add(sample)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        title_prefix = 'คุณ' if sample.request.customer.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("academic_services.reject_sample_appointment_page", menu='sample', tab='schedule',
+                       sample_id=sample_id, _external=True, _scheme=scheme)
+        title = f'''แจ้งปฏิเสธรับตัวอย่างจากคำขอรับบริการ'''
+        message = f'''เรียน {title_prefix}{sample.request.customer.customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ปฏิเสธการรับตัวอย่างขิงท่าน เนื่องจาก{sample.reason}]\n'''
+        message += f'''กรุณาดำเนินการนัดหมายส่งตัวอย่างอีกครั้ง โดยท่านสามารถนัดหมายส่งตัวอย่างได้ที่ลิงก์ด้านล่างนี้้\n'''
+        message += f'''{link}\n\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอขอบพระคุณที่ใช้บริการ\n\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        if not current_app.debug:
+            send_mail([sample.request.customer.email], title, message)
+        else:
+            print('message', message)
+        flash('ปฏิเสธเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('service_admin.sample_index', menu=menu, tab='reject'))
+    return render_template('service_admin/reject_sample_form.html', form=form, menu=menu, tab=tab,
                            request_no=sample.request.request_no)
 
 
