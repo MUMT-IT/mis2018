@@ -281,7 +281,25 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.status_id == 8 || row.status_id == 10) {
-                                var sample_url = '/academic_services/customer/sample/add/' + row.sample_id + '?menu=sample&tab=schedule';
+                                var sample_url = '/academic_services/customer/sample/edit/' + row.sample_id + '?menu=sample&tab=schedule';
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>' +
+                                    '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + sample_url + '>' +
+                                    '<span class="icon"><i class="fas fa-pen"></i></span>' +
+                                    '<span>นัดหมายส่งตัวอย่าง</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>'
+                            } else if (row.status_id == 12) {
+                                var sample_url = '/academic_services/customer/sample/add/' + row.reject_sample_id + '?menu=sample&tab=schedule';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
                                     '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + request_url + '>' +
