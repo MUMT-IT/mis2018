@@ -78,7 +78,8 @@
                         <th>การส่งตัวอย่าง</th>
                         <th>สภาพตัวอย่าง</th>
                         <th>เอกสาร</th>
-                        <th>ใบนคำขอรับบริการ</th>
+                        <th>ใบคำขอรับบริการ</th>
+                        <th>หมายเหตุ</th>
                         <th>สถานะ</th>
                         <th></th>
                         </thead>
@@ -163,6 +164,7 @@
                                         </div>
                                     </div>
                                 </td>
+                                <td>{{ sample.reason or '' }}</td>
                                 <td>
                                     <span class="tag {{ sample.customer_status_color }}">
                                         {{ sample.customer_status }}
