@@ -214,7 +214,7 @@
                             var menu = '{{ menu }}';
                             var tab = '{{ tab }}';
                             var view_url = '/service_admin/sample/appointment/view/' + data + '?menu=' + menu + '&tab=' + tab;
-                            if ((row.appointment_date || row.tracking_number) && row.received_at == null) {
+                            if ((row.appointment_date || row.tracking_number) && row.received_at == null && row.rejected_at == null) {
                                 var add_url = '/service_admin/sample/verification/add/' + data + '?menu=' + menu + '&tab=' + tab;
                                 var reject_url = '/service_admin/sample/reject/' + data + '?menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +

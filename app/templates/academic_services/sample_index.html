@@ -51,9 +51,12 @@
                             </a>
                         </li>
                         <li {% if tab == 'reject' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('service_admin.sample_index', tab='reject', menu=menu) }}">
+                            <a href="{{ url_for('academic_services.sample_index', tab='reject', menu=menu) }}">
                                 <span class="icon is-small"><i class="fa fa-times"></i></span>
                                 <span>ปฏิเสธรับตัวอย่าง</span>
+                                {% if reject_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ reject_count }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
@@ -75,7 +78,7 @@
                         <th>การส่งตัวอย่าง</th>
                         <th>สภาพตัวอย่าง</th>
                         <th>เอกสาร</th>
-                        <th>ใบนำส่งตัวอย่าง</th>
+                        <th>ใบนคำขอรับบริการ</th>
                         <th>สถานะ</th>
                         <th></th>
                         </thead>
@@ -98,7 +101,7 @@
                                                 </a>
                                             </div>
                                         </div>
-                                    {% elif sample.tracking_number and not sample.received_at %}
+                                    {% elif sample.tracking_number and not sample.received_at and not sample.rejected_at %}
                                         <span>{{ sample.tracking_number }}</span>
                                         <span>
                                             <a hx-swap="innerHTML"
@@ -155,7 +158,7 @@
                                                '{{ sample.request.request_no }}')"
                                             >
                                                 <span class="icon"><i class="fas fa-print"></i></span>
-                                                <span>พิมพ์ใบนำส่งตัวอย่าง</span>
+                                                <span>พิมพ์</span>
                                             </a>
                                         </div>
                                     </div>
@@ -166,8 +169,7 @@
                                     </span>
                                 </td>
                                 <td>
-                                    {% if not sample.received_at %}
-                                        <div id="create_sample_appointment"></div>
+                                    {% if not sample.received_at and not sample.rejected_at %}
                                         <div class="field has-addons">
                                             <div class="control">
                                                 <a {% if sample.ship_type %}
@@ -175,7 +177,7 @@
                                                 {% else %}
                                                     class="button is-small is-info is-outlined is-rounded"
                                                 {% endif %}
-                                                    href="{{ url_for('academic_services.create_sample_appointment',
+                                                    href="{{ url_for('academic_services.edit_sample_appointment',
                                                                sample_id=sample.id, menu=menu, tab=tab) }}">
                                                     {% if sample.ship_type %}
                                                         <span class="icon"><i class="fas fa-pen"></i></span>
@@ -184,6 +186,26 @@
                                                         <span class="icon"><i class="fas fa-plus"></i></span>
                                                         <span>เพิ่มการนัดหมาย</span>
                                                     {% endif %}
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-small is-primary is-outlined is-rounded"
+                                                   href="{{ url_for('academic_services.view_sample_appointment',
+                                                                   sample_id=sample.id, menu=menu, tab=tab) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                    <span>รายละเอียด</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% elif sample.rejected_at and sample.is_rescheduled == False %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-info is-outlined is-rounded"
+                                                    href="{{ url_for('academic_services.create_sample_appointment',
+                                                               sample_id=sample.id, menu=menu, tab=tab) }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-calendar-check"></i></span>
+                                                    <span>นัดหมายใหม่</span>
                                                 </a>
                                             </div>
                                             <div class="control">
