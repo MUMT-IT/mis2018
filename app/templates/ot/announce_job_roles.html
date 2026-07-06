@@ -25,10 +25,10 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.work_for_org.label.text }}</label>
+                            <label class="label">{{ form.work_at_org.label.text }}</label>
                             <div class="control">
                                 <div class="select is-fullwidth">
-                                    {{ form.work_for_org() }}
+                                    {{ form.work_at_org() }}
                                 </div>
                             </div>
                         </div>
@@ -66,7 +66,7 @@
                                 <tr>
                                     <td>{{ job_role.id }}</td>
                                     <td>{{ job_role.announcement.topic if job_role.announcement else '-' }}</td>
-                                    <td>{{ job_role.work_for_org.name if job_role.work_for_org else '-' }}</td>
+                                    <td>{{ job_role.work_at_org.name if job_role.work_at_org else '-' }}</td>
                                     <td>{{ job_role.role or '-' }}</td>
                                     <td>
                                         <a class="button is-small is-link is-light" href="{{ url_for('ot.announcement_edit_job_role', job_role_id=job_role.id) }}">Edit</a>

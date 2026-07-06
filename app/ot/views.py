@@ -151,15 +151,33 @@ def initialize_gdrive():
 @manager_permission.union(secretary_permission).require()
 @login_required
 def index():
-    announcements = OtPaymentAnnounce.query.filter_by(cancelled_at=None)
-    return render_template('ot/index.html', announcements=announcements)
+    work_at_orgs = (
+        db.session.query(Org)
+        .join(OtJobRole, OtJobRole.work_for_org_id == Org.id)
+        .join(OtPaymentAnnounce, OtJobRole.announce_id == OtPaymentAnnounce.id)
+        .filter(OtPaymentAnnounce.cancelled_at.is_(None))
+        .filter(OtJobRole.work_for_org_id.isnot(None))
+        .distinct()
+        .order_by(Org.name)
+        .all()
+    )
+    return render_template('ot/index.html', work_at_orgs=work_at_orgs)
 
 
 @ot.route('/admin')
 @login_required
 def admin_index():
-    announcements = OtPaymentAnnounce.query.filter_by(cancelled_at=None)
-    return render_template('ot/admin_index.html', announcements=announcements)
+    work_at_orgs = (
+        db.session.query(Org)
+        .join(OtJobRole, OtJobRole.work_for_org_id == Org.id)
+        .join(OtPaymentAnnounce, OtJobRole.announce_id == OtPaymentAnnounce.id)
+        .filter(OtPaymentAnnounce.cancelled_at.is_(None))
+        .filter(OtJobRole.work_for_org_id.isnot(None))
+        .distinct()
+        .order_by(Org.name)
+        .all()
+    )
+    return render_template('ot/admin_index.html', work_at_orgs=work_at_orgs)
 
 
 @ot.route('/admin/timeslots', methods=['GET', 'POST'])
@@ -199,14 +217,14 @@ def admin_timeslots():
 
 def _configure_compensation_job_role_query(form):
     announcement = form.announcement.data
-    work_for_org = form.work_for_org.data
+    work_at_org = form.work_at_org.data
 
     def query_factory():
-        if not announcement or not work_for_org:
+        if not announcement or not work_at_org:
             return []
         query = OtJobRole.query
         query = query.filter_by(announce_id=announcement.id)
-        query = query.filter_by(work_for_org_id=work_for_org.id)
+        query = query.filter_by(work_for_org_id=work_at_org.id)
         return query.order_by(OtJobRole.role).all()
 
     form.ot_job_role.query_factory = query_factory
@@ -239,8 +257,17 @@ def get_announcement_job_roles(announcement_id):
 @ot.route('/orgs/<int:org_id>/announcement-list-modal')
 @login_required
 def list_announcement_modal(org_id):
-    announcements = OtPaymentAnnounce.query.filter_by(org_id=org_id)
-    return render_template('ot/modals/announcements.html', announcements=announcements)
+    announcements = (
+        OtPaymentAnnounce.query
+        .join(OtJobRole, OtJobRole.announce_id == OtPaymentAnnounce.id)
+        .filter(OtJobRole.work_for_org_id == org_id)
+        .filter(OtPaymentAnnounce.cancelled_at.is_(None))
+        .distinct()
+        .order_by(OtPaymentAnnounce.created_at.desc())
+        .all()
+    )
+    org = Org.query.get_or_404(org_id)
+    return render_template('ot/modals/announcements.html', announcements=announcements, org=org)
 
 
 def _reset_announce_signatories(form, signatories=None, default_prepared_by=None):
@@ -412,7 +439,7 @@ def announcement_compensations(announcement_id):
 @login_required
 def announcement_add_compensation():
     form = OtCompensationRateForm()
-    if getattr(current_user, 'personal_info', None) and current_user.personal_info.org:
+    if request.method == 'GET' and getattr(current_user, 'personal_info', None) and current_user.personal_info.org:
         form.work_at_org.data = current_user.personal_info.org
     announcement_id = request.args.get('announcement_id', type=int)
     selected_announcement = None
@@ -432,7 +459,7 @@ def announcement_add_compensation():
     job_roles_data = [{
         'id': role.id,
         'announcement_id': role.announce_id,
-        'work_for_org_id': role.work_for_org_id,
+        'work_at_org_id': role.work_for_org_id,
         'label': role.role,
     } for role in OtJobRole.query.order_by(OtJobRole.announce_id, OtJobRole.work_for_org_id, OtJobRole.role).all()]
     if request.method == 'POST':
@@ -457,7 +484,9 @@ def announcement_job_roles():
     if request.method == 'POST':
         if form.validate_on_submit():
             job_role = OtJobRole()
-            form.populate_obj(job_role)
+            job_role.announcement = form.announcement.data
+            job_role.work_for_org = form.work_at_org.data
+            job_role.role = form.role.data
             db.session.add(job_role)
             db.session.commit()
             flash(u'เพิ่มตำแหน่งงานเรียบร้อยแล้ว', 'success')
@@ -477,9 +506,13 @@ def announcement_job_roles():
 def announcement_edit_job_role(job_role_id):
     job_role = OtJobRole.query.get_or_404(job_role_id)
     form = OtJobRoleForm(obj=job_role)
+    if request.method == 'GET':
+        form.work_at_org.data = job_role.work_for_org
     if request.method == 'POST':
         if form.validate_on_submit():
-            form.populate_obj(job_role)
+            job_role.announcement = form.announcement.data
+            job_role.work_for_org = form.work_at_org.data
+            job_role.role = form.role.data
             db.session.add(job_role)
             db.session.commit()
             flash(u'แก้ไขตำแหน่งงานเรียบร้อยแล้ว', 'success')
@@ -499,10 +532,11 @@ def announcement_edit_job_role(job_role_id):
 def announcement_edit_compensation(com_id):
     compensation = OtCompensationRate.query.get(com_id)
     form = OtCompensationRateForm(obj=compensation)
-    if compensation.work_at_org:
-        form.work_at_org.data = compensation.work_at_org
-    elif getattr(current_user, 'personal_info', None) and current_user.personal_info.org:
-        form.work_at_org.data = current_user.personal_info.org
+    if request.method == 'GET':
+        if compensation.work_at_org:
+            form.work_at_org.data = compensation.work_at_org
+        elif getattr(current_user, 'personal_info', None) and current_user.personal_info.org:
+            form.work_at_org.data = current_user.personal_info.org
     selected_announcement = form.announcement.data or compensation.announcement
     if request.method == 'POST':
         selected_announcement = form.announcement.data
@@ -516,7 +550,7 @@ def announcement_edit_compensation(com_id):
     job_roles_data = [{
         'id': role.id,
         'announcement_id': role.announce_id,
-        'work_for_org_id': role.work_for_org_id,
+        'work_at_org_id': role.work_for_org_id,
         'label': role.role,
     } for role in OtJobRole.query.order_by(OtJobRole.announce_id, OtJobRole.work_for_org_id, OtJobRole.role).all()]
     if request.method == 'POST':

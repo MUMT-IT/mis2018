@@ -23,26 +23,25 @@
         <div class="column is-9">
             <div id="popup"></div>
             <nav class="panel is-info">
-                <p class="panel-heading">ปฏิบัติงานให้หน่วยงาน</p>
-                {% for an in announcements %}
-                    {% set org_id = an.org.id if an.org else an.org_id %}
-                    {% if org_id %}
+                <p class="panel-heading">หน่วยงานที่ปฏิบัติงาน</p>
+                {% for org in work_at_orgs %}
+                    {% if org %}
                         <a class="panel-block"
-                           hx-get="{{ url_for('ot.list_announcement_modal', org_id=org_id) }}"
+                           hx-get="{{ url_for('ot.list_announcement_modal', org_id=org.id) }}"
                            hx-target="#popup"
                            hx-swap="innerHTML"
                         >
                             <span class="panel-icon">
                                 <i class="fa-solid fa-user"></i>
                             </span>
-                            <span class="is-size-5">{{ an.org }}</span>
+                            <span class="is-size-5">{{ org.display_name }}</span>
                         </a>
                     {% else %}
                         <span class="panel-block is-disabled">
                             <span class="panel-icon">
                                 <i class="fa-solid fa-user"></i>
                             </span>
-                            <span class="is-size-5">{{ an.org or 'ไม่ระบุหน่วยงาน' }}</span>
+                            <span class="is-size-5">ไม่ระบุหน่วยงาน</span>
                         </span>
                     {% endif %}
                 {% endfor %}

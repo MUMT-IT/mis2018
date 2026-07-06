@@ -67,20 +67,25 @@ class OtCompensationRateForm(ModelForm):
     announcement = QuerySelectField(u'ประกาศ',
                                     get_label='topic',
                                     query_factory=lambda: OtPaymentAnnounce.query.all())
-    work_at_org = QuerySelectField(get_label='name',
+    work_at_org = QuerySelectField(u'ปฏิบัติงานที่',
+                                   get_label='name',
                                    query_factory=lambda: Org.query.all())
-    work_for_org = QuerySelectField(u'หน่วยงาน',
-                                    get_label='name',
-                                    query_factory=lambda: Org.query.all())
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'work_for_org' in self._fields:
+            self._fields.pop('work_for_org')
+            if hasattr(self, 'work_for_org'):
+                delattr(self, 'work_for_org')
 
 
 class OtJobRoleForm(FlaskForm):
     announcement = QuerySelectField(u'ประกาศ',
                                     get_label='topic',
                                     query_factory=lambda: OtPaymentAnnounce.query.all())
-    work_for_org = QuerySelectField(u'หน่วยงานที่ปฏิบัติงาน',
-                                    get_label='name',
-                                    query_factory=lambda: Org.query.all())
+    work_at_org = QuerySelectField(u'หน่วยงานที่ปฏิบัติงาน',
+                                   get_label='name',
+                                   query_factory=lambda: Org.query.all())
     role = StringField(u'ตำแหน่งงาน', validators=[DataRequired()])
 
 

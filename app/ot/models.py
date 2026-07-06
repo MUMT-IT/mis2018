@@ -173,6 +173,14 @@ class OtJobRole(db.Model):
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
     work_for_org = db.relationship(Org)
 
+    @property
+    def work_at_org(self):
+        return self.work_for_org
+
+    @work_at_org.setter
+    def work_at_org(self, value):
+        self.work_for_org = value
+
     def __str__(self):
         return f'{self.role}'
 

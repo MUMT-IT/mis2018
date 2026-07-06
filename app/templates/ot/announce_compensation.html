@@ -49,12 +49,12 @@
                         </div>
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">
-                                <label class="label">ปฏิบัติงานให้กับ</label>
+                                <label class="label">{{ form.work_at_org.label }}</label>
                             </div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="select">
-                                        {{ form.work_for_org(id='workForOrgSelect') }}
+                                        {{ form.work_at_org(id='workAtOrgSelect') }}
                                     </div>
                                 </div>
                             </div>
@@ -208,14 +208,14 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const announcementSelect = document.getElementById('announcementSelect');
-        const workForOrgSelect = document.getElementById('workForOrgSelect');
+        const workAtOrgSelect = document.getElementById('workAtOrgSelect');
         const jobRoleSelect = document.getElementById('jobRoleSelect');
         const timeSlotSelect = document.getElementById('timeSlotSelect');
         const jobRolesData = {{ job_roles_data | tojson }};
         const initialJobRoleId = {{ form.ot_job_role.data.id if form.ot_job_role.data else 'null' }};
         const initialTimeSlotId = {{ form.time_slot.data.id if form.time_slot.data else 'null' }};
 
-        if (!announcementSelect || !workForOrgSelect || !jobRoleSelect || !timeSlotSelect) {
+        if (!announcementSelect || !workAtOrgSelect || !jobRoleSelect || !timeSlotSelect) {
             return;
         }
 
@@ -250,12 +250,12 @@
             });
         };
 
-        const loadJobRoles = (announcementId, workForOrgId) => {
+        const loadJobRoles = (announcementId, workAtOrgId) => {
             jobRoleSelect.innerHTML = '';
             jobRoleSelect.disabled = false;
 
-            if (!announcementId || !workForOrgId) {
-                const placeholder = new Option('เลือกประกาศและหน่วยงานก่อน', '', true, true);
+            if (!announcementId || !workAtOrgId) {
+                const placeholder = new Option('เลือกประกาศและปฏิบัติงานที่ก่อน', '', true, true);
                 placeholder.disabled = true;
                 jobRoleSelect.add(placeholder);
                 return;
@@ -263,7 +263,7 @@
 
             const roles = jobRolesData.filter((role) => {
                 return String(role.announcement_id) === String(announcementId) &&
-                    String(role.work_for_org_id) === String(workForOrgId);
+                    String(role.work_at_org_id) === String(workAtOrgId);
             });
 
             if (!roles.length) {
@@ -285,10 +285,10 @@
         };
 
         announcementSelect.addEventListener('change', () => loadTimeSlots(announcementSelect.value));
-        announcementSelect.addEventListener('change', () => loadJobRoles(announcementSelect.value, workForOrgSelect.value));
-        workForOrgSelect.addEventListener('change', () => loadJobRoles(announcementSelect.value, workForOrgSelect.value));
+        announcementSelect.addEventListener('change', () => loadJobRoles(announcementSelect.value, workAtOrgSelect.value));
+        workAtOrgSelect.addEventListener('change', () => loadJobRoles(announcementSelect.value, workAtOrgSelect.value));
         loadTimeSlots(announcementSelect.value);
-        loadJobRoles(announcementSelect.value, workForOrgSelect.value);
+        loadJobRoles(announcementSelect.value, workAtOrgSelect.value);
     });
 </script>
     {% if compensation %}
