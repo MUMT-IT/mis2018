@@ -18,7 +18,7 @@
                         {% for an in announcements %}
                             <tr>
                                 <td>
-                                    <a href="{{ url_for('ot.add_ot_schedule', announcement_id=an.id) }}">
+                                    <a href="{{ url_for('ot.add_ot_schedule', announcement_id=an.id, org_id=org.id) }}">
                                         {{ an.topic }}
                                     </a>
                                 </td>

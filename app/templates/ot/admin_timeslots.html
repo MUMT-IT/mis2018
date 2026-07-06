@@ -20,8 +20,16 @@
         <div class="columns">
             <div class="column is-5">
                 <div class="box">
+                    <h2 class="title is-size-5">
+                        {% if edit_timeslot %}
+                            แก้ไขช่วงเวลา OT #{{ edit_timeslot.id }}
+                        {% else %}
+                            เพิ่มช่วงเวลา OT
+                        {% endif %}
+                    </h2>
                     <form method="post">
                         {{ form.hidden_tag() }}
+                        <input type="hidden" name="timeslot_id" value="{{ edit_timeslot.id if edit_timeslot else '' }}">
                         <div class="field">
                             <label class="label">{{ form.announcement.label.text }}</label>
                             <div class="control">
@@ -94,6 +102,7 @@
                                 <th>สิ้นสุดเวลา</th>
                                 <th>สี</th>
                                 <th>หมายเหตุ</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -106,6 +115,15 @@
                                     <td>{{ timeslot.end }}</td>
                                     <td>{{ timeslot.color or '-' }}</td>
                                     <td>{{ timeslot.note or '-' }}</td>
+                                    <td>
+                                        <a class="button is-small is-link"
+                                           href="{{ url_for('ot.admin_timeslots', announcement_id=timeslot.announcement_id, timeslot_id=timeslot.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-pen"></i>
+                                            </span>
+                                            <span>แก้ไข</span>
+                                        </a>
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -121,29 +139,9 @@
 {{ super() }}
 <script>
     $(document).ready(function () {
-        const announcementSelect = document.getElementById('announcementSelect');
-        const table = $('#timeslotTable').DataTable({
+        $('#timeslotTable').DataTable({
             pageLength: 10
         });
-
-        $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-            if (settings.nTable.id !== 'timeslotTable') {
-                return true;
-            }
-            const selectedAnnouncementId = announcementSelect ? announcementSelect.value : '';
-            if (!selectedAnnouncementId) {
-                return true;
-            }
-            const row = table.row(dataIndex).node();
-            return row && row.getAttribute('data-announcement-id') === selectedAnnouncementId;
-        });
-
-        if (announcementSelect) {
-            announcementSelect.addEventListener('change', function () {
-                table.draw();
-            });
-            table.draw();
-        }
     });
 </script>
 {% endblock %}

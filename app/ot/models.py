@@ -1,6 +1,7 @@
 import pytz
 from psycopg2._range import DateTimeRange
 from sqlalchemy import func
+from sqlalchemy.orm import synonym
 
 from ..main import db
 from pytz import timezone
@@ -100,12 +101,17 @@ class OtCompensationRate(db.Model):
     detail = db.Column('detail', db.String())
     abbr = db.Column('abbr', db.String())
     timeslot_id = db.Column('timeslot_id', db.ForeignKey('ot_timeslots.id'))
-    time_slot = db.relationship('OtTimeSlot')
+    time_slot = db.relationship('OtTimeSlot', backref=db.backref('compensation_rates'))
     ot_job_role_id = db.Column('ot_job_role_id', db.ForeignKey('ot_job_roles.id'))
     ot_job_role = db.relationship('OtJobRole', backref=db.backref('ot_rates'))
 
     def __str__(self):
         return f'{self.ot_job_role}: {self.per_hour or self.per_day or self.per_period or ""}{self.unit}'
+
+    @property
+    def dropdown_label(self):
+        role_name = self.ot_job_role.role if self.ot_job_role else self.role or '-'
+        return f'{role_name} | {self.rate}'
 
     @property
     def rate(self):
@@ -150,6 +156,7 @@ class OtTimeSlot(db.Model):
     retired_at = db.Column('retired_at', db.DateTime(timezone=True))
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
     work_for_org = db.relationship(Org)
+    work_at_org = synonym('work_for_org')
     color = db.Column(db.String())
     note = db.Column('note', db.String())
 

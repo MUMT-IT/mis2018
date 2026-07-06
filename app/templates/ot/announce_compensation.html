@@ -211,7 +211,6 @@
         const workAtOrgSelect = document.getElementById('workAtOrgSelect');
         const jobRoleSelect = document.getElementById('jobRoleSelect');
         const timeSlotSelect = document.getElementById('timeSlotSelect');
-        const jobRolesData = {{ job_roles_data | tojson }};
         const initialJobRoleId = {{ form.ot_job_role.data.id if form.ot_job_role.data else 'null' }};
         const initialTimeSlotId = {{ form.time_slot.data.id if form.time_slot.data else 'null' }};
 
@@ -219,7 +218,7 @@
             return;
         }
 
-        const loadTimeSlots = async (announcementId) => {
+        const loadTimeSlots = async (announcementId, workAtOrgId) => {
             timeSlotSelect.innerHTML = '';
             if (!announcementId) {
                 timeSlotSelect.disabled = true;
@@ -230,11 +229,13 @@
             }
 
             timeSlotSelect.disabled = false;
-            const response = await axios.get(`/ot/api/announcements/${announcementId}/timeslots`);
+            const response = await axios.get(`/ot/api/announcements/${announcementId}/timeslots`, {
+                params: { work_for_org_id: workAtOrgId }
+            });
             const slots = response.data || [];
 
             if (!slots.length) {
-                const placeholder = new Option('ไม่มีช่วงเวลาสำหรับประกาศนี้', '', true, true);
+                const placeholder = new Option('ไม่มีช่วงเวลาสำหรับหน่วยงานนี้', '', true, true);
                 placeholder.disabled = true;
                 timeSlotSelect.add(placeholder);
                 timeSlotSelect.disabled = true;
@@ -250,7 +251,7 @@
             });
         };
 
-        const loadJobRoles = (announcementId, workAtOrgId) => {
+        const loadJobRoles = async (announcementId, workAtOrgId) => {
             jobRoleSelect.innerHTML = '';
             jobRoleSelect.disabled = false;
 
@@ -261,10 +262,10 @@
                 return;
             }
 
-            const roles = jobRolesData.filter((role) => {
-                return String(role.announcement_id) === String(announcementId) &&
-                    String(role.work_at_org_id) === String(workAtOrgId);
+            const response = await axios.get(`/ot/api/announcements/${announcementId}/job-roles`, {
+                params: { work_for_org_id: workAtOrgId }
             });
+            const roles = response.data || [];
 
             if (!roles.length) {
                 const placeholder = new Option('ไม่มีตำแหน่งงานสำหรับประกาศนี้', '', true, true);
@@ -284,10 +285,11 @@
             });
         };
 
-        announcementSelect.addEventListener('change', () => loadTimeSlots(announcementSelect.value));
+        announcementSelect.addEventListener('change', () => loadTimeSlots(announcementSelect.value, workAtOrgSelect.value));
         announcementSelect.addEventListener('change', () => loadJobRoles(announcementSelect.value, workAtOrgSelect.value));
+        workAtOrgSelect.addEventListener('change', () => loadTimeSlots(announcementSelect.value, workAtOrgSelect.value));
         workAtOrgSelect.addEventListener('change', () => loadJobRoles(announcementSelect.value, workAtOrgSelect.value));
-        loadTimeSlots(announcementSelect.value);
+        loadTimeSlots(announcementSelect.value, workAtOrgSelect.value);
         loadJobRoles(announcementSelect.value, workAtOrgSelect.value);
     });
 </script>

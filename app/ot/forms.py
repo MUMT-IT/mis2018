@@ -129,13 +129,32 @@ for hour in range(0, 24):
         time_slots.append('{:02d}:{:02d}'.format(hour, minute))
 
 
-def create_ot_record_form(slot_id):
+def get_compensation_rates_for_timeslot(timeslot):
+    rates = OtCompensationRate.query.filter_by(timeslot_id=timeslot.id).all()
+    if rates:
+        return rates
+    return OtCompensationRate.query.filter_by(
+        announce_id=timeslot.announcement_id,
+        work_at_org_id=timeslot.work_for_org_id,
+    ).all()
+
+
+def create_ot_record_form(slot_key, work_at_org_id=None):
+    def compensation_query():
+        if getattr(slot_key, 'id', None):
+            return get_compensation_rates_for_timeslot(slot_key)
+        elif isinstance(slot_key, (list, tuple, set)):
+            return OtCompensationRate.query.filter(OtCompensationRate.announce_id.in_(slot_key))
+        else:
+            return OtCompensationRate.query.filter_by(timeslot_id=slot_key).all()
+
     class OtRecordForm(ModelForm):
         class Meta:
             model = OtRecord
 
         compensation = QuerySelectField('หน้าที่และอัตรา',
-                                        query_factory=lambda: OtCompensationRate.query.filter_by(timeslot_id=slot_id),
+                                        get_label='dropdown_label',
+                                        query_factory=compensation_query,
                                         allow_blank=False)
         staff = SelectMultipleField('บุคลากร', coerce=int)
 

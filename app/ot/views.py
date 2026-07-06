@@ -188,33 +188,56 @@ def admin_index():
 def admin_timeslots():
     form = OtTimeSlotForm()
     selected_announcement_id = request.args.get('announcement_id', type=int)
+    edit_timeslot_id = request.args.get('timeslot_id', type=int) or request.form.get('timeslot_id', type=int)
     selected_announcement = None
     if selected_announcement_id:
         selected_announcement = OtPaymentAnnounce.query.get(selected_announcement_id)
     if not selected_announcement:
         selected_announcement = OtPaymentAnnounce.query.order_by(OtPaymentAnnounce.id).first()
-    if selected_announcement and not form.announcement.data:
+    if request.method == 'GET' and selected_announcement and not form.announcement.data:
         form.announcement.data = selected_announcement
+
+    edit_timeslot = None
+    if edit_timeslot_id:
+        edit_timeslot = OtTimeSlot.query.get_or_404(edit_timeslot_id)
+        if request.method == 'GET':
+            form.announcement.data = edit_timeslot.announcement
+            form.work_for_org.data = edit_timeslot.work_for_org
+            form.start.data = edit_timeslot.start.strftime('%H:%M')
+            form.end.data = edit_timeslot.end.strftime('%H:%M')
+            form.color.data = edit_timeslot.color or form.color.default
+            form.note.data = edit_timeslot.note
 
     timeslots = OtTimeSlot.query.order_by(OtTimeSlot.announcement_id, OtTimeSlot.start).all()
 
     if request.method == 'POST' and form.validate_on_submit():
-        timeslot = OtTimeSlot()
+        if edit_timeslot:
+            timeslot = edit_timeslot
+            flash_message = u'แก้ไขช่วงเวลาเรียบร้อยแล้ว'
+        else:
+            timeslot = OtTimeSlot()
+            db.session.add(timeslot)
+            flash_message = u'เพิ่มช่วงเวลาเรียบร้อยแล้ว'
         timeslot.announcement = form.announcement.data
         timeslot.work_for_org = form.work_for_org.data
         timeslot.start = time.fromisoformat(form.start.data)
         timeslot.end = time.fromisoformat(form.end.data)
         timeslot.color = form.color.data or None
         timeslot.note = form.note.data or None
-        db.session.add(timeslot)
         db.session.commit()
-        flash(u'เพิ่มช่วงเวลาเรียบร้อยแล้ว', 'success')
+        flash(flash_message, 'success')
         return redirect(url_for('ot.admin_timeslots', announcement_id=timeslot.announcement_id))
+    elif request.method == 'POST':
+        flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(u'{} {}'.format(field, error), 'danger')
 
     return render_template('ot/admin_timeslots.html',
                            form=form,
                            timeslots=timeslots,
-                           selected_announcement=selected_announcement)
+                           selected_announcement=selected_announcement,
+                           edit_timeslot=edit_timeslot)
 
 
 def _configure_compensation_job_role_query(form):
@@ -235,7 +258,11 @@ def _configure_compensation_job_role_query(form):
 @ot.route('/api/announcements/<int:announcement_id>/timeslots')
 @login_required
 def get_announcement_timeslots(announcement_id):
-    timeslots = OtTimeSlot.query.filter_by(announcement_id=announcement_id).order_by(OtTimeSlot.start).all()
+    work_for_org_id = request.args.get('work_for_org_id', type=int)
+    query = OtTimeSlot.query.filter_by(announcement_id=announcement_id)
+    if work_for_org_id:
+        query = query.filter_by(work_for_org_id=work_for_org_id)
+    timeslots = query.order_by(OtTimeSlot.start).all()
     return jsonify([{
         'id': slot.id,
         'label': str(slot),
@@ -851,8 +878,19 @@ def cancel_ot_record(record_id):
 @manager_permission.union(secretary_permission).require()
 @login_required
 def add_ot_schedule(announcement_id):
-    slots = OtTimeSlot.query.filter_by(announcement_id=announcement_id).order_by(OtTimeSlot.start).all()
-    return render_template('ot/schedule_add.html', announcement_id=announcement_id, slots=slots)
+    announcement = OtPaymentAnnounce.query.get_or_404(announcement_id)
+    org_id = request.args.get('org_id', type=int)
+    if not org_id:
+        org_id = announcement.org_id
+    selected_work_at_org = Org.query.get(org_id) if org_id else None
+    slots_query = OtTimeSlot.query.filter_by(announcement_id=announcement_id)
+    if selected_work_at_org:
+        slots_query = slots_query.filter(OtTimeSlot.work_at_org == selected_work_at_org)
+    slots = slots_query.order_by(OtTimeSlot.start).all()
+    return render_template('ot/schedule_add.html',
+                           announcement_id=announcement_id,
+                           work_at_org_id=org_id,
+                           slots=slots)
 
 
 @ot.route('/announcements/<int:announcement_id>/reset-slot-selector')
@@ -860,8 +898,13 @@ def add_ot_schedule(announcement_id):
 @login_required
 def reset_slot_selector(announcement_id):
     announcement = OtPaymentAnnounce.query.get(announcement_id)
+    org_id = request.args.get('org_id', type=int)
+    selected_work_at_org = Org.query.get(org_id) if org_id else None
     slots = ''
-    for slot in announcement.timeslots:
+    slot_query = OtTimeSlot.query.filter_by(announcement_id=announcement_id)
+    if selected_work_at_org:
+        slot_query = slot_query.filter(OtTimeSlot.work_at_org == selected_work_at_org)
+    for slot in slot_query.order_by(OtTimeSlot.start).all():
         slots += f'<option value="timeslot-{slot.id}" >{slot}</option>'
 
     template = f'''
@@ -881,7 +924,7 @@ def reset_slot_selector(announcement_id):
     '''
     resp = make_response(template)
     resp.headers['HX-Trigger-After-Swap'] = 'initSelect2js'
-    return template
+    return resp
 
 
 @ot.route('/api/announcements/<int:announcement_id>/shifts')
@@ -930,9 +973,11 @@ def show_ot_form_modal(_id=None):
         shift = OtShift.query.get(shift_id)
         timeslot = shift.timeslot
 
-    RecordForm = create_ot_record_form(timeslot.id)
+    RecordForm = create_ot_record_form(timeslot, timeslot.work_for_org_id)
     form = RecordForm()
-    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query]
+    compensation_rates = get_compensation_rates_for_timeslot(timeslot)
+    form.compensation.query = compensation_rates
+    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.get_active_accounts()]
     if form.validate_on_submit():
         candidate_start = shift.datetime.lower.astimezone(localtz) if shift else datetime.combine(
             start.date(), timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok')
@@ -979,7 +1024,8 @@ def show_ot_form_modal(_id=None):
     template = render_template('ot/modals/ot_record_form.html',
                                start=start,
                                target_url=url_for('ot.show_ot_form_modal', _id=_id, start=request.args.get('start')),
-                               form=form, slot_id=timeslot.id, timeslot=timeslot, records=records)
+                               form=form, slot_id=timeslot.id, timeslot=timeslot, records=records,
+                               compensation_rates=compensation_rates)
     resp = make_response(template)
     resp.headers['HX-Trigger-After-Swap'] = json.dumps({"initSelect2js": "",
                                                         "clearSelection": "",
@@ -1564,7 +1610,8 @@ def view_shifts(announcement_id):
     return render_template('ot/all_staff_calendar.html',
                            announcement_id=announcement_id,
                            announcement=announcement,
-                           signatories=announcement.signatories)
+                           signatories=announcement.signatories,
+                           work_at_org_id=announcement.org_id)
 
 
 @ot.route('/api/announcements/<int:announcement_id>/ot_shifts')
