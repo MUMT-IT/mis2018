@@ -881,7 +881,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([2, 24]),
+            ServiceStatus.status_id.in_([3, 6]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         quotation_count = (ServiceRequest.query
@@ -889,7 +889,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([3, 4, 5]),
+            ServiceStatus.status_id.in_([4, 5]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         sample_count = (ServiceRequest.query
@@ -897,7 +897,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([6, 8, 9]),
+            ServiceStatus.status_id.in_([10]),
             ServiceAdmin.admin_id == current_user.id
         )
         ).count()
@@ -916,7 +916,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([16, 17, 18, 19, 20]),
+            ServiceStatus.status_id.in_([15, 18, 19, 20]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         invoice_count_for_central_admin = (ServiceRequest.query
@@ -924,7 +924,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([19, 20]),
+            ServiceStatus.status_id.in_([21, 22]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         report_count = (

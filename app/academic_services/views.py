@@ -741,14 +741,14 @@ def menu():
         request_count = (ServiceRequest.query
         .join(ServiceRequest.status)
         .filter(
-            ServiceStatus.status_id.in_([1, 2]),
+            ServiceStatus.status_id.in_([1]),
             ServiceRequest.customer_id == current_user.id
         )).count()
         quotation_count = (
             ServiceRequest.query
             .join(ServiceRequest.status)
             .filter(
-                ServiceStatus.status_id.in_([5]),
+                ServiceStatus.status_id.in_([7]),
                 ServiceRequest.customer_id == current_user.id
             )
         ).count()
@@ -756,7 +756,7 @@ def menu():
             ServiceRequest.query
             .join(ServiceRequest.status)
             .filter(
-                ServiceStatus.status_id.in_([6, 8, 9]),
+                ServiceStatus.status_id.in_([8, 10, 12]),
                 ServiceRequest.customer_id == current_user.id
             )
         ).count()
@@ -764,7 +764,7 @@ def menu():
             ServiceRequest.query
             .join(ServiceRequest.status)
             .filter(
-                ServiceStatus.status_id.in_([20, 21]),
+                ServiceStatus.status_id.in_([22, 23]),
                 ServiceRequest.customer_id == current_user.id
             )
         ).count()
