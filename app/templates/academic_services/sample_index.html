@@ -50,6 +50,12 @@
                                 <span>ส่งตัวอย่างแล้ว</span>
                             </a>
                         </li>
+                        <li {% if tab == 'reject' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.sample_index', tab='reject', menu=menu) }}">
+                                <span class="icon is-small"><i class="fa fa-times"></i></span>
+                                <span>ปฏิเสธรับตัวอย่าง</span>
+                            </a>
+                        </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
                             <a href="{{ url_for('academic_services.sample_index', tab='all', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
