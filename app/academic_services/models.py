@@ -773,6 +773,7 @@ class ServiceSample(db.Model):
             'request_no': self.request.request_no if self.request else None,
             'sample_condition_status': self.sample_condition_status,
             'sample_condition_status_color': self.sample_condition_status_color,
+            'reason': self.reason if self.reason else None,
             'request_id': self.request_id if self.request_id else None,
             'file': self.get_file if self.get_file else None,
             'customer_status': self.customer_status if self.customer_status else None,
@@ -827,6 +828,8 @@ class ServiceSample(db.Model):
     def customer_status(self):
         if self.received_at:
             status = 'ส่งตัวอย่างแล้ว'
+        elif self.rejected_at:
+            status = 'ปฏิเสธรับตัวอย่าง'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             status = 'รอส่งตัวอย่าง'
         else:
@@ -837,6 +840,8 @@ class ServiceSample(db.Model):
     def customer_status_color(self):
         if self.received_at:
             color = 'is-success'
+        elif self.rejected_at:
+            color = 'is-danger'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             color = 'is-warning'
         else:
@@ -847,6 +852,8 @@ class ServiceSample(db.Model):
     def admin_status(self):
         if self.received_at:
             status = 'ได้รับตัวอย่างแล้ว'
+        elif self.rejected_at:
+            status = 'ปฏิเสธรับตัวอย่าง'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             status = 'รอรับตัวอย่าง'
         else:
@@ -857,6 +864,8 @@ class ServiceSample(db.Model):
     def admin_status_color(self):
         if self.received_at:
             color = 'is-success'
+        if self.rejected_at:
+            color = 'is-danger'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             color = 'is-warning'
         else:
