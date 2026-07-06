@@ -747,6 +747,7 @@ class ServiceSample(db.Model):
     has_license = db.Column('has_license', db.Boolean(), default=True)
     has_recipe = db.Column('has_recipe', db.Boolean(), default=True)
     note = db.Column('note', db.Text(), info={'label': 'ข้อมูลเพิ่มเติม'})
+    reason = db.Column('reason', db.Text(), info={'label': 'เหตุผล'})
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     received_at = db.Column('received_at', db.DateTime(timezone=True))
     receiver_id = db.Column('receiver_id', db.ForeignKey('staff_account.id'))
