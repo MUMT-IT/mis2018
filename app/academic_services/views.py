@@ -6708,6 +6708,20 @@ def sample_index():
 def create_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    old_sample = ServiceSample.query.get(sample_id)
+    old_sample.request.status_id = get_status(8)
+    old_sample.is_rescheduled = True
+    sample = ServiceSample(request_id=old_sample.request_id, created_at=arrow.now('Asia/Bangkok').datetime)
+    db.session.add(sample)
+    db.session.add(old_sample)
+    db.session.commit()
+    return redirect(url_for('academic_services.edit_sample_appointment', sample_id=sample.id, tab=tab,
+                            menu=menu))
+@academic_services.route('/customer/sample/edit/<int:sample_id>', methods=['GET', 'POST'])
+@login_required
+def edit_sample_appointment(sample_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
     date_now =arrow.now('Asia/Bangkok').date()
     request_data = request_data_paths[sample.request.sub_lab.code]
