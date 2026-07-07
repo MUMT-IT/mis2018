@@ -889,7 +889,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([4, 5]),
+            ServiceStatus.status_id.in_([4, 5, 7]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         sample_count = (ServiceRequest.query
