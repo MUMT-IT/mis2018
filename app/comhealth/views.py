@@ -4262,15 +4262,19 @@ def customer_result(serviceNo, email, servicedate, age=None):
     age_display = age if age and str(age).isdigit() else '-'
     current_lang = (request.args.get('lang', 'th') or 'th').lower()
     current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
 
     return render_template(
         'comhealth/result.html',
         employee=employee,
+        employee_email=email,
         servicedate_thai=servicedate_thai,
+        servicedate_iso=servicedate,
         service_no=serviceNo,
         age=age_display,
         age_for_api=age_for_api,
         current_lang=current_lang,
+        ui=ui,
         health_risk_url=url_for(
             'comhealth.health_risk_result',
             serviceNo=serviceNo,
@@ -4278,7 +4282,23 @@ def customer_result(serviceNo, email, servicedate, age=None):
             servicedate=servicedate,
             age=age_display,
             lang=current_lang
-        )
+        ),
+        switch_url_th=url_for(
+            'comhealth.customer_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang='th',
+        ),
+        switch_url_en=url_for(
+            'comhealth.customer_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang='en',
+        ),
     )
 
 
@@ -4309,6 +4329,7 @@ def health_risk_result(serviceNo, email, servicedate, age=None):
     current_lang = (request.args.get('lang', 'th') or 'th').lower()
     current_lang = 'en' if current_lang.startswith('en') else 'th'
     ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age_display, current_lang)
 
     return render_template(
         'comhealth/health_risk_result.html',
@@ -4321,6 +4342,8 @@ def health_risk_result(serviceNo, email, servicedate, age=None):
         age_for_api=age_for_api,
         current_lang=current_lang,
         ui=ui,
+        top_issues=bundle["report"]["top_issues"],
+        health_summary=bundle["health_summary"],
         switch_url_th=url_for(
             'comhealth.health_risk_result',
             serviceNo=serviceNo,
@@ -4435,10 +4458,18 @@ def health_risk_issues_partial(serviceNo, email, servicedate, age=None):
     current_lang = 'en' if current_lang.startswith('en') else 'th'
     ui = get_health_risk_copy(current_lang)
     bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang)
+    try:
+        min_score = int(request.args.get('min_score', 0) or 0)
+    except (TypeError, ValueError):
+        min_score = 0
+    issues = [
+        issue for issue in bundle["report"]["issues"]
+        if issue.get("concern_score", 0) >= min_score
+    ]
     return render_template(
         'comhealth/partials/health_risk_issues.html',
         ui=ui,
-        issues=bundle["report"]["issues"],
+        issues=issues,
     )
 
 @comhealth.route('/api/physical/<int:serviceNo>')

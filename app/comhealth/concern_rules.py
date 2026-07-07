@@ -269,13 +269,13 @@ ISSUE_RULES = [
             {
                 "key": "mcv",
                 "label": "MCV",
-                "aliases": ["MCV", "CBC10"],
+                "aliases": ["MCV", "CBC13"],
                 "direction": "range",
                 "thresholds": {
                     "low_borderline": 80,
                     "low_abnormal": 75,
                     "low_critical": 70,
-                    "high_borderline": 100,
+                    "high_borderline": 99,
                     "high_abnormal": 105,
                     "high_critical": 110,
                 },

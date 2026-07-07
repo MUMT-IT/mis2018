@@ -68,7 +68,7 @@ def test_normal_case_returns_no_current_concern():
         _row("UA", "Uric acid", "5.8", "3.5 - 7.2", "mg/dL"),
         _row("CBC11", "Hemoglobin", "14.5", "13.0 - 17.0", "g/dL"),
         _row("CBC12", "Hematocrit", "43", "40 - 50", "%"),
-        _row("CBC10", "MCV", "90", "80 - 100", "fL"),
+        _row("CBC13", "MCV", "90", "80 - 99", "fL"),
     ]
     report = build_health_risk_report(rows, {"weight": "60", "height": "170", "systolic": "118/76"}, {}, age=40, gender=1)
     assert all(issue["concern_score"] == 0 for issue in report["issues"])
@@ -126,6 +126,26 @@ def test_missing_hba1c_appears_as_missing_evidence_not_normal():
     hba1c_item = next(item for item in diabetes["evidence_table"] if item["key"] == "hba1c")
     assert hba1c_item["status"] == "missing"
     assert "HbA1c" in diabetes["missing_evidence"]
+
+
+def test_cbc10_rbc_and_cbc13_mcv_are_mapped_correctly():
+    report = build_health_risk_report(
+        rows=[
+            _row("CBC10", "RBC", "5.56", "4.0 - 6.0", "10^6/uL"),
+            _row("CBC11", "Hemoglobin", "14.5", "13.0 - 17.0", "g/dL"),
+            _row("CBC12", "Hematocrit", "43", "40 - 50", "%"),
+            _row("CBC13", "MCV", "90", "80 - 99", "fL"),
+        ],
+        physical={"weight": "60", "height": "170"},
+        question={},
+        age=40,
+        gender=1,
+    )
+    anemia = _find_issue(report, "anemia_concern")
+    mcv_item = next(item for item in anemia["evidence_table"] if item["key"] == "mcv")
+    assert mcv_item["status"] == "normal"
+    assert mcv_item["reference_range"] == "80 - 99"
+    assert anemia["concern_score"] == 0
 
 
 def test_one_strongly_abnormal_value_can_raise_concern():
