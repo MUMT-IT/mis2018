@@ -935,8 +935,11 @@ def menu():
             .join(ServiceRequest.sub_lab)
             .join(ServiceSubLab.admins)
             .filter(
-                ServiceResult.approved_at == None,
-                ServiceAdmin.admin_id == current_user.id
+                ServiceAdmin.admin_id == current_user.id,
+                or_(ServiceResult.sent_at == None,
+                    and_(ServiceResult.req_edit_at != None,
+                         ServiceResult.is_edited == False)
+                    )
             )
         ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
