@@ -908,7 +908,9 @@ def menu():
         .outerjoin(ServiceResult)
         .filter(
             ServiceAdmin.admin_id == current_user.id, or_(ServiceResult.request_id == None,
-                                                          ServiceResult.approved_at == None)
+                                                          ServiceResult.sent_at == None,
+                                                          and_(ServiceResult.req_edit_at != None,
+                                                               ServiceResult.is_edited == False))
         )
         ).count()
         invoice_count = (ServiceRequest.query
