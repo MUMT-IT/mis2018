@@ -1020,7 +1020,7 @@ def request_index():
         },
         'create_quotation': {
             'id': [3, 4, 5, 6],
-            'name': 'รอออก/ยืนยันใบเสนอราคา',
+            'name': 'รอออก/อนุมัติใบเสนอราคา',
             'color': 'is-info',
             'icon': '<i class="fas fa-file-invoice"></i>'
         },
