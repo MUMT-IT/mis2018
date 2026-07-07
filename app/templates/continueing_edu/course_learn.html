@@ -1,0 +1,300 @@
+{% extends "continueing_edu/base_frontend.html" %}
+
+{% block title %}{{ texts.university_name }} - {{ texts.get('course_learn_title', 'Course learning') }}{% endblock %}
+
+{% block content %}
+<section class="section">
+          <div class="container">
+                    {% set TH = (current_lang == 'th') %}
+                    {% set title_local = course.title_th if TH and course.title_th else course.title_en %}
+                    {% set desc = course.long_description_th if TH and course.long_description_th else
+                    (course.long_description_en or course.description_th or course.description_en) %}
+
+                    <nav class="breadcrumb" aria-label="breadcrumbs">
+                              <ul>
+                                        <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{
+                                                            texts.get('breadcrumb_home', 'Home') }}</a></li>
+                                        <li><a href="{{ url_for('continuing_edu.course_detail', course_id=course.id, lang=current_lang) }}">{{
+                                                            texts.get('breadcrumb_course_detail', 'Course detail')
+                                                            }}</a></li>
+                                        <li class="is-active"><a href="#" aria-current="page">{{
+                                                            texts.get('breadcrumb_learning', 'Learning') }}</a></li>
+                              </ul>
+                    </nav>
+
+                    <div class="box"
+                              style="background: linear-gradient(135deg, #3b82f6 0%, #7c3aed 100%); border: none; color: white;">
+                              <div class="level">
+                                        <div class="level-left">
+                                                  <div>
+                                                            <h1 class="title is-3" style="color: white;">{{ title_local
+                                                                      }}</h1>
+                                                            <div class="tags">
+                                                                      <span class="tag is-light">{{
+                                                                                texts.get('status_member_access',
+                                                                                'Member access') }}</span>
+                                                                      {% if registration.completed_at %}
+                                                                      <span class="tag is-success">{{
+                                                                                texts.get('status_completed',
+                                                                                'Completed') }}</span>
+                                                                      {% elif registration.started_at %}
+                                                                      <span class="tag is-info">{{
+                                                                                texts.get('status_in_progress', 'In
+                                                                                progress') }}</span>
+                                                                      {% else %}
+                                                                      <span class="tag is-warning is-light">{{
+                                                                                texts.get('status_not_started', 'Not
+                                                                                started') }}</span>
+                                                                      {% endif %}
+                                                                      {% if registration.certificate_url %}
+                                                                      <span class="tag is-success is-light">{{
+                                                                                texts.get('status_certificate_ready',
+                                                                                'Certificate ready') }}</span>
+                                                                      {% elif registration.certificate_status_ref %}
+                                                                      <span class="tag is-light">{{
+                                                                                registration.certificate_status_ref.name_th
+                                                                                if TH and
+                                                                                registration.certificate_status_ref.name_th
+                                                                                else
+                                                                                registration.certificate_status_ref.name_en
+                                                                                }}</span>
+                                                                      {% endif %}
+                                                                      {% if course.continue_education_score %}
+                                                                      <span class="tag is-light">{{
+                                                                                '%.1f'|format(course.continue_education_score)
+                                                                                }} CE</span>
+                                                                      {% endif %}
+                                                            </div>
+                                                  </div>
+                                        </div>
+                                        <div class="level-right">
+                                                  <div class="buttons">
+                                                            <a class="button is-light"
+                                                                      href="{{ url_for('continuing_edu.my_registrations', lang=current_lang) }}">{{
+                                                                      texts.get('button_back_to_my_registrations', 'My
+                                                                      registrations') }}</a>
+                                                  </div>
+                                        </div>
+                              </div>
+                    </div>
+
+                    <div class="columns is-variable is-6">
+                              <div class="column is-8">
+                                        {% if desc %}
+                                        <div class="box">
+                                                  <h2 class="title is-5">{{ texts.get('label_about_course', 'About this
+                                                            course') }}</h2>
+                                                  <div class="content" style="white-space: pre-line;">{{ desc }}</div>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="box">
+                                                  <h2 class="title is-5">{{ texts.get('label_materials', 'Learning
+                                                            materials') }}</h2>
+                                                  {% if course.materials and course.materials|length > 0 %}
+                                                  <div class="content">
+                                                            <ul>
+                                                                      {% for m in
+                                                                      course.materials|sort(attribute='order') %}
+                                                                      {% set mtitle = m.title_th if TH and m.title_th
+                                                                      else m.title_en %}
+                                                                      {% set mdesc = m.description_th if TH and
+                                                                      m.description_th else (m.description_en or '') %}
+                                                                      <li class="mb-3">
+                                                                                <div class="is-flex is-justify-content-space-between is-align-items-center"
+                                                                                          style="gap: 1rem;">
+                                                                                          <div>
+                                                                                                    <strong>{{ mtitle
+                                                                                                              }}</strong>
+                                                                                                    {% if mdesc %}<div
+                                                                                                              class="has-text-grey">
+                                                                                                              {{ mdesc
+                                                                                                              }}</div>{%
+                                                                                                    endif %}
+                                                                                          </div>
+                                                                                          <div>
+                                                                                                    <a class="button is-small is-link"
+                                                                                                              href="{{ m.material_url }}"
+                                                                                                              target="_blank"
+                                                                                                              rel="noopener">{{
+                                                                                                              texts.get('button_open',
+                                                                                                              'Open')
+                                                                                                              }}</a>
+                                                                                          </div>
+                                                                                </div>
+                                                                      </li>
+                                                                      {% endfor %}
+                                                            </ul>
+                                                  </div>
+                                                  {% else %}
+                                                  <p class="has-text-grey">{{ texts.get('message_no_materials', 'No
+                                                            materials have been uploaded yet.') }}</p>
+                                                  {% endif %}
+                                        </div>
+
+                                        <div class="box">
+                                                  <h2 class="title is-5">{{ texts.get('label_schedule', 'Schedule') }}
+                                                  </h2>
+                                                  {% if course.agendas and course.agendas|length > 0 %}
+                                                  <div class="content">
+                                                            <ol>
+                                                                      {% for a in
+                                                                      course.agendas|sort(attribute='start_time') %}
+                                                                      {% set atitle = a.title_th if TH and a.title_th
+                                                                      else a.title_en %}
+                                                                      <li class="mb-2">
+                                                                                <strong>
+                                                                                          {% if a.start_time and
+                                                                                          a.end_time %}
+                                                                                          {{ a.start_time.strftime('%d
+                                                                                          %b %Y %H:%M') }}–{{
+                                                                                          a.end_time.strftime('%H:%M')
+                                                                                          }}
+                                                                                          {% endif %}
+                                                                                </strong>
+                                                                                <div>{{ atitle }}</div>
+                                                                      </li>
+                                                                      {% endfor %}
+                                                            </ol>
+                                                  </div>
+                                                  {% else %}
+                                                  <p class="has-text-grey">—</p>
+                                                  {% endif %}
+                                        </div>
+
+                                        <div class="box">
+                                                  <h2 class="title is-5">{{ texts.get('label_instructors',
+                                                            'Instructors') }}</h2>
+                                                  {% if course.speakers and course.speakers|length > 0 %}
+                                                  <div class="content">
+                                                            <ul>
+                                                                      {% for sp in course.speakers %}
+                                                                      {% set sp_name = sp.name_th if TH and sp.name_th
+                                                                      else sp.name_en %}
+                                                                      {% set sp_title = sp.title_th if TH and
+                                                                      sp.title_th else sp.title_en %}
+                                                                      <li>{{ sp_title }} {{ sp_name }}</li>
+                                                                      {% endfor %}
+                                                            </ul>
+                                                  </div>
+                                                  {% else %}
+                                                  <p class="has-text-grey">—</p>
+                                                  {% endif %}
+                                        </div>
+                              </div>
+
+                              <div class="column is-4">
+                                        <div class="box">
+                                                  <h2 class="title is-5">{{ texts.get('label_progress', 'Progress') }}
+                                                  </h2>
+                                                  <div class="content">
+                                                            <p><strong>{{ texts.get('label_registered_at',
+                                                                                texts.label_registered_at) if
+                                                                                texts.get('label_registered_at') else
+                                                                                texts.label_registered_at }}:</strong>
+                                                                      {{ registration.registration_date }}</p>
+                                                            <p><strong>{{ texts.get('label_started_at',
+                                                                                texts.label_started_at) if
+                                                                                texts.get('label_started_at') else
+                                                                                texts.label_started_at }}:</strong> {{
+                                                                      registration.started_at or '-' }}</p>
+                                                            <p><strong>{{ texts.get('label_completed_at',
+                                                                                texts.label_completed_at) if
+                                                                                texts.get('label_completed_at') else
+                                                                                texts.label_completed_at }}:</strong> {{
+                                                                      registration.completed_at or '-' }}</p>
+                                                  </div>
+
+                                                  <div class="buttons">
+                                                            {% if not registration.started_at %}
+                                                            <form method="post"
+                                                                      action="{{ url_for('continuing_edu.start_progress', event_id=course.id, lang=current_lang) }}">
+                                                                      <button class="button is-small" type="submit">{{
+                                                                                texts.button_start }}</button>
+                                                                      <input type="hidden" name="csrf_token"
+                                                                                value="{{ csrf_token() }}">
+                                                            </form>
+                                                            {% endif %}
+
+                                                            {% if registration.started_at and not
+                                                            registration.completed_at %}
+                                                            <form method="post"
+                                                                      action="{{ url_for('continuing_edu.complete_progress', event_id=course.id, lang=current_lang) }}">
+                                                                      <input type="hidden" name="passed" value="1">
+                                                                      <button class="button is-small is-link"
+                                                                                type="submit">{{ texts.button_complete
+                                                                                }}</button>
+                                                                      <input type="hidden" name="csrf_token"
+                                                                                value="{{ csrf_token() }}">
+                                                            </form>
+                                                            {% endif %}
+                                                  </div>
+                                        </div>
+
+                                        <div class="box">
+                                                  <h2 class="title is-5">{{ texts.get('label_certificate',
+                                                            'Certificate') }}</h2>
+                                                  {% if survey_required %}
+                                                  <hr>
+                                                  <h3 class="title is-6">{{ satisfaction_form_name }}</h3>
+                                                  {% if registration.questionnaire_completed_at %}
+                                                  <p class="has-text-success mb-3">
+                                                            {{ texts.get('message_questionnaire_completed', 'Questionnaire completed') }}:
+                                                            {{ registration.questionnaire_completed_at }}
+                                                  </p>
+                                                  <div class="buttons">
+                                                            <a class="button is-small is-link is-light"
+                                                                      href="{{ url_for('continuing_edu.satisfaction_survey', event_id=course.id, lang=current_lang) }}">
+                                                                      {{ texts.get('button_view_questionnaire', 'View questionnaire') }}
+                                                            </a>
+                                                  </div>
+                                                  {% else %}
+                                                  <p class="has-text-grey mb-3">
+                                                            {{ texts.get('message_questionnaire_required_for_certificate', 'Please complete questionnaire before receiving certificate.') }}
+                                                  </p>
+                                                  <div class="buttons">
+                                                            <a class="button is-small is-link is-light"
+                                                                      href="{{ url_for('continuing_edu.satisfaction_survey', event_id=course.id, lang=current_lang) }}">
+                                                                      {{ texts.get('button_open_questionnaire', 'Open questionnaire') }}
+                                                            </a>
+                                                  </div>
+                                                  {% endif %}
+                                                  {% endif %}
+                                                  {% if survey_required and not registration.questionnaire_completed_at %}
+                                                  <p class="has-text-grey">{{ texts.get('message_certificate_waiting_questionnaire', 'Certificate will be available after questionnaire completion.') }}</p>
+                                                  {% elif registration.certificate_url %}
+                                                  <div class="buttons">
+                                                            <a class="button is-small is-success is-light"
+                                                                      href="{{ url_for('continuing_edu.certificate_view', reg_id=registration.id, lang=current_lang) }}">{{
+                                                                      texts.button_view_certificate }}</a>
+                                                            <a class="button is-small"
+                                                                      href="{{ url_for('continuing_edu.certificate_pdf', reg_id=registration.id, lang=current_lang) }}">{{
+                                                                      texts.button_download_pdf }}</a>
+                                                  </div>
+                                                  {% else %}
+                                                  {% if registration.certificate_status_ref %}
+                                                  <p class="has-text-grey">
+                                                            {{ texts.get('label_status', 'Status') }}:
+                                                            {{ registration.certificate_status_ref.name_th if TH and
+                                                            registration.certificate_status_ref.name_th else
+                                                            registration.certificate_status_ref.name_en }}
+                                                  </p>
+                                                  {% endif %}
+                                                  <p class="has-text-grey">{{ texts.get('message_no_certificate_yet',
+                                                            'Certificate will be available after completion.') }}</p>
+                                                  {% endif %}
+                                        </div>
+
+                                        <div class="box">
+                                                  <h2 class="title is-5">{{ texts.get('label_help', 'Need help?') }}
+                                                  </h2>
+                                                  <p class="has-text-grey">{{
+                                                            texts.get('message_contact_admin_for_materials', 'If a
+                                                            material link does not open, please contact the course
+                                                            admin.') }}</p>
+                                        </div>
+                              </div>
+                    </div>
+          </div>
+</section>
+{% endblock %}

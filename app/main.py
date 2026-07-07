@@ -112,7 +112,7 @@ ma = Marshmallow()
 csrf = CSRFProtect()
 admin = Admin(index_view=MyAdminIndexView())
 mail = Mail()
-qrcode = QRcode()
+flask_qrcode = QRcode()
 principal = Principal()
 
 dbutils = AppGroup('dbutils')
@@ -170,7 +170,7 @@ def create_app():
     admin.init_app(app)
     mail.init_app(app)
     cors.init_app(app)
-    qrcode.init_app(app)
+    flask_qrcode.init_app(app)
     principal.init_app(app)
     jwt.init_app(app)
 
