@@ -1793,8 +1793,11 @@ def dashboard():
     if not hero_slides:
         hero_slides.append({
             'id': 0,
-            'title': texts.hero_title,
-            'subtitle': texts.hero_subtitle,
+            'title': texts.get('hero_title', 'Unlock Your Potential with Our Academic Offerings'),
+            'subtitle': texts.get(
+                'hero_subtitle',
+                'Explore a diverse range of short courses and insightful webinars designed to enhance your skills and knowledge.',
+            ),
             'image': placeholder_image,
             'cta_url': url_for('continuing_edu.index', lang=lang),
             'cta_label': texts.get('explore_courses_btn', 'Explore Courses'),
