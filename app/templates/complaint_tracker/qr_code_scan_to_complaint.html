@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
 {% endblock %}
 
 {% block page_content %}
@@ -31,7 +31,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="{{ url_for('static', filename='js/VueQrcodeReader@3.0.umd.min.js') }}"></script>
-    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         new Vue({
             el: '#app',
@@ -43,7 +43,10 @@
                     time: null,
                     info: {
                         id: null,
-                        topic_id: {{ topic }},
+                        cat: {{ cat|tojson }},
+                        tab: {{ tab|tojson }},
+                        record_id: {{ record_id|tojson  }},
+                        topic_id: {{ topic_id|tojson }},
                         procurementNo: null,
                     }
                 }
@@ -52,7 +55,10 @@
                 reset() {
                     this.time = null
                     this.info = {
-                        topic_id: {{ topic }},
+                        cat: {{ cat|tojson }},
+                        tab: {{ tab|tojson }},
+                        record_id: {{ record_id|tojson  }},
+                        topic_id: {{ topic_id|tojson }},
                         procurementNo: null,
                     }
                 },
@@ -82,7 +88,11 @@
                 },
                 async onDecode(content) {
                     this.info.procurementNo = content
-                     window.location.replace("/complaint-tracker/issue/" + this.info.topic_id + "?procurement_no=" + content)
+                    if (this.info.cat === 'admin') {
+                        window.location.replace("/complaint-tracker/issue/records/" + this.info.record_id + "?tab=" + this.info.tab)
+                    } else {
+                        window.location.replace("/complaint-tracker/issue/" + this.info.topic_id + "?procurement_no=" + content)
+                    }
                     this.turnCameraOff()
                 },
                 logErrors(promise) {

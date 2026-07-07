@@ -1,5 +1,28 @@
 {% extends "base.html" %}
 {% block title %}Timeline Detail{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        .custom-card {
+            border-radius: 12px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1)
+        }
+        .level {
+            flex-wrap: wrap;
+        }
+        .level-left {
+            flex: 1 1 70%;
+            min-width: 0;
+        }
+        .level-right {
+            flex: 0 0 30%;
+        }
+    </style>
+{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
     <section class="section" id="app">
@@ -9,96 +32,92 @@
                     {% include "messages.html" %}
                 </div>
             </div>
-            <div class="columns">
-                <div class="column is-one-third is-offset-one-third">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-3by2">
-                                <img src="{{ url_for('static', filename='img/meeting.jpg') }}">
-                            </figure>
-                        </div>
+            <div class="columns is-centered">
+                <div class="column is-5">
+                    <div class="card custom-card">
+                        <div class="has-background-link" style="height: 5px;"></div>
                         <div class="card-content">
+                            <div class="level">
+                                <div class="level-left">
+                                    <div>
+                                        <h1 class="title is-4 has-text-link">{{ timeline.request.title }}</h1>
+                                        <p class="subtitle is-6">{{ timeline.request.type }}</p>
+                                    </div>
+                                </div>
+                                <div class="level-right">
+                                    <span class="tag {{ timeline.status_color }} is-light">
+                                        <span class="icon is-small">
+                                            {% if timeline.status == 'รอดำเนินการ' %}
+                                                <i class="fas fa-clock"></i>
+                                            {% elif timeline.status == 'เสร็จสิ้น' %}
+                                                <i class="fas fa-check"></i>
+                                            {% else %}
+                                                <i class="fas fa-times"></i>
+                                            {% endif %}
+                                        </span>
+                                        <strong>{{ timeline.status }}</strong>
+                                    </span>
+                                </div>
+                            </div>
+                            <hr>
                             <div class="content">
-                                <p>
-                                    <span class="title is-3">{{ timeline.request.title }}</span>
-                                </p>
-                                <p>
-                                    <span class="subtitle">{{ timeline.request.type }}</span>
-                                </p>
-                                <p>
-                                    <span class="subtitle is-6">
-                                        <span class="icon">
-                                            <i class="far fa-calendar"></i>
-                                        </span>
-                                        {{ timeline.start.strftime('%d/%m/%Y') }} - {{ timeline.estimate.strftime('%d/%m/%Y') }}
-                                    </span>
-                                </p>
-                                <p>
-                                    <span>
-                                        <span
-                                        {% if timeline.status == 'รอดำเนินการ' %}
-                                            class="tag is-info is-light"
-                                        {% elif timeline.status == 'เสร็จสิ้น' %}
-                                            class="tag is-success is-light"
-                                        {% else %}
-                                            class="tag is-danger is-light"
-                                        {% endif %}
-                                        >
-                                            {{ timeline.status }}
-                                        </span>
-                                    </span>
-                                </p>
-                                <p>
-                                    <span class="icon">
-                                        <i class="fas fa-code-branch"></i>
-                                    </span>
-                                    <span>
-                                        Phase {{ timeline.phase }}
-                                    </span>
-                                </p>
-                                <p>
-                                    <span class="icon">
-                                        <i class="fas fa-clipboard-list"></i>
-                                    </span>
-                                    <span>
-                                        {{ timeline.task }}
-                                    </span>
-                                </p>
-                                <p>
-                                    <span class="icon">
-                                        <i class="fas fa-user-edit"></i>
-                                    </span>
-                                    <span>
-                                        {{ timeline.request.created_by.fullname }} ผู้ส่งคำขอ
-                                    </span>
-                                </p>
-                                <p>
-                                    <span class="icon">
-                                        <i class="fas fa-sitemap"></i>
-                                    </span>
-                                    <span>
-                                        {{ timeline.request.created_by.personal_info.org }}
-                                    </span>
-                                </p>
-                                <p>
-                                    <span class="icon">
-                                        <i class="fas fa-file-lines"></i>
-                                    </span>
-                                    <span>
-                                        เหตุผลที่ขอ {{ timeline.request.description }}
-                                    </span>
-                                </p>
-
-                                <p>
-                                    <span class="icon">
-                                        <i class="fa-solid fa-user"></i>
-                                    </span>
-                                    <span>
-                                        {{ timeline.admin.fullname }} ผู้รับผิดชอบ
-                                    </span>
-                                </p>
+                                <div class="columns is-mobile is-vcentered">
+                                    <div class="column is-narrow">
+                                        <span class="icon has-text-link"><i class="far fa-calendar"></i></span>
+                                    </div>
+                                    <div class="column">
+                                        <p class="is-size-7 has-text-grey mb-0">ระยะเวลาดำเนินการ</p>
+                                        <p class="is-size-6 has-text-weight-medium">{{ timeline.start.strftime('%d/%m/%Y') }} - {{ timeline.estimate.strftime('%d/%m/%Y') }}</p>
+                                    </div>
+                                </div>
+                                <div class="columns is-mobile is-vcentered">
+                                    <div class="column is-narrow">
+                                        <span class="icon has-text-link"><i class="fas fa-clipboard-list"></i></span>
+                                    </div>
+                                    <div class="column">
+                                        <p class="is-size-7 has-text-grey mb-0">รายละเอียด</p>
+                                        <p class="is-size-6 has-text-weight-medium">{{ timeline.task }}</p>
+                                    </div>
+                                </div>
+                                <div class="columns is-mobile is-vcentered">
+                                    <div class="column is-narrow">
+                                        <span class="icon has-text-link"><i class="fas fa-user-edit"></i></span>
+                                    </div>
+                                    <div class="column">
+                                        <p class="is-size-7 has-text-grey mb-0">ผู้ส่งคำขอ</p>
+                                        <p class="is-size-6 has-text-weight-medium">{{ timeline.request.created_by.fullname }}</p>
+                                    </div>
+                                </div>
+                                <div class="columns is-mobile is-vcentered">
+                                    <div class="column is-narrow">
+                                        <span class="icon has-text-link"><i class="fas fa-sitemap"></i></span>
+                                    </div>
+                                    <div class="column">
+                                        <p class="is-size-7 has-text-grey mb-0">หน่วยงาน</p>
+                                        <p class="is-size-6 has-text-weight-medium">{{ timeline.request.created_by.personal_info.org }}</p>
+                                    </div>
+                                </div>
+                                <div class="columns is-mobile is-vcentered">
+                                    <div class="column is-narrow">
+                                        <span class="icon has-text-link"><i class="fas fa-file-lines"></i></span>
+                                    </div>
+                                    <div class="column">
+                                        <p class="is-size-7 has-text-grey mb-0">เหตุผลที่ขอ</p>
+                                        <p class="is-size-6 has-text-weight-medium">{{ timeline.request.description }}</p>
+                                    </div>
+                                </div>
+                                <div class="columns is-mobile is-vcentered">
+                                    <div class="column is-narrow">
+                                        <span class="icon has-text-link"><i class="fa-solid fa-user"></i></span>
+                                    </div>
+                                    <div class="column">
+                                        <p class="is-size-7 has-text-grey mb-0">ผู้รับผิดชอบ</p>
+                                        <p class="is-size-6 has-text-weight-medium">{{ timeline.admin.fullname }}</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        <div id="timeline_form"></div>
                         <footer class="card-footer">
                             <a href="{{ url_for('software_request.admin_index', tab=tab) }}" class="card-footer-item">
                                 <span class="icon">
@@ -106,8 +125,11 @@
                                 </span>
                                 <span>กลับ</span>
                             </a>
-                            <a href="{{ url_for('software_request.update_request', detail_id=timeline.request_id, tab=tab) }}"
-                               class="card-footer-item">
+                            <a hx-swap="innerHTML"
+                               hx-target="#timeline_form"
+                               hx-get="{{ url_for('software_request.create_timeline', timeline_id=timeline.id, tab=tab,
+                               template='detail') }}"
+                               class="card-footer-item has-text-warning">
                                 <span class="icon">
                                     <i class="fas fa-pencil-alt"></i>
                                 </span>
@@ -130,4 +152,14 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        window.document.addEventListener("closeTimeline", function () {
+            htmx.removeClass(htmx.find('#timeline-modal'), "is-active")
+        })
+    </script>
 {% endblock %}

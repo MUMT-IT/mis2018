@@ -1,11 +1,28 @@
-<nav class="navbar" role="navigation" aria-label="main navigation">
+<style>
+    .receipt-navbar {
+        overflow: visible;
+    }
+
+    .receipt-navbar .navbar-menu,
+    .receipt-navbar .navbar-end,
+    .receipt-navbar .navbar-item.has-dropdown {
+        overflow: visible;
+    }
+
+    .receipt-navbar .navbar-dropdown {
+        min-width: 18rem;
+        z-index: 30;
+    }
+</style>
+
+<nav class="navbar receipt-navbar" role="navigation" aria-label="main navigation">
     <div class="container">
-        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="receiptPrintingMenu">
             <span aria-hidden="true"></span>
             <span aria-hidden="true"></span>
             <span aria-hidden="true"></span>
         </a>
-        <div id="navbarMenu" class="navbar-menu">
+        <div id="receiptPrintingMenu" class="navbar-menu">
             <div class="navbar-end">
                 <div class="navbar-item has-dropdown is-hoverable">
                     <a class="navbar-link">
@@ -35,9 +52,9 @@
                             <span class="icon"><i class="fas fa-copy"></i></span>
                             <span>คำร้องขอสำเนาใบเสร็จรับเงิน</span>
                         </a>
-                        <a class="navbar-item" href="{{ url_for('receipt_printing.view_require_receipt') }}"">
-                        <span class="icon"><i class="fas fa-eye"></i></span>
-                        <span>ดูข้อมูลคำร้องขอสำเนาใบเสร็จรับเงิน</span>
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.view_require_receipt') }}">
+                            <span class="icon"><i class="fas fa-eye"></i></span>
+                            <span>ดูข้อมูลคำร้องขอสำเนาใบเสร็จรับเงิน</span>
                         </a>
                     </div>
                 </div>

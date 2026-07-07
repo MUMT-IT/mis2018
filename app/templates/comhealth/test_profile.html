@@ -36,7 +36,19 @@
         </div>
         <div class="columns">
             <div class="column">
-                <b-table :data="profiles" :paginated="true" :per-page="10" default-sort="name">
+                <div class="columns">
+                    <div class="column">
+                        <b-field label="Search Name">
+                            <b-input v-model="queryName" placeholder="Type name..."></b-input>
+                        </b-field>
+                    </div>
+                    <div class="column">
+                        <b-field label="Search Description">
+                            <b-input v-model="queryDesc" placeholder="Type description..."></b-input>
+                        </b-field>
+                    </div>
+                </div>
+                <b-table :data="filteredProfiles" :paginated="true" :per-page="10" default-sort="name">
                     <template slot-scope="props">
                         <b-table-column field="name" label="Name" sortable>
                             <% props.row.name %>
@@ -73,10 +85,22 @@
             data() {
                 return {
                     profiles: {{ profiles|tojson|safe }},
-                    query: '',
+                    queryName: '',
+                    queryDesc: '',
                 }
             },
             computed: {
+                filteredProfiles() {
+                    var nameQuery = this.queryName.trim().toLowerCase();
+                    var descQuery = this.queryDesc.trim().toLowerCase();
+                    return this.profiles.filter(function (profile) {
+                        var nameValue = (profile.name || '').toString().toLowerCase();
+                        var descValue = (profile.desc || '').toString().toLowerCase();
+                        var nameMatch = nameQuery === '' || nameValue.indexOf(nameQuery) !== -1;
+                        var descMatch = descQuery === '' || descValue.indexOf(descQuery) !== -1;
+                        return nameMatch && descMatch;
+                    });
+                }
             }
         });
     </script>

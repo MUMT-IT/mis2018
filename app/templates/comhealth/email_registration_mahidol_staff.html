@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Mahidol Staff Email Registration{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .staff-email-page {
+            padding: 2rem 1.25rem 3rem;
+        }
+
+        .staff-email-shell {
+            margin: 0 auto;
+            max-width: 1120px;
+        }
+
+        .staff-email-hero {
+            background:
+                radial-gradient(circle at top left, rgba(26, 61, 124, 0.18), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(240, 196, 25, 0.2), transparent 28%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(244, 247, 255, 0.94));
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 34px;
+            box-shadow: 0 24px 60px rgba(18, 39, 84, 0.12);
+            padding: 2.25rem;
+        }
+
+        .staff-email-kicker {
+            color: var(--theme-navy);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .staff-email-title {
+            color: var(--theme-navy-deep);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.08;
+            margin-bottom: 0.9rem;
+        }
+
+        .staff-email-copy {
+            color: var(--theme-text);
+            line-height: 1.75;
+            max-width: 760px;
+        }
+
+        .staff-email-search-card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 28px;
+            box-shadow: 0 18px 42px rgba(18, 39, 84, 0.08);
+            margin-top: 1.75rem;
+            padding: 1.5rem;
+        }
+
+        .staff-email-search-label {
+            color: var(--theme-navy-deep);
+            display: block;
+            font-weight: 700;
+            margin-bottom: 0.65rem;
+        }
+
+        .staff-email-search-input {
+            border-radius: 18px;
+            min-height: 3.4rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .staff-email-results {
+            margin-top: 1rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .staff-email-page {
+                padding: 1.25rem 0.9rem 2rem;
+            }
+
+            .staff-email-hero,
+            .staff-email-search-card {
+                border-radius: 24px;
+                padding: 1.3rem;
+            }
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<section class="section staff-email-page">
+    <div class="staff-email-shell">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <article class="message is-{{ category if category != 'message' else 'info' }}">
+                        <div class="message-body">{{ message }}</div>
+                    </article>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <div class="staff-email-hero">
+            <div class="staff-email-kicker">Mahidol Staff</div>
+            <h1 class="staff-email-title">ค้นหารายชื่อบุคลากรเพื่อจัดการอีเมล</h1>
+            <p class="staff-email-copy">
+                ค้นหาจากชื่อหรือนามสกุลของผู้รับบริการ ระบบจะแสดงรายชื่อที่ตรงกันพร้อมอีเมลปัจจุบัน
+                จากนั้นสร้าง QR code ให้ผู้รับบริการสแกนเพื่อเปิดแบบฟอร์มแก้ไขอีเมล โดยระบบจะรับเฉพาะอีเมลที่ลงท้ายด้วย @mahidol.ac.th เท่านั้น
+            </p>
+        </div>
+
+        <div class="staff-email-search-card">
+            <label class="staff-email-search-label" for="staff-email-search">ค้นหาชื่อผู้รับบริการ</label>
+            <input
+                class="input is-medium staff-email-search-input"
+                id="staff-email-search"
+                name="query"
+                type="text"
+                placeholder="พิมพ์ชื่อหรือนามสกุล"
+                hx-get="{{ url_for('comhealth.search_email_registration_mahidol_staff') }}"
+                hx-trigger="input changed delay:300ms, search"
+                hx-target="#staff-email-results"
+                hx-swap="innerHTML"
+                autocomplete="off"
+            >
+            <div class="staff-email-results" id="staff-email-results">
+                {% with mode='mahidol' %}
+                    {% include "comhealth/partials/email_registration_customer_list.html" %}
+                {% endwith %}
+            </div>
+        </div>
+        <div id="staff-email-modal-container"></div>
+    </div>
+</section>
+{% endblock %}

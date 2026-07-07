@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-half">
+                    <div class="box">
+                        <h1 class="title is-5">{{ service.location if service else '' }}</h1>
+                        <p class="subtitle is-6">เลือกวันที่ต้องการ export แล้วกดปุ่มเพื่อเริ่มการส่งออกข้อมูล</p>
+                        <form method="post" action="{{ url_for('comhealth.export_csv', service_id=service_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label" for="export-date">วันที่ต้องการ export เดือน/วัน/ปี</label>
+                                <div class="control">
+                                    <input id="export-date" name="export_date" type="date" class="input" required />
+                                </div>
+                            </div>
+                            <div class="field is-grouped is-grouped-right">
+                                <div class="control">
+                                    <button type="submit" class="button is-success">Export</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        (function () {
+            var input = document.getElementById('export-date');
+            if (input && !input.value) {
+                var today = new Date();
+                var iso = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
+                    .toISOString()
+                    .split('T')[0];
+                input.value = iso;
+            }
+        })();
+    </script>
+{% endblock %}

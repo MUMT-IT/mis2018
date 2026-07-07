@@ -1,44 +1,16 @@
-<nav class="navbar is-link">
-    <div class="container">
-        <div class="navbar-brand">
-            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-        </div>
-        <div id="navbarMenuHeroA" class="navbar-menu">
-            <div class="navbar-end">
-                <a class="navbar-item" href="{{ url_for('staff.index') }}">
-                    หน้าหลัก
-                </a>
-                <a class="navbar-item" href="{{ url_for('auth.account') }}">
-                    <span class="icon">
-                        <i class="fas fa-user-circle"></i>
-                    </span>
-                   <span>
-                       {{ current_user.personal_info.fullname }}
-                   </span>
-                </a>
-                <a class="navbar-item" href="{{ url_for('auth.logout') }}">
-                    <span class="icon">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </span>
-                    <span>ออกจากระบบ</span>
-                </a>
-                <a class="navbar-item" href="/">
-                    <span>ปิด</span>
-                    <span class="icon">
-                        <i class="far fa-times-circle"></i>
-                    </span>
-                </a>
-                <a class="navbar-item" href="{{ url_for('user_support_index') }}">
-                       <span class="icon">
-                           <i class="fa-solid fa-circle-info"></i>
-                       </span>
-                    <span>แจ้งปัญหา/ขอความช่วยเหลือ</span>
-                </a>
-            </div>
-        </div>
-    </div>
-</nav>
+{% from "components/module_nav.html" import render_module_nav %}
+
+{{ render_module_nav(
+    title='Staff',
+    subtitle='งานบุคลากร',
+    brand_href=url_for('staff.index'),
+    start_links=[
+        {'href': url_for('staff.index'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
+    ],
+    user_display=current_user.personal_info.fullname,
+    account_href=url_for('auth.account'),
+    logout_href=url_for('auth.logout'),
+    support_href=url_for('user_support_index'),
+    close_href='/',
+    menu_id='staffNavbarMenu'
+) }}

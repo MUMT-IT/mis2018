@@ -1,0 +1,52 @@
+{% if query_text %}
+    {% if customers %}
+        <div class="table-container">
+            <table class="table is-fullwidth is-hoverable">
+                <thead>
+                    <tr>
+                        <th>Firstname</th>
+                        <th>Lastname</th>
+                        <th>Organization</th>
+                        <th>Email</th>
+                        <th class="has-text-centered">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                        <tr>
+                            <td>{{ customer.firstname }}</td>
+                            <td>{{ customer.lastname }}</td>
+                            <td>{{ customer.org.name if customer.org else '-' }}</td>
+                            <td>{{ customer.email or '-' }}</td>
+                            <td class="has-text-centered">
+                                <div class="buttons is-centered are-small">
+                                    <a class="button is-light is-link"
+                                       href="#"
+                                       hx-get="{{ url_for('comhealth.email_registration_qr_access_modal', customer_id=customer.id, mode=mode) }}"
+                                       hx-target="#staff-email-modal-container"
+                                       hx-swap="innerHTML"
+                                       onclick="return false;">
+                                        <span class="icon"><i class="fas fa-qrcode"></i></span>
+                                        <span>Create QR</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <article class="message is-warning">
+            <div class="message-body">
+                ไม่พบข้อมูลที่ตรงกับคำค้นหา
+            </div>
+        </article>
+    {% endif %}
+{% else %}
+    <article class="message is-light">
+        <div class="message-body">
+            เริ่มพิมพ์ชื่อหรือนามสกุลเพื่อค้นหารายชื่อผู้รับบริการ
+        </div>
+    </article>
+{% endif %}

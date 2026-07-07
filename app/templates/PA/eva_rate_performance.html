@@ -79,10 +79,10 @@
                         <table class="table is-striped is-fullwidth">
                             <thead>
                             <th>หมวด</th>
-                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p><p class="help is-success">ตัวชี้วัดและเป้าหมาย</p></th>
+                            <th>ข้อตกลงการปฏิบัติงาน <p class="help is-info">โครงการ/กระบวนการที่เกี่ยวข้อง</p></th>
                             <th>%</th>
-                            <th>เกณฑ์ตามตัวชี้วัด</th>
                             <th>ผลการดำเนินการ</th>
+                            <th><p class="has-text-success">ตัวชี้วัดและเป้าหมาย</p>เกณฑ์ตามตัวชี้วัด</th>
                             {% if for_self == 'false' %}
                             <th>คะแนนประเมินตนเอง</th>
                             <th>คะแนนผู้บังคับบัญชาขั้นต้น</th>
@@ -90,44 +90,50 @@
                             <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             <tbody>
-                            {% for s in scoresheet.score_sheet_items|sort(attribute='item.category_id') %}
+                            {% for group in scoresheet.score_sheet_items|sort(attribute='item_id')|sort(attribute='item.category_id')|groupby('item_id') %}
+                                {% set item_rows = group.list %}
+                                {% set first = item_rows[0] %}
+                                {% for s in item_rows %}
                                 <tr>
-                                    <td style="width: 5%">
-                                        <p class="help">{{ s.item.category }}</p>
+                                    {% if loop.first %}
+                                    <td style="width: 5%" rowspan="{{ item_rows|length }}">
+                                        <p class="help">{{ first.item.category }}</p>
                                     </td>
-                                    <td style="width: 35%">
-                                        <p><strong>{{ s.item }}</strong></p>
-                                        {% if s.item.strategy_activity %}
-                                        <p class="help is-info">{{ s.item.strategy_activity }}</p>
+                                    <td style="width: 20%" rowspan="{{ item_rows|length }}">
+                                        <p><strong>{{ first.item }}</strong></p>
+                                        {% if first.item.strategy_activity %}
+                                        <p class="help is-info">{{ first.item.strategy_activity }}</p>
                                         {% endif %}
-                                        {% if s.item.process %}
-                                        <p class="help is-info">{{ s.item.process }}</p>
+                                        {% if first.item.process %}
+                                        <p class="help is-info">{{ first.item.process }}</p>
                                         {% endif %}
-                                        <p class="help is-success">{{ s.kpi_item }} (เก็บข้อมูลจาก: {{ s.kpi_item.kpi.source }})</p>
+                                        <p class="help">(เก็บข้อมูลจาก: {{ first.kpi_item.kpi.source }})</p>
                                     </td>
-                                    <td style="width: 2%">
-                                        {{ s.item.percentage }}
+                                    <td style="width: 2%" rowspan="{{ item_rows|length }}">
+                                        {{ first.item.percentage }}
                                     </td>
-                                    <td style="width: 18%">
-                                    <ul>
-                                        <p class="help">{{ s.kpi_item.kpi.type }}</p>
-                                        {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light"></i></span>
-                                                <small>{{ kpi.goal }} ({{ kpi.level }} คะแนน)</small></li>
-                                        {% endfor %}
-                                    </ul>
-                                    </td>
-                                    <td style="width: 28%">
-                                        {{ s.item.report }}<br>
-                                        {% if s.item.related_url %}
+                                    <td style="width: 20%" rowspan="{{ item_rows|length }}">
+                                        {{ first.item.report }}<br>
+                                        {% if first.item.related_url %}
                                             <a class="button is-small"
-                                               href="{{ s.item.related_url }}" target="_blank">
+                                               href="{{ first.item.related_url }}" target="_blank">
                                                 <span class="icon is-small">
                                                     <i class="fa-solid fa-paperclip"></i>
                                                 </span>
                                                 <span>เอกสารแนบ</span>
                                             </a>
                                         {% endif %}
+                                    </td>
+                                    {% endif %}
+                                    <td style="width: 42%">
+                                        <p class="has-text-success">{{ s.kpi_item }}</p>
+                                    <ul>
+                                        <p class="help">ประเภท: {{ s.kpi_item.kpi.type }}</p>
+                                        {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
+                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light"></i></span>
+                                                <small>{{ kpi.goal }} ({{ kpi.level }} คะแนน)</small></li>
+                                        {% endfor %}
+                                    </ul>
                                     </td>
                                     {% if for_self == 'false' %}
                                     <td style="width: 2%">
@@ -151,6 +157,7 @@
                                         </div>
                                     </td>
                                 </tr>
+                                {% endfor %}
                             {% endfor %}
                             </tbody>
                         </table>
@@ -252,8 +259,8 @@
                             <span class="icon">
                                 <i class="fa-solid fa-circle-info"></i>
                             </span>
-                            <span>กด บันทึก ทุกครั้ง ก่อนยืนยันคะแนน<br>
-                                ท่านไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว
+                            <span>กด <span class="has-text-weight-bold">บันทึกทุกครั้ง</span> ก่อนยืนยันคะแนน<br>
+                                ท่านจะไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว
                             </span>
                         </p>
                     </div>

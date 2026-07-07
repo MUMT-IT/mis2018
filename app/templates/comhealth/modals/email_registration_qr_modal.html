@@ -1,0 +1,58 @@
+<div class="modal is-active animate__animated" id="email-registration-qr-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">QR Code / ลิงก์สำหรับผู้รับบริการ</p>
+            <button type="button" id="cancelQrEmailButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body has-text-centered">
+            <article class="message is-info">
+                <div class="message-body">
+                    <strong>{{ customer.firstname }} {{ customer.lastname }}</strong><br>
+                    {% if mode == 'mahidol' %}
+                        Mahidol staff registration
+                    {% else %}
+                        General public registration
+                    {% endif %}
+                </div>
+            </article>
+
+            <p class="mb-4">
+                ให้ผู้รับบริการสแกน QR code นี้เพื่อเปิดแบบฟอร์มแก้ไขอีเมล โดยลิงก์จะใช้ได้ภายใน 5 นาที
+            </p>
+
+            <figure class="image is-inline-block mb-4">
+                <img src="{{ qrcode(access_url, box_size=6) }}" alt="QR code for email registration access">
+            </figure>
+
+            <div class="content">
+                <p class="is-size-7 has-text-grey">หากสแกนไม่ได้ สามารถเปิดลิงก์นี้ได้โดยตรง</p>
+                <p><a href="{{ access_url }}" target="_blank" rel="noopener noreferrer">{{ access_url }}</a></p>
+            </div>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-light" type="button" id="secondaryCancelQrEmailButton">Close / ปิด</button>
+        </footer>
+    </div>
+</div>
+<script>
+    (function () {
+        const modal = document.getElementById('email-registration-qr-modal');
+
+        function closeModal() {
+            if (!modal) {
+                return;
+            }
+            htmx.addClass(modal, 'animate__fadeOut');
+            htmx.removeClass(modal, 'is-active', 300);
+            setTimeout(function () {
+                if (modal.parentNode) {
+                    modal.parentNode.innerHTML = '';
+                }
+            }, 320);
+        }
+
+        document.getElementById('cancelQrEmailButton').addEventListener('click', closeModal);
+        document.getElementById('secondaryCancelQrEmailButton').addEventListener('click', closeModal);
+    })();
+</script>

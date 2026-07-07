@@ -48,7 +48,7 @@
                                        hx-confirm="ท่านแน่ใจว่าจะเลือกวันนี้เป็นวันประชุมหรือไม่ หากท่านเคยเลือกวันประชุมแล้ว วันที่สรุปจะเปลี่ยนเป็นวันนี้แทน"
                                        hx-swap="innerHTML"
                                        hx-target="#mail-form"
-                                       hx-get="{{ url_for('besttime.send_mail_to_committee', slot_id=slot.id) }}">
+                                       hx-get="{{ url_for('besttime.send_mail_to_committee', slot_id=slot.id, tab=tab) }}">
                                         <span class="icon">
                                             <i class="fa-solid fa-envelope"></i>
                                         </span>
@@ -70,7 +70,7 @@
                         </p>
                     </div>
                 </article>
-                <a class="button is-light" href="{{ url_for('besttime.index') }}">Back</a>
+                <a class="button is-light" href="{{ url_for('besttime.index', tab=tab) }}">Back</a>
             </div>
         </div>
     </section>

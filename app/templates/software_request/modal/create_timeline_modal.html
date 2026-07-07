@@ -9,7 +9,7 @@
                     Edit Timeline
                 {% endif %}
             </p>
-            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            <button type="button" id="cancelTimelineButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
             <form
@@ -18,9 +18,10 @@
                     {% else %}
                         hx-post="{{ url_for('software_request.create_timeline', detail_id=detail_id, tab=tab) }}"
                     {% endif %}
-                        hx-indicator="#submit-form"
+                    {% if template != 'detail' %}
                         hx-target="#timelines"
                         hx-swap="beforeend"
+                    {% endif %}
             >
                 <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                 <div class="field">
@@ -33,36 +34,35 @@
                     </div>
                 </div>
                 <div class="field-body">
-                    <div class="field" style="margin-top: 1em">
+                    <div class="field" style="margin-top:0.5em">
                         <label class="label">
                             {{ form.start.label }}
                             <span class="has-text-danger">*</span>
                         </label>
                         <div class="control">
-                            {{ form.start(class='input') }}
+                            {{ form.start(class='input', type='text', autocomplete="off") }}
                         </div>
                     </div>
-                    <div class="field" style="margin-top: 1em">
+                    <div class="field" style="margin-top:0.5em">
                         <label class="label">
                             {{ form.estimate.label }}
                             <span class="has-text-danger">*</span>
                         </label>
                         <div class="control">
-                            {{ form.estimate(class='input') }}
+                            {{ form.estimate(class='input', type='text', autocomplete="off") }}
                         </div>
                     </div>
                 </div>
-                <div class="field-body">
-                    <div class="field" style="margin-top: 1em">
-                        <label class="label">
-                            {{ form.phase.label }}
-                            <span class="has-text-danger">*</span>
-                        </label>
-                        <div class="control">
-                            {{ form.phase(class='js-example-basic-single') }}
-                        </div>
+                <div class="field" style="margin-top:0.5em">
+                    <label class="label">
+                        {{ form.issue.label }}
+                    </label>
+                    <div class="control">
+                        {{ form.issue(class='js-example-basic-single') }}
                     </div>
-                    <div class="field" style="margin-top: 1em">
+                </div>
+                <div class="field-body">
+                    <div class="field" style="margin-top:0.5em">
                         <label class="label">
                             {{ form.status.label }}
                             <span class="has-text-danger">*</span>
@@ -71,17 +71,17 @@
                             {{ form.status(class='js-example-basic-single') }}
                         </div>
                     </div>
-                    <div class="field" style="margin-top: 1em">
+                    <div class="field" style="margin-top:0.5em">
                         <label class="label">
                             {{ form.admin.label }}
                             <span class="has-text-danger">*</span>
                         </label>
                         <div class="control">
-                            {{ form.admin(class='js-example-basic-single') }}
+                            {{ form.admin(class='js-example-basic-single', required=True) }}
                         </div>
                     </div>
                 </div>
-                <div class="field is-grouped is-grouped-centered" style="margin-top: 1em">
+                <div class="field is-grouped is-grouped-centered" style="margin-top:0.5em">
                     <div class="control">
                         <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
                     </div>
@@ -91,7 +91,7 @@
     </div>
 </div>
 <script>
-    window.document.getElementById("cancelButton").addEventListener("click", function () {
+    window.document.getElementById("cancelTimelineButton").addEventListener("click", function () {
         htmx.addClass(htmx.find('#timeline-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#timeline-modal'), "is-active", 500)
     })

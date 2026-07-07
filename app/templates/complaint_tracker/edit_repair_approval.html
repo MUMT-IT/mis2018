@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="columns is-centered">
+            <div class="column is-three-fifths">
+                <form method="post" class="box">
+                    {{ form.hidden_tag() }}
+                    <h1 class="title has-text-centered">อัปเดตข้อมูล</h1>
+                    <div class="field">
+                        <label class="label">
+                            วงเงินที่ซื้อหรือจ้าง
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.price(class='input', required=true) }}
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">
+                                ประเภทการขอเบิกจ่ายเงิน
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="select">
+                                {{ form.purchase_type(required=true) }}
+                            </div>
+                        </div>
+                        <div class="field" style='width:100%'>
+                            <label class="label">
+                                ประจำปีงบประมาณ
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.budget_year(class='input', required=true) }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-body" style="margin-bottom: .8em; margin-top: .8em">
+                        <div class="field">
+                            <label class="label">
+                                รหัสศูนย์ต้นทุน
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.cost_center(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                รหัสใบสั่งงานภายใน
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.io_code(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                ผลผลิต
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.product_code(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-body" style="margin-bottom: .8em; margin-top: .8em">
+                        <div class="field">
+                            <label class="label">
+                                ผู้ขออนุมัติ
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.requester(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                ผู้อนุมัติ
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.approver(class='js-example-basic-single') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <input type="submit" class="button is-success"
+                                {% if repair_approval.repair_type == 'เร่งด่วน' %}
+                                    value="บันทึก"
+                                {% else %}
+                                    value="บันทึกและดำเนินการต่อ"
+                                {% endif %}
+                        >
+                        {% if temp == 'index' %}
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab=tab, menu=menu) }}"
+                               class="button is-danger">
+                                ยกเลิก
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('comp_tracker.edit_record_admin', tab=tab, record_id=record_id) }}"
+                               class="button is-danger">
+                                ยกเลิก
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(()=> {
+            $('.js-example-basic-single').select2({
+                width: '100%'
+            });
+        });
+    </script>
+{% endblock %}

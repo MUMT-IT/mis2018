@@ -1,9 +1,9 @@
 # -*- coding:utf-8 -*-
 
 import pytz
-from wtforms.validators import InputRequired, DataRequired
+from wtforms.validators import DataRequired
 
-from app.main import db, ma
+from app.main import db
 from sqlalchemy.sql import func
 
 tz = pytz.timezone('Asia/Bangkok')
@@ -51,6 +51,8 @@ class VehicleResource(db.Model):
 
 class VehicleBooking(db.Model):
     __tablename__ = 'scheduler_vehicle_bookings'
+    # TODO: clean up legacy Google calendar/event columns in the migration history
+    # once all environments are confirmed to be past the old schema.
     id = db.Column('id', db.Integer(), primary_key=True,
                    autoincrement=True)
     vehicle_id = db.Column('vehicle_id',
@@ -85,8 +87,6 @@ class VehicleBooking(db.Model):
     approved_by = db.Column('approved_by', db.ForeignKey('staff_account.id'))
     approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
     desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
-    google_event_id = db.Column('google_event_id', db.String(64))
-    google_calendar_id = db.Column('google_calendar_id', db.String(255))
 
     def to_dict(self):
         return {'id': self.id,

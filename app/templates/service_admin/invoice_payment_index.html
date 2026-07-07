@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Academic Service Payment{% endblock %}
+{% block title %}รายการชำระเงินงานบริการตรวจวิเคราะห์{% endblock %}
 {% block head %}
     {{ super() }}
-    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
     <style>
         .toast {
             opacity: 1 !important;
@@ -23,9 +23,9 @@
     <section class="section" id="app">
         <div class="container">
             <div class="columns is-centered">
-                <div class="column">
-                    <h1 class="title has-text-centered">รายการชำระเงินบริการวิชาการ</h1>
-                    <table id='invoices' class="table is-fullwidth">
+                <div class="column is-full">
+                    <h1 class="title has-text-centered">รายการชำระเงินงานบริการตรวจวิเคราะห์</h1>
+                    <table id='invoices' class="table is-fullwidth is-narrow">
                         <thead>
                         <th>เลขใบแจ้งหนี้</th>
                         <th>วัน-เวลาที่ออก</th>
@@ -52,8 +52,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showSlipPopup(url) {
             Swal.fire({
@@ -108,6 +108,9 @@
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#invoices').DataTable({
+                processing: true,
+                serverSide: true,
+                deferRender: true,
                 ajax: {
                     url: {{ url_for('service_admin.get_invoice_payments')|tojson|safe}},
                 },
@@ -185,13 +188,11 @@
                     {
                         data: 'id',
                         render: function (data, type, row) {
-                            const dueDate = new Date(row.due_date);
-                            const today = new Date();
                             if (data !== null && row.is_paid == true) {
                                 return `<span class="tag is-success">ชำระแล้ว</span>`;
                             } else if (data !== null && row.paid_at != null) {
                                 return `<span class="tag is-warning">รอตรวจสอบ</span>`;
-                            } else if (data !== null && today > dueDate && row.paid_at != null) {
+                            } else if (data !== null && row.is_overdue) {
                                 return `<span class="tag is-danger">เกินกำหนด</span>`;
                             } else {
                                 return `<span class="tag is-info">รอชำระเงิน</span>`;

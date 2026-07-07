@@ -31,7 +31,7 @@
             </ul>
         </nav>
         <h1 class="title">รายการชุดคอมพิวเตอร์</h1>
-        <table class="table">
+        <table id="computers" class="table">
             <thead>
             <th>Inventory Number/ERP</th>
             <th>Procurement Number</th>
@@ -56,3 +56,11 @@
         </table>
     </section>
 {% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#computers').DataTable({})
+        });
+    </script>
+{% endblock %}

@@ -74,16 +74,6 @@
                 </table>
             </div>
         </div>
-        <div class="columns">
-            <div class="column">
-                <a href="{{ url_for('staff.seminar') }}" class="button is-rounded is-info is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                    <span>กลับ</span>
-                </a>
-            </div>
-        </div>
     </div>
 </section>
 {% endblock %}
@@ -94,9 +84,9 @@
         $('#preseminarTable').DataTable();
     });
 </script>
-    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
     <script type="text/javascript">
         const DATETIME_FORMAT = 'YYYY-MM-DD HH:mm:ss'
         function initDatePicker() {

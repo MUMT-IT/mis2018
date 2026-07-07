@@ -5,10 +5,9 @@ import gspread
 import os
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_cors import cross_origin
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage, FlexSendMessage, BubbleContainer, \
-    BoxComponent, ImageComponent, MessageAction, TextComponent, ButtonComponent, URIAction, CarouselContainer, \
-    ImagemapSendMessage, BaseSize, MessageImagemapAction, ImagemapArea, URIImagemapAction, \
+from app.linebot_compat import InvalidSignatureError, MessageEvent, TextMessage, TextSendMessage, FlexSendMessage, \
+    BubbleContainer, BoxComponent, ImageComponent, MessageAction, TextComponent, ButtonComponent, URIAction, \
+    CarouselContainer, ImagemapSendMessage, BaseSize, MessageImagemapAction, ImagemapArea, URIImagemapAction, \
     FillerComponent
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
@@ -19,8 +18,8 @@ from . import health_service_blueprint as hs
 from app.main import csrf, app
 from pytz import timezone
 from flask_login import login_required, current_user
-from linebot import (LineBotApi, WebhookHandler)
-from ..main import db, json_keyfile
+from app.linebot_compat import LineBotApi, WebhookHandler
+from ..main import db, get_json_keyfile
 
 localtz = timezone('Asia/Bangkok')
 
@@ -34,7 +33,9 @@ scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
 
 
-def get_credential(json_keyfile):
+def get_credential(json_keyfile=None):
+    if json_keyfile is None:
+        json_keyfile = get_json_keyfile()
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
     return gspread.authorize(credentials)
 
@@ -243,7 +244,7 @@ def line_message_callback():
 @handler_mumthealth.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     if event.message.text == 'packages':
-        gc = get_credential(json_keyfile)
+        gc = get_credential()
         sheetkey = '15uhQm6tkd69dEthC-Vc9tb-Orsjnywlw85GOBsZgxmY'
         sh = gc.open_by_key(sheetkey)
         ws = sh.worksheet('packages')
@@ -315,7 +316,7 @@ def handle_message(event):
             )
         )
     elif event.message.text.startswith('pkg'):
-        gc = get_credential(json_keyfile)
+        gc = get_credential()
         sheetkey = '15uhQm6tkd69dEthC-Vc9tb-Orsjnywlw85GOBsZgxmY'
         sh = gc.open_by_key(sheetkey)
         ws = sh.worksheet('tests')

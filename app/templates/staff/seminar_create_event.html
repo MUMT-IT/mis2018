@@ -1,99 +1,157 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container" id="app">
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">บันทึกรายละเอียดประชุม อบรม สัมมนา</h1>
+                    <h1 class="title">รายละเอียดการอบรม ประชุม สัมนา</h1>
                 </div>
             </div>
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
+                    <ul class="steps">
+                        <li class="steps-segment is-active">
+                            <span class="steps-marker is-hollow"></span>
+                            <div class="steps-content">
+                                <p>สร้างรายการอบรม</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker is-hollow"></span>
+                            <div class="steps-content">
+                                <p>รายละเอียดผู้เข้าร่วม</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p>สรุปข้อมูล</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-offset-1">
+                    <div class="field">
+                        <label class="label">ค้นหาการอบรมที่มีอยู่</label>
+                        <style>
+                            #seminar-suggest-list .suggest-box{max-height:280px;overflow-y:auto;border:1px solid #e6e6e6;border-radius:6px}
+                            #seminar-suggest-list .suggest-empty{font-weight:700;color:#363636;padding:10px 12px}
+                            #seminar-suggest-list .suggest-box .button{min-height:3.2em;height:auto;white-space:normal;line-height:1.3}
+                            #seminar-suggest-list .suggest-box .button strong,
+                            #seminar-suggest-list .suggest-box .button span{display:block;word-break:break-word}
+                        </style>
+                        <div class="control">
+                            <input class="input"
+                                   type="text"
+                                   name="q"
+                                   autocomplete="off"
+                                   placeholder="พิมพ์ชื่อการอบรมเพื่อค้นหา..."
+                                   hx-get="{{ url_for('staff.seminar_suggest') }}"
+                                   hx-trigger="keyup changed delay:300ms"
+                                   hx-target="#seminar-suggest-list">
+                        </div>
+                    </div>
+                    <div id="seminar-suggest-list"></div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-offset-1">
                     <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
                         หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้บันทึกครั้งเดียว
                     </b-notification>
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
-                        <div class="field">
-                            <label class="label">{{ form.topic_type.label }}</label>
-                            <div class="select">
-                                {{ form.topic_type() }}
+                        <div class="box">
+                            <div class="field">
+                                <label class="label">{{ form.topic_type.label }}</label>
+                                <div class="select">
+                                    {{ form.topic_type() }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.topic.label }}</label>
-                            <div class="control">
-                                {{ form.topic(class="input") }}
+                            <div class="field">
+                                <label class="label">{{ form.topic.label }}</label>
+                                <div class="control">
+                                    <textarea class="textarea"
+                                              name="{{ form.topic.name }}"
+                                              id="{{ form.topic.id }}"
+                                              rows="2">{{ form.topic.data or '' }}</textarea>
+                                </div>
                             </div>
-                        </div>
-                        <b-field label="เวลาเริ่มต้นการจัดอบรม">
-                            <b-datetimepicker
-                                    required
-                                    v-model="startDateTime"
-                                    range
-                                    icon-pack="fa"
-                                    :timepicker="timepicker"
-                                    :mobile-native="false"
-                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                    icon="calendar-alt">
-                            </b-datetimepicker>
-                        </b-field>
-                        {{ form.start_datetime(type='hidden', **{'v-model': 'formattedStartDateTime'}) }}
-                        <b-field label="เวลาสิ้นสุดการจัดอบรม">
-                            <b-datetimepicker
-                                    required
-                                    v-model="endDateTime"
-                                    range
-                                    icon-pack="fa"
-                                    :timepicker="timepicker"
-                                    :mobile-native="false"
-                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                    icon="calendar-alt">
-                            </b-datetimepicker>
-                        </b-field>
-                        {{ form.end_datetime(type='hidden', **{'v-model': 'formattedEndDateTime'}) }}
-                        <div class="field">
-                            <label class="label">{{ form.organize_by.label }}</label>
-                            <div class="control">
-                                {{ form.organize_by(class="input") }}
+                            <b-field label="เวลาเริ่มต้นการจัดอบรม">
+                                <b-datetimepicker
+                                        required
+                                        v-model="startDateTime"
+                                        range
+                                        icon-pack="fa"
+                                        :timepicker="timepicker"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datetimepicker>
+                            </b-field>
+                            {{ form.start_datetime(type='hidden', **{'v-model': 'formattedStartDateTime'}) }}
+                            <b-field label="เวลาสิ้นสุดการจัดอบรม">
+                                <b-datetimepicker
+                                        required
+                                        v-model="endDateTime"
+                                        range
+                                        icon-pack="fa"
+                                        :timepicker="timepicker"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datetimepicker>
+                            </b-field>
+                            {{ form.end_datetime(type='hidden', **{'v-model': 'formattedEndDateTime'}) }}
+                            <div class="field">
+                                <label class="label">{{ form.organize_by.label }}</label>
+                                <div class="control">
+                                    {{ form.organize_by(class="input") }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.location.label }}</label>
-                            <div class="control">
-                                {{ form.location(class="input") }}
+                            <div class="field">
+                                <label class="label">{{ form.location.label }}</label>
+                                <div class="control">
+                                    {{ form.location(class="input") }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="checkbox">
-                                {{ form.is_online() }}
-                                จัดผ่านช่องทาง Online
-                            </label>
-                        </div>
-{#                        <div class="columns">#}
-{#                            <div class="column">#}
-{#                                <b-field class="file">#}
-{#                                    <b-upload v-model="file" name="document">#}
-{#                                        <a class="button is-primary">#}
-{#                                            <b-icon icon="upload"></b-icon>#}
-{#                                            <span>Clickเพื่อ แนบfile รายละเอียด</span>#}
-{#                                        </a>#}
-{#                                    </b-upload>#}
-{#                                    <span class="file-name" v-if="file">#}
-{#                                        <% file.name %>#}
-{#                                    </span>#}
-{#                                </b-field>#}
-{#                            </div>#}
-{#                        </div>#}
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}"
-                                   class="button is-light">Cancel</a>
+                            <div class="field">
+                                <label class="checkbox">
+                                    {{ form.is_online() }}
+                                    จัดผ่านช่องทาง Online
+                                </label>
                             </div>
-                            <div class="control">
-                                <input type="submit" value="submit" class="button is-success"/>
+    {#                        <div class="columns">#}
+    {#                            <div class="column">#}
+    {#                                <b-field class="file">#}
+    {#                                    <b-upload v-model="file" name="document">#}
+    {#                                        <a class="button is-primary">#}
+    {#                                            <b-icon icon="upload"></b-icon>#}
+    {#                                            <span>Clickเพื่อ แนบfile รายละเอียด</span>#}
+    {#                                        </a>#}
+    {#                                    </b-upload>#}
+    {#                                    <span class="file-name" v-if="file">#}
+    {#                                        <% file.name %>#}
+    {#                                    </span>#}
+    {#                                </b-field>#}
+    {#                            </div>#}
+    {#                        </div>#}
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="control">
+                                    <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}"
+                                       class="button is-light">Cancel</a>
+                                </div>
+                                <div class="control">
+                                    <input type="submit" value="submit" class="button is-success"/>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -134,5 +192,41 @@
                 }
             }
         });
+        function applySeminarSuggestion(data) {
+            if (!data) {
+                return;
+            }
+            let topicInput = document.querySelector("[name='topic']");
+            if (topicInput && data.topic) {
+                topicInput.value = data.topic;
+            }
+            let organizeInput = document.querySelector("input[name='organize_by']");
+            if (organizeInput && data.organize_by) {
+                organizeInput.value = data.organize_by;
+            }
+            let locationInput = document.querySelector("input[name='location']");
+            if (locationInput && data.location) {
+                locationInput.value = data.location;
+            }
+            let topicTypeSelect = document.querySelector("select[name='topic_type']");
+            if (topicTypeSelect && data.topic_type) {
+                topicTypeSelect.value = data.topic_type;
+            }
+            if (data.start_datetime) {
+                vm.startDateTime = new Date(data.start_datetime);
+            }
+            if (data.end_datetime) {
+                vm.endDateTime = new Date(data.end_datetime);
+            }
+            let onlineCheckbox = document.querySelector("input[name='is_online']");
+            if (onlineCheckbox) {
+                onlineCheckbox.checked = !!data.is_online;
+            }
+            let list = document.getElementById("seminar-suggest-list");
+            if (list) {
+                list.innerHTML = "";
+            }
+        }
+        window.applySeminarSuggestion = applySeminarSuggestion;
     </script>
 {% endblock %}

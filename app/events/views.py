@@ -16,16 +16,19 @@ from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from google.oauth2.service_account import Credentials
 from pydrive.drive import GoogleDrive
 from pytz import timezone
+from app.google_credential_utils import load_google_credentials_json
 
 localtz = timezone('Asia/Bangkok')
 CALENDAR_ID = 'mumtpr@mahidol.edu'
 FOLDER_ID = '14D9JDuAx2Tr9tKWECQahx6gloaqY5U9I'
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-credentials = Credentials.from_service_account_info(service_account_info)
+json_keyfile = load_google_credentials_json()
+service_account_info = load_google_credentials_json()
+credentials = Credentials.from_service_account_info(service_account_info) if service_account_info else None
 
 def initialize_gdrive():
+    if not json_keyfile:
+        return None
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
@@ -42,6 +45,8 @@ def fetch_global_events():
     """
     tz = pytz.timezone('Asia/Bangkok')
     # credentials, project_id = google.auth.default()
+    if credentials is None:
+        return jsonify([])
     scoped_credentials = credentials.with_scopes([
         'https://www.googleapis.com/auth/calendar',
         'https://www.googleapis.com/auth/calendar.events'

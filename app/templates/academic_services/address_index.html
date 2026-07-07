@@ -2,7 +2,7 @@
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 {% block head %}
     {{ super() }}
-    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
 {% include"academic_services/customer_nav.html" %}
@@ -32,7 +32,7 @@
                                                             ที่อยู่ : {{ address.address }}
                                                                 {{ 'แขวง' if 'กรุงเทพมหานคร' in address.province.name else 'ตำบล' }}{{ address.subdistrict }}
                                                                 {{ 'เขต' if 'กรุงเทพมหานคร' in address.province.name else 'อำเภอ' }}{{ address.district }}
-                                                                จังหวัด{{ address.province }}{{ address.zipcode }}
+                                                                จังหวัด{{ address.province }} {{ address.zipcode }}
                                                             <br>
                                                             เลขประจำตัวผู้เสียภาษีอากร : {{ address.taxpayer_identification_no }}
                                                             <br>
@@ -174,5 +174,5 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 {% endblock %}

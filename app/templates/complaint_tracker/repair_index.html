@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+{% include "complaint_tracker/index_nav.html" %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            <div class="column">
+                <h1 class="title has-text-centered">รายการคำขอแจ้งซ่อม</h1>
+                <div class="tabs is-boxed">
+                    <ul>
+                        <li {% if tab == 'waiting_process' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_index', tab='waiting_process', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass"></i></span>
+                                <span>รอดำเนินการ</span>
+                                {% if new_record_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ new_record_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'waiting_approval' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_index', tab='waiting_approval', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pen-fancy"></i></span>
+                                <span>รออนุมัติ</span>
+                                {% if waiting_record_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ waiting_record_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'completed' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_index', tab='completed', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>ดำเนินการเสร็จสิ้น</span>
+                            </a>
+                        </li>
+
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_index', tab='all', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <table id="repairs" class="table is-fullwidth">
+                    <thead>
+                        <th>เลขที่</th>
+                        <th>วันที่ออก</th>
+                        <th>ครุภัณฑ์</th>
+                        <th>ผู้แจ้ง</th>
+                        <th>สถานะใบอนุมัติ</th>
+                        <th>สถานะการซ่อม</th>
+                        <th>ใบแจ้งซ่อม</th>
+                    </thead>
+                    <tbody>
+                        {% for repair in repairs %}
+                            <tr>
+                                <td>{{ repair.record_id }}</td>
+                                <td>
+                                    {{ repair.created_at|localdatetime }}
+                                </td>
+                                <td>
+                                    {% if repair.record.procurements %}
+                                        {% for procurement in repair.record.procurements %}
+                                            {{ procurement.erp_code }} {{ procurement.name }}
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if repair.record.complainant %}
+                                        {{ repair.record.complainant.fullname }}
+                                    {% else %}
+                                        {{ repair.owner.fullname }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="tag {{ repair.status_color }}">
+                                        <span class="icon">{{ repair.status_icon|safe }}</span>
+                                        <span>{{ repair.status }}</span>
+                                    </span>
+                                    {% if repair.reviewed_at %}
+                                        <br>ดูเมื่อ {{ repair.reviewed_at|localdatetime }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if repair.record.status %}
+                                        <span class="tag {{ repair.record.status.color }}">
+                                            <span class="icon">{{ repair.record.status.icon|safe }}</span>
+                                            <span>{{ repair.record.status.status }}</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="tag is-danger">
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>ยังไม่ดำเนินการ</span>
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="field">
+                                        <div class="control mb-2">
+                                            <a class="button is-small is-info is-outlined is-rounded"
+                                               @click="printRepair({{ repair.id }})"
+                                            >
+                                                <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                                                <span>Print</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#repairs",
+            delimiters: ['<%', '%>'],
+            methods: {
+                printRepair: function (repair_id) {
+                    var url = "/complaint-tracker/admin/repair/pdf/" + repair_id ;
+                    printJS({
+                        printable: url,
+                        type: 'pdf',
+                        onPrintDialogClose: () => {
+                            window.location.reload();
+                        }
+                    });
+                }
+            },
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('%d/%m/%Y %X');
+            $('#repairs').DataTable({
+                order: [[1, 'desc']]
+            });
+        });
+    </script>
+{% endblock %}

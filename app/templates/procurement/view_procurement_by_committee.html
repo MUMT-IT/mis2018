@@ -1,10 +1,40 @@
 {% extends "base.html" %}
-{% include "procurement/nav_for_committee.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% block page_content %}
+<nav class="navbar">
+    <div class="container">
+        <div class="navbar-brand">
+            <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="75">
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="committeeNavbarMenu">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+        <div id="committeeNavbarMenu" class="navbar-menu">
+            <div class="navbar-end">
+                <a class="navbar-item" href="{{ url_for('procurement.committee_first') }}">
+                    <span>Dashboard</span>
+                </a>
+                <a class="navbar-item" href="{{ url_for('procurement.committee_first') }}">
+                    <span>Close</span>
+                    <span class="icon"><i class="far fa-times-circle"></i></span>
+                </a>
+                <a class="navbar-item" href="{{ url_for('auth.account') }}">
+                    <span class="icon"><i class="fas fa-user-circle"></i></span>
+                    <span>{{ current_user.personal_info.fullname }}</span>
+                </a>
+                <a class="navbar-item" href="{{ url_for('auth.logout') }}">
+                    <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                    <span>ออกจากระบบ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
 <section class="section">
     {% include "messages.html" %}
     <div class="container">
@@ -64,9 +94,14 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(function () {
+            $('.navbar-burger').click(function () {
+                $('#committeeNavbarMenu').toggleClass('is-active');
+                $(this).toggleClass('is-active');
+            });
+
             $('#proCommitteeTable').DataTable({
                 ajax: '{{ url_for("procurement.get_procurement_data_to_committee") }}',
                 serverSide: true,
@@ -101,5 +136,3 @@
     </script>
 
 {% endblock %}
-
-}

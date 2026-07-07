@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: General Public Email Registration{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .public-email-page {
+            padding: 2rem 1.25rem 3rem;
+        }
+
+        .public-email-shell {
+            margin: 0 auto;
+            max-width: 1120px;
+        }
+
+        .public-email-hero {
+            background:
+                radial-gradient(circle at top left, rgba(26, 61, 124, 0.18), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(240, 196, 25, 0.2), transparent 28%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(244, 247, 255, 0.94));
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 34px;
+            box-shadow: 0 24px 60px rgba(18, 39, 84, 0.12);
+            padding: 2.25rem;
+        }
+
+        .public-email-kicker {
+            color: var(--theme-navy);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .public-email-title {
+            color: var(--theme-navy-deep);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.08;
+            margin-bottom: 0.9rem;
+        }
+
+        .public-email-copy {
+            color: var(--theme-text);
+            line-height: 1.75;
+            max-width: 760px;
+        }
+
+        .public-email-search-card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 28px;
+            box-shadow: 0 18px 42px rgba(18, 39, 84, 0.08);
+            margin-top: 1.75rem;
+            padding: 1.5rem;
+        }
+
+        .public-email-search-label {
+            color: var(--theme-navy-deep);
+            display: block;
+            font-weight: 700;
+            margin-bottom: 0.65rem;
+        }
+
+        .public-email-search-input {
+            border-radius: 18px;
+            min-height: 3.4rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .public-email-results {
+            margin-top: 1rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .public-email-page {
+                padding: 1.25rem 0.9rem 2rem;
+            }
+
+            .public-email-hero,
+            .public-email-search-card {
+                border-radius: 24px;
+                padding: 1.3rem;
+            }
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<section class="section public-email-page">
+    <div class="public-email-shell">
+        <div class="public-email-hero">
+            <div class="public-email-kicker">General Public</div>
+            <h1 class="public-email-title">ค้นหารายชื่อบุคคลทั่วไปเพื่อจัดการอีเมล</h1>
+            <p class="public-email-copy">
+                ค้นหาจากชื่อหรือนามสกุลของผู้รับบริการภายนอก ระบบจะแสดงรายชื่อที่ตรงกันพร้อมอีเมลปัจจุบัน
+                จากนั้นสร้าง QR code ให้ผู้รับบริการสแกนเพื่อเปิดแบบฟอร์มแก้ไขอีเมลและรับลิงก์ยืนยันอีเมลใหม่
+            </p>
+        </div>
+
+        <div class="public-email-search-card">
+            <label class="public-email-search-label" for="public-email-search">ค้นหาชื่อผู้รับบริการ</label>
+            <input
+                class="input is-medium public-email-search-input"
+                id="public-email-search"
+                name="query"
+                type="text"
+                placeholder="พิมพ์ชื่อหรือนามสกุล"
+                hx-get="{{ url_for('comhealth.search_email_registration_general_public') }}"
+                hx-trigger="input changed delay:300ms, search"
+                hx-target="#public-email-results"
+                hx-swap="innerHTML"
+                autocomplete="off"
+            >
+            <div class="public-email-results" id="public-email-results">
+                {% with mode='public' %}
+                    {% include "comhealth/partials/email_registration_customer_list.html" %}
+                {% endwith %}
+            </div>
+        </div>
+        <div id="staff-email-modal-container"></div>
+    </div>
+</section>
+{% endblock %}

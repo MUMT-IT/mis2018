@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 
 {% block page_content %}
@@ -29,17 +29,17 @@
                         </span>
                     </div>
                     <h1 class="title is-size-4 has-text-centered has-text-link">
-                        ขั้นตอนการแสกน
+                        ขั้นตอนการสแกน
                     </h1>
                     <div class="content">
                         <ol>
                             <li>เปิด QR Code จาก We Mahidol App หรือระบบ MUMT-MIS หรือจาก MUMT Connect</li>
                             <li>หัน QR Code เข้าหากล้องจนมีกรอบสีแดงปรากฎรอบ QR Code</li>
-                            <li>รอข้อความแสดงการแสกนเสร็จเรียบร้อย</li>
+                            <li>รอข้อความแสดงการสแกนเสร็จเรียบร้อย</li>
                         </ol>
                     </div>
                     <p>
-                        <strong>หมายเหตุ</strong> ระบบจะบันทึกการแสกนครั้งแรกของวันเป็นเวลาเข้างานและการแสกนครั้งสุดท้ายเป็นเวลาออกจากงาน หากแสกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
+                        <strong>หมายเหตุ</strong> ระบบจะบันทึกการสแกนครั้งแรกของวันเป็นเวลาเข้างานและการสแกนครั้งสุดท้ายเป็นเวลาออกจากงาน หากสแกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
                     </p>
                     <br>
                     <div class="notification is-danger is-light">
@@ -54,7 +54,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="{{ url_for('static', filename='js/VueQrcodeReader@3.0.umd.min.js') }}"></script>
-    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(()=>{
         window.setInterval(function () {
@@ -150,7 +150,7 @@
                                     timer: 3000,
                                     timerProgressBar: true,
                                     icon: 'success',
-                                    text: 'เวลาแสกน ' + this.time
+                                    text: 'เวลาสแกน ' + this.time
                                     })
                             }
                             else{
@@ -169,7 +169,7 @@
                             timer: 3000,
                             timerProgressBar: true,
                             icon: 'success',
-                            text: 'เวลาแสกน ' + this.time
+                            text: 'เวลาสแกน ' + this.time
                         })
                         }
                         this.reset()

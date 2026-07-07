@@ -2,7 +2,7 @@
 {% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
 {% endblock %}
 {% block page_content %}
     {% include "service_admin/admin_nav.html" %}
@@ -78,7 +78,7 @@
                         </li>
                     </ul>
                 </div>
-                <table id='results' class="table is-fullwidth">
+                <table id='results' class="table is-fullwidth is-narrow">
                     <thead>
                     <th>เลขใบแจ้งหนี้</th>
                     <th>วัน-เวลาที่ออก</th>
@@ -103,7 +103,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         function showSlipPopup(url) {
             Swal.fire({
@@ -160,7 +160,7 @@
                                     '</div>' +
                                     '</div>'
                             } else if (row.file_attached_at) {
-                                dowload_url = '/service_admin/aws-s3/download/' + row.invoice_file + '?download_filename='
+                                dowload_url = '/service_admin/aws-s3/download/' + row.invoice_file + '?download_filename=Invoice '
                                     + row.invoice_no + '.pdf';
                                 return `
                                         <div class="field has-addons">

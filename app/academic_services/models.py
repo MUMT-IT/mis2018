@@ -146,9 +146,11 @@ class ServiceCustomerAccount(db.Model):
     def get_id(self):
         return str(self.id)
 
+    @property
     def is_active(self):
         return True
 
+    @property
     def is_authenticated(self):
         return True
 
@@ -299,6 +301,9 @@ class ServiceLab(db.Model):
     service_rate = db.Column('service_rate', db.String())
     phone_number = db.Column('phone_number', db.String())
     email = db.Column('email', db.String())
+    updated_at = db.Column('updated_at', db.DateTime())
+    updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
+    updater = db.relationship(StaffAccount, backref=db.backref('service_labs'))
 
     def __str__(self):
         return self.code
@@ -307,6 +312,7 @@ class ServiceLab(db.Model):
 class ServiceSubLab(db.Model):
     __tablename__ = 'service_sub_labs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
     sub_lab = db.Column('sub_lab', db.String())
     lab_information = db.Column('lab_information', db.Text(), info={'label': 'ข้อมูลห้องปฏิบัติการทดสอบ'})
     address = db.Column('address', db.Text(), info={'label': 'ที่อยู่'})
@@ -566,6 +572,7 @@ class ServiceQuotation(db.Model):
             'approved_at': self.approved_at if self.approved_at else None,
             'total_price': '{:,.2f}'.format(self.grand_total()),
             'status_id': self.request.status.status_id if self.request.status else None,
+            'disapproved_at': self.disapproved_at if self.disapproved_at else None,
             'customer_status': self.customer_status if self.customer_status else None,
             'customer_status_color': self.customer_status_color if self.customer_status_color else None,
             'admin_status': self.admin_status if self.admin_status else None,
@@ -681,6 +688,16 @@ class ServiceQuotationItem(db.Model):
     unit_price = db.Column('unit_price', db.Numeric(), nullable=False)
     total_price = db.Column('total_price', db.Numeric(), nullable=False)
     discount = db.Column('discount', db.Numeric())
+
+    def discount_price(self):
+        discount = 0
+        if self.discount:
+            if self.discount_type == 'เปอร์เซ็นต์':
+                amount = self.total_price * (self.discount / 100)
+                discount += amount
+            else:
+                discount += self.discount
+        return discount
 
     def net_price(self):
         if self.discount:

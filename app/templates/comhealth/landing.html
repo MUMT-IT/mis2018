@@ -1,50 +1,470 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Community Health Information System{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .comhealth-landing {
+            padding: 2rem 1.25rem 3rem;
+        }
+
+        .comhealth-shell {
+            margin: 0 auto;
+            max-width: 1180px;
+        }
+
+        .comhealth-hero {
+            background:
+                radial-gradient(circle at top right, rgba(240, 196, 25, 0.28), transparent 24%),
+                radial-gradient(circle at left center, rgba(26, 61, 124, 0.18), transparent 32%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(238, 243, 255, 0.94));
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 34px;
+            box-shadow: 0 28px 70px rgba(18, 39, 84, 0.12);
+            overflow: hidden;
+            padding: 2.5rem;
+            position: relative;
+        }
+
+        .comhealth-hero::after {
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.08), rgba(202, 168, 74, 0.18));
+            border-radius: 999px;
+            content: "";
+            height: 220px;
+            position: absolute;
+            right: -70px;
+            top: -90px;
+            width: 220px;
+        }
+
+        .comhealth-brand {
+            align-items: center;
+            display: inline-flex;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .comhealth-brand img {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(18, 39, 84, 0.1);
+            padding: 0.45rem;
+        }
+
+        .comhealth-badge {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 999px;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            font-size: 0.88rem;
+            font-weight: 700;
+            gap: 0.5rem;
+            padding: 0.55rem 0.95rem;
+        }
+
+        .comhealth-kicker {
+            color: var(--theme-navy);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .comhealth-title {
+            color: var(--theme-navy-deep);
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.05;
+            margin-bottom: 0.85rem;
+        }
+
+        .comhealth-subtitle {
+            color: var(--theme-text);
+            font-size: 1.1rem;
+            line-height: 1.7;
+            margin-bottom: 1.4rem;
+            max-width: 700px;
+        }
+
+        .comhealth-highlights {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .comhealth-highlight {
+            align-items: center;
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 18px;
+            display: inline-flex;
+            gap: 0.75rem;
+            padding: 0.9rem 1rem;
+        }
+
+        .comhealth-highlight .icon {
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.14), rgba(240, 196, 25, 0.22));
+            border-radius: 14px;
+            color: var(--theme-navy);
+            height: 2.4rem;
+            width: 2.4rem;
+        }
+
+        .comhealth-actions {
+            margin-top: 1.75rem;
+        }
+
+        .comhealth-menu-section {
+            background: rgba(255, 255, 255, 0.56);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 28px;
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .comhealth-menu-heading {
+            align-items: center;
+            display: flex;
+            gap: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .comhealth-menu-heading .icon {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.14), rgba(240, 196, 25, 0.2));
+            border-radius: 16px;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            height: 3rem;
+            justify-content: center;
+            width: 3rem;
+        }
+
+        .comhealth-menu-title {
+            color: var(--theme-navy-deep);
+            font-size: 1.2rem;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .comhealth-menu-subtitle {
+            color: var(--theme-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .comhealth-action-card {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 28px;
+            box-shadow: 0 18px 40px rgba(18, 39, 84, 0.09);
+            color: inherit;
+            display: block;
+            height: 100%;
+            min-height: 250px;
+            overflow: hidden;
+            padding: 1.5rem;
+            position: relative;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .comhealth-action-card:hover {
+            border-color: rgba(26, 61, 124, 0.22);
+            box-shadow: 0 24px 50px rgba(18, 39, 84, 0.14);
+            color: inherit;
+            transform: translateY(-6px);
+        }
+
+        .comhealth-action-card::after {
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.07), rgba(240, 196, 25, 0.16));
+            border-radius: 999px;
+            content: "";
+            height: 140px;
+            position: absolute;
+            right: -45px;
+            top: -45px;
+            width: 140px;
+        }
+
+        .comhealth-action-top {
+            align-items: flex-start;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .comhealth-action-card.is-flat {
+            box-shadow: none;
+        }
+
+        .comhealth-action-card.is-flat:hover {
+            box-shadow: none;
+        }
+
+        .comhealth-menu-section.service-staff .comhealth-action-card {
+            box-shadow: none;
+        }
+
+        .comhealth-menu-section.service-staff .comhealth-action-card:hover {
+            box-shadow: none;
+        }
+
+        .comhealth-icon {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.16), rgba(240, 196, 25, 0.22));
+            border-radius: 22px;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            height: 4.25rem;
+            justify-content: center;
+            width: 4.25rem;
+        }
+
+        .comhealth-arrow {
+            color: var(--theme-navy);
+            font-size: 1.15rem;
+        }
+
+        .comhealth-action-title {
+            color: var(--theme-navy-deep);
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .comhealth-action-copy {
+            color: var(--theme-muted);
+            line-height: 1.7;
+            position: relative;
+            z-index: 1;
+        }
+
+        .comhealth-action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .comhealth-action-button {
+            border-radius: 999px;
+            font-weight: 700;
+        }
+
+        .comhealth-note {
+            align-items: center;
+            background: rgba(255, 248, 223, 0.82);
+            border: 1px solid rgba(202, 168, 74, 0.28);
+            border-radius: 20px;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            gap: 0.75rem;
+            margin-top: 1.6rem;
+            padding: 0.95rem 1.1rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .comhealth-landing {
+                padding: 1.25rem 0.9rem 2rem;
+            }
+
+            .comhealth-hero {
+                border-radius: 26px;
+                padding: 1.5rem;
+            }
+
+            .comhealth-brand {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .comhealth-action-card {
+                min-height: 220px;
+            }
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
 {% include "comhealth/nav.html" %}
-<section class="hero is-small is-white">
-    <div class="hero-body">
+<section class="section comhealth-landing">
+    <div class="comhealth-shell">
         {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
         {{ user_evaluate('comhealth_register_station') }}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <img src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}" width="200"/>
-                <h1 class="title is-size-2 has-text-link">ระบบลงทะเบียนงานบริการสุขภาพองค์รวม</h1>
-                <h1 class="subtitle is-size-2 has-text-link">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
-                <span class="is-size-5 has-text-link">Version 1.3</span>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <div class="container has-text-centered">
-                    <a href="{{ url_for('comhealth.index') }}">
-                        <div class="box">
-                    <span class="icon is-large">
-                        <i class="fas fa-user-clock fa-4x has-text-link"></i>
-                    </span><br><br>
-                            <span class="is-size-4 has-text-link">ลงทะเบียนรับบริการ</span>
-                        </div>
-                    </a>
-                </div>
-            </div>
-            <div class="column">
-                <div class="container has-text-centered">
-                    <a href="{{ url_for('comhealth.finance_landing') }}">
-                        <div class="box">
-                    <span class="icon is-large">
-                        <i class="fas fa-hand-holding-usd fa-4x has-text-link"></i>
-                    </span><br><br>
-                            <span class="is-size-4 has-text-link">การเงิน</span>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column has-text-centered">
-                <span class="label has-text-danger">
-                    กรุณาใช้โปรแกรม Chrome เพื่อการใช้งานที่มีประสิทธิภาพสูงสุด
+        <div class="comhealth-hero">
+            <div class="comhealth-brand">
+                <img src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}" width="110" alt="Mahidol University">
+                <span class="comhealth-badge">
+                    <span class="icon"><i class="fas fa-heart-pulse"></i></span>
+                    <span>Community Health Platform</span>
                 </span>
+            </div>
+
+            <div class="comhealth-kicker">Integrated Health Services</div>
+            <h1 class="comhealth-title">ระบบลงทะเบียนงานบริการสุขภาพองค์รวม</h1>
+            <p class="comhealth-subtitle">
+                คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล
+                รวมจุดเริ่มต้นสำหรับลงทะเบียนรับบริการ ลงทะเบียนผ่านอีเมล และงานด้านการเงินไว้ในหน้าเดียว
+            </p>
+
+            <div class="comhealth-highlights">
+                <div class="comhealth-highlight">
+                    <span class="icon"><i class="fas fa-user-check"></i></span>
+                    <span>ลงทะเบียนได้สะดวกรวดเร็ว</span>
+                </div>
+                <div class="comhealth-highlight">
+                    <span class="icon"><i class="fas fa-envelope-open-text"></i></span>
+                    <span>รองรับการลงทะเบียนล่วงหน้า คำนวณค่าใช้จ่าย</span>
+                </div>
+                <div class="comhealth-highlight">
+                    <span class="icon"><i class="fas fa-receipt"></i></span>
+                    <span>เชื่อมต่อข้อมูลการเงิน ออกใบเสร็จ</span>
+                </div>
+            </div>
+
+            <div class="comhealth-actions">
+                {% if current_user.is_authenticated %}
+                    <div class="comhealth-menu-section service-staff">
+                        <div class="comhealth-menu-heading">
+                            <span class="icon"><i class="fas fa-user-gear"></i></span>
+                            <div>
+                                <div class="comhealth-menu-title">For Service Staff</div>
+                                <div class="comhealth-menu-subtitle">เครื่องมือสำหรับเจ้าหน้าที่ผู้ดูแลการลงทะเบียนและการเงิน</div>
+                            </div>
+                        </div>
+                        <div class="columns is-variable is-5">
+                            <div class="column">
+                                <a class="comhealth-action-card" href="{{ url_for('comhealth.index') }}">
+                                    <div class="comhealth-action-top">
+                                        <span class="comhealth-icon">
+                                            <i class="fas fa-user-clock fa-2x"></i>
+                                        </span>
+                                        <span class="comhealth-arrow">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </span>
+                                    </div>
+                                    <div class="comhealth-action-title">ลงทะเบียนรับบริการ</div>
+                                    <div class="comhealth-action-copy">
+                                        สำหรับเจ้าหน้าที่จัดการรายชื่อผู้รับบริการ เลือกหน่วยบริการ และเข้าถึงขั้นตอนลงทะเบียนหลักของระบบ
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="column">
+                                <a class="comhealth-action-card" href="{{ url_for('comhealth.email_registration_landing') }}">
+                                    <div class="comhealth-action-top">
+                                        <span class="comhealth-icon">
+                                            <i class="fas fa-envelope-open-text fa-2x"></i>
+                                        </span>
+                                        <span class="comhealth-arrow">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </span>
+                                    </div>
+                                    <div class="comhealth-action-title">Email Registration</div>
+                                    <div class="comhealth-action-copy">
+                                        เข้าสู่หน้าจัดการอีเมลสำหรับบุคลากรมหิดลและบุคคลทั่วไป เพื่อสร้าง QR ให้ผู้รับบริการสแกนและยืนยันอีเมล
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="column">
+                                <a class="comhealth-action-card" href="{{ url_for('comhealth.finance_landing') }}">
+                                    <div class="comhealth-action-top">
+                                        <span class="comhealth-icon">
+                                            <i class="fas fa-hand-holding-dollar fa-2x"></i>
+                                        </span>
+                                        <span class="comhealth-arrow">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </span>
+                                    </div>
+                                    <div class="comhealth-action-title">การเงิน</div>
+                                    <div class="comhealth-action-copy">
+                                        ตรวจสอบการชำระเงิน ออกใบเสร็จ และดูภาพรวมของรายการทางการเงินที่เชื่อมโยงกับบริการสุขภาพ
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if current_user.is_authenticated and current_user.personal_info and current_user.personal_info.org and not current_user.personal_info.org.is_external %}
+                    <div class="comhealth-menu-section">
+                        <div class="comhealth-menu-heading">
+                            <span class="icon"><i class="fas fa-box-open"></i></span>
+                            <div>
+                                <div class="comhealth-menu-title">Accessories</div>
+                                <div class="comhealth-menu-subtitle">เครื่องมือเสริมสำหรับการใช้งานงานลงชื่อเข้างานและงานสนับสนุนอื่น ๆ</div>
+                            </div>
+                        </div>
+                        <div class="columns is-variable is-5">
+                            <div class="column is-half">
+                                <a class="comhealth-action-card" href="{{ url_for('staff.login_scan') }}">
+                                    <div class="comhealth-action-top">
+                                        <span class="comhealth-icon">
+                                            <i class="fas fa-qrcode fa-2x"></i>
+                                        </span>
+                                        <span class="comhealth-arrow">
+                                            <i class="fas fa-arrow-right"></i>
+                                        </span>
+                                    </div>
+                                    <div class="comhealth-action-title">QR Code Check-in</div>
+                                    <div class="comhealth-action-copy">
+                                        เข้าสู่หน้าสแกน QR Code สำหรับลงชื่อเข้างาน และบันทึกเวลาเช็คอินตามกระบวนการปัจจุบัน
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="comhealth-menu-section">
+                    <div class="comhealth-menu-heading">
+                        <span class="icon"><i class="fas fa-users"></i></span>
+                        <div>
+                            <div class="comhealth-menu-title">For Customers</div>
+                            <div class="comhealth-menu-subtitle">จุดเริ่มต้นสำหรับผู้รับบริการที่ต้องการจัดการข้อมูลอีเมลและการลงทะเบียนดูผลออนไลน์</div>
+                        </div>
+                    </div>
+                    <div class="columns is-variable is-5">
+                        <div class="column is-half">
+                            <div class="comhealth-action-card is-flat">
+                                <div class="comhealth-action-top">
+                                    <span class="comhealth-icon">
+                                        <i class="fas fa-file-medical fa-2x"></i>
+                                    </span>
+                                    <span class="comhealth-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </span>
+                                </div>
+                                <div class="comhealth-action-title">Online Results</div>
+                                <div class="comhealth-action-copy">
+                                    เลือกช่องทางสำหรับดูผลตรวจสุขภาพออนไลน์ตามประเภทผู้ใช้งาน
+                                </div>
+                                <div class="comhealth-action-buttons">
+                                    <a class="button is-danger is-light comhealth-action-button" href="{{ url_for('comhealth.online_results_mahidol_google_start') }}">
+                                        <span class="icon"><i class="fab fa-google"></i></span>
+                                        <span>บุคลากรม.มหิดล</span>
+                                    </a>
+                                    <a class="button is-link is-light comhealth-action-button" href="{{ url_for('comhealth.landing') }}">
+                                        <span class="icon"><i class="fas fa-user"></i></span>
+                                        <span>บุคคลทั่วไป</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

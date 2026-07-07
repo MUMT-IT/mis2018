@@ -4,14 +4,254 @@
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
-<link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 <link rel="stylesheet" href="{{ url_for('static', filename='css/scheduler.min.css') }}">
+<style>
+    .room-list-shell {
+        padding-top: 1rem;
+    }
+
+    .room-list-shell .columns {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .room-list-shell .column {
+        min-width: 0;
+    }
+
+    .room-list-hero,
+    .room-list-panel {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 255, 0.92));
+        border: 1px solid rgba(18, 39, 84, 0.1);
+        border-radius: 28px;
+        box-shadow: 0 22px 55px rgba(18, 39, 84, 0.08);
+        overflow: hidden;
+    }
+
+    .room-list-hero {
+        background:
+            radial-gradient(circle at top right, rgba(202, 168, 74, 0.2), transparent 32%),
+            radial-gradient(circle at left center, rgba(26, 61, 124, 0.13), transparent 36%),
+            linear-gradient(135deg, rgba(16, 38, 76, 0.97), rgba(26, 61, 124, 0.92));
+        color: #fff;
+        padding: 2rem;
+    }
+
+    .room-list-kicker {
+        color: rgba(255, 255, 255, 0.74);
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        margin-bottom: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .room-list-hero .title,
+    .room-list-hero .subtitle,
+    .room-list-hero a {
+        color: #fff;
+    }
+
+    .room-list-hero .subtitle {
+        color: rgba(255, 255, 255, 0.82);
+    }
+
+    .room-list-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    .room-list-pill {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        color: #fff;
+        display: inline-flex;
+        gap: 0.55rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .room-list-panel {
+        padding: 1.5rem;
+    }
+
+    .room-list-panel-header {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .room-list-panel-header .title {
+        margin-bottom: 0.25rem;
+    }
+
+    .room-list-panel-header .subtitle {
+        color: var(--theme-muted);
+        margin-bottom: 0;
+    }
+
+    .room-list-search .input,
+    .room-list-date .input {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(18, 39, 84, 0.12);
+        border-radius: 18px;
+        min-height: 3.45rem;
+    }
+
+    .room-list-search .icon,
+    .room-list-date .icon {
+        color: var(--theme-navy);
+    }
+
+    .room-list-search-note {
+        color: var(--theme-muted);
+        font-size: 0.95rem;
+        margin-top: 0.7rem;
+    }
+
+    .room-list-filters {
+        align-items: end;
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) 240px;
+    }
+
+    .room-list-results {
+        margin-top: 1.25rem;
+    }
+
+    .room-list-empty {
+        align-items: center;
+        background: linear-gradient(180deg, rgba(238, 243, 255, 0.9), rgba(255, 248, 230, 0.72));
+        border: 1px dashed rgba(18, 39, 84, 0.18);
+        border-radius: 22px;
+        color: var(--theme-muted);
+        display: flex;
+        gap: 0.85rem;
+        justify-content: center;
+        min-height: 128px;
+        padding: 1.25rem;
+        text-align: center;
+    }
+
+    .room-list-empty .icon {
+        color: var(--theme-navy);
+        font-size: 1.3rem;
+    }
+
+    .room-list-view-switch {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+    }
+
+    .room-list-view-switch .button,
+    .room-list-nav .button {
+        border-radius: 999px;
+    }
+
+    .room-list-nav {
+        display: flex;
+        gap: 0.65rem;
+    }
+
+    #room_calendar {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 24px;
+        margin-top: 1rem;
+        max-width: 100%;
+        overflow-x: auto;
+        padding: 1.35rem;
+    }
+
+    .fc-toolbar {
+        margin-bottom: 1rem !important;
+    }
+
+    .fc-toolbar h2 {
+        color: var(--theme-navy-deep);
+        font-size: 1.35rem;
+        font-weight: 700;
+    }
+
+    .fc-event {
+        border: 0;
+        border-radius: 12px;
+        box-shadow: 0 8px 18px rgba(18, 39, 84, 0.12);
+        padding: 0.2rem 0.35rem;
+    }
+
+    .fc-now-indicator {
+        border: 0 solid #f0c419;
+    }
+
+    .fc-view-container {
+        max-width: 100%;
+        width: auto;
+    }
+
+    .fc-view-container .fc-view {
+        overflow-x: auto;
+        width: 100%;
+    }
+
+    .fc-view-container .fc-view > table {
+        min-width: 1600px;
+        width: 100%;
+    }
+
+    @media screen and (max-width: 768px) {
+        .room-list-hero,
+        .room-list-panel {
+            border-radius: 22px;
+        }
+
+        .room-list-hero {
+            padding: 1.5rem;
+        }
+
+        .room-list-filters {
+            grid-template-columns: 1fr;
+        }
+
+        .room-list-panel-header,
+        .room-list-nav {
+            align-items: stretch;
+        }
+    }
+</style>
 {% endblock head %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
-<section class="section">
-    <h1 class="title"><a href="{{ url_for('room.index') }}">Room Self-Booking System</a></h1>
-    <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.0</h2>
+<section class="section room-list-shell">
+    <div class="columns">
+        <div class="column">
+            <div class="room-list-hero">
+                <span class="room-list-kicker">Room Scheduler</span>
+                <h1 class="title is-2"><a href="{{ url_for('room.index') }}">Room Self-Booking System</a></h1>
+                <p class="subtitle is-5">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.0</p>
+                <div class="room-list-metrics">
+                    <div class="room-list-pill">
+                        <span class="icon"><i class="fas fa-table-cells-large"></i></span>
+                        <span>{% if list_type == 'timelineDay' %}มุมมองรายวัน{% else %}มุมมองรายสัปดาห์{% endif %}</span>
+                    </div>
+                    <div class="room-list-pill">
+                        <span class="icon"><i class="fas fa-magnifying-glass"></i></span>
+                        <span>ค้นหาห้องและเช็กคิวได้ในหน้าเดียว</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="columns">
         <div class="column">
             {% include "messages.html" %}
@@ -19,56 +259,87 @@
     </div>
     <div class="columns">
         <div class="column">
-            <form method="post" action="{{ url_for('room.room_list') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="field">
-                    <p class="control has-icons-right">
-                        <input class="input is-large is-rounded" type="text" name="room_number"
-                               hx-post="{{ url_for('room.room_list') }}"
-                               hx-indicator="closest p"
-                               hx-trigger="keyup changed delay:500ms"
-                               hx-target="#roomTable"
-                               hx-swap="innerHTML"
-                               placeholder="ค้นหาด้วยหมายเลขห้องที่ต้องการจอง">
-                        <span class="icon is-right">
-                            <i class="fas fa-search"></i>
-                        </span>
-                    </p>
+            <div class="room-list-panel">
+                <div class="room-list-panel-header">
+                    <div>
+                        <h2 class="title is-4 mb-5">ตารางการใช้งานห้อง</h2>
+                        <p class="subtitle is-6">ค้นหาห้อง เลือกวันที่ และสลับมุมมองเพื่อดูการจองได้ละเอียดขึ้น</p>
+                    </div>
+                    <div class="room-list-nav">
+                        <button class="button is-light" id="prev_btn" type="button">
+                            <span class="icon"><i class="fas fa-chevron-left"></i></span>
+                            <span>ก่อนหน้า</span>
+                        </button>
+                        <button class="button is-light" id="next_btn" type="button">
+                            <span>ถัดไป</span>
+                            <span class="icon"><i class="fas fa-chevron-right"></i></span>
+                        </button>
+                    </div>
                 </div>
-            </form>
-            <p>คลิกเพื่อข้ามไปวันที่ที่ต้องการตรวจสอบ</p>
-            <div class="field">
-                <div class="control has-icons-left">
-                    <input class="input is-rounded" name="datePicker" id="datePicker">
-                    <span class="icon is-small is-left">
-                    <i class="far fa-calendar-alt"></i>
-                </span>
+
+                <div class="room-list-filters">
+                    <div>
+                        <form class="room-list-search" method="post" action="{{ url_for('room.room_list') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <div class="field">
+                                <p class="control has-icons-right">
+                                    <input class="input is-large"
+                                           type="text"
+                                           name="room_number"
+                                           hx-post="{{ url_for('room.room_list') }}"
+                                           hx-indicator="closest p"
+                                           hx-trigger="keyup changed delay:500ms"
+                                           hx-target="#roomTable"
+                                           hx-swap="innerHTML"
+                                           placeholder="ค้นหาด้วยหมายเลขห้องที่ต้องการจอง">
+                                    <span class="icon is-right">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                </p>
+                            </div>
+                        </form>
+                        <p class="room-list-search-note">ผลการค้นหาห้องจะแสดงด้านล่างทันทีโดยไม่ต้องรีเฟรชหน้า</p>
+                    </div>
+                    <div class="field room-list-date">
+                        <div class="control has-icons-left">
+                            <input class="input" name="datePicker" id="datePicker" placeholder="เลือกวันที่">
+                            <span class="icon is-small is-left">
+                                <i class="far fa-calendar-alt"></i>
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div id="roomTable"></div>
-            <div class="tabs is-boxed">
-                <ul>
-                    <li class="{% if list_type=='' %}is-active{% endif %}">
-                        <a class="button is-primary is-outlined"
+
+                <div class="room-list-results" id="roomTable">
+                    <div class="room-list-empty">
+                        <span class="icon"><i class="fas fa-door-open"></i></span>
+                        <span>ค้นหาห้องเพื่อดูข้อมูลและเริ่มจองจากหน้านี้ได้ทันที</span>
+                    </div>
+                </div>
+
+                <div class="room-list-panel-header" style="margin-top: 1.5rem;">
+                    <div>
+                        <h3 class="title is-5 mb-5">สลับมุมมอง</h3>
+                        <p class="subtitle is-6">เลือกการแสดงผลที่เหมาะกับงานของคุณ</p>
+                    </div>
+                    <div class="room-list-view-switch">
+                        <a class="button {% if list_type not in ['timelineDay', 'agendaWeek'] %}is-info{% else %}is-info is-light{% endif %}"
                            href="{{ url_for('room.index') }}">
                             รายเดือน
                         </a>
-                    </li>
-                    <li class="{% if list_type=='timelineDay' %}is-active{% endif %}">
-                        <a class="button is-primary is-outlined"
+                        <a class="button {% if list_type == 'timelineDay' %}is-info{% else %}is-info is-light{% endif %}"
                            href="{{ url_for('room.event_list', list_type='timelineDay') }}">
                             รายวัน
                         </a>
-                    </li>
-                    <li class="{% if list_type=='agendaWeek' %}is-active{% endif %}">
-                        <a class="button is-primary is-outlined"
+                        <a class="button {% if list_type == 'agendaWeek' %}is-info{% else %}is-info is-light{% endif %}"
                            href="{{ url_for('room.event_list', list_type='agendaWeek') }}">
                             รายสัปดาห์
                         </a>
-                    </li>
-                </ul>
+                    </div>
+                </div>
+
+                <div id="room_calendar"></div>
             </div>
-            <div id="room_calendar"></div>
         </div>
     </div>
 </section>
@@ -78,17 +349,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
-<script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script src="{{ url_for('static', filename='js/scheduler.min.js') }}"></script>
 <script>
     $(function() {
         $('#datePicker').daterangepicker({
-                singleDatePicker: true,
-                startDate: moment()
-            }, function(start, end, label) {
-                $('#room_calendar').data('fullCalendar').gotoDate(start);
-            }
-        );
+            singleDatePicker: true,
+            startDate: moment()
+        }, function(start, end, label) {
+            $('#room_calendar').data('fullCalendar').gotoDate(start);
+        });
+
         $('#room_calendar').fullCalendar({
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             defaultView: '{{ list_type }}',
@@ -99,7 +370,7 @@
             eventClick: function(calEvent, jsEvent, view) {
                 window.location = '/room/events/' + calEvent.id;
             },
-            resources: '/room/api/rooms?availability=reservable',
+            resources: '/room/api/rooms?query=reservable',
             eventLimit: true,
             resourceLabelText: 'Room',
             resourceGroupField: 'location',
@@ -118,9 +389,11 @@
             ],
             slotWidth: 5
         });
+
         $('#prev_btn').on('click', function() {
             $('#room_calendar').fullCalendar('prev');
         });
+
         $('#next_btn').on('click', function() {
             $('#room_calendar').fullCalendar('next');
         });

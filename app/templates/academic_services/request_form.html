@@ -1,7 +1,7 @@
 {% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
     <style>
@@ -47,7 +47,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-<script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function () {
         htmx.ajax('GET', '{{ url_for("academic_services.get_request_form", code=code) }}',

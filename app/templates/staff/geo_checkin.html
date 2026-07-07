@@ -3,7 +3,7 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 {% block page_content %}
 <section class="section" id="app">
@@ -100,7 +100,7 @@
                                     showConfirmButton: false,
                                     timerProgressBar: true,
                                     icon: 'success',
-                                    text: 'เวลาแสกน ' + self.time
+                                    text: 'เวลาสแกน ' + self.time
                                 })
                             } catch {
                                 alert('ลงชื่อเข้าปฏิบัติงานเรียบร้อยเวลา ' + self.time)
@@ -169,7 +169,7 @@
                     },
                     (error)=>{
                         alert('GPS failed')
-                        this.message = 'ไม่สามารถค้นหาตำแหน่งของคุณได้แต่คุณยังสามารถใช้ QR Code ในการแสกนได้'
+                        this.message = 'ไม่สามารถค้นหาตำแหน่งของคุณได้แต่คุณยังสามารถใช้ QR Code ในการสแกนได้'
                         this.get_qrcode_data()
                     },
                     {timeout: 9000, enableHighAccuracy: true});

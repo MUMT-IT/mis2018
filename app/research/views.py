@@ -10,7 +10,7 @@ from pandas import DataFrame
 from . import researchbp as research
 from app.research.models import APIKey, ResearchPub, Country, Author, Affiliation, ScopusAuthorID, SubjectArea
 from app.staff.models import StaffPersonalInfo
-from app.main import db, json_keyfile, csrf
+from app.main import db, csrf, get_json_keyfile
 from sqlalchemy import extract
 
 usr = os.environ.get('PROXY_USER')
@@ -194,7 +194,7 @@ def display_yearly_pubs():
 
 @research.route('/api/funding')
 def get_funding_data():
-    gc = get_google_credential(json_keyfile)
+    gc = get_google_credential(get_json_keyfile())
     sheet = gc.open_by_key('1RolhNZwWcj-GVd4SQhXA15i-OrpShpw01F3apaoq0nQ').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -220,7 +220,7 @@ def show_funding():
 
 @research.route('/api/cost')
 def get_cost_data():
-    gc = get_google_credential(json_keyfile)
+    gc = get_google_credential(get_json_keyfile())
     sheet = gc.open_by_key('1o_HMdBtUnZtGDZ4ZcybrzQantDa-NRxT-Txc_eDaQ9g').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -246,7 +246,7 @@ def show_cost():
 
 @research.route('/api/scopus_cum')
 def get_scopus_cum_data():
-    gc = get_google_credential(json_keyfile)
+    gc = get_google_credential(get_json_keyfile())
     sheet = gc.open_by_key('154-IDTfFSWxOnx61XIOYffp8YDbMw5I9dAiYD_hIMBM').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -272,7 +272,7 @@ def show_scopus_cum():
 
 @research.route('/api/citation_cum')
 def get_citation_cum_data():
-    gc = get_google_credential(json_keyfile)
+    gc = get_google_credential(get_json_keyfile())
     sheet = gc.open_by_key('196Fqeg7NUUYCLotWv7yrQrnqA8DzNn0Ts1EkB8U8Po0').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -298,7 +298,7 @@ def show_citation_cum():
 
 @research.route('/api/datamining_cum')
 def get_datamining_cum_data():
-    gc = get_google_credential(json_keyfile)
+    gc = get_google_credential(get_json_keyfile())
     sheet = gc.open_by_key('14E4G8N2uZmXiZvnZkWV7Sg1lGWE4E-HTHBV9yhzpPxk').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -574,5 +574,4 @@ def article_researcher_country():
         if row['name'] != 'Thailand':
             data.append([row['name'], row['count']])
     return jsonify(data)
-
 

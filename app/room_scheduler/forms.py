@@ -36,6 +36,7 @@ class DateTimePickerField(Field):
 class RoomEventForm(ModelForm):
     class Meta:
         model = RoomEvent
+        exclude = ['end']
 
     start = DateTimePickerField('เริ่มต้น')
     end = DateTimePickerField('สิ้นสุด')

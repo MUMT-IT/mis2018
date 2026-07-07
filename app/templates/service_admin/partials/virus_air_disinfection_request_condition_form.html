@@ -12,12 +12,16 @@
                             {% if loop.first %}
                                 {% for _field in subform %}
                                     {% if _field.type != 'CSRFTokenField' %}
-                                        <th style="border: none">
-                                            {{ _field.label.text }}
-                                            {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
-                                                <span class="has-text-danger">*</span>
-                                            {% endif %}
-                                        </th>
+                                        {% if _field.type == 'SelectField' %}
+                                            <th style="border: none; width: 16.5em">
+                                                {% else %}
+                                            <th style="border: none">
+                                        {% endif %}
+                                    {{ _field.label.text }}
+                                    {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
+                                        <span class="has-text-danger">*</span>
+                                    {% endif %}
+                                    </th>
                                     {% endif %}
                                 {% endfor %}
                             {% endif %}
@@ -28,11 +32,42 @@
                             <tr>
                                 {% for _field in subform %}
                                     {% if _field.type != 'CSRFTokenField' %}
-                                        <td style="border: none">{{ _field() }}</td>
+                                        <td style="border: none">
+                                            {% if _field.type == 'SelectField' %}
+                                                <div class="select">
+                                                    {{ _field() }}
+                                                </div>
+                                            {% else %}
+                                                {{ _field() }}
+                                            {% endif %}
+                                        </td>
                                     {% endif %}
                                 {% endfor %}
+                                <td style="border: none">
+                                    <a class="button is-danger is-outlined"
+                                       hx-delete="{{ url_for('service_admin.remove_virus_surface_disinfection_organism_form_entry',
+                                       name=fields.name) }}"
+                                       hx-target="closest tr"
+                                       hx-swap="outerHTML"
+                                    >
+                                        <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                    </a>
+                                </td>
                             </tr>
                         {% endfor %}
+                        <tr>
+                            <td>
+                                <a class="button is-info is-outlined is-rounded"
+                                   hx-post="{{ url_for('service_admin.add_virus_surface_disinfection_organism_form_entry',
+                                   name=fields.name) }}"
+                                   hx-target="previous tr"
+                                   hx-swap="afterend"
+                                >
+                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                    <span>เพิ่ม</span>
+                                </a>
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 {% else %}
@@ -48,9 +83,11 @@
                 {% endif %}
             {% endif %}
         {% endfor %}
-        <button id="{{ fields.name }}" type="button" class="button is-danger is-rounded is-small remove-subform"
-                hx-target=".subform-card"
-                hx-swap="innerHTML"
+        <button type="button" class="button is-danger is-rounded is-small"
+                hx-delete="{{ url_for('service_admin.remove_virus_surface_disinfection_condition_form',
+                                                            name=fields.name) }}"
+                hx-target="closest .subform-card"
+                hx-swap="outerHTML"
         >
             ลบ
         </button>
@@ -59,33 +96,16 @@
 <script>
     function toggleTable(subform) {
         const table = subform.find('table');
-        const checkboxes = table.find('tbody tr input[type="checkbox"]');
 
         function validateInput() {
-            const count = checkboxes.filter(':checked').length;
-            if (count == 0) {
-                checkboxes.prop('required', true)
-                checkboxes.each(function () {
-                    this.setCustomValidity('กรุณาเลือกเชื้ออย่างน้อย 1 รายการ');
-                });
-            } else {
-                checkboxes.prop('required', false);
-                checkboxes.each(function () {
-                    this.setCustomValidity('');
-                });
-            }
-
             table.find('tbody tr').each(function () {
-                const checkbox = $(this).find('input[type="checkbox"]');
                 const textInputs = $(this).find('input[type="text"]');
 
-                const active = checkbox.is(':checked');
                 textInputs.each(function () {
                     const name = $(this).attr('name');
-                    const isOptional = name.endsWith('ratio') || name.endsWith('per_water');
-                    $(this).prop('readonly', !active);
+                    const isOptional = name.endsWith('ratio');
 
-                    if (active && !isOptional) {
+                    if (!isOptional) {
                         $(this)
                             .prop('required', true)
                             .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
@@ -94,17 +114,11 @@
                         $(this).prop('required', false);
                         this.setCustomValidity('');
                     }
-
-                    if (!active) {
-                        $(this).val('');
-                    }
                 })
             });
         }
 
         validateInput();
-
-        checkboxes.on('change', validateInput);
     }
 
     function addRequiredField(subform) {
@@ -125,23 +139,34 @@
         const cleanTypeOtherInput = subform.find('input[name$="clean_type_other"]');
         const cleanTypeOtherField = cleanTypeOtherInput.closest('.field');
 
-        if (cleanTypeField && cleanTypeField.includes('อื่นๆ โปรดระบุ')) {
+        if (cleanTypeField && cleanTypeField.includes('อื่น ๆ')) {
             cleanTypeOtherField.show();
             cleanTypeOtherInput.prop('required', true).attr('oninvalid', "this.setCustomValidity('กรุณากรอกรูปแบบการทดสอบ')")
                 .attr('oninput', "this.setCustomValidity('')");
         } else {
             cleanTypeOtherField.hide();
+            cleanTypeOtherInput.prop('required', false)
             cleanTypeOtherInput.val('');
         }
     }
 
-    $('.subform-card').each(function () {
-        const subform = $(this);
-        toggleTable(subform);
-        addRequiredField(subform);
-        showClenTypeOtherInput(subform);
-        subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+    function initSubforms() {
+        $('.subform-card').each(function () {
+            const subform = $(this);
+            toggleTable(subform);
+            addRequiredField(subform);
             showClenTypeOtherInput(subform);
+            subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+                showClenTypeOtherInput(subform);
+            });
         });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initSubforms();
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function () {
+        initSubforms();
     });
 </script>

@@ -3,135 +3,360 @@
 {% include "scheduler/nav.html" %}
 {% block page_content %}
     <section class="section" id="app">
-        <div class="container">
+        <style>
+            .event-detail-shell {
+                padding-top: 1rem;
+            }
+
+            .event-detail-hero,
+            .event-detail-panel {
+                background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 255, 0.92));
+                border: 1px solid rgba(18, 39, 84, 0.1);
+                border-radius: 28px;
+                box-shadow: 0 22px 55px rgba(18, 39, 84, 0.08);
+                overflow: hidden;
+            }
+
+            .event-detail-hero {
+                background:
+                    radial-gradient(circle at top right, rgba(202, 168, 74, 0.2), transparent 32%),
+                    radial-gradient(circle at left center, rgba(26, 61, 124, 0.13), transparent 36%),
+                    linear-gradient(135deg, rgba(16, 38, 76, 0.97), rgba(26, 61, 124, 0.92));
+                color: #fff;
+                padding: 2rem;
+            }
+
+            .event-detail-kicker {
+                color: rgba(255, 255, 255, 0.74);
+                display: block;
+                font-size: 0.8rem;
+                font-weight: 700;
+                letter-spacing: 0.14em;
+                margin-bottom: 0.85rem;
+                text-transform: uppercase;
+            }
+
+            .event-detail-hero .title,
+            .event-detail-hero .subtitle,
+            .event-detail-hero a {
+                color: #fff;
+            }
+
+            .event-detail-hero .subtitle {
+                color: rgba(255, 255, 255, 0.82);
+            }
+
+            .event-status-chip {
+                align-items: center;
+                border-radius: 999px;
+                display: inline-flex;
+                font-size: 0.95rem;
+                font-weight: 700;
+                gap: 0.55rem;
+                margin-top: 1.25rem;
+                padding: 0.75rem 1rem;
+            }
+
+            .event-status-chip.is-success {
+                background: rgba(46, 139, 87, 0.18);
+                border: 1px solid rgba(46, 139, 87, 0.28);
+                color: #e8fff4;
+            }
+
+            .event-status-chip.is-danger {
+                background: rgba(184, 67, 63, 0.2);
+                border: 1px solid rgba(184, 67, 63, 0.3);
+                color: #fff1f0;
+            }
+
+            .event-status-chip.is-warning {
+                background: rgba(240, 196, 25, 0.24);
+                border: 1px solid rgba(240, 196, 25, 0.34);
+                color: #fff8df;
+            }
+
+            .event-detail-panel {
+                padding: 1.5rem;
+            }
+
+            .event-detail-section-title {
+                color: var(--theme-navy-deep);
+                margin-bottom: 1rem;
+            }
+
+            .event-meta-grid {
+                display: grid;
+                gap: 1rem;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .event-meta-card {
+                background: rgba(255, 255, 255, 0.82);
+                border: 1px solid rgba(18, 39, 84, 0.08);
+                border-radius: 20px;
+                padding: 1rem 1.1rem;
+            }
+
+            .event-meta-card strong {
+                color: var(--theme-muted);
+                display: block;
+                font-size: 0.8rem;
+                letter-spacing: 0.06em;
+                margin-bottom: 0.4rem;
+                text-transform: uppercase;
+            }
+
+            .event-meta-card span,
+            .event-meta-card p {
+                color: var(--theme-text);
+                margin: 0;
+            }
+
+            .event-note-block {
+                background: linear-gradient(180deg, rgba(238, 243, 255, 0.82), rgba(255, 248, 230, 0.68));
+                border: 1px solid rgba(18, 39, 84, 0.08);
+                border-radius: 22px;
+                padding: 1rem 1.1rem;
+            }
+
+            .event-participant-list {
+                display: grid;
+                gap: 0.75rem;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .event-participant-item {
+                background: rgba(255, 255, 255, 0.82);
+                border: 1px solid rgba(18, 39, 84, 0.08);
+                border-radius: 18px;
+                padding: 0.85rem 1rem;
+            }
+
+            .event-participant-item strong,
+            .event-participant-item span {
+                display: block;
+            }
+
+            .event-participant-item span {
+                color: var(--theme-muted);
+                font-size: 0.92rem;
+                margin-top: 0.2rem;
+            }
+
+            .event-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.75rem;
+                margin-top: 1.25rem;
+            }
+
+            .event-actions .button {
+                border-radius: 999px;
+            }
+
+            .event-eval-wrap {
+                margin-top: 1rem;
+            }
+
+            @media screen and (max-width: 768px) {
+                .event-detail-hero,
+                .event-detail-panel {
+                    border-radius: 22px;
+                }
+
+                .event-detail-hero {
+                    padding: 1.5rem;
+                }
+
+                .event-meta-grid,
+                .event-participant-list {
+                    grid-template-columns: 1fr;
+                }
+            }
+            .recurring-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0.75rem;
+                border-radius: 6px;
+                margin-bottom: 0.25rem;
+                background-color: #f1f5f9;
+                color: inherit;
+                text-decoration: none;
+                transition: background-color 0.2s ease, transform 0.2s ease;
+            }
+            .recurring-item:hover {
+                background-color: #f0f7ff;
+                transform: translateX(2px);
+            }
+            .recurring-item-label {
+                color: var(--theme-text);
+                display: block;
+            }
+        </style>
+        <div class="container event-detail-shell">
             <div class="columns">
                 <div class="column">
                     {% include "messages.html" %}
-                    {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
-                    {{ user_evaluate('room_scheduler') }}
+                    <div class="event-eval-wrap">
+                        {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
+                        {{ user_evaluate('room_scheduler') }}
+                    </div>
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-one-third is-offset-one-third">
-                    <div class="card">
-                        <div class="card-image">
-                            <figure class="image is-3by2">
-                                <img src="{{ url_for('static', filename='img/meeting.jpg') }}">
-                            </figure>
+                <div class="column">
+                    <div class="event-detail-hero">
+                        <span class="event-detail-kicker">Room Reservation</span>
+                        <h1 class="title is-2">{{ event.title }}</h1>
+                        <p class="subtitle is-5">
+                            {{ event.category.category if event.category else 'ไม่ระบุประเภทกิจกรรม' }}
+                        </p>
+                        {% if event.cancelled_at %}
+                            <div class="event-status-chip is-danger">
+                                <span class="icon"><i class="fa-solid fa-circle-xmark"></i></span>
+                                <span>รายการนี้ถูกยกเลิกแล้ว</span>
+                            </div>
+                        {% elif event.approved %}
+                            <div class="event-status-chip is-success">
+                                <span class="icon"><i class="fa-solid fa-circle-check"></i></span>
+                                <span>รายการนี้ได้รับการยืนยันแล้ว</span>
+                            </div>
+                        {% else %}
+                            <div class="event-status-chip is-warning">
+                                <span class="icon"><i class="fa-regular fa-clock"></i></span>
+                                <span>รายการนี้กำลังรอการยืนยัน</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="columns is-variable is-5">
+                <div class="column is-7-desktop">
+                    <div class="event-detail-panel">
+                        <h2 class="title is-4 event-detail-section-title">รายละเอียดการจอง</h2>
+                        <div class="event-meta-grid">
+                            <div class="event-meta-card">
+                                <strong>วันและเวลา</strong>
+                                <p>{{ event_start|localdatetime }} - {{ event_end|localdatetime }}</p>
+                            </div>
+                            <div class="event-meta-card">
+                                <strong>ห้องประชุม</strong>
+                                <p>ห้อง {{ event.room.number }} ณ {{ event.room.location }}</p>
+                            </div>
+                            <div class="event-meta-card">
+                                <strong>หน่วยงาน</strong>
+                                <p>{{ event.creator.personal_info.org if event.creator.personal_info else '-' }}</p>
+                            </div>
+                            <div class="event-meta-card">
+                                <strong>จำนวนผู้เข้าร่วม</strong>
+                                <p>{{ event.occupancy or '-' }} คน</p>
+                            </div>
+                            <div class="event-meta-card">
+                                <strong>จำนวนรายชื่อผู้เข้าร่วม</strong>
+                                <p>{{ event.participants|length }} คน</p>
+                            </div>
+                            <div class="event-meta-card">
+                                <strong>สร้างรายการเมื่อ</strong>
+                                <p>{{ event.created_at|localdatetime if event.created_at else '-' }}</p>
+                            </div>
+                            <div class="event-meta-card">
+                                <strong>แก้ไขล่าสุด</strong>
+                                <p>{{ event.updated_at|localdatetime if event.updated_at else '-' }}</p>
+                            </div>
                         </div>
-                        <div class="card-content">
-                            <div class="content">
-                                <p>
-                                    <span class="title is-3">{{ event.title }}</span>
-                                </p>
-                                <p>
-                                    <span class="subtitle">{{ event.category.category }}</span>
-                                </p>
-                                <p>
-                                    <span class="title is-4">ห้อง {{ event.room.number }} ณ {{ event.room.location }}</span>
-                                </p>
-                                <p>
-                                    <span class="subtitle is-6">
-                                        <span class="icon">
-                                            <i class="far fa-calendar"></i>
-                                        </span>
-                                        {{ event_start|localdatetime }} - {{ event_end|localdatetime }}
-                                    </span>
-                                </p>
-                                {% if current_user == event.creator %}
-                                    {% if event.updated_at %}
-                                        <p>
-                                            <span class="subtitle is-6">
-                                                <span class="icon">
-                                                    <i class="far fa-clock"></i>
-                                                </span>
-                                                แก้ไขล่าสุด {{ event.updated_at|localdatetime }}
+                        <div style="margin-top: 1.25rem;">
+                            <h3 class="title is-5 event-detail-section-title">รายการจองต่อเนื่อง</h3>
+                            <div class="recurring-list-container">
+                                {% if repeat_events %}
+                                    {% for repeat_event in repeat_events %}
+                                        <a href="{{ url_for('room.show_event_detail', event_id=repeat_event.id) }}"
+                                           class="recurring-item">
+                                            <span class="is-size-6 recurring-item-label">
+                                                <i class="far fa-calendar mr-2 has-text-grey"></i>
+                                                ครั้งที่ {{ loop.index }} : {{ repeat_event.start|localdatetime }} - {{ repeat_event.end|localdatetime }}
                                             </span>
-                                        </p>
-                                    {% endif %}
-                                {% endif %}
-                                <p>
-                                    <span class="subtitle is-6">
-                                        <span class="icon">
-                                            <i class="fas fa-users"></i>
-                                        </span>
-                                        &nbsp;จำนวนคนที่เข้าร่วม {{ event.occupancy or '-' }} คน
-                                    </span>
-                                </p>
-                                <p>
-                                <span class="subtitle is-6">
-                                        <span class="icon">
-                                            <i class="fas fa-users-gear"></i>
-                                        </span>
-                                    <span>
-                                        รายชื่อผู้เข้าร่วม {{ event.participants|length }} คน
-                                    </span>
-                                    </span>
-                                </p>
-                                <p>
-                                    <span class="icon">
-                                        <i class="fa-solid fa-user"></i>
-                                    </span>
-                                    <span>
-                                        {{ event.creator.fullname }} ผู้จอง
-                                    </span>
-                                </p>
-                                <p>
-                                    <span class="icon">
-                                        <i class="fa-solid fa-sitemap"></i>
-                                    </span>
-                                    <span>
-                                        {{ event.creator.personal_info.org }}
-                                    </span>
-                                </p>
-                                {% if current_user == event.creator and event.comment %}
-                                    <p>
-                                    <span class="icon">
-                                        <i class="fa-regular fa-note-sticky"></i>
-                                    </span>
-                                    <span>{{ event.comment }}</span>
-                                    </p>
-                                {% endif %}
-                                {% if event.note %}
-                                    <p>
-                                    <span class="icon">
-                                        <i class="fa-regular fa-notes-medical"></i>
-                                    </span>
-                                    <span>{{ event.note }}</span>
-                                    </p>
+                                            <span class="icon has-text-grey">
+                                                <i class="far fa-eye"></i>
+                                            </span>
+                                        </a>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="recurring-item">
+                                        <span class="is-size-6">ไม่มีการจองต่อเนื่อง</span>
+                                    </div>
                                 {% endif %}
                             </div>
                         </div>
-                        <footer class="card-footer">
-                            <a href="{{ url_for('room.index') }}" class="card-footer-item">
-                                <span class="icon">
-                                    <i class="fas fa-chevron-left has-text-link"></i>
-                                </span>
-                                <span>กลับ</span>
-                            </a>
-                            <a href="{{ url_for('room.room_reserve', room_id=event.room_id) }}" class="card-footer-item">
-                                <span class="icon">
-                                    <i class="fa-solid fa-plus"></i>
-                                </span>
+                        {% if event.note or (current_user == event.creator and event.comment) %}
+                            <div style="margin-top: 1.25rem;">
+                                <h3 class="title is-5 event-detail-section-title">บันทึกเพิ่มเติม</h3>
+                                <div class="event-note-block">
+                                    {% if event.note %}
+                                        <p><strong>หมายเหตุ:</strong> {{ event.note }}</p>
+                                    {% endif %}
+                                    {% if current_user == event.creator and event.comment %}
+                                        <p{% if event.note %} style="margin-top: 0.85rem;"{% endif %}>
+                                            <strong>บันทึกส่วนตัว:</strong> {{ event.comment }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="column is-5-desktop">
+                    <div class="event-detail-panel">
+                        <h2 class="title is-4 event-detail-section-title">การดำเนินการ</h2>
+                        <div class="event-note-block">
+                            <p><strong>ผู้จอง:</strong> {{ event.creator.fullname }}</p>
+                            <p style="margin-top: 0.65rem;">
+                                <strong>หน่วยงาน:</strong> {{ event.creator.personal_info.org if event.creator.personal_info else '-' }}
+                            </p>
+                        </div>
+                        <div class="event-actions">
+                            <a href="{{ url_for('room.room_reserve', room_id=event.room_id) }}" class="button is-info">
+                                <span class="icon"><i class="fa-solid fa-plus"></i></span>
                                 <span>จองเพิ่ม</span>
                             </a>
-                            {% if current_user == event.creator %}
-                                <a href="{{ url_for('room.edit_detail', event_id=event.id) }}"
-                                   class="card-footer-item">
-                                    <span class="icon">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </span>
+                            {% if current_user == event.creator and not event.cancelled_at %}
+                                <a href="{{ url_for('room.edit_detail', event_id=event.id) }}" class="button is-warning">
+                                    <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                     <span>แก้ไข</span>
                                 </a>
-                                <a href="{{ url_for('room.cancel', event_id=event.id) }}"
-                                   class="card-footer-item">
-                                    <span class="icon">
-                                        <i class="far fa-trash-alt has-text-danger"></i>
-                                    </span>
-                                    <span class="has-text-danger">ยกเลิก</span>
+                                <a href="{{ url_for('room.cancel', event_id=event.id) }}" class="button is-danger is-light">
+                                    <span class="icon"><i class="far fa-trash-alt"></i></span>
+                                    <span>ยกเลิก</span>
                                 </a>
                             {% endif %}
-                        </footer>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <a href="{{ url_for('room.index') }}" class="button is-light is-fullwidth is-rounded">
+                            <span class="icon"><i class="fas fa-chevron-left"></i></span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="event-detail-panel">
+                        <h2 class="title is-4 event-detail-section-title">ผู้เข้าร่วม</h2>
+                        {% if event.participants %}
+                            <div class="event-participant-list">
+                                {% for participant in event.participants %}
+                                    <div class="event-participant-item">
+                                        <strong>{{ participant.fullname }}</strong>
+                                        <span>{{ participant.personal_info.org if participant.personal_info else 'ไม่ระบุหน่วยงาน' }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="event-note-block">
+                                ยังไม่มีรายชื่อผู้เข้าร่วมที่ระบุไว้สำหรับรายการนี้
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

@@ -46,7 +46,7 @@
                         <button class="button is-success" type="submit">บันทึก</button>
                     </div>
                     <div class="control">
-                        <a class="button is-light" href="{{url_for('besttime.index')}}">ยกเลิก</a>
+                        <a class="button is-light" href="{{url_for('besttime.index', tab=tab)}}">ยกเลิก</a>
                     </div>
                 </div>
             </form>
@@ -67,18 +67,28 @@
                    hx-swap="beforeend"
                    hx-confirm="ท่านแน่ใจว่าต้องการส่งข้อความนี้"
                    hx-indicator="this"
-                   hx-post="{{url_for('besttime.leave_message', poll_id=poll.id)}}">ส่ง</a>
+                   hx-post="{{url_for('besttime.leave_message', poll_id=poll.id, tab=tab)}}">ส่ง</a>
             </form>
             <div id="messages">
                 {% for message in poll.messages %}
                     <article class="media">
                         <div class="media-content">
-                            <div class="tag is-large is-light is-warning">
-                                {{message.message}}
+                            <div class="notification is-warning is-light">
+                                <strong class="is-size-5">{{message.message}}</strong>
                             </div>
-                            <br/>
                             <p>
-                                <strong><small>{{message.voter.fullname}}</small></strong> <small>{{message.created_at|localdatetime}}</small>
+                                <strong><small>{{message.voter.fullname}}</small></strong>
+                                <small>{{message.created_at|localdatetime}}</small>
+                                {% if message.voter_id == current_user.id %}
+                                    <a hx-delete="{{ url_for('besttime.delete_message', message_id=message.id) }}"
+                                       hx-confirm="ท่านต้องการลบรายการนี้หรือไม่"
+                                       hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                    >
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                    </a>
+                                {% endif %}
                             </p>
                         </div>
                     </article>

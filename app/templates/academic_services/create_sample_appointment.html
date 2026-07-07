@@ -1,8 +1,8 @@
 {% extends "academic_services/service_base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
     <style>
         .toast {
             opacity: 1 !important;
@@ -324,8 +324,8 @@
     {{ super() }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
     <script type="text/javascript"
-            src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+            src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         function showToast(category, message) {
             toastr.options = {
@@ -365,6 +365,7 @@
     <script>
         $(document).ready(function () {
             moment.locale('th');
+            const DATE_FORMAT = 'YYYY-MM-DD'
             const holidays = [
                 {% for h in holidays %}
                     "{{ h.holiday_date.strftime('%Y-%m-%d') }}"{% if not loop.last %},{% endif %}
@@ -380,15 +381,24 @@
                     startDate: moment().startOf('day'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD'
+                    format: DATE_FORMAT
                 },
                 isInvalidDate: function (date) {
-                    const formatted = date.format('YYYY-MM-DD');
+                    const formatted = date.format(DATE_FORMAT);
                     const isWeekend = date.day() === 0 || date.day() === 6;
                     const isHoliday = holidays.includes(formatted);
                     return isWeekend || isHoliday;
                 }
             });
+
+            $('input[name="appointment_date"]').change(function () {
+                let appointmentDate = moment($('input[name="appointment_date"]').val(), DATE_FORMAT);
+                let dateNow = moment('{{ date_now }}', DATE_FORMAT);
+                if (appointmentDate.format() < dateNow.format()) {
+                    alert('กรุณาตรวจสอบวันนัดหมายอีกครั้ง')
+                    $('input[name="appointment_date"]').val(dateNow.format(DATE_FORMAT))
+                }
+            })
 
             function showInput() {
                 const shipTypeCheck = document.querySelector('input[name="ship_type"]:checked');

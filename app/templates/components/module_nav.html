@@ -1,0 +1,80 @@
+{% macro nav_item(href, label, icon=None, primary=False, extra_class='app-navbar-link') -%}
+    <a class="navbar-item {{ extra_class }}{% if primary %} is-primary{% endif %}" href="{{ href }}">
+        {% if icon %}
+            <span class="icon">
+                <i class="{{ icon }}"></i>
+            </span>
+        {% endif %}
+        <span>{{ label }}</span>
+    </a>
+{%- endmacro %}
+
+{% macro render_module_nav(title='MUMT MIS', subtitle='Internal Information System', brand_href='/', start_links=[], end_links=[], user_display=None, account_href=None, logout_href=None, close_href=None, support_href=None, login_href=None, menu_id='moduleNavbarMenu') -%}
+    <div class="app-navbar-wrap">
+        <nav class="navbar app-navbar">
+            <div class="container is-fluid">
+                <div class="navbar-brand">
+                    <a class="navbar-item app-navbar-brand" href="{{ brand_href }}">
+                        <span class="app-navbar-logo">
+                            <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Mahidol University logo" width="94" height="38" decoding="async">
+                        </span>
+                        <span>
+                            <span class="app-navbar-title">{{ title }}</span>
+                            <span class="app-navbar-subtitle">{{ subtitle }}</span>
+                        </span>
+                    </a>
+                    <span class="navbar-burger burger" data-target="{{ menu_id }}">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                </div>
+
+                <div id="{{ menu_id }}" class="navbar-menu">
+                    {% if start_links %}
+                        <div class="navbar-start">
+                            {% for item in start_links %}
+                                {{ nav_item(item.href, item.label, item.icon if item.icon is defined else None, item.primary if item.primary is defined else False) }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <div class="navbar-end">
+                        {% for item in end_links %}
+                            {{ nav_item(item.href, item.label, item.icon if item.icon is defined else None, item.primary if item.primary is defined else False, item.extra_class if item.extra_class is defined else 'app-navbar-action') }}
+                        {% endfor %}
+
+                        {% if login_href %}
+                            {{ nav_item(login_href, 'ลงชื่อเข้าใช้', 'fas fa-sign-in-alt', False, 'app-navbar-action') }}
+                        {% endif %}
+
+                        {% if user_display %}
+                            <a class="navbar-item app-navbar-user">
+                                <span class="icon">
+                                    <i class="fas fa-user-circle"></i>
+                                </span>
+                                <span class="app-navbar-user-name">{{ user_display }}</span>
+                            </a>
+                        {% endif %}
+
+                        {% if account_href %}
+                            {{ nav_item(account_href, 'ข้อมูลส่วนตัว', 'fas fa-id-card', False, 'app-navbar-action') }}
+                        {% endif %}
+
+                        {% if logout_href %}
+                            {{ nav_item(logout_href, 'ออกจากระบบ', 'fas fa-sign-out-alt', False, 'app-navbar-action') }}
+                        {% endif %}
+
+                        {% if support_href %}
+                            {{ nav_item(support_href, 'แจ้งปัญหา/ขอความช่วยเหลือ', 'fa-solid fa-circle-info', False, 'app-navbar-action') }}
+                        {% endif %}
+
+                        {% if close_href %}
+                            {{ nav_item(close_href, 'ปิด', 'far fa-times-circle', False, 'app-navbar-action') }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </div>
+{%- endmacro %}

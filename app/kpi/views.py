@@ -16,7 +16,7 @@ from collections import defaultdict
 from . import kpibp as kpi
 from .forms import StrategyForm, StrategyTacticForm, StrategyThemeForm, StrategyActivityForm
 from ..data_blueprint.forms import KPIForm, KPIModalForm
-from ..main import db, json_keyfile
+from ..main import db, get_json_keyfile
 from ..models import (Org, KPI, Strategy, StrategyTactic,
                       StrategyTheme, StrategyActivity, KPISchema, Dashboard)
 
@@ -29,7 +29,9 @@ scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
 
 
-def get_credential(json_keyfile):
+def get_credential(json_keyfile=None):
+    if json_keyfile is None:
+        json_keyfile = get_json_keyfile()
     credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
     return gspread.authorize(credentials)
 
@@ -581,7 +583,7 @@ def get_licenses_data(program):
         sheetkey = '1Dv9I96T0UUMROSx7hO9u_N7a3lzQ969LiVvL_kBMRqE'
     elif program == 'rt':
         sheetkey = '14iWhBvL2i-nkcB7U8TrfS7YUTErRq1aPtamT3lgePhY'
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     wks = gc.open_by_key(sheetkey).sheet1
     df = DataFrame(wks.get_all_records())
     data = []
@@ -606,7 +608,7 @@ def show_licenses():
 
 @kpi.route('/api/edu/duration')
 def get_duration_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheetkey = '1aZf6-072bIh33Tl5dSTVk8LQt8Yzkk_Fx7hYYgUBQas'
     wks = gc.open_by_key(sheetkey).sheet1
     df = DataFrame(wks.get_all_records())
@@ -676,7 +678,7 @@ def get_evaluation_data():
         'analytical skill': range(46, 51),
         'professional skill': range(51, 56)
     }
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     data = []
     for item in sheets:
         bags = []
@@ -751,7 +753,7 @@ def get_wrs_data():
         'team working': 68,
         'social responsibility': 69
     }
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     data = []
     for item in sheets:
         bags = []
@@ -792,7 +794,7 @@ def show_evaluation():
 
 @kpi.route('/api/hr/healthstatus')
 def get_healthstatus_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1IfLMh6367NCd3MKJ3Py_77DQ4iU_yC5czhm7Px8H5do').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -818,7 +820,7 @@ def show_healthstatus():
 
 @kpi.route('/api/hr/perkeval')
 def get_perkeval_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1U9hFIoWUm6b_FiyqBxP-aClJCYJDClqhwNmwBDThIIk').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -844,7 +846,7 @@ def show_perkeval():
 
 @kpi.route('/api/hr/firedrill')
 def get_firedrill_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1wMw3Mx6uHTVsoCsGpzdS5nT2qoMZSX6RIx3MOPXFq7o').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -870,7 +872,7 @@ def show_firedrill():
 
 @kpi.route('/api/hr/bottle')
 def get_bottle_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1lIuFvky6IPJXzEbZ7N-TKcW0v8-O6wV2ckKI0vz3li8').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -896,7 +898,7 @@ def show_bottle():
 
 @kpi.route('/api/hr/happinometer')
 def get_happinometer_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('10_rPtntPyv3qpPvjxkpymdMbjQn7-YusrALlUMqvUCY').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -922,7 +924,7 @@ def show_happinometer():
 
 @kpi.route('/api/hr/personneldevel')
 def get_personneldevel_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1N6sRAleoSqcijiq3dhOJhzFO0crcUiStI--MbRS_28I').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -948,7 +950,7 @@ def show_personneldevel():
 
 @kpi.route('/api/hr/personneldevel_budget')
 def get_personneldevel_budget_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1RYP1clCM6UBukfCpofR3dMPSZr6fM0qbusD4w14Al6U').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -974,7 +976,7 @@ def show_personneldevel_budget():
 
 @kpi.route('/api/hr/retention')
 def get_retention_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('19odyyAEfO4qMvSVTcCHN9l1-Ax_535oSN4uukhaQ1fk').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1000,7 +1002,7 @@ def show_retention_budget():
 
 @kpi.route('/api/hr/connection')
 def get_connection_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1CogXDN8CdYOWR7tdsOCxqCHaN-5M5lSlub_tF-DiSdA').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1026,7 +1028,7 @@ def show_connection_budget():
 
 @kpi.route('/api/hr/environ')
 def get_environ_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1FfUEC_Nh5L2qBy7QXKxF8JwgMOjv1r0RZOd6rNykNi4').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1052,7 +1054,7 @@ def show_environ_budget():
 
 @kpi.route('/api/hr/laws')
 def get_laws_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1UDCW_ZLgqVzSwgVWTtwq3j8m9lVOjbq2W3Ycls-b1XA').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1078,7 +1080,7 @@ def show_laws():
 
 @kpi.route('/api/hr/electricity')
 def get_electricity_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1y2OxWLdqZyJbueHvXryOq3ns_7vdCd4yv-CdMa1fIDU').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1104,7 +1106,7 @@ def show_electricity():
 
 @kpi.route('/api/hr/awards')
 def get_awards_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1_0KbANJv5l2crAIJxejE7N44F2htyWQ9XayPnB6kIqg').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1130,7 +1132,7 @@ def show_awards():
 
 @kpi.route('/api/hr/r2r')
 def get_r2r_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1c7eE-kMre6BeBac_JphTcJZtO4Qi9x6_UAAivtr2NNs').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1156,7 +1158,7 @@ def show_r2r():
 
 @kpi.route('/api/service/eqamembers')
 def get_eqamembers_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1buFXMoOkfjQZnnJXWbAec0hX8aWkW-oOY-DW53puJVo').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1182,7 +1184,7 @@ def show_eqamembers():
 
 @kpi.route('/api/service/eqasamples')
 def get_eqasamples_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1uSiEM5Wky-ezL3YnXUp-BT6JPAin8zRq-JK8DRW57no').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1208,7 +1210,7 @@ def show_eqasamples():
 
 @kpi.route('/api/service/eqasatisfaction')
 def get_eqasatisfaction_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1rBIrsFtRiC1Jk-KQkAhFyCAAl-e4M_jFYqNCKAp3ePo').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1234,7 +1236,7 @@ def show_eqasatisfaction():
 
 @kpi.route('/api/service/labqa')
 def get_labqa_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('11C8IGLnK8KB_lqxRCvP_yn66jiQ04ksCwwiqT2sK87c').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1260,7 +1262,7 @@ def show_labqa():
 
 @kpi.route('/api/service/labcustomer')
 def get_labcustomer_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1z39CHLaVSne2oRFPQ2ivG1LRz6ilWeGcLB_1A6u__4I').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1286,7 +1288,7 @@ def show_labcustomer():
 
 @kpi.route('/api/service/labvisitor')
 def get_labvisitor_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1snygUOC8ZgqAobi14qu8d12vrYbjZCcWuduHEm0kgQY').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1312,7 +1314,7 @@ def show_labvisitor():
 
 @kpi.route('/api/service/labkpi')
 def get_labkpi_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1WVThT8oc7FlPMp59EzqaSs2jywZ4-WIdanWnAytIJE8').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1338,7 +1340,7 @@ def show_labkpi():
 
 @kpi.route('/api/service/labcustomer_relation')
 def get_labcustomer_relation_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1LLIozfr_pziIWe6HO-ix4j-6oelunEpL3CO8suBaavc').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1364,7 +1366,7 @@ def show_labcustomer_relation():
 
 @kpi.route('/api/service/labregulars')
 def get_labregulars_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1TkjpzK3yeTytFZ4jQvGbQT2ftSAlnmi16b0ytV75nWU').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1390,7 +1392,7 @@ def show_labregulars():
 
 @kpi.route('/api/service/labawareness')
 def get_labawareness_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1lCSR_dnfKah_taAxVNfkjVEmUPDrpQEgf36hfJ5eyc8').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1416,7 +1418,7 @@ def show_labawareness():
 
 @kpi.route('/api/service/labmedia')
 def get_labmedia_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1J8XwgKWreRf3p7yfjVTdKDfFKPNLyb3uWA8CmjMXtg4').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1442,7 +1444,7 @@ def show_labmedia():
 
 @kpi.route('/api/service/labmarket_share')
 def get_labmarket_share_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1_TQb5YkYcGv230CnRiJ_-KYZYBFNr6TmKgbk6_aDCrA').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1468,7 +1470,7 @@ def show_labmarket_share():
 
 @kpi.route('/api/management/governance')
 def get_governance_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1qZOhp8u5LBObm4V4MQc3IESOcBoPT4HOMc9TjexxZaU').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1494,7 +1496,7 @@ def show_governance():
 
 @kpi.route('/api/management/vmv')
 def get_vmv_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1AeA3_5NdzbIReFDKhG9oVUPxJ1h1FosczzZHYRTRF3w').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1520,7 +1522,7 @@ def show_vmv():
 
 @kpi.route('/api/management/admin_process')
 def get_admin_process_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1B8d42jKLpfRGBJm8wWuT0vQ6W_VXm4rR4SofE7Uj-bc').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1546,7 +1548,7 @@ def show_admin_process():
 
 @kpi.route('/api/management/it')
 def get_it_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1J6Qo2q7ncmwV01O3rUv9Mx_LHf_tQONFDean0dU-2xo').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1572,7 +1574,7 @@ def show_it():
 
 @kpi.route('/api/edu/channel')
 def get_channel_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1bMQyohkuRr3lLVTdvbg90lXzqsYMoQbNtSZ6QssBzqY').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1598,7 +1600,7 @@ def show_channel():
 
 @kpi.route('/api/edu/recruitment')
 def get_recruitment_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('113U1wDDqhxjG0AIuQKOtbOANiI-cZSpm_JXKNVjTatE').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1624,7 +1626,7 @@ def show_recruitment():
 
 @kpi.route('/api/edu/mt_recognition')
 def get_mt_recognition_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1u_-4_0yaPoBaDpAh3c69cypm7GzTiQzUXC5dkq7l2MU').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1650,7 +1652,7 @@ def show_mt_recognition():
 
 @kpi.route('/api/edu/application_ratio')
 def get_application_ratio_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1gKIOrqAnRAqK_E661aTtvMnEUSiEWr8wokuSHOnczl0').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1676,7 +1678,7 @@ def show_application_ratio():
 
 @kpi.route('/api/edu/employer_satisfaction')
 def get_employer_satisfaction_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1YNks85qtUSYvn_6urR36ONKXU8Vxut_Vqie2oCV3E2A').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1702,7 +1704,7 @@ def show_employer_satisfaction():
 
 @kpi.route('/api/edu/graduation_rate')
 def get_graduation_rate_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1BpVYxgQ6rADEo9Om6rNsOOBBl34rUSp4k_egLBH0r3M').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1728,7 +1730,7 @@ def show_graduation_rate():
 
 @kpi.route('/api/edu/fclub')
 def get_fclub_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1PjbLjZFkHstBOA2AtgGo8QhLf4-EaShFcL1orE_rXrw').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1754,7 +1756,7 @@ def show_fclub():
 
 @kpi.route('/api/edu/market_share')
 def get_market_share_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1NIbyVXgfTKlihxxfF4vsNKU20v-EmXC8dzRSQOZbbr4').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1780,7 +1782,7 @@ def show_market_share():
 
 @kpi.route('/api/edu/ent_comp')
 def get_ent_comp_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1sDrJxBoraNbWYqdtiqQDnNlZHXv7yVVADw2iCb66JqQ').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1806,7 +1808,7 @@ def show_ent_comp():
 
 @kpi.route('/api/edu/env_course')
 def get_env_course_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1besmOStEJIe03jBFelDlCYV-lvM66fNU7mBxLE-eHQo').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1832,7 +1834,7 @@ def show_env_course():
 
 @kpi.route('/api/edu/customer_vmv')
 def get_customer_vmv_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1OgqhAVoqf28JOAFEFcrCoUFyAt0HbWQM-zzPqdP0-oA').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1858,7 +1860,7 @@ def show_customer_vmv():
 
 @kpi.route('/api/edu/faculty_bond')
 def get_faculty_bond_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1WUQelJaV3vlHX3oBqxa-vZbFB0B1JGyfGIH6A-t75cQ').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1884,7 +1886,7 @@ def show_faculty_bond():
 
 @kpi.route('/api/edu/newcomers')
 def get_newcomers_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1Hko59C27ukCh8eHk7SYlKNfUegCm5XRWFtzdG8yRL6A').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1910,7 +1912,7 @@ def show_newcomers():
 
 @kpi.route('/api/edu/gradstud_comp')
 def get_gradstud_comp_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1m_T5MxgMr5_VVNia-FeE6ughwg5Jb5Q2wa0qJbgtO8o').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1936,7 +1938,7 @@ def show_gradstud_comp():
 
 @kpi.route('/api/edu/scholarship')
 def get_scholarship_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1J9R0hYYe6SZ173qSjn_2CJWf-zaNapytypmyydZGR8o').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1962,7 +1964,7 @@ def show_scholarship():
 
 @kpi.route('/api/edu/scholarship_rate')
 def get_scholarship_rate_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1L4kkAEIpxcbXwsyyMqfAGOlXwt0PG5Su9kdPLxP5W4o').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -1988,7 +1990,7 @@ def show_scholarship_rate():
 
 @kpi.route('/api/edu/grad_eval_internal')
 def get_grad_eval_internal_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1871BjZ2FiZE0gQmXtxEG4Von5b7E9gHq_qzfd5z7rXM').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -2014,7 +2016,7 @@ def show_grad_eval_internal():
 
 @kpi.route('/api/edu/grad_eval_external')
 def get_grad_eval_external_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('15Wg6T4ZVrPFndJXfkj9Nck4bBuXmvuEkubW6dDvk4MU').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])
@@ -2040,7 +2042,7 @@ def show_grad_eval_external():
 
 @kpi.route('/api/management/boardeval')
 def get_boardeval_data():
-    gc = get_credential(json_keyfile)
+    gc = get_credential()
     sheet = gc.open_by_key('1bv-R4JIXUMJShS4JooQhe6749pVz0mY0z7yAk2NJ0fk').sheet1
     values = sheet.get_all_values()
     df = DataFrame(values[1:], columns=values[0])

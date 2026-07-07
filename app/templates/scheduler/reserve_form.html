@@ -2,265 +2,406 @@
 {% block title %}Add New Event{% endblock %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        .reserve-shell {
+            padding-top: 1rem;
+        }
+
+        .reserve-hero,
+        .reserve-panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 255, 0.92));
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 28px;
+            box-shadow: 0 22px 55px rgba(18, 39, 84, 0.08);
+            overflow: hidden;
+        }
+
+        .reserve-hero {
+            background:
+                radial-gradient(circle at top right, rgba(202, 168, 74, 0.2), transparent 32%),
+                radial-gradient(circle at left center, rgba(26, 61, 124, 0.13), transparent 36%),
+                linear-gradient(135deg, rgba(16, 38, 76, 0.97), rgba(26, 61, 124, 0.92));
+            color: #fff;
+            padding: 2rem;
+        }
+
+        .reserve-kicker {
+            color: rgba(255, 255, 255, 0.74);
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            margin-bottom: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .reserve-hero .title,
+        .reserve-hero .subtitle {
+            color: #fff;
+        }
+
+        .reserve-room-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .reserve-pill {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+            display: inline-flex;
+            gap: 0.55rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .reserve-warning {
+            background: rgba(184, 67, 63, 0.18);
+            border: 1px solid rgba(184, 67, 63, 0.24);
+            border-radius: 18px;
+            color: #fff5f4;
+            margin-top: 1rem;
+            padding: 0.9rem 1rem;
+        }
+
+        .reserve-panel {
+            padding: 1.5rem;
+        }
+
+        .reserve-section + .reserve-section {
+            margin-top: 1.75rem;
+        }
+
+        .reserve-section-title {
+            color: var(--theme-navy-deep);
+            margin-bottom: 1rem;
+        }
+
+        .reserve-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .reserve-grid.is-single {
+            grid-template-columns: 1fr;
+        }
+
+        .reserve-field-card {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 22px;
+            padding: 1rem 1.1rem;
+        }
+
+        .reserve-field-card.is-full {
+            grid-column: 1 / -1;
+        }
+
+        .reserve-field-card .label {
+            color: var(--theme-muted);
+            font-size: 0.82rem;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .reserve-field-card .input,
+        .reserve-field-card .select select,
+        .reserve-field-card .textarea,
+        .reserve-field-card .select2-selection {
+            border-radius: 16px;
+        }
+
+        .reserve-static {
+            color: var(--theme-text);
+            font-weight: 600;
+            min-height: 2.75rem;
+            padding-top: 0.35rem;
+        }
+
+        .reserve-help {
+            color: var(--theme-muted);
+            font-size: 0.92rem;
+            margin-top: 0.55rem;
+        }
+
+        .reserve-help.is-danger {
+            color: var(--theme-red);
+        }
+
+        .reserve-status-box {
+            background: linear-gradient(180deg, rgba(238, 243, 255, 0.82), rgba(255, 248, 230, 0.68));
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 22px;
+            min-height: 76px;
+            padding: 0.9rem 1rem;
+        }
+
+        .reserve-equipment-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .reserve-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .reserve-actions .button {
+            border-radius: 999px;
+            min-width: 130px;
+        }
+
+        .select2-container--default .select2-selection--multiple {
+            border: 1px solid #dbdbdb;
+            min-height: 2.5em;
+            padding: 0.25rem 0.35rem;
+        }
+
+        .select2-container {
+            width: 100% !important;
+        }
+
+        @media screen and (max-width: 768px) {
+            .reserve-hero,
+            .reserve-panel,
+            .reserve-field-card {
+                border-radius: 22px;
+            }
+
+            .reserve-hero {
+                padding: 1.5rem;
+            }
+
+            .reserve-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .reserve-actions {
+                justify-content: stretch;
+            }
+
+            .reserve-actions .button {
+                width: 100%;
+            }
+        }
+    </style>
 {% endblock %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
-    <section class="section" id="app">
+    <section class="section reserve-shell" id="app">
         <div class="columns">
             <div class="column">
                 {% include "messages.html" %}
             </div>
         </div>
         <div class="columns">
-            <div class="column is-half is-offset-3">
-                <h1 class="title is-size-3 has-text-centered">แบบฟอร์มจองห้อง</h1>
-                {% if room.required_permission %}
-                    <p class="has-text-danger">หมายเหตุ
-                        ท่านจะสามารถใช้ห้องนี้ได้หลังจากได้รับการอนุมัติแล้วเท่านั้น</p>
-                {% endif %}
-                <form method="post">
-                    {{ form.hidden_tag() }}
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">ห้อง</label>
+            <div class="column is-10 is-offset-1">
+                <div class="reserve-hero">
+                    <span class="reserve-kicker">Room Reservation</span>
+                    <h1 class="title is-2">แบบฟอร์มจองห้อง</h1>
+                    <p class="subtitle is-5">กรอกข้อมูลการใช้งานห้อง ตรวจสอบเวลาว่าง และยืนยันการจองในหน้าเดียว</p>
+                    <div class="reserve-room-pills">
+                        <div class="reserve-pill">
+                            <span class="icon"><i class="fas fa-door-open"></i></span>
+                            <span>ห้อง {{ room.number }}</span>
                         </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input is-static"
-                                           name="number" type="text" value="{{ room.number }}">
+                        <div class="reserve-pill">
+                            <span class="icon"><i class="fas fa-location-dot"></i></span>
+                            <span>{{ room.location }}</span>
+                        </div>
+                        <div class="reserve-pill">
+                            <span class="icon"><i class="fas fa-users"></i></span>
+                            <span>รองรับ {{ room.occupancy }} คน</span>
+                        </div>
+                    </div>
+                    {% if room.required_permission %}
+                        <div class="reserve-warning">
+                            ห้องนี้ต้องได้รับการอนุมัติก่อนใช้งาน การจองจะสมบูรณ์หลังจากได้รับอนุมัติแล้วเท่านั้น
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-10 is-offset-1">
+                <div class="reserve-panel">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+
+                        <div class="reserve-section">
+                            <h2 class="title is-4 reserve-section-title">ข้อมูลห้องและสถานะ</h2>
+                            <div class="reserve-grid">
+                                <div class="reserve-field-card">
+                                    <label class="label">ห้อง</label>
+                                    <div class="reserve-static">{{ room.number }}</div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">วิทยาเขต</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input is-static"
-                                           name="location" type="text" value="{{ room.location }}">
+                                <div class="reserve-field-card">
+                                    <label class="label">วิทยาเขต</label>
+                                    <div class="reserve-static">{{ room.location }}</div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">ปัญหาที่ได้รับแจ้ง</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field tags">
-                                {% for complaint in complaints %}
-                                    <span class="tag is-danger is-medium is-light">{{ complaint.desc }}</span>
-                                {% endfor %}
-                                {% if not complaints %}
-                                    ไม่มี
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">ประเภทกิจกรรม</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="control">
-                                <div class="field">
-                                    <div class="select">
+                                <div class="reserve-field-card is-full">
+                                    <label class="label">ประเภทกิจกรรม</label>
+                                    <div class="select is-fullwidth">
                                         {{ form.category() }}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">จุดประสงค์</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    {{ form.title(class='input is-danger', placeholder='จุดประสงค์') }}
+                                <div class="reserve-field-card is-full">
+                                    <label class="label">จุดประสงค์</label>
+                                    {{ form.title(class='input is-danger', placeholder='ระบุจุดประสงค์ของการใช้งานห้อง') }}
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <span>note</span>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    {{ form.comment(class='input', placeholder='') }}
-                                </div>
-                                <p class="help">เห็นเฉพาะผู้ทำการจอง</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">ตั้งแต่วันที่</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
+                                <div class="reserve-field-card">
+                                    <label class="label">วันที่เริ่ม</label>
                                     {{ form.start(class='input') }}
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">สิ้นสุดวันที่</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
+                                <div class="reserve-field-card">
+                                    <label class="label">วันที่สิ้นสุด</label>
                                     {{ form.end(class='input') }}
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">ตรวจสอบการใช้งาน</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <button type="button" class="button is-small" onclick="checkAvailability()">
-                                <span class="icon">
-                                    <i class="fa-solid fa-magnifying-glass"></i>
-                                </span>
-                                    <span>คลิกเพื่อตรวจสอบ</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">สถานะ</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <span id="availability"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">รายการจอง</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <span id="overlaps" class="tags"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">จำนวนผู้ใช้งาน</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    {{ form.occupancy(class='input') }}
+                                <div class="reserve-field-card is-full">
+                                    <label class="checkbox">
+                                        {{ form.is_repeat_booking() }}
+                                        {{ form.is_repeat_booking.label }}
+                                    </label>
                                 </div>
-                                <p class="help">จำนวนที่คาดว่าจะเข้าใช้งาน</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">กลุ่ม</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <select class="js-example-basic-multiple" name="groups" multiple="multiple">
-                                    </select>
-                                </div>
-                                <p class="help">รายชื่อกลุ่มคณะกรรมการที่ต้องการเพิ่มเป็นผู้เข้าร่วม</p>
-                            </div>
-                            <a href="{{ url_for('staff.create_group_detail') }}" target="_blank" class="button is-info">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </span>
-                                    <span>เพิ่มกลุ่ม</span>
-                                </a>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">ผู้เข้าร่วม</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
-                                </div>
-                                <p class="help">รายชื่อผู้ที่เข้าร่วมเพื่อแจ้งเตือนหรือเป็นบันทึก</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <label class="label">
-                                    {{ form.notify_participants() }}
-                                    แจ้งเตือนผู้เข้าร่วมทางอีเมล
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <!--                        <div class="field-label is-normal">-->
-                        <!--                            <label class="label">อุปกรณ์ประจำ</label>-->
-                        <!--                        </div>-->
-                        <div class="field-body">
-                            <div class="field is-grouped is-grouped-multiline">
-                                {% for item in room.equipments %}
-                                    <div class="control">
-                                        <div class="tags has-addons">
-                                            <span class="tag is-dark is-medium">{{ loop.index }}</span>
-                                            <span class="tag is-light is-medium">{{ item.th_name }}</span>
-                                        </div>
+                                <div id="booking_field" class="reserve-field-card">
+                                    <label class="label">{{ form.booking.label.text }}</label>
+                                    <div class="select is-danger is-fullwidth">
+                                        {{ form.booking() }}
                                     </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">ความต้องการเพิ่มเติม</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    {{ form.note(class="textarea", placeholder="หากมีอาหารว่าง กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม") }}
                                 </div>
-                                <p class="help is-danger">หากมีอาหารว่าง กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม (โทร 2116)</p>
+                                <div  id="repeat_end_field" class="reserve-field-card">
+                                    <label class="label">{{ form.repeat_end.label.text }}</label>
+                                    {{ form.repeat_end(class='input is-danger', type='text', placeholder='เลือกวันที่สิ้นสุดการจองซ้ำ') }}
+                                    <p class="reserve-help is-danger">กรุณาระบุรอบการจองด้วย</p>
+                                </div>
+                                <div class="reserve-field-card">
+                                    <label class="label">ตรวจสอบการใช้งานและสถานะ</label>
+                                    <button type="button" class="button is-light is-rounded"
+                                            onclick="checkAvailability()">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-magnifying-glass"></i>
+                                        </span>
+                                        <span>คลิกเพื่อตรวจสอบ</span>
+                                    </button>
+                                    <div id="availability" style="margin-top: 0.85rem;"></div>
+                                </div>
+                                <div class="reserve-field-card">
+                                    <label class="label">รายการจองที่ทับซ้อน</label>
+                                    <div id="overlaps" class="reserve-status-box tags"></div>
+                                </div>
+                                <div class="reserve-field-card">
+                                    <label class="label">จำนวนผู้ใช้งาน</label>
+                                    {{ form.occupancy(class='input') }}
+                                    <p class="reserve-help">จำนวนที่คาดว่าจะเข้าใช้งาน</p>
+                                </div>
+                                <div class="reserve-field-card is-full">
+                                    <label class="label">ปัญหาที่ได้รับแจ้ง</label>
+                                    <div class="reserve-static">
+                                        {% if complaints %}
+                                            <div class="tags">
+                                                {% for complaint in complaints %}
+                                                    <span class="tag is-danger is-medium is-light">{{ complaint.desc }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            ไม่มี
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="reserve-field-card is-full">
+                                    <label class="label">บันทึกส่วนตัว</label>
+                                    {{ form.comment(class='input', placeholder='บันทึกนี้จะแสดงเฉพาะผู้ทำการจอง') }}
+                                    <p class="reserve-help">เห็นเฉพาะผู้ทำการจอง</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="buttons is-centered">
-                        <a href="{{ url_for('room.index') }}" class="button">
-                            ยกเลิก
-                        </a>
-                        <button type="submit" class="button is-success">
-                            <span class="icon">
-                                <i class="fas fa-save"></i>
-                            </span>
-                            <span>จอง</span>
-                        </button>
-                    </div>
-                </form>
+
+                        <div class="reserve-section">
+                            <h2 class="title is-4 reserve-section-title">ผู้เข้าร่วมและกลุ่ม</h2>
+                            <div class="reserve-grid">
+                                <div class="reserve-field-card">
+                                    <label class="label">กลุ่ม</label>
+                                    <div class="control">
+                                        <select class="js-example-basic-multiple" name="groups"
+                                                multiple="multiple"></select>
+                                    </div>
+                                    <p class="reserve-help">รายชื่อกลุ่มคณะกรรมการที่ต้องการเพิ่มเป็นผู้เข้าร่วม</p>
+                                </div>
+                                <div class="reserve-field-card">
+                                    <label class="label">จัดการกลุ่ม</label>
+                                    <a href="{{ url_for('staff.create_group_detail') }}" target="_blank"
+                                       class="button is-info is-rounded">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่มกลุ่ม</span>
+                                    </a>
+                                </div>
+                                <div class="reserve-field-card is-full">
+                                    <label class="label">ผู้เข้าร่วม</label>
+                                    {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
+                                    <p class="reserve-help">รายชื่อผู้ที่เข้าร่วมเพื่อแจ้งเตือนหรือเป็นบันทึก</p>
+                                </div>
+                                <div class="reserve-field-card is-full">
+                                    <label class="checkbox">
+                                        {{ form.notify_participants() }}
+                                        แจ้งเตือนผู้เข้าร่วมทางอีเมล
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="reserve-section">
+                            <h2 class="title is-4 reserve-section-title">อุปกรณ์และความต้องการเพิ่มเติม</h2>
+                            <div class="reserve-grid is-single">
+                                <div class="reserve-field-card">
+                                    <label class="label">อุปกรณ์ประจำห้อง</label>
+                                    <div class="reserve-equipment-list">
+                                        {% for item in room.equipments %}
+                                            <div class="control">
+                                                <div class="tags has-addons">
+                                                    <span class="tag is-dark is-medium">{{ loop.index }}</span>
+                                                    <span class="tag is-light is-medium">{{ item.th_name }}</span>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        {% if not room.equipments %}
+                                            <span class="reserve-static">ไม่มีข้อมูลอุปกรณ์</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="reserve-field-card">
+                                    <label class="label">ความต้องการเพิ่มเติม</label>
+                                    {{ form.note(class="textarea", placeholder="หากมีอาหารว่าง กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม") }}
+                                    <p class="reserve-help is-danger">หากมีอาหารว่าง
+                                        กรุณาส่งรายชื่อผู้เข้าร่วมตามจำนวนอาหารแก่หน่วยอาคารฯ หลังจบกิจกรรม (โทร
+                                        2116)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="reserve-actions">
+                            <a href="{{ url_for('room.index') }}" class="button is-light">
+                                ยกเลิก
+                            </a>
+                            <button type="submit" class="button is-success">
+                                <span class="icon">
+                                    <i class="fas fa-save"></i>
+                                </span>
+                                <span>จอง</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </section>
@@ -268,14 +409,38 @@
 
 {% block scripts %}
     {{ super() }}
-    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript"
+            src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment-with-locales.min.js"></script>
     <script type="text/javascript">
         const DATETIME_FORMAT = 'DD-MM-YYYY HH:mm:ss'
+        const DATE_FORMAT = 'YYYY-MM-DD'
+        let triggerAvailabilityCheck = function () {
+            let startValue = $('input[name="start"]').val()
+            let endValue = $('input[name="end"]').val()
+
+            if (!startValue || !endValue) {
+                return
+            }
+
+            checkAvailability()
+        }
+
+        let clearAvailabilityStatus = function (sourceSelector) {
+            htmx.ajax('GET',
+                '{{ url_for("room.clear_status") }}',
+                {
+                    source: sourceSelector,
+                    target: '#availability',
+                    swap: 'innerHTML',
+                })
+        }
+
         let checkAvailability = function (e) {
-            let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
             let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+            let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+
             htmx.ajax('GET',
                 '{{ url_for("room.check_room_availability") }}',
                 {
@@ -290,12 +455,14 @@
                             'event_id': {{ event.id|tojson|safe }}
                         {% endif %}
                     }
-                })
+                }
+            )
         }
         $(document).ready(() => {
             $('.js-example-basic-multiple').select2({
                 width: '100%',
             });
+
             $('[name="groups"]').select2({
                 width: '100%',
                 ajax: {
@@ -303,6 +470,7 @@
                     dataType: "json"
                 }
             });
+
             $('input[name="start"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
@@ -321,8 +489,8 @@
                     format: DATETIME_FORMAT
                 }
             });
+
             $('input[name="end"]').daterangepicker({
-                showDropdowns: true,
                 singleDatePicker: true,
                 timePicker: true,
                 timePickerIncrement: 15,
@@ -330,8 +498,9 @@
                 buttonClasses: 'button is-small',
                 applyButtonClasses: 'is-info',
                 cancelButtonClasses: 'is-text',
+                showDropdowns: true,
                 {% if not end %}
-                    startDate: moment().startOf('hour').add(1, 'hour'),
+                    startDate: moment().startOf('hour').add(1, 'hours'),
                 {% else %}
                     startDate: moment({{ end.isoformat()|tojson|safe }}).format(DATETIME_FORMAT),
                 {% endif %}
@@ -339,40 +508,98 @@
                     format: DATETIME_FORMAT
                 }
             });
+
+            $('input[name="repeat_end"]').daterangepicker({
+                singleDatePicker: true,
+                showDropdowns: true,
+                autoUpdateInput: false,
+                buttonClasses: 'button is-small',
+                applyButtonClasses: 'is-info',
+                cancelButtonClasses: 'is-text',
+                {% if repeat_end %}
+                    startDate: moment({{ repeat_end.isoformat()|tojson|safe }}).format(DATE_FORMAT),
+                {% endif %}
+                locale: {
+                    format: DATE_FORMAT,
+                    cancelLabel: 'Clear'
+                }
+            });
+
+            $('input[name="repeat_end"]').on('apply.daterangepicker', function (ev, picker) {
+                $(this).val(picker.startDate.format(DATE_FORMAT));
+            });
+
+            $('input[name="repeat_end"]').on('cancel.daterangepicker', function (ev, picker) {
+                $(this).val('');
+            });
+
             $('input[name="start"]').change(function () {
-                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
                 let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
-                $('input[name="end"]').data('daterangepicker')
-                    .setStartDate(startDateTime.add(1, 'hours'))
-                if (startDateTime.format() == endDateTime.format()) {
-                    alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
-                } else {
-                    htmx.ajax('GET',
-                        '{{ url_for("room.clear_status") }}',
-                        {
-                            source: '#' + $(this).attr('id'),
-                            target: '#availability',
-                            swap: 'innerHTML',
-                        })
-                }
-            })
-            $('input[name="end"]').on('apply.daterangepicker', function () {
                 let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
-                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
                 if (startDateTime.format() == endDateTime.format()) {
-                    alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
-                    $('input[name="end"]').data('daterangepicker')
-                        .setStartDate(startDateTime.add(1, 'hours'))
-                } else {
-                    htmx.ajax('GET',
-                        '{{ url_for("room.clear_status") }}',
-                        {
-                            source: '#' + $(this).attr('id'),
-                            target: '#availability',
-                            swap: 'innerHTML',
-                        })
+                    alert('กรุณาตรวจสอบวันเริ่มและสิ้นสุดอีกครั้ง')
+                    $(this).val('')
+                    return
+                } else if (startDateTime.format(DATE_FORMAT) != endDateTime.format(DATE_FORMAT)) {
+                    $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(3, 'hours'))
                 }
+
+                clearAvailabilityStatus('#' + $(this).attr('id'))
+                triggerAvailabilityCheck()
             })
-        })
+
+            $('input[name="end"]').change(function () {
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                if (startDateTime.format() == endDateTime.format()) {
+                    alert('กรุณาตรวจสอบวันเริ่มและสิ้นสุดอีกครั้ง')
+                    $(this).val('')
+                    return
+                }
+                clearAvailabilityStatus('#' + $(this).attr('id'))
+                triggerAvailabilityCheck()
+            })
+
+            $('input[name="repeat_end"]').on('apply.daterangepicker', function (ev, picker) {
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                let repeatEndDate = picker.startDate
+                if ((startDateTime.format(DATE_FORMAT) > repeatEndDate.format(DATE_FORMAT)) ||
+                    (endDateTime.format(DATE_FORMAT) > repeatEndDate.format(DATE_FORMAT)))  {
+                    $(this).val('')
+                    alert('กรุณาตรวจสอบวันที่ต้องการจองซ้ำอีกครั้ง')
+                    return
+                }
+                clearAvailabilityStatus('#' + $(this).attr('id'))
+            })
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            function showRepeatField() {
+                var isRepeatBooking = document.getElementById('is_repeat_booking');
+                var bookingField = document.getElementById('booking_field');
+                var repeatEndField = document.getElementById('repeat_end_field');
+                var booking = document.querySelector('select[name="booking"]');
+                var repeatEnd = document.querySelector('input[name="repeat_end"]');
+
+                if (isRepeatBooking.checked) {
+                    bookingField.style.display = 'block';
+                    booking.required = true;
+                    repeatEndField.style.display = 'block';
+                    repeatEnd.required = true;
+
+                } else {
+                    bookingField.style.display = 'none';
+                    booking.required = false;
+                    repeatEndField.style.display = 'none';
+                    repeatEnd.required = false;
+                }
+            }
+
+            showRepeatField();
+            document.getElementById('is_repeat_booking').addEventListener('change', showRepeatField);
+
+        });
     </script>
 {% endblock %}

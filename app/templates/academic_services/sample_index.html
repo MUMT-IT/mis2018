@@ -3,7 +3,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
-    <link href="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
     <style>
         .toast {
             opacity: 1 !important;
@@ -12,10 +12,6 @@
 
         #toast-container.toast-top-full-width > .toast {
             width: 100% !important;
-        }
-
-        .table-container {
-            overflow-x: auto;
         }
     </style>
 {% endblock %}
@@ -62,8 +58,8 @@
                         </li>
                     </ul>
                 </div>
-                <div class="table-container">
-                    <table id='samples' class="table is-fullwidth is-striped">
+                <div>
+                    <table id='samples' class="table is-fullwidth is-narrow">
                         <thead>
                         <th>เลขใบคำร้องขอ</th>
                         <th>หมายเลขติดตามพัสดุ</th>
@@ -149,7 +145,8 @@
                                     <div class="field has-addons">
                                         <div class="control">
                                             <a class="button is-rounded is-outlined is-small is-fullwidth mb-2"
-                                               @click="printRequest({{ sample.request_id }}, '{{ sample.request.sub_lab.code }}')"
+                                               @click="printRequest({{ sample.request_id }}, '{{ sample.request.sub_lab.code }}',
+                                               '{{ sample.request.request_no }}')"
                                             >
                                                 <span class="icon"><i class="fas fa-print"></i></span>
                                                 <span>พิมพ์ใบนำส่งตัวอย่าง</span>
@@ -217,10 +214,12 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
-    <script src="https://fastly.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
     <script>
         $(document).ready(function () {
-            $('#samples').DataTable({});
+            $('#samples').DataTable({
+                scrollX: true
+            });
         });
     </script>
     <script type="text/javascript">
@@ -228,8 +227,9 @@
             el: "#sample",
             delimiters: ['<%', '%>'],
             methods: {
-                printRequest: function (request_id, code) {
+                printRequest: function (request_id,  code, request_no) {
                     var url = "/academic_services/request/pdf/" + request_id + '?code=' + code;
+                    document.title = 'Request ' + request_no;
                     printJS(url);
                 }
             },

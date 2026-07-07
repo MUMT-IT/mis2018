@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Email Registration Form{% endblock %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<section class="section">
+    <div class="container" style="max-width: 760px;">
+        <div class="box" style="margin-top: 2rem; border-radius: 24px;">
+            <h1 class="title is-3">Edit Email / แก้ไขอีเมล</h1>
+            <p class="subtitle is-6">
+                <strong>{{ customer.firstname }} {{ customer.lastname }}</strong>
+                {% if customer.org %}<br>{{ customer.org.name }}{% endif %}
+            </p>
+
+            <form method="post" action="{{ url_for('comhealth.send_email_registration_verification', customer_id=customer.id) }}">
+                {{ form.hidden_tag() }}
+                <input type="hidden" name="mode" value="{{ mode }}">
+                <input type="hidden" name="access_token" value="{{ access_token }}">
+
+                <div class="field">
+                    <label class="label">New Email / อีเมลใหม่</label>
+                    <div class="control has-icons-left">
+                        {{ form.email(class="input", placeholder="name@example.com") }}
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                    </div>
+                    {% if form.email.errors %}
+                        <p class="help is-danger">{{ form.email.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                {% if mode == 'mahidol' %}
+                    <article class="message is-warning is-small">
+                        <div class="message-body">
+                            Mahidol staff registrations only accept email addresses ending with <strong>@mahidol.ac.th</strong>.<br>
+                            การลงทะเบียนสำหรับบุคลากรมหิดลจะรับเฉพาะอีเมลที่ลงท้ายด้วย <strong>@mahidol.ac.th</strong> เท่านั้น
+                        </div>
+                    </article>
+                {% endif %}
+
+                <article class="message is-info is-small">
+                    <div class="message-body">
+                        After saving, the system will send a verification link to this email address. The email will be updated only after that link is clicked within 24 hours.<br>
+                        เมื่อกดบันทึก ระบบจะส่งลิงก์ยืนยันไปยังอีเมลนี้ และอีเมลจะถูกอัปเดตเมื่อมีการคลิกลิงก์ภายใน 24 ชั่วโมง
+                    </div>
+                </article>
+
+                <div class="field mt-5">
+                    <div class="control">
+                        <button class="button is-success" type="submit">
+                            <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                            <span>Send verification / ส่งลิงก์ยืนยัน</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

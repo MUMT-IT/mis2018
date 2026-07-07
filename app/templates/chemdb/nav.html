@@ -1,24 +1,12 @@
-<nav class="navbar is-success">
-    <div class="container">
-        <div class="navbar-brand">
-            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-        </div>
-        <div id="navbarMenuHeroA" class="navbar-menu">
-            <div class="navbar-end">
-                <a class="navbar-item" href="{{ url_for('chemdb.index') }}">
-                    หน้าหลัก
-                </a>
-                <a class="navbar-item" href="/">
-                    <span>ปิด</span>
-                    <span class="icon">
-                        <i class="far fa-times-circle"></i>
-                    </span>
-                </a>
-            </div>
-        </div>
-    </div>
-</nav>
+{% from "components/module_nav.html" import render_module_nav %}
+
+{{ render_module_nav(
+    title='Chemical Database',
+    subtitle='ระบบฐานข้อมูลสารเคมี',
+    brand_href=url_for('chemdb.index'),
+    start_links=[
+        {'href': url_for('chemdb.index'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
+    ],
+    close_href='/',
+    menu_id='chemNavbarMenu'
+) }}

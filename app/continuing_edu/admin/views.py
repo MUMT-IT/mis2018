@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, SubmitField
 from wtforms.validators import DataRequired
 
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash, Response
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash
 from app.staff.models import StaffAccount
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_login import login_required, current_user
@@ -50,11 +50,6 @@ from collections import OrderedDict
 import os
 from app.main import db, mail
 from sqlalchemy.orm import joinedload
-
-try:
-    from weasyprint import HTML
-except Exception:  # pragma: no cover - optional dependency
-    HTML = None
 from app.continuing_edu.status_utils import get_registration_status, get_certificate_status
 from app.continuing_edu.certificate_utils import (
     issue_certificate as issue_certificate_util,
@@ -1263,10 +1258,7 @@ def certificates_registration_pdf(reg_id):
         return Response(html, mimetype='text/html', headers={'Content-Disposition': f'inline; filename="{filename}"'})
 
     context = build_certificate_context(reg, lang=lang, base_url=request.url_root)
-    html = render_template('continueing_edu/certificate_pdf.html', **context)
-    pdf = HTML(string=html, base_url=request.url_root).write_pdf()
-    filename = f"certificate_{reg.member_id}_{event_id}.pdf"
-    return Response(pdf, mimetype='application/pdf', headers={'Content-Disposition': f'inline; filename="{filename}"'})
+    return render_template('continueing_edu/certificate_pdf.html', **context)
 
 @admin_bp.route('/events')
 @login_required

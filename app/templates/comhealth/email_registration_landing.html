@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Email Registration{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .email-registration-page {
+            padding: 2rem 1.25rem 3rem;
+        }
+
+        .email-registration-shell {
+            margin: 0 auto;
+            max-width: 1120px;
+        }
+
+        .email-registration-hero {
+            background:
+                radial-gradient(circle at top left, rgba(26, 61, 124, 0.18), transparent 30%),
+                radial-gradient(circle at bottom right, rgba(240, 196, 25, 0.22), transparent 28%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(247, 249, 255, 0.94));
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 34px;
+            box-shadow: 0 24px 60px rgba(18, 39, 84, 0.12);
+            overflow: hidden;
+            padding: 2.25rem;
+            position: relative;
+        }
+
+        .email-registration-hero::after {
+            background: linear-gradient(135deg, rgba(202, 168, 74, 0.2), rgba(26, 61, 124, 0.06));
+            border-radius: 999px;
+            content: "";
+            height: 220px;
+            position: absolute;
+            right: -80px;
+            top: -70px;
+            width: 220px;
+        }
+
+        .email-registration-kicker {
+            color: var(--theme-navy);
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .email-registration-title {
+            color: var(--theme-navy-deep);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.08;
+            margin-bottom: 0.9rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .email-registration-copy {
+            color: var(--theme-text);
+            font-size: 1.05rem;
+            line-height: 1.75;
+            margin-bottom: 0;
+            max-width: 720px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .email-registration-grid {
+            margin-top: 1.75rem;
+        }
+
+        .email-registration-card {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 28px;
+            box-shadow: 0 18px 42px rgba(18, 39, 84, 0.08);
+            height: 100%;
+            overflow: hidden;
+            padding: 1.6rem;
+            position: relative;
+        }
+
+        .email-registration-card::after {
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.08), rgba(240, 196, 25, 0.16));
+            border-radius: 999px;
+            content: "";
+            height: 150px;
+            position: absolute;
+            right: -50px;
+            top: -50px;
+            width: 150px;
+        }
+
+        .email-registration-icon {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(26, 61, 124, 0.16), rgba(240, 196, 25, 0.22));
+            border-radius: 22px;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            height: 4.25rem;
+            justify-content: center;
+            margin-bottom: 1.4rem;
+            position: relative;
+            width: 4.25rem;
+            z-index: 1;
+        }
+
+        .email-registration-card-title {
+            color: var(--theme-navy-deep);
+            font-size: 1.45rem;
+            font-weight: 800;
+            margin-bottom: 0.65rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .email-registration-card-copy {
+            color: var(--theme-muted);
+            line-height: 1.75;
+            margin-bottom: 1.35rem;
+            min-height: 5.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .email-registration-card-footer {
+            align-items: center;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1;
+        }
+
+        .email-registration-card-note {
+            color: var(--theme-muted);
+            font-size: 0.92rem;
+        }
+
+        .email-registration-button {
+            border-radius: 999px;
+            font-weight: 700;
+            padding-left: 1.15rem;
+            padding-right: 1.15rem;
+        }
+
+        .email-registration-button[disabled] {
+            opacity: 1;
+        }
+
+        .email-registration-status {
+            background: rgba(255, 248, 223, 0.92);
+            border: 1px solid rgba(202, 168, 74, 0.26);
+            border-radius: 999px;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            font-size: 0.82rem;
+            font-weight: 700;
+            gap: 0.45rem;
+            padding: 0.45rem 0.75rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .email-registration-page {
+                padding: 1.25rem 0.9rem 2rem;
+            }
+
+            .email-registration-hero {
+                border-radius: 26px;
+                padding: 1.5rem;
+            }
+
+            .email-registration-card-copy {
+                min-height: auto;
+            }
+
+            .email-registration-card-footer {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<section class="section email-registration-page">
+    <div class="email-registration-shell">
+        <div class="email-registration-hero">
+            <div class="email-registration-kicker">Email Registration</div>
+            <h1 class="email-registration-title">เลือกประเภทผู้ลงทะเบียนผ่านอีเมล</h1>
+            <p class="email-registration-copy">
+                เลือกช่องทางที่เหมาะสมตามประเภทผู้ใช้งาน เพื่อเข้าสู่ขั้นตอนการค้นหาผลตรวจหรือการลงทะเบียนที่ออกแบบไว้สำหรับแต่ละกลุ่ม
+            </p>
+        </div>
+
+        <div class="columns is-variable is-5 email-registration-grid">
+            <div class="column">
+                <div class="email-registration-card">
+                    <div class="email-registration-icon">
+                        <i class="fas fa-building-columns fa-2x"></i>
+                    </div>
+                    <div class="email-registration-card-title">บุคลากรมหาวิทยาลัยมหิดล</div>
+                    <div class="email-registration-card-copy">
+                        สำหรับบุคลากรของมหาวิทยาลัยมหิดลที่ต้องการเข้าสู่ระบบด้วยอีเมลมหาวิทยาลัย
+                        และตรวจสอบรายการบริการหรือผลตรวจสุขภาพจากข้อมูลภายในระบบ
+                    </div>
+                    <div class="email-registration-card-footer">
+                        <span class="email-registration-card-note">ใช้อีเมล `@mahidol.ac.th` ของผู้ใช้งานที่ล็อกอินอยู่</span>
+                        <a class="button is-link email-registration-button" href="{{ url_for('comhealth.email_registration_mahidol_staff') }}">
+                            <span class="icon"><i class="fas fa-arrow-right"></i></span>
+                            <span>เข้าสู่เมนู</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="email-registration-card">
+                    <div class="email-registration-icon">
+                        <i class="fas fa-user-group fa-2x"></i>
+                    </div>
+                    <div class="email-registration-card-title">บุคคลทั่วไป</div>
+                    <div class="email-registration-card-copy">
+                        สำหรับผู้รับบริการภายนอกมหาวิทยาลัยที่ต้องการลงทะเบียนหรือรับข้อมูลผ่านอีเมล
+                        โดยจะแยกขั้นตอนการใช้งานออกจากบุคลากรภายในมหาวิทยาลัย
+                    </div>
+                    <div class="email-registration-card-footer">
+                        <span class="email-registration-card-note">ใช้ขั้นตอนเดียวกับการยืนยันอีเมลของบุคลากรภายใน</span>
+                        <a class="button is-link email-registration-button" href="{{ url_for('comhealth.email_registration_general_public') }}">
+                            <span class="icon"><i class="fas fa-arrow-right"></i></span>
+                            <span>เข้าสู่เมนู</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

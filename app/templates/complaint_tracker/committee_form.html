@@ -2,7 +2,7 @@
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
 {% block head %}
     {{ super() }}
-    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% import 'complaint_tracker/committee_macros.html' as macros %}
 {% block page_content %}
@@ -12,7 +12,7 @@
             {% include 'messages.html' %}
             <div class="columns is-centered">
                 <div class="column is-three-fifths">
-                    <h1 class="title has-text-centered">สร้างใบอนุมัติหลักการซ่อม</h1>
+                    <h1 class="title has-text-centered">อัปเดตข้อมูล</h1>
                     <div class="box">
                     <h5 class="title is-size-5">ข้อมูลคณะกรรมการ/ผู้ตรวจรับพัสดุ</h5>
                     <hr>
@@ -61,8 +61,8 @@
                             {% endif %}
                             <div class="field" style="margin-top: 1em">
                                 <div class="buttons is-centered">
-                                    <a class="button is-light" href="{{ url_for('comp_tracker.repair_approval',
-                                        repair_approval_id=rep_approval.id, record_id=rep_approval.record_id) }}"
+                                    <a class="button is-light" href="{{ url_for('comp_tracker.edit_repair_approval',
+                                        repair_approval_id=repair_approval_id, temp=temp, menu=menu, tab=tab) }}"
                                     >
                                         ย้อนกลับ
                                     </a>
@@ -78,7 +78,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
             $('select.js-example-basic-single').each(function() {

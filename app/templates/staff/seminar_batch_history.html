@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">ประวัติการบันทึกของธุรการ</h1>
+                <p class="subtitle is-size-6 has-text-grey">แสดงรายการที่ท่านเคยบันทึกแบบหลายคน</p>
+            </div>
+            <div class="column has-text-right">
+                <a href="{{ url_for('staff.seminar_attends_each_person') }}" class="button is-light">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>กลับหน้ารายการอบรม</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>วันที่บันทึก</th>
+                        <th>กิจกรรม</th>
+                        <th>จำนวนผู้เข้าร่วม</th>
+                        <th>เปิดเอกสาร</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for batch in batches %}
+                        <tr>
+                            <td>{{ batch.created_at|localdatetime }}</td>
+                            <td>{{ batch.seminar.topic }}</td>
+                            <td>{{ batch.attends.count() }}</td>
+                            <td>
+                                <a class="button is-small is-info is-light"
+                                   href="{{ url_for('staff.seminar_batch_detail', batch_id=batch.id) }}">
+                                    ดูเอกสาร
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% if not batches %}
+                        <tr>
+                            <td colspan="4" class="has-text-centered has-text-grey">ยังไม่มีประวัติการบันทึก</td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

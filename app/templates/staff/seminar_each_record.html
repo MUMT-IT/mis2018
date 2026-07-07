@@ -1,9 +1,37 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
     {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <ul class="steps">
+                    <li class="steps-segment">
+                        <span class="steps-marker is-hollow"></span>
+                        <div class="steps-content">
+                            <p>สร้างรายการอบรม</p>
+                        </div>
+                    </li>
+                    <li class="steps-segment">
+                        <span class="steps-marker is-hollow"></span>
+                        <div class="steps-content">
+                            <p>รายละเอียดผู้เข้าร่วม</p>
+                        </div>
+                    </li>
+                    <li class="steps-segment is-active">
+                        <span class="steps-marker"></span>
+                        <div class="steps-content">
+                            <p>สรุปข้อมูล</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
@@ -14,7 +42,15 @@
                                <label class="label">ผู้ไปอบรม</label>
                             </td>
                             <td>
-                                <p class="is-size-5"><strong>{{ attend.staff.personal_info }}</strong></p>
+                                {% if proposer_names and proposer_names|length > 1 %}
+                                    <ol>
+                                        {% for name in proposer_names %}
+                                            <li>{{ name }}</li>
+                                        {% endfor %}
+                                    </ol>
+                                {% else %}
+                                    <p class="is-size-5"><strong>{{ attend.staff.personal_info }}</strong></p>
+                                {% endif %}
                             </td>
                         </tr>
                         {% if attend.head_account_id %}
@@ -244,19 +280,22 @@
                 </div>
             </div>
         </div>
-        <div class="columns">
-            <div class="column">
-                                    <div class="buttons is-centered">
-                                        <button @click="printPdf()" class="button is-warning">
-                                            <span class="icon">
-                                                <i class="fa-solid fa-print"></i>
-                                            </span>
-                                            <span>Download เอกสาร</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+        <div class="columns is-centered">
+            <div class="column is-half">
+                <div class="notification is-info is-light has-text-centered">
+                    <p>กรุณา Download File บันทึกขออนุมัติและ<b>แนบเอกสารต้นเรื่อง</b> <br> เพื่อส่งให้ธุรการเสนอผู้บังคับบัญชาลงนาม</p>
+                    <div class="buttons is-centered">
+                        <button @click="printPdf()" class="button is-warning">
+                            <span class="icon">
+                                <i class="fa-solid fa-print"></i>
+                            </span>
+                            <span>Download เอกสาร</span>
+                        </button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
     </div>
 </section>
 {% endblock %}
@@ -335,7 +374,7 @@
                         },
 				        {
 					        ol: [
-						        'ผู้เสนอขออนุมัติ '+ "{{ seminar_attend.staff.personal_info }}",
+                                'ผู้เสนอขออนุมัติ ' + {{ proposer_list_text|tojson|safe }},
                                 'ประเภท '+"{{ seminar_attend.seminar.topic_type }}",
                                 'หน่วยงานที่จัด '+"{{ seminar_attend.seminar.organize_by }}",
                                 'ข้อมูลการขออนุมัติหัวข้อ '+"{{ seminar_attend.seminar.topic }}"+

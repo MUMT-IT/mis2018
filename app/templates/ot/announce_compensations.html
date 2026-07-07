@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">รายการตำแหน่งของประกาศ: {{ announcement.topic }}</h1>
+                <a class="button is-primary" href="{{ url_for('ot.announcement_add_compensation', announcement_id=announcement.id) }}">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>เพิ่มอัตราค่าตอบแทน</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column">
+                <table id="compTable" class="table is-striped is-fullwidth">
+                    <thead>
+                    <tr>
+                        <th>ตำแหน่ง</th>
+                        <th>ปฏิบัติงาน ณ</th>
+                        <th>ปฏิบัติงานให้แก่</th>
+                        <th>ช่วงเวลา</th>
+                        <th>อัตรา</th>
+                        <th>จัดการ</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for compensation in compensations %}
+                        <tr>
+                            <td>{{ compensation.ot_job_role.role if compensation.ot_job_role else compensation.role or '-' }}</td>
+                            <td>{{ compensation.work_at_org.name if compensation.work_at_org else '-' }}</td>
+                            <td>{{ compensation.work_for_org.name if compensation.work_for_org else '-' }}</td>
+                            <td>{{ compensation.time_slot.start if compensation.time_slot else '-' }} - {{ compensation.time_slot.end if compensation.time_slot else '-' }}</td>
+                            <td>
+                                {% if compensation.per_day %}
+                                    {{ compensation.per_day }} บาท(ต่อวัน)
+                                {% endif %}
+                                {% if compensation.per_period %}
+                                    {{ compensation.per_period }} บาท(ต่อคาบ)
+                                {% endif %}
+                                {% if compensation.per_hour %}
+                                    {{ compensation.per_hour }} บาท(ต่อชั่วโมง)
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a class="button is-small is-link is-light" href="{{ url_for('ot.announcement_edit_compensation', com_id=compensation.id) }}">Edit</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.announcement') }}">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function () {
+        $('#compTable').DataTable({
+            pageLength: 10
+        });
+    });
+</script>
+{% endblock %}

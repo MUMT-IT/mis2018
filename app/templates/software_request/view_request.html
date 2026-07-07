@@ -2,6 +2,7 @@
 {% block title %}MUMT Internal Information System{% endblock %}
 {% block head %}
     {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -16,18 +17,7 @@
                         </div>
                         <div class="column has-text-right is-narrow">
                             <h1 class="title">
-                                <span {% if detail.status == 'ส่งคำขอแล้ว' %}
-                                        class="tag is-info is-medium"
-                                      {% elif detail.status == 'อยู่ระหว่างพิจารณา' %}
-                                        class="tag is-warning is-medium"
-                                      {% elif detail.status == 'อนุมัติ' %}
-                                        class="tag is-success is-medium"
-                                      {% elif detail.status == 'ไม่อนุมัติ' %}
-                                        class="tag is-danger is-medium"
-                                      {% elif detail.status == 'ยกเลิก' %}
-                                        class="tag is-dark is-medium"
-                                      {% endif %}
-                                >
+                                <span class="tag {{ detail.status_color }} is-medium">
                                     {{ detail.status }}
                                 </span>
                             </h1>
@@ -174,25 +164,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label">
-                                <label class="label has-text-left">นัดหมายเพิ่มเติมกับผู้ส่งคำขอ</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">วันนัดหมาย</label>
-                                    <div class="control">
-                                        {{ detail.appointment_date|localdatetime or 'ไม่มีวันนัดหมาย' }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">สถานที่</label>
-                                    <div class="control">
-                                        {{ detail.room or 'ไม่มีห้อง' }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         {% if detail.status == 'ยกเลิก' %}
                             <div class="field is-horizontal">
                                 <div class="field-label">
@@ -207,18 +178,20 @@
                                 </div>
                             </div>
                         {% endif %}
-                        {% if detail.approver_id %}
-                            <div class="field is-horizontal">
-                                <div class="field-label">
-                                    <label class="label has-text-left">Update ล่าสุด</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label has-text-left">Update ล่าสุด</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    {% if detail.updated_date %}
                                         {{ detail.updated_date|localdatetime }} โดย {{ detail.approver.fullname }}
-                                    </div>
+                                    {% else %}
+                                        ยังไม่มีการอัพเดต
+                                    {% endif %}
                                 </div>
                             </div>
-                        {% endif %}
+                        </div>
                     </div>
                     <h5 class="title is-size-4">ข้อมูลนัดหมายเพิ่มเติม</h5>
                     <div class="box">
@@ -255,36 +228,25 @@
                                     <div class="field is-expanded">
                                         <div class="control">
                                             {% if detail.timelines %}
-                                                <table class="table is-fullwidth is-striped is-hoverable">
+                                                <table id="timelines" class="table is-fullwidth is-striped">
                                                     <thead>
-                                                    <th>Sequence</th>
                                                     <th>Task</th>
+                                                    <th>Requirement</th>
                                                     <th>สถานะ</th>
-                                                    <th>Phase</th>
                                                     <th>วันที่เริ่มต้น</th>
                                                     <th>วันที่คาดว่าจะแล้วเสร็จ</th>
                                                     <th>ผู้รับผิดชอบ</th>
                                                     </thead>
                                                     <tbody id="timelines">
-                                                    {% for timeline in detail.timelines|sort(attribute='sequence') %}
+                                                    {% for timeline in detail.timelines %}
                                                         <tr>
-                                                            <td>{{ timeline.sequence }}</td>
                                                             <td>{{ timeline.task }}</td>
+                                                            <td>{{ timeline.issue.issue }}</td>
                                                             <td>
-                                                                    <span {% if timeline.status == 'รอดำเนินการ' %}
-                                                                        class="tag is-info is-light"
-                                                                    {% elif timeline.status == 'กำลังดำเนินการ' %}
-                                                                        class="tag is-warning is-light"
-                                                                    {% elif timeline.status == 'เสร็จสิ้น' %}
-                                                                        class="tag is-success is-light"
-                                                                    {% else %}
-                                                                        class="tag is-danger is-light"
-                                                                    {% endif %}
-                                                                    >
-                                                                            {{ timeline.status }}
-                                                                    </span>
+                                                                <span class="tag {{ timeline.status_color }}">
+                                                                    {{ timeline.status }}
+                                                                </span>
                                                             </td>
-                                                            <td>{{ timeline.phase }}</td>
                                                             <td>{{ timeline.start.strftime('%d/%m/%Y') }}</td>
                                                             <td>{{ timeline.estimate.strftime('%d/%m/%Y') }}</td>
                                                             <td>{{ timeline.admin.fullname }}</td>
@@ -303,6 +265,75 @@
                             ยังไม่มีข้อมูล Timeline
                         {% endif %}
                     </div>
+                    <h5 class="title is-size-4">ข้อมูลผลการทดสอบ</h5>
+                    <div class="box">
+                        <div class="field">
+                            <form method="post" action="{{ url_for('software_request.view_request', detail_id=detail.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <table class="table is-fullwidth is-striped" id="test_results">
+                                    <thead>
+                                        <th style="width: 10.5em">ผลการทดสอบ</th>
+                                        <th>หมายเหตุ</th>
+                                        <th>รายละเอียด</th>
+                                        <th>วันที่บันทึกผล</th>
+                                        <th>ผู้บันทึกผล</th>
+                                    </thead>
+                                    <tbody>
+                                        {% for test_result in detail.test_results %}
+                                            <tr>
+                                                {% if detail.status == 'อนุมัติ' %}
+                                                    <td>
+                                                        <input class="is-checkradio"
+                                                               id="pass_{{ test_result.id }}"
+                                                               type="radio"
+                                                               name="result_{{ test_result.id }}"
+                                                               value="ผ่าน"
+                                                               {% if test_result.status == 'ผ่าน' %}checked{% endif %}>
+                                                        <label for="pass_{{ test_result.id }}">ผ่าน</label>
+                                                        <input class="is-checkradio"
+                                                               id="notpass_{{ test_result.id }}"
+                                                               type="radio"
+                                                               name="result_{{ test_result.id }}"
+                                                               value="ไม่ผ่าน"
+                                                               {% if test_result.status == 'ไม่ผ่าน' %}checked{% endif %}>
+                                                        <label for="notpass_{{ test_result.id }}">ไม่ผ่าน</label>
+                                                    </td>
+                                                    <td>
+                                                        <div class="field">
+                                                            <div class="control">
+                                                                <textarea class="textarea" name="note_{{ test_result.id }}">{{ (test_result.note or '').strip() }}</textarea>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                {% else %}
+                                                    <td>
+                                                        {% if test_result.status %}
+                                                            <span class="tag {{ test_result.status_color }}">
+                                                                {{ test_result.status }}
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ test_result.note or '' }}</td>
+                                                {% endif %}
+                                                <td>{{ test_result.issue.issue }}</td>
+                                                <td>{{ test_result.recorded_at|localdatetime or '' }}</td>
+                                                <td>
+                                                    {% if test_result.recorder %}
+                                                        {{ test_result.recorder.fullname }}
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% if detail.test_results and detail.status == 'อนุมัติ' %}
+                                    <div class="field mt-1">
+                                        <input type="submit" value="บันทีก" class="button is-info is-rounded">
+                                    </div>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="{{ url_for('software_request.index') }}" class="button">
@@ -317,4 +348,31 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('DD/MM/YYYY');
+            $('#timelines').DataTable({
+                order: [
+                    [3, 'asc'],
+                    [4, 'asc']
+                ],
+                lengthChange: false,
+                searching: false,
+                paging: false,
+                info: false
+            })
+            $('#test_results').DataTable({
+                order: [
+                    [3, 'asc']
+                ],
+                lengthChange: false,
+                searching: false,
+                paging: false,
+                info: false
+            })
+        });
+        window.document.addEventListener("closeNoteModal", function () {
+            htmx.removeClass(htmx.find('#note-modal'), "is-active")
+        })
+    </script>
 {% endblock %}

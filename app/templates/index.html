@@ -1,613 +1,584 @@
 {% extends "base.html" %}
+
 {% block title %}MUMT Internal Information System{% endblock %}
-{% include "nav.html" %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .home-shell {
+            padding: 1.5rem 0 3rem;
+        }
+
+        .home-hero {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
+            border: 1px solid var(--theme-border);
+            border-radius: 28px;
+            box-shadow: var(--theme-shadow);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .home-hero::after {
+            background: linear-gradient(135deg, rgba(240, 196, 25, 0.24), rgba(184, 67, 63, 0));
+            border-radius: 999px;
+            content: "";
+            height: 16rem;
+            position: absolute;
+            right: -4rem;
+            top: -5rem;
+            width: 16rem;
+        }
+
+        .home-kicker {
+            color: var(--theme-gold);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .home-brand {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .home-brand-mark {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(18, 39, 84, 0.1);
+            display: inline-flex;
+            flex-shrink: 0;
+            padding: 0.75rem;
+        }
+
+        .home-brand-mark img {
+            display: block;
+            height: 4.5rem;
+            width: auto;
+        }
+
+        .home-summary-grid {
+            display: grid;
+            gap: 0.9rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-top: 1.5rem;
+        }
+
+        .home-stat,
+        .home-panel,
+        .home-service-card {
+            backdrop-filter: blur(12px);
+            background: var(--theme-surface);
+            border: 1px solid var(--theme-border);
+            border-radius: 22px;
+            box-shadow: var(--theme-shadow);
+        }
+
+        .home-stat {
+            padding: 1rem 1.1rem;
+        }
+
+        .home-summary-link {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.15rem 1.2rem;
+        }
+
+        .home-summary-link:hover {
+            border-color: rgba(202, 168, 74, 0.28);
+            box-shadow: 0 12px 28px rgba(18, 39, 84, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .home-summary-link-copy {
+            align-items: center;
+            display: inline-flex;
+            gap: 0.9rem;
+        }
+
+        .home-summary-link .icon {
+            color: var(--theme-navy);
+        }
+
+        .home-stat-label {
+            color: var(--theme-muted);
+            display: block;
+            font-size: 0.82rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .home-stat-value {
+            color: var(--theme-navy-deep);
+            font-size: 1.35rem;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+
+        .home-main-grid {
+            margin-top: 1.5rem;
+        }
+
+        .home-announcement {
+            align-items: flex-start;
+            background: linear-gradient(135deg, rgba(154, 24, 24, 0.98), rgba(210, 47, 47, 0.96));
+            border: 1px solid rgba(123, 18, 18, 0.32);
+            border-radius: 22px;
+            box-shadow: 0 18px 42px rgba(123, 18, 18, 0.22);
+            color: #fff;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            padding: 1.1rem 1.25rem;
+        }
+
+        .home-announcement .icon {
+            color: rgba(255, 255, 255, 0.92);
+            margin-top: 0.1rem;
+        }
+
+        .home-announcement-title {
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }
+
+        .home-announcement-copy {
+            color: rgba(255, 255, 255, 0.96);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .home-top-panels {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            margin-bottom: 1.5rem;
+        }
+
+        .home-panel {
+            height: 100%;
+            padding: 1.2rem;
+        }
+
+        .home-panel-header {
+            align-items: flex-start;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .home-panel-title {
+            color: var(--theme-navy-deep);
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .home-panel-subtitle {
+            color: var(--theme-muted);
+            font-size: 0.88rem;
+        }
+
+        .home-badge {
+            background: var(--theme-navy-soft);
+            border-radius: 999px;
+            color: var(--theme-navy-deep);
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.32rem 0.7rem;
+            white-space: nowrap;
+        }
+
+        .home-login-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            margin: 0 auto;
+            max-width: 380px;
+        }
+
+        .home-google-signin-btn {
+            background: #ffffff;
+            border: 1px solid #dadce0;
+            color: #3c4043;
+            font-weight: 600;
+        }
+
+        .home-google-signin-btn:hover,
+        .home-google-signin-btn:focus {
+            background: #f8f9fa;
+            border-color: #c6c9cc;
+            color: #202124;
+        }
+
+        .home-google-signin-logo {
+            display: inline-block;
+            height: 18px;
+            width: 18px;
+        }
+
+        .home-line-signin-btn {
+            background: #06c755;
+            border: 1px solid #06b24c;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .home-line-signin-btn:hover,
+        .home-line-signin-btn:focus {
+            background: #05b24c;
+            border-color: #049643;
+            color: #ffffff;
+        }
+
+        .home-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .home-feed.is-compact .home-feed-item {
+            padding: 0.85rem 0.95rem;
+        }
+
+        .home-feed-item {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 18px;
+            padding: 0.95rem 1rem;
+        }
+
+        .home-feed-item p:last-child {
+            margin-bottom: 0;
+        }
+
+        .home-feed-meta {
+            color: var(--theme-muted);
+            font-size: 0.86rem;
+        }
+
+        .home-feed-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+        }
+
+        .home-feed-empty {
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px dashed rgba(18, 39, 84, 0.18);
+            border-radius: 18px;
+            color: var(--theme-muted);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .home-services-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .home-service-card {
+            padding: 1.2rem;
+        }
+
+        .home-service-card.is-highlight {
+            background: linear-gradient(180deg, rgba(255, 245, 210, 0.98), rgba(255, 255, 255, 0.92));
+        }
+
+        .home-service-head {
+            align-items: center;
+            display: flex;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .home-service-icon {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(240, 243, 255, 0.96), rgba(202, 168, 74, 0.2));
+            border-radius: 16px;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            height: 2.8rem;
+            justify-content: center;
+            width: 2.8rem;
+        }
+
+        .home-service-title {
+            color: var(--theme-navy-deep);
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .home-service-note {
+            color: var(--theme-muted);
+            font-size: 0.86rem;
+            margin-top: 0.15rem;
+        }
+
+        .home-link-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .home-link-item {
+            align-items: center;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(16, 24, 40, 0.05);
+            border-radius: 14px;
+            color: var(--theme-text);
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            padding: 0.8rem 0.95rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+
+        .home-link-item:hover {
+            border-color: rgba(202, 168, 74, 0.28);
+            box-shadow: 0 10px 24px rgba(18, 39, 84, 0.08);
+            color: var(--theme-navy-deep);
+            transform: translateY(-1px);
+        }
+
+        .home-link-item.is-disabled,
+        .home-link-item.is-disabled:hover {
+            box-shadow: none;
+            cursor: default;
+            opacity: 0.72;
+            transform: none;
+        }
+
+        .home-link-copy {
+            align-items: center;
+            display: inline-flex;
+            gap: 0.7rem;
+            min-width: 0;
+        }
+
+        .home-link-copy span:last-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .home-link-item .icon {
+            color: var(--theme-navy);
+        }
+
+        .home-link-item.is-disabled .icon {
+            color: rgba(18, 39, 84, 0.68);
+        }
+
+        .home-panel:nth-child(1) .home-badge {
+            background: rgba(184, 67, 63, 0.12);
+            color: var(--theme-red);
+        }
+
+        .home-panel:nth-child(2) .home-badge {
+            background: rgba(240, 196, 25, 0.18);
+            color: #8c6a00;
+        }
+
+        .home-panel:nth-child(3) .home-badge {
+            background: rgba(46, 139, 87, 0.14);
+            color: var(--theme-green);
+        }
+
+        .home-login-card {
+            margin-top: 1.5rem;
+            padding: 1.4rem;
+            text-align: center;
+        }
+
+        @media screen and (max-width: 1023px) {
+            .home-top-panels,
+            .home-summary-grid,
+            .home-services-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .home-brand {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block vendor_styles %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://unpkg.com/bulmaswatch/default/bulmaswatch.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+{% endblock %}
+
+{% block vendor_scripts %}
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+{% endblock %}
+
 {% block page_content %}
-<section class="section">
-    <div class="container">
-        {% include 'messages.html' %}
-        <div class="columns">
-            <div class="column is-one-third" hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'>
-                <div class="card">
-                    <div class="card-header">
-                        <p class="card-header-title">การนัดหมายประชุม</p>
-                    </div>
-                    <div class="card-content">
-                        {% for invite in current_user.invitations|upcoming_meeting_events %}
-                        <article class="media">
-                            <div class="media-left">
-                                <span class="icon" id="left-icon-{{ invite.id }}">
-                                    {% if invite.response == 'เข้าร่วม' %}
-                                    <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
-                                    {% elif invite.response == 'ไม่เข้าร่วม' %}
-                                    <i class="fas fa-times-circle has-text-danger"></i>
-                                    {% else %}
-                                    <i class="fas fa-question-circle"></i>
-                                    {% endif %}
-                                </span>
+    {% include "nav.html" %}
+
+    <section class="section home-shell">
+        <div class="container">
+            {% include "messages.html" %}
+
+            <div class="home-announcement">
+                <span class="icon is-medium">
+                    <i class="fa-solid fa-bullhorn"></i>
+                </span>
+                <div>
+                    <p class="home-announcement-title">Announcement</p>
+                    <p class="home-announcement-copy">
+                        ตั้งแต่วันที่ 1 มิถุนายน 2569 เป็นต้นไป ระบบจะปิดการลงชื่อเข้าใช้งาน (log in) ด้วย username, password ขอให้บุคลากรทุกท่าน log in เข้าระบบด้วย Google หรือ Line เพื่อเพิ่มความปลอดภัย
+                    </p>
+                </div>
+            </div>
+
+            <section class="home-hero">
+                <div class="columns is-variable is-6 is-vcentered m-0">
+                    <div class="column is-7-desktop p-6">
+                        <div class="home-brand">
+                            <span class="home-brand-mark">
+                                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Mahidol University logo" width="140" height="72" decoding="async">
+                            </span>
+                            <div>
+                                <p class="home-kicker">MUMT Information System</p>
                             </div>
-                            <div class="media-content">
-                                <div class="content">
-                                    <p>
-                                        <strong>{{ invite.meeting.title }}</strong>
-                                        <br>
-                                        <span class="icon">
-                                            <i class="fa-regular fa-clock"></i>
-                                        </span>
-                                        <small>{{ invite.meeting.start|humanizedt }}</small>
-                                        <br>
-                                        <span class="icon"><i class="fas fa-info-circle"></i></span>
-                                        <small>
-                                            {{ invite.meeting.detail or 'ไม่มีรายละเอียด' }}
-                                        </small>
-                                        <br>
-                                        <a hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
-                                            hx-target="#target-{{ invite.id }}">
-                                            <span class="icon"><i class="fas fa-reply"></i></span>
-                                            <small>
-                                                <span id="response-time-{{ invite.id }}">
-                                                    {{ invite.responded_at|localdatetime or 'ยังไม่ตอบรับ' }}
-                                                </span>
-                                            </small>
-                                        </a>
-                                    </p>
-                                </div>
-                                <div id="target-{{ invite.id }}">
-                                    {% if invite.response == None %}
-                                    <nav class="level is-mobile">
-                                        <div class="level-left">
-                                            <a class="level-item" hx-boost="true" hx-target="#left-icon-{{ invite.id }}"
-                                                hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
-                                                <span class="tag is-success">เข้าร่วม</span>
-                                            </a>
-                                            <a class="level-item" hx-boost="true" hx-target="#left-icon-{{ invite.id }}"
-                                                hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
-                                                <span class="tag is-danger">ไม่เข้าร่วม</span>
-                                            </a>
-                                            <a class="level-item" hx-boost="true" hx-target="#left-icon-{{ invite.id }}"
-                                                hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
-                                                <span class="tag is-light">ไม่แน่ใจ</span>
-                                            </a>
-                                        </div>
-                                    </nav>
-                                    {% endif %}
-                                </div>
-                                <div class="level">
-                                    <div id="note-target-{{ invite.id }}"></div>
-                                </div>
-                            </div>
-                        </article>
-                        {% endfor %}
-                    </div>
-                    <footer class="card-footer">
-                        <p class="card-footer-item">
-                            <strong>
-                                <small>คลิกที่ <span><i class="fas fa-reply"></i></span> เพื่อแก้ไข</small>
-                            </strong>
+                        </div>
+                        <h1 class="title is-2 mb-3">ศูนย์รวมระบบสารสนเทศงานภายในสำหรับบุคลากร</h1>
+                        <p class="subtitle is-5 has-text-grey-dark mt-1">
+                            เข้าถึงงานประจำ การจองห้องประชุม การนัดหมาย และระบบรายงานจากหน้าเดียว พร้อมมุมมองกิจกรรมล่าสุดสำหรับผู้ใช้งานที่ลงชื่อเข้าใช้
                         </p>
-                    </footer>
-                </div>
-                <div class="pb-3"></div>
-                <div class="card">
-                    <div class="card-header">
-                        <p class="card-header-title">สำรวจวันเวลาประชุม</p>
-                    </div>
-                    <div class="card-content">
-                        {% for poll in current_user.polls|upcoming_polls %}
-                        <article class="media">
-                            <div class="media-left">
-                                <span class="icon">
-                                    <i class="fas fa-info-circle"></i>
+
+                        <div class="home-summary-grid">
+                            <a class="home-stat home-summary-link" href="{{ url_for('staff.index') }}">
+                                <span class="home-summary-link-copy">
+                                    <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
+                                    <span>
+                                        <span class="home-stat-value">บุคลากร</span>
+                                    </span>
                                 </span>
-                            </div>
-                            <div class="media-content">
-                                <div class="content">
-                                    <p>
-                                        <strong>{{ poll.poll_name }}</strong>
-                                        <br>
-                                        <span class="icon">
-                                            <i class="fas fa-calendar-minus"></i>
-                                        </span>
-                                        <small>{{ poll.start_vote|localdatetime }} - {{ poll.close_vote|localdatetime
-                                            }}</small>
-                                        <br>
-                                        <span class="icon">
-                                            <i class="fas fa-history"></i>
-                                        </span>
-                                        {% if poll.start_vote >= now %}
-                                        <small>{{ 'Start' }} {{ poll.start_vote|humanizedt }}</small>
-                                        {% else %}
-                                        <small>{{ 'End' }} {{ poll.close_vote|humanizedt }}</small>
-                                        {% endif %}
-                                        <br>
-                                        <a href="{{ url_for('meeting_planner.add_vote', poll_id=poll.id) }}">
-                                            {% if poll.start_vote <= now %} <span class="icon">
-                                                <i class="fas fa-pencil"></i>
-                                                </span>
-                                                <small>{{ 'สำรวจ' }}</small>
-                                                {% endif %}
-                                        </a>
-                                    </p>
-                                </div>
-                            </div>
-                        </article>
-                        {% endfor %}
-                    </div>
-                    <footer class="card-footer">
-                        <p class="card-footer-item">
-                            <strong>
-                                <small>คลิกที่ <span><i class="fas fa-pencil"></i></span> เพื่อสำรวจ</small>
-                            </strong>
-                        </p>
-                    </footer>
-                </div>
-                <div class="pb-3"></div>
-                <div class="card">
-                    <div class="card-header">
-                        <p class="card-header-title">กิจกรรมการใช้ห้อง</p>
-                    </div>
-                    <div class="card-content">
-                        {% for event in current_user.events|upcoming_events %}
-                        <article class="media">
-                            <div class="media-left"></div>
-                            <div class="media-content">
-                                <div class="content">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-circle-info"></i>
-                                    </span>
-                                    <span>
-                                        {{ event.title }}
-                                    </span>
-                                    <br />
-                                    <span class="icon">
-                                        <i class="fa-regular fa-clock"></i>
-                                    </span>
-                                    <span>
-                                        {{ event.datetime.lower|localize|localdatetime }} - {{
-                                        event.datetime.upper|localize|localdatetime }}
-                                    </span>
-                                    <br />
-                                    <span class="icon">
-                                        <i class="fa-solid fa-map-pin"></i>
-                                    </span>
-                                    <span>
-                                        <strong>ห้อง {{ event.room }}</strong>
-                                    </span>
-                                </div>
-                            </div>
-                        </article>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="pb-3"></div>
-                <div class="card">
-                    <div class="card-header">
-                        <p class="card-header-title">ลงทะเบียนล่วงหน้า (Pre-Register)
-                            <a class="panel-block" href="{{ url_for('staff.seminar_pre_register_upcoming_records') }}">
-                                <i class="fa-solid fa-arrow-up-right-from-square" style="color:dodgerblue"></i>
+                                <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                             </a>
-                        </p>
+                            <a class="home-stat home-summary-link" href="{{ url_for('comhealth.landing') }}">
+                                <span class="home-summary-link-copy">
+                                    <span class="icon is-medium"><i class="fa-solid fa-heart-pulse"></i></span>
+                                    <span>
+                                        <span class="home-stat-value">ระบบงานบริการสุขภาพชุมชน</span>
+                                    </span>
+                                </span>
+                                <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                            </a>
+                        </div>
                     </div>
-                    <div class="card-content">
-                        {% for pre_regis in current_user.seminar_pre_register_staff|upcoming_pre_register %}
-                        <article class="media">
-                            <div class="media-left"></div>
-                            <div class="media-content">
-                                <div class="content">
-                                    <span class="icon">
-                                        <i class="fa-solid fa-circle-info"></i>
-                                    </span>
-                                    <span>
-                                        {{ pre_regis.seminar.topic }}
-                                    </span>
-                                    <br />
-                                    <span class="icon">
-                                        <i class="fa-regular fa-clock"></i>
-                                    </span>
-                                    <span>
-                                        {{ pre_regis.seminar.start_datetime|localdatetime }} - {{
-                                        pre_regis.seminar.end_datetime|localdatetime }}
-                                    </span>
-                                    <br />
-                                    <span class="icon">
-                                        <i class="fa-solid fa-map-pin"></i>
-                                    </span>
-                                    <span>
-                                        <strong>
-                                            {% if pre_regis.attend_online %}
-                                            {% if pre_regis.seminar.online_detail %}
-                                            online: {{ pre_regis.seminar.online_detail }}
-                                            {% endif %}
-                                            {% else %}
-                                            {% if pre_regis.seminar.location %}
-                                            ณ {{ pre_regis.seminar.location }}
-                                            {% endif %}
-                                            {% endif %}
-                                        </strong>
-                                    </span>
+                    <div class="column is-5-desktop p-6 pt-0-mobile">
+                        <div class="home-panel">
+                            <div class="home-panel-header">
+                                <div>
+                                    <p class="home-panel-title">ทางลัดหลัก</p>
+                                    <p class="home-panel-subtitle">เริ่มต้นงานที่ใช้บ่อยได้ทันที</p>
                                 </div>
                             </div>
-                        </article>
-                        {% endfor %}
+                            <div class="home-link-list">
+                                <a class="home-link-item" href="{{ url_for('staff.show_leave_info') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                        <span>ลาปฏิบัติงาน</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-link-item" href="{{ url_for('room.index') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-regular fa-calendar"></i></span>
+                                        <span>จองห้องประชุมและพื้นที่ใช้งาน</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-link-item" href="{{ url_for('staff.geo_checkin') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
+                                        <span>ลงชื่อใช้งานด้วย GPS</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-link-item" href="https://eoffice.mahidol.ac.th/">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-building-columns"></i></span>
+                                        <span>e-office</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-link-item" href="{{ url_for('user_support_index') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-circle-info"></i></span>
+                                        <span>แจ้งปัญหาและขอความช่วยเหลือ</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="column is-half">
-                <nav class="panel is-info">
-                    <p class="panel-heading">Staff</p>
-                    <a class="panel-block" href="{{ url_for('staff.index') }}">
-                        <span class="panel-icon">
-                            <i class="fa-solid fa-user"></i>
-                        </span>
-                        <span class="is-size-5">
-                            บุคลากร
-                        </span>
-                    </a>
-                    {# <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">#}
-                        {# <span class="panel-icon">#}
-                            {# <i class="fa-solid fa-envelope"></i>#}
-                            {# </span>#}
-                        {# <span class="is-size-5">#}
-                            {# คำเชิญเข้าประชุม#}
-                            {# </span>#}
-                        {# <span class="tag is-rounded is-danger">{{
-                            current_user.new_invitations|upcoming_meeting_events|length }}</span>#}
-                        {# </a>#}
-                    {# <a href="{{ url_for('meeting_planner.list_poll_participant') }}" class="panel-block">#}
-                        {# <span class="panel-icon">#}
-                            {# <i class="fas fa-poll-h"></i>#}
-                            {# </span>#}
-                        {# <span class="is-size-5">คำเชิญเข้าโหวตวันประชุม</span>#}
-                        {# <span class="tag is-rounded is-danger">{{ current_user.polls|upcoming_polls|length
-                            }}</span>#}
-                        {# </a>#}
-                    <a class="panel-block" href="{{ url_for('staff.geo_checkin') }}">
-                        <span class="panel-icon">
-                            <i class="fas fa-map-marker-alt"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ลงชื่อเข้างานด้วย GPS
-                        </span>
-                    </a>
-                    <a class="panel-block" href="{{ url_for('staff.show_qrcode') }}">
-                        <span class="panel-icon">
-                            <i class="fas fa-qrcode"></i>
-                        </span>
-                        <span class="is-size-5">
-                            QR Code ของฉัน
-                        </span>
-                    </a>
-                    <a class="panel-block" href="{{ url_for('staff.list_group_detail') }}">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-edit"></i>
-                        </span>
-                        <span class="is-size-5">
-                            จัดการรายชื่อกลุ่ม
-                        </span>
-                    </a>
-                </nav>
-                <nav class="panel is-info">
-                    <p class="panel-heading">Education</p>
-                    {# <a href="{{ url_for('studs.index') }}" class="panel-block">#}
-                        {# <span class="panel-icon">#}
-                            {# <i class="fas fa-user-graduate"></i>#}
-                            {# </span><span class="is-size-5">นักศึกษา</span>#}
-                        {# </a>#}
-                    <a href="{{ url_for('eduqa.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-university"></i>
-                        </span><span class="is-size-5">ระบบประกันคุณภาพการศึกษา</span>
-                    </a>
-                </nav>
-                <nav class="panel is-info">
-                    <p class="panel-heading">Services</p>
-                    <a href="{{ url_for('comhealth.landing') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-heartbeat"></i>
-                        </span>
-                        <span class="is-size-5">ระบบงานบริการสุขภาพชุมชน</span>
-                    </a>
-                    {# <a href="{{ url_for('health_service_scheduler.index') }}" class="panel-block">#}
-                        {# <span class="panel-icon">#}
-                            {# <i class="fas fa-calendar-plus"></i>#}
-                            {# </span>#}
-                        {# <span class="is-size-5">ระบบจองเวลางานสุขภาพชุมชน</span>#}
-                        {# </a>#}
-                    <a href="{{ url_for('room.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="far fa-calendar-alt"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบจองห้อง
-                        </span>
-                    </a>
-                    <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="far fa-calendar-alt"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบลงทะเบียนใช้งาน Zoom
-                        </span>
-                    </a>
-                    <a href="{{ url_for('vehicle.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-car"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบจองยานพาหนะ
-                        </span>
-                    </a>
-                    <!--                    <a href="{{ url_for('vehicle.trip') }}" class="panel-block">-->
-                    <!--                        <span class="panel-icon">-->
-                    <!--                            <i class="fas fa-car"></i>-->
-                    <!--                        </span>-->
-                    <!--                        <span class="is-size-5">-->
-                    <!--                            ป้อนข้อมูลการเดินทาง (สำหรับพขร.)-->
-                    <!--                        </span>-->
-                    <!--                    </a>-->
-                    <a href="{{ url_for('procurement.main_procurement_page') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-cog"></i>
-                        </span>
-                        <span class="is-size-5">ระบบงานคลังและพัสดุ</span>
-                    </a>
-                    <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-clipboard-list"></i>
-                        </span>
-                        <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
-                    </a>
-                    <a href="https://mt.mahidol.ac.th/prservice_system/" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-clipboard-list"></i>
-                        </span>
-                        <span class="is-size-5">ระบบขอรับบริการงานประชาสัมพันธ์ฯ</span>
-                    </a>
-                </nav>
-                <nav class="panel is-info">
-                    <p class="panel-heading">Analytics</p>
-                    <a class="panel-block"
-                        href="{{ url_for('data_bp.orgs') }}">
-                    <span class="panel-icon">
-                        <i class="fas fa-tasks"></i>
-                    </span>
-                    <span class="is-size-5">
-                        ระบบฐานข้อมูลตัวชี้วัดและกระบวนการการทำงาน
-                    </span>
-                    </a>
-                    <a href="{{ url_for('research.dashboard') }}" class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fas fa-tachometer-alt"></i>
-                    </span>
-                        <span class="is-size-5">
-                        ระบบวิเคราะห์ผลงานวิจัย
-                    </span>
-                    </a>
-{#                        <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">#}
-{#                        <span class="panel-icon">#}
-{#                            <i class="fas fa-tachometer-alt"></i>#}
-{#                        </span>#}
-{#                            <span class="is-size-5">#}
-{#                            ระบบฐานข้อมูลตัวชี้วัดองค์กร#}
-{#                        </span>#}
-{#                        </a>#}
-                    <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
-                       class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fas fa-tachometer-alt"></i>
-                    </span>
-                        <span class="is-size-5">
-                        Dashboard รายงานข้อมูลเพื่อการตัดสินใจ
-                    </span>
-                    </a>
-                    <a href="{{ url_for('chemdb.index') }}" class="panel-block">
-                    <span class="panel-icon">
-                        <i class="fas fa-flask"></i>
-                    </span>
-                        <span class="is-size-5">
-                        ระบบฐานข้อมูลสารเคมี
-                    </span>
-                    </a>
-{#                        <a href="{{ url_for('food.index') }}" class="panel-block">#}
-{#                        <span class="panel-icon">#}
-{#                            <i class="fab fa-pagelines"></i>#}
-{#                        </span>#}
-{#                            <span class="is-size-5">#}
-{#                            ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย#}
-{#                        </span>#}
-{#                        </a>#}
-                </nav>
-                <nav class="panel is-info">
-                    <p class="panel-heading">ระบบมหาวิทยาลัย</p>
-                    <a href="https://eoffice.mahidol.ac.th/" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-circle-notch"></i>
-                        </span>
-                        <span class="is-size-5">สารบรรณอิเล็กทรอนิกส์ (eoffice)</span>
-                    </a>
-                </nav>
-                <nav class="panel is-danger">
-                    <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
-                    <a {% if central_admin %}
-                            href="{{ url_for('service_admin.invoice_index_for_central_admin', menu='invoice', tab='all') }}"
-                       {% elif assistant %}
-                            href="{{ url_for('service_admin.quotation_index', menu='quotation', tab='all') }}"
-                       {% else %}
-                            href="{{ url_for('service_admin.request_index', menu='request') }}"
-                       {% endif %}
-                       class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">ระบบงานบริการวิชาการ</span>
-                    </a>
-                    <a href="{{ url_for('continuing_edu_admin.dashboard') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">จัดการคอร์สอบรม</span>
-                    </a>
-                    <a href="{{ url_for('besttime.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบนัดหมายการประชุมกรรมการจัดซื้อจัดจ้าง
-                        </span>
-                    </a>
-                    <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบนัดหมายการประชุม
-                        </span>
-                    </a>
-                    <a href="{{ url_for('instruments.index_of_instruments') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">ระบบจองเครื่องมือวิจัย</span>
-                    </a>
-                    <a href="{{ url_for('alumni.landing') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">ระบบการจัดการข้อมูลศิษย์เก่า</span>
-                    </a>
-                    <a href="" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">ระบบยืม-คืนโสตทัศนูปกรณ์</span>
-                    </a>
-                    <a href="{{ url_for('data_bp.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">Enterprise Blueprint</span>
-                    </a>
-                    <a href="{{ url_for('ot.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">ระบบจัดการข้อมูล OT</span>
-                    </a>
-                    <a href="{{ url_for('pdpa.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
-                    </a>
-                    <a href="{{ url_for('software_request.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
-                        </span>
-                        <span class="is-size-5">ระบบขอรับบริการพัฒนา Software</span>
-                    </a>
-                </nav>
-                <nav class="panel is-info">
-                    <p class="panel-heading">Analytics</p>
-                    <a class="panel-block" href="{{ url_for('data_bp.orgs') }}">
-                        <span class="panel-icon">
-                            <i class="fas fa-tasks"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบฐานข้อมูลตัวชี้วัดและกระบวนการการทำงาน
-                        </span>
-                    </a>
-                    <a href="{{ url_for('research.dashboard') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-tachometer-alt"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบวิเคราะห์ผลงานวิจัย
-                        </span>
-                    </a>
-                    {# <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">#}
-                        {# <span class="panel-icon">#}
-                            {# <i class="fas fa-tachometer-alt"></i>#}
-                            {# </span>#}
-                        {# <span class="is-size-5">#}
-                            {# ระบบฐานข้อมูลตัวชี้วัดองค์กร#}
-                            {# </span>#}
-                        {# </a>#}
-                    <a href="{{ url_for('kpi_blueprint.dashboard_index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-tachometer-alt"></i>
-                        </span>
-                        <span class="is-size-5">
-                            Dashboard รายงานข้อมูลเพื่อการตัดสินใจ
-                        </span>
-                    </a>
-                    <a href="{{ url_for('chemdb.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-flask"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ระบบฐานข้อมูลสารเคมี
-                        </span>
-                    </a>
-                    {# <a href="{{ url_for('food.index') }}" class="panel-block">#}
-                        {# <span class="panel-icon">#}
-                            {# <i class="fab fa-pagelines"></i>#}
-                            {# </span>#}
-                        {# <span class="is-size-5">#}
-                            {# ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย#}
-                            {# </span>#}
-                        {# </a>#}
-                </nav>
-                <nav class="panel is-light">
-                    <p class="panel-heading">Administrator</p>
-                    <a href="{{ url_for('comp_tracker.admin_index', tab='new') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-clock"></i>
-                        </span>
-                        <span class="is-size-5">ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span>
-                    </a>
-                    <a href="{{ url_for('comp_tracker.admin_record_complaint_index', menu='all') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-clock"></i>
-                        </span>
-                        <span class="is-size-5">สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</span>
-                    </a>
-                    <a href="{{ url_for('software_request.admin_index', tab='pending') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-clock"></i>
-                        </span>
-                        <sapn class="is-size-5">ระบบขอรับบริการพัฒนา Software</sapn>
-                    </a>
-                    <a href="{{ url_for('address.index') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-clock"></i>
-                        </span>
-                        <span class="is-size-5">ระบบจัดการข้อมูลเขตการปกครอง</span></a>
-                    <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-clock"></i>
-                        </span>
-                        <span class="is-size-5">ระบบบันทึกเวลาเข้างาน</span>
-                    </a>
-                    <a href="{{ url_for('staff.login_scan_gj') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-clock"></i>
-                        </span>
-                        <span class="is-size-5">ระบบบันทึกเวลาเข้างานศูนย์การแพทย์ฯ</span>
-                    </a>
-                    <a href="{{ url_for('staff.for_hr') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-alt"></i>
-                        </span>
-                        <span class="is-size-5">ระบบงานทรัพยากรบุคคล</span>
-                    </a>
-                    <a href="/admin" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-alt"></i>
-                        </span>
-                        <span class="is-size-5">Admin Index</span>
-                    </a>
-                </nav>
-            </div>
+            </section>
+
+            {% if current_user.is_authenticated %}
+                <div class="home-main-grid"
+                     hx-get="{{ url_for('home_dashboard') }}"
+                     hx-trigger="load"
+                     hx-swap="innerHTML">
+                    <div class="home-panel">
+                        <div class="home-panel-header">
+                            <div>
+                                <p class="home-panel-title">กำลังโหลดแดชบอร์ด</p>
+                                <p class="home-panel-subtitle">แสดงผลหน้าแรกก่อน แล้วค่อยดึงกิจกรรมล่าสุดและทางลัดเพิ่มเติม</p>
+                            </div>
+                            <span class="home-badge">Loading</span>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="home-panel home-login-card">
+                    <p class="home-panel-title">เริ่มต้นใช้งานระบบ</p>
+                    <p class="home-panel-subtitle mb-4">ลงชื่อเข้าใช้เพื่อดูงานที่เกี่ยวข้องกับคุณและเข้าถึงบริการภายในทั้งหมด</p>
+                    <div class="home-login-actions">
+                        <a href="{{ url_for('auth.google_login', next=request.path) }}" class="button is-rounded is-medium is-fullwidth home-google-signin-btn">
+                            <span class="icon home-google-signin-logo">
+                                <svg viewBox="0 0 18 18" width="18" height="18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                                    <path fill="#EA4335" d="M9 7.35v3.3h4.63c-.2 1.06-.8 1.96-1.7 2.57l2.75 2.14c1.6-1.48 2.52-3.65 2.52-6.23 0-.6-.05-1.18-.15-1.74H9z"/>
+                                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.17l-2.75-2.14c-.77.52-1.75.83-3.2.83-2.45 0-4.52-1.65-5.26-3.87H.9v2.23A9 9 0 0 0 9 18z"/>
+                                    <path fill="#FBBC05" d="M3.74 10.65A5.4 5.4 0 0 1 3.45 9c0-.57.1-1.12.29-1.65V5.12H.9A9 9 0 0 0 0 9c0 1.45.35 2.83.9 3.88l2.84-2.23z"/>
+                                    <path fill="#4285F4" d="M9 3.58c1.33 0 2.52.46 3.46 1.36l2.6-2.6C13.46.86 11.43 0 9 0A9 9 0 0 0 .9 5.12l2.84 2.23C4.48 5.23 6.55 3.58 9 3.58z"/>
+                                </svg>
+                            </span>
+                            <span>Continue with Google</span>
+                        </a>
+                        <a href="{{ url_for('auth.line_login', next=request.path) }}" class="button is-rounded is-medium is-fullwidth home-line-signin-btn">
+                            <span class="icon">
+                                <i class="fab fa-line"></i>
+                            </span>
+                            <span>Continue with LINE</span>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}

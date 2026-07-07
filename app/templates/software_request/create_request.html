@@ -2,7 +2,7 @@
 {% block title %}MUMT Internal Information System{% endblock %}
 {% block head %}
     {{ super() }}
-    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -20,7 +20,7 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="select">
-                                {{ form.type() }}
+                                {{ form.type(required=True) }}
                             </div>
                         </div>
                         <div class="field" id="title_field" style="display: none;">
@@ -59,7 +59,7 @@
                                 <span class="has-text-danger">*</span>
                             </label>
                             <div class="control">
-                                {{ form.description(class="textarea")}}
+                                {{ form.description(class="textarea", required=True)}}
                             </div>
                         </div>
                         <div class="field" id="file_field">
@@ -93,7 +93,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(()=>{
             $('#filename').text('None');
@@ -119,18 +119,21 @@
         });
         function ShowField() {
             var type = document.querySelector('[name="type"]').value;
+            var title = document.getElementById("title");
             var titleField = document.getElementById("title_field");
             var systemField = document.getElementById("system_field");
             var processField = document.getElementById("process_field");
             var activityField = document.getElementById('activity_field')
             var fileField = document.getElementById("file_field")
             if (type === "พัฒนาโปรแกรมใหม่") {
+                title.required = true;
                 titleField.style.display = "block";
                 processField.style.display = "block";
                 activityField.style.display = "block";
                 fileField.style.display = "block";
                 systemField.style.display = "none";
             } else if (type === "ปรับปรุงระบบที่มีอยู่") {
+                title.required = false;
                 titleField.style.display = "none";
                 processField.style.display = "none";
                 activityField.style.display = "none";

@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 import os
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urljoin
 
-from flask import render_template, current_app
+from flask import current_app
 
 from .models import (
     db,
@@ -27,10 +24,7 @@ DEFAULT_POST_COURSE_SURVEY_URL = (
 
 
 def _resolve_static_base(base_url: Optional[str]) -> str:
-    """
-    Resolve an absolute path that WeasyPrint can use to fetch static assets.
-    When running inside a request we prefer HTTP(S) URLs; otherwise fall back to file:// paths.
-    """
+    """Resolve an absolute path for static assets in certificate templates."""
     try:
         static_url_path = (current_app.static_url_path or '/static').lstrip('/')
         static_folder = current_app.static_folder
@@ -108,33 +102,13 @@ def can_issue_certificate(reg: CEMemberRegistration) -> bool:
 
 
 def issue_certificate(reg: CEMemberRegistration, lang: str = 'en', base_url: Optional[str] = None) -> CEMemberRegistration:
-    """Issue a certificate for the given registration."""
+    """Mark a certificate as issued.
+
+    The application now renders certificate HTML directly instead of generating PDFs.
+    """
     issued = ensure_certificate_status('issued', 'ออกแล้ว', 'is-success')
     reg.certificate_status_id = issued.id
     reg.certificate_issued_date = datetime.now(timezone.utc)
-
-    if HTML is not None:
-        context = build_certificate_context(reg, lang=lang, base_url=base_url)
-        html = render_template('continueing_edu/certificate_pdf.html', **context)
-        pdf_base_url = base_url or context['certificate_static_base']
-        pdf_bytes = HTML(string=html, base_url=pdf_base_url).write_pdf()
-        fname = f"cert_{reg.member_id}_{reg.event_entity_id}_{int(time.time())}.pdf"
-        storage = os.getenv('CE_CERT_STORAGE', 'disk').lower()
-        _delete_certificate_file(reg)
-        if storage == 's3' and os.getenv('BUCKETEER_BUCKET_NAME'):
-            try:
-                from app.main import s3, S3_BUCKET_NAME
-                key = f"continuing_edu/certificates/{fname}"
-                s3.put_object(Bucket=S3_BUCKET_NAME, Key=key, Body=pdf_bytes, ContentType='application/pdf')
-                reg.certificate_url = key
-            except Exception:
-                storage = 'disk'
-        if storage != 's3':
-            os.makedirs(os.path.join('static', 'certificates'), exist_ok=True)
-            path = os.path.join('static', 'certificates', fname)
-            with open(path, 'wb') as f:
-                f.write(pdf_bytes)
-            reg.certificate_url = '/' + path
 
     db.session.add(reg)
     db.session.commit()

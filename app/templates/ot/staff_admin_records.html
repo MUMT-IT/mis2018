@@ -2,7 +2,7 @@
 {% include "nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 {% endblock head %}
 {% block page_content %}
     <section class="section" id="app">
@@ -14,7 +14,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <form hx-post="{{ url_for('ot.add_checkin_record', staff_id=staff.id) }}" hx-swap="none">
+                <form id="checkin-form" hx-post="{{ url_for('ot.add_checkin_record', staff_id=staff.id) }}" hx-swap="none">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="field">
                         <label class="label">เพิ่มเวลาเช็คอินเข้า/ออกงาน</label>
@@ -83,6 +83,12 @@
                          </span>
                         <span>report</span>
                     </a>
+                    <a id="load-table" class="button is-danger" onclick="download_finance_pdf()">
+                         <span class="icon">
+                             <i class="fa-solid fa-file-pdf"></i>
+                         </span>
+                        <span>finance pdf</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -115,10 +121,12 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
     let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }}
     let checkInBaseURL = {{ url_for('ot.add_checkin_record', staff_id=staff.id)|tojson|safe }}
+    let defaultStart = moment().startOf('day')
+    let defaultEnd = moment().endOf('day')
     $.fn.dataTable.moment('lll');
     let datatable = new $('#record-table').DataTable({
         processing: true,
@@ -127,8 +135,8 @@
         ajax: {
             url: baseURL,
             data: {
-                start: moment().toISOString(),
-                end: moment().add(30, 'days').toISOString(),
+                start: defaultStart.toISOString(),
+                end: defaultEnd.toISOString(),
             }
         },
         columns: [
@@ -187,8 +195,8 @@
         ajax: {
             url: checkInBaseURL,
             data: {
-                start: moment().toISOString(),
-                end: moment().add(30, 'days').toISOString(),
+                start: defaultStart.toISOString(),
+                end: defaultEnd.toISOString(),
             }
         },
         columns: [
@@ -212,14 +220,15 @@
         endDate: moment(),
         singleDatePicker: true,
         timePicker: true,
+        timePickerSeconds: true,
         timePicker24Hour: true,
         locale: {
                 format: 'DD/MM/YYYY HH:mm:ss'
             }
     });
     $('input[name="dates"]').daterangepicker({
-        startDate: moment(),
-        endDate: moment().add(30, 'days'),
+        startDate: defaultStart,
+        endDate: defaultEnd,
         locale: {
             format: 'DD/MM/YYYY'
         }
@@ -228,6 +237,12 @@
         datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
         checkin_datatable.ajax.url(checkInBaseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
     });
+    document.body.addEventListener('htmx:afterRequest', function (event) {
+        if (event.target && event.target.id === 'checkin-form' && event.detail.successful) {
+            datatable.ajax.reload()
+            checkin_datatable.ajax.reload()
+        }
+    })
     document.addEventListener('reload.data', function () {
         datatable.ajax.reload()
         checkin_datatable.ajax.reload()
@@ -249,6 +264,9 @@
     }
     function download_report() {
         window.location = baseURL + '?download=yes&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    }
+    function download_finance_pdf() {
+        window.location = baseURL + '?download=yes&format=finance-pdf&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     function download_count_data() {
         window.location = baseURL + '?download=yes&download_data=counts&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()

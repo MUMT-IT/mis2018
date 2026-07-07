@@ -2,12 +2,233 @@
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% block head %}
 {{ super() }}
-    <link href="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        #app.course-detail-page {
+            max-width: 100%;
+        }
+
+        .course-detail-page .section {
+            padding-top: 1rem;
+        }
+
+        .course-detail-toolbar {
+            margin-bottom: 1.5rem;
+            padding: 0.9rem 1rem;
+            border: 1px solid #dbdbdb;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 8px 24px rgba(10, 10, 10, 0.06);
+            backdrop-filter: blur(6px);
+        }
+
+        .course-detail-toolbar-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            justify-content: space-between;
+        }
+
+        .course-detail-toolbar-title {
+            margin: 0;
+            color: #4a4a4a;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .course-detail-jump-links,
+        .course-detail-utility-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .course-detail-toolbar-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.45rem 0.75rem;
+            border: 1px solid #dbdbdb;
+            border-radius: 999px;
+            background: #fafafa;
+            color: #363636;
+            font-size: 0.85rem;
+            line-height: 1.2;
+        }
+
+        .course-detail-toolbar-link:hover {
+            background: #eef6ff;
+            border-color: #b5d8ff;
+            color: #1f5f99;
+        }
+
+        .course-detail-toolbar-link .tag {
+            margin-left: 0.35rem;
+        }
+
+        .course-detail-content {
+            min-width: 0;
+        }
+
+        .course-detail-content .card {
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            box-shadow: none;
+        }
+
+        .course-detail-content .card-header {
+            box-shadow: none;
+            border-bottom: 1px solid #efefef;
+            background: #fcfcfc;
+        }
+
+        .course-detail-content .card-header-title {
+            padding: 0.85rem 1rem;
+        }
+
+        .course-detail-content .card-content {
+            padding: 1rem;
+        }
+
+        .course-detail-content .field.has-addons,
+        .course-detail-content .buttons {
+            flex-wrap: wrap;
+        }
+
+        .course-detail-content .input,
+        .course-detail-content .button,
+        .course-detail-content .tag,
+        .course-detail-content td,
+        .course-detail-content th {
+            overflow-wrap: anywhere;
+        }
+
+        .course-detail-content table.table {
+            width: 100%;
+            border: 1px solid #dbdbdb;
+            border-radius: 6px;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .course-detail-content table.table th,
+        .course-detail-content table.table td {
+            border: none;
+            padding: 0.45em 0.6em;
+        }
+
+        .course-sessions-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .course-sessions-table {
+            min-width: 1080px;
+        }
+
+        .course-sessions-table th:nth-child(1),
+        .course-sessions-table td:nth-child(1) {
+            min-width: 130px;
+            max-width: 150px;
+        }
+
+        .course-sessions-table th:nth-child(3),
+        .course-sessions-table td:nth-child(3) {
+            width: 80px;
+            min-width: 80px;
+            max-width: 100px;
+        }
+
+        .course-sessions-table th:nth-child(4),
+        .course-sessions-table td:nth-child(4) {
+            min-width: 190px;
+            max-width: 220px;
+        }
+
+        .course-sessions-table th:nth-child(5),
+        .course-sessions-table td:nth-child(5) {
+            width: 90px;
+            min-width: 90px;
+        }
+
+        .course-sessions-table th:nth-child(6),
+        .course-sessions-table td:nth-child(6) {
+            width: 90px;
+            min-width: 90px;
+        }
+
+        .course-sessions-table th:nth-child(7),
+        .course-sessions-table td:nth-child(7) {
+            min-width: 180px;
+            max-width: 220px;
+        }
+
+        .course-sessions-table .session-instructor-tags {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .course-sessions-table .session-instructor-tags a {
+            max-width: 100%;
+            text-decoration: none;
+        }
+
+        .course-sessions-table .session-instructor-tags .tag {
+            max-width: 100%;
+            margin: 0;
+            font-size: 0.75rem;
+            line-height: 1.15;
+            white-space: normal;
+            text-align: left;
+        }
+
+        .course-sessions-table .session-instructor-tags a:hover .tag {
+            background: #eef6ff;
+        }
+
+        .course-table-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .course-table-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+            height: 1.5rem;
+            color: #4a4a4a;
+        }
+
+        .course-table-action:hover {
+            color: #3273dc;
+        }
+
+        @media screen and (max-width: 1215px) {
+            .course-detail-content table.table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        @media screen and (max-width: 1023px) {
+            .course-detail-toolbar-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
 {% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container" id="app">
+    <div class="container course-detail-page" id="app">
         <div class="columns">
             <div class="column has-text-centered">
                 {% include 'messages.html' %}
@@ -58,37 +279,34 @@
                 </div>
             </div>
         </div>
-        <div class="columns">
+        <div class="course-detail-toolbar">
+            <div class="course-detail-toolbar-row">
+                <p class="course-detail-toolbar-title">Sections</p>
+                <div class="course-detail-jump-links">
+                    <a class="course-detail-toolbar-link" href="#section-1">หมวด 1 ข้อมูลทั่วไป</a>
+                    <a class="course-detail-toolbar-link" href="#section-2">หมวด 2 เป้าหมายและคำอธิบายรายวิชา</a>
+                    <a class="course-detail-toolbar-link" href="#section-3">หมวด 3 แผนการดำเนินการและการประเมินผล</a>
+                    <a class="course-detail-toolbar-link" href="#section-4">หมวด 4 แผนการสอน</a>
+                    <a class="course-detail-toolbar-link" href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a>
+                    <a class="course-detail-toolbar-link" href="#section-6">หมวด 6 การประเมินและการปรับปรุง</a>
+                </div>
+            </div>
+            {#
+            <div class="course-detail-toolbar-row mt-3">
+                <p class="course-detail-toolbar-title">Utilities</p>
+                <div class="course-detail-utility-links">
+                    <a class="course-detail-toolbar-link" href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">รายงานผลการเรียน</a>
+                    <a class="course-detail-toolbar-link" href="{{ url_for('eduqa.report_course_detail', course_id=course.id) }}">รายงานผลการดำเนินงานรายวิชา (มม.5)</a>
+                    {% if course.has_admin(current_user.instructor) %}
+                    <a class="course-detail-toolbar-link" href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">พิมพ์รายงานผลการเรียน<span class="tag is-success is-rounded is-small">new</span></a>
+                    {% endif %}
+                    <a class="course-detail-toolbar-link" href="{{ url_for('eduqa.instructor_evaluation', course_id=course.id) }}">แบบฟอร์มประเมินอาจารย์</a>
+                </div>
+            </div>
+            #}
         </div>
         <div class="columns">
-            <div class="column is-3">
-                <aside class="menu">
-                    <p class="menu-label">
-                        Menu
-                    </p>
-                    <ul class="menu-list">
-                        <li><a href="#section-1">หมวด 1 ข้อมูลทั่วไป</a></li>
-                        <li><a href="#section-2">หมวด 2 เป้าหมายและคำอธิบายรายวิชา</a></li>
-                        <li><a href="#section-3">หมวด 3 แผนการดำเนินการและการประเมินผลที่สอดคล้องกับผลลัพธ์การเรียนรู้</a></li>
-                        <li><a href="#section-4">หมวด 4 แผนการสอน</a></li>
-                        <li><a href="#section-5">หมวด 5 ทรัพยากรประกอบการเรียนการสอน</a></li>
-                        <li><a href="#section-6">หมวด 6 การประเมินและการปรับปรุงการดำเนินการ</a></li>
-                    </ul>
-                    <p class="menu-label">
-                        Utilities
-                    </p>
-                    <ul class="menu-list">
-                        <li><a href="{{ url_for('eduqa.upload_grades', course_id=course.id) }}">รายงานผลการเรียน</a></li>
-                        <li><a href="{{ url_for('eduqa.report_course_detail', course_id=course.id) }}">รายงานผลการดำเนินงานรายวิชา (มม.5)</a></li>
-                        {% if course.has_admin(current_user.instructor) %}
-                        <li><a href="{{ url_for('eduqa.export_grade_pdf', course_id=course.id) }}">พิมพ์รายงานผลการเรียน<span class="tag is-success is-rounded">new</span></a></li>
-                        {% endif %}
-                        <li><a href="{{ url_for('eduqa.instructor_evaluation', course_id=course.id) }}">แบบฟอร์มประเมินอาจารย์</a></li>
-                    </ul>
-                </aside>
-
-            </div>
-            <div class="column">
+            <div class="column course-detail-content">
                 <label class="label">ลิงค์ประมวลรายวิชาสำหรับนักศึกษาและบุคคลภายนอก</label>
                 <div class="field has-addons">
                     <div class="control is-expanded">
@@ -308,7 +526,7 @@
                             การประเมินเพื่อพัฒนาการเรียนรู้ (Formative Assessment)
                         </h1>
                         <div id="formative-assessment-form"></div>
-                        <table class="table is-fullwidth is-bordered" id="formative-assessment-table">
+                        <table class="table is-striped is-fullwidth is-bordered" id="formative-assessment-table">
                             <thead>
                             <th>ลำดับ</th>
                             <th>ระยะเวลา</th>
@@ -360,7 +578,7 @@
                             การประเมินเพื่อตัดสินผลการเรียนรู้ (Summative Assessment)
                         </h1>
                         <div id="clo-plo-form"></div>
-                        <table class="table is-bordered is-fullwidth">
+                        <table class="table is-striped is-bordered is-fullwidth">
                             <thead>
                             <th>ลำดับ</th>
                             <th>
@@ -570,7 +788,7 @@
                     </div>
                     <div class="card-content">
                         <div id="eval-result"></div>
-                        <table class="table is-bordered">
+                        <table class="table is-striped is-bordered">
                             <thead>
                             <th>ชื่อ</th>
                             <th>สังกัด</th>
@@ -667,7 +885,8 @@
                         </div>
                     </div>
                     <div class="card-content">
-                        <table class="table is-bordered">
+                        <div class="course-sessions-table-wrap">
+                        <table class="table is-striped is-bordered is-fullwidth course-sessions-table">
                             <thead>
                             <th>วันที่</th>
                             <th>เวลา</th>
@@ -675,7 +894,7 @@
                             <th>หัวข้อ</th>
                             <th>CLOs</th>
                             <th>ประเภท</th>
-                            <th>ผู้สอน (คลิกที่ชื่อเพื่อดูบทบาทหน้าที่)</th>
+                            <th>ผู้สอน<br><span class="has-text-weight-normal">คลิกชื่อเพื่อดูบทบาทหน้าที่</span></th>
                             <th></th>
                             </thead>
                             <tbody>
@@ -702,11 +921,11 @@
                                         </ul>
                                     </td>
                                     <td>
-                                        <ul>
+                                        <div class="tags">
                                             {% for clo in s.clos %}
-                                                <li>{{ clo }}</li>
+                                                <span class="tag is-rounded is-link is-light">{{ clo.number if clo.number is defined else clo|string|replace('CLO', '') }}</span>
                                             {% endfor %}
-                                        </ul>
+                                        </div>
                                     </td>
                                     <td>
                                         {{s.type_}}
@@ -717,58 +936,46 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="tags">
+                                        <div class="tags session-instructor-tags">
                                             {% for i in s.instructors %}
                                                 <a href="{{ url_for('eduqa.view_session_detail', session_id=s.id, course_id=course.id, instructor_id=i.id) }}">
-                                                    <span class="tag is-rounded is-info is-light">{{ i.fullname }}</span>
+                                                    <span class="tag is-rounded is-info is-light is-small">{{ i.fullname }}</span>
                                                 </a>
                                             {% endfor %}
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-rounded"
-                                                   href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
+                                        <div class="course-table-actions">
+                                            <a class="course-table-action"
+                                               href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
-                                                </a>
-                                            </div>
-                                            <div class="control">
-                                                <a class="button is-small is-rounded"
-                                                   href="{{ url_for('eduqa.delete_session', session_id=s.id) }}">
+                                            </a>
+                                            <a class="course-table-action"
+                                               href="{{ url_for('eduqa.delete_session', session_id=s.id) }}">
                                                 <span class="icon">
                                                     <i class="far fa-trash-alt has-text-danger"></i>
                                                 </span>
-                                                </a>
-                                            </div>
-                                            {% if instructor in s.instructors %}
-                                                <div class="control">
-                                                    <a class="button is-small is-rounded"
-                                                       href="{{ url_for('eduqa.add_session_detail', course_id=course.id, session_id=s.id) }}">
+                                            </a>
+                                            <a class="course-table-action"
+                                               href="{{ url_for('eduqa.add_session_detail', course_id=course.id, session_id=s.id) }}">
                                                 <span class="icon">
                                                     <i class="far fa-star has-text-warning"></i>
                                                 </span>
-                                                    </a>
-                                                </div>
-                                            {% endif %}
-                                            {% if admin == instructor or admin == None %}
-                                                <div class="control">
-                                                    <a href="{{ url_for('eduqa.duplicate_session', course_id=course.id, session_id=s.id) }}"
-                                                       class="button is-rounded is-small">
+                                            </a>
+                                            <a href="{{ url_for('eduqa.duplicate_session', course_id=course.id, session_id=s.id) }}"
+                                               class="course-table-action">
                                                 <span class="icon">
                                                   <i class="far fa-copy has-text-info"></i>
                                                 </span>
-                                                    </a>
-                                                </div>
-                                            {% endif %}
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
                             {% endfor %}
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div class="buttons is-centered">
                                         <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
                                            class="button is-primary is-rounded">
@@ -782,7 +989,7 @@
                             </tr>
                             </tbody>
                         </table>
-
+                        </div>
                     </div>
                 </div>
                 <div class="card mb-4">
@@ -792,7 +999,7 @@
                         </div>
                     </div>
                     <div class="card-content">
-                        <table class="table is-bordered is-fullwidth">
+                        <table class="table is-striped is-bordered is-fullwidth">
                             <thead>
                             <th>วันที่</th>
                             <th>เวลา</th>
@@ -824,23 +1031,19 @@
                                         {% endfor %}
                                     </td>
                                     <td>
-                                        <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-rounded"
-                                                   href="{{ url_for('eduqa.edit_session_assignment', session_id=s.id, course_id=course.id) }}">
+                                        <div class="course-table-actions">
+                                            <a class="course-table-action"
+                                               href="{{ url_for('eduqa.edit_session_assignment', session_id=s.id, course_id=course.id) }}">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
-                                                </a>
-                                            </div>
-                                            <div class="control">
-                                                <a class="button is-small is-rounded"
-                                                   href="{{ url_for('eduqa.delete_session_assignment', session_id=s.id) }}">
-                                                        <span class="icon">
-                                                            <i class="far fa-trash-alt has-text-danger"></i>
-                                                        </span>
-                                                </a>
-                                            </div>
+                                            </a>
+                                            <a class="course-table-action"
+                                               href="{{ url_for('eduqa.delete_session_assignment', session_id=s.id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt has-text-danger"></i>
+                                                </span>
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
@@ -1080,9 +1283,9 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script type="text/javascript" src="//fastly.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
-<script type="text/javascript" src="https://fastly.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js" defer></script>
-<script src="https://fastly.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     vm = new Vue({
         el: '#app',

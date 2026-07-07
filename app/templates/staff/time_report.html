@@ -2,6 +2,17 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+    <style>
+        #loginCalendar .holiday-event {
+            background: #ff9f1a;
+            border-color: #ff9f1a;
+            color: #ffffff;
+            font-weight: 700;
+        }
+        #loginCalendar .holiday-event .fc-title {
+            white-space: normal;
+        }
+    </style>
 {% endblock head %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -25,7 +36,10 @@
                 header: {
                     left: 'title',
                 },
-                events: '/staff/api/time-report',
+                eventSources: [
+                    '/staff/api/time-report',
+                    '/staff/api/holidays'
+                ],
                 eventLimit: true,
                 displayEventTime: true,
                 displayEventEnd: true,

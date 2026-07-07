@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Email Verification{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container" style="max-width: 760px;">
+        <div class="box" style="margin-top: 3rem; border-radius: 24px;">
+            <div class="has-text-centered">
+                <span class="icon is-large {% if status == 'success' %}has-text-success{% else %}has-text-danger{% endif %}">
+                    <i class="fas {% if status == 'success' %}fa-circle-check{% else %}fa-circle-xmark{% endif %} fa-3x"></i>
+                </span>
+                <h1 class="title is-3" style="margin-top: 1rem;">{{ title }}</h1>
+                {% for line in message.split('\n') %}
+                    <p class="is-size-5" style="margin-bottom: 0.75rem;">{{ line }}</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,26 +1,13 @@
-<nav class="navbar is-light">
-    <div class="container">
-        <div class="navbar-brand">
-            <a class="navbar-item" href="/">Main</a>
-                <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </span>
-        </div>
-        <div id="navbarMenuHeroA" class="navbar-menu">
-            <div class="navbar-end">
-                <a class="navbar-item"
-                   href="/files_services/procurement">
-                    <span>ไฟล์</span>
-                </a>
-                <a class="navbar-item"
-                   href="/files_services/upload">
-                    <span>อัปโหลด</span>
-                </a>
+{% from "components/module_nav.html" import render_module_nav %}
 
-
-            </div>
-        </div>
-    </div>
-</nav>
+{{ render_module_nav(
+    title='File Services',
+    subtitle='ระบบจัดการไฟล์',
+    brand_href='/',
+    start_links=[
+        {'href': '/files_services/procurement', 'label': 'ไฟล์', 'icon': 'fas fa-folder-open', 'primary': True},
+        {'href': '/files_services/upload', 'label': 'อัปโหลด', 'icon': 'fas fa-upload'}
+    ],
+    close_href=None,
+    menu_id='filesNavbarMenu'
+) }}

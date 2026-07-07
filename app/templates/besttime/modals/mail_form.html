@@ -6,7 +6,7 @@
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <form hx-post="{{ url_for('besttime.send_mail_to_committee', slot_id=slot_id) }}"
+            <form hx-post="{{ url_for('besttime.send_mail_to_committee', slot_id=slot_id, tab=tab) }}"
                   hx-swap="none"
                   hx-indicator="#save-btn">
                 {{ form.hidden_tag() }}

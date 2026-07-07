@@ -2,6 +2,39 @@
 {% include "procurement/nav.html" %}
 {% block page_content %}
     <section class="section">
+        <style>
+            .thumbnail-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 128px;
+                height: 128px;
+            }
+            .thumbnail-loader {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.9);
+            }
+            .thumbnail-loader::after {
+                content: "";
+                width: 28px;
+                height: 28px;
+                border: 3px solid #d9d9d9;
+                border-top-color: #3273dc;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            .thumbnail-loader.is-hidden {
+                display: none;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
         <div class="container">
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
@@ -23,9 +56,19 @@
                     <div class="card">
                         <div class="card-header">
                             <h1 class="card-header-title">
-                                <img class="zoom-image" style='display:block; width:128px;height:128px;'
-                                     id='base64image'
-                                     src='{{ item.generate_presigned_url() }}'/>
+                                {% set full_image_url = item.generate_presigned_url() if item.image_url else None %}
+                                {% set thumbnail_url = item.generate_thumbnail_presigned_url() or full_image_url %}
+                                {% if thumbnail_url %}
+                                    <div class="thumbnail-wrapper">
+                                        <div class="thumbnail-loader" id="thumbnail-loader"></div>
+                                        <img class="clickable-thumbnail"
+                                             style="display:block; width:128px; height:128px; object-fit:cover; cursor:zoom-in;"
+                                             id="base64image"
+                                             src="{{ thumbnail_url }}"
+                                             data-full-src="{{ full_image_url }}"
+                                             alt="item thumbnail"/>
+                                    </div>
+                                {% endif %}
                                 <table class="table ">
                                     {% set last_record = item.current_record %}
                                     <tr>
@@ -153,14 +196,47 @@
     </section>
 {% endblock %}
 {% block scripts %}
-    {{ super }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://fastly.jsdelivr.net/npm/medium-zoom@1.0.2/dist/medium-zoom.min.js"></script>
+    {{ super() }}
     <script>
-        mediumZoom('.zoom-image', {
-            margin: 24,
-            background: '#ffffff',
-            scrollOffset: 40 /* The number of pixels to scroll to close the zoom = > Your 40px */
-        })
+        document.addEventListener('DOMContentLoaded', function () {
+            const thumb = document.querySelector('.clickable-thumbnail');
+            const thumbLoader = document.getElementById('thumbnail-loader');
+            if (thumb && thumbLoader) {
+                const hideLoader = function () {
+                    thumbLoader.classList.add('is-hidden');
+                };
+                if (thumb.complete) {
+                    hideLoader();
+                } else {
+                    thumb.addEventListener('load', hideLoader, {once: true});
+                    thumb.addEventListener('error', hideLoader, {once: true});
+                }
+            }
+
+            if (!thumb) {
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;';
+
+            const fullImg = document.createElement('img');
+            fullImg.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;background:#fff;';
+            fullImg.alt = 'full image';
+
+            modal.appendChild(fullImg);
+            document.body.appendChild(modal);
+
+            thumb.addEventListener('click', function () {
+                const fullSrc = thumb.dataset.fullSrc || thumb.src;
+                fullImg.src = fullSrc;
+                modal.style.display = 'flex';
+            });
+
+            modal.addEventListener('click', function () {
+                modal.style.display = 'none';
+                fullImg.src = '';
+            });
+        });
     </script>
 {% endblock %}

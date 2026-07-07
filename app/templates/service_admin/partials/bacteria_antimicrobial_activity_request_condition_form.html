@@ -1,0 +1,191 @@
+<div class="card subform-card mb-4" id="{{ fields.name }}">
+    <header class="card-header">
+        <p class="card-header-title">{{ fields.label }}</p>
+    </header>
+    <div class="card-content">
+        {% for field in fields %}
+            {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
+                {% if field.type == 'FieldList' %}
+                    <table class="table is-fullwidth ">
+                        <thead>
+                            {% for subform in field %}
+                                {% if loop.first %}
+                                    {% for _field in subform %}
+                                        {% if _field.type != 'CSRFTokenField' %}
+                                            {% if _field.type == 'SelectField' %}
+                                                <th style="border: none; width: 16.5em">
+                                            {% else %}
+                                                <th style="border: none">
+                                            {% endif %}
+                                            {{ _field.label.text }}
+                                            {% if _field.name.endswith('other') %}
+                                                <span class="has-text-danger asterisk" style="display:none">*</span>
+                                            {% else %}
+                                                <span class="has-text-danger">*</span>
+                                            {% endif %}
+                                            </th>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </thead>
+                        <tbody>
+                            {% for subform in field %}
+                                <tr>
+                                    {% for _field in subform %}
+                                        {% if _field.type != 'CSRFTokenField' %}
+                                            <td style="border: none">
+                                                {% if _field.type == 'SelectField' %}
+                                                    <div class="select">
+                                                        {{ _field() }}
+                                                    </div>
+                                                {% else %}
+                                                    {{ _field() }}
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <td style="border: none">
+                                        <a class="button is-danger is-outlined"
+                                           hx-delete="{{ url_for('service_admin.remove_bacteria_antimicrobial_activity_organism_form_entry',
+                                           name=fields.name) }}"
+                                           hx-target="closest tr"
+                                           hx-swap="outerHTML"
+                                        >
+                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            <tr>
+                                <td style="border: none">
+                                    <a class="button is-info is-outlined is-rounded"
+                                       hx-post="{{ url_for('service_admin.add_bacteria_antimicrobial_activity_organism_form_entry',
+                                       name=fields.name) }}"
+                                       hx-target="previous tr"
+                                       hx-swap="afterend"
+                                    >
+                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="field">
+                        <label class="label">
+                            {{ field.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ field() }}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        <button type="button" class="button is-danger is-rounded is-small"
+            hx-delete="{{ url_for('service_admin.remove_bacteria_antimicrobial_activity_condition_form',
+            name=fields.name) }}"
+            hx-target="closest .subform-card"
+            hx-swap="outerHTML"
+        >
+            ลบ
+        </button>
+    </div>
+</div>
+<script>
+    function updateSolventOtherRequirement(row) {
+        const selectedSolvent = row.find('input[type="radio"][name$="solvent_used"]:checked').val() || '';
+        const solventUsedOtherInput = row.find('input[type="text"][name$="solvent_used_other"]');
+
+        if (!solventUsedOtherInput.length) {
+            return;
+        }
+
+        const isOtherSelected = selectedSolvent === 'อื่น ๆ';
+        solventUsedOtherInput.prop('required', isOtherSelected);
+
+        if (isOtherSelected) {
+            solventUsedOtherInput.prop('readonly', false);
+            solventUsedOtherInput
+                .attr('oninvalid', "this.setCustomValidity('กรุณาระบุ')")
+                .attr('oninput', "this.setCustomValidity('')");
+        } else {
+            solventUsedOtherInput.prop('readonly', true);
+            solventUsedOtherInput.val('');
+            solventUsedOtherInput.each(function () {
+                this.setCustomValidity('');
+            });
+        }
+    }
+
+    function toggleTable(subform) {
+        const table = subform.find('table');
+
+        table.find('tbody tr').each(function () {
+            const row = $(this);
+            if (row.find('input[name$="sample_quantity"]').length || row.find('input[name$="solvent_used"]').length) {
+                const sampleQuantityInput = row.find('input[type="text"][name$="sample_quantity"]');
+                const solventUsedInput = row.find('input[type="radio"][name$="solvent_used"]');
+                const solventUsedOtherInput = row.find('input[type="text"][name$="solvent_used_other"]');
+
+                if (sampleQuantityInput.length) {
+                    sampleQuantityInput
+                        .prop('required', true)
+                        .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
+                        .attr('oninput', "this.setCustomValidity('')");
+                }
+
+                if (solventUsedInput.length) {
+                    solventUsedInput
+                        .prop('required', true)
+                        .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกตัวทำละลายที่ใช้')");
+
+                    solventUsedInput.off('change.antimicrobial').on('change.antimicrobial', function () {
+                        solventUsedInput.each(function () {
+                            this.setCustomValidity('');
+                        });
+                        updateSolventOtherRequirement(row);
+                    });
+                }
+
+                if (solventUsedOtherInput.length) {
+                    solventUsedOtherInput.attr('oninput', "this.setCustomValidity('')");
+                }
+
+                updateSolventOtherRequirement(row);
+            }
+        });
+    }
+
+    function addRequiredField(subform) {
+        const testMethodInput = subform.find('input[name$="test_method"]');
+
+        testMethodInput.prop('required', true)
+            .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกวิธีการทดสอบ')");
+
+        testMethodInput.off('change.antimicrobial').on('change.antimicrobial', function () {
+            testMethodInput.each(function () {
+                this.setCustomValidity('');
+            });
+        });
+    }
+
+    function initSubforms() {
+        $('.subform-card').each(function () {
+            const subform = $(this);
+            toggleTable(subform);
+            addRequiredField(subform);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initSubforms();
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function () {
+        initSubforms();
+    });
+</script>

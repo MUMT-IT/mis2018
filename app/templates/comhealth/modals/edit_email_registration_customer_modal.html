@@ -1,0 +1,111 @@
+<div class="modal is-active animate__animated" id="email-registration-edit-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Edit Email / แก้ไขอีเมล</p>
+            <button type="button" id="cancelEditEmailButton" class="delete" aria-label="close"></button>
+        </header>
+        <form
+            id="email-registration-edit-form"
+            hx-post="{{ url_for('comhealth.send_email_registration_verification', customer_id=customer.id) }}"
+            hx-target="#staff-email-modal-container"
+            hx-swap="innerHTML"
+        >
+            {{ form.hidden_tag() }}
+            <input type="hidden" name="mode" value="{{ mode }}">
+            <section class="modal-card-body">
+                <article class="message is-info">
+                    <div class="message-body">
+                        <strong>{{ customer.firstname }} {{ customer.lastname }}</strong><br>
+                        {{ customer.org.name if customer.org else '-' }}
+                    </div>
+                </article>
+
+                <div class="field">
+                    <label class="label">New Email / อีเมลใหม่</label>
+                    <div class="control has-icons-left">
+                        {{ form.email(class="input", placeholder="name@example.com") }}
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                    </div>
+                    {% if form.email.errors %}
+                        <p class="help is-danger">{{ form.email.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                {% if mode == 'mahidol' %}
+                    <article class="message is-warning is-small">
+                        <div class="message-body">
+                            Mahidol staff registrations only accept email addresses ending with <strong>@mahidol.ac.th</strong>.<br>
+                            การลงทะเบียนสำหรับบุคลากรมหิดลจะรับเฉพาะอีเมลที่ลงท้ายด้วย <strong>@mahidol.ac.th</strong> เท่านั้น
+                        </div>
+                    </article>
+                {% endif %}
+
+                <article class="message is-warning is-small">
+                    <div class="message-body">
+                        Saving will send a verification link to the new email address. The email will only be updated after the link is clicked within 24 hours.<br>
+                        เมื่อกดบันทึก ระบบจะส่งลิงก์ยืนยันไปยังอีเมลใหม่ และอีเมลจะถูกอัปเดตก็ต่อเมื่อมีการคลิกลิงก์ภายใน 24 ชั่วโมง
+                    </div>
+                </article>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success" type="submit">
+                    <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                    <span>Save / บันทึก</span>
+                </button>
+                <button class="button is-light" type="button" id="secondaryCancelEditEmailButton">Cancel / ยกเลิก</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    (function () {
+        const modal = document.getElementById('email-registration-edit-modal');
+        const form = document.getElementById('email-registration-edit-form');
+
+        function closeModal() {
+            if (!modal) {
+                return;
+            }
+            htmx.addClass(modal, 'animate__fadeOut');
+            htmx.removeClass(modal, 'is-active', 300);
+            setTimeout(function () {
+                if (modal.parentNode) {
+                    modal.parentNode.innerHTML = '';
+                }
+            }, 320);
+        }
+
+        document.getElementById('cancelEditEmailButton').addEventListener('click', closeModal);
+        document.getElementById('secondaryCancelEditEmailButton').addEventListener('click', closeModal);
+        window.addEventListener('closeEmailRegistrationModal', closeModal, { once: true });
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            Swal.fire({
+                icon: 'question',
+                title: 'Confirm email change? / ยืนยันการเปลี่ยนอีเมล?',
+                html: 'A verification link will be sent to this email address. The user must click the link within 24 hours before the email is updated.<br><br>ระบบจะส่งลิงก์ยืนยันไปยังอีเมลนี้ และผู้ใช้ต้องคลิกลิงก์ภายใน 24 ชั่วโมงก่อนที่อีเมลจะถูกอัปเดต',
+                showCancelButton: true,
+                confirmButtonText: 'Send verification / ส่งลิงก์ยืนยัน',
+                cancelButtonText: 'Cancel / ยกเลิก',
+                focusCancel: true
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    htmx.trigger(form, 'confirmed');
+                    htmx.ajax('POST', form.getAttribute('hx-post'), {
+                        source: form,
+                        target: form.getAttribute('hx-target'),
+                        swap: form.getAttribute('hx-swap'),
+                        values: {
+                            email: form.querySelector('[name="email"]').value,
+                            csrf_token: form.querySelector('[name="csrf_token"]').value
+                        }
+                    });
+                }
+            });
+        });
+    })();
+</script>

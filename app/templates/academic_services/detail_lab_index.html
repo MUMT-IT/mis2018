@@ -2,7 +2,7 @@
 {% include "academic_services/customer_nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
 {% endblock %}
 {% block page_content %}
     <section class="section">
@@ -53,7 +53,7 @@
                 </div>
                 <div class="column">
                     {% for lab in labs %}
-                        {% for sub_lab in lab.sub_labs %}
+                        {% for sub_lab in lab.sub_labs|sort(attribute='no') %}
                             <div class="card">
                                 <div class="card-content">
                                     <div class="media">
@@ -68,12 +68,19 @@
                                         </div>
                                     </div>
                                     <div class="content">
-                                        <a href="{{ url_for('academic_services.create_request', code=sub_lab.code,
-                                                menu='request') }}"
+                                        {% if current_user.is_authenticated %}
+                                            <a href="{{ url_for('academic_services.create_request', code=sub_lab.code,
+                                                    menu='request') }}" class="button is-success is-rounded"
+                                            >
+                                                เริ่มกรอกฟอร์ม
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ url_for('academic_services.login') }}"
                                                class="button is-success is-rounded"
                                             >
                                                 เริ่มกรอกฟอร์ม
-                                        </a>
+                                            </a>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -105,8 +112,7 @@
                             </p>
                         </div>
                     {% elif lab.code != 'protein' and lab.service_manual %}
-                        <iframe src="{{ url_for('static', filename=lab.service_manual) }}"
-                                style="width: 100%; height: 600px"></iframe>
+                        <iframe src="{{ service_manual_url }}" style="width: 100%; height: 600px"></iframe>
                     {% else %}
                         ไม่มีข้อมูล
                     {% endif %}
@@ -123,8 +129,7 @@
                             รายการ/ตัวอย่าง
                         </div>
                     {% elif lab.code != 'food' and lab.service_rate %}
-                        <iframe src="{{ url_for('static', filename=lab.service_rate) }}"
-                                style="width: 100%; height: 600px;"></iframe>
+                        <iframe src="{{ service_rate_url }}" style="width: 100%; height: 600px;"></iframe>
                     {% else %}
                         ไม่มีข้อมูล
                     {% endif %}
@@ -154,7 +159,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="//fastly.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(() => {
             $('#Warn').click(() => {

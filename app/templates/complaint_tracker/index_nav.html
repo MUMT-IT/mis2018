@@ -10,32 +10,32 @@
         <div id="navbarMenuHeroA" class="navbar-menu">
             <div class="navbar-end">
                 <a class="navbar-item" href="/">
-                    <span class="icon">
+                    <span class="icon has-text-white">
                         <i class="fas fa-home"></i>
                     </span>
-                    <span>หน้าหลัก</span>
+                    <span class="has-text-white">หน้าหลัก</span>
                 </a>
                 <a class="navbar-item">
-                    <span class="icon">
+                    <span class="icon has-text-white">
                         <i class="fas fa-user"></i>
                     </span>
-                    <span>
+                    <span class="has-text-white">
                         {{ current_user.personal_info.fullname }}
                     </span>
                 </a>
                 <a class="navbar-item" href="{{ url_for('auth.logout') }}">
-                    <span class="icon">
+                    <span class="icon has-text-white">
                         <i class="fas fa-sign-out-alt"></i>
                     </span>
-                    <span>
+                    <span class="has-text-white">
                         ออกจากระบบ
                     </span>
                 </a>
                  <a class="navbar-item" href="{{ url_for('comp_tracker.index') }}">
-                     <span class="icon">
+                     <span class="icon has-text-white">
                          <i class="far fa-times-circle"></i>
                      </span>
-                     <span>ปิด</span>
+                     <span class="has-text-white">ปิด</span>
                 </a>
             </div>
         </div>

@@ -146,93 +146,122 @@
                                 </label>
                             </div>
                             {% for subform in form %}
-                                {% if subform.type == 'FormField' %}
-                                    <div class="card subform-card mb-4" id="{{ subform.name }}">
-                                        <header class="card-header">
-                                            <p class="card-header-title">{{ subform.label }}</p>
-                                        </header>
-                                        <div class="card-content">
-                                            {% for field in subform %}
-                                                {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
-                                                    {% if field.type == 'FieldList' %}
-                                                        <table class="table is-fullwidth ">
-                                                            <thead>
-                                                            {% for subfield in field %}
-                                                                {% if loop.first %}
-                                                                    {% for _field in subfield %}
-                                                                        {% if _field.type != 'CSRFTokenField' %}
-                                                                            <th style="border: none;width: 28em">
-                                                                                {{ _field.label.text }}
-                                                                                <span class="has-text-danger">*</span>
-                                                                            </th>
+                                {% if subform.type == 'FieldList' %}
+                                    {% set ns = namespace(has_value=false) %}
+                                    {% for entry in subform %}
+                                        {% for en in entry %}
+                                            {% if en.type != 'HiddenField' and en.data %}
+                                                {% set ns.has_value = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% if ns.has_value %}
+                                        {% for entry in subform %}
+                                            {% set index = entry.name.split('-')[1] %}
+                                            <div class="card subform-card mb-4" id="{{ entry.name }}">
+                                                <header class="card-header">
+                                                    <p class="card-header-title">{{ entry.label }}</p>
+                                                </header>
+                                                <div class="card-content">
+                                                    {% for field in entry %}
+                                                        {% if field.type != 'HiddenField' and field.type != 'CSRFTokenField' %}
+                                                            {% if field.type == 'FieldList' %}
+                                                                <table class="table is-fullwidth ">
+                                                                    <thead>
+                                                                    {% for subfield in field %}
+                                                                        {% if loop.first %}
+                                                                            {% for _field in subfield %}
+                                                                                {% if _field.type != 'CSRFTokenField' %}
+                                                                                    <th style="border: none;width: 28em">
+                                                                                        {{ _field.label.text }}
+                                                                                        <span class="has-text-danger">*</span>
+                                                                                    </th>
+                                                                                {% endif %}
+                                                                            {% endfor %}
                                                                         {% endif %}
                                                                     {% endfor %}
-                                                                {% endif %}
-                                                            {% endfor %}
-                                                            </thead>
-                                                            <tbody>
-                                                                {% for subfield in field %}
-                                                                    <tr>
-                                                                        {% for _field in subfield %}
-                                                                            {% if _field.type != 'CSRFTokenField' %}
-                                                                                <td style="border: none">
-                                                                                    {% if _field.type == 'SelectField' %}
-                                                                                        <div class="select">
-                                                                                            {{ _field() }}
-                                                                                        </div>
-                                                                                    {% else %}
-                                                                                        {{ _field() }}
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for subfield in field %}
+                                                                            <tr>
+                                                                                {% for _field in subfield %}
+                                                                                    {% if _field.type != 'CSRFTokenField' %}
+                                                                                        <td style="border: none">
+                                                                                            {% if _field.type == 'SelectField' %}
+                                                                                                <div class="select">
+                                                                                                    {{ _field() }}
+                                                                                                </div>
+                                                                                            {% else %}
+                                                                                                {{ _field() }}
+                                                                                            {% endif %}
+                                                                                        </td>
                                                                                     {% endif %}
+                                                                                {% endfor %}
+                                                                                <td style="border: none">
+                                                                                    <a class="button is-danger is-outlined"
+                                                                                       hx-delete="{{ url_for('service_admin.remove_virus_surface_disinfection_organism_form_entry',
+                                                                                       name=entry.name) }}"
+                                                                                       hx-target="closest tr"
+                                                                                       hx-swap="outerHTML"
+                                                                                    >
+                                                                                        <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                                                    </a>
                                                                                 </td>
-                                                                            {% endif %}
+                                                                            </tr>
                                                                         {% endfor %}
-                                                                        <td style="border: none">
-                                                                            <a class="button is-danger is-outlined"
-                                                                               hx-delete="{{ url_for('service_admin.remove_virus_surface_disinfection_organism_form_entry',
-                                                                               name=subform.name) }}"
-                                                                               hx-target="closest tr"
-                                                                               hx-swap="outerHTML"
-                                                                            >
-                                                                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                                                            </a>
-                                                                        </td>
-                                                                    </tr>
-                                                                {% endfor %}
-                                                                <tr>
-                                                                    <td>
-                                                                        <a class="button is-info is-outlined is-rounded"
-                                                                           hx-post="{{ url_for('service_admin.add_virus_surface_disinfection_organism_form_entry') }}"
-                                                                           hx-target="previous tr"
-                                                                           hx-swap="afterend"
-                                                                        >
-                                                                            <span class="icon"><i class="fas fa-plus"></i></span>
-                                                                            <span>เพิ่ม</span>
-                                                                        </a>
-                                                                    </td>
-                                                                </tr>
-                                                            </tbody>
-                                                        </table>
-                                                    {% else %}
-                                                        <div class="field">
-                                                            <label class="label">
-                                                                {{ field.label }}
-                                                                <span class="has-text-danger">*</span>
-                                                            </label>
-                                                            <div class="control">
-                                                                {{ field() }}
-                                                            </div>
-                                                        </div>
-                                                    {% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        </div>
-                                    </div>
+                                                                        <tr>
+                                                                            <td>
+                                                                                <a class="button is-info is-outlined is-rounded"
+                                                                                   hx-post="{{ url_for('service_admin.add_virus_surface_disinfection_organism_form_entry',
+                                                                                   name=entry.name) }}"
+                                                                                   hx-target="previous tr"
+                                                                                   hx-swap="afterend"
+                                                                                >
+                                                                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                                                                    <span>เพิ่ม</span>
+                                                                                </a>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            {% else %}
+                                                                <div class="field">
+                                                                    <label class="label">
+                                                                        {{ field.label }}
+                                                                        <span class="has-text-danger">*</span>
+                                                                    </label>
+                                                                    <div class="control">
+                                                                        {{ field() }}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                    <button type="button" class="button is-danger is-rounded is-small"
+                                                            hx-delete="{{ url_for('service_admin.remove_virus_surface_disinfection_condition_form',
+                                                            name=entry.name) }}"
+                                                            hx-target="closest .subform-card"
+                                                            hx-swap="outerHTML"
+                                                    >
+                                                        ลบ
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
                                 {% endif %}
                             {% endfor %}
                             <div class="field">
-                                <div class="control">
-                                    {{ form.read_document() }}
-                                    {{ form.read_document.label }}
+                                <div id="condition-fields"></div>
+                            </div>
+                            <div class="field">
+                                <div class="select">
+                                    {{ form.product_type(
+                                        **{'hx-post': url_for("service_admin.get_virus_air_disinfection_condition_form", code=code),
+                                        'hx-include': 'closest form',
+                                        'hx-target': '#condition-fields',
+                                         'hx-swap': 'beforeend',
+                                         'hx-trigger': 'change'}) }}
                                 </div>
                             </div>
                         </div>
@@ -243,6 +272,14 @@
                                 <label class="label">{{ form.note.label }}</label>
                                 <div class="control">
                                     {{ form.note(class='textarea') }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.read_document() }}
+                                    {{ form.read_document.label }}
                                 </div>
                             </div>
                         </div>
@@ -259,6 +296,52 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        function validateProductType() {
+            const productType = document.getElementById('product_type');
+            const hasSubform = document.querySelector('.subform-card') !== null;
+
+            if (!productType) return;
+
+            if (!hasSubform) {
+                productType.required = true;
+                productType.oninvalid = function () {
+                    this.setCustomValidity('กรุณาเลือกประเภทผลิตภัณฑ์');
+                };
+                productType.oninput = function () {
+                    this.setCustomValidity('');
+                };
+            } else {
+                productType.required = false;
+                productType.setCustomValidity('');
+                productType.oninvalid = null;
+                productType.oninput = null;
+            }
+        }
+
+        function clearProductType() {
+            const productType = document.getElementById('product_type');
+            if (!productType) return;
+
+            productType.value = '';
+            productType.selectedIndex = 0;
+            productType.setCustomValidity('');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            clearProductType();
+            validateProductType();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            clearProductType();
+            validateProductType();
+        });
+
+        document.getElementById('product_type')?.addEventListener('change', function () {
+            validateProductType();
+        });
+    </script>
     <script>
         function toggleTable(subform) {
             const table = subform.find('table');
@@ -314,14 +397,24 @@
             }
         }
 
-        $('.subform-card').each(function () {
-            const subform = $(this);
-            toggleTable(subform);
-            addRequiredField(subform);
-            showClenTypeOtherInput(subform);
-            subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+        function initSubforms() {
+            $('.subform-card').each(function () {
+                const subform = $(this);
+                toggleTable(subform);
+                addRequiredField(subform);
                 showClenTypeOtherInput(subform);
+                subform.find('input[type="radio"][name$="clean_type"]').change(function () {
+                    showClenTypeOtherInput(subform);
+                });
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initSubforms();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            initSubforms();
         });
     </script>
 {% endblock %}

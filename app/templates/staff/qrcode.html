@@ -79,7 +79,7 @@
                 },
                 (error)=>{
                     alert('GPS failed')
-                    this.message = 'ไม่สามารถค้นหาตำแหน่งของคุณได้แต่คุณยังสามารถใช้ QR Code ในการแสกนได้'
+                    this.message = 'ไม่สามารถค้นหาตำแหน่งของคุณได้แต่คุณยังสามารถใช้ QR Code ในการสแกนได้'
                     this.get_qrcode_data()
                 },
                 {timeout: 9000, enableHighAccuracy: true});

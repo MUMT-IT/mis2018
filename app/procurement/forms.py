@@ -66,7 +66,7 @@ class DatePickerField(Field):
 class ProcurementDetailForm(ModelForm):
     class Meta:
         model = ProcurementDetail
-        exclude = ['image']
+        exclude = ['image_url']
 
     image_file_upload = FileField(u'อัพโหลดรูปภาพ')
     cost_center = SelectField(u'ศูนย์ต้นทุน',
@@ -133,7 +133,7 @@ class ProcurementUpdateRecordForm(ModelForm):
 
     location = QuerySelectField(u'สถานที่',
                                 query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
-                                blank_text='Select location..', allow_blank=False)
+                                blank_text='-เลือกสถานที่ตั้ง-', allow_blank=True)
     status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
                               blank_text='Select status..', allow_blank=False)
 
@@ -169,10 +169,6 @@ class ProcurementApprovalForm(ModelForm):
 
 
 class ProcurementAddImageForm(ModelForm):
-    class Meta:
-        model = ProcurementDetail
-        only = ['image']
-
     image_upload = FileField(u'อัพโหลดรูปภาพ')
 
 
@@ -232,4 +228,4 @@ class ProcurementLocationForm(ModelForm):
     class Meta:
         model = ProcurementRecord
     location = QuerySelectField('สถานที่', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
-                                blank_text='Select location..', allow_blank=False)
+                                blank_text='-เลือกสถานที่ตั้ง-', allow_blank=True)

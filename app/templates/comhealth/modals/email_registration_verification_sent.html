@@ -1,0 +1,9 @@
+<div id="email-registration-verification-sent"></div>
+<script>
+    window.dispatchEvent(new Event('closeEmailRegistrationModal'));
+    Swal.fire({
+        icon: 'success',
+        title: 'Verification email sent / ส่งอีเมลยืนยันแล้ว',
+        html: 'A verification link has been sent to <strong>{{ email }}</strong>. The user must click the link within 24 hours before the email is updated.<br><br>ระบบได้ส่งลิงก์ยืนยันไปที่ <strong>{{ email }}</strong> แล้ว ผู้ใช้ต้องคลิกลิงก์ภายใน 24 ชั่วโมงก่อนที่อีเมลจะถูกอัปเดต'
+    });
+</script>

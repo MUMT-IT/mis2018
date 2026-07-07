@@ -184,6 +184,41 @@
                             </p>
                             <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(invoice.grand_total) }}</p>
                         </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                {% if invoice.quotation.request.status.status_id == 16 and admin %}
+                                    <a class="button is-success is-rounded is-small mb-2"
+                                       href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                           admin='admin', menu=menu, tab='pending_supervisor') }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-check"></i></span>
+                                        <span>เสนอหัวหน้าอนุมัติ</span>
+                                    </a>
+                                {% elif (invoice.quotation.request.status.status_id == 17 and supervisor) or
+                                        (invoice.quotation.request.status.status_id == 18 and assistant) %}
+                                    <a class="button is-success is-rounded is-small mb-2"
+                                            {% if supervisor %}
+                                       href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                   admin='supervisor', menu=menu, tab='pending_assistant') }}"
+                                            {% elif assistant %}
+                                       href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                   admin='assistant', menu=menu, tab='pending_dean') }}"
+                                            {% endif %}
+                                    >
+                                        <span class="icon"><i class="fas fa-check"></i></span>
+                                        <span>อนุมัติ</span>
+                                    </a>
+                                {% elif invoice.file %}
+                                    <a class="button is-info is-outlined is-rounded is-small mb-2"
+                                       href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                            download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>ดาวน์โหลดใบแจ้งหนี้</span>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
@@ -225,64 +260,64 @@
                                     {% endif %}
                                 </li>
                             </ul>
-                            <hr>
-                            <p class="menu-label">
-                                สถานะ
-                            </p>
-                            <ul class="menu-list">
-                                <li>
-                                    <span class="tag {{ invoice.admin_status_color }}">
-                                        {{ invoice.admin_status }}
-                                    </span>
-                                </li>
-                            </ul>
-                            <hr>
-                            <p class="menu-label">
-                                การดำเนินการ
-                            </p>
-                            <ul class="menu-list">
-                                {% if invoice.quotation.request.status.status_id == 16 and admin %}
-                                    <li>
-                                        <a class="button is-success is-rounded is-fullwidth mb-2"
-                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='admin', menu=menu, tab='pending_supervisor') }}"
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-check"></i>
-                                            </span>
-                                            <span>เสนอหัวหน้าอนุมัติ</span>
-                                        </a>
-                                    </li>
-                                {% elif (invoice.quotation.request.status.status_id == 17 and supervisor) or
-                                        (invoice.quotation.request.status.status_id == 18 and assistant) %}
-                                    <li>
-                                        <a class="button is-success is-rounded is-fullwidth mb-2"
-                                                {% if supervisor %}
-                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='supervisor', menu=menu, tab='pending_assistant') }}"
-                                                {% elif assistant %}
-                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='assistant', menu=menu, tab='pending_dean') }}"
-                                                {% endif %}
-                                        >
-                                            <span class="icon">
-                                                <i class="fas fa-check"></i>
-                                            </span>
-                                            <span>อนุมัติ</span>
-                                        </a>
-                                    </li>
-                                {% elif invoice.file %}
-                                    <li>
-                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"
-                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
-                                            download_filename=invoice.invoice_no ~ '.pdf') }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>
-                                        </a>
-                                    </li>
-                                {% endif %}
-                            </ul>
+                            {#                            <hr>#}
+                            {#                            <p class="menu-label">#}
+                            {#                                สถานะ#}
+                            {#                            </p>#}
+                            {#                            <ul class="menu-list">#}
+                            {#                                <li>#}
+                            {#                                    <span class="tag {{ invoice.admin_status_color }}">#}
+                            {#                                        {{ invoice.admin_status }}#}
+                            {#                                    </span>#}
+                            {#                                </li>#}
+                            {#                            </ul>#}
+                            {#                            <hr>#}
+                            {#                            <p class="menu-label">#}
+                            {#                                การดำเนินการ#}
+                            {#                            </p>#}
+                            {#                            <ul class="menu-list">#}
+                            {#                                {% if invoice.quotation.request.status.status_id == 16 and admin %}#}
+                            {#                                    <li>#}
+                            {#                                        <a class="button is-success is-rounded is-fullwidth mb-2"#}
+                            {#                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,#}
+                            {#                                           admin='admin', menu=menu, tab='pending_supervisor') }}"#}
+                            {#                                        >#}
+                            {#                                            <span class="icon">#}
+                            {#                                                <i class="fas fa-check"></i>#}
+                            {#                                            </span>#}
+                            {#                                            <span>เสนอหัวหน้าอนุมัติ</span>#}
+                            {#                                        </a>#}
+                            {#                                    </li>#}
+                            {#                                {% elif (invoice.quotation.request.status.status_id == 17 and supervisor) or#}
+                            {#                                        (invoice.quotation.request.status.status_id == 18 and assistant) %}#}
+                            {#                                    <li>#}
+                            {#                                        <a class="button is-success is-rounded is-fullwidth mb-2"#}
+                            {#                                                {% if supervisor %}#}
+                            {#                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,#}
+                            {#                                                   admin='supervisor', menu=menu, tab='pending_assistant') }}"#}
+                            {#                                                {% elif assistant %}#}
+                            {#                                                   href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,#}
+                            {#                                                   admin='assistant', menu=menu, tab='pending_dean') }}"#}
+                            {#                                                {% endif %}#}
+                            {#                                        >#}
+                            {#                                            <span class="icon">#}
+                            {#                                                <i class="fas fa-check"></i>#}
+                            {#                                            </span>#}
+                            {#                                            <span>อนุมัติ</span>#}
+                            {#                                        </a>#}
+                            {#                                    </li>#}
+                            {#                                {% elif invoice.file %}#}
+                            {#                                    <li>#}
+                            {#                                        <a class="button is-info is-outlined is-rounded is-small is-fullwidth"#}
+                            {#                                           href="{{ url_for('service_admin.download_file', key=invoice.file,#}
+                            {#                                            download_filename=invoice.invoice_no ~ '.pdf') }}"#}
+                            {#                                        >#}
+                            {#                                            <span class="icon"><i class="fas fa-download"></i></span>#}
+                            {#                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>#}
+                            {#                                        </a>#}
+                            {#                                    </li>#}
+                            {#                                {% endif %}#}
+                            {#                            </ul>#}
                         </aside>
                     </div>
                 </div>

@@ -1,25 +1,35 @@
 # -*- coding: utf-8 -*-
-import datetime
+import csv
+import datetime as dt_module
+import hashlib
 import io
 import json
 import os
 import re
+import secrets
+import tempfile
+import time
+import zipfile
 from collections import OrderedDict, defaultdict
 from io import BytesIO
+from urllib.parse import urljoin
 
 import pandas as pd
 import requests
+import pytz
 from bahttext import bahttext
 from flask import (render_template, flash, redirect,
-                   url_for, session, request, send_file,
-                   send_from_directory, make_response)
+                   url_for, session, request, send_file, stream_with_context,
+                   send_from_directory, make_response, current_app)
 from flask_admin import BaseView, expose
 from flask_cors import cross_origin
 from flask_login import login_required, current_user
 from flask_mail import Message
 from flask_wtf.csrf import generate_csrf
+from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 from markupsafe import escape
 from pandas import read_excel, isna
+from requests_oauthlib import OAuth2Session
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -31,6 +41,7 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import (SimpleDocTemplate, Table, Image,
                                 Spacer, Paragraph, TableStyle, PageBreak, KeepTogether)
 from sqlalchemy import or_, case
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
@@ -45,6 +56,182 @@ from ..e_sign_api import e_sign
 bangkok = pytz.timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = ['xlsx', 'xls']
+
+GOOGLE_SCOPES = [
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'openid',
+]
+
+SPECIMENS_SUMMARY_PAGE_SIZE_MAX = 100
+SERVICE_CUSTOMERS_PAGE_SIZE_MAX = 100
+
+
+def _is_google_verification_enabled():
+    return bool(os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'))
+
+
+def _google_online_results_redirect_uri():
+    return os.getenv('GOOGLE_COMHEALTH_RESULTS_REDIRECT_URI') or urljoin(
+        request.host_url, '/comhealth/online-results/mahidol/google/callback'
+    )
+
+
+def _google_online_results_oauth_session(state=None):
+    return OAuth2Session(
+        client_id=os.getenv('GOOGLE_CLIENT_ID'),
+        redirect_uri=_google_online_results_redirect_uri(),
+        scope=GOOGLE_SCOPES,
+        state=state,
+    )
+
+
+def _has_online_results_access():
+    return current_user.is_authenticated or bool(session.get('comhealth_online_results_email'))
+
+
+def _require_online_results_access():
+    if _has_online_results_access():
+        return None
+    flash(
+        'Please verify your email access before viewing online results. / กรุณายืนยันสิทธิ์อีเมลก่อนดูผลตรวจออนไลน์',
+        'warning'
+    )
+    return redirect(url_for('comhealth.landing'))
+
+
+ONLINE_RESULTS_API_TOKEN_CACHE = {
+    'access_token': None,
+    'expires_at': 0,
+}
+
+
+def _online_results_api_base_url():
+    return os.getenv('COMHEALTH_ONLINE_RESULTS_API_BASE_URL', 'https://webmt.mahidol.ac.th/api').rstrip('/')
+
+
+def _online_results_api_key():
+    for env_name in (
+        'COMHEALTH_ONLINE_RESULTS_API_KEY',
+        'COMHEALTH_RESULTS_API_KEY',
+        'WEBMT_API_KEY',
+    ):
+        api_key = os.getenv(env_name)
+        if api_key:
+            return api_key
+    return None
+
+
+def _online_results_api_url(path):
+    return f'{_online_results_api_base_url()}/{path.lstrip("/")}'
+
+
+def _extract_online_results_token(payload):
+    if isinstance(payload, str):
+        return payload
+
+    if not isinstance(payload, dict):
+        return None
+
+    for key in ('access_token', 'accessToken', 'token', 'bearerToken', 'bearer_token'):
+        token = payload.get(key)
+        if token:
+            return token
+
+    for nested_key in ('data', 'result'):
+        token = _extract_online_results_token(payload.get(nested_key))
+        if token:
+            return token
+
+    return None
+
+
+def _extract_online_results_token_ttl(payload):
+    if not isinstance(payload, dict):
+        return 3300
+
+    for key in ('expires_in', 'expiresIn', 'expires_seconds', 'expiresSeconds'):
+        ttl = payload.get(key)
+        if ttl:
+            try:
+                return int(ttl)
+            except (TypeError, ValueError):
+                return 3300
+
+    for nested_key in ('data', 'result'):
+        ttl = _extract_online_results_token_ttl(payload.get(nested_key))
+        if ttl:
+            return ttl
+
+    return 3300
+
+
+def _get_online_results_bearer_token():
+    if (
+        ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] and
+        ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] > time.time() + 30
+    ):
+        return ONLINE_RESULTS_API_TOKEN_CACHE['access_token']
+
+    api_key = _online_results_api_key()
+    if not api_key:
+        current_app.logger.warning('COMHEALTH_ONLINE_RESULTS_API_KEY is not configured.')
+        return None
+
+    response = requests.post(
+        _online_results_api_url('/apiclients/token'),
+        json={'apiKey': api_key},
+        timeout=10,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    token = _extract_online_results_token(payload)
+    if not token:
+        raise RuntimeError('Online results API token response did not include a bearer token.')
+
+    ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] = token
+    ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] = time.time() + _extract_online_results_token_ttl(payload)
+    return token
+
+
+def _online_results_api_request(method, path, **kwargs):
+    headers = kwargs.pop('headers', {})
+    timeout = kwargs.pop('timeout', 10)
+    token = _get_online_results_bearer_token()
+
+    if token:
+        headers = {
+            **headers,
+            'Authorization': f'Bearer {token}',
+        }
+
+    response = requests.request(
+        method,
+        _online_results_api_url(path),
+        headers=headers,
+        timeout=timeout,
+        **kwargs,
+    )
+
+    if response.status_code == 401 and token:
+        ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] = None
+        ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] = 0
+        retry_token = _get_online_results_bearer_token()
+        if not retry_token:
+            return response
+        retry_headers = {
+            **headers,
+            'Authorization': f'Bearer {retry_token}',
+        }
+        response = requests.request(
+            method,
+            _online_results_api_url(path),
+            headers=retry_headers,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    return response
 
 
 @comhealth.route('/api/v1/lineids/<lineid>')
@@ -61,7 +248,6 @@ def get_line_id(lineid):
 
 
 @comhealth.route('/')
-@login_required
 def landing():
     return render_template('comhealth/landing.html')
 
@@ -74,6 +260,384 @@ def finance_landing():
         session['receipt_venue'] = venue
         return redirect(url_for('comhealth.finance_index'))
     return render_template('comhealth/finance_landing.html')
+
+
+@comhealth.route('/email-registration')
+@login_required
+def email_registration_landing():
+    return render_template('comhealth/email_registration_landing.html')
+
+
+@comhealth.route('/email-registration/mahidol-staff')
+@login_required
+def email_registration_mahidol_staff():
+    return render_template('comhealth/email_registration_mahidol_staff.html')
+
+
+@comhealth.route('/email-registration/general-public')
+@login_required
+def email_registration_general_public():
+    return render_template('comhealth/email_registration_general_public.html')
+
+
+@comhealth.route('/email-registration/mahidol-staff/search')
+@login_required
+def search_email_registration_mahidol_staff():
+    query_text = request.args.get('query', '').strip()
+    customers = []
+    if query_text:
+        query = ComHealthCustomer.query
+        name_parts = [part for part in query_text.split() if part]
+
+        if len(name_parts) >= 2:
+            firstname_part = name_parts[0]
+            lastname_part = ' '.join(name_parts[1:])
+            query = query.filter(or_(
+                and_(
+                    ComHealthCustomer.firstname.contains(firstname_part),
+                    ComHealthCustomer.lastname.contains(lastname_part)
+                ),
+                and_(
+                    ComHealthCustomer.firstname.contains(lastname_part),
+                    ComHealthCustomer.lastname.contains(firstname_part)
+                )
+            ))
+        else:
+            query = query.filter(or_(
+                ComHealthCustomer.firstname.contains(query_text),
+                ComHealthCustomer.lastname.contains(query_text)
+            ))
+
+        customers = (
+            query
+            .order_by(ComHealthCustomer.firstname.asc(), ComHealthCustomer.lastname.asc())
+            .limit(50)
+            .all()
+        )
+    return render_template(
+        'comhealth/partials/email_registration_customer_list.html',
+        customers=customers,
+        query_text=query_text,
+        mode='mahidol'
+    )
+
+
+@comhealth.route('/email-registration/general-public/search')
+@login_required
+def search_email_registration_general_public():
+    query_text = request.args.get('query', '').strip()
+    customers = []
+    if query_text:
+        query = ComHealthCustomer.query
+        name_parts = [part for part in query_text.split() if part]
+
+        if len(name_parts) >= 2:
+            firstname_part = name_parts[0]
+            lastname_part = ' '.join(name_parts[1:])
+            query = query.filter(or_(
+                and_(
+                    ComHealthCustomer.firstname.contains(firstname_part),
+                    ComHealthCustomer.lastname.contains(lastname_part)
+                ),
+                and_(
+                    ComHealthCustomer.firstname.contains(lastname_part),
+                    ComHealthCustomer.lastname.contains(firstname_part)
+                )
+            ))
+        else:
+            query = query.filter(or_(
+                ComHealthCustomer.firstname.contains(query_text),
+                ComHealthCustomer.lastname.contains(query_text)
+            ))
+
+        customers = (
+            query
+            .order_by(ComHealthCustomer.firstname.asc(), ComHealthCustomer.lastname.asc())
+            .limit(50)
+            .all()
+        )
+    return render_template(
+        'comhealth/partials/email_registration_customer_list.html',
+        customers=customers,
+        query_text=query_text,
+        mode='public'
+    )
+
+
+@comhealth.route('/email-registration/customers/<int:customer_id>/edit-email-modal')
+@login_required
+def edit_email_registration_customer_modal(customer_id):
+    customer = ComHealthCustomer.query.get_or_404(customer_id)
+    form = SendMailToCustomerForm()
+    form.email.data = customer.email
+    mode = request.args.get('mode', 'public')
+    return render_template(
+        'comhealth/modals/edit_email_registration_customer_modal.html',
+        form=form,
+        customer=customer,
+        mode=mode
+    )
+
+
+@comhealth.route('/email-registration/customers/<int:customer_id>/qr-access-modal')
+@login_required
+def email_registration_qr_access_modal(customer_id):
+    customer = ComHealthCustomer.query.get_or_404(customer_id)
+    mode = request.args.get('mode', 'public')
+    serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
+    token = serializer.dumps({
+        'customer_id': customer.id,
+        'mode': mode,
+    })
+    access_url = url_for(
+        'comhealth.email_registration_access_form',
+        token=token,
+        _external=True
+    )
+    return render_template(
+        'comhealth/modals/email_registration_qr_modal.html',
+        customer=customer,
+        mode=mode,
+        access_url=access_url
+    )
+
+
+@comhealth.route('/email-registration/access')
+def email_registration_access_form():
+    token = request.args.get('token')
+    serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token, max_age=300)
+        customer_id = token_data.get('customer_id')
+        mode = token_data.get('mode', 'public')
+        customer = ComHealthCustomer.query.get_or_404(customer_id)
+    except Exception:
+        return render_template(
+            'comhealth/email_registration_verification_result.html',
+            status='danger',
+            title='QR link expired / ลิงก์ QR หมดอายุ',
+            message=(
+                'This QR link is invalid or has expired. Please ask staff to generate a new QR code.\n'
+                'ลิงก์ QR นี้ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาให้เจ้าหน้าที่สร้าง QR code ใหม่'
+            )
+        ), 400
+
+    form = SendMailToCustomerForm()
+    form.email.data = customer.email
+    return render_template(
+        'comhealth/email_registration_edit_form.html',
+        form=form,
+        customer=customer,
+        mode=mode,
+        access_token=token
+    )
+
+@comhealth.route('/online-results/mahidol/google')
+def online_results_mahidol_google_start():
+    if not _is_google_verification_enabled():
+        flash('Google sign-in is not configured yet. / ยังไม่ได้ตั้งค่า Google sign-in', 'warning')
+        return redirect(url_for('comhealth.landing'))
+
+    oauth = _google_online_results_oauth_session()
+    authorization_base_url = 'https://accounts.google.com/o/oauth2/v2/auth'
+    state = secrets.token_urlsafe(16)
+    session['comhealth_online_results_google_oauth_state'] = state
+    authorization_url, _ = oauth.authorization_url(
+        authorization_base_url,
+        state=state,
+        hd='mahidol.ac.th',
+        prompt='select_account',
+    )
+    return redirect(authorization_url)
+
+
+@comhealth.route('/online-results/mahidol/google/callback')
+def online_results_mahidol_google_callback():
+    if not _is_google_verification_enabled():
+        flash('Google sign-in is not configured yet. / ยังไม่ได้ตั้งค่า Google sign-in', 'warning')
+        return redirect(url_for('comhealth.landing'))
+
+    expected_state = session.pop('comhealth_online_results_google_oauth_state', None)
+    state = request.args.get('state')
+    if not state or state != expected_state:
+        flash(
+            'Invalid Google verification state. Please try again. / สถานะการยืนยัน Google ไม่ถูกต้อง กรุณาลองใหม่',
+            'danger'
+        )
+        return redirect(url_for('comhealth.landing'))
+
+    oauth = _google_online_results_oauth_session(state=state)
+    try:
+        oauth.fetch_token(
+            token_url='https://oauth2.googleapis.com/token',
+            client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+            authorization_response=request.url,
+        )
+        resp = oauth.get('https://www.googleapis.com/oauth2/v3/userinfo')
+        resp.raise_for_status()
+        profile = resp.json()
+    except Exception as exc:
+        current_app.logger.exception('Online results Google verification failed during OAuth callback.')
+        if current_app.debug:
+            flash(
+                'Google verification failed: {} / การยืนยันด้วย Google ล้มเหลว'.format(exc),
+                'danger'
+            )
+        else:
+            flash(
+                'Google verification failed. Please try again. / การยืนยันด้วย Google ล้มเหลว กรุณาลองใหม่',
+                'danger'
+            )
+        return redirect(url_for('comhealth.landing'))
+
+    email = (profile.get('email') or '').strip().lower()
+    display_name = (profile.get('name') or email).strip()
+    email_verified = profile.get('email_verified')
+    if not email or not email.endswith('@mahidol.ac.th') or not email_verified:
+        flash(
+            'Please use a verified Mahidol Google account (@mahidol.ac.th). / กรุณาใช้บัญชี Google มหิดลที่ยืนยันแล้ว (@mahidol.ac.th)',
+            'danger'
+        )
+        return redirect(url_for('comhealth.landing'))
+
+    registered_customer = ComHealthCustomer.query.filter_by(email=email).first()
+    if not registered_customer:
+        flash(
+            'This email is not registered for any customer record. Please register your email first. / '
+            'อีเมลนี้ยังไม่ได้ลงทะเบียนในข้อมูลผู้รับบริการ กรุณาลงทะเบียนอีเมลก่อน',
+            'warning'
+        )
+        return redirect(url_for('comhealth.email_registration_landing'))
+
+    session['comhealth_online_results_email'] = email
+    session['comhealth_online_results_name'] = display_name
+    return redirect(url_for('comhealth.customers_result_list'))
+
+
+@comhealth.route('/email-registration/customers/<int:customer_id>/send-verification', methods=['POST'])
+def send_email_registration_verification(customer_id):
+    customer = ComHealthCustomer.query.get_or_404(customer_id)
+    form = SendMailToCustomerForm()
+    mode = request.form.get('mode', 'public')
+    access_token = request.form.get('access_token')
+    serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
+
+    try:
+        token_data = serializer.loads(access_token, max_age=300)
+        if token_data.get('customer_id') != customer.id or token_data.get('mode', 'public') != mode:
+            raise ValueError('Invalid token payload')
+    except Exception:
+        return render_template(
+            'comhealth/email_registration_verification_result.html',
+            status='danger',
+            title='QR link expired / ลิงก์ QR หมดอายุ',
+            message=(
+                'This QR link is invalid or has expired. Please ask staff to generate a new QR code.\n'
+                'ลิงก์ QR นี้ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาให้เจ้าหน้าที่สร้าง QR code ใหม่'
+            )
+        ), 400
+
+    if not form.validate_on_submit():
+        return render_template(
+            'comhealth/email_registration_edit_form.html',
+            form=form,
+            customer=customer,
+            mode=mode,
+            access_token=access_token
+        ), 422
+
+    email = form.email.data.strip().lower()
+    if mode == 'mahidol' and not email.endswith('@mahidol.ac.th'):
+        form.email.errors.append('Please use a Mahidol email address (@mahidol.ac.th) / กรุณาใช้อีเมลมหิดล (@mahidol.ac.th)')
+        return render_template(
+            'comhealth/email_registration_edit_form.html',
+            form=form,
+            customer=customer,
+            mode=mode,
+            access_token=access_token
+        ), 422
+
+    email_hash = hashlib.sha256(email.encode('utf-8')).hexdigest()
+    token = serializer.dumps({
+        'customer_id': customer.id,
+        'email': email,
+        'email_hash': email_hash,
+    })
+    verify_url = url_for(
+        'comhealth.verify_email_registration_email',
+        token=token,
+        _external=True
+    )
+
+    title = 'Email Verification / ยืนยันอีเมล'
+    message = (
+        'Dear {},\n'
+        'A request was made to change your email in the Community Health system to: {}\n'
+        'Please verify this email by clicking the link below within 24 hours:\n'
+        '{}\n\n'
+        'If you did not request this change, please ignore this message.\n'
+        'Your email will not be changed until verification is completed.\n\n'
+        'เรียน {}\n'
+        'ระบบได้รับคำขอเปลี่ยนอีเมลของท่านในระบบงานบริการสุขภาพชุมชนเป็น: {}\n'
+        'กรุณายืนยันอีเมลโดยคลิกลิงก์ด้านล่างภายใน 24 ชั่วโมง:\n'
+        '{}\n\n'
+        'หากท่านไม่ได้เป็นผู้ร้องขอ กรุณาละเว้นอีเมลฉบับนี้\n'
+        'อีเมลของท่านจะยังไม่ถูกเปลี่ยนจนกว่าจะยืนยันสำเร็จ\n\n'
+        'This email was sent by an automated system. Please do not reply.\n'
+        'อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ'
+    ).format(
+        customer.fullname, email, verify_url,
+        customer.fullname, email, verify_url
+    )
+    send_mail([email], title, message)
+
+    return render_template('comhealth/email_registration_verification_result.html',
+                           status='success',
+                           title='Verification email sent / ส่งอีเมลยืนยันแล้ว',
+                           message=(
+                               'A verification link has been sent to {}. Please click the link within 24 hours to complete the email update.\n'
+                               'ระบบได้ส่งลิงก์ยืนยันไปที่ {} แล้ว กรุณาคลิกลิงก์ภายใน 24 ชั่วโมงเพื่ออัปเดตอีเมลให้เสร็จสมบูรณ์'
+                           ).format(email, email))
+
+
+@comhealth.route('/email-registration/verify')
+def verify_email_registration_email():
+    token = request.args.get('token')
+    serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
+    status = 'danger'
+    title = 'Verification failed / การยืนยันไม่สำเร็จ'
+    message = (
+        'The verification link is invalid or has expired. '
+        'Please request a new verification email.\n'
+        'ลิงก์ยืนยันไม่ถูกต้องหรือหมดอายุแล้ว กรุณาส่งคำขอยืนยันอีเมลใหม่'
+    )
+    if token:
+        try:
+            token_data = serializer.loads(token, max_age=86400)
+            email = token_data.get('email', '').strip().lower()
+            email_hash = token_data.get('email_hash')
+            customer_id = token_data.get('customer_id')
+            expected_hash = hashlib.sha256(email.encode('utf-8')).hexdigest()
+            customer = ComHealthCustomer.query.get(customer_id)
+            if customer and email_hash == expected_hash:
+                customer.email = email
+                db.session.add(customer)
+                db.session.commit()
+                status = 'success'
+                title = 'Email verified / ยืนยันอีเมลสำเร็จ'
+                message = (
+                    'Your email has been verified and saved successfully.\n'
+                    'ระบบได้ยืนยันและบันทึกอีเมลของท่านเรียบร้อยแล้ว'
+                )
+        except Exception:
+            pass
+
+    return render_template(
+        'comhealth/email_registration_verification_result.html',
+        status=status,
+        title=title,
+        message=message
+    )
 
 
 @comhealth.route('/services/finance')
@@ -159,15 +723,250 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
     output.seek(0)
     return send_file(output,download_name='recepits_all.xlsx')
 
+
+def _money(value):
+    return float(value or 0)
+
+
+def _parse_schedule_date_to_iso(schedule_date):
+    if not schedule_date:
+        return ''
+    schedule_date = schedule_date.strip()
+    for date_format in ('%d/%m/%Y', '%Y-%m-%d'):
+        try:
+            return dt_module.datetime.strptime(schedule_date, date_format).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return ''
+
+
+def _checkin_datetime_for_record(record):
+    if not record.checkin_datetime:
+        return ''
+    return record.checkin_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _customer_citizen_id(customer):
+    if not customer or not customer.info or not customer.info.data:
+        return ''
+    for key in ('citizen_id', 'id_card', 'national_id', 'personal_id', 'บัตรประชาชน', 'เลขบัตรประชาชน'):
+        value = customer.info.data.get(key)
+        if value:
+            return value
+    return ''
+
+
+def _test_column_name(test_item):
+    if not test_item or not test_item.test:
+        return ''
+    return test_item.test.name or test_item.test.code or ''
+
+
+def _receipt_codes_for_record(record):
+    receipts = sorted(
+        [receipt for receipt in record.receipts if receipt.code and not receipt.cancelled],
+        key=lambda receipt: receipt.created_datetime or receipt.id
+    )
+    return ', '.join([receipt.code for receipt in receipts])
+
+
+def _paid_amount_for_record(record):
+    return sum([
+        _money(receipt.paid_amount)
+        for receipt in record.receipts
+        if receipt.paid and not receipt.cancelled
+    ])
+
+
+def _comhealth_export_records_query(service_id):
+    return (
+        ComHealthRecord.query
+        .execution_options(stream_results=True)
+        .options(
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.dept),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.division),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.emptype),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.info),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.test),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.profile),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.group),
+            selectinload(ComHealthRecord.receipts),
+        )
+        .filter(
+            ComHealthRecord.service_id == service_id,
+            ComHealthRecord.labno.isnot(None),
+            ComHealthRecord.labno != ''
+        )
+        .order_by(ComHealthRecord.labno.asc(), ComHealthRecord.id.asc())
+    )
+
+
+def _split_ordered_tests_for_export(record):
+    profile_items = sorted(
+        [item for item in record.ordered_tests if item.profile],
+        key=lambda item: (item.profile.name if item.profile else '', item.test.name if item.test else '')
+    )
+    other_items = sorted(
+        [item for item in record.ordered_tests if not item.profile],
+        key=lambda item: (item.group.name if item.group else '', item.test.name if item.test else '')
+    )
+    return profile_items, other_items
+
+
+def _detail_rows_from_record(record, location):
+    customer = record.customer
+    patient_name = '{} {} {}'.format(
+        customer.title or '',
+        customer.firstname or '',
+        customer.lastname or ''
+    ).strip() if customer else ''
+    hn = customer.hn if customer and customer.hn else ''
+    checkin_datetime = _checkin_datetime_for_record(record)
+    profile_items, other_items = _split_ordered_tests_for_export(record)
+    rows = []
+    for item in profile_items + other_items:
+        test_type = 'Profile' if item.profile else 'Other'
+        profile_or_group = item.profile.name if item.profile else (item.group.name if item.group else '')
+        rows.append({
+            'Location': location,
+            'Checkin date': checkin_datetime,
+            'Lab Number': record.labno,
+            'HN': hn,
+            'Patient': patient_name,
+            'Test Type': test_type,
+            'Profile/Group Name': profile_or_group,
+            'Description': item.test.desc if item.test else '',
+            'Test Code': item.test.code if item.test else '',
+            'Test Name': item.test.name if item.test else '',
+            'Unit Price': _money(item.price),
+        })
+    return rows
+
+
+def _non_reimbursable_row_from_record(record, test_columns, row_number):
+    customer = record.customer
+    profile_items, other_items = _split_ordered_tests_for_export(record)
+    profile_names = sorted({item.profile.name for item in profile_items if item.profile})
+    non_reimbursable_items = [
+        item for item in other_items
+        if item.test and not item.test.reimbursable
+    ]
+    row = {
+        'ลำดับ': row_number,
+        'LabNo': record.labno,
+        'คำนำหน้า': customer.title if customer and customer.title else '',
+        'ชื่อ': customer.firstname if customer and customer.firstname else '',
+        'นามสกุล': customer.lastname if customer and customer.lastname else '',
+        'อายุ': customer.age_years if customer and customer.age_years is not None else '',
+        'บัตรประชาชน': _customer_citizen_id(customer),
+        'รหัสพนักงาน': customer.emp_id if customer and customer.emp_id else '',
+        'ฝ่าย': customer.dept.name if customer and customer.dept else '',
+        'กอง': customer.division.name if customer and customer.division else '',
+        'แผนก': customer.unit if customer and customer.unit else '',
+        'ประเภทพนักงาน': customer.emptype.name if customer and customer.emptype else '',
+        'Profile Names': ', '.join(profile_names),
+        'Sum Other Test': sum([_money(item.price) for item in non_reimbursable_items]),
+        'เลขที่ใบเสร็จ': _receipt_codes_for_record(record),
+        'เงินที่ได้': _paid_amount_for_record(record),
+        'note': record.note or '',
+    }
+    for column_name in test_columns:
+        row[column_name] = ''
+    for item in non_reimbursable_items:
+        column_name = _test_column_name(item)
+        if column_name in test_columns:
+            current_value = row.get(column_name, '')
+            if current_value in ('', None):
+                current_value = 0
+            row[column_name] = current_value + _money(item.price)
+    return row
+
+
+def _collect_non_reimbursable_test_columns(service_id):
+    test_columns = OrderedDict()
+    for record in _comhealth_export_records_query(service_id).yield_per(200):
+        if not record.ordered_tests:
+            continue
+        _, other_items = _split_ordered_tests_for_export(record)
+        for item in other_items:
+            if item.test and not item.test.reimbursable:
+                column_name = _test_column_name(item)
+                if column_name:
+                    test_columns[column_name] = None
+    return list(test_columns.keys())
+
+
+def _write_csv_file(file_path, fieldnames, row_iterable):
+    with open(file_path, 'w', encoding='utf-8-sig', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames, extrasaction='ignore')
+        writer.writeheader()
+        for row in row_iterable:
+            writer.writerow(row)
+
+
+@comhealth.route('/services/<int:service_id>/finance/export_tests/<schedule_date_thaiform>')
+@login_required
+def export_finance_test_items(service_id, schedule_date_thaiform):
+    service = ComHealthService.query.get_or_404(service_id)
+    detail_columns = [
+        'Location', 'Checkin date', 'Lab Number', 'HN', 'Patient',
+        'Test Type', 'Profile/Group Name', 'Description', 'Test Code',
+        'Test Name', 'Unit Price'
+    ]
+    non_reimbursable_columns = [
+        'ลำดับ', 'LabNo', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 'อายุ',
+        'บัตรประชาชน', 'รหัสพนักงาน', 'ฝ่าย', 'กอง', 'แผนก', 'ประเภทพนักงาน',
+        'Profile Names'
+    ]
+    non_reimbursable_test_columns = _collect_non_reimbursable_test_columns(service_id)
+    non_reimbursable_columns.extend(non_reimbursable_test_columns)
+    non_reimbursable_columns.extend(['Sum Other Test', 'เลขที่ใบเสร็จ', 'เงินที่ได้', 'note'])
+
+    def detail_rows_csv():
+        for record in _comhealth_export_records_query(service_id).yield_per(200):
+            if not record.ordered_tests:
+                continue
+            for row in _detail_rows_from_record(record, service.location):
+                yield row
+
+    def non_reimbursable_rows_csv():
+        row_number = 0
+        for record in _comhealth_export_records_query(service_id).yield_per(200):
+            if not record.ordered_tests:
+                continue
+            row_number += 1
+            yield _non_reimbursable_row_from_record(record, non_reimbursable_test_columns, row_number)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        detail_path = os.path.join(temp_dir, 'Test_Detail.csv')
+        non_reimbursable_path = os.path.join(temp_dir, 'เบิกไม่ได้.csv')
+
+        _write_csv_file(detail_path, detail_columns, detail_rows_csv())
+        _write_csv_file(non_reimbursable_path, non_reimbursable_columns, non_reimbursable_rows_csv())
+
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.write(detail_path, arcname='Test_Detail.csv')
+            zip_file.write(non_reimbursable_path, arcname='เบิกไม่ได้.csv')
+
+    output.seek(0)
+    filename = 'comhealth_test_items_{}_{}.zip'.format(service_id, schedule_date_thaiform)
+    return send_file(output, download_name=filename, as_attachment=True, mimetype='application/zip')
+
+
+@comhealth.route('/services/<int:service_id>/finance/export_tests', methods=['POST'])
+@login_required
+def export_finance_test_items_from_form(service_id):
+    return export_finance_test_items(service_id, 'all')
+
 @comhealth.route('/services/<int:service_id>/finance/summary',methods=('GET', 'POST'))
 @login_required
 def finance_summary(service_id):
     schedule_date_thaiform = ''
+    scheduledate_value = ''
     if request.method == 'POST':
-        schedule_date = request.form.get('scheduledate')
-        if schedule_date:
-            schedule_date_string = schedule_date.split('/')
-            schedule_date_thaiform = schedule_date_string[2] + '-' + f'{int(schedule_date_string[1]):02n}' + '-' + f'{int(schedule_date_string[0]):02n}'
+        scheduledate_value = request.form.get('scheduledate', '')
+        schedule_date_thaiform = _parse_schedule_date_to_iso(scheduledate_value)
 
     service = ComHealthService.query.get(service_id)
     totals_paid_cash = 0
@@ -177,6 +976,8 @@ def finance_summary(service_id):
     count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
+            if not receipt.created_datetime:
+                continue
             created_date_string = receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d")
             if receipt.paid and receipt.cancelled == False and created_date_string == schedule_date_thaiform:
                 totals_paid_amount += receipt.paid_amount
@@ -189,7 +990,8 @@ def finance_summary(service_id):
                     totals_paid_card += receipt.paid_amount
     return render_template('comhealth/finance_summary.html', service=service,totals_paid_amount=totals_paid_amount,
                            totals_paid_cash=totals_paid_cash,totals_paid_QR=totals_paid_QR,totals_paid_card=totals_paid_card,
-                           count_receipts=count_receipts,schedule_date_thaiform=schedule_date_thaiform)
+                           count_receipts=count_receipts,schedule_date_thaiform=schedule_date_thaiform,
+                           scheduledate_value=scheduledate_value)
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
@@ -268,19 +1070,32 @@ def show_finance_records(service_id):
 @comhealth.route('/customers')
 @login_required
 def index():
-
-    services = ComHealthService.query.all()
-    services_data = []
-    for sv in services:
-        d = {
-            'id': sv.id,
-            'date': sv.date,
-            'location': sv.location,
-            'registered': sv.records.count(),
-            'checkedin': sv.records.filter(ComHealthRecord.checkin_datetime != None).count()
-        }
-        services_data.append(d)
-    services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
+    registered_counts = db.session.query(
+        ComHealthRecord.service_id,
+        func.count(ComHealthRecord.id).label('registered')
+    ).group_by(ComHealthRecord.service_id).subquery()
+    checkedin_counts = db.session.query(
+        ComHealthRecord.service_id,
+        func.count(ComHealthRecord.id).label('checkedin')
+    ).filter(ComHealthRecord.checkin_datetime != None) \
+        .group_by(ComHealthRecord.service_id).subquery()
+    services = db.session.query(
+        ComHealthService.id,
+        ComHealthService.date,
+        ComHealthService.location,
+        func.coalesce(registered_counts.c.registered, 0).label('registered'),
+        func.coalesce(checkedin_counts.c.checkedin, 0).label('checkedin')
+    ).outerjoin(registered_counts, registered_counts.c.service_id == ComHealthService.id) \
+        .outerjoin(checkedin_counts, checkedin_counts.c.service_id == ComHealthService.id) \
+        .order_by(ComHealthService.date.desc()) \
+        .all()
+    services_data = [{
+        'id': sv.id,
+        'date': sv.date,
+        'location': sv.location,
+        'registered': sv.registered,
+        'checkedin': sv.checkedin
+    } for sv in services]
     return render_template('comhealth/index.html', services=services_data)
 
 
@@ -325,36 +1140,68 @@ def register_customer_to_service_org(service_id, org_id):
 @login_required
 def display_service_customers(service_id):
     service = ComHealthService.query.get(service_id)
-    return render_template('comhealth/service_customers.html', service_id=service_id, service=service)
+    first_org = db.session.query(ComHealthCustomer.org_id) \
+        .join(ComHealthRecord, ComHealthRecord.customer_id == ComHealthCustomer.id) \
+        .filter(ComHealthRecord.service_id == service_id,
+                ComHealthCustomer.org_id != None) \
+        .first()
+    walkin_org_id = first_org[0] if first_org else None
+    return render_template('comhealth/service_customers.html',
+                           service_id=service_id,
+                           service=service,
+                           walkin_org_id=walkin_org_id)
 
 
 @comhealth.route('api/services/<int:service_id>/customers')
 @login_required
 def get_services_customers(service_id):
-    query = ComHealthRecord.query.filter_by(service_id=service_id)
-    records_total = query.count()
+    query = db.session.query(
+        ComHealthRecord.id,
+        ComHealthRecord.labno,
+        ComHealthRecord.checkin_datetime,
+        ComHealthRecord.customer_id,
+        ComHealthRecord.note,
+        ComHealthCustomer.firstname,
+        ComHealthCustomer.lastname,
+    ).join(ComHealthCustomer, ComHealthRecord.customer_id == ComHealthCustomer.id) \
+        .filter(ComHealthRecord.service_id == service_id)
+    records_total = ComHealthRecord.query.filter_by(service_id=service_id).count()
     search = request.args.get('search[value]')
     col_idx = request.args.get('order[0][column]')
     direction = request.args.get('order[0][dir]')
     col_name = request.args.get('columns[{}][data]'.format(col_idx))
-    query = query.join(ComHealthCustomer, aliased=True).filter(or_(
-        ComHealthCustomer.firstname.contains(search),
-        ComHealthCustomer.lastname.contains(search),
-        ComHealthRecord.labno.contains(search)))
-    try:
-        column = getattr(ComHealthCustomer, col_name)
-    except AttributeError:
-        column = getattr(ComHealthRecord, col_name)
+    if search:
+        query = query.filter(or_(
+            ComHealthCustomer.firstname.contains(search),
+            ComHealthCustomer.lastname.contains(search),
+            ComHealthRecord.labno.contains(search)))
+
+    order_columns = {
+        'firstname': ComHealthCustomer.firstname,
+        'lastname': ComHealthCustomer.lastname,
+        'labno': ComHealthRecord.labno,
+        'checkin_datetime': ComHealthRecord.checkin_datetime,
+    }
+    column = order_columns.get(col_name, ComHealthCustomer.firstname)
     if direction == 'desc':
         column = column.desc()
     query = query.order_by(column)
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
+    start = request.args.get('start', 0, type=int)
+    length = request.args.get('length', 10, type=int)
+    if length < 0 or length > SERVICE_CUSTOMERS_PAGE_SIZE_MAX:
+        length = SERVICE_CUSTOMERS_PAGE_SIZE_MAX
+    total_filtered = query.count() if search else records_total
     query = query.offset(start).limit(length)
     data = []
     for item in query:
-        item_data = item.to_dict()
+        item_data = {
+            'id': item.id,
+            'labno': item.labno,
+            'firstname': item.firstname,
+            'lastname': item.lastname,
+            'checkin_datetime': item.checkin_datetime,
+            'note': item.note
+        }
         if item.checkin_datetime != None:
             item_data['checkin_datetime'] = item.checkin_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M")
             item_data[
@@ -522,7 +1369,7 @@ def edit_record(record_id):
         if not record.labno:
             labno = request.form.get('service_code', '')
             if len(labno) != 10 or not labno.isdigit():
-                flash(u'กรุณาระบุหมายเลข lab number ให้ถูกต้องหรือแสกนบาร์โค้ด', 'warning')
+                flash(u'กรุณาระบุหมายเลข lab number ให้ถูกต้องหรือสแกนบาร์โค้ด', 'warning')
                 return redirect(request.referrer)
             else:
                 existing_rec = ComHealthRecord.query.filter_by(labno=labno).first()
@@ -1280,27 +2127,39 @@ def delete_service_group(service_id=None, group_id=None):
     return redirect(url_for('comhealth.edit_service', service_id=service.id))
 
 
+def _get_service_specimen_containers(service_id):
+    containers = {}
+    profile_containers = db.session.query(ComHealthContainer) \
+        .join(ComHealthTest, ComHealthTest.container_id == ComHealthContainer.id) \
+        .join(ComHealthTestItem, ComHealthTestItem.test_id == ComHealthTest.id) \
+        .join(profile_service_assoc_table,
+              profile_service_assoc_table.c.profile_id == ComHealthTestItem.profile_id) \
+        .filter(profile_service_assoc_table.c.service_id == service_id) \
+        .all()
+    group_containers = db.session.query(ComHealthContainer) \
+        .join(ComHealthTest, ComHealthTest.container_id == ComHealthContainer.id) \
+        .join(ComHealthTestItem, ComHealthTestItem.test_id == ComHealthTest.id) \
+        .join(group_service_assoc_table,
+              group_service_assoc_table.c.group_id == ComHealthTestItem.group_id) \
+        .filter(group_service_assoc_table.c.service_id == service_id) \
+        .all()
+
+    for container in profile_containers + group_containers:
+        if container:
+            containers[container.id] = container
+
+    return sorted(containers.values(), key=lambda container: container.name or '')
+
+
 @comhealth.route('/services/<int:service_id>/specimens-summary')
 @login_required
 def summarize_specimens(service_id):
-    containers = set()
     service = ComHealthService.query.get(service_id)
 
-    valid_records = ComHealthRecord.query.filter(
-        ComHealthRecord.service_id == service_id,
-        ComHealthRecord.labno != ''
-    ).all()
-
-    for record in valid_records:
-        for test_item in record.ordered_tests:
-            if test_item.test and test_item.test.container:
-                containers.add(test_item.test.container)
-
     columns = [{'data': 'labno', 'searchable': True}]
-    headers = []
-    for ct in sorted(containers, key=lambda x: x.name):
-        columns.append({'data': ct.id})
-        headers.append(ct)
+    headers = _get_service_specimen_containers(service_id)
+    for ct in headers:
+        columns.append({'data': str(ct.id)})
 
     return render_template('comhealth/specimens_checklist.html',
                            summary_date=datetime.now(tz=bangkok),
@@ -1309,28 +2168,33 @@ def summarize_specimens(service_id):
                            service=service)
 
 
-@comhealth.route('/api/services/<int:service_id>/specimens-summary')
+@comhealth.route('/api/services/<int:service_id>/specimens-summary', methods=['GET', 'POST'])
 @login_required
 def get_specimens_summary_data(service_id):
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    service = ComHealthService.query.get(service_id)
-    query = service.records.filter(ComHealthRecord.labno != '')
+    start = request.values.get('start', 0, type=int)
+    length = request.values.get('length', 10, type=int)
+    if length < 0 or length > SPECIMENS_SUMMARY_PAGE_SIZE_MAX:
+        length = SPECIMENS_SUMMARY_PAGE_SIZE_MAX
+
+    query = ComHealthRecord.query.filter(
+        ComHealthRecord.service_id == service_id,
+        ComHealthRecord.labno != ''
+    )
     total_count = query.count()
-    search = request.args.get('search[value]')
+    search = request.values.get('search[value]')
     if search:
         query = query.filter(ComHealthRecord.labno.like('%{}%'.format(search)))
+    filtered_count = query.count()
 
-    containers = set()
-    for profile in service.profiles:
-        for test_item in profile.test_items:
-            containers.add(test_item.test.container)
-    for group in service.groups:
-        for test_item in group.test_items:
-            containers.add(test_item.test.container)
+    containers = _get_service_specimen_containers(service_id)
+    records = query.options(
+        selectinload(ComHealthRecord.ordered_tests)
+        .joinedload(ComHealthTestItem.test)
+        .joinedload(ComHealthTest.container)
+    ).order_by(ComHealthRecord.labno).offset(start).limit(length)
 
     data = []
-    for rec in query.order_by('labno').offset(start).limit(length):
+    for rec in records:
         if rec.labno:
             d = {'labno': rec.labno}
             for ct in containers:
@@ -1341,9 +2205,9 @@ def get_specimens_summary_data(service_id):
                     d[str(ct.id)] = None
             data.append(d)
     return jsonify({'data': data,
-                    'recordsFiltered': query.count(),
+                    'recordsFiltered': filtered_count,
                     'recordsTotal': total_count,
-                    'draw': request.args.get('draw', type=int),
+                    'draw': request.values.get('draw', type=int),
                     })
 
 
@@ -1530,25 +2394,35 @@ def add_service_to_org(org_id):
     if form.validate_on_submit():
         existing_service = ComHealthService.query \
             .filter_by(date=form.service_date.data, location=form.location.data).first()
+        employee_ids_query = db.session.query(ComHealthCustomer.id) \
+            .filter_by(org_id=org_id) \
+            .yield_per(500)
+
+        records_to_add = []
         if not existing_service:
             new_service = ComHealthService(date=form.service_date.data,
                                            location=form.location.data)
             db.session.add(new_service)
-            for employee in org.employees:
-                new_record = ComHealthRecord(date=form.service_date.data,
-                                             service=new_service,
-                                             customer=employee)
-                db.session.add(new_record)
-            db.session.commit()
+            db.session.flush()
+            for (employee_id,) in employee_ids_query:
+                records_to_add.append(ComHealthRecord(date=form.service_date.data,
+                                                      service_id=new_service.id,
+                                                      customer_id=employee_id))
         else:
-            for employee in org.employees:
-                services = set([rec.service for rec in employee.records])
-                if existing_service not in services:
-                    new_record = ComHealthRecord(date=form.service_date.data,
-                                                 service=existing_service,
-                                                 customer=employee)
-                    db.session.add(new_record)
-                    db.session.commit()
+            existing_customer_ids = set(
+                cid for (cid,) in db.session.query(ComHealthRecord.customer_id)
+                .filter_by(service_id=existing_service.id)
+                .all()
+            )
+            for (employee_id,) in employee_ids_query:
+                if employee_id not in existing_customer_ids:
+                    records_to_add.append(ComHealthRecord(date=form.service_date.data,
+                                                          service_id=existing_service.id,
+                                                          customer_id=employee_id))
+
+        if records_to_add:
+            db.session.add_all(records_to_add)
+        db.session.commit()
 
         flash('New service has been added to the organization.')
         return redirect(url_for('comhealth.index'))
@@ -1734,73 +2608,163 @@ def edit_customer_data(customer_id, service_id):
     return render_template('comhealth/edit_customer_data.html', form=form, customer=customer)
 
 
+@comhealth.route('/services/<int:service_id>/export_record_excel')
+@login_required
+def export_csv_page(service_id):
+    service = ComHealthService.query.get(service_id)
+    return render_template('comhealth/export_record_excel.html',
+                           service_id=service_id,
+                           service=service)
+
+
+
 # TODO: export the price of tests
 
-@comhealth.route('/services/<int:service_id>/to-csv')
+@comhealth.route('/services/<int:service_id>/to-csv', methods=['POST'])
 @login_required
 def export_csv(service_id):
     # TODO: add employment types (number)
     # TODO: add organization + dept + unit
-    service = ComHealthService.query.get(service_id)
-    rows = []
-    for record in service.records:
-        if not record.labno:
-            continue
-        tests = ','.join([item.test.code for item in record.ordered_tests])
-        department = record.customer.dept.name if record.customer.dept else ''
-        emptype = record.customer.emptype.name if record.customer.emptype else ''
+    service = ComHealthService.query.get_or_404(service_id)
+    export_date = request.form.get('export_date', '').strip()
+    selected_date = None
+    if export_date:
+        for date_format in ('%d/%m/%Y', '%Y-%m-%d'):
+            try:
+                selected_date = datetime.strptime(export_date, date_format).date()
+                break
+            except ValueError:
+                continue
+        if selected_date is None:
+            flash('รูปแบบวันที่ไม่ถูกต้อง', 'warning')
+            return redirect(url_for('comhealth.export_csv_page', service_id=service_id))
+
+    def _to_bangkok(dt):
+        if not dt:
+            return None
+        if dt.tzinfo is None:
+            dt = pytz.utc.localize(dt)
+        return dt.astimezone(bangkok)
+
+    query = (
+        ComHealthRecord.query
+        .execution_options(stream_results=True)
+        .options(
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.org),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.dept),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.division),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.emptype),
+            joinedload(ComHealthRecord.finance_contact),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.test),
+        )
+        .filter(
+            ComHealthRecord.service_id == service_id,
+            ComHealthRecord.labno.isnot(None),
+            ComHealthRecord.labno != ''
+        )
+        .order_by(ComHealthRecord.checkin_datetime.asc(), ComHealthRecord.id.asc())
+    )
+
+    if selected_date:
+        start_local = bangkok.localize(datetime.combine(selected_date, datetime.min.time()))
+        end_local = start_local + dt_module.timedelta(days=1)
+        query = query.filter(
+            ComHealthRecord.checkin_datetime >= start_local,
+            ComHealthRecord.checkin_datetime < end_local
+        )
+
+    headers = [
+        'labno',
+        'hn',
+        'title',
+        'firstname',
+        'lastname',
+        'age',
+        'dob',
+        'gender',
+        'phone',
+        'organization',
+        'department',
+        'division',
+        'unit',
+        'employmentType',
+        'emp_id',
+        'tests',
+        'urgent',
+        'note_to_lab',
+        'employment_note',
+        'finance_contact',
+        'checkin_datetime',
+    ]
+
+    def _serialize_row(record):
+        local_checkin = _to_bangkok(record.checkin_datetime)
+        customer = record.customer
+        department = customer.dept.name if customer and customer.dept else ''
+        emptype = customer.emptype.name if customer and customer.emptype else ''
         reason = record.finance_contact.reason if record.finance_contact else ''
-        division = record.customer.division.name if record.customer.division else ''
-        rows.append({'hn': u'{}'.format(record.customer.hn or ''),
-                     'title': u'{}'.format(record.customer.title),
-                     'firstname': u'{}'.format(record.customer.firstname),
-                     'lastname': u'{}'.format(record.customer.lastname),
-                     'employmentType': u'{}'.format(emptype),
-                     'emp_id': u'{}'.format(record.customer.emp_id or ''),
-                     'age': u'{}'.format(record.customer.age_years or ''),
-                     'dob': u'{}'.format(record.customer.dob or ''),
-                     'gender': u'{}'.format(record.customer.gender),
-                     'phone': u'{}'.format(record.customer.phone or ''),
-                     'organization': u'{}'.format(record.customer.org.name),
-                     'department': u'{}'.format(department),
-                     'division': u'{}'.format(division),
-                     'unit': u'{}'.format(record.customer.unit or ''),
-                     'labno': u'{}'.format(record.labno),
-                     'tests': u'{}'.format(tests),
-                     'urgent': record.urgent,
-                     'note_to_lab': u'{}'.format(record.comment),
-                     'employment_note': u'{}'.format(record.note),
-                     'finance_contact': u'{}'.format(reason),
-                     'checkin_datetime': u'{}'.format(record.checkin_datetime)})
-    if rows:
-        pd.DataFrame(rows).to_excel('export.xlsx',
-                                    header=True,
-                                    columns=['labno',
-                                             'hn',
-                                             'title',
-                                             'firstname',
-                                             'lastname',
-                                             'age',
-                                             'dob',
-                                             'gender',
-                                             'phone',
-                                             'organization',
-                                             'department',
-                                             'division',
-                                             'unit',
-                                             'employmentType',
-                                             'emp_id',
-                                             'tests',
-                                             'urgent',
-                                             'note_to_lab',
-                                             'employment_note',
-                                             'finance_contact',
-                                             'checkin_datetime'],
-                                    index=False,
-                                    encoding='utf-8')
-        return send_from_directory(os.getcwd(), path='export.xlsx')
-    else:
-        return 'Data is empty.'
+        division = customer.division.name if customer and customer.division else ''
+        organization = customer.org.name if customer and customer.org else ''
+        hn_value = customer.hn if customer and customer.hn else ''
+        tests = ','.join(
+            item.test.code for item in record.ordered_tests
+            if item.test and item.test.code
+        )
+        return [
+            u'{}'.format(record.labno or ''),
+            u'="{}"'.format(hn_value) if hn_value else '',
+            u'{}'.format(customer.title if customer else ''),
+            u'{}'.format(customer.firstname if customer else ''),
+            u'{}'.format(customer.lastname if customer else ''),
+            u'{}'.format(customer.age_years if customer and customer.age_years is not None else ''),
+            u'{}'.format(customer.dob if customer and customer.dob else ''),
+            u'{}'.format(customer.gender if customer and customer.gender is not None else ''),
+            u'{}'.format(customer.phone if customer else ''),
+            u'{}'.format(organization),
+            u'{}'.format(department),
+            u'{}'.format(division),
+            u'{}'.format(customer.unit if customer and customer.unit else ''),
+            u'{}'.format(emptype),
+            u'{}'.format(customer.emp_id if customer and customer.emp_id else ''),
+            u'{}'.format(tests),
+            bool(record.urgent),
+            u'{}'.format(record.comment or ''),
+            u'{}'.format(record.note or ''),
+            u'{}'.format(reason),
+            u'{}'.format(local_checkin.strftime('%Y-%m-%d %H:%M:%S') if local_checkin else ''),
+        ]
+
+    def _stream_csv():
+        rows_per_chunk = 500
+        rows_in_chunk = 0
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, lineterminator='\n')
+        buffer.write(u'\ufeff')
+        writer.writerow(headers)
+        yield buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate(0)
+
+        for record in query.yield_per(1000):
+            writer.writerow(_serialize_row(record))
+            rows_in_chunk += 1
+            if rows_in_chunk >= rows_per_chunk:
+                yield buffer.getvalue()
+                buffer.seek(0)
+                buffer.truncate(0)
+                rows_in_chunk = 0
+
+        if rows_in_chunk:
+            yield buffer.getvalue()
+
+    date_suffix = selected_date.strftime('%Y%m%d') if selected_date else 'all'
+    filename = 'comhealth_export_{}_{}.csv'.format(service_id, date_suffix)
+    response = current_app.response_class(
+        stream_with_context(_stream_csv()),
+        mimetype='text/csv; charset=utf-8'
+    )
+    response.headers['Content-Disposition'] = 'attachment; filename="{}"'.format(filename)
+    return response
 
 
 @comhealth.route('/organizations/add', methods=['GET', 'POST'])
@@ -2241,14 +3205,13 @@ def create_receipt(record_id):
         address = request.form.get('receipt_address', None)
         issued_for = request.form.get('issued_for', None)
         issuer = ComHealthCashier.query.filter_by(staff=current_user).first()
-        reason_text = record.finance_contact.reason or ""
+        reason_text = getattr(record.finance_contact, "reason", "") or ""
         if record.note:
             record.note = f"{record.note}:{reason_text}"
         else:
             # ถ้ายังไม่มี note เดิม ไม่ต้องขึ้นต้นด้วย :
             record.note = f"{reason_text}"
 
-        print("note",record.note)
         if not issuer:
             issuer = ComHealthCashier(staff=current_user,
                                       position=current_user.personal_info.position)
@@ -2469,6 +3432,11 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 
+def _profile_consolidated_is_reimbursable(receipt):
+    profile_invoices = [t for t in receipt.invoices if t.billed and t.test_item.profile]
+    return bool(profile_invoices) and all(t.reimbursable for t in profile_invoices)
+
+
 def generate_receipt_pdf(receipt, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
@@ -2478,13 +3446,6 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 
     buffer = BytesIO()
 
-    doc = SimpleDocTemplate(
-        buffer,
-        rightMargin=10,
-        leftMargin=10,
-        topMargin=180,
-        bottomMargin=10,
-    )
     receipt_number = receipt.code
     data = []
     affiliation = '''<para align=center><font size=10>
@@ -2537,34 +3498,48 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     if cancel:
         origin_or_copy = Paragraph('<para align=center><font size=20>ยกเลิก(Cancel)<br/><br/></font></para>',
                                    style=style_sheet['ThaiStyle'])
-    hight_customer_name = 5.5
+    customer_br = ''
     if receipt.issued_for:
-        hight_customer_name = 4.0
-        customer_name = '''<para><font size=12>
+        customer_name = '''
+        <para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {issued_for}<br/>
-        ที่อยู่ / ADDRESS {address} <br/>
+        ที่อยู่ / ADDRESS {address}
         </font></para>
-        '''.format(issued_for=receipt.issued_for,
-                   customer_name=receipt.record.customer.fullname,
-                   address=receipt.address,
-                   )
+        '''.format(
+            issued_for=receipt.issued_for,
+            address=receipt.address
+        )
     else:
-        customer_name = '''<para><font size=12>
+        customer_br = '<br/>'
+        customer_name = '''<para><font size=12><br/>
         ได้รับเงินจาก / RECEIVED FROM {customer_name}
         </font></para>
         '''.format(customer_name=receipt.record.customer.fullname,
                    )
-    customer_labno = '''<para><font size=11>
-    หมายเลขรายการ / NUMBER {customer_labno}<br/><br/>
+    customer_labno = '''
+    <para align=right><font size=11>{customer_br}
+    หมายเลขรายการ / NUMBER {customer_labno}
     </font></para>
     '''.format(customer_labno=receipt.record.labno,
-               venue=receipt.issued_at)
+               venue=receipt.issued_at,customer_br=customer_br)
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                        Paragraph(customer_labno, style=style_sheet['ThaiStyle'])]],
-                     colWidths=[300, 200]
+                     colWidths=[360, 140]
                      )
     customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                                 ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+
+    w, h = customer.wrap(500, 100)
+    top_margin = 180 + (h * 0.5)
+
+    doc = SimpleDocTemplate(
+        buffer,
+        rightMargin=10,
+        leftMargin=10,
+        topMargin=top_margin,
+        bottomMargin=10,
+    )
+
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>เบิกได้ (บาท)*<br/>Reimbursable (BAHT)</font>',
@@ -2577,6 +3552,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     number_test = 0
     total_profile_price = 0
     total_special_price = 0
+    consolidated_profile_is_reimbursable = _profile_consolidated_is_reimbursable(receipt)
     if receipt.print_profile_note:
         profile_tests = [t for t in receipt.record.ordered_tests if t.profile]
         if profile_tests:
@@ -2593,8 +3569,13 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                             Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
+                    if consolidated_profile_is_reimbursable:
+                        item[2], item[3] = item[3], item[2]
                     items.append(item)
                     total_special_price += profile_price
+                    if consolidated_profile_is_reimbursable:
+                        total_profile_price += profile_price
+                        total_special_price -= profile_price
                     total += profile_price
                 else:
                     for t in receipt.record.ordered_tests:
@@ -2611,7 +3592,12 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                             Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
+                    if consolidated_profile_is_reimbursable:
+                        item[2], item[3] = item[3], item[2]
                     items.append(item)
+                    if consolidated_profile_is_reimbursable:
+                        total_profile_price += total_special_price
+                        total_special_price = 0
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
@@ -2795,11 +3781,11 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         subheader1 = Paragraph('<para align=center><font size=16>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
                                style=style_sheet['ThaiStyle'])
         w, h = subheader1.wrap(doc.width, doc.topMargin)
-        subheader1.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h * 5.5)
+        subheader1.drawOn(canvas, doc.leftMargin, doc.height + doc.topMargin - h * 5)
 
         subheader2 = customer
         w, h = subheader2.wrap(doc.width, doc.topMargin)
-        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h * hight_customer_name)
+        subheader2.drawOn(canvas, doc.leftMargin + 28, doc.height + doc.topMargin - h - 120)
 
         logo_image = ImageReader('app/static/img/mu-watermark.png')
         canvas.drawImage(logo_image, 140, 265, mask='auto')
@@ -3080,13 +4066,11 @@ def add_consent_records(service_id, consent_detail_id):
 
 
 @comhealth.route('/receipt/search')
-@login_required
 def search_receipt():
     return render_template('comhealth/search_receipt.html')
 
 
 @comhealth.route('/receipt/search/list', methods=['POST', 'GET'])
-@login_required
 def receipt_list():
     code = request.form.get('code', None)
     if code:
@@ -3099,28 +4083,42 @@ def receipt_list():
 
 
 @comhealth.route('/list/servicedate')
-@login_required
 def customers_result_list():
-    customer = ComHealthCustomer.query.filter_by(firstname=current_user.personal_info.th_firstname, lastname=current_user.personal_info.th_lastname).first()
-    #email = customer.email  ( ใช้สำหรับคนภายนอก )
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
 
-    email = current_user.email #( ภายในคณะ )
-    email = f"{email}@mahidol.ac.th" #( ภายในคณะ )
+    if current_user.is_authenticated:
+        email = current_user.email
+        if email and '@' not in email:
+            email = f'{email}@mahidol.ac.th'
+        display_name = current_user.fullname
+    else:
+        email = session.get('comhealth_online_results_email')
+        display_name = session.get('comhealth_online_results_name', email)
 
-    return render_template('comhealth/customers_result_list.html',email=email)
+    return render_template('comhealth/customers_result_list.html', email=email, display_name=display_name)
 
 
 @comhealth.route('/api/cmslis/<email>')
-@login_required
 def cmslis_email(email):
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
 
-    api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
-    response_employee = requests.get(api_employee_url)
+    if not current_user.is_authenticated:
+        session_email = session.get('comhealth_online_results_email', '').strip().lower()
+        if email.strip().lower() != session_email:
+            return '<tr><td colspan="2" class="has-text-centered">Unauthorized</td></tr>', 403
+
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
 
     if response_employee.status_code != 200:
         return '<tr><td colspan="2" class="has-text-centered">ไม่พบข้อมูล</td></tr>'
 
     employee = response_employee.json()
+
+    employee_dob = employee.get("birthDate")
 
     cmscode = employee.get("cmsCode")
     if not cmscode:
@@ -3128,8 +4126,7 @@ def cmslis_email(email):
 
 
     # service วันที่ตรวจ
-    api_services_url = f"http://webmt.mahidol.ac.th/api/Employees/{cmscode}/services"
-    response_services = requests.get(api_services_url)
+    response_services = _online_results_api_request('GET', f'/Employees/{cmscode}/services')
     services = response_services.json()
 
     html = ""
@@ -3146,12 +4143,25 @@ def cmslis_email(email):
 
         serviceno = row.get("serviceNo")
 
-        result_url = url_for(
-            'comhealth.customer_result',
-            serviceNo=serviceno,
-            email=email,
-            servicedate=servicedate
-        )
+        #อายุตามวันที่ตรวจ
+        birth_date = parse_cmslis_birth_date(employee_dob)
+        if birth_date:
+            service_date = datetime.strptime(servicedate, "%Y-%m-%dT%H:%M:%S").date()
+            age = service_date.year - birth_date.year - (
+                    (service_date.month, service_date.day) < (birth_date.month, birth_date.day)
+            )
+        else:
+            age = None
+
+        result_params = {
+            'serviceNo': serviceno,
+            'email': email,
+            'servicedate': servicedate,
+        }
+        if age is not None:
+            result_params['age'] = age
+
+        result_url = url_for('comhealth.customer_result', **result_params)
 
         html += f"""
         <tr>
@@ -3177,8 +4187,7 @@ def load_all_interpret():
     if INTERPRET_CACHE:
         return INTERPRET_CACHE  # ถ้าโหลดแล้ว ไม่ต้องโหลดซ้ำ
 
-    url = "https://webmt.mahidol.ac.th/api/ConditionInterprets"
-    response = requests.get(url, timeout=10)
+    response = _online_results_api_request('GET', '/ConditionInterprets')
     data = response.json()["data"]
 
     INTERPRET_CACHE = {
@@ -3195,8 +4204,7 @@ def load_all_conditions():
     if CONDITION_CACHE:
         return CONDITION_CACHE  # โหลดแล้วไม่ต้องโหลดซ้ำ
 
-    url = "https://webmt.mahidol.ac.th/api/Conditions"
-    response = requests.get(url, timeout=10)
+    response = _online_results_api_request('GET', '/Conditions')
     data = response.json()
 
     grouped = defaultdict(list)
@@ -3213,39 +4221,65 @@ mapping_color_inp = {
         "AbH": ("has-text-danger")
     }
 
+
+def parse_cmslis_birth_date(birth_date):
+    if not birth_date or birth_date == "No birth date":
+        return None
+
+    try:
+        return datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S").date()
+    except (TypeError, ValueError):
+        return None
+
+
 @comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>')
-@login_required
-def customer_result(serviceNo, email, servicedate):
-    api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
-    response_employee = requests.get(api_employee_url)
+@comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>')
+def customer_result(serviceNo, email, servicedate, age=None):
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
+
+    if not current_user.is_authenticated:
+        session_email = session.get('comhealth_online_results_email', '').strip().lower()
+        if email.strip().lower() != session_email:
+            flash(
+                'Unauthorized online result access. / ไม่มีสิทธิ์เข้าถึงผลตรวจนี้',
+                'danger'
+            )
+            return redirect(url_for('comhealth.customers_result_list'))
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
     employee = response_employee.json()
 
     dt = datetime.fromisoformat(servicedate)
     servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
 
     load_all_interpret()
+    age_for_api = age if age and str(age).isdigit() else 0
+    age_display = age if age and str(age).isdigit() else '-'
 
     return render_template(
         'comhealth/result.html',
         employee=employee,
         servicedate_thai=servicedate_thai,
-        service_no=serviceNo
+        service_no=serviceNo,
+        age=age_display,
+        age_for_api=age_for_api
     )
 
 @comhealth.route('/api/physical/<int:serviceNo>')
-@login_required
 def employee_physical(serviceNo):
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
     'phyical น้ำหนัก ส่วนสูง'
-    api_physical_url = f"http://webmt.mahidol.ac.th/api/PhysicalExams/{serviceNo}"
     try:
-        reponse_physical = requests.get(api_physical_url)
+        reponse_physical = _online_results_api_request('GET', f'/PhysicalExams/{serviceNo}')
         physical = reponse_physical.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
 
-    api_waist_url = f"https://webmt.mahidol.ac.th/api/Questionares/waistline/{serviceNo}"
     try:
-        reponse_waist = requests.get(api_waist_url)
+        reponse_waist = _online_results_api_request('GET', f'/Questionares/waistline/{serviceNo}')
         question = reponse_waist.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -3316,12 +4350,13 @@ def employee_physical(serviceNo):
 
 
 @comhealth.route('/api/lab/<int:serviceNo>/<int:age>/<gender>')
-@login_required
 def employee_lab(serviceNo, age, gender):
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
 
-    api_lab_url = f"https://webmt.mahidol.ac.th/api/Labs/service/testsummary/{serviceNo}"
     try:
-        response = requests.get(api_lab_url)
+        response = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
         lab = response.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -3332,7 +4367,7 @@ def employee_lab(serviceNo, age, gender):
     results_dict = {}
 
     for row in lab.get("data", []):
-        if row.get("testNormalBook") == True:
+        if row.get("testNormalBook") == True and row.get("isProfile") == False:
             tcode = row.get("tcode")
             testname = escape(row.get("testNamePrintResult"))
             value = escape(row.get("testResult"))
@@ -3703,9 +4738,11 @@ def text_br(*advises):
 
 @comhealth.route('/api/testspecial/<int:serviceNo>/<int:gender>/<int:age>')
 def testspecial(serviceNo, gender, age):
-    api_lab_url = f"https://webmt.mahidol.ac.th/api/Labs/service/testsummary/{serviceNo}"
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
     try:
-        response = requests.get(api_lab_url)
+        response = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
         lab = response.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -3744,10 +4781,11 @@ def testspecial(serviceNo, gender, age):
 
 
 @comhealth.route('/api/xray/<int:serviceNo>')
-@login_required
 def xray_result(serviceNo):
-    api_url = f"https://webmt.mahidol.ac.th/api/XRays/{serviceNo}"
-    reponse_xray = requests.get(api_url)
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
+    reponse_xray = _online_results_api_request('GET', f'/XRays/{serviceNo}')
     xray =  reponse_xray.json()
     status = xray.get("status")
     chest = xray.get("chest")
@@ -3781,8 +4819,7 @@ def api_interpert(condiinterpret_id):
 
 
 def api_condition(tcode):
-    condi_url = f"https://webmt.mahidol.ac.th/api/Conditions/subject/{tcode}"
-    return requests.get(condi_url).json()["data"]
+    return _online_results_api_request('GET', f'/Conditions/subject/{tcode}').json()["data"]
 
 
 def match_condition(test_result, age, sex, conditions):

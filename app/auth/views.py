@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
+import secrets
+from urllib.parse import urljoin
+
 from flask_admin.helpers import is_safe_url
 
 from . import authbp as auth
 from app.main import db, mail
 from app.main import app
+from app.url_utils import external_url
 from flask_mail import Message
 from flask import (render_template, redirect, request,
                    url_for, flash, abort, session, current_app)
@@ -13,7 +18,8 @@ from app.staff.models import StaffAccount, StaffLeaveApprover
 from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import requests
-from linebot import (LineBotApi, WebhookHandler)
+from requests_oauthlib import OAuth2Session
+from app.linebot_compat import LineBotApi, WebhookHandler
 
 LINE_CLIENT_ID = app.config['LINE_CLIENT_ID']
 LINE_CLIENT_SECRET = app.config['LINE_CLIENT_SECRET']
@@ -23,10 +29,91 @@ LINE_MESSAGE_API_CLIENT_SECRET = app.config['LINE_MESSAGE_API_CLIENT_SECRET']
 line_bot_api = LineBotApi(LINE_MESSAGE_API_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_MESSAGE_API_CLIENT_SECRET)
 
+GOOGLE_SCOPES = [
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'openid',
+]
+
+
+def _is_google_login_enabled():
+    return bool(os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'))
+
+
+def _google_redirect_uri():
+    return os.getenv('GOOGLE_REDIRECT_URI') or external_url('auth.google_callback')
+
+
+def _google_oauth_session(state=None):
+    return OAuth2Session(
+        client_id=os.getenv('GOOGLE_CLIENT_ID'),
+        redirect_uri=_google_redirect_uri(),
+        scope=GOOGLE_SCOPES,
+        state=state,
+    )
+
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
+
+
+def _normalize_staff_email(email):
+    email = (email or '').strip()
+    if '@' in email:
+        email = email.split('@', 1)[0]
+    return email
+
+
+def _handle_password_login(form, *, external_only=False, next_url=None):
+    login_endpoint = 'auth.login_external' if external_only else 'auth.login'
+    login_email = (form.email.data or '').strip().lower()
+    if external_only:
+        if '@' in login_email:
+            user = StaffAccount.get_account_by_external_email(login_email)
+        else:
+            user = db.session.query(StaffAccount).filter_by(email=login_email).first()
+    else:
+        user = db.session.query(StaffAccount).filter_by(email=_normalize_staff_email(login_email)).first()
+    if not user:
+        flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    if not user.verify_password(form.password.data):
+        flash(u'Wrong password, try again. รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    if not user.is_active:
+        flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    if external_only and not _is_external_account(user):
+        flash(u'Please use this page for external employees only. หน้านี้สำหรับบุคลากรภายนอกเท่านั้น', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    if not login_user(user, form.remember_me.data):
+        flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
+        return redirect(url_for(login_endpoint))
+
+    session['user_type'] = 'staff'
+    identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+    flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
+
+    if _is_external_account(user) or external_only:
+        return redirect(url_for('external_landing'))
+
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+    return redirect(next_url or url_for('index'))
+
+
+def _is_external_account(user=None):
+    user = user or current_user
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    personal_info = getattr(user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    return bool(org and org.is_external)
 
 
 @identity_loaded.connect_via(app)
@@ -46,8 +133,10 @@ def on_identity_loaded(sender, identity):
 
 
 @auth.route('/login', methods=['GET', 'POST'])
-def login():
+def login(is_admin=False):
     if current_user.is_authenticated:
+        if _is_external_account():
+            return redirect(url_for('external_landing'))
         next_url = request.args.get('next', url_for('auth.account'))
         if is_safe_url(next_url):
             return redirect(next_url)
@@ -58,28 +147,37 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
-        # authenticate the user
-        user = db.session.query(StaffAccount).filter_by(email=form.email.data).first()
-        if user:
-            pwd = form.password.data
-            if user.verify_password(pwd):
-                status = login_user(user, form.remember_me.data)
-                identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
-                # session.pop('_flashes', None)  # this line clears all unconsumed flash messages.
-                next_url = request.args.get('next', url_for('index'))
-                if not is_safe_url(next_url):
-                    return abort(400)
-                else:
-                    flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
-                    return redirect(next_url)
-            else:
-                flash(u'Wrong password, try again. รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
-                return redirect(url_for('auth.login'))
-        else:
-            flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
-            return redirect(url_for('auth.login'))
+        next_url = request.args.get('next', url_for('index'))
+        return _handle_password_login(form, external_only=False, next_url=next_url)
 
-    return render_template('/auth/login.html', form=form, errors=form.errors, linking_line=linking_line)
+    return render_template('auth/login.html',
+                           form=form,
+                           errors=form.errors,
+                           linking_line=linking_line,
+                           google_login_enabled=_is_google_login_enabled(), is_admin=is_admin)
+
+
+@auth.route('/login-external', methods=['GET', 'POST'])
+def login_external():
+    if current_user.is_authenticated:
+        if _is_external_account():
+            return redirect(url_for('external_landing'))
+        return redirect(url_for('index'))
+
+    form = LoginForm()
+    if form.validate_on_submit():
+        return _handle_password_login(form, external_only=True)
+
+    return render_template(
+        'auth/login_external.html',
+        form=form,
+        errors=form.errors,
+    )
+
+
+@auth.route('/login-admin', methods=['GET', 'POST'])
+def login_for_admin():
+    return login(is_admin=True)
 
 
 @auth.route('/account', methods=['GET', 'POST'])
@@ -101,7 +199,7 @@ def account():
 
     approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id).all()
 
-    return render_template('/auth/account.html',
+    return render_template('auth/account.html',
                            approvers=approvers,
                            line_profile=session.get('line_profile', {}))
 
@@ -115,10 +213,11 @@ def reset_password():
         token_data = serializer.loads(token, max_age=72000)
     except:
         return u'Bad JSON Web token. You need a valid token to reset the password. รหัสสำหรับทำการตั้งค่า password หมดอายุหรือไม่ถูกต้อง'
-    if token_data.get('email') != email:
+    normalized_email = _normalize_staff_email(email)
+    if _normalize_staff_email(token_data.get('email')) != normalized_email:
         return u'Invalid JSON Web token.'
 
-    user = StaffAccount.query.filter_by(email=email).first()
+    user = StaffAccount.query.filter_by(email=normalized_email).first()
     if not user:
         flash(u'User does not exists. ไม่พบชื่อบัญชีในฐานข้อมูล')
         return redirect(url_for('auth.login'))
@@ -138,6 +237,7 @@ def reset_password():
 @login_required
 def logout():
     logout_user()
+    session.pop('user_type', None)
     # Remove session keys set by Flask-Principal
     for key in ('identity.name', 'identity.auth_type'):
         session.pop(key, None)
@@ -156,22 +256,23 @@ def forgot_password():
     form = ForgotPasswordForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            user = StaffAccount.query.filter_by(email=form.email.data).first()
+            normalized_email = _normalize_staff_email(form.email.data)
+            user = StaffAccount.query.filter_by(email=normalized_email).first()
             if not user:
                 flash(u'User not found. ไม่พบบัญชีในฐานข้อมูล', 'warning')
                 return render_template('auth/forgot_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
-            token = serializer.dumps({'email': form.email.data})
-            url = url_for('auth.reset_password', token=token, email=form.email.data, _external=True)
+            token = serializer.dumps({'email': normalized_email})
+            url = external_url('auth.reset_password', token=token, email=normalized_email)
             message = u'Click the link below to reset the password.'\
                       u' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'.format(url)
             try:
-                send_mail(['{}@mahidol.ac.th'.format(form.email.data)],
+                send_mail(['{}@mahidol.ac.th'.format(normalized_email)],
                           title='MUMT-MIS: Password Reset. ตั้งรหัสผ่านใหม่สำหรับระบบ MUMT-MIS',
                           message=message)
             except:
                 flash(u'Failed to send an email to {}. ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'\
-                      .format(form.email.data), 'danger')
+                      .format(normalized_email), 'danger')
             else:
                 flash(u'Please check your mahidol.ac.th email for the link to reset the password within 20 minutes.'
                       u' โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 20 นาที', 'success')
@@ -179,11 +280,102 @@ def forgot_password():
     return render_template('auth/forgot_password.html', form=form, errors=form.errors)
 
 
+@auth.route('/google/login')
+def google_login():
+    if not _is_google_login_enabled():
+        flash(u'Google sign-in is not configured yet.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    next_url = request.args.get('next')
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+
+    oauth = _google_oauth_session()
+    authorization_base_url = 'https://accounts.google.com/o/oauth2/v2/auth'
+    state = secrets.token_urlsafe(16)
+    session['auth_google_oauth_state'] = state
+    if next_url:
+        session['auth_google_oauth_next'] = next_url
+    authorization_url, _ = oauth.authorization_url(
+        authorization_base_url,
+        state=state,
+        hd='mahidol.ac.th',
+        prompt='select_account',
+    )
+    return redirect(authorization_url)
+
+
+@auth.route('/google/callback')
+def google_callback():
+    if not _is_google_login_enabled():
+        flash(u'Google sign-in is not configured yet.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    expected_state = session.pop('auth_google_oauth_state', None)
+    next_url = session.pop('auth_google_oauth_next', None)
+    state = request.args.get('state')
+    if not state or state != expected_state:
+        flash(u'Invalid Google sign-in state. Please try again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    oauth = _google_oauth_session(state=state)
+    try:
+        oauth.fetch_token(
+            token_url='https://oauth2.googleapis.com/token',
+            client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+            authorization_response=request.url,
+        )
+        resp = oauth.get('https://www.googleapis.com/oauth2/v3/userinfo')
+        resp.raise_for_status()
+        profile = resp.json()
+    except Exception as exc:
+        current_app.logger.exception('Google sign-in failed during OAuth callback.')
+        if current_app.debug:
+            flash(u'Google sign-in failed: {}'.format(exc), 'danger')
+        else:
+            flash(u'Google sign-in failed. Please try again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    email = (profile.get('email') or '').strip().lower()
+    if not email.endswith('@mahidol.ac.th'):
+        flash(u'Please use your Mahidol Google account (@mahidol.ac.th).', 'danger')
+        return redirect(url_for('auth.login'))
+
+    email_local = email.split('@')[0]
+    user = StaffAccount.query.filter_by(email=email_local).first()
+    if not user:
+        user = StaffAccount.query.filter_by(email=email).first()
+    if not user:
+        flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not user.is_active:
+        flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not login_user(user, True):
+        flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
+        return redirect(url_for('auth.login'))
+    session['user_type'] = 'staff'
+    identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+    flash(u'You have just logged in with Google. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
+    if _is_external_account(user):
+        return redirect(url_for('external_landing'))
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+    return redirect(next_url or url_for('index'))
+
+
 @auth.route('/line')
 @auth.route('/line/login')
 def line_login():
+    next_url = request.args.get('next') or request.referrer
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+    if next_url:
+        session['auth_line_oauth_next'] = next_url
     line_auth_url = 'https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={}&redirect_uri={}&state=494959&scope=profile'
-    line_auth_url = line_auth_url.format(LINE_CLIENT_ID, url_for('auth.line_callback', _external=True, _scheme='https'))
+    line_auth_url = line_auth_url.format(LINE_CLIENT_ID, external_url('auth.line_callback'))
     return redirect(line_auth_url)
 
 
@@ -197,7 +389,7 @@ def line_callback():
         data = {'Content-Type': 'application/x-www-form-urlencoded',
                 'grant_type': 'authorization_code',
                 'code': code,
-                'redirect_uri': url_for('auth.line_callback', _external=True, _scheme='https'),
+                'redirect_uri': external_url('auth.line_callback'),
                 'client_id': LINE_CLIENT_ID,
                 'client_secret': LINE_CLIENT_SECRET
                 }
@@ -227,13 +419,25 @@ def line_profile():
     if 'line_profile' not in session:
         return redirect('auth.line_login')
 
+    next_url = session.pop('auth_line_oauth_next', None)
+    if next_url and not is_safe_url(next_url):
+        return abort(400)
+
     userId = session['line_profile'].get('userId')
     line_user = StaffAccount.query.filter_by(line_id=userId).first()
     if line_user:
+        if not line_user.is_active:
+            flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
+            return redirect(url_for('auth.login'))
         # Automatically login the user with the associated Line account
         if not current_user.is_authenticated:
-            login_user(line_user)
-        return redirect(url_for('auth.account'))
+            if not login_user(line_user):
+                flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
+                return redirect(url_for('auth.login'))
+            session['user_type'] = 'staff'
+        if _is_external_account(line_user):
+            return redirect(url_for('external_landing'))
+        return redirect(next_url or url_for('index'))
     else:
         return render_template('auth/line_account.html',
                                profile=session['line_profile'],

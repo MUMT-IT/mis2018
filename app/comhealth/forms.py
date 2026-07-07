@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField, FloatField, PasswordField, \
     TextAreaField
-from wtforms.validators import DataRequired, optional
+from wtforms.validators import DataRequired, Email, optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from wtforms_components import EmailField
 
@@ -93,4 +93,10 @@ class PasswordOfSignDigitalForm(FlaskForm):
 
 
 class SendMailToCustomerForm(FlaskForm):
-    email = EmailField('Email', validators=[DataRequired()])
+    email = EmailField(
+        'Email',
+        validators=[
+            DataRequired(),
+            Email(message='Please enter a valid email address / กรุณากรอกอีเมลที่ถูกต้อง')
+        ]
+    )

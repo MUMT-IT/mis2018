@@ -1,14 +1,44 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/gh/octoshrimpy/bulma-o-steps@master/bulma-steps.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
 
 {% block page_content %}
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">เพิ่มเป็นผู้เข้าร่วม</h1>
+                    <h1 class="title">รายละเอียดของผู้เข้าร่วม</h1>
                 </div>
             </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <ul class="steps">
+                        <li class="steps-segment">
+                            <span class="steps-marker is-hollow"></span>
+                            <div class="steps-content">
+                                <p>สร้างรายการอบรม</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment is-active">
+                            <span class="steps-marker is-hollow"></span>
+                            <div class="steps-content">
+                                <p>รายละเอียดผู้เข้าร่วม</p>
+                            </div>
+                        </li>
+                        <li class="steps-segment">
+                            <span class="steps-marker"></span>
+                            <div class="steps-content">
+                                <p>สรุปข้อมูล</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
             <div class="columns">
                 <div class="column has-text-centered">
                     <p class="title is-size-4">{{ seminar.topic }}</p>
@@ -20,8 +50,27 @@
             {% include "messages.html" %}
             <form method="post">
                 <div class="columns">
-                    <div class="column is-half is-offset-3">
+                <div class="column is-8 is-offset-2">
                         {{ form.hidden_tag() }}
+                        {% if is_secretary %}
+                        <div class="box">
+                            <p class="title is-size-5">กรณีทำหนังสือแทน (เฉพาะธุรการ)</p>
+                            <div class="field">
+                                <label class="label">ผู้เข้าร่วม (เพิ่มได้หลายท่าน)</label>
+                                <select class="js-example-basic-multiple" name="bulk_staff_ids" multiple="multiple" style="width:100%">
+                                    {% for staff in staff_list %}
+                                        <option value="{{ staff.id }}">{{ staff.fullname }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="field">
+                                <a href="{{ url_for('staff.seminar_batch_history') }}" class="button is-small is-light">
+                                    ดูประวัติการบันทึกของธุรการ
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="box">
                         <div class="field">
                             <div class="field">
                                 <p class="title is-size-4">สถานะการถูกเชิญ</p>
@@ -293,10 +342,11 @@
 {#                            </div>#}
 {#                        </div>#}
                         </div>
+                        </div>
                     </div>
                 </div>
                 <div class="columns">
-                    <div class="column is-half is-offset-one-quarter">
+                    <div class="column is-8 is-offset-2">
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('staff.seminar_attend_info', seminar_id=seminar.id) }}"
@@ -314,6 +364,7 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         let start_datetime = new Date({{ seminar.start_datetime|tojsdatetime(single=True) }});
         let end_datetime = new Date({{ seminar.end_datetime|tojsdatetime(single=True) }});
@@ -369,6 +420,11 @@
                 }
             })
             htmx.trigger(htmx.find('#approver'), 'change')
+            if ($('.js-example-basic-multiple').length) {
+                $('.js-example-basic-multiple').select2({
+                    width: '100%'
+                })
+            }
         })
 
     </script>

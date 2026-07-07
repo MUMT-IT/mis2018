@@ -1,0 +1,13 @@
+{{ test_result.note or '' }}
+<div id="note_form"></div>
+<div class="field has-addons">
+    <div class="control">
+        <a class="is-info"
+           hx-swap="innerHTML"
+           hx-target="#note_form"
+           hx-get="{{ url_for('software_request.create_note', test_result_id=test_result.id) }}"
+        >
+            <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+        </a>
+    </div>
+</div>

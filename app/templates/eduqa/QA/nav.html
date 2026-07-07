@@ -1,43 +1,16 @@
-<nav class="navbar is-success">
-    <div class="container">
-        <div class="navbar-brand">
-            <a href="/" class="navbar-item">
-                <span class="icon">
-                    <i class="fas fa-home"></i>
-                </span>
-                <span>หน้าหลัก</span>
-            </a>
-            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-        </div>
-        <div id="navbarMenuHeroA" class="navbar-menu">
-            <div class="navbar-end">
-                <a class="navbar-item" href="{{ url_for('eduqa.index') }}">
-                    <span class="icon">
-                       <i class="fas fa-bars"></i>
-                    </span>
-                    <span>เมนูหลัก</span>
-                </a>
-                {% if current_user.is_authenticated %}
-                <a class="navbar-item" href="{{ url_for('auth.account') }}">
-                    <span class="icon">
-                        <i class="fas fa-user-circle"></i>
-                    </span>
-                    <span>
-                        {{ current_user.email }}
-                    </span>
-                </a>
-                <a class="navbar-item" href="{{ url_for('auth.logout') }}">
-                    <span class="icon">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </span>
-                    <span>ออกจากระบบ</span>
-                </a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</nav>
+{% from "components/module_nav.html" import render_module_nav %}
+
+{{ render_module_nav(
+    title='EduQA',
+    subtitle='ระบบประกันคุณภาพการศึกษา',
+    brand_href='/',
+    start_links=[
+        {'href': '/', 'label': 'หน้าหลัก', 'icon': 'fas fa-house'},
+        {'href': url_for('eduqa.index'), 'label': 'เมนูหลัก', 'icon': 'fas fa-bars', 'primary': True}
+    ],
+    user_display=current_user.email if current_user.is_authenticated else None,
+    account_href=url_for('auth.account') if current_user.is_authenticated else None,
+    logout_href=url_for('auth.logout') if current_user.is_authenticated else None,
+    close_href=None,
+    menu_id='eduqaNavbarMenu'
+) }}

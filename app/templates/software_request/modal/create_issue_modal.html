@@ -2,14 +2,14 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">
+            <p class="modal-card-title" align="center">
                 {% if detail_id %}
-                    Add Issue
+                    Add Requirement
                 {% else %}
-                    Edit Issue
+                    Edit Requirement
                 {% endif %}
             </p>
-            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            <button type="button" id="cancelIssueButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
             <form
@@ -18,7 +18,7 @@
                     {% else %}
                         hx-post="{{ url_for('software_request.create_issue', detail_id=detail_id, tab=tab) }}"
                     {% endif %}
-                        hx-target="#issues"
+                        hx-target="#requirements"
                         hx-indicator="#submit-form"
                         hx-swap="beforeend"
             >
@@ -35,28 +35,56 @@
                     </div>
                 </div>
                 {% if issue_id %}
-                <div class="field">
-                    <label class="label">
-                        {{ form.status_.label }}
-                        <span class="has-text-danger">*</span>
-                    </label>
-                    <div class="control">
-                        <div class="select">
-                            {{ form.status_() }}
+                    <div class="field" style="margin-top:0.5em">
+                        <label class="label">
+                            {{ form.status_.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            <div class="select">
+                                {{ form.status_() }}
+                            </div>
                         </div>
                     </div>
-                </div>
                 {% endif %}
-                <div class="field">
+                <div class="field" style="margin-top:0.5em">
                     <label class="label">
-                        {{ form.issue.label }}
+                        รายละเอียด
                         <span class="has-text-danger">*</span>
                     </label>
                     <div class="control">
                         {{ form.issue(class='textarea') }}
                     </div>
                 </div>
-                <div class="field is-grouped is-grouped-centered" style="margin-top: 1em">
+                <div class="field-body">
+                    <div class="field" style="margin-top:0.5em">
+                        <label class="label">
+                            Phase
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.phase(class='js-example-basic-single') }}
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:0.5em">
+                        <label class="label">
+                            {{ form.deadline.label }}
+                        </label>
+                        <div class="control">
+                            {{ form.deadline(class='input', type='text', autocomplete="off") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="field" style="margin-top: 0.5em">
+                    <label class="label">
+                        {{ form.staff.label }}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        {{ form.staff(class='js-example-basic-single') }}
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-centered" style="margin-top:0.5em">
                     <div class="control">
                         <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
                     </div>
@@ -66,7 +94,7 @@
     </div>
 </div>
 <script>
-    window.document.getElementById("cancelButton").addEventListener("click", function () {
+    window.document.getElementById("cancelIssueButton").addEventListener("click", function () {
         htmx.addClass(htmx.find('#issue-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
     })
@@ -74,4 +102,30 @@
         htmx.addClass(htmx.find('#issue-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
     })
+    moment.locale('th');
+    $('#issue-modal [id$="staff"]').select2({
+        width: '100%'
+    });
+    $('#issue-modal [id$="phase"]').select2({
+        width: '100%',
+        tags: true
+    });
+    $('#issue-modal input[name="deadline"]').daterangepicker({
+        singleDatePicker: true,
+        showDropdowns: true,
+        autoUpdateInput: false,
+        {% if form.deadline.data %}
+            startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
+        {% endif %}
+        locale: {
+            format: 'YYYY-MM-DD',
+            cancelLabel: 'Clear'
+        },
+    });
+    $('#issue-modal input[name="deadline"]').on('apply.daterangepicker', function (ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD'));
+    });
+    $('#issue-modal input[name="deadline"]').on('cancel.daterangepicker', function () {
+        $(this).val('');
+    });
 </script>

@@ -3,135 +3,426 @@
 {% block page_content %}
 {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
 {{ user_evaluate('leave_request') }}
-<section class="section" id="app">
-    <div class="container">
+
+<section class="section leave-dashboard-section" id="app">
+    <div class="container is-fluid leave-dashboard-container">
         {% include "messages.html" %}
-        <div class="notification is-light is-warning">
-            การลาของท่านจะได้รับการพิจารณาและอนุมัติโดยผู้บังคับบัญชาได้แก่
-            <strong>
-                {% for approver in approvers %}
-                    {{ loop.index }}. {{ approver.account.personal_info.fullname }}
-                {% endfor %}
-            </strong>
-            อย่างน้อยหนึ่งท่าน หากผู้บังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วย HR เพื่อแก้ไข
-            <br><br>
-            **สามารถดู<strong>ประวัติการลาได้โดยคลิก
-            <span class="icon is-medium">
-                <i class="fas fa-info-circle"></i>
-            </span></strong>
-            ในแต่ละประเภทการลา
-        </div>
-        <div class="columns">
-            <div class="column is-offset-2 is-two-thirds has-text-centered">
-                <h1 class="title">
-                    {% if line_profile %}
-                        <figure class="image is-64x64 is-inline-block">
-                            <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
-                        </figure>
-                    {% endif %}
-                    {{ current_user.personal_info }}
-                </h1>
-                <h4 class="subtitle is-size-6">{{ current_user.personal_info.employment.title }}</h4>
-                    </div>
-            </div>
-        <div class="columns">
-            {% for type,quota in quota_days.items()|sort %}
-                <div class="column">
-                    <nav class="panel is-info">
-                        <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
-                            <p class="panel-heading">
-                                {{ type }}
-                                <span class="icon is-medium">
-                                     <i class="fas fa-info-circle"></i>
-                                 </span>
-                            </p>
-                        </a>
-                        <div class="panel-block">
-                            <span class="panel-icon">
-                                <i class="far fa-calendar-alt"></i>
-                            </span>
-                            วันลาสะสม (quota) {{ quota.limit }}
-                        </div>
-                        <div class="panel-block">
-                            <span class="panel-icon">
-                                <i class="far fa-calendar-check"></i>
-                            </span>
-                            อนุมัติแล้ว (approved) {{ cum_days[type] }}
-                        </div>
-                        <div class="panel-block">
-                            <span class="panel-icon">
-                                <i class="far fa-clock"></i>
-                            </span>
-                            รออนุมัติ (pending) {{ pending_days[type] }}
-                        </div>
-                        {% if quota.can_request %}
-                            <a class="panel-block" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-plus"></i>
-                                </span>
-                                <span>
-                                    ขออนุมัติลาเต็มวัน (new request - full day(s))
-                                </span>
-                            </a>
-                            <a class="panel-block" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">
-                                <span class="panel-icon">
-                                    <i class="fas fa-plus"></i>
-                                </span>
-                                <span>
-                                    ขออนุมัติลาครึ่งวัน (new request - half a day)
-                                </span>
-                            </a>
+
+        <div class="leave-hero box">
+            <div class="columns is-variable is-6 is-vcentered">
+                <div class="column is-8-desktop">
+                    <p class="leave-eyebrow">Leave Dashboard</p>
+                    <h1 class="title is-2 leave-hero-title">
+                        {% if line_profile %}
+                            <figure class="image is-64x64 is-inline-block mr-3 leave-avatar">
+                                <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
+                            </figure>
                         {% endif %}
-                    </nav>
+                        {{ current_user.personal_info }}
+                    </h1>
+                    <p class="subtitle is-5 mb-4">{{ current_user.personal_info.employment.title }}</p>
+                    <p class="leave-hero-copy">
+                        ภาพรวมสิทธิ์การลาในปีงบประมาณปัจจุบัน พร้อมรายการที่ใช้ไป รายการที่รออนุมัติ
+                        และทางลัดสำหรับยื่นคำขอใหม่ในแต่ละประเภท
+                    </p>
                 </div>
+                <div class="column is-4-desktop">
+                    <div class="leave-approver-card">
+                        <p class="leave-card-label">ผู้พิจารณาอนุมัติ</p>
+                        {% if approvers %}
+                            {% for approver in approvers %}
+                                <div class="leave-approver-row">
+                                    <span class="tag is-light">{{ loop.index }}</span>
+                                    <span>{{ approver.account.personal_info.fullname }}</span>
+                                </div>
+                            {% endfor %}
+                            <p class="leave-helper-text">
+                                อนุมัติอย่างน้อยหนึ่งท่าน หากข้อมูลไม่ถูกต้องกรุณาติดต่อ HR
+                            </p>
+                        {% else %}
+                            <p class="leave-helper-text">ยังไม่พบผู้อนุมัติในระบบ กรุณาติดต่อ HR</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="leave-grid">
+            {% for type, quota in quota_days.items()|sort %}
+                {% set approved = cum_days[type] or 0 %}
+                {% set pending = pending_days[type] or 0 %}
+                {% set remaining = quota.limit - approved - pending %}
+                <article class="leave-card">
+                    <div class="leave-card-top">
+                        <div>
+                            <p class="leave-card-label">ประเภทการลา</p>
+                            <h2 class="title is-4 mb-2">{{ type }}</h2>
+                        </div>
+                        <div class="leave-balance-pill {% if remaining < 0 %}is-negative{% endif %}">
+                            คงเหลือ {{ '%.1f'|format(remaining) }} วัน
+                        </div>
+                    </div>
+
+                    <div class="columns is-mobile is-multiline leave-metric-grid">
+                        <div class="column is-4">
+                            <div class="leave-metric">
+                                <p class="leave-metric-label">Quota</p>
+                                <p class="leave-metric-value">{{ '%.1f'|format(quota.limit) }}</p>
+                            </div>
+                        </div>
+                        <div class="column is-4">
+                            <div class="leave-metric">
+                                <p class="leave-metric-label">Approved</p>
+                                <p class="leave-metric-value">{{ '%.1f'|format(approved) }}</p>
+                            </div>
+                        </div>
+                        <div class="column is-4">
+                            <div class="leave-metric">
+                                <p class="leave-metric-label">Pending</p>
+                                <p class="leave-metric-value">{{ '%.1f'|format(pending) }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% set usage_percent = 0 %}
+                    {% if quota.limit > 0 %}
+                        {% set usage_percent = ((approved + pending) / quota.limit * 100) %}
+                    {% endif %}
+                    <div class="leave-progress-block">
+                        <div class="leave-progress-meta">
+                            <span>การใช้สิทธิ์รวมคำขอที่รออนุมัติ</span>
+                            <span>{{ '%.0f'|format(usage_percent if usage_percent < 100 else 100) }}%</span>
+                        </div>
+                        <progress class="progress is-info is-small" value="{{ approved + pending }}" max="{{ quota.limit if quota.limit > 0 else 1 }}"></progress>
+                    </div>
+
+                    {% if quota.can_request %}
+                        <div class="buttons leave-actions">
+                            <a class="button is-link is-light is-rounded leave-detail-button"
+                               href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
+                                <span class="icon is-small">
+                                    <i class="fas fa-list-ul"></i>
+                                </span>
+                                <span>ดูรายการ</span>
+                            </a>
+                            <a class="button is-info is-rounded" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>ลาเต็มวัน</span>
+                            </a>
+                            <a class="button is-light is-rounded" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">
+                                <span class="icon"><i class="far fa-clock"></i></span>
+                                <span>ลาครึ่งวัน</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="buttons leave-actions">
+                            <a class="button is-link is-light is-rounded leave-detail-button"
+                               href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
+                                <span class="icon is-small">
+                                    <i class="fas fa-list-ul"></i>
+                                </span>
+                                <span>ดูรายการ</span>
+                            </a>
+                        </div>
+                        <div class="notification is-light leave-inline-note">
+                            ประเภทนี้ยังไม่เปิดให้ยื่นคำขอด้วยตนเอง
+                        </div>
+                    {% endif %}
+                </article>
             {% endfor %}
         </div>
-    </div>
-    </div>
-    {% if is_approver %}
-        <hr>
-        <h1 class="title is-size-4 has-text-danger has-text-centered">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
-        <div class="columns">
-            <div class="column">
-                <div class="has-text-centered">
-                    <a href="{{ url_for('staff.show_leave_approval_info') }}"
-                       class="button is-danger is-light">
-                        <span class="icon">
-                           <i class="fas fa-users"></i>
-                        </span>
+
+        {% if is_approver %}
+            <div class="leave-manager-banner">
+                <div>
+                    <p class="leave-card-label">สำหรับหัวหน้าส่วนงาน / ผู้บริหาร</p>
+                    <h2 class="title is-4 mb-2">ตรวจสอบและอนุมัติคำขอลาของบุคลากรในสังกัด</h2>
+                    <p class="leave-helper-text">เปิดดูสถานะคำขอทั้งหมดและดำเนินการอนุมัติจากหน้าเดียว</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-danger is-rounded">
+                        <span class="icon"><i class="fas fa-users"></i></span>
                         <span>ข้อมูลลาของบุคลากรในสังกัด</span>
                     </a>
                 </div>
             </div>
-        </div>
-    {% endif %}
+        {% endif %}
+    </div>
 </section>
-<section class="section">
-    <div class="container">
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title is-size-4">วิดีโอสาธิตการใช้งานระบบลาออนไลน์</h1>
-                <div>
-                    <iframe width="200" src="https://www.youtube.com/embed/RkVng_7uEJo"
-                            frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
-                            picture-in-picture" allowfullscreen>
-                    </iframe>
+
+<section class="section pt-0">
+    <div class="container is-fluid leave-dashboard-container">
+        <div class="columns is-variable is-5">
+            <div class="column is-5-desktop">
+                <div class="box leave-support-box">
+                    <p class="leave-card-label">วิดีโอแนะนำ</p>
+                    <h2 class="title is-4">วิดีโอสาธิตการใช้งานระบบลาออนไลน์</h2>
+                    <div class="leave-video-frame">
+                        <iframe src="https://www.youtube.com/embed/RkVng_7uEJo"
+                                title="Leave request tutorial"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen>
+                        </iframe>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column has-text-centered">
-
-                <a href="https://docs.google.com/document/d/1FBKUWtnzykStY7MWsRJi-RgNoxXgV-gAKb90ZDGHhUk/edit?usp=sharing">
-                    <span class="is-size-4">คู่มือการใช้งาน</span>
-                </a>
+            <div class="column is-7-desktop">
+                <div class="box leave-support-box">
+                    <p class="leave-card-label">คู่มือเพิ่มเติม</p>
+                    <h2 class="title is-4">เอกสารประกอบการใช้งาน</h2>
+                    <p class="leave-helper-text mb-4">
+                        หากต้องการดูขั้นตอนแบบละเอียด สามารถเปิดคู่มือเพื่อดูตัวอย่างการกรอกคำขอและเงื่อนไขการลาแต่ละประเภท
+                    </p>
+                    <a class="button is-link is-light is-rounded"
+                       href="https://docs.google.com/document/d/1FBKUWtnzykStY7MWsRJi-RgNoxXgV-gAKb90ZDGHhUk/edit?usp=sharing">
+                        <span class="icon"><i class="fas fa-book-open"></i></span>
+                        <span>เปิดคู่มือการใช้งาน</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </section>
 {% endblock %}
+
 {% block scripts %}
 {{ super() }}
+<style>
+    .leave-dashboard-section {
+        background:
+            radial-gradient(circle at top left, rgba(71, 148, 226, 0.14), transparent 28rem),
+            linear-gradient(180deg, #f6fbff 0%, #ffffff 100%);
+    }
+
+    .leave-dashboard-container {
+        max-width: 1440px;
+    }
+
+    .leave-hero,
+    .leave-summary-card,
+    .leave-card,
+    .leave-support-box,
+    .leave-manager-banner {
+        border: 1px solid #d8e7f5;
+        box-shadow: 0 18px 45px rgba(11, 42, 74, 0.08);
+    }
+
+    .leave-hero {
+        background: linear-gradient(135deg, #0f4c81 0%, #1d6fb8 58%, #7fb6e6 100%);
+        color: #fff;
+        border-radius: 28px;
+        padding: 2.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .leave-hero-title {
+        color: #fff;
+        padding-bottom: 0.5rem;
+    }
+
+    .leave-eyebrow,
+    .leave-card-label {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .leave-eyebrow {
+        color: rgba(255, 255, 255, 0.78);
+        margin-bottom: 0.75rem;
+    }
+
+    .leave-hero-copy,
+    .leave-helper-text {
+        color: #5d6f82;
+        line-height: 1.65;
+    }
+
+    .leave-hero .leave-hero-copy,
+    .leave-hero .subtitle {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .leave-avatar img {
+        border: 3px solid rgba(255, 255, 255, 0.35);
+    }
+
+    .leave-approver-card {
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 22px;
+        padding: 1.25rem;
+        backdrop-filter: blur(8px);
+    }
+
+    .leave-approver-card .leave-card-label,
+    .leave-approver-card .leave-helper-text {
+        color: rgba(255, 255, 255, 0.92);
+    }
+
+    .leave-approver-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.45rem 0;
+        color: #fff;
+    }
+
+    .leave-note {
+        border-radius: 18px;
+        margin-bottom: 1.5rem;
+    }
+
+    .leave-summary-row {
+        margin-bottom: 1rem;
+    }
+
+    .leave-summary-card,
+    .leave-card,
+    .leave-support-box {
+        background: #fff;
+        border-radius: 24px;
+        padding: 1.4rem;
+        height: 100%;
+    }
+
+    .leave-summary-value {
+        font-size: 2.35rem;
+        font-weight: 700;
+        color: #0f4c81;
+        line-height: 1.1;
+        margin: 0.35rem 0;
+    }
+
+    .leave-summary-caption {
+        color: #72849a;
+    }
+
+    .leave-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+    }
+
+    .leave-card-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .leave-detail-button {
+        margin-top: 0.2rem;
+    }
+
+    .leave-balance-pill {
+        background: #ebf6ee;
+        color: #1d6a39;
+        border-radius: 999px;
+        font-weight: 700;
+        padding: 0.7rem 1rem;
+        white-space: nowrap;
+    }
+
+    .leave-balance-pill.is-negative {
+        background: #fff1f0;
+        color: #b43b31;
+    }
+
+    .leave-metric-grid {
+        margin-bottom: 0.25rem;
+    }
+
+    .leave-metric {
+        background: #f6f9fc;
+        border-radius: 18px;
+        padding: 0.95rem;
+        height: 100%;
+    }
+
+    .leave-metric-label {
+        color: #7c8ca0;
+        font-size: 0.82rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .leave-metric-value {
+        font-size: 1.55rem;
+        font-weight: 700;
+        color: #103d66;
+        line-height: 1.1;
+    }
+
+    .leave-progress-block {
+        margin: 1rem 0 1.15rem;
+    }
+
+    .leave-progress-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        color: #667789;
+        font-size: 0.92rem;
+        margin-bottom: 0.45rem;
+    }
+
+    .leave-actions {
+        margin-bottom: 0;
+    }
+
+    .leave-inline-note {
+        border-radius: 16px;
+        margin-bottom: 0;
+    }
+
+    .leave-manager-banner {
+        margin-top: 1.75rem;
+        background: linear-gradient(135deg, #fff4f2 0%, #ffffff 100%);
+        border-radius: 24px;
+        padding: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .leave-video-frame {
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%;
+        overflow: hidden;
+        border-radius: 18px;
+        background: #0f1720;
+    }
+
+    .leave-video-frame iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    @media screen and (max-width: 768px) {
+        .leave-hero {
+            padding: 1.5rem;
+            border-radius: 22px;
+        }
+
+        .leave-card-top,
+        .leave-manager-banner {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .leave-balance-pill {
+            white-space: normal;
+        }
+    }
+</style>
 <script>
     new Vue({
         el: '#app',

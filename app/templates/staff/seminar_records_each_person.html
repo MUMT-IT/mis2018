@@ -67,8 +67,7 @@
                </div>
             </div>
         </div>
-        <hr>
-        <div class="columns">
+        {#<div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">ประวัติการเข้าร่วม</h1>
             </div>
@@ -116,7 +115,7 @@
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div>#}
         <hr>
         <div class="columns">
             <div class="column">
@@ -157,13 +156,14 @@
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">ค้นหารายการประชุม อบรม สัมมนา</h1>
+                <p class="subtitle is-size-6 has-text-grey">เลือกกิจกรรมที่มีอยู่ หรือเพิ่มกิจกรรมใหม่ได้ที่ปุ่มด้านขวา</p>
             </div>
             <div class="column has-text-right">
                 <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
                     </span>
-                    <span>สร้างอบรมใหม่</span>
+                    <span>เพิ่มข้อมูลอบรม</span>
                 </a>
             </div>
         </div>
@@ -227,6 +227,21 @@
                         </span>
                         <span>ข้อมูลขออนุมัติของบุคลากรในสังกัด</span>
                     </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% if secretary_permission.can() %}
+        <h1 class="title is-size-4 has-text-info has-text-centered">สำหรับธุรการ</h1>
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                <a href="{{ url_for('staff.seminar_batch_history') }}" class="button is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-clock-rotate-left"></i>
+                    </span>
+                    <span>ดูประวัติการบันทึกของธุรการ</span>
+                </a>
                 </div>
             </div>
         </div>

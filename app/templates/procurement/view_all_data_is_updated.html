@@ -2,6 +2,39 @@
 {% include "procurement/nav.html" %}
 {% block page_content %}
     <section class="section">
+        <style>
+            .thumbnail-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 56px;
+                height: 56px;
+            }
+            .thumbnail-loader {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.85);
+            }
+            .thumbnail-loader::after {
+                content: "";
+                width: 16px;
+                height: 16px;
+                border: 2px solid #d9d9d9;
+                border-top-color: #3273dc;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            .thumbnail-loader.is-hidden {
+                display: none;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
         {% include "messages.html" %}
         <div class="container">
             <div class="columns">
@@ -13,15 +46,29 @@
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">
                         <thead>
-                        <th>วันที่ได้รับ</th>
-                        <th>รายการ</th>
-                        <th>รหัสครุภัณฑ์</th>
-                        <th>Inventory Number/ERP</th>
-                        <th>ปีงบประมาณ</th>
-                        <th>Location</th>
-                        <th>Status</th>
-                        <th>Updater</th>
-                        <th>Updated at</th>
+                            <tr>
+                                <th>Image</th>
+                                <th>วันที่ได้รับ</th>
+                                <th>รายการ</th>
+                                <th>รหัสครุภัณฑ์</th>
+                                <th>Inventory Number/ERP</th>
+                                <th>ปีงบประมาณ</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Updater</th>
+                                <th>Updated at</th>
+                            </tr>
+                            <tr id="search_row">
+                                <td></td>
+                                <td></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาชื่อ..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหารหัส..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหา ERP..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาปีงบฯ..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาที่อยู่..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาสถานะ..."></td>
+                                <td><input type="text" class="input is-small" placeholder="ค้นหาผู้อัปเดต..."></td>
+                                <td></td> </tr>
                         </thead>
                         <tbody>
                         </tbody>
@@ -45,12 +92,16 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#data').DataTable({
-                searchDelay: 350,
-                ajax: '{{ url_for("procurement.get_procurement_data_is_updated") }}',
+            // 1. เริ่มต้นสร้าง DataTable
+            var table = $('#data').DataTable({
                 serverSide: true,
+                processing: true,
+                searchDelay: 1000,
+                ajax: '{{ url_for("procurement.get_procurement_data_is_updated") }}',
                 order: [[0, 'desc']],
+                dom: 'lrtip',
                 columns: [
+                    {data: 'thumbnail', orderable: false, searchable: false},
                     {data: 'received_date'},
                     {data: 'name'},
                     {data: 'procurement_no'},
@@ -59,9 +110,47 @@
                     {data: 'location'},
                     {data: 'status'},
                     {data: 'updater'},
-                    {data: 'updated_at'},
+                    {data: 'updated_at'}
+                ]
+            });
 
-                ],
+            const bindThumbnailLoaders = function () {
+                document.querySelectorAll('.thumbnail-wrapper').forEach(function (wrapper) {
+                    const img = wrapper.querySelector('.thumbnail-image');
+                    const loader = wrapper.querySelector('.thumbnail-loader');
+                    if (!img || !loader) {
+                        return;
+                    }
+                    const hideLoader = function () {
+                        loader.classList.add('is-hidden');
+                    };
+                    if (img.complete) {
+                        hideLoader();
+                    } else {
+                        img.addEventListener('load', hideLoader, {once: true});
+                        img.addEventListener('error', hideLoader, {once: true});
+                    }
+                });
+            };
+            table.on('draw', bindThumbnailLoaders);
+
+            // 2. จัดการการค้นหาแยกคอลัมน์ (Individual Column Search)
+            // ปรับให้ดักจับ input ภายใน #search_row แทนการใช้ class
+            $('#search_row input').on('click keyup change', function (e) {
+                // สำคัญ: ป้องกันไม่ให้เกิดการ Sorting เมื่อคลิกหรือพิมพ์ในช่อง Input
+                e.stopPropagation();
+
+                // ดำเนินการค้นหาเฉพาะเมื่อเป็นเหตุการณ์ keyup หรือ change
+                if (e.type === 'keyup' || e.type === 'change') {
+                    // หาลำดับคอลัมน์ (index) จากลำดับของ td ที่ input นั้นอาศัยอยู่
+                    var colIdx = $(this).closest('td').index();
+                    var searchValue = this.value;
+
+                    // เงื่อนไข: ค้นหาเมื่อพิมพ์อย่างน้อย 3 ตัวอักษร หรือเมื่อล้างค่าว่าง
+                    if (searchValue.length >= 3 || searchValue.length === 0) {
+                        table.column(colIdx).search(searchValue).draw();
+                    }
+                }
             });
         });
     </script>

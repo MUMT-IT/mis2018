@@ -15,18 +15,46 @@ class Org(db.Model):
     name = db.Column('name', db.String(), nullable=False)
     en_name = db.Column('en_name', db.String())
     head = db.Column('head', db.String())
+    phone_number = db.Column('phone_number', db.String())
+    is_external = db.Column('is_external', db.Boolean(), nullable=False, default=False)
     parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
     children = db.relationship('Org', backref=db.backref('parent', remote_side=[id]))
 
     def __repr__(self):
-        return self.name
+        return self.display_name
 
     def __str__(self):
+        return self.display_name
+
+    @property
+    def display_name(self):
+        if self.is_external:
+            return f'{self.name} (ภายนอก)'
         return self.name
 
     @property
     def active_staff(self):
-        return [s for s in self.staff if s.retired is not True]
+        return [
+            staff for staff in self.staff
+            if staff.staff_account and staff.staff_account.is_active
+        ]
+
+    @property
+    def active_staff_accounts(self):
+        return [staff.staff_account for staff in self.active_staff]
+
+    @property
+    def secretary_staff(self):
+        return [
+            staff.staff_account for staff in self.active_staff
+            if staff.staff_account
+            and any(
+                role.role_need == 'secretary'
+                and role.action_need is None
+                and role.resource_id is None
+                for role in staff.staff_account.roles
+            )
+        ]
 
 
 class OrgStructure(db.Model):
@@ -313,7 +341,6 @@ class ProductCode(db.Model):
     def product_code(self):
         return '{} {}'.format(self.id, self.name)
 
-
 class OrgSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Org
@@ -389,7 +416,6 @@ pdpa_coordinators = db.Table('pdpa_coordinators',
                              )
 
 from app.staff.models import StaffAccount
-
 
 class CoreService(db.Model):
     __tablename__ = 'db_core_services'

@@ -2,9 +2,9 @@
 import os
 import boto3
 from pytz import timezone
-from sqlalchemy import func
-
+from sqlalchemy import func, true
 from app.main import db
+from flask_login import current_user
 from app.models import CostCenter, IOCode, ProductCode
 from app.procurement.models import ProcurementDetail
 from app.room_scheduler.models import RoomResource
@@ -43,10 +43,17 @@ complaint_record_tag_assoc = db.Table('complaint_record_tag_assoc',
                                       db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
                                       )
 
+complaint_record_participant_assoc = db.Table('complaint_record_participant_assoc',
+                                          db.Column('id', db.Integer, autoincrement=True, primary_key=True),
+                                          db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                          db.Column('record_id', db.Integer, db.ForeignKey('complaint_records.id'))
+                                          )
+
 
 class ComplaintCategory(db.Model):
     __tablename__ = 'complaint_categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
     category = db.Column('category', db.String(255), nullable=False)
 
     def __str__(self):
@@ -93,6 +100,7 @@ class ComplaintPriority(db.Model):
     __tablename__ = 'complaint_priorities'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     priority = db.Column('priority', db.Integer, nullable=False)
+    priority_short = db.Column('priority_short ', db.String())
     priority_text = db.Column('priority_text', db.String(255), nullable=False)
     priority_detail = db.Column('priority_detail', db.String)
     color = db.Column('color', db.String())
@@ -104,6 +112,7 @@ class ComplaintPriority(db.Model):
 class ComplaintStatus(db.Model):
     __tablename__ = 'complaint_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    no = db.Column('no', db.Integer())
     status = db.Column('status', db.String(), nullable=False)
     code = db.Column('code', db.String())
     icon = db.Column('icon', db.String())
@@ -137,7 +146,7 @@ class ComplaintRecord(db.Model):
     desc = db.Column('desc', db.Text(), nullable=False, info={'label': u'รายละเอียด'})
     appeal = db.Column('appeal', db.Boolean(), default=False, info={'label': 'ร้องเรียน'})
     channel_receive = db.Column('channel_receive', db.String(), info={'label': 'ช่องทางรับเรื่อง',
-                                                                      'choices': [('None', 'กรุณาเลือกช่องทางรับเรื่อง'),
+                                                                      'choices': [('', 'กรุณาเลือกช่องทางรับเรื่อง'),
                                                                                   ('Website ของคณะเทคนิคการแพทย์', 'Website ของคณะเทคนิคการแพทย์'),
                                                                                   ('QR Code', 'QR Code'),
                                                                                   ('จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์', 'จดหมาย/Email ถึงคณบดีคณะเทคนิคการแพทย์'),
@@ -155,6 +164,18 @@ class ComplaintRecord(db.Model):
     subtopic = db.relationship(ComplaintSubTopic, backref=db.backref('records', cascade='all, delete-orphan'))
     priority_id = db.Column('priority_id', db.ForeignKey('complaint_priorities.id'))
     priority = db.relationship(ComplaintPriority, backref=db.backref('records', cascade='all, delete-orphan'))
+    organization =db.Column('organization', db.String(), info={'label': 'หน่วยงานรับผิดชอบ', 'choices': [
+        ('', 'กรุณาเลือกหน่วยงานที่รับผิดชอบ'),
+        ('หน่วยซ่อมบำรุง', 'หน่วยซ่อมบำรุง '),
+        ('หน่วยข้อมูลและสารสนเทศ', 'หน่วยข้อมูลและสารสนเทศ')
+    ]})
+    repair_method = db.Column('repair_method', db.String(), info={'label': 'รูปแบบการซ่อม',
+                                                                  'choices': [
+                                                                      ('', 'กรุณาเลือกสถานะการซ่อม'),
+                                                                      ('ซ่อมเองได้', 'ซ่อมเองได้'),
+                                                                      ('ส่งบริษัทซ่อม', 'ส่งบริษัทซ่อม'),
+                                                                      ('แทงจำหน่าย', 'แทงจำหน่าย')
+                                                                  ]})
     status_id = db.Column('status', db.ForeignKey('complaint_statuses.id'))
     status = db.relationship(ComplaintStatus, backref=db.backref('records', cascade='all, delete-orphan'))
     type_id = db.Column('type_id', db.ForeignKey('complaint_types.id'))
@@ -164,6 +185,12 @@ class ComplaintRecord(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     tags = db.relationship(ComplaintTag, secondary=complaint_record_tag_assoc, backref=db.backref('records'))
+    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
+    cost_center = db.relationship(CostCenter, backref=db.backref('complaints'))
+    io_code_id = db.Column('io_code_id', db.ForeignKey('iocodes.id'))
+    io_code = db.relationship(IOCode, backref=db.backref('complaints'))
+    product_code_id = db.Column('product_code_id', db.ForeignKey('product_codes.id'))
+    product_code = db.relationship(ProductCode, backref=db.backref('complaints'))
     room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
     room = db.relationship(RoomResource, foreign_keys=[room_id], backref=db.backref('complaints'))
     procurement_location_id = db.Column('procurement_location_id', db.ForeignKey('scheduler_room_resources.id'))
@@ -175,6 +202,11 @@ class ComplaintRecord(db.Model):
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
+    participants = db.relationship(StaffAccount, secondary=complaint_record_participant_assoc,
+                                   backref=db.backref('complaint_records', cascade='all, delete-orphan', single_parent=True))
+
+    def __str__(self):
+        return self.desc
 
     @property
     def is_editable(self):
@@ -184,8 +216,11 @@ class ComplaintRecord(db.Model):
     def to_link(self):
         return self.generate_presigned_url(s3, S3_BUCKET_NAME)
 
-    def generate_presigned_url(self):
+    @property
+    def has_disposed(self):
+        return 'แทงจำหน่าย' if self.is_disposed else 'ไม่แทงจำหน่าย'
 
+    def generate_presigned_url(self):
         if self.url:
             try:
                 return s3.generate_presigned_url(
@@ -215,17 +250,58 @@ class ComplaintRecord(db.Model):
                 return self
         return None
 
+    @property
+    def grand_total(self):
+        return sum(spare_part.total_price or 0 for spare_part in self.spare_parts)
+
+    @property
+    def get_print_of_repair(self):
+        if self.repairs:
+            for repair in self.repairs:
+                if repair.is_print:
+                    return True
+                else:
+                    return False
+        else:
+            return False
+
+    @property
+    def get_print_of_repair_approval(self):
+        if self.repair_approvals:
+            for repair_approval in self.repair_approvals:
+                if repair_approval.is_print:
+                    return True
+                else:
+                    return False
+        else:
+            return False
+
     def to_dict(self):
         return {
             'id': self.id,
             'created_at': self.created_at.astimezone(localtz).isoformat(),
             'topic': self.topic.topic,
             'type': self.type.type if self.type else 'ไม่ระบุ',
-            'priority': self.priority.priority_text if self.priority else None,
+            'priority': self.priority.priority_short if self.priority else None,
             'desc': self.desc,
+            'organization': self.organization if self.organization else None,
             'status': self.status.status if self.status else None,
+            'status_color': self.status.color if self.status else None,
+            'status_icon': self.status.icon if self.status else None,
             'procurement':  [procurement.category.category if procurement.category else 'ไม่ระบุ' for procurement in self.procurements] if self.procurements else 'ไม่ระบุ'
         }
+
+
+class ComplaintRecordStatusAssociation(db.Model):
+    __tablename__ = 'complaint_record_status_associations'
+    record_id = db.Column(db.ForeignKey('complaint_records.id'), primary_key=True)
+    record = db.relationship(ComplaintRecord, backref=db.backref('record_status_updates'))
+    status_id = db.Column(db.ForeignKey('complaint_statuses.id'), primary_key=True)
+    status = db.relationship(ComplaintStatus, backref=db.backref('record_status_updates'))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+
+    def __str__(self):
+        return f'Status : {self.status.status}, updated_at : {self.updated_at}'
 
 
 class ComplaintActionRecord(db.Model):
@@ -319,6 +395,124 @@ class ComplaintCoordinator(db.Model):
             return self.record
         return None
 
+class ComplaintRepairCompany(db.Model):
+    __tablename__ = 'complaint_repair_companies'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    company_name = db.Column('name', db.String(), info={'label': 'ชื่อบริษัทที่ส่งซ่อม'})
+    contact_name = db.Column('contact_name', db.String(), info={'label': 'ชื่อผู้ที่สามารติดต่อได้'})
+    contact_phone_number = db.Column('contact_phone_number', db.String(), info={'label': 'เบอร์โทร'})
+    repair_offer_price = db.Column('repair_offer_price', db.Numeric(), info={'label': 'ราคาซ่อมที่เสนอ'})
+    detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียดการซ่อมจากบริษัท'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('repair_companies'))
+
+    def __str__(self):
+        return f'บริษัทที่ส่งซ่อม : {self.company_name}, ราคาซ่อมที่เสนอ : {self.repair_offer_price}, รายละเอียด : {self.detail}'
+
+
+class ComplaintSparePart(db.Model):
+    __tablename__ = 'complaint_spare_parts'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    item = db.Column('item', db.String(), info={'label': 'ชื่ออะไหล่'})
+    quantity = db.Column('quantity', db.Integer(), info={'label': 'จำนวน'})
+    unit = db.Column('unit', db.String(), info={'label': 'หน่วยนับ'})
+    unit_price = db.Column('unit_price', db.Numeric(), info={'label': 'ราคาต่อหน่วย'})
+    total_price = db.Column('total_price', db.Numeric(), info={'label': 'ราคารวม'})
+    store_name = db.Column('store_name', db.String(), info={'label': 'ชื่อร้านค้า'})
+    vendor_name = db.Column('vendor_name', db.String(), info={'label': 'ชื่อผู้ขาย'})
+    vendor_phone_number = db.Column('vendor_phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์ผู้ขาย'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('spare_parts'))
+
+    def __str__(self):
+        return self.item
+
+
+class ComplaintRepair(db.Model):
+    __tablename__ = 'complaint_repairs'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    reviewed_at = db.Column('reviewed_at', db.DateTime(timezone=True))
+    is_print = db.Column('is_print', db.Boolean(), default=False)
+    record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('repairs'))
+    owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
+    owner = db.relationship(StaffAccount, backref=db.backref('owned_repairs'), foreign_keys=[owner_id])
+
+    @property
+    def status(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            status = 'ดำเนินการเสร็จสิ้น'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            status = 'รออนุมัติ'
+        else:
+            status = 'รอดำเนินการ'
+        return status
+
+    @property
+    def status_color(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            color = 'is-success'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            color = 'is-warning'
+        else:
+            color = 'is-info'
+        return color
+
+    @property
+    def status_icon(self):
+        if self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            icon = '<i class="fas fa-check"></i>'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            icon = '<i class="fas fa-pen-fancy"></i>'
+        else:
+            icon = '<i class="fas fa-hourglass"></i>'
+        return icon
+
+    @property
+    def get_other_org(self):
+        if self.record:
+            if self.record.complainant:
+                org = self.record.complainant.personal_info.org
+                if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+                        (org.parent and org.parent.name == 'สำนักงานคณบดี') or
+                        (org.name == 'สำนักงานคณบดี')
+                ):
+                    other_org = False
+                else:
+                    other_org = True
+            else:
+                other_org = False
+        else:
+            other_org = False
+        return other_org
+
+    @property
+    def get_head_org(self):
+        if self.owner.personal_info.org.head:
+            staff = StaffAccount.query.filter_by(email=self.owner.personal_info.org.head).first()
+            head = staff.fullname
+        elif (not self.owner.personal_info.org.head and self.owner.personal_info.org.parent
+            and self.owner.personal_info.org.parent.head):
+            staff = StaffAccount.query.filter_by(email= self.owner.personal_info.org.parent.head).first()
+            head = staff.fullname
+        else:
+            head = None
+        return head
+
 
 class ComplaintRepairApproval(db.Model):
     __tablename__ = 'complaint_repair_approvals'
@@ -341,14 +535,15 @@ class ComplaintRepairApproval(db.Model):
     item = db.Column('item', db.String(), info={'label': 'รายการ/ครุภัณฑ์'})
     reason = db.Column('reason', db.Text())
     detail = db.Column('detail', db.Text())
-    purpose = db.Column('purpose', db.Text())
-    price = db.Column('price', db.Float())
+    purpose = db.Column('purpose', db.String())
+    price = db.Column('price', db.Numeric())
     supplier = db.Column('supplier', db.String())
     book_number = db.Column('book_number', db.String(), info={'label': 'เล่มที่'})
     receipt_number = db.Column('receipt_number', db.String(), info={'label': 'เลขที่'})
     receipt_date = db.Column('receipt_date', db.Date(), info={'label': 'วันที่'})
     purchase_type = db.Column('purchase_type', db.String(), info={'label': 'ประเภทการซื้อ',
-                                                                  'choices': [('รายได้ส่วนงาน', 'รายได้ส่วนงาน'),
+                                                                  'choices': [('', 'กรุณาเลือกประเภทการซื้อ'),
+                                                                              ('รายได้ส่วนงาน', 'รายได้ส่วนงาน'),
                                                                               ('เงินงบประมาณแผ่นดิน', 'เงินงบประมาณแผ่นดิน')
                                                                               ]
                                                                   })
@@ -361,16 +556,95 @@ class ComplaintRepairApproval(db.Model):
     product_code = db.relationship(ProductCode, backref=db.backref('repair_approvals'))
     remark = db.Column('remark', db.Text())
     loan_no = db.Column('loan_no', db.String(), info={'label': 'เลขที่ใบยืม'})
+    note = db.Column('note', db.Text())
+    is_print = db.Column('is_print', db.Boolean(), default=False)
     created_at = db.Column('created_at', db.DateTime(timezone=True), info={'label': 'วันที่'})
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    reviewed_at = db.Column('reviewed_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('repair_approvals'),
                               foreign_keys=[creator_id])
+    canceller_id = db.Column('canceller_id', db.ForeignKey('staff_account.id'))
+    canceller = db.relationship(StaffAccount, backref=db.backref('cancelled_repair_approvals'),
+                                foreign_keys=[canceller_id])
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
     record = db.relationship(ComplaintRecord, backref=db.backref('repair_approvals'))
+    requester_id = db.Column('requester_id', db.ForeignKey('staff_account.id'))
+    requester = db.relationship(StaffAccount, backref=db.backref('requested_repair_approvals'), foreign_keys=[requester_id])
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship(StaffAccount, backref=db.backref('approved_repair_approvals'),
+                                foreign_keys=[approver_id])
+    owner_id = db.Column('owner_id', db.ForeignKey('staff_account.id'))
+    owner = db.relationship(StaffAccount, backref=db.backref('owned_repair_approvals'), foreign_keys=[owner_id])
 
     def __str__(self):
         return self.item
+
+    @property
+    def has_data_complete(self):
+        if (self.price and self.budget_year and self.purchase_type and self.cost_center and
+                self.io_code and self.product_code):
+            return True
+        else:
+            return False
+
+    @property
+    def status(self):
+        if self.cancelled_at:
+            status = 'ยกเลิก'
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                           self.record.status.code == 'cancelled')):
+            status = 'ดำเนินการเสร็จสิ้น'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                (self.record.status.code != 'completed' or
+                                                                 self.record.status.code != 'cancelled'))):
+            status = 'รออนุมัติ'
+        else:
+            status = 'รอดำเนินการ'
+        return status
+
+    @property
+    def status_color(self):
+        if self.cancelled_at:
+            color = 'is-danger'
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                               self.record.status.code == 'cancelled')):
+            color = 'is-success'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                    (self.record.status.code != 'completed' or
+                                                                     self.record.status.code != 'cancelled'))):
+            color = 'is-warning'
+        else:
+            color = 'is-info'
+        return color
+
+    @property
+    def status_icon(self):
+        if self.cancelled_at:
+            icon = '<i class="fas fa-times"></i>'
+        elif self.is_print and (self.record.status_id and (self.record.status.code == 'completed' or
+                                                               self.record.status.code == 'cancelled')):
+            icon = '<i class="fas fa-check"></i>'
+        elif self.is_print and ((not self.record.status_id) or (self.record.status_id and
+                                                                    (self.record.status.code != 'completed' or
+                                                                     self.record.status.code != 'cancelled'))):
+            icon = '<i class="fas fa-pen-fancy"></i>'
+        else:
+            icon = '<i class="fas fa-hourglass"></i>'
+        return icon
+
+    @property
+    def get_other_org(self):
+        org = self.owner.personal_info.org
+        if ((org.parent and org.parent.parent and org.parent.parent.name == 'สำนักงานคณบดี') or
+                (org.parent and org.parent.name == 'สำนักงานคณบดี') or
+                (org.name == 'สำนักงานคณบดี')
+        ):
+            other_org = False
+        else:
+            other_org = True
+        return other_org
 
 
 class ComplaintCommittee(db.Model):

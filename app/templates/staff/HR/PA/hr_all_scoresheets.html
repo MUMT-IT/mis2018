@@ -1,8 +1,16 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
 {% block page_content %}
-<section class="section">
-    <div class="container" id="app">
+<section class="section" id="app">
+    <div class="container" >
+        <div class="field">
+                <label class="label">รอบการประเมิน</label>
+                <div class="select">
+                    <select v-model="round" v-on:change="proceed()">
+                        <option v-for="r in rounds" v-bind:value="r.id" key="r.id"><% r.round %></option>
+                    </select>
+                </div>
+        </div>
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">สถานะการประเมินทั้งหมด</h1>
@@ -152,5 +160,22 @@
                 order: [[0, 'desc'], [4, 'asc']]
             });
         });
+        new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                rounds : {{ rounds|tojson|safe }},
+                round : {{ round|tojson|safe }},
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.round !== null){
+                    window.location.href = "/pa/hr/all-scoresheets?roundid="+this.round;
+                }
+            }
+        }
+    })
     </script>
 {% endblock %}

@@ -2,14 +2,14 @@
 {% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://fastly.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
 {% endblock %}
 {% block page_content %}
 {% include "nav.html" %}
     <section class="section">
         <div class="container">
             {% include 'messages.html' %}
-            <div class="columns">
+            <div class="columns is-centered">
                 <div class="column">
                     {% include 'complaint_tracker/title.html' %}
                     <div class="buttons is-centered">
@@ -24,20 +24,29 @@
                         <ul>
                             <li {% if tab == 'new' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('comp_tracker.admin_index', tab='new') }}">
-                                    <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                                    <span class="icon is-small"><i class="fas fa-times"></i></span>
                                     <span>ยังไม่ดำเนินการ</span>
+                                    {% if new_record_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 ml-1">{{ new_record_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                             <li {% if tab == 'pending' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('comp_tracker.admin_index', tab='pending') }}">
                                     <span class="icon is-small"><i class="fas fa-hourglass-half"></i></span>
                                     <span>รอดำเนินการ</span>
+                                    {% if pending_record_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_record_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                             <li {% if tab == 'progress' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('comp_tracker.admin_index', tab='progress') }}">
                                     <span class="icon is-small"><i class="fas fa-history"></i></span>
                                     <span>อยู่ระหว่างดำเนินการ</span>
+                                    {% if progress_record_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 ml-1">{{ progress_record_count }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                             <li {% if tab == 'completed' %}class="is-active"{% endif %}>
@@ -46,78 +55,176 @@
                                     <span>ดำเนินการเสร็จสิ้น</span>
                                 </a>
                             </li>
+                             <li {% if tab == 'cancelled' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='cancelled') }}">
+                                    <span class="icon is-small"><i class="fas fa-ban"></i></span>
+                                    <span>ยกเลิก</span>
+                                </a>
+                            </li>
+                            <li {% if tab == 'repair_record' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('comp_tracker.admin_index', tab='repair_record') }}">
+                                    <span class="icon is-small"><i class="fas fa-file-pdf"></i></span>
+                                    <span>ใบแจ้งซ่อม/ใบอนุมัติหลักการซ่อม</span>
+                                    {% if repair_record_count > 0 %}
+                                        <span class="tag is-danger is-rounded is-size-7 ml-1">{{ repair_record_count }}</span>
+                                    {% endif %}
+                                </a>
+                            </li>
                         </ul>
                     </div>
                     <form method="post" action="{{ url_for('comp_tracker.admin_index', tab=tab) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="submit" value="Print" class="button is-success">
+{#                        <input type="submit" value="Print" class="button is-success">#}
                         <br/>
-                        <table id="records" class="table is-fullwidth">
+                        <table id="records" class="table is-striped is-fullwidth">
                             <thead>
-                            <th></th>
-                            <th>ID</th>
-                            <th>รายละเอียด</th>
-                            <th>หัวข้อ</th>
-                            <th>ประเภท</th>
-                            <th>ประเภทครุภัณฑ์</th>
-                            <th>บทบาท</th>
-                            <th>วันที่สร้าง</th>
-                            <th>ระดับความรุนแรง</th>
-                            <th>สถานะ</th>
-                            <th>ตรวจสอบ</th>
+{#                            <th></th>#}
+                                <th style="width: 1.5em">ID</th>
+                                <th>รายละเอียด</th>
+                                <th>หัวข้อ</th>
+                                <th>ประเภท</th>
+{#                                <th>ประเภทครุภัณฑ์</th>#}
+                                <th>Tag</th>
+                                <th>หน่วยงานที่รับผิดชอบ</th>
+                                <th>บทบาท</th>
+                                <th>วันที่สร้าง</th>
+                                <th>ระดับความรุนแรง</th>
+                                <th>สถานะ</th>
+                                <th style="width: 3em">ใบแจ้งซ่อม/ใบอนุมัติซ่อม</th>
+                                <th style="width: 2.5em">ตรวจสอบ</th>
                             </thead>
-                            <tbody>
+                                <tbody>
                                 {% if records %}
-                                    {% for record in records|sort(attribute='created_at', reverse = True) %}
+                                    {% for record in records %}
                                         <tr>
-                                            <td>
-                                                <input class="is-checkradio" id="{{ record.id }}" type="checkbox" name="selected_items" value="{{ record.id }}">
-                                                <label for="{{ record.id }}"></label>
-                                            </td>
+{#                                            <td>#}
+{#                                                <input class="is-checkradio" id="{{ record.id }}" type="checkbox" name="selected_items" value="{{ record.id }}">#}
+{#                                                <label for="{{ record.id }}"></label>#}
+{#                                            </td>#}
                                             <td>{{ record.id }}</td>
-                                            <td style="width: 20em;">{{ record.desc }}</td>
-                                            <td style="width: 15em;">{{ record.topic }}</td>
+                                            <td>{{ record.desc }}</td>
+                                            <td>{{ record.topic }}</td>
                                             <td>{{ record.type or 'ไม่ระบุ' }}</td>
-                                            <td style="width: 10em">
-                                                {% if record.procurements %}
-                                                    {% for procurement in record.procurements %}
-                                                        {{ procurement.category }}
+                                            <td>
+                                                {% if record.tags %}
+                                                    {% for tag in record.tags %}
+                                                        <span class="tag is-rounded is-info is-light mb-1" >
+                                                            {{ tag }}
+                                                        </span>
+                                                        <br>
                                                     {% endfor %}
-                                                {% else %}
-                                                    ไม่ระบุ
                                                 {% endif %}
                                             </td>
+{#                                            <td>#}
+{#                                                {% if record.procurements %}#}
+{#                                                    {% for procurement in record.procurements %}#}
+{#                                                        {{ procurement.category }}#}
+{#                                                    {% endfor %}#}
+{#                                                {% else %}#}
+{#                                                    ไม่ระบุ#}
+{#                                                {% endif %}#}
+{#                                            </td>#}
                                             <td>
-                                                {% if record.has_admin(current_user) %}
+                                                {% if record.organization %}
+                                                    <span class="tag is-rounded is-primary">
+                                                        {{ record.organization }}
+                                                    </span>
+                                                {% endif %}</td>
+                                            <td>
+                                                 {% if record.has_admin(current_user) %}
                                                     <span class="tag is-light is-link">
                                                         ผู้รับผิดชอบ
                                                     </span>
                                                 {% else %}
                                                     <span class="tag is-light is-warning">
-                                                        ผู้รร่วมตรวจสอบ
+                                                        ผู้ร่วมตรวจสอบ
                                                     </span>
                                                 {% endif %}
                                             </td>
                                             <td>
                                                 {{ record.created_at|localdatetime }}
                                             </td>
-                                            <td style="width: 10em;">
+                                            <td>
                                                 <span class="tag {{ record.priority.color }}">
-                                                    {{ record.priority or 'ไม่ระบุ'}}
+                                                    {{ record.priority.priority_short or 'ไม่ระบุ'}}
                                                 </span>
                                             </td>
                                             <td>
                                                 {% if record.status %}
                                                     <span class="tag {{ record.status.color }}">
-                                                        {{ record.status }}
+                                                        <span class="icon">{{ record.status.icon|safe }}</span>
+                                                        <span>{{ record.status }}</span>
                                                     </span>
                                                     {% if record.closed_at %}
                                                         {{ record.closed_at|localdatetime }}
                                                     {% endif %}
                                                 {% else %}
                                                     <span class="tag is-danger">
-                                                        ยังไม่ดำเนินการ
+                                                        <span class="icon"><i class="fas fa-times"></i></span>
+                                                        <span>ยังไม่ดำเนินการ</span>
                                                     </span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="has-text-centered">
+                                                {% if record.repairs %}
+                                                    {% if record.get_print_of_repair == True %}
+                                                        {% for repair in record.repairs %}
+                                                            <span class="tag is-success is-light">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check"></i>
+                                                                </span>
+                                                                <span>พิมพ์แล้ว</span>
+                                                            </span>
+                                                            <br>
+                                                            {% if repair.reviewed_at %}
+                                                                <div class="is-size-6 mt-1">
+                                                                    ดูเมื่อ {{ repair.reviewed_at|localdatetime }}
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <span class="tag is-warning is-light">
+                                                            <span class="icon">
+                                                                <i class="far fa-clock"></i>
+                                                            </span>
+                                                            <span>รอพิมพ์</span>
+                                                        </span>
+                                                    {% endif %}
+                                                {% elif record.repair_approvals %}
+                                                    {% if record.get_print_of_repair_approval == True %}
+                                                        {% for repair_approval in record.repair_approvals %}
+                                                            {% if repair_approval.cancelled_at %}
+                                                                <span class="tag is-danger is-light">
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-times"></i>
+                                                                    </span>
+                                                                    <span>ยกเลิก</span>
+                                                                </span>
+                                                                <br>
+                                                                <div class="is-size-6 mt-1">
+                                                                    ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                                                </div>
+                                                            {% elif repair_approval.reviewed_at %}
+                                                                <span class="tag is-success is-light">
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-check"></i>
+                                                                    </span>
+                                                                    <span>พิมพ์แล้ว</span>
+                                                                </span>
+                                                                <br>
+                                                                <div class="is-size-6 mt-1">
+                                                                    ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                                                </div>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <span class="tag is-warning is-light">
+                                                            <span class="icon">
+                                                                <i class="far fa-clock"></i>
+                                                            </span>
+                                                            <span>รอพิมพ์</span>
+                                                        </span>
+                                                    {% endif %}
                                                 {% endif %}
                                             </td>
                                             <td>
@@ -143,7 +250,7 @@
     <script>
         $(document).ready(function () {
             $('#records').DataTable({
-                order: [[6, 'desc']],
+                order: [[0, 'desc']],
             })
         });
     </script>

@@ -42,6 +42,18 @@
         htmx.removeClass(htmx.find('#reject-quotation-modal'), "is-active", 500)
     })
     $(document).ready(function () {
+        function addRequiredField() {
+            const reason = $('input[name="reason"]');
+            reason.prop('required', true)
+                .attr('oninvalid', "this.setCustomValidity('กรุณาเลือกเหตุผล')");
+
+            reason.on('change', function () {
+                reason.each(function () {
+                    this.setCustomValidity('');
+                });
+            });
+        }
+
         function showOtherInput() {
             const reason = document.querySelector('input[name="reason"]:checked');
             const otherField = document.getElementById("other-field");
@@ -53,9 +65,11 @@
             } else {
                 otherField.style.display = "none";
                 otherInput.required = false;
+                otherInput.value = '';
             }
         }
 
+        addRequiredField();
         showOtherInput();
 
         document.querySelectorAll('input[name="reason"]').forEach(function (radio) {

@@ -35,7 +35,6 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
-                    <th></th>
                     <th>หมวด</th>
                     <th>ภาระงาน <p class="help is-info">โครงการ/กระบวนการ ที่สอดคล้อง</p></th>
                     <th>ร้อยละ (น้ำหนัก)</th>
@@ -46,13 +45,12 @@
                     <th>เป้าหมาย: ความพึงพอใจ</th>
                     </thead>
                     <tbody>
-                    {% for item in scoresheet.pa.pa_items|sort(attribute='category_id') %}
+                    {% for item in scoresheet.pa.pa_items|sort(attribute='id')|sort(attribute='category_id') %}
                     <tr>
-                        <td></td>
-                        <td style="width: 10%">
+                        <td style="width: 10%" data-order="{{ item.category_id or '' }}">
                             {{ item.category }}
                         </td>
-                        <td>
+                        <td data-order="{{ item.id }}">
                             {{ item.task }}
                             {% if item.strategy_activity %}
                                 <p class="help is-info">{{ item.process }}</p>
@@ -145,7 +143,7 @@
     <script>
         $(document).ready(function(){
             $('#reqTable').DataTable({
-                order: [[0, 'asc']]
+                order: [[1, 'asc'], [2, 'asc']]
             });
         });
     </script>

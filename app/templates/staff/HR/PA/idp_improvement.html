@@ -27,6 +27,7 @@
                     <table class="table is-striped is-fullwidth" id="itemTable">
                         <thead>
                         <th>รอบ</th>
+                        <th>สังกัด</th>
                         <th>ผู้รับการประเมิน</th>
                         <th>ตำแหน่ง</th>
                         <th>สมรรถนะ/ทักษะ ที่ต้องได้รับการพัฒนา</th>
@@ -45,7 +46,11 @@
                                     {{ item.idp.round.desc }}
                                 </td>
                                 <td>
-                                    {{ item.idp.staff.fullname }}
+                                    {{ item.idp.staff.personal_info.org.parent if item.idp.staff.personal_info.org.parent}}
+                                    {{ item.idp.staff.personal_info.org }}
+                                </td>
+                                <td>
+                                    {{ item.idp.staff.personal_info.th_firstname }} {{ item.idp.staff.personal_info.th_lastname }}
                                 </td>
                                 <td>
                                     {{ item.idp.staff.personal_info.job_position }}

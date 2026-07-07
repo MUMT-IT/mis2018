@@ -18,47 +18,16 @@
                     </div>
                     <table id="detail" class="table is-fullwidth">
                         <thead>
+                            <tr>
                             <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
                             <th>รายละเอียด</th>
+                            </tr>
                         </thead>
                         <tbody>
-                            {% for detail in details|sort(attribute='created_date', reverse = True) %}
-                                <tr>
-                                    <td>{{ detail.title }}</td>
-                                    <td>{{ detail.type }}</td>
-                                    <td>{{ detail.description }}</td>
-                                    <td>{{ detail.created_date|localdatetime }}</td>
-                                    <td>
-                                        <span {% if detail.status == 'ส่งคำขอแล้ว' %}
-                                                class="tag is-info"
-                                              {% elif detail.status == 'อยู่ระหว่างพิจารณา' %}
-                                                class="tag is-warning"
-                                              {% elif detail.status == 'อนุมัติ' %}
-                                                class="tag is-success"
-                                              {% elif detail.status == 'เสร็จสิ้น' %}
-                                                class="tag is-info"
-                                              {% elif detail.status == 'ไม่อนุมัติ' %}
-                                                class="tag is-danger"
-                                              {% elif detail.status == 'ยกเลิก' %}
-                                                class="tag is-dark"
-                                              {% endif %}
-                                        >
-                                            {{ detail.status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="{{ url_for('software_request.view_request', detail_id=detail.id) }}">
-                                            <span class="icon">
-                                                <i class="fas fa-eye"></i>
-                                            </span>
-                                        </a>
-                                    </td>
-                                </tr>
-                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -70,8 +39,61 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
+            $.fn.dataTable.moment('lll');
             $('#detail').DataTable({
-                order: [[3, 'desc']]
+                processing: true,
+                serverSide: true,
+                deferRender: true,
+                searchDelay: 400,
+                ajax: {
+                    url: {{ url_for('software_request.index', api='true')|tojson|safe }},
+                },
+                order: [[3, 'desc']],
+                columns: [
+                    {data: 'title'},
+                    {data: 'type'},
+                    {
+                        data: 'description',
+                        width: "230px"
+                    },
+                    {
+                        data: 'created_date',
+                        render: function (data) {
+                            if (data !== null) {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'status',
+                        orderable: false,
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.status_color + '">' +
+                                    data +
+                                    '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'id',
+                        orderable: false,
+                        searchable: false,
+                        render: function (data) {
+                            var url = '/software_request/request/view/' + data;
+                            return '<a href="' + url + '">' +
+                                '<span class="icon">' +
+                                '<i class="fas fa-eye"></i>' +
+                                '</span>' +
+                                '</a>'
+                        }
+                    },
+                ],
             });
         });
     </script>

@@ -18,7 +18,9 @@
                                             <th style="border: none">
                                         {% endif %}
                                         {{ _field.label.text }}
-                                        {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
+                                        {% if _field.name.endswith('ratio') or _field.name.endswith('per_water') %}
+                                            <span class="has-text-danger dilution-required-asterisk" style="display:none">*</span>
+                                        {% else %}
                                             <span class="has-text-danger">*</span>
                                         {% endif %}
                                     </th>
@@ -44,19 +46,19 @@
                                     {% endif %}
                                 {% endfor %}
                                 <td style="border: none">
-                                    {% if fields.name == 'liquid_condition_field' %}
+                                    {% if product_type == 'liquid' %}
                                         <a class="button is-danger is-outlined"
                                            hx-delete="{{ url_for('academic_services.remove_virus_liquid_organism_form_entry',
-                                                   name=subform.name) }}"
+                                           name=fields.name) }}"
                                            hx-target="closest tr"
                                            hx-swap="outerHTML"
                                         >
                                             <span class="icon"><i class="fas fa-trash-alt"></i></span>
                                         </a>
-                                    {% elif fields.name == 'spray_condition_field' %}
+                                    {% elif product_type == 'spray' %}
                                         <a class="button is-danger is-outlined"
                                            hx-delete="{{ url_for('academic_services.remove_virus_spray_organism_form_entry',
-                                                   name=subform.name) }}"
+                                           name=fields.name) }}"
                                            hx-target="closest tr"
                                            hx-swap="outerHTML"
                                         >
@@ -65,7 +67,7 @@
                                     {% else %}
                                         <a class="button is-danger is-outlined"
                                            hx-delete="{{ url_for('academic_services.remove_virus_coat_organism_form_entry',
-                                                   name=subform.name) }}"
+                                           name=fields.name) }}"
                                            hx-target="closest tr"
                                            hx-swap="outerHTML"
                                         >
@@ -77,18 +79,20 @@
                         {% endfor %}
                         <tr>
                             <td style="border: none">
-                                {% if fields.name == 'liquid_condition_field' %}
+                                {% if product_type == 'liquid' %}
                                     <a class="button is-info is-outlined is-rounded"
-                                       hx-post="{{ url_for('academic_services.add_virus_liquid_organism_form_entry') }}"
+                                       hx-post="{{ url_for('academic_services.add_virus_liquid_organism_form_entry',
+                                       name=fields.name) }}"
                                        hx-target="previous tr"
                                        hx-swap="afterend"
                                     >
                                         <span class="icon"><i class="fas fa-plus"></i></span>
                                         <span>เพิ่ม</span>
                                     </a>
-                                {% elif fields.name == 'spray_condition_field' %}
+                                {% elif product_type == 'spray' %}
                                     <a class="button is-info is-outlined is-rounded"
-                                       hx-post="{{ url_for('academic_services.add_virus_spray_organism_form_entry') }}"
+                                       hx-post="{{ url_for('academic_services.add_virus_spray_organism_form_entry',
+                                       name=fields.name) }}"
                                        hx-target="previous tr"
                                        hx-swap="afterend"
                                     >
@@ -97,7 +101,8 @@
                                     </a>
                                 {% else %}
                                     <a class="button is-info is-outlined is-rounded"
-                                       hx-post="{{ url_for('academic_services.add_virus_coat_organism_form_entry') }}"
+                                       hx-post="{{ url_for('academic_services.add_virus_coat_organism_form_entry',
+                                       name=fields.name) }}"
                                        hx-target="previous tr"
                                        hx-swap="afterend"
                                     >
@@ -142,30 +147,62 @@
                 {% endif %}
             {% endif %}
         {% endfor %}
-        <button id="{{ fields.name }}" type="button" class="button is-danger is-rounded is-small remove-subform"
-                hx-target=".subform-card"
-                hx-swap="innerHTML"
-        >
-            ลบ
-        </button>
+        {% if product_type == 'liquid' %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_virus_liquid_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% elif product_type == 'spray' %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_virus_spray_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% else %}
+            <button type="button" class="button is-danger is-rounded is-small"
+                    hx-delete="{{ url_for('academic_services.remove_virus_coat_condition_form',
+                    name=fields.name) }}"
+                    hx-target="closest .subform-card"
+                    hx-swap="outerHTML"
+            >
+                ลบ
+            </button>
+        {% endif %}
     </div>
 </div>
 <script>
     function toggleTable(subform) {
         const table = subform.find('table');
 
+        function requiresDilutionRatio() {
+            const preparation = subform.find('input[type="radio"][name$="product_preparation"]:checked').val() || '';
+            return preparation.includes('เจือจาง') || preparation.includes('ละลาย');
+        }
+
         function validateInput() {
+            const dilutionRequired = requiresDilutionRatio();
+            subform.find('.dilution-required-asterisk').toggle(dilutionRequired);
+
             table.find('tbody tr').each(function () {
                 const textInputs = $(this).find('input[type="text"]');
 
                 textInputs.each(function () {
                     const name = $(this).attr('name');
-                    const isOptional = name.endsWith('ratio');
+                    const isDilutionField = name.endsWith('ratio') || name.endsWith('per_water');
+                    const required = !isDilutionField || dilutionRequired;
 
-                    if (!isOptional) {
+                    if (required) {
+                        const message = isDilutionField ? 'กรุณากรอกอัตราส่วนเจือจางผลิตภัณฑ์' : 'กรุณากรอกข้อมูล';
                         $(this)
                             .prop('required', true)
-                            .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
+                            .attr('oninvalid', `this.setCustomValidity('${message}')`)
                             .attr('oninput', "this.setCustomValidity('')");
                     } else {
                         $(this).prop('required', false);
@@ -176,6 +213,7 @@
         }
 
         validateInput();
+        subform.on('change', 'input[type=\"radio\"][name$=\"product_preparation\"]', validateInput);
     }
 
     function addRequiredField(subform) {
@@ -267,20 +305,30 @@
         }
     }
 
-    $('.subform-card').each(function () {
-        const subform = $(this);
-        toggleTable(subform);
-        addRequiredField(subform);
-        toggleSurfaceTypeInput(subform);
-        showSurfaceTypeOtherInput(subform);
-
-        subform.find('input[type="radio"][name$="test_method"]').change(function () {
+    function initSubforms() {
+        $('.subform-card').each(function () {
+            const subform = $(this);
+            toggleTable(subform);
+            addRequiredField(subform);
             toggleSurfaceTypeInput(subform);
             showSurfaceTypeOtherInput(subform);
-        });
 
-        subform.find('input[type="radio"][name$="surface_type"]').change(function () {
-            showSurfaceTypeOtherInput(subform);
+            subform.find('input[type="radio"][name$="test_method"]').change(function () {
+                toggleSurfaceTypeInput(subform);
+                showSurfaceTypeOtherInput(subform);
+            });
+
+            subform.find('input[type="radio"][name$="surface_type"]').change(function () {
+                showSurfaceTypeOtherInput(subform);
+            });
         });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initSubforms();
+    });
+
+    document.body.addEventListener('htmx:afterSwap', function () {
+        initSubforms();
     });
 </script>
