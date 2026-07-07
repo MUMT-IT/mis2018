@@ -6278,7 +6278,7 @@ def generate_quotation_pdf(quotation, sign=False):
         Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total()), style=bold_style),
     ])
 
-    item_table = Table(items, colWidths=[50, 250, 75, 75])
+    item_table = Table(items, colWidths=[50, 250, 75, 75], repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
@@ -6360,7 +6360,7 @@ def generate_quotation_pdf(quotation, sign=False):
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(item_table))
+    data.append(item_table)
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(remark_table))
     data.append(KeepTogether(Spacer(1, 16)))
