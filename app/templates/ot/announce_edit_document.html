@@ -32,6 +32,48 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="field">
+                            <label class="label">รายชื่อผู้ลงนาม</label>
+                            <div id="signatories-container">
+                                {% for signatory in form.signatories %}
+                                <div class="box signatory-row" data-index="{{ loop.index0 }}">
+                                    <div class="columns is-multiline is-vcentered">
+                                        <div class="column is-3">
+                                            <label class="label">{{ signatory.form.report_creator_staff.label }}</label>
+                                            <div class="select is-fullwidth">
+                                                {{ signatory.form.report_creator_staff() }}
+                                            </div>
+                                        </div>
+                                        <div class="column is-2">
+                                            <label class="label">{{ signatory.form.report_creator_position.label }}</label>
+                                            {{ signatory.form.report_creator_position(class="input") }}
+                                        </div>
+                                        <div class="column is-3">
+                                            <label class="label">{{ signatory.form.signer_staff.label }}</label>
+                                            <div class="select is-fullwidth">
+                                                {{ signatory.form.signer_staff() }}
+                                            </div>
+                                        </div>
+                                        <div class="column is-2">
+                                            <label class="label">{{ signatory.form.signer_position.label }}</label>
+                                            {{ signatory.form.signer_position(class="input") }}
+                                        </div>
+                                        <div class="column is-1 has-text-right">
+                                            <button type="button" class="button is-danger is-light remove-signatory">
+                                                <span class="icon"><i class="fas fa-trash"></i></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="control">
+                                <button type="button" class="button is-link is-light" id="add-signatory">
+                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                    <span>เพิ่มผู้ลงนาม</span>
+                                </button>
+                            </div>
+                        </div>
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">
                                 <label class="label">หน่วยงาน</label>
@@ -85,7 +127,12 @@
                                 <input type="submit" value="บันทึก" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('ot.announcement') }}" class="button is-danger">Cancel</a>
+                                <a class="button is-info is-light" href="{{ url_for('ot.announcement') }}">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                                    <span>กลับ</span>
+                                </a>
                             </div>
                         </div>
                     </form>
@@ -94,4 +141,73 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    function reindexSignatories() {
+        $('#signatories-container .signatory-row').each(function(index) {
+            $(this).attr('data-index', index);
+            $(this).find('input, select, textarea').each(function() {
+                const element = $(this);
+                const name = element.attr('name');
+                if (name) {
+                    element.attr('name', name.replace(/signatories-\d+-/, `signatories-${index}-`));
+                }
+                const id = element.attr('id');
+                if (id) {
+                    element.attr('id', id.replace(/signatories-\d+-/, `signatories-${index}-`));
+                }
+            });
+            $(this).find('label').each(function() {
+                const element = $(this);
+                const forAttr = element.attr('for');
+                if (forAttr) {
+                    element.attr('for', forAttr.replace(/signatories-\d+-/, `signatories-${index}-`));
+                }
+            });
+        });
+    }
+
+    $('#add-signatory').on('click', function() {
+        const $rows = $('#signatories-container .signatory-row');
+        const $template = $rows.last().clone();
+        const nextIndex = $rows.length;
+        $template.attr('data-index', nextIndex);
+        $template.find('input, select, textarea').each(function() {
+            const element = $(this);
+            const name = element.attr('name');
+            if (name) {
+                element.attr('name', name.replace(/signatories-\d+-/, `signatories-${nextIndex}-`));
+            }
+            const id = element.attr('id');
+            if (id) {
+                element.attr('id', id.replace(/signatories-\d+-/, `signatories-${nextIndex}-`));
+            }
+            if (element.is('select')) {
+                element.val('');
+            } else {
+                element.val('');
+            }
+        });
+        $template.find('label').each(function() {
+            const element = $(this);
+            const forAttr = element.attr('for');
+            if (forAttr) {
+                element.attr('for', forAttr.replace(/signatories-\d+-/, `signatories-${nextIndex}-`));
+            }
+        });
+        $('#signatories-container').append($template);
+        reindexSignatories();
+    });
+
+    $(document).on('click', '.remove-signatory', function() {
+        const $rows = $('#signatories-container .signatory-row');
+        if ($rows.length <= 1) {
+            return;
+        }
+        $(this).closest('.signatory-row').remove();
+        reindexSignatories();
+    });
+</script>
 {% endblock %}

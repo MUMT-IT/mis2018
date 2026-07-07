@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 from io import BytesIO
+from functools import wraps
 
 import arrow
 import pandas as pd
@@ -2549,7 +2550,7 @@ def _parse_checkin_reminder_cutoff(date_value, time_value):
     return tz.localize(datetime.combine(target_date, parsed_time))
 
 
-def _build_missing_checkin_recipients(cutoff_dt, records=None):
+def _build_missing_checkin_recipients(cutoff_dt, records=None, staff_email=None):
     day_start = cutoff_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     if records is None:
         records = StaffWorkLogin.query.filter(
@@ -2567,6 +2568,8 @@ def _build_missing_checkin_recipients(cutoff_dt, records=None):
         if not getattr(staff_account, 'line_id', None):
             continue
         if getattr(staff_account.personal_info, 'academic_staff', None) is True:
+            continue
+        if staff_email and staff_account.email != staff_email:
             continue
         if staff_account.id in checked_in_staff_ids:
             continue
@@ -2637,6 +2640,14 @@ def _get_holiday_for_date(target_date):
     return Holidays.query.filter(cast(Holidays.holiday_date, Date) == target_date).first()
 
 
+def _is_valid_checkin_scheduler_request():
+    configured_token = os.environ.get('JOB_TOKEN')
+    if not configured_token:
+        return True
+    request_token = request.values.get('job_token')
+    return bool(request_token and request_token == configured_token)
+
+
 def send_missing_checkin_reminders(cutoff_dt):
     holiday = _get_holiday_for_date(cutoff_dt.astimezone(tz).date())
     if holiday:
@@ -2668,10 +2679,15 @@ def send_missing_checkin_reminders(cutoff_dt):
     }
 
 
-@staff.route('/admin/line-remind-missing-checkin', methods=['GET', 'POST'])
-@admin_permission.require()
-@login_required
-def line_remind_missing_checkin():
+def _line_remind_missing_checkin_impl():
+    scheduler_request = _is_valid_checkin_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not admin_permission.can():
+            abort(403)
+
+    staff_email = _normalize_staff_email(request.values.get('email')).lower()
     cutoff_dt = _parse_checkin_reminder_cutoff(
         request.values.get('date'),
         request.values.get('time'),
@@ -2689,7 +2705,7 @@ def line_remind_missing_checkin():
         }
         return jsonify(payload)
 
-    recipients = _build_missing_checkin_recipients(cutoff_dt)
+    recipients = _build_missing_checkin_recipients(cutoff_dt, staff_email=staff_email or None)
     preview = [
         {'staff_id': staff_account.id, 'staff_name': staff_account.fullname}
         for staff_account in recipients
@@ -2701,11 +2717,21 @@ def line_remind_missing_checkin():
             'cutoff': cutoff_dt.isoformat(),
             'recipient_count': len(preview),
             'recipients': preview,
+            'staff_email': staff_email or None,
         })
 
     summary = send_missing_checkin_reminders(cutoff_dt)
     summary['message'] = 'success'
+    if staff_email:
+        summary['staff_email'] = staff_email
     return jsonify(summary)
+
+
+@csrf.exempt
+@staff.route('/admin/line-remind-missing-checkin', methods=['GET', 'POST'])
+@wraps(_line_remind_missing_checkin_impl)
+def line_remind_missing_checkin():
+    return _line_remind_missing_checkin_impl()
 
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])

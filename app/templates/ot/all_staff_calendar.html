@@ -16,7 +16,7 @@
             <div class="column">
                 <div class="tabs is-boxed">
                     <ul>
-                        <li><a href="{{ url_for('ot.add_ot_schedule', announcement_id=announcement_id) }}">รายวัน</a></li>
+                        <li><a href="{{ url_for('ot.add_ot_schedule', announcement_id=announcement_id, org_id=work_at_org_id) }}">รายวัน</a></li>
                         <li class="is-active"><a>รายเดือน</a></li>
                         <li><a href="{{ url_for('ot.view_eligible_staff', announcement_id=announcement_id) }}">รายชื่อผู้ได้รับอนุมัติ</a></li>
                         <li><a href="{{ url_for('ot.view_documents', announcement_id=announcement_id) }}">รายการหนังสืออนุมัติหลักการ</a></li>
@@ -59,6 +59,48 @@
                         <span>schedule</span>
                     </a>
                 </div>
+            </div>
+        </div>
+        <div class="modal" id="financePdfModal">
+            <div class="modal-background" onclick="closeFinancePdfModal()"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">เลือกผู้ลงนาม</p>
+                    <button class="delete" aria-label="close" type="button" onclick="closeFinancePdfModal()"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="field">
+                        <label class="label">เลือกชุดผู้ลงนาม</label>
+                        <div class="control">
+                            {% for signatory in signatories %}
+                            <label class="box radio" style="display:block; cursor:pointer;">
+                                <input type="radio"
+                                       name="finance-signatory-id"
+                                       value="{{ signatory.id }}"
+                                       {% if loop.first %}checked{% endif %}>
+                                <div class="mt-2">
+                                    <div class="has-text-weight-semibold">ผู้จัดทำ</div>
+                                    <div>
+                                        {{ signatory.report_creator_staff.personal_info.fullname if signatory.report_creator_staff and signatory.report_creator_staff.personal_info else '-' }}
+                                        {% if signatory.report_creator_position %} — {{ signatory.report_creator_position }}{% endif %}
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="has-text-weight-semibold">ผู้ควบคุมการปฏิบัติงาน</div>
+                                    <div>
+                                        {{ signatory.signer_staff.personal_info.fullname if signatory.signer_staff and signatory.signer_staff.personal_info else '-' }}
+                                        {% if signatory.signer_position %} — {{ signatory.signer_position }}{% endif %}
+                                    </div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button is-link" type="button" onclick="confirmFinancePdf()">สร้าง PDF</button>
+                    <button class="button" type="button" onclick="closeFinancePdfModal()">ยกเลิก</button>
+                </footer>
             </div>
         </div>
         <div class="columns">
@@ -186,7 +228,24 @@
         window.location = baseURL + '?download=yes&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     function download_finance_pdf() {
-        window.location = baseURL + '?download=yes&format=finance-pdf&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+        openFinancePdfModal()
+    }
+    function openFinancePdfModal() {
+        $('#financePdfModal').addClass('is-active');
+    }
+    function closeFinancePdfModal() {
+        $('#financePdfModal').removeClass('is-active');
+    }
+    function confirmFinancePdf() {
+        const selectedSignatory = $('input[name="finance-signatory-id"]:checked').val();
+        const params = new URLSearchParams({
+            download: 'yes',
+            format: 'finance-pdf',
+            signatory_id: selectedSignatory,
+            start: $("input[name='dates']").data("daterangepicker").startDate.toISOString(),
+            end: $("input[name='dates']").data("daterangepicker").endDate.toISOString(),
+        });
+        window.location = baseURL + '?' + params.toString()
     }
     </script>
 {% endblock %}

@@ -111,6 +111,7 @@ uharfbuzz==0.37.3
 uritemplate==3.0.1
 uritools==4.0.1
 urllib3==2.7.0
+xlsxwriter==3.2.9
 webencodings==0.5.1
 Werkzeug==3.1.6
 wrapt==1.14.0

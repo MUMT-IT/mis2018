@@ -8,20 +8,33 @@
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">จัดการช่วงเวลา OT</h1>
-                <a class="button is-light" href="{{ url_for('ot.announcement') }}">ไปหน้า ประกาศ</a>
+                <a class="button is-info is-light" href="{{ url_for('ot.announcement') }}">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>ไปหน้า ประกาศ</span>
+                </a>
             </div>
         </div>
 
         <div class="columns">
             <div class="column is-5">
                 <div class="box">
+                    <h2 class="title is-size-5">
+                        {% if edit_timeslot %}
+                            แก้ไขช่วงเวลา OT #{{ edit_timeslot.id }}
+                        {% else %}
+                            เพิ่มช่วงเวลา OT
+                        {% endif %}
+                    </h2>
                     <form method="post">
                         {{ form.hidden_tag() }}
+                        <input type="hidden" name="timeslot_id" value="{{ edit_timeslot.id if edit_timeslot else '' }}">
                         <div class="field">
                             <label class="label">{{ form.announcement.label.text }}</label>
                             <div class="control">
                                 <div class="select is-fullwidth">
-                                    {{ form.announcement() }}
+                                    {{ form.announcement(id='announcementSelect') }}
                                 </div>
                             </div>
                         </div>
@@ -52,7 +65,14 @@
                         <div class="field">
                             <label class="label">{{ form.color.label.text }}</label>
                             <div class="control">
-                                {{ form.color(class="input", placeholder="#1f77b4") }}
+                                <div class="buttons has-addons">
+                                    {% for option in form.color %}
+                                        <label class="button" style="background-color: {{ option.data }}; border-color: #ddd;">
+                                            {{ option() }}
+                                            <span class="ml-2">{{ option.label.text }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                         <div class="field">
@@ -82,11 +102,12 @@
                                 <th>สิ้นสุดเวลา</th>
                                 <th>สี</th>
                                 <th>หมายเหตุ</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for timeslot in timeslots %}
-                                <tr>
+                                <tr data-announcement-id="{{ timeslot.announcement.id if timeslot.announcement else '' }}">
                                     <td>{{ timeslot.id }}</td>
                                     <td>{{ timeslot.announcement.topic if timeslot.announcement else '-' }}</td>
                                     <td>{{ timeslot.work_for_org.name if timeslot.work_for_org else '-' }}</td>
@@ -94,6 +115,15 @@
                                     <td>{{ timeslot.end }}</td>
                                     <td>{{ timeslot.color or '-' }}</td>
                                     <td>{{ timeslot.note or '-' }}</td>
+                                    <td>
+                                        <a class="button is-small is-link"
+                                           href="{{ url_for('ot.admin_timeslots', announcement_id=timeslot.announcement_id, timeslot_id=timeslot.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-pen"></i>
+                                            </span>
+                                            <span>แก้ไข</span>
+                                        </a>
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
