@@ -1,0 +1,35 @@
+<section class="mb-5 section-shell" id="ai-summary-section">
+    <div class="summary-card ai-summary">
+        <div class="is-flex is-justify-content-space-between is-align-items-start" style="gap: 1rem; flex-wrap: wrap;">
+            <div>
+                <h2 class="title is-5 mb-2">{{ ui.ai_summary_title }}</h2>
+                <p class="is-size-7 has-text-grey">{{ ui.ai_summary_subtitle }}</p>
+            </div>
+            <span class="badge is-warning">{{ ui.not_diagnosis }}</span>
+        </div>
+        <p class="mt-3 has-text-weight-semibold">{{ health_summary.summary_paragraph }}</p>
+        {% if health_summary.top_concerns %}
+            <div class="mt-4">
+                <div class="section-title is-size-7 mb-2">{{ ui.ai_top_concerns_label }}</div>
+                <div class="pill-list">
+                    {% for item in health_summary.top_concerns %}
+                        <span class="pill">{{ item }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        {% if health_summary.what_matters %}
+            <div class="mt-4">
+                <div class="section-title is-size-7 mb-2">{{ ui.ai_what_matters_label }}</div>
+                <ul class="mt-2" style="padding-left: 1.1rem;">
+                    {% for item in health_summary.what_matters %}
+                        <li class="mb-2">{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        {% if health_summary.caution_note %}
+            <p class="is-size-7 has-text-grey mt-3">{{ health_summary.caution_note }}</p>
+        {% endif %}
+    </div>
+</section>

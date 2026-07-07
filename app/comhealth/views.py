@@ -10,6 +10,7 @@ import secrets
 import tempfile
 import time
 import zipfile
+from functools import lru_cache
 from collections import OrderedDict, defaultdict
 from io import BytesIO
 from urllib.parse import urljoin
@@ -46,6 +47,9 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
 from app.main import mail
+from .concern_engine import build_health_risk_report
+from .health_risk_copy import get_health_risk_copy
+from .health_risk_summary import build_health_risk_summary
 from .apis import *
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm, PasswordOfSignDigitalForm, SendMailToCustomerForm,
@@ -4256,6 +4260,8 @@ def customer_result(serviceNo, email, servicedate, age=None):
     load_all_interpret()
     age_for_api = age if age and str(age).isdigit() else 0
     age_display = age if age and str(age).isdigit() else '-'
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
 
     return render_template(
         'comhealth/result.html',
@@ -4263,7 +4269,176 @@ def customer_result(serviceNo, email, servicedate, age=None):
         servicedate_thai=servicedate_thai,
         service_no=serviceNo,
         age=age_display,
-        age_for_api=age_for_api
+        age_for_api=age_for_api,
+        current_lang=current_lang,
+        health_risk_url=url_for(
+            'comhealth.health_risk_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang=current_lang
+        )
+    )
+
+
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>')
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>')
+def health_risk_result(serviceNo, email, servicedate, age=None):
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
+
+    if not current_user.is_authenticated:
+        session_email = session.get('comhealth_online_results_email', '').strip().lower()
+        if email.strip().lower() != session_email:
+            flash(
+                'Unauthorized online result access. / ไม่มีสิทธิ์เข้าถึงผลตรวจนี้',
+                'danger'
+            )
+            return redirect(url_for('comhealth.customers_result_list'))
+
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
+    employee = response_employee.json()
+
+    dt = datetime.fromisoformat(servicedate)
+    servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
+
+    age_for_api = age if age and str(age).isdigit() else 0
+    age_display = age if age and str(age).isdigit() else '-'
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+
+    return render_template(
+        'comhealth/health_risk_result.html',
+        employee=employee,
+        employee_email=email,
+        servicedate_thai=servicedate_thai,
+        servicedate_iso=servicedate,
+        service_no=serviceNo,
+        age=age_display,
+        age_for_api=age_for_api,
+        current_lang=current_lang,
+        ui=ui,
+        switch_url_th=url_for(
+            'comhealth.health_risk_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang='th',
+        ),
+        switch_url_en=url_for(
+            'comhealth.health_risk_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang='en',
+        ),
+        legacy_report_url=url_for(
+            'comhealth.customer_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang=current_lang,
+        ),
+    )
+
+
+@lru_cache(maxsize=128)
+def _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang):
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
+    employee = response_employee.json()
+
+    age_for_api = age if age and str(age).isdigit() else 0
+
+    try:
+        response_lab = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
+        lab_payload = response_lab.json()
+    except Exception:
+        lab_payload = {"data": []}
+
+    try:
+        response_physical = _online_results_api_request('GET', f'/PhysicalExams/{serviceNo}')
+        physical = response_physical.json()
+    except Exception:
+        physical = {}
+
+    try:
+        response_waist = _online_results_api_request('GET', f'/Questionares/waistline/{serviceNo}')
+        waistline_payload = response_waist.json()
+    except Exception:
+        waistline_payload = {}
+
+    physical = {
+        **physical,
+        "waistline": waistline_payload.get("waistline", ""),
+    }
+
+    report = build_health_risk_report(
+        rows=lab_payload.get("data", []),
+        physical=physical,
+        question=waistline_payload,
+        age=age_for_api,
+        gender=employee.get("sex"),
+        lang=current_lang,
+    )
+    health_summary = build_health_risk_summary(report, lang=current_lang)
+    dt = datetime.fromisoformat(servicedate)
+    servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
+
+    return {
+        "employee": employee,
+        "servicedate_thai": servicedate_thai,
+        "age_display": age if age and str(age).isdigit() else '-',
+        "age_for_api": age_for_api,
+        "report": report,
+        "health_summary": health_summary,
+    }
+
+
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/partials/top-concerns')
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>/partials/top-concerns')
+def health_risk_top_concerns_partial(serviceNo, email, servicedate, age=None):
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang)
+    return render_template(
+        'comhealth/partials/health_risk_top_concerns.html',
+        ui=ui,
+        top_issues=bundle["report"]["top_issues"],
+    )
+
+
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/partials/ai-summary')
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>/partials/ai-summary')
+def health_risk_ai_summary_partial(serviceNo, email, servicedate, age=None):
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang)
+    return render_template(
+        'comhealth/partials/health_risk_ai_summary.html',
+        ui=ui,
+        health_summary=bundle["health_summary"],
+    )
+
+
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/partials/issues')
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>/partials/issues')
+def health_risk_issues_partial(serviceNo, email, servicedate, age=None):
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang)
+    return render_template(
+        'comhealth/partials/health_risk_issues.html',
+        ui=ui,
+        issues=bundle["report"]["issues"],
     )
 
 @comhealth.route('/api/physical/<int:serviceNo>')

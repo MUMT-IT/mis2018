@@ -175,6 +175,23 @@
             gap: 1rem;
         }
 
+        .version-2-button {
+            margin-bottom: 0.75rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, var(--primary-medical), var(--secondary-medical));
+            color: #ffffff;
+            border: 0;
+            box-shadow: 0 6px 16px rgba(15, 118, 110, 0.2);
+        }
+
+        .version-2-button:hover,
+        .version-2-button:focus {
+            color: #ffffff;
+            box-shadow: 0 8px 20px rgba(15, 118, 110, 0.28);
+        }
+
         .main-section-title.cbc-title { border-left-color: var(--cbc-primary); background: var(--cbc-accent); }
         .main-section-title.ua-title { border-left-color: var(--ua-primary); background: var(--ua-accent); }
         .main-section-title.stool-title { border-left-color: var(--stool-primary); background: var(--stool-accent); }
@@ -404,6 +421,9 @@
 
             <!-- Section 1: Vitals -->
             <div class="mb-6">
+                <div class="has-text-centered">
+                    <a href="{{ health_risk_url }}" class="button is-small version-2-button">Version 2.0</a>
+                </div>
                 <div class="main-section-title">
                     <span class="icon is-medium has-text-primary"><i class="fa-solid fa-heart-pulse fa-lg"></i></span>
                     <h2 class="title is-4 mb-0" style="color: #334155;">การตรวจร่างกายทั่วไป (PHYSICAL EXAMINATION)</h2>
