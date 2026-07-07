@@ -163,8 +163,12 @@
             cancelLabel: 'Clear',
             format: 'YYYY-MM-DD'
         }
-    }, function(start, end, label) {
-        $(this.element).val(start.format('YYYY-MM-DD HH:mm:ss'))
+    });
+    $('input[name="announce_at"]').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'))
+    });
+    $('input[name="announce_at"]').on('cancel.daterangepicker', function() {
+        $(this).val('')
     });
     $('input[name="start_datetime"]').daterangepicker({
         singleDatePicker: true,
@@ -174,8 +178,12 @@
             cancelLabel: 'Clear',
             format: 'YYYY-MM-DD'
         }
-    }, function(start, end, label) {
-        $(this.element).val(start.format('YYYY-MM-DD HH:mm:ss'))
+    });
+    $('input[name="start_datetime"]').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'))
+    });
+    $('input[name="start_datetime"]').on('cancel.daterangepicker', function() {
+        $(this).val('')
     });
 
 </script>
