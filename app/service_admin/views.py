@@ -7058,6 +7058,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         fontSize=17,
         leading=20,
     )
+    assistant = invoice.assistant.fullname if invoice.assistant else ''
 
     sign = [
         [Paragraph('<font size=12>ขอแสดงความนับถือ<br/></font>', style=sign_style)],
@@ -7067,8 +7068,9 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
-        [Paragraph(f'<font size=12>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/></font>', style=sign_style)],
-        [Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=sign_style)]
+        [Paragraph(f'<font size=12>({assistan})<br/></font>', style=sign_style)],
+        [Paragraph('<font size=12>ผู้ช่วยคณบดีฝ่ายบริการวิชาการ</font>', style=sign_style)],
+        [Paragraph('<font size=12>ปฏิบัติหน้าที่แทนคณบดีคณะเทคนิคการแพทย์</font>', style=sign_style)]
     ]
     sign_table = Table(sign, colWidths=[200])
     sign_table.hAlign = 'RIGHT'
