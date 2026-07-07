@@ -897,7 +897,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([10]),
+            ServiceStatus.status_id.in_([8, 10]),
             ServiceAdmin.admin_id == current_user.id
         )
         ).count()
