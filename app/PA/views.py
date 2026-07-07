@@ -2656,8 +2656,28 @@ def close_fc_round(round_id):
 @login_required
 @hr_permission.require()
 def fc_evaluator():
-    fc_evaluator = PAFunctionalCompetencyEvaluation.query.all()
-    return render_template('staff/HR/PA/fc_evaluator.html', fc_evaluator=fc_evaluator)
+    rounds = PAFunctionalCompetencyRound.query.all()
+    org_id = request.args.get('deptid', type=int)
+    round_id = request.args.get('roundid', type=int)
+    departments = Org.query.order_by(Org.id.asc()).all()
+    query = PAFunctionalCompetencyEvaluation.query.join(StaffAccount, PAFunctionalCompetencyEvaluation.staff_account_id == StaffAccount.id).join(
+        StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id
+    )
+    if org_id is not None:
+        org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(org) if org else [org_id]
+        query = query.filter(StaffPersonalInfo.org_id.in_(org_ids))
+    if round_id is not None:
+        query = query.filter(PAFunctionalCompetencyEvaluation.round_id == round_id)
+    fc_evaluator = query.all()
+    return render_template(
+        'staff/HR/PA/fc_evaluator.html',
+        fc_evaluator=fc_evaluator,
+        sel_dep=org_id,
+        round=round_id,
+        departments=[{'id': d.id, 'name': d.name} for d in departments],
+        rounds=[{'id': r.id, 'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime('%d/%m/%Y')} for r in rounds]
+    )
 
 
 @pa.route('/hr/fc/evaluator/<int:evaluation_id>')
@@ -3173,6 +3193,10 @@ def hr_all_idp():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
     departments = Org.query.order_by(Org.id.asc()).all()
+    org_ids = None
+    if org_id is not None:
+        org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(org) if org else [org_id]
     if org_id is None:
         if round_id:
             idps = IDP.query.filter_by(round_id=round_id).all()
@@ -3184,14 +3208,14 @@ def hr_all_idp():
             org_round_idp = []
             round_idp = IDP.query.filter_by(round_id=round_id).all()
             for idp in round_idp:
-                if idp.staff.personal_info.org_id == org_id:
+                if idp.staff.personal_info.org_id in org_ids:
                     org_round_idp.append(idp)
                 idps = org_round_idp
         else:
             org_round_idp = []
             all_idp = IDP.query.all()
             for idp in all_idp:
-                if idp.staff.personal_info.org_id == org_id:
+                if idp.staff.personal_info.org_id in org_ids:
                     org_round_idp.append(idp)
                 idps = org_round_idp
     if request.method == 'POST':
@@ -3239,18 +3263,14 @@ def hr_idp_improvement():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
     departments = Org.query.order_by(Org.id.asc()).all()
-    if org_id is None:
-        if round_id:
-            all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()
-        else:
-            round = PAFunctionalCompetencyRound.query.order_by(PAFunctionalCompetencyRound.id.desc()).first()
-            all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round.id).all()
-    else:
+    if org_id:
+        org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(org) if org else [org_id]
         if round_id:
             org_round_idp = []
             round_idp = IDP.query.filter_by(round_id=round_id).all()
             for idp in round_idp:
-                if idp.staff.personal_info.org_id == org_id:
+                if idp.staff.personal_info.org_id in org_ids:
                     for item in idp.idp_item:
                         org_round_idp.append(item)
                 all_idp_item = org_round_idp
@@ -3258,10 +3278,17 @@ def hr_idp_improvement():
             org_round_idp = []
             all_idp = IDP.query.all()
             for idp in all_idp:
-                if idp.staff.personal_info.org_id == org_id:
+                if idp.staff.personal_info.org_id in org_ids:
                     for item in idp.idp_item:
                         org_round_idp.append(item)
                 all_idp_item = org_round_idp
+    else:
+        if round_id:
+            all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()
+        else:
+            round = PAFunctionalCompetencyRound.query.order_by(PAFunctionalCompetencyRound.id.desc()).first()
+            all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round.id).all()
+
     if request.method == 'POST':
         round_id = request.form.get('round_id')
         all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()

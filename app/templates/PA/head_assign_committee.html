@@ -9,7 +9,13 @@
             <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="subtitle is-size-4">รอบการประเมิน {{ pa.round.desc }} ({{ pa.round }})</h1><br>
-                    <h1 class="title is-size-4">ผู้รับการประเมิน {{ pa.staff.personal_info.fullname }}</h1>
+                    <div class="column is-half box is-offset-one-quarter">
+                        <h1 class="title is-size-4">ผู้รับการประเมิน {{ pa.staff.personal_info.fullname }}</h1>
+                    <div class="notification is-info is-light">
+                      <button class="delete"></button>
+                      หากไม่พบกรรมการประเมิน กรุณาติดต่อ HR เพื่อเพิ่มกรรมการ
+                    </div>
+                    </div>
                 </div>
             </div>
             <div class="columns">
