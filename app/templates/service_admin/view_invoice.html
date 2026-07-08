@@ -242,9 +242,7 @@
                             <ul class="menu-list">
                                 <li>
                                     {% if invoice.file_attached_at %}
-                                        <span class="icon">
-                                            <i class="fas fa-clock"></i>
-                                        </span>
+                                        <span class="icon"><i class="fas fa-paper-plane"></i></span>
                                         {{ invoice.file_attached_at.strftime('%d/%m/%Y') }}
                                     {% else %}
                                         ยังไม่ดำเนินการส่ง
@@ -256,18 +254,22 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                    {% if invoice.due_date %}
+                                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
+                                        {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ได้กำหนด
+                                    {% endif %}
                                 </li>
                             </ul>
+                            <hr>
                             <p class="menu-label">
                                 วันที่ดาวน์โหลด
                             </p>
                             <ul class="menu-list">
                                 <li>
                                     {% if invoice.customer_downloaded_at %}
-                                        <span class="icon">
-                                            <i class="fas fa-clock"></i>
-                                        </span>
+                                        <span class="icon"><i class="fas fa-download"></i></span>
                                         {{ invoice.customer_downloaded_at.strftime('%d/%m/%Y') }}
                                     {% else %}
                                         ยังไม่ดาวน์โหลด
