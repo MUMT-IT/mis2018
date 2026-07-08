@@ -934,6 +934,7 @@ class ServiceInvoice(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
+    is_downloaded = db.Column('is_downloaded', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'), foreign_keys=[creator_id])
