@@ -47,6 +47,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
 from app.main import mail
+from app.roles import admin_permission
 from .concern_engine import build_health_risk_report
 from .health_risk_copy import get_health_risk_copy
 from .health_risk_summary import build_health_risk_summary
@@ -54,6 +55,12 @@ from .apis import *
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm, PasswordOfSignDigitalForm, SendMailToCustomerForm,
                     CustomerInfoForm)
+from .forms import HealthEducationVideoForm
+from .video_admin import (
+    build_health_education_video_attributes,
+    filter_health_education_videos,
+    persist_health_education_video,
+)
 from .models import *
 from ..e_sign_api import e_sign
 
@@ -102,6 +109,127 @@ def _require_online_results_access():
         'warning'
     )
     return redirect(url_for('comhealth.landing'))
+
+
+@comhealth.context_processor
+def _inject_comhealth_admin_flags():
+    return {
+        'comhealth_admin_tools_visible': current_user.is_authenticated and admin_permission.can(),
+    }
+
+
+def _health_education_video_lookup(youtube_video_id):
+    return ComHealthEducationVideo.query.filter_by(youtube_video_id=youtube_video_id).first()
+
+
+def _health_education_video_form_defaults(video=None):
+    form = HealthEducationVideoForm(obj=video)
+    if video is not None:
+        form.health_topics.data = ', '.join(video.health_topics or [])
+        form.keywords.data = ', '.join(video.keywords or [])
+        form.is_active.data = bool(video.is_active)
+        form.is_embeddable.data = bool(getattr(video, 'is_embeddable', True))
+        form.thumbnail_url.data = getattr(video, 'thumbnail_url', None)
+        form.duration_seconds.data = getattr(video, 'duration_seconds', None)
+        form.display_order.data = getattr(video, 'display_order', None)
+        form.notes_internal.data = getattr(video, 'notes_internal', None)
+    return form
+
+
+def _render_health_education_video_page(template_name, *, form, videos=None, filters=None, editing_video=None):
+    return render_template(
+        template_name,
+        form=form,
+        videos=videos or [],
+        filters=filters or {},
+        editing_video=editing_video,
+    )
+
+
+@comhealth.route('/admin/health-education-videos', methods=['GET', 'POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def health_education_videos():
+    form = HealthEducationVideoForm()
+
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            attrs = build_health_education_video_attributes(request.form)
+            persist_health_education_video(
+                db.session,
+                ComHealthEducationVideo,
+                attrs,
+                duplicate_lookup=_health_education_video_lookup,
+            )
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+        else:
+            flash('Health education video created successfully.', 'success')
+            return redirect(url_for('comhealth.health_education_videos'))
+
+    filters = {
+        'topic': request.args.get('topic', ''),
+        'keyword': request.args.get('keyword', ''),
+        'language': request.args.get('language', ''),
+        'is_active': request.args.get('is_active', ''),
+    }
+    videos = ComHealthEducationVideo.query.order_by(
+        ComHealthEducationVideo.updated_at.desc(),
+        ComHealthEducationVideo.created_at.desc(),
+    ).all()
+    videos = filter_health_education_videos(videos, **filters)
+
+    return _render_health_education_video_page(
+        'comhealth/admin/health_education_videos.html',
+        form=form,
+        videos=videos,
+        filters=filters,
+    )
+
+
+@comhealth.route('/admin/health-education-videos/<int:video_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def edit_health_education_video(video_id):
+    video = ComHealthEducationVideo.query.get_or_404(video_id)
+    form = HealthEducationVideoForm() if request.method == 'POST' else _health_education_video_form_defaults(video)
+
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            attrs = build_health_education_video_attributes(request.form)
+            persist_health_education_video(
+                db.session,
+                ComHealthEducationVideo,
+                attrs,
+                existing_video=video,
+                duplicate_lookup=_health_education_video_lookup,
+            )
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+        else:
+            flash('Health education video updated successfully.', 'success')
+            return redirect(url_for('comhealth.health_education_videos'))
+
+    return _render_health_education_video_page(
+        'comhealth/admin/health_education_video_edit.html',
+        form=form,
+        editing_video=video,
+    )
+
+
+@comhealth.route('/admin/health-education-videos/<int:video_id>/toggle-active', methods=['POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def toggle_health_education_video_status(video_id):
+    video = ComHealthEducationVideo.query.get_or_404(video_id)
+    video.is_active = not bool(video.is_active)
+    db.session.add(video)
+    db.session.commit()
+    flash(
+        f'Health education video {"activated" if video.is_active else "deactivated"} successfully.',
+        'success',
+    )
+    return redirect(url_for('comhealth.health_education_videos'))
 
 
 ONLINE_RESULTS_API_TOKEN_CACHE = {
@@ -4344,6 +4472,7 @@ def health_risk_result(serviceNo, email, servicedate, age=None):
         ui=ui,
         top_issues=bundle["report"]["top_issues"],
         health_summary=bundle["health_summary"],
+        recommended_videos=bundle["report"].get("recommended_videos", []),
         switch_url_th=url_for(
             'comhealth.health_risk_result',
             serviceNo=serviceNo,

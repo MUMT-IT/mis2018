@@ -424,6 +424,24 @@
                                     </div>
                                 </a>
                             </div>
+                            {% if comhealth_admin_tools_visible %}
+                                <div class="column is-half">
+                                    <a class="comhealth-action-card" href="{{ url_for('comhealth.health_education_videos') }}">
+                                        <div class="comhealth-action-top">
+                                            <span class="comhealth-icon">
+                                                <i class="fas fa-video fa-2x"></i>
+                                            </span>
+                                            <span class="comhealth-arrow">
+                                                <i class="fas fa-arrow-right"></i>
+                                            </span>
+                                        </div>
+                                        <div class="comhealth-action-title">Health Education Videos</div>
+                                        <div class="comhealth-action-copy">
+                                            จัดการวิดีโอ YouTube สำหรับใช้แนะนำผู้รับบริการตามความเสี่ยงด้านสุขภาพ
+                                        </div>
+                                    </a>
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 {% endif %}

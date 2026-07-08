@@ -12,6 +12,12 @@ from datetime import datetime, timedelta
 
 localtz = timezone('Asia/Bangkok')
 
+
+def _ensure_bangkok_datetime(value):
+    if value.tzinfo is None:
+        return localtz.localize(value)
+    return value.astimezone(localtz)
+
 ot_announce_document_assoc_table = db.Table('ot_announce_document_assoc',
                                             db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'),
                                                       primary_key=True),
@@ -204,8 +210,8 @@ class OtShift(db.Model):
     creator = db.relationship(StaffAccount)
 
     def __init__(self, date, timeslot, creator):
-        start = datetime.combine(date, timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok'))
-        end = datetime.combine(date, timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok'))
+        start = datetime.combine(date, timeslot.start)
+        end = datetime.combine(date, timeslot.end)
         if timeslot.end.hour == 0 and timeslot.end.minute == 0:
             end += timedelta(days=1)
         self.datetime = DateTimeRange(lower=start, upper=end, bounds='[)')
@@ -275,11 +281,11 @@ class OtRecord(db.Model):
 
     @property
     def start_datetime(self):
-        return self.shift.datetime.lower.astimezone(localtz)
+        return _ensure_bangkok_datetime(self.shift.datetime.lower)
 
     @property
     def end_datetime(self):
-        return self.shift.datetime.upper.astimezone(localtz)
+        return _ensure_bangkok_datetime(self.shift.datetime.upper)
 
     @property
     def total_shift_minutes(self):

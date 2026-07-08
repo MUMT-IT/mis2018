@@ -2674,7 +2674,7 @@ def _line_remind_missing_checkin_impl():
         if not admin_permission.can():
             abort(403)
 
-    staff_email = _normalize_staff_email(request.values.get('email')).lower()
+    staff_email = (_normalize_staff_email(request.values.get('email')) or '').lower()
     target_date = _parse_checkin_reminder_date(request.values.get('date'))
     holiday = _get_holiday_for_date(target_date)
     if holiday:

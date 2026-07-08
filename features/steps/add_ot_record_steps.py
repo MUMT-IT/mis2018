@@ -165,6 +165,19 @@ def step_impl(context):
     assert records[0].id == context.existing_record_id
 
 
+@then('the system should accept the new OT shift')
+def step_impl(context):
+    from app.ot.models import OtRecord
+
+    assert context.response.status_code == 200
+    body = context.response.get_data(as_text=True)
+    assert 'มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว' not in body
+
+    records = OtRecord.query.filter_by(staff_account_id=context.target_account.id).all()
+    assert len(records) == 2
+    assert context.existing_record_id in {record.id for record in records}
+
+
 @then('the error message should say "{message}"')
 def step_impl(context, message):
     body = context.response.get_data(as_text=True)
