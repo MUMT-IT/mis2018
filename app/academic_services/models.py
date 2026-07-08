@@ -934,7 +934,6 @@ class ServiceInvoice(db.Model):
     name = db.Column('name', db.String())
     address = db.Column('address', db.Text())
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String())
-    is_downloaded = db.Column('is_downloaded', db.Boolean())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount, backref=db.backref('service_invoices'), foreign_keys=[creator_id])
@@ -953,7 +952,8 @@ class ServiceInvoice(db.Model):
     file_attached_id = db.Column('file_attached_id', db.ForeignKey('staff_account.id'))
     file_attached_by = db.relationship(StaffAccount, backref=db.backref('file_attached_invoices'),
                                        foreign_keys=[file_attached_id])
-    downloaded_at = db.Column('downloaded_at', db.DateTime(timezone=True))
+    # is_downloaded = db.Column('is_downloaded', db.Boolean())
+    # downloaded_at = db.Column('downloaded_at', db.DateTime(timezone=True))
     due_date = db.Column('due_date', db.DateTime(timezone=True))
     note = db.Column('note', db.Text())
     verify_at = db.Column('verify_at', db.DateTime(timezone=True))
