@@ -7068,7 +7068,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
-        [Paragraph(f'<font size=12>({assistan})<br/></font>', style=sign_style)],
+        [Paragraph(f'<font size=12>({assistant})<br/></font>', style=sign_style)],
         [Paragraph('<font size=12>ผู้ช่วยคณบดีฝ่ายบริการวิชาการ</font>', style=sign_style)],
         [Paragraph('<font size=12>ปฏิบัติหน้าที่แทนคณบดีคณะเทคนิคการแพทย์</font>', style=sign_style)]
     ]
@@ -7133,7 +7133,6 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
 @service_admin.route('/invoice/pdf/<int:invoice_id>', methods=['GET', 'POST'])
 @login_required
 def export_invoice_pdf(invoice_id):
-    is_download = request.args.get('is_download', 'false')
     invoice = ServiceInvoice.query.get(invoice_id)
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.sub_lab.code).first()
     ref1 = invoice.invoice_no
@@ -7145,7 +7144,7 @@ def export_invoice_pdf(invoice_id):
     else:
         qr_image_base64 = None
     buffer = generate_invoice_pdf(invoice, qr_image_base64=qr_image_base64)
-    if is_download == 'true' and not invoice.admin_downloaded_at:
+    if not invoice.admin_downloaded_at:
         invoice.admin_downloaded_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(invoice)
         db.session.commit()
