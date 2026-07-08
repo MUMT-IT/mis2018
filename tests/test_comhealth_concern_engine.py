@@ -128,6 +128,40 @@ def test_missing_hba1c_appears_as_missing_evidence_not_normal():
     assert "HbA1c" in diabetes["missing_evidence"]
 
 
+def test_negative_urine_protein_is_normal():
+    report = build_health_risk_report(
+        rows=[
+            _row("UA05", "Urine protein", "Negative", "Negative", ""),
+            _row("CRE", "Creatinine", "0.9", "0.6 - 1.3", "mg/dL"),
+        ],
+        physical={"weight": "60", "height": "170"},
+        question={},
+        age=40,
+        gender=1,
+    )
+    kidney = _find_issue(report, "kidney_health")
+    protein_item = next(item for item in kidney["evidence_table"] if item["key"] == "urine_protein")
+    assert protein_item["status"] == "normal"
+    assert kidney["concern_score"] == 0
+
+
+def test_positive_urine_protein_is_abnormal():
+    report = build_health_risk_report(
+        rows=[
+            _row("UA05", "Urine protein", "Positive", "Negative", ""),
+            _row("CRE", "Creatinine", "0.9", "0.6 - 1.3", "mg/dL"),
+        ],
+        physical={"weight": "60", "height": "170"},
+        question={},
+        age=40,
+        gender=1,
+    )
+    kidney = _find_issue(report, "kidney_health")
+    protein_item = next(item for item in kidney["evidence_table"] if item["key"] == "urine_protein")
+    assert protein_item["status"] == "abnormal"
+    assert protein_item["score"] == 2
+
+
 def test_cbc10_rbc_and_cbc13_mcv_are_mapped_correctly():
     report = build_health_risk_report(
         rows=[

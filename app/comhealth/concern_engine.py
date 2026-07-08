@@ -249,26 +249,31 @@ def _evaluate_urine_protein(value):
     text = _safe_lower(value)
     if not text:
         return "missing"
-    if "negative" in text or text in {"nil", "none", "normal"}:
+    normal_markers = {
+        "negative",
+        "neg",
+        "nil",
+        "none",
+        "normal",
+        "absent",
+        "not detected",
+        "no protein",
+        "no protein detected",
+    }
+    if any(marker in text for marker in normal_markers):
         return "normal"
-    if "trace" in text:
+    if "trace" in text or "trace protein" in text:
         return "borderline"
-    if "4+" in text or "+++?" in text:
-        return "critical"
-    if "3+" in text:
-        return "critical"
-    if "2+" in text or "1+" in text:
+    if "positive" in text:
+        return "abnormal"
+    if any(token in text for token in {"4+", "4 plus", "++++", "3+", "3 plus", "+++", "2+", "2 plus", "++", "1+", "1 plus", "+"}):
         return "abnormal"
     numeric = _parse_float(value)
     if numeric is None:
         return "abnormal"
     if numeric <= 0:
         return "normal"
-    if numeric <= 1:
-        return "borderline"
-    if numeric <= 2:
-        return "abnormal"
-    return "critical"
+    return "abnormal"
 
 
 def _evaluate_metric(rule, evidence_value, gender):
