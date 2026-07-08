@@ -6940,7 +6940,7 @@ def invoice_index():
         elif tab == 'verify':
             query = verify_query
         elif tab == 'payment':
-            query = verify_query
+            query = payment_query
         elif tab == 'overdue':
             query = overdue_query
 
@@ -6979,8 +6979,7 @@ def invoice_index():
                         'draw': request.args.get('draw', type=int)
                         })
     return render_template('academic_services/invoice_index.html', menu=menu, tab=tab,
-                           pending_count=pending_query.count(), payment_count=payment_query.count(),
-                           verify_count=verify_query.count(), overdue_count=overdue_query.count())
+                           pending_count=pending_query.count(), verify_count=verify_query.count(), overdue_count=overdue_query.count())
 
 
 @academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
