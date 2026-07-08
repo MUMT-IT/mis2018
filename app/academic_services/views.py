@@ -98,7 +98,12 @@ def get_status(s_id):
 def download_file(key):
     download_filename = request.args.get('download_filename')
     result_item = ServiceResultItem.query.filter_by(final_file=key).first()
-    if result_item:
+    invoice = ServiceInvoice.query.filter_by(file=key).first()
+    if invoice and not invoice.customer_downloaded_at:
+        invoice.customer_downloaded_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(invoice)
+        db.session.commit()
+    elif result_item:
         req = result_item.result.request
         if req.is_downloaded == None or req.is_downloaded == False:
             req.is_downloaded = True
