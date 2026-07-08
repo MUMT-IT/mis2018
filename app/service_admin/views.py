@@ -6740,7 +6740,6 @@ def approve_invoice(invoice_id):
                        )
                 send_mail(email, title, message)
                 if not current_app.debug:
-
                     for a in admins:
                         if a.is_supervisor:
                             try:
@@ -6760,6 +6759,12 @@ def upload_invoice_file(invoice_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
+    admins = (
+        ServiceAdmin.query
+        .join(ServiceSubLab)
+        .filter(ServiceSubLab.code == invoice.quotation.request.sub_lab.code)
+        .all()
+    )
     form = ServiceInvoiceForm(obj=invoice)
     if form.validate_on_submit():
         form.populate_obj(invoice)
@@ -6788,6 +6793,8 @@ def upload_invoice_file(invoice_id):
             staff = StaffAccount.get_account_by_email(org.head)
             invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice',
                                   tab='pending', _external=True, _scheme=scheme)
+            result_url = url_for("service_admin.create_draft_result", request_id=invoice.quotation.request_id,
+                                 menu='report', tab='not_started', _external=True, _scheme=scheme)
             msg = (f'แจ้งออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
                    f'เรียน ฝ่ายการเงิน\n\n'
                    f'หน่วยงาน{invoice.quotation.request.sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
@@ -6806,14 +6813,26 @@ def upload_invoice_file(invoice_id):
             message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-
+            title_for_admin, message_for_admin, msg_for_admin = build_notification(invoice=invoice, service_request=invoice.quotation.request, link=result_url)
             if not current_app.debug:
                 send_mail([invoice.quotation.request.customer.email], title, message)
+                if admins:
+                    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_assistant and not a.is_central_admin],
+                              title_for_admin, message_for_admin)
                 try:
                     line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+                    if admins:
+                        for a in admins:
+                            if not a.is_assistant and not a.is_central_admin:
+                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg_for_admin))
                 except LineBotApiError:
                     pass
             else:
+                if admins:
+                    for a in admins:
+                        if not a.is_assistant and not a.is_central_admin:
+                            print('user_email', a.admin.email, 'message_email', message_for_admin, 'user_line',
+                                  a.admin.line_id, 'message_line', msg_for_admin)
                 print('message_email', message, 'message_line', msg)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab='waiting_payment'))
