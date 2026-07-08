@@ -263,6 +263,19 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
+                                วันที่ครบกำหนดชำระ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if invoice.due_date %}
+                                        {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ได้กำหนด
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
                                 การดาวน์โหลด
                             </p>
                             <ul class="menu-list">

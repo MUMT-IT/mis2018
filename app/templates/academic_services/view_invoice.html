@@ -133,9 +133,14 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                    {% if invoice.due_date %}
+                                        {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ได้กำหนด
+                                    {% endif %}
                                 </li>
                             </ul>
+                            <hr>
                             <p class="menu-label">
                                 วันที่ดาวน์โหลด
                             </p>

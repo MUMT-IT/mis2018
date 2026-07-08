@@ -252,6 +252,14 @@
                                 </li>
                             </ul>
                             <p class="menu-label">
+                                วันที่ครบกำหนดชำระ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                </li>
+                            </ul>
+                            <p class="menu-label">
                                 วันที่ดาวน์โหลด
                             </p>
                             <ul class="menu-list">
