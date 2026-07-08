@@ -1169,9 +1169,10 @@ class ServiceInvoiceView(db.Model):
     __tablename__ = 'service_invoice_views'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     viewed_at = db.Column('viewed_at', db.DateTime(timezone=True))
+    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
+    invoice = db.relationship(ServiceInvoice, backref=db.backref('viewed_invoice'))
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
-    customer = db.relationship(ServiceCustomerAccount, backref=db.backref("viewed_invoice"),
-                               foreign_keys=[customer_id])
+    customer = db.relationship(ServiceCustomerAccount, backref=db.backref("viewed_invoice"), foreign_keys=[customer_id])
 
     def __str__(self):
         return f'{self.viewed_at} - {self.customer_id}'
