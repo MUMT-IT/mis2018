@@ -95,6 +95,24 @@ def sort_quotation_item(items):
     return (priority, items.id)
 
 
+def build_notification(invoice, service_request, link):
+    title = f'รายการออกใบรายงานผลการทดสอบ'
+    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.lab.lab}\n\n'''
+    message += f'''ทางแอดมินกลางได้ดำเนินการออกใบแจ้งหนี้ของใบคำขอรับบริการเลขที่ {service_request.request_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการออกใบรายงานผลการทดสอบ\n'''
+    message += f'''ท่านสามารถดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+    message += f'''{link}\n\n'''
+    message += f'''ระบบบริการวิชาการ'''
+    msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
+           'ออกในนาม {}\n' \
+           'ณ วันที่ {} รอดำเนินการออกใบรายงานผลการทดสอบ\n' \
+           'กรุณาดำเนินการแนบไฟล์ในระบบ\n'
+           'คลิกลิ้งค์เพื่อดำเนินการ\n'
+           '{}'.format(service_request.request_no, service_request.quotation_address.name,
+                       invoice.file_attached_at.astimezone(localtz).strftime('%d/%m/%Y'), link
+                       )
+           )
+    return title, message, msg
+
 @service_admin.route('/aws-s3/download/<key>', methods=['GET'])
 def download_file(key):
     download_filename = request.args.get('download_filename')
@@ -6766,7 +6784,6 @@ def upload_invoice_file(invoice_id):
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
             title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-            # contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
             staff = StaffAccount.get_account_by_email(org.head)
             invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice',
@@ -6789,6 +6806,7 @@ def upload_invoice_file(invoice_id):
             message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+
             if not current_app.debug:
                 send_mail([invoice.quotation.request.customer.email], title, message)
                 try:
