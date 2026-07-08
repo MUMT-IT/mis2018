@@ -7082,6 +7082,10 @@ def view_invoice(invoice_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
+    invoice_view = ServiceInvoiceView(invoice_id=invoice_id, viewed_at=arrow.now('Asia/Bangkok').datetime,
+                                      customer_id=current_user.id)
+    db.session.add(invoice_view)
+    db.session.commit()
     return render_template('academic_services/view_invoice.html', invoice_id=invoice_id, menu=menu,
                            tab=tab, invoice=invoice)
 
