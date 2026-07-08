@@ -9189,6 +9189,9 @@ def create_draft_result(result_id=None):
     service_request = ServiceRequest.query.get(request_id)
     if not result_id:
         result = ServiceResult.query.filter_by(request_id=request_id).first()
+        if result.sent_at:
+            return render_template('service_admin/result_create_notice_page.html', menu=menu, tab=tab,
+                                   request_no=result.request.request_no)
         if not result:
             if request.method == 'GET':
                 result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
