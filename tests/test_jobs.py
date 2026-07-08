@@ -87,5 +87,5 @@ def test_send_checkin_reminder_posts_tokenized_request(monkeypatch):
 
     assert captured['method'] == 'POST'
     assert captured['url'] == 'https://example.test/staff/admin/line-remind-missing-checkin'
-    assert captured['params']['time'] == '08:50'
+    assert 'date' in captured['params']
     assert captured['params']['job_token'] == 'test-job-token'

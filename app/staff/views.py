@@ -2535,31 +2535,17 @@ def get_login_records():
     return jsonify({'data': events})
 
 
-def _parse_checkin_reminder_cutoff(date_value, time_value):
-    target_date = datetime.now(tz).date() if not date_value else datetime.strptime(date_value, '%d/%m/%Y').date()
-    target_time = time_value or '09:00'
-    parsed_time = None
-    for time_format in ('%H:%M:%S', '%H:%M'):
-        try:
-            parsed_time = datetime.strptime(target_time, time_format).time()
-            break
-        except ValueError:
-            continue
-    if parsed_time is None:
-        raise ValueError('Invalid time format. Use HH:MM or HH:MM:SS.')
-    return tz.localize(datetime.combine(target_date, parsed_time))
+def _parse_checkin_reminder_date(date_value):
+    return datetime.now(tz).date() if not date_value else datetime.strptime(date_value, '%d/%m/%Y').date()
 
 
-def _build_missing_checkin_recipients(cutoff_dt, records=None, staff_email=None):
-    day_start = cutoff_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+def _build_missing_checkin_recipients(target_date, records=None, staff_email=None):
+    target_date_id = target_date.strftime('%Y%m%d')
     if records is None:
-        records = StaffWorkLogin.query.filter(
-            func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= day_start,
-            func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) < cutoff_dt,
-        ).all()
+        records = StaffWorkLogin.query.filter_by(date_id=target_date_id).all()
     eligible_records = [
         rec for rec in records
-        if rec.staff_id and rec.start_datetime and _to_bangkok(rec.start_datetime) < cutoff_dt
+        if rec.staff_id and getattr(rec, 'date_id', None) == target_date_id
     ]
     checked_in_staff_ids = {rec.staff_id for rec in eligible_records}
 
@@ -2569,7 +2555,7 @@ def _build_missing_checkin_recipients(cutoff_dt, records=None, staff_email=None)
             continue
         if getattr(staff_account.personal_info, 'academic_staff', None) is True:
             continue
-        if staff_email and staff_account.email != staff_email:
+        if staff_email and (staff_account.email or '').strip().lower() != staff_email:
             continue
         if staff_account.id in checked_in_staff_ids:
             continue
@@ -2577,11 +2563,11 @@ def _build_missing_checkin_recipients(cutoff_dt, records=None, staff_email=None)
     return recipients
 
 
-def _build_missing_checkin_reminder_message(staff_account, cutoff_dt):
-    cutoff_label = cutoff_dt.astimezone(tz).strftime('%H:%M')
+def _build_missing_checkin_reminder_message(staff_account, target_date):
+    reminder_date = target_date.strftime('%d/%m/%Y')
     return (
-        f'สวัสดี {staff_account.fullname} วันนี้ยังไม่พบการสแกนเข้างานก่อนเวลา {cutoff_label} '
-        f'ถ้าเริ่มปฏิบัติงานแล้ว รบกวนสแกนเข้างานในระบบด้วยนะครับ'
+        f'สวัสดี {staff_account.fullname} วันนี้ยังไม่พบการสแกนเข้างาน '
+        f'({reminder_date}) ถ้าเริ่มปฏิบัติงานแล้ว รบกวนสแกนเข้างานในระบบด้วยนะครับ'
     )
 
 
@@ -2648,31 +2634,32 @@ def _is_valid_checkin_scheduler_request():
     return bool(request_token and request_token == configured_token)
 
 
-def send_missing_checkin_reminders(cutoff_dt):
-    holiday = _get_holiday_for_date(cutoff_dt.astimezone(tz).date())
+def send_missing_checkin_reminders(target_date, staff_email=None, recipients=None):
+    holiday = _get_holiday_for_date(target_date)
     if holiday:
         return {
-            'cutoff': cutoff_dt.isoformat(),
+            'date': target_date.isoformat(),
             'holiday_name': holiday.holiday_name,
             'recipient_count': 0,
             'sent_count': 0,
             'failed_count': 0,
         }
 
-    recipients = _build_missing_checkin_recipients(cutoff_dt)
+    if recipients is None:
+        recipients = _build_missing_checkin_recipients(target_date, staff_email=staff_email)
     sent_count = 0
     failed_count = 0
     for staff_account in recipients:
         try:
             line_bot_api.push_message(
                 to=staff_account.line_id,
-                messages=_build_missing_checkin_reminder_flex(cutoff_dt),
+                messages=_build_missing_checkin_reminder_flex(tz.localize(datetime.combine(target_date, datetime.min.time()))),
             )
             sent_count += 1
         except LineBotApiError:
             failed_count += 1
     return {
-        'cutoff': cutoff_dt.isoformat(),
+        'date': target_date.isoformat(),
         'recipient_count': len(recipients),
         'sent_count': sent_count,
         'failed_count': failed_count,
@@ -2688,14 +2675,11 @@ def _line_remind_missing_checkin_impl():
             abort(403)
 
     staff_email = _normalize_staff_email(request.values.get('email')).lower()
-    cutoff_dt = _parse_checkin_reminder_cutoff(
-        request.values.get('date'),
-        request.values.get('time'),
-    )
-    holiday = _get_holiday_for_date(cutoff_dt.astimezone(tz).date())
+    target_date = _parse_checkin_reminder_date(request.values.get('date'))
+    holiday = _get_holiday_for_date(target_date)
     if holiday:
         payload = {
-            'cutoff': cutoff_dt.isoformat(),
+            'date': target_date.isoformat(),
             'holiday_name': holiday.holiday_name,
             'message': 'preview' if request.method == 'GET' else 'success',
             'recipient_count': 0,
@@ -2705,7 +2689,7 @@ def _line_remind_missing_checkin_impl():
         }
         return jsonify(payload)
 
-    recipients = _build_missing_checkin_recipients(cutoff_dt, staff_email=staff_email or None)
+    recipients = _build_missing_checkin_recipients(target_date, staff_email=staff_email or None)
     preview = [
         {'staff_id': staff_account.id, 'staff_name': staff_account.fullname}
         for staff_account in recipients
@@ -2714,13 +2698,13 @@ def _line_remind_missing_checkin_impl():
     if request.method == 'GET':
         return jsonify({
             'message': 'preview',
-            'cutoff': cutoff_dt.isoformat(),
+            'date': target_date.isoformat(),
             'recipient_count': len(preview),
             'recipients': preview,
             'staff_email': staff_email or None,
         })
 
-    summary = send_missing_checkin_reminders(cutoff_dt)
+    summary = send_missing_checkin_reminders(target_date, staff_email=staff_email or None, recipients=recipients)
     summary['message'] = 'success'
     if staff_email:
         summary['staff_email'] = staff_email
