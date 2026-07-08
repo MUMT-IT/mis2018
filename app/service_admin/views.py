@@ -7145,8 +7145,8 @@ def export_invoice_pdf(invoice_id):
     else:
         qr_image_base64 = None
     buffer = generate_invoice_pdf(invoice, qr_image_base64=qr_image_base64)
-    if is_download == 'true' and not invoice.downloaded_at:
-        invoice.downloaded_at = arrow.now('Asia/Bangkok').datetime
+    if is_download == 'true' and not invoice.admin_downloaded_at:
+        invoice.admin_downloaded_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(invoice)
         db.session.commit()
     return send_file(buffer, download_name=f'Invoice {invoice.invoice_no}.pdf', as_attachment=True)
