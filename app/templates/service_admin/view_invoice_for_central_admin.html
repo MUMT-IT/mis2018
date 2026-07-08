@@ -192,8 +192,8 @@
                                         <span>อัปโหลดไฟล์ใบแจ้งหนี้</span>
                                     </a>
                                     <a class="button is-info is-outlined is-rounded is-small mb-2"
-                                       href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id,
-                                           is_download='true') }}"
+                                       href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                       onclick="setTimeout(() => location.reload(), 3000)"
                                     >
                                         <span class="icon"><i class="fas fa-download"></i></span>
                                         <span>ดาวน์โหลดใบแจ้งหนี้</span>
@@ -223,8 +223,8 @@
                                     </a>
                                 {% else %}
                                     <a class="button is-info is-outlined is-rounded is-small mb-2"
-                                       href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id,
-                                           is_download='true') }}"
+                                       href="{{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id) }}"
+                                       onclick="setTimeout(() => location.reload(), 3000)"
                                     >
                                         <span class="icon"><i class="fas fa-download"></i></span>
                                         <span>ดาวน์โหลดใบแจ้งหนี้</span>
@@ -252,9 +252,7 @@
                             <ul class="menu-list">
                                 <li>
                                     {% if invoice.file_attached_at %}
-                                        <span class="icon">
-                                            <i class="fas fa-clock"></i>
-                                        </span>
+                                        <span class="icon"><i class="fas fa-paper-plane"></i></span>
                                         {{ invoice.file_attached_at.strftime('%d/%m/%Y') }}
                                     {% else %}
                                         ยังไม่ดำเนินการส่ง
@@ -268,6 +266,7 @@
                             <ul class="menu-list">
                                 <li>
                                     {% if invoice.due_date %}
+                                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
                                         {{ invoice.due_date.strftime('%d/%m/%Y') }}
                                     {% else %}
                                         ยังไม่ได้กำหนด
