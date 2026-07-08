@@ -237,7 +237,7 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                วันที่ส่งใบแจ้งหนี้
+                                วันที่ส่ง
                             </p>
                             <ul class="menu-list">
                                 <li>
@@ -248,6 +248,21 @@
                                         {{ invoice.file_attached_at.strftime('%d/%m/%Y') }}
                                     {% else %}
                                         ยังไม่ดำเนินการส่ง
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <p class="menu-label">
+                                วันที่ดาวน์โหลด
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if invoice.customer_downloaded_at %}
+                                        <span class="icon">
+                                            <i class="fas fa-clock"></i>
+                                        </span>
+                                        {{ invoice.customer_downloaded_at.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ดาวน์โหลด
                                     {% endif %}
                                 </li>
                             </ul>

@@ -136,6 +136,21 @@
                                     {{ invoice.due_date.strftime('%d/%m/%Y') }}
                                 </li>
                             </ul>
+                            <p class="menu-label">
+                                วันที่ดาวน์โหลด
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if invoice.customer_downloaded_at %}
+                                        <span class="icon">
+                                            <i class="fas fa-clock"></i>
+                                        </span>
+                                        {{ invoice.customer_downloaded_at.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ดาวน์โหลด
+                                    {% endif %}
+                                </li>
+                            </ul>
                             {#                            <hr>#}
                             {#                            <p class="menu-label">#}
                             {#                                สถานะ#}
