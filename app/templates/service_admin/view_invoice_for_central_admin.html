@@ -251,11 +251,11 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {% if invoice.mhesi_issued_at %}
+                                    {% if invoice.file_attached_at %}
                                         <span class="icon">
                                             <i class="fas fa-clock"></i>
                                         </span>
-                                        {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
+                                        {{ invoice.file_attached_at.strftime('%d/%m/%Y') }}
                                     {% else %}
                                         ยังไม่ดำเนินการส่ง
                                     {% endif %}
