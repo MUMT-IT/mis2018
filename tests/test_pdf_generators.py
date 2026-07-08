@@ -87,7 +87,23 @@ def _install_common_stubs(monkeypatch):
     models = _module("app.models", Holidays=object(), Org=object())
     monkeypatch.setitem(sys.modules, "app.models", models)
 
-    academic_forms = _module("app.academic_services.forms", __all__=[])
+    academic_forms = _module(
+        "app.academic_services.forms",
+        BacteriaSterilityTestRequestForm=object,
+        BacteriaAntimicrobialActivityRequestForm=object,
+        VirusAirDisinfectionRequestForm=object,
+        BacteriaDisinfectionRequestForm=object,
+        VirusDisinfectionRequestForm=object,
+        HeavyMetalRequestForm=object,
+        FoodSafetyRequestForm=object,
+        ProteinIdentificationRequestForm=object,
+        SDSPageRequestForm=object,
+        QuantitativeRequestForm=object,
+        MetabolomicRequestForm=object,
+        EndotoxinRequestForm=object,
+        ToxicologyRequestForm=object,
+        __all__=[],
+    )
     service_admin_forms = _module("app.service_admin.forms", ServiceResultForm=object, __all__=["ServiceResultForm"])
     monkeypatch.setitem(sys.modules, "app.academic_services.forms", academic_forms)
     monkeypatch.setitem(sys.modules, "app.service_admin.forms", service_admin_forms)

@@ -639,6 +639,7 @@
             <div class="mt-4 is-flex is-justify-content-center" style="gap: 0.75rem; flex-wrap: wrap;">
                 <a class="button is-light is-rounded" href="{{ switch_url_th }}" {% if current_lang == 'th' %}aria-current="page"{% endif %}>{{ ui.legacy_switch_to_th }}</a>
                 <a class="button is-light is-rounded" href="{{ switch_url_en }}" {% if current_lang == 'en' %}aria-current="page"{% endif %}>{{ ui.legacy_switch_to_en }}</a>
+                <a class="button is-light is-rounded" href="{{ url_for('comhealth.customers_result_list') }}">{{ ui.other_results }}</a>
             </div>
         </header>
 

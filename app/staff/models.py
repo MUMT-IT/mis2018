@@ -125,6 +125,8 @@ class StaffAccount(db.Model):
     def get_it_unit(cls):
         return [account for account in cls.query.all() if (account.is_active and not account.is_retired and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
                 or account.email == 'likit.pre']
+
+    @classmethod
     def get_account_by_external_email(cls, email):
         return cls.query.filter_by(external_email=(email or '').strip().lower()).first()
 

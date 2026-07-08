@@ -235,6 +235,12 @@
             box-shadow: 0 10px 20px -22px rgba(180, 83, 9, 0.35);
         }
 
+        .video-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
         .what-matters-badge {
             width: 1.75rem;
             height: 1.75rem;
@@ -399,6 +405,8 @@
                     </div>
                 </div>
             </section>
+
+            {% include 'comhealth/partials/health_education_recommendations.html' %}
         </main>
     </div>
 </body>

@@ -1,0 +1,49 @@
+{% if recommended_videos %}
+<section class="mb-5 section-shell" id="health-education-videos-section">
+  <h2 class="title is-4 mb-3">Recommended Health Education Videos</h2>
+  <div class="columns is-multiline">
+    {% for video in recommended_videos %}
+      <div class="column is-6">
+        <article class="box">
+          <div class="mb-3">
+            <h3 class="title is-5 mb-1">{{ video.title }}</h3>
+            <p class="is-size-7 has-text-grey">
+              {{ video.source_name or '-' }}
+              {% if video.source_channel %}
+                · {{ video.source_channel }}
+              {% endif %}
+            </p>
+          </div>
+
+          {% if video.thumbnail_url %}
+            <figure class="image is-16by9 mb-3">
+              <img src="{{ video.thumbnail_url }}" alt="Thumbnail for {{ video.title }}">
+            </figure>
+          {% endif %}
+
+          {% if video.is_embeddable and video.youtube_embed_url %}
+            <div class="embed-preview mb-3" style="position:relative;width:100%;padding-top:56.25%;border-radius:0.75rem;overflow:hidden;background:#0f172a;">
+              <iframe
+                src="{{ video.youtube_embed_url }}"
+                loading="lazy"
+                allowfullscreen
+                title="YouTube video for {{ video.title }}"
+                referrerpolicy="strict-origin-when-cross-origin"
+                style="position:absolute;inset:0;width:100%;height:100%;border:0;">
+              </iframe>
+            </div>
+          {% else %}
+            <p class="mb-3">
+              <a href="{{ video.youtube_url }}" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
+            </p>
+          {% endif %}
+
+          {% if video.summary %}
+            <p class="is-size-7 has-text-grey">{{ video.summary }}</p>
+          {% endif %}
+        </article>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

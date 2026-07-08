@@ -75,8 +75,6 @@ def _has_overlapping_ot_record(records, start_datetime, end_datetime, *, exclude
             continue
         if record.canceled_at:
             continue
-        if record.start_datetime.date() != start_datetime.date():
-            continue
         time_slot = getattr(getattr(record, 'compensation', None), 'time_slot', None)
         if time_slot:
             existing_start = datetime.combine(start_datetime.date(), time_slot.start, tzinfo=start_datetime.tzinfo)
@@ -86,11 +84,19 @@ def _has_overlapping_ot_record(records, start_datetime, end_datetime, *, exclude
             else:
                 existing_end = datetime.combine(start_datetime.date(), time_slot.end, tzinfo=start_datetime.tzinfo)
         else:
+            # Fallback to the shift range only when no compensation timeslot exists.
             existing_start = record.start_datetime
             existing_end = record.end_datetime
-        if start_datetime <= existing_end and end_datetime >= existing_start:
+        # Treat OT intervals as half-open: [start, end), so touching endpoints are allowed.
+        if start_datetime < existing_end and end_datetime > existing_start:
             return True
     return False
+
+
+def _bangkok_localize(value):
+    if value.tzinfo is not None:
+        return value.astimezone(localtz)
+    return localtz.localize(value)
 
 
 @ot.before_request
@@ -961,8 +967,8 @@ def show_ot_form_modal(_id=None):
     if _id.startswith('timeslot'):
         _, slot_id = _id.split('-')
         timeslot = OtTimeSlot.query.get(slot_id)
-        start = datetime.combine(start.date(), timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok'))
-        end = datetime.combine(start.date(), timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok'))
+        start = datetime.combine(start.date(), timeslot.start)
+        end = datetime.combine(start.date(), timeslot.end)
         if timeslot.end.hour == 0 and timeslot.end.minute == 0:
             datetime_ = DateTimeRange(lower=start, upper=end + timedelta(days=1), bounds='[)')
         else:
@@ -979,14 +985,14 @@ def show_ot_form_modal(_id=None):
     form.compensation.query = compensation_rates
     form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.get_active_accounts()]
     if form.validate_on_submit():
-        candidate_start = shift.datetime.lower.astimezone(localtz) if shift else datetime.combine(
-            start.date(), timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok')
+        candidate_start = _bangkok_localize(shift.datetime.lower) if shift else _bangkok_localize(
+            datetime.combine(start.date(), timeslot.start)
         )
         if timeslot.end.hour == 0 and timeslot.end.minute == 0:
             candidate_end = candidate_start.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
         else:
-            candidate_end = shift.datetime.upper.astimezone(localtz) if shift else datetime.combine(
-                start.date(), timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok')
+            candidate_end = _bangkok_localize(shift.datetime.upper) if shift else _bangkok_localize(
+                datetime.combine(start.date(), timeslot.end)
             )
 
         overlap_names = []

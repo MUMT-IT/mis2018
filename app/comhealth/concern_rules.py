@@ -142,7 +142,7 @@ ISSUE_RULES = [
             {
                 "key": "urine_protein",
                 "label": "Urine protein",
-                "aliases": ["UA05", "URINE PROTEIN", "PROTEIN URINE", "PROTEIN"],
+                "aliases": ["UA05", "URINE PROTEIN", "PROTEIN URINE", "PROTEIN, URINE", "ALBUMIN URINE"],
                 "direction": "urine_protein",
                 "role": "core",
                 "required": False,

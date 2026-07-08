@@ -7,6 +7,7 @@ from email.message import EmailMessage
 
 import requests
 from apscheduler.schedulers.blocking import BlockingScheduler
+import pytz
 
 logging.basicConfig(level=os.getenv('LOG_LEVEL', 'INFO'))
 logger = logging.getLogger(__name__)
@@ -261,7 +262,8 @@ def send_checkin_reminder():
     job_name = 'send_checkin_reminder'
 
     def _job():
-        params = {'time': '08:50'}
+        bangkok = pytz.timezone('Asia/Bangkok')
+        params = {'date': datetime.now(bangkok).strftime('%d/%m/%Y')}
         if JOB_TOKEN:
             params['job_token'] = JOB_TOKEN
         _request_or_raise(
