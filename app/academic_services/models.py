@@ -1165,6 +1165,18 @@ class ServiceInvoiceItem(db.Model):
             return 0
 
 
+class ServiceInvoiceView(db.Model):
+    __tablename__ = 'service_invoice_views'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    viewed_at = db.Column('viewed_at', db.DateTime(timezone=True))
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
+    customer = db.relationship(ServiceCustomerAccount, backref=db.backref("viewed_invoice"),
+                               foreign_keys=[customer_id])
+
+    def __str__(self):
+        return f'{self.viewed_at} - {self.customer_id}'
+
+
 class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
