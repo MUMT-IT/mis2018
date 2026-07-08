@@ -6928,18 +6928,18 @@ def invoice_index():
     )
     pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
                                                            today <= ServiceInvoice.due_date)
-    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at == None,
+    verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at == None,
                                                       ServicePayment.cancelled_at == None)
-    verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
+    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
                                                      ServicePayment.cancelled_at == None)
     overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
                                                            today > ServiceInvoice.due_date)
     if api == 'true':
         if tab == 'pending':
             query = pending_query
-        elif tab == 'payment':
-            query = payment_query
         elif tab == 'verify':
+            query = verify_query
+        elif tab == 'payment':
             query = verify_query
         elif tab == 'overdue':
             query = overdue_query
