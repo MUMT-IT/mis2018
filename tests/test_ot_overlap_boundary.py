@@ -39,6 +39,28 @@ def _install_import_stubs(monkeypatch):
     staff_models.StaffAccount = object()
     monkeypatch.setitem(sys.modules, "app.staff.models", staff_models)
 
+    class _Field:
+        def __eq__(self, other):
+            return ("eq", other)
+
+        def __ne__(self, other):
+            return ("ne", other)
+
+        def is_(self, other):
+            return ("is", other)
+
+        def op(self, operator):
+            return lambda other: ("op", operator, other)
+
+    class _OtRecord:
+        query = None
+        staff_account_id = _Field()
+        canceled_at = _Field()
+        id = _Field()
+
+    class _OtShift:
+        datetime = _Field()
+
     forms = types.ModuleType("app.ot.forms")
     forms.pytz = pytz
     forms.StaffAccount = object()
@@ -48,8 +70,8 @@ def _install_import_stubs(monkeypatch):
     forms.OtTimeSlot = object()
     forms.OtDocumentApproval = object()
     forms.OtJobRole = object()
-    forms.OtRecord = object()
-    forms.OtShift = object()
+    forms.OtRecord = _OtRecord
+    forms.OtShift = _OtShift
     forms.time_slots = []
     forms.create_ot_record_form = lambda *_args, **_kwargs: object
     forms.get_compensation_rates_for_timeslot = lambda *_args, **_kwargs: []
@@ -144,3 +166,47 @@ def test_overlapping_helper_still_rejects_true_overlap(ot_views):
         _bangkok_dt(2026, 3, 1, 21, 0),
         _bangkok_dt(2026, 3, 1, 23, 0),
     )
+
+
+def test_overlapping_helper_uses_each_records_own_date(ot_views):
+    existing = _make_record(
+        record_id=1,
+        start_dt=_bangkok_dt(2026, 3, 1, 18, 0),
+        end_dt=_bangkok_dt(2026, 3, 1, 22, 0),
+    )
+
+    assert not ot_views._has_overlapping_ot_record(
+        [existing],
+        _bangkok_dt(2026, 3, 2, 18, 0),
+        _bangkok_dt(2026, 3, 2, 22, 0),
+    )
+
+
+def test_db_overlap_helper_uses_range_operator(ot_views, monkeypatch):
+    class FakeQuery:
+        def __init__(self, result):
+            self.result = result
+            self.filters = []
+            self.joined = False
+
+        def join(self, *_args, **_kwargs):
+            self.joined = True
+            return self
+
+        def filter(self, *args, **_kwargs):
+            self.filters.extend(args)
+            return self
+
+        def first(self):
+            return self.result
+
+    fake_query = FakeQuery(result=object())
+    monkeypatch.setattr(ot_views.OtRecord, "query", fake_query, raising=False)
+
+    assert ot_views._has_overlapping_ot_record_for_staff(
+        231,
+        _bangkok_dt(2026, 6, 13, 8, 0),
+        _bangkok_dt(2026, 6, 13, 12, 0),
+    )
+    assert fake_query.joined is True
+    assert any("&&" in str(expr) for expr in fake_query.filters)

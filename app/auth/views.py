@@ -53,6 +53,26 @@ def _google_oauth_session(state=None):
     )
 
 
+def _get_staff_account_for_google_email(email):
+    """Resolve the staff account for a Google sign-in email.
+
+    Prefer the exact Google email first so a local-part alias does not
+    accidentally bind the wrong staff record when usernames overlap.
+    """
+    normalized_email = (email or '').strip().lower()
+    if not normalized_email:
+        return None
+
+    user = StaffAccount.query.filter_by(email=normalized_email).first()
+    if user:
+        return user
+
+    email_local = normalized_email.split('@', 1)[0]
+    if email_local and email_local != normalized_email:
+        return StaffAccount.query.filter_by(email=email_local).first()
+    return None
+
+
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
@@ -341,10 +361,7 @@ def google_callback():
         flash(u'Please use your Mahidol Google account (@mahidol.ac.th).', 'danger')
         return redirect(url_for('auth.login'))
 
-    email_local = email.split('@')[0]
-    user = StaffAccount.query.filter_by(email=email_local).first()
-    if not user:
-        user = StaffAccount.query.filter_by(email=email).first()
+    user = _get_staff_account_for_google_email(email)
     if not user:
         flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
         return redirect(url_for('auth.login'))
