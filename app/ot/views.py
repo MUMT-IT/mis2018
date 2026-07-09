@@ -36,6 +36,7 @@ from pydrive.drive import GoogleDrive
 from datetime import date, datetime, time, timedelta
 
 from ..roles import secretary_permission, manager_permission
+from psycopg2._range import DateTimeRange
 
 today = datetime.today()
 if today.month >= 10:
@@ -68,27 +69,55 @@ def _is_external_account():
     return bool(org and org.is_external)
 
 
+def _normalize_ot_datetime(value):
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return localtz.localize(value)
+    return value.astimezone(localtz)
+
+
+def _build_ot_range(start_datetime, end_datetime):
+    start_datetime = _normalize_ot_datetime(start_datetime)
+    end_datetime = _normalize_ot_datetime(end_datetime)
+    if start_datetime is None or end_datetime is None:
+        return None
+    return DateTimeRange(start_datetime, end_datetime, bounds='[)')
+
+
+def _ranges_overlap(left_range, right_range):
+    if not left_range or not right_range:
+        return False
+    return left_range.lower < right_range.upper and left_range.upper > right_range.lower
+
+
+def _has_overlapping_ot_record_for_staff(staff_id, start_datetime, end_datetime, *, exclude_record_id=None):
+    candidate_range = _build_ot_range(start_datetime, end_datetime)
+    if candidate_range is None:
+        return False
+
+    query = (
+        OtRecord.query
+        .join(OtShift)
+        .filter(OtRecord.staff_account_id == staff_id)
+        .filter(OtShift.datetime.op('&&')(candidate_range))
+        .filter(OtRecord.canceled_at.is_(None))
+    )
+    if exclude_record_id is not None:
+        query = query.filter(OtRecord.id != exclude_record_id)
+    return query.first() is not None
+
+
 def _has_overlapping_ot_record(records, start_datetime, end_datetime, *, exclude_record_id=None):
     """Return True when the proposed interval overlaps an existing OT record."""
+    candidate_range = _build_ot_range(start_datetime, end_datetime)
     for record in records:
         if exclude_record_id is not None and record.id == exclude_record_id:
             continue
         if record.canceled_at:
             continue
-        time_slot = getattr(getattr(record, 'compensation', None), 'time_slot', None)
-        if time_slot:
-            existing_start = datetime.combine(start_datetime.date(), time_slot.start, tzinfo=start_datetime.tzinfo)
-            if time_slot.end.hour == 0 and time_slot.end.minute == 0:
-                existing_end = datetime.combine(start_datetime.date(), time_slot.end,
-                                                tzinfo=start_datetime.tzinfo) + timedelta(days=1)
-            else:
-                existing_end = datetime.combine(start_datetime.date(), time_slot.end, tzinfo=start_datetime.tzinfo)
-        else:
-            # Fallback to the shift range only when no compensation timeslot exists.
-            existing_start = record.start_datetime
-            existing_end = record.end_datetime
-        # Treat OT intervals as half-open: [start, end), so touching endpoints are allowed.
-        if start_datetime < existing_end and end_datetime > existing_start:
+        existing_range = _build_ot_range(record.start_datetime, record.end_datetime)
+        if _ranges_overlap(candidate_range, existing_range):
             return True
     return False
 
@@ -995,18 +1024,16 @@ def show_ot_form_modal(_id=None):
                 datetime.combine(start.date(), timeslot.end)
             )
 
-        overlap_names = []
         for staff_id in form.staff.data:
-            existing_records = OtRecord.query.filter_by(staff_account_id=staff_id).all()
-            if _has_overlapping_ot_record(existing_records, candidate_start, candidate_end):
+            if _has_overlapping_ot_record_for_staff(staff_id, candidate_start, candidate_end):
                 staff_name = StaffAccount.query.get(staff_id)
-                overlap_names.append(staff_name.fullname if staff_name else str(staff_id))
-
-        if overlap_names:
-            flash(
-                u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(', '.join(overlap_names)),
-                'danger',
-            )
+                flash(
+                    u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
+                        staff_name.fullname if staff_name else str(staff_id)
+                    ),
+                    'danger',
+                )
+                break
         else:
             if not shift:
                 shift = OtShift(date=start.date(), timeslot=timeslot, creator=current_user)
@@ -1131,8 +1158,12 @@ def edit_ot_record(record_id):
             end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
             record.start_datetime = start_datetime
             record.end_datetime = end_datetime
-            existing_records = OtRecord.query.filter_by(staff_account_id=record.staff_account_id).all()
-            if _has_overlapping_ot_record(existing_records, start_datetime, end_datetime, exclude_record_id=record.id):
+            if _has_overlapping_ot_record_for_staff(
+                record.staff_account_id,
+                start_datetime,
+                end_datetime,
+                exclude_record_id=record.id,
+            ):
                 flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
                     record.staff.personal_info.fullname), 'danger')
             else:
