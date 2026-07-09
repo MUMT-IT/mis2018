@@ -202,7 +202,6 @@ class ComplaintRecord(db.Model):
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
-    # quotation_file = db.Column('quotation_file', db.String())
     participants = db.relationship(StaffAccount, secondary=complaint_record_participant_assoc,
                                    backref=db.backref('complaint_records', cascade='all, delete-orphan', single_parent=True))
 
@@ -404,6 +403,7 @@ class ComplaintRepairCompany(db.Model):
     contact_phone_number = db.Column('contact_phone_number', db.String(), info={'label': 'เบอร์โทร'})
     repair_offer_price = db.Column('repair_offer_price', db.Numeric(), info={'label': 'ราคาซ่อมที่เสนอ'})
     detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียดการซ่อมจากบริษัท'})
+    quotation_file = db.Column('quotation_file', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
