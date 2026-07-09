@@ -202,6 +202,7 @@ class ComplaintRecord(db.Model):
     complainant = db.relationship(StaffAccount, backref=db.backref('my_complaints', lazy='dynamic'))
     file_name = db.Column('file_name', db.String(255))
     url = db.Column('url', db.String(255))
+    quotation_file = db.Column('quotation_file', db.String())
     participants = db.relationship(StaffAccount, secondary=complaint_record_participant_assoc,
                                    backref=db.backref('complaint_records', cascade='all, delete-orphan', single_parent=True))
 
