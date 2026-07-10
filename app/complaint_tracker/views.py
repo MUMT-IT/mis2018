@@ -1313,6 +1313,19 @@ def edit_record_admin(record_id):
                                tab=tab)
 
 
+@complaint_tracker.route('/issue/repair_company/file/delete/<int:repair_company_id>', methods=['GET', 'POST'])
+@login_required
+def delete_quotation_file(repair_company_id):
+    repair_company = ComplaintRepairCompany.query.get(repair_company_id)
+    repair_company.quotation_file = None
+    db.session.add(repair_company)
+    db.session.commit()
+    flash("ลบไฟล์เรียบร้อยแล้ว", "success")
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])
 @login_required
 def admin_index():
