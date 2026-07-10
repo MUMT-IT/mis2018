@@ -349,23 +349,43 @@
                                         {% else %}
                                             {% for result in service_request.results %}
                                                 {% for item in result.result_items %}
-                                                    {% if item.final_file %}
-                                                        <a class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2"
-                                                           href="{{ url_for('service_admin.download_file', key=item.final_file,
+                                                    {% if result.approved_at and item.final_file %}
+                                                        <a {% if service_request.status.status_id == 24 or item.is_downloaded %}
+                                                            class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                                            href="{{ url_for('service_admin.download_file', key=item.final_file,
                                                                         download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                        {% else %}
+                                                            class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2 Warn"
+                                                        {% endif %}
                                                         >
                                                             <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
                                                             <span class="icon is-small"><i
                                                                     class="fas fa-download"></i></span>
                                                         </a>
-                                                    {% elif item.draft_file %}
-                                                        <a class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2"
-                                                           href="{{ url_for('service_admin.download_file', key=item.draft_file,
-                                                                               download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}">
-                                                            <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
-                                                            <span class="icon is-small"><i
-                                                                    class="fas fa-download"></i></span>
-                                                        </a>
+                                                    {% else %}
+                                                        {% if item.final_file %}
+                                                            <a {% if service_request.status.status_id == 24 or item.is_downloaded %}
+                                                                class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                                                href="{{ url_for('service_admin.download_file', key=item.final_file,
+                                                                            download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                            {% else %}
+                                                                class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2 Warn"
+                                                            {% endif %}
+                                                            >
+                                                                <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                                <span class="icon is-small"><i
+                                                                        class="fas fa-download"></i></span>
+                                                            </a>
+                                                        {% endif %}
+                                                        {% if item.draft_file and not item.final_file %}
+                                                            <a class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2"
+                                                               href="{{ url_for('service_admin.download_file', key=item.draft_file,
+                                                                                   download_filename=item.report_language + ' ' + '(ฉบับร่าง)' + '.pdf') }}">
+                                                                <span>{{ item.report_language + ' ' + '(ฉบับร่าง)' or 'ไม่ระบุภาษา' }}</span>
+                                                                <span class="icon is-small"><i
+                                                                        class="fas fa-download"></i></span>
+                                                            </a>
+                                                        {% endif %}
                                                     {% endif %}
                                                 {% endfor %}
                                             {% endfor %}
