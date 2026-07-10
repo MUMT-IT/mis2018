@@ -1347,7 +1347,7 @@ class ServiceResult(db.Model):
             status = 'รอยืนยันใบรายงานผล'
             color = 'is-warning'
         elif not uploaded_all or (uploaded_all and not self.sent_at):
-            status = 'กำลังรอออกผล'
+            status = 'กำลังออกรายงานผล'
             color = 'is-light'
         else:
             status = 'ยังไม่ดำเนินการทดสอบ'
@@ -1456,7 +1456,7 @@ class ServiceResultItem(db.Model):
             status = 'รอยืนยันใบรายงานผล'
             color = 'is-warning'
         elif not uploaded_all:
-            status = 'กำลังรอออกผล'
+            status = 'กำลังออกรายงานผล'
             color = 'is-light'
         else:
             status = 'ยังไม่ดำเนินการทดสอบ'
