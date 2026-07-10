@@ -7426,7 +7426,7 @@ def create_copy_result(result_id):
                                      address=quotation.address,
                                      taxpayer_identification_no=quotation.taxpayer_identification_no,
                                      created_at=arrow.now('Asia/Bangkok').datetime,
-                                     creator_id=current_user.id)
+                                     creator_id=admin_id)
             invoice_no.count += 1
             db.session.add(invoice)
             for quotation_item in quotation.quotation_items:
