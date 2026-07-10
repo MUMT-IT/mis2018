@@ -7419,6 +7419,11 @@ def create_copy_result(result_id):
                 quotation_item_no.count += 1
                 db.session.add(quotation_item)
             result.request.status_id = get_status(18)
+            result.sent_at = None
+            result.req_edit_at = None
+            result.is_edited = False
+            result.approved_at = None
+            result.result_edit_at = None
             db.session.add(result)
             db.session.commit()
             invoice_no = ServiceNumberID.get_number('Invoice', db, lab=quotation.request.sub_lab.ref)
