@@ -1222,6 +1222,23 @@ def edit_record_admin(record_id):
                                                statuses=statuses)
             form.populate_obj(record)
             record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+            for i, company_form in enumerate(form.repair_companies):
+                file = company_form.file_upload.data
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    if company_form.company_name.data:
+                        name = f'ใบเสนอราคา{company_form.company_name.data}'
+                    else:
+                        name = f'ใบเสนอราคา{record.id}'
+                    file_name = '{}.{}'.format(name, file.filename.split('.')[-1])
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    record.repair_companies[i].quotation_file = file_name
             db.session.add(record)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
