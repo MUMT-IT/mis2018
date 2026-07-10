@@ -77,7 +77,7 @@
                     <th>รายละเอียดการขอแก้ไข</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
-{#                    <th></th>#}
+                    <th></th>
                     </thead>
                     <tbody>
                         {% for result in results|sort(attribute='released_at', reverse=True) %}
@@ -162,21 +162,21 @@
                                         {% endif %}
                                     {% endfor %}
                                 </td>
-{#                                <td>#}
-{#                                    {% if result.request.status.status_id == 24 %}#}
-{#                                        <div class="field has-addons">#}
-{#                                            <div class="control">#}
-{#                                                <a class="button is-small is-info is-rounded"#}
-{#                                                    href="{{ url_for('academic_services.create_copy_result',#}
-{#                                                    result_id=result.id, menu=menu, tab=tab) }}"#}
-{#                                                >#}
-{#                                                    <span class="icon"><i class="fas fa-calendar-check"></i></span>#}
-{#                                                    <span>ขอสำเนา</span>#}
-{#                                                </a>#}
-{#                                            </div>#}
-{#                                        </div>#}
-{#                                    {% endif %}#}
-{#                                </td>#}
+                                <td>
+                                    {% if result.request.status.status_id == 24 %}
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-info is-rounded"
+                                                    href="{{ url_for('academic_services.create_copy_result',
+                                                    result_id=result.id, menu=menu, tab=tab) }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-copy"></i></span>
+                                                    <span>ขอสำเนา</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
