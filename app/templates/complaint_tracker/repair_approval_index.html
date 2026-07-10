@@ -3,6 +3,20 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        #repair_approvals {
+            width: 100%;
+            table-layout: auto;
+        }
+
+        #repair_approvals th,
+        #repair_approvals td {
+            font-size: 14px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+    </style>
 {% endblock %}
 {% block page_content %}
 {% include "complaint_tracker/index_nav.html" %}
@@ -54,16 +68,16 @@
                 </div>
                 <table id="repair_approvals" class="table is-fullwidth">
                     <thead>
-                        <th>วันที่ออก</th>
+                        <th style="width: 2em">วันที่ออก</th>
                         <th>รายการ/ครุภัณฑ์</th>
                         <th>ประเภท</th>
-                        <th>ประเภทการเบิกจ่าย</th>
-                        <th>วงเงิน</th>
-                        <th>ปีงบประมาณ</th>
-                        <th>เหตุผล</th>
+                        <th>ประเภทการเบิกจ่าย/ปีงบประมาณ</th>
+                        <th style="width: 3em">วงเงิน</th>
+                        <th style="width: 6em">เหตุผล</th>
                         <th>สถานะใบอนุมัติ</th>
                         <th>สถานะการซ่อม</th>
-                        <th>ใบอนุมัติ</th>
+                        <th>ใบอนุมัติ/ใบเสนอราคา</th>
+                        <th></th>
                     </thead>
                     <tbody>
                         {% for repair_approval in repair_approvals %}
@@ -83,7 +97,7 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td>{{ repair_approval.purchase_type }}</td>
+                                <td>{{ repair_approval.purchase_type }} ({{ repair_approval.budget_year }})</td>
                                 <td>
                                     {% if repair_approval.price %}
                                         {{ "{:,.2f}".format(repair_approval.price) }}
@@ -91,7 +105,6 @@
                                         {{ '' }}
                                     {% endif %}
                                 </td>
-                                <td>{{ repair_approval.budget_year }}</td>
                                 <td>{{ repair_approval.reason }}</td>
                                 <td>
                                     <span class="tag {{ repair_approval.status_color }}">
@@ -118,8 +131,6 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div id="repair-approval-form"></div>
-                                    <div id="note-form"></div>
                                     <div class="field">
                                         <div class="control mb-2">
                                             <a class="button is-small is-info is-outlined is-rounded"
@@ -129,37 +140,52 @@
                                                     @click="warnAlert({{ repair_approval.id }})"
                                                {% endif %}
                                             >
-                                                <span class="icon"><i class="fas fa-file-pdf"></i></span>
-                                                <span>Print</span>
+                                                <span class="icon"><i class="fas fa-file-invoice"></i></span>
+                                                <span>ใบอนุมัติหลักการซ่อม</span>
                                             </a>
+                                            {% for repair_company in repair_approval.record.repair_companies %}
+                                                {% if repair_company.quotation_file %}
+                                                    <div class="mt-1">
+                                                        <a class="button is-small is-outlined is-info is-rounded "
+                                                           href="{{ url_for('comp_tracker.download_file',
+                                                           key=repair_company.quotation_file,
+                                                           download_filename=repair_company.quotation_file) }}">
+                                                            <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                            <span>ใบเสนอราคา</span>
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
                                         </div>
-                                        {% if not repair_approval.cancelled_at and ((not repair_approval.record.status)
-                                                or (repair_approval.record.status and
-                                                repair_approval.record.status.code != 'completed') and (repair_approval.record.status and
-                                                repair_approval.record.status.code != 'cancelled')) %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div id="note-form"></div>
+                                    {% if not repair_approval.cancelled_at and ((not repair_approval.record.status)
+                                          or (repair_approval.record.status and repair_approval.record.status.code != 'completed')
+                                          and (repair_approval.record.status and repair_approval.record.status.code != 'cancelled')) %}
+                                        <div class="field has-addons">
                                             <div class="control mb-2">
-                                                <a class="button is-warning is-outlined is-rounded is-small"
+                                                <a class="button is-warning is-rounded is-small"
                                                    href="{{ url_for('comp_tracker.edit_repair_approval',
                                                    repair_approval_id=repair_approval.id, temp='index', menu=menu,
                                                    tab=tab)}}"
                                                 >
                                                     <span class="icon"><i class="fas fa-pen"></i></span>
-                                                    <span>Edit</span>
                                                 </a>
                                             </div>
                                             <div class="control">
-                                                <a class="button is-danger is-outlined is-rounded is-small"
+                                                <a class="button is-danger is-rounded is-small"
                                                    hx-swap="innerHTML"
                                                    hx-target="#note-form"
                                                    hx-get="{{ url_for('comp_tracker.create_note',
                                                    repair_approval_id=repair_approval.id)}}"
                                                 >
-                                                    <span class="icon"><i class="fas fa-times"></i></span>
-                                                    <span>Cancel</span>
+                                                    <span class="icon"><i class="fas fa-trash"></i></span>
                                                 </a>
                                             </div>
-                                        {% endif %}
-                                    </div>
+                                        </div>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
@@ -215,7 +241,8 @@
         $(document).ready(function () {
             $.fn.dataTable.moment('%d/%m/%Y %X');
             $('#repair_approvals').DataTable({
-                order: [[0, 'desc']]
+                order: [[0, 'desc']],
+                autoWidth: false
             });
         });
     </script>
