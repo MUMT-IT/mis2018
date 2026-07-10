@@ -1380,6 +1380,7 @@ class ServiceResultItem(db.Model):
     note = db.Column('note', db.Text())
     edited_at = db.Column('edited_at', db.DateTime(timezone=True))
     is_edited = db.Column('is_edited', db.Boolean())
+    is_downloaded = db.Column('is_downloaded', db.Boolean(), default=False)
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
