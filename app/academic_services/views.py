@@ -6151,8 +6151,8 @@ def view_quotation(quotation_id):
 
 def generate_quotation_pdf(quotation, sign=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
-    approver = quotation.approver.fullname if sign else ''
-    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
+    approver = quotation.approver.fullname if sign or quotation.approver else ''
+    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign or quotation.approver else (
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
@@ -7375,74 +7375,74 @@ def edit_result_item(result_item_id):
                            menu=menu, tab=tab)
 
 
-# @academic_services.route('/customer/result/create/<int:result_id>', methods=['GET', 'POST'])
-# def create_copy_result(result_id):
-#     admin_id = None
-#     supervisor_id = None
-#     menu = request.args.get('menu')
-#     tab = request.args.get('tab')
-#     result = ServiceResult.query.get(result_id)
-#     report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=result.request.sub_lab_id)
-#     for a in result.request.sub_lab.admins:
-#         if a.is_supervisor:
-#             supervisor_id = a.admin_id
-#         if not a.is_assistant and not a.is_central_admin and not a.is_supervisor:
-#             admin_id = a.admin_id
-#         if supervisor_id and admin_id:
-#             break
-#     if request.method == 'POST':
-#         items = request.form.getlist('check_report_language')
-#         if items:
-#             sequence_no = ServiceSequenceResultItemID.get_number('RS', db, result='result_' + str(result_id))
-#             quotation_no = ServiceNumberID.get_number('Quotation', db, lab=result.request.sub_lab.ref)
-#             quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=result.request_id,
-#                                          name=result.request.quotation_name, address=result.request.quotation_issue_address,
-#                                          taxpayer_identification_no=result.request.taxpayer_identification_no,
-#                                          creator_id=admin_id, created_at=arrow.now('Asia/Bangkok').datetime,
-#                                          sender_id=admin_id, sent_at=arrow.now('Asia/Bangkok').datetime,
-#                                          approver_id=supervisor_id, approved_at=arrow.now('Asia/Bangkok').datetime,
-#                                          confirmer_id=current_user.id, confirmed_at=arrow.now('Asia/Bangkok').datetime
-#                                          )
-#             db.session.add(quotation)
-#             db.session.commit()
-#             quotation_item_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
-#             for item_id in items:
-#                 report_language = ServiceReportLanguage.query.get(int(item_id))
-#                 result_item = ServiceResultItem(sequence=sequence_no.number, report_language=report_language.item,
-#                                                 result_id=result_id, released_at=arrow.now('Asia/Bangkok').datetime,
-#                                                 creator_id=current_user.id)
-#                 sequence_no.count += 1
-#                 db.session.add(result_item)
-#                 quotation_item = ServiceQuotationItem(sequence=quotation_item_no.number, quotation_id=quotation.id,
-#                                                       item=report_language.item, quantity=1,
-#                                                       unit_price=report_language.price, total_price=report_language.price)
-#                 quotation_item_no.count += 1
-#                 db.session.add(quotation_item)
-#             result.request.status_id = get_status(18)
-#             db.session.add(result)
-#             db.session.commit()
-#             invoice_no = ServiceNumberID.get_number('Invoice', db, lab=quotation.request.sub_lab.ref)
-#             invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation.id, name=quotation.name,
-#                                      address=quotation.address,
-#                                      taxpayer_identification_no=quotation.taxpayer_identification_no,
-#                                      created_at=arrow.now('Asia/Bangkok').datetime,
-#                                      creator_id=current_user.id)
-#             invoice_no.count += 1
-#             db.session.add(invoice)
-#             for quotation_item in quotation.quotation_items:
-#                 invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence,
-#                                                   discount_type=quotation_item.discount_type,
-#                                                   invoice_id=invoice.id, item=quotation_item.item,
-#                                                   quantity=quotation_item.quantity,
-#                                                   unit_price=quotation_item.unit_price,
-#                                                   total_price=quotation_item.total_price,
-#                                                   discount=quotation_item.discount)
-#                 db.session.add(invoice_item)
-#                 db.session.commit()
-#             db.session.commit()
-#             flash('บันทึกข้อมูลสำเร็จ', 'success')
-#             return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
-#         else:
-#             flash('กรุณาเลือกสำเนาใบรายงานผล', 'danger')
-#     return render_template('academic_services/create_copy_result.html', menu=menu, tab=tab,
-#                            report_languages=report_languages, result=result)
+@academic_services.route('/customer/result/create/<int:result_id>', methods=['GET', 'POST'])
+def create_copy_result(result_id):
+    admin_id = None
+    supervisor_id = None
+    menu = request.args.get('menu')
+    tab = request.args.get('tab')
+    result = ServiceResult.query.get(result_id)
+    report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=result.request.sub_lab_id)
+    for a in result.request.sub_lab.admins:
+        if a.is_supervisor:
+            supervisor_id = a.admin_id
+        if not a.is_assistant and not a.is_central_admin and not a.is_supervisor:
+            admin_id = a.admin_id
+        if supervisor_id and admin_id:
+            break
+    if request.method == 'POST':
+        items = request.form.getlist('check_report_language')
+        if items:
+            sequence_no = ServiceSequenceResultItemID.get_number('RS', db, result='result_' + str(result_id))
+            quotation_no = ServiceNumberID.get_number('Quotation', db, lab=result.request.sub_lab.ref)
+            quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=result.request_id,
+                                         name=result.request.quotation_name, address=result.request.quotation_issue_address,
+                                         taxpayer_identification_no=result.request.taxpayer_identification_no,
+                                         creator_id=admin_id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                         sender_id=admin_id, sent_at=arrow.now('Asia/Bangkok').datetime,
+                                         approver_id=supervisor_id, approved_at=arrow.now('Asia/Bangkok').datetime,
+                                         confirmer_id=current_user.id, confirmed_at=arrow.now('Asia/Bangkok').datetime
+                                         )
+            db.session.add(quotation)
+            db.session.commit()
+            quotation_item_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+            for item_id in items:
+                report_language = ServiceReportLanguage.query.get(int(item_id))
+                result_item = ServiceResultItem(sequence=sequence_no.number, report_language=report_language.item,
+                                                result_id=result_id, released_at=arrow.now('Asia/Bangkok').datetime,
+                                                creator_id=admin_id)
+                sequence_no.count += 1
+                db.session.add(result_item)
+                quotation_item = ServiceQuotationItem(sequence=quotation_item_no.number, quotation_id=quotation.id,
+                                                      item=report_language.item, quantity=1,
+                                                      unit_price=report_language.price, total_price=report_language.price)
+                quotation_item_no.count += 1
+                db.session.add(quotation_item)
+            result.request.status_id = get_status(18)
+            db.session.add(result)
+            db.session.commit()
+            invoice_no = ServiceNumberID.get_number('Invoice', db, lab=quotation.request.sub_lab.ref)
+            invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation.id, name=quotation.name,
+                                     address=quotation.address,
+                                     taxpayer_identification_no=quotation.taxpayer_identification_no,
+                                     created_at=arrow.now('Asia/Bangkok').datetime,
+                                     creator_id=current_user.id)
+            invoice_no.count += 1
+            db.session.add(invoice)
+            for quotation_item in quotation.quotation_items:
+                invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence,
+                                                  discount_type=quotation_item.discount_type,
+                                                  invoice_id=invoice.id, item=quotation_item.item,
+                                                  quantity=quotation_item.quantity,
+                                                  unit_price=quotation_item.unit_price,
+                                                  total_price=quotation_item.total_price,
+                                                  discount=quotation_item.discount)
+                db.session.add(invoice_item)
+                db.session.commit()
+            db.session.commit()
+            flash('บันทึกข้อมูลสำเร็จ', 'success')
+            return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
+        else:
+            flash('กรุณาเลือกสำเนาใบรายงานผล', 'danger')
+    return render_template('academic_services/create_copy_result.html', menu=menu, tab=tab,
+                           report_languages=report_languages, result=result)

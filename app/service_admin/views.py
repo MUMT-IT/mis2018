@@ -8939,8 +8939,9 @@ def view_quotation(quotation_id):
 
 def generate_quotation_pdf(quotation, sign=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
-    approver = quotation.approver.fullname if sign else ''
-    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
+    approver = quotation.approver.fullname if sign or quotation.approver else ''
+    print('q', approver)
+    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign or quotation.approver else (
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
