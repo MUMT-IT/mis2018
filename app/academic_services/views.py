@@ -105,7 +105,12 @@ def download_file(key):
         db.session.commit()
     elif result_item:
         req = result_item.result.request
-        if req.is_downloaded == None or req.is_downloaded == False:
+        download_all = all(item.is_downloaded for item in result_item.result.result_items)
+        if not result_item.is_downloaded:
+            result_item.is_downloaded = True
+            db.session.add(result_item)
+            db.session.commit()
+        if download_all and req.is_downloaded == None or req.is_downloaded == False:
             req.is_downloaded = True
             db.session.add(req)
             db.session.commit()
