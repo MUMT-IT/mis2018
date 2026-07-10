@@ -974,15 +974,15 @@
                                                                 {% endif %}
                                                             </span>
                                                     </label>
-    {#                                                {% if item.draft_file %}#}
-    {#                                                    <a class="button is-danger is-outlined" style="margin-left: .5em"#}
-    {#                                                       hx-post="{{ url_for('service_admin.delete_draft_result', #}
-    {#                                                       company_form_id=company_form.id) }}"#}
-    {#                                                       hx-confirm="ท่านต้องการลบไฟล์นี้หรือไม่?"#}
-    {#                                                    >#}
-    {#                                                        <span class="icon"><i class="fas fa-trash"></i></span>#}
-    {#                                                    </a>#}
-    {#                                                {% endif %}#}
+                                                    {% if company_form.quotation_file.data %}
+                                                        <a class="button is-danger is-outlined" style="margin-left: .5em"
+                                                           hx-post="{{ url_for('comp_tracker.delete_quotation_file',
+                                                           repair_company_id=record.repair_companies[0].id) }}"
+                                                           hx-confirm="ท่านต้องการลบไฟล์นี้หรือไม่?"
+                                                        >
+                                                            <span class="icon"><i class="fas fa-trash"></i></span>
+                                                        </a>
+                                                    {% endif %}
                                                 </div>
                                             {% endif %}
                                         {% endfor %}
