@@ -2301,8 +2301,8 @@ def _build_checkin_pairs(checkin_query):
                     if _delta_days == 1 and (
                         curr_start.time() >= time(18, 0) or next_start.time() <= time(4, 0)
                     ):
-                        # Split a cross-midnight open sequence into two pairs so the overnight shift
-                        # can be matched without stealing the follow-up scan from the next day.
+                        # Split a cross-midnight open sequence at midnight so the overnight shift
+                        # can use the midnight scan and the next day keeps its own check-in.
                         _d = curr_start + timedelta(days=1)
                         midnight1 = _d.replace(hour=0, minute=0, second=0, microsecond=0)
                         midnight2 = next_start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -2518,150 +2518,83 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
         checkin_query = checkin_query.filter_by(staff_id=staff_id)
     checkin_pairs = _build_checkin_pairs(checkin_query)
 
-    for sid, checkins in checkin_pairs.items():
-        print(f'{sid}')
-        print('============================')
-        for p in checkins:
-            if p.end:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-            else:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
-        print('============================')
-        print('============================')
-
-    shift_entries = []
     shift_query = OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange))
     if announcement_id:
         shift_query = shift_query.filter(OtShift.timeslot.has(announcement_id=announcement_id))
 
-    # Materialize the OT shifts up front so we can decide per row which scan pair fits best.
+    all_records = []
+    used_checkouts = defaultdict(set)
+    ot_record_checkins = {}
     for shift in shift_query.order_by(OtShift.datetime):
         for record in shift.records:
             if staff_id and record.staff_account_id != staff_id:
                 continue
             shift_start = localtz.localize(record.shift.datetime.lower)
             shift_end = localtz.localize(record.shift.datetime.upper)
-            shift_entries.append({
-                'record': record,
-                'shift_start': shift_start,
-                'shift_end': shift_end,
-            })
+            rec = _build_ot_record_row(record, shift_start, shift_end, announcement_id, staff_id, download)
+            ot_record_checkins[record] = 0
 
-    all_records = []
-    ot_record_checkins = {}
-    used_checkouts = defaultdict(set)
-    for entry in shift_entries:
-        record = entry['record']
-        shift_start = entry['shift_start']
-        shift_end = entry['shift_end']
-        rec = _build_ot_record_row(record, shift_start, shift_end, announcement_id, staff_id, download)
-        ot_record_checkins[record] = 0
+            if checkin_pairs[record.staff_account_id]:
+                for _pair in checkin_pairs[record.staff_account_id]:
+                    # Ignore scan pairs that do not fall inside the shift date window.
+                    if _pair.start and _pair.end:
+                        if _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
+                            continue
 
-        # Prefer a reusable complete in/out pair. Fall back to an open or synthetic row only
-        # when no complete pair is a good fit for this shift.
-        best_complete = None
-        best_complete_rank = None
-        best_open = None
-        best_open_rank = None
-        for pair in checkin_pairs.get(record.staff_account_id, []):
-            # A reusable complete pair is one where both endpoints exist and can be attached to
-            # multiple adjacent shifts without inventing new attendance.
-            is_reusable_complete = bool(pair.end and pair.start_id and pair.end_id)
-            # Open rows and synthetic split rows are single-use so they do not leak into later shifts.
-            is_synthetic_or_open = not is_reusable_complete
+                    # Treat midnight as a real check-in only for midnight-starting shifts.
+                    if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
+                        if _pair.end and _pair.start_id is None:
+                            used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                        continue
+                    # Do not reuse a checkout after midnight as a later check-in.
+                    if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
+                        continue
 
-            # Ignore rows that are obviously outside the shift day window.
-            if pair.start and pair.end:
-                if pair.start.date() != shift_start.date() and pair.end.date() != shift_end.date():
-                    continue
+                    attendance = _compute_work_minutes(record, shift_start, shift_end, _pair)
+                    if not attendance:
+                        continue
 
-            # A midnight placeholder is only valid for an actual overnight shift.
-            if pair.start.time() == time(0, 0) and shift_start.time() != pair.start.time():
-                if is_synthetic_or_open and pair.end:
-                    used_checkouts[record.staff_account_id].add(pair.end.strftime('%Y-%m-%d %H:%M:%S'))
-                continue
+                    checkin = attendance['checkin']
+                    checkout = attendance['checkout']
+                    checkin_late_minutes = attendance['checkin_late_minutes']
+                    checkout_early_minutes = attendance['checkout_early_minutes']
+                    total_work_minutes = attendance['total_work_minutes']
+                    total_pay = attendance['total_pay']
 
-            # Once a synthetic/open row has been consumed, do not let its start time act as a
-            # check-in for later rows.
-            if is_synthetic_or_open and pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
-                continue
+                    if total_work_minutes is None:
+                        rec.update({
+                            'checkins': checkin,
+                            'checkouts': checkout,
+                            'late_checkin_display': f'{humanized_work_time(checkin_late_minutes)}' if checkin_late_minutes else None,
+                            'late_minutes': checkin_late_minutes,
+                            'early_minutes': checkout_early_minutes,
+                            'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
+                            'missing_checkout': True,
+                        })
+                        if _pair.end and _pair.start_id is None:
+                            used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                        continue
 
-            attendance = _compute_work_minutes(record, shift_start, shift_end, pair)
-            if not attendance:
-                continue
-
-            checkin = attendance['checkin']
-            checkout = attendance['checkout']
-            checkin_late_minutes = attendance['checkin_late_minutes']
-            checkout_early_minutes = attendance['checkout_early_minutes']
-            total_work_minutes = attendance['total_work_minutes']
-            total_pay = attendance['total_pay']
-            missing_checkout = attendance.get('missing_checkout', False)
-
-            # Keep the cheapest valid candidate by preferring complete pairs, then the closest
-            # open row if no complete pair fits this shift.
-            selection_rank = (
-                0 if is_reusable_complete else 1,
-                checkin_late_minutes,
-                checkout_early_minutes,
-                abs((pair.start - shift_start).total_seconds()) / 60.0,
-            )
-
-            if total_work_minutes is None:
-                if best_open_rank is None or selection_rank < best_open_rank:
-                    best_open_rank = selection_rank
-                    best_open = (pair, attendance)
-            elif total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
-                if best_complete_rank is None or selection_rank < best_complete_rank:
-                    best_complete_rank = selection_rank
-                    best_complete = (pair, attendance)
-
-        chosen = best_complete or best_open
-        if chosen is not None:
-            pair, attendance = chosen
-            checkin = attendance['checkin']
-            checkout = attendance['checkout']
-            checkin_late_minutes = attendance['checkin_late_minutes']
-            checkout_early_minutes = attendance['checkout_early_minutes']
-            total_work_minutes = attendance['total_work_minutes']
-            total_pay = attendance['total_pay']
-            missing_checkout = attendance.get('missing_checkout', False)
-
-            if total_work_minutes is None:
-                # Missing checkout stays visible as incomplete data instead of being inferred.
-                rec.update({
-                    'checkins': checkin,
-                    'checkouts': checkout,
-                    'late_checkin_display': f'{humanized_work_time(checkin_late_minutes)}' if checkin_late_minutes else None,
-                    'late_minutes': checkin_late_minutes,
-                    'early_minutes': checkout_early_minutes,
-                    'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
-                    'missing_checkout': missing_checkout,
-                })
-                if pair.end is None or pair.start_id is None or pair.end_id is None:
-                    used_checkouts[record.staff_account_id].add(pair.start.strftime('%Y-%m-%d %H:%M:%S'))
-            else:
-                # Complete pairs can be reused for adjacent shifts when the same attendance span
-                # legitimately covers more than one OT slot.
-                rec.update({
-                    'checkin_staff_id': pair.staff_id,
-                    'checkin_id': pair.start_id,
-                    'checkout_id': pair.end_id,
-                    'checkins': checkin,
-                    'checkouts': checkout,
-                    'late_checkin_display': f'{humanized_work_time(checkin_late_minutes)}' if checkin_late_minutes else None,
-                    'late_minutes': checkin_late_minutes,
-                    'early_minutes': checkout_early_minutes,
-                    'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
-                    'payment': total_pay,
-                    'work_minutes': total_work_minutes,
-                    'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes else None,
-                    'missing_checkout': missing_checkout,
-                })
-                ot_record_checkins[record] += 1
-                if pair.end is None or pair.start_id is None or pair.end_id is None:
-                    used_checkouts[record.staff_account_id].add(pair.start.strftime('%Y-%m-%d %H:%M:%S'))
-        all_records.append(rec)
+                    if total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
+                        rec.update({
+                            'checkin_staff_id': _pair.staff_id,
+                            'checkin_id': _pair.start_id,
+                            'checkout_id': _pair.end_id,
+                            'checkins': checkin,
+                            'checkouts': checkout,
+                            'late_checkin_display': f'{humanized_work_time(checkin_late_minutes)}' if checkin_late_minutes else None,
+                            'late_minutes': checkin_late_minutes,
+                            'early_minutes': checkout_early_minutes,
+                            'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
+                            'payment': total_pay,
+                            'work_minutes': total_work_minutes,
+                            'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes else None,
+                        })
+                        ot_record_checkins[record] += 1
+                        if _pair.end and _pair.start_id is None:
+                            used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                        break
+            all_records.append(rec)
 
     if download == 'yes':
         if request.args.get('download_data') == 'counts':
