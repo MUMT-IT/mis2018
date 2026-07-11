@@ -225,7 +225,14 @@ def _call_unwrapped_view(view):
         (
             "early_checkin_only",
             [_make_login(101, 2, _bangkok_dt(2024, 1, 2, 8, 45), None)],
-            {"late_minutes": 0, "early_minutes": 0, "work_minutes": 480, "checkins": "2024-01-02T08:45:00+07:00", "checkouts": None},
+            {
+                "late_minutes": 0,
+                "early_minutes": 0,
+                "work_minutes": None,
+                "checkins": "2024-01-02T08:45:00+07:00",
+                "checkouts": None,
+                "missing_checkout": True,
+            },
         ),
         (
             "early_checkout",
@@ -282,10 +289,11 @@ def test_get_all_ot_records_table_calculates_all_time_variants(ot_views, scenari
     assert row["work_minutes"] == expected["work_minutes"]
     assert row["late_checkin_display"] == (f'{expected["late_minutes"]}m' if expected["late_minutes"] else None)
     assert row["early_checkout_display"] == (f'{expected["early_minutes"]}m' if expected["early_minutes"] else None)
-    assert row["work_minutes_display"] == f'{expected["work_minutes"]}m'
+    assert row["work_minutes_display"] == (f'{expected["work_minutes"]}m' if expected["work_minutes"] else None)
     assert row["checkins"] == expected["checkins"]
     assert row["checkouts"] == expected["checkouts"]
-    assert row["payment"] == _expected_pay(expected["work_minutes"], 120.0)
+    assert row["payment"] == (_expected_pay(expected["work_minutes"], 120.0) if expected["work_minutes"] else None)
+    assert row["missing_checkout"] == expected.get("missing_checkout", False)
 
 
 def test_get_all_ot_records_table_includes_staff_without_any_checkins(ot_views):
@@ -479,6 +487,225 @@ def test_get_all_ot_records_table_does_not_pay_open_per_period_shift(ot_views):
     assert row["payment"] is None
 
 
+def test_get_all_ot_records_table_does_not_borrow_next_day_checkout_for_same_day_shift(ot_views):
+    shift_record = _make_record(
+        staff_id=412,
+        fullname="Missing Checkout",
+        sap_id="SAP-412",
+        shift_start=datetime(2024, 1, 2, 16, 0),
+        shift_end=datetime(2024, 1, 2, 20, 0),
+        rate=100.0,
+    )
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_record.shift.datetime.lower, upper=shift_record.shift.datetime.upper),
+            records=[shift_record],
+        )
+    ]
+    logins = [
+        _make_login(412, 91, _bangkok_dt(2024, 1, 2, 7, 33), None),
+        _make_login(412, 92, _bangkok_dt(2024, 1, 3, 5, 45), None),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2024-01-02T00:00:00%2B07:00&end=2024-01-03T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    payload = response.get_json()
+    assert len(payload["data"]) == 1
+    row = payload["data"][0]
+    assert row["checkins"] == "2024-01-02T07:33:00+07:00"
+    assert row["checkouts"] is None
+    assert row["work_minutes"] is None
+    assert row["payment"] is None
+    assert row["missing_checkout"] is True
+
+
+def test_get_all_ot_records_table_allows_long_complete_pair_to_cover_adjacent_shifts(ot_views):
+    shift_one = _make_record(
+        staff_id=413,
+        fullname="Sequence Staff",
+        sap_id="SAP-413",
+        shift_start=datetime(2026, 7, 7, 6, 0),
+        shift_end=datetime(2026, 7, 7, 7, 0),
+        rate=100.0,
+    )
+    shift_two = _make_record(
+        staff_id=413,
+        fullname="Sequence Staff",
+        sap_id="SAP-413",
+        shift_start=datetime(2026, 7, 7, 7, 0),
+        shift_end=datetime(2026, 7, 7, 8, 0),
+        rate=100.0,
+    )
+    shift_one.id = 9201
+    shift_two.id = 9202
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_one.shift.datetime.lower, upper=shift_one.shift.datetime.upper),
+            records=[shift_one],
+        ),
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_two.shift.datetime.lower, upper=shift_two.shift.datetime.upper),
+            records=[shift_two],
+        ),
+    ]
+    logins = [
+        _make_login(413, 111, _bangkok_dt(2026, 7, 7, 5, 0), _bangkok_dt(2026, 7, 7, 18, 0)),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2026-07-07T00:00:00%2B07:00&end=2026-07-07T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    payload = response.get_json()
+    assert len(payload["data"]) == 2
+    first_row = payload["data"][0]
+    second_row = payload["data"][1]
+
+    assert first_row["start"] == "2026-07-07T06:00:00+07:00"
+    assert first_row["checkins"] == "2026-07-07T05:00:00+07:00"
+    assert first_row["checkouts"] == "2026-07-07T18:00:00+07:00"
+    assert first_row["work_minutes"] == 60
+
+    assert second_row["start"] == "2026-07-07T07:00:00+07:00"
+    assert second_row["checkins"] == "2026-07-07T05:00:00+07:00"
+    assert second_row["checkouts"] == "2026-07-07T18:00:00+07:00"
+    assert second_row["work_minutes"] == 60
+
+
+def test_get_all_ot_records_table_keeps_consecutive_shifts_isolated_after_missing_checkout(ot_views):
+    shift_early = _make_record(
+        staff_id=413,
+        fullname="Sequence Staff",
+        sap_id="SAP-413",
+        shift_start=datetime(2026, 7, 7, 6, 0),
+        shift_end=datetime(2026, 7, 7, 7, 0),
+        rate=100.0,
+    )
+    shift_mid = _make_record(
+        staff_id=413,
+        fullname="Sequence Staff",
+        sap_id="SAP-413",
+        shift_start=datetime(2026, 7, 7, 7, 0),
+        shift_end=datetime(2026, 7, 7, 8, 0),
+        rate=100.0,
+    )
+    shift_late = _make_record(
+        staff_id=413,
+        fullname="Sequence Staff",
+        sap_id="SAP-413",
+        shift_start=datetime(2026, 7, 7, 16, 0),
+        shift_end=datetime(2026, 7, 7, 20, 0),
+        rate=100.0,
+    )
+    shift_next_day = _make_record(
+        staff_id=413,
+        fullname="Sequence Staff",
+        sap_id="SAP-413",
+        shift_start=datetime(2026, 7, 8, 7, 0),
+        shift_end=datetime(2026, 7, 8, 8, 0),
+        rate=100.0,
+    )
+    shift_early.id = 9101
+    shift_mid.id = 9102
+    shift_late.id = 9103
+    shift_next_day.id = 9104
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_early.shift.datetime.lower, upper=shift_early.shift.datetime.upper),
+            records=[shift_early],
+        ),
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_mid.shift.datetime.lower, upper=shift_mid.shift.datetime.upper),
+            records=[shift_mid],
+        ),
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_late.shift.datetime.lower, upper=shift_late.shift.datetime.upper),
+            records=[shift_late],
+        ),
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_next_day.shift.datetime.lower, upper=shift_next_day.shift.datetime.upper),
+            records=[shift_next_day],
+        ),
+    ]
+    logins = [
+        _make_login(413, 101, _bangkok_dt(2026, 7, 7, 5, 46), None),
+        _make_login(413, 102, _bangkok_dt(2026, 7, 8, 6, 48), _bangkok_dt(2026, 7, 8, 12, 48)),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2026-07-07T00:00:00%2B07:00&end=2026-07-08T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    payload = response.get_json()
+    assert len(payload["data"]) == 4
+
+    early_row = payload["data"][0]
+    mid_row = payload["data"][1]
+    late_row = payload["data"][2]
+    next_day_row = payload["data"][3]
+
+    assert early_row["start"] == "2026-07-07T06:00:00+07:00"
+    assert early_row["checkins"] == "2026-07-07T05:46:00+07:00"
+    assert early_row["checkouts"] is None
+    assert early_row["work_minutes"] is None
+    assert early_row["missing_checkout"] is True
+
+    assert mid_row["start"] == "2026-07-07T07:00:00+07:00"
+    assert mid_row["checkins"] is None
+    assert mid_row["checkouts"] is None
+    assert mid_row["work_minutes"] is None
+
+    assert late_row["start"] == "2026-07-07T16:00:00+07:00"
+    assert late_row["checkins"] is None
+    assert late_row["checkouts"] is None
+    assert late_row["work_minutes"] is None
+
+    assert next_day_row["start"] == "2026-07-08T07:00:00+07:00"
+    assert next_day_row["checkins"] == "2026-07-08T06:48:00+07:00"
+    assert next_day_row["checkouts"] == "2026-07-08T12:48:00+07:00"
+    assert next_day_row["work_minutes"] == 60
+    assert next_day_row["payment"] == 100.0
+    assert next_day_row["missing_checkout"] is False
+
+
 def test_get_all_ot_records_table_keeps_row_when_late_checkin_exceeds_limit(ot_views):
     shift_record = _make_record(
         staff_id=505,
@@ -585,6 +812,73 @@ def test_get_all_ot_records_table_ignores_midnight_checkout_as_fake_checkin(ot_v
     assert followup_row["start"] == "2024-01-03T02:15:00+07:00"
     assert followup_row["checkins"] is None
     assert followup_row["checkouts"] is None
+
+
+def test_get_all_ot_records_table_keeps_next_morning_scan_separate_from_midnight_checkout(ot_views):
+    overnight_shift = _make_record(
+        staff_id=608,
+        fullname="Midnight Staff",
+        sap_id="SAP-608",
+        shift_start=datetime(2024, 1, 2, 23, 0),
+        shift_end=datetime(2024, 1, 3, 0, 0),
+        rate=100.0,
+    )
+    morning_shift = _make_record(
+        staff_id=608,
+        fullname="Midnight Staff",
+        sap_id="SAP-608",
+        shift_start=datetime(2024, 1, 3, 7, 0),
+        shift_end=datetime(2024, 1, 3, 8, 0),
+        rate=100.0,
+    )
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=overnight_shift.shift.datetime.lower, upper=overnight_shift.shift.datetime.upper),
+            records=[overnight_shift],
+        ),
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=morning_shift.shift.datetime.lower, upper=morning_shift.shift.datetime.upper),
+            records=[morning_shift],
+        ),
+    ]
+    logins = [
+        _make_login(608, 43, _bangkok_dt(2024, 1, 2, 23, 30), None),
+        _make_login(608, 44, _bangkok_dt(2024, 1, 3, 0, 7), None),
+        _make_login(608, 45, _bangkok_dt(2024, 1, 3, 5, 45), None),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2024-01-02T00:00:00%2B07:00&end=2024-01-03T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    payload = response.get_json()
+    assert len(payload["data"]) == 2
+
+    overnight_row = payload["data"][0]
+    morning_row = payload["data"][1]
+
+    assert overnight_row["start"] == "2024-01-02T23:00:00+07:00"
+    assert overnight_row["checkins"] == "2024-01-02T23:30:00+07:00"
+    assert overnight_row["checkouts"] == "2024-01-03T00:00:00+07:00"
+    assert overnight_row["work_minutes"] == 30.0
+
+    assert morning_row["start"] == "2024-01-03T07:00:00+07:00"
+    assert morning_row["checkins"] == "2024-01-03T05:45:00+07:00"
+    assert morning_row["checkouts"] is None
+    assert morning_row["work_minutes"] is None
+    assert morning_row["missing_checkout"] is True
 
 
 def test_get_all_ot_records_table_keeps_one_row_for_multiple_login_pairs(ot_views):
