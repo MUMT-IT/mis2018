@@ -40,18 +40,18 @@
                          </span>
                         <span>กลับ</span>
                     </a>
-                    <a class="button is-warning" onclick="download_report()">
+                    <button class="button is-warning" type="button" id="report-signatory-button">
                          <span class="icon">
                              <i class="fa-solid fa-download"></i>
                          </span>
                         <span>report</span>
-                    </a>
-                    <a class="button is-danger" onclick="download_finance_pdf()">
+                    </button>
+                    <button class="button is-danger" type="button" id="finance-signatory-button">
                          <span class="icon">
                              <i class="fa-solid fa-file-pdf"></i>
                          </span>
                         <span>finance pdf</span>
-                    </a>
+                    </button>
                     <a class="button is-link" onclick="download_shedule()">
                          <span class="icon">
                              <i class="fa-solid fa-download"></i>
@@ -61,12 +61,12 @@
                 </div>
             </div>
         </div>
-        <div class="modal" id="financePdfModal">
-            <div class="modal-background" onclick="closeFinancePdfModal()"></div>
+        <div class="modal" id="signatoryModal">
+            <div class="modal-background" onclick="closeSignatoryModal()"></div>
             <div class="modal-card">
                 <header class="modal-card-head">
                     <p class="modal-card-title">เลือกผู้ลงนาม</p>
-                    <button class="delete" aria-label="close" type="button" onclick="closeFinancePdfModal()"></button>
+                    <button class="delete" aria-label="close" type="button" onclick="closeSignatoryModal()"></button>
                 </header>
                 <section class="modal-card-body">
                     <div class="field">
@@ -98,8 +98,8 @@
                     </div>
                 </section>
                 <footer class="modal-card-foot">
-                    <button class="button is-link" type="button" onclick="confirmFinancePdf()">สร้าง PDF</button>
-                    <button class="button" type="button" onclick="closeFinancePdfModal()">ยกเลิก</button>
+                    <button class="button is-link" type="button" id="signatoryModalConfirmButton" onclick="confirmSignatoryDownload()">สร้างรายงาน</button>
+                    <button class="button" type="button" onclick="closeSignatoryModal()">ยกเลิก</button>
                 </footer>
             </div>
         </div>
@@ -224,28 +224,37 @@
     function download_schedule() {
         window.location = baseURL + '?download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
-    function download_report() {
-        window.location = baseURL + '?download=yes&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    function openSignatoryModal(format) {
+        $('#signatoryModal').addClass('is-active');
+        $('#signatoryModal').data('download-format', format);
+        const buttonLabel = format === 'finance-pdf' ? 'สร้าง PDF' : 'สร้างรายงาน';
+        $('#signatoryModalConfirmButton').text(buttonLabel);
     }
-    function download_finance_pdf() {
-        openFinancePdfModal()
+    function closeSignatoryModal() {
+        $('#signatoryModal').removeClass('is-active');
+        $('#signatoryModal').removeData('download-format');
     }
-    function openFinancePdfModal() {
-        $('#financePdfModal').addClass('is-active');
-    }
-    function closeFinancePdfModal() {
-        $('#financePdfModal').removeClass('is-active');
-    }
-    function confirmFinancePdf() {
+    function confirmSignatoryDownload() {
         const selectedSignatory = $('input[name="finance-signatory-id"]:checked').val();
+        const format = $('#signatoryModal').data('download-format') || 'report';
         const params = new URLSearchParams({
             download: 'yes',
-            format: 'finance-pdf',
-            signatory_id: selectedSignatory,
+            format: format,
             start: $("input[name='dates']").data("daterangepicker").startDate.toISOString(),
             end: $("input[name='dates']").data("daterangepicker").endDate.toISOString(),
         });
+        if (selectedSignatory) {
+            params.set('signatory_id', selectedSignatory);
+        }
         window.location = baseURL + '?' + params.toString()
     }
+
+    document.addEventListener('click', function (event) {
+        if (event.target.closest('#report-signatory-button')) {
+            openSignatoryModal('report')
+        } else if (event.target.closest('#finance-signatory-button')) {
+            openSignatoryModal('finance-pdf')
+        }
+    })
     </script>
 {% endblock %}
