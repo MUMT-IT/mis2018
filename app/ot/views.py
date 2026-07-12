@@ -2570,10 +2570,13 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
 
             if checkin_pairs[record.staff_account_id]:
                 for _pair in checkin_pairs[record.staff_account_id]:
-                    # Ignore scan pairs that do not fall inside the shift date window.
-                    if _pair.start and _pair.end:
-                        if _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
+                    # Ignore scan pairs that do not belong to the shift day.
+                    # Open rows must stay on their own day so a later scan cannot satisfy an earlier shift.
+                    if _pair.end is None:
+                        if _pair.start.date() != shift_start.date():
                             continue
+                    elif _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
+                        continue
 
                     # Treat midnight as a real check-in only for midnight-starting shifts.
                     if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():

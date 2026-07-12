@@ -849,6 +849,52 @@ def test_get_all_ot_records_table_keeps_staff_visible_without_checkins(ot_views)
     assert row["payment"] is None
 
 
+def test_get_all_ot_records_table_does_not_reuse_future_open_checkin_for_past_shift(ot_views):
+    shift_record = _make_record(
+        staff_id=811,
+        fullname="Wrong Day Staff",
+        sap_id="SAP-811",
+        shift_start=datetime(2026, 6, 12, 7, 0),
+        shift_end=datetime(2026, 6, 12, 8, 0),
+        rate=100.0,
+    )
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_record.shift.datetime.lower, upper=shift_record.shift.datetime.upper),
+            records=[shift_record],
+        )
+    ]
+    logins = [
+        _make_login(811, 91, _bangkok_dt(2026, 7, 10, 8, 7), None),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2026-06-12T00:00:00%2B07:00&end=2026-06-12T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    payload = response.get_json()
+    assert len(payload["data"]) == 1
+    row = payload["data"][0]
+    assert row["fullname"] == "Wrong Day Staff"
+    assert row["checkins"] is None
+    assert row["checkouts"] is None
+    assert row["late_minutes"] is None
+    assert row["early_minutes"] is None
+    assert row["payment"] is None
+
+
 def test_get_all_ot_records_table_formats_download_rows_as_strings(ot_views, monkeypatch):
     captured = {}
 
