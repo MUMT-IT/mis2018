@@ -59,6 +59,8 @@ from .forms import HealthEducationVideoForm
 from .video_admin import (
     build_health_education_video_attributes,
     filter_health_education_videos,
+    get_top_related_health_education_videos,
+    order_health_education_videos,
     persist_health_education_video,
 )
 from .models import *
@@ -146,6 +148,29 @@ def _render_health_education_video_page(template_name, *, form, videos=None, fil
     )
 
 
+def _health_risk_video_concern_keys(report):
+    return [issue.get('key') for issue in report.get('top_issues', []) if issue.get('key')]
+
+
+def _recommended_health_education_videos(concern_keys, *, limit=3):
+    videos = ComHealthEducationVideo.query.filter_by(is_active=True).all()
+    return get_top_related_health_education_videos(videos, concern_keys=concern_keys, limit=limit)
+
+
+def _related_health_education_videos_by_issue(issue_keys, *, limit=3):
+    videos = ComHealthEducationVideo.query.filter_by(is_active=True).all()
+    return {
+        issue_key: get_top_related_health_education_videos(videos, concern_keys=[issue_key], limit=limit)
+        for issue_key in issue_keys
+        if issue_key
+    }
+
+
+def _all_health_education_videos(*, concern_keys=None):
+    videos = ComHealthEducationVideo.query.all()
+    return order_health_education_videos(videos, concern_keys=concern_keys)
+
+
 @comhealth.route('/admin/health-education-videos', methods=['GET', 'POST'])
 @login_required
 @admin_permission.require(http_exception=403)
@@ -184,6 +209,30 @@ def health_education_videos():
         form=form,
         videos=videos,
         filters=filters,
+    )
+
+
+@comhealth.route('/health-education-videos')
+def health_education_videos_page():
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    concern_key = (request.args.get('concern') or '').strip()
+    concern_keys = [concern_key] if concern_key else []
+    selected_concern_label = ui['issue_name'].get(concern_key, '') if concern_key else ''
+
+    recommended_videos = _recommended_health_education_videos(concern_keys, limit=3) if concern_keys else []
+    videos = _all_health_education_videos(concern_keys=concern_keys if concern_keys else None)
+
+    return render_template(
+        'comhealth/health_education_videos.html',
+        current_lang=current_lang,
+        ui=ui,
+        concern_key=concern_key,
+        selected_concern_label=selected_concern_label,
+        recommended_videos=recommended_videos,
+        videos=videos,
+        report_url=request.args.get('report_url', ''),
     )
 
 
@@ -4391,6 +4440,10 @@ def customer_result(serviceNo, email, servicedate, age=None):
     current_lang = (request.args.get('lang', 'th') or 'th').lower()
     current_lang = 'en' if current_lang.startswith('en') else 'th'
     ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age_display, current_lang)
+    concern_keys = _health_risk_video_concern_keys(bundle['report'])
+    recommended_videos = _recommended_health_education_videos(concern_keys, limit=3)
+    selected_concern_label = bundle['report']['top_issues'][0]['issue_name'] if bundle['report']['top_issues'] else ''
 
     return render_template(
         'comhealth/result.html',
@@ -4403,6 +4456,10 @@ def customer_result(serviceNo, email, servicedate, age=None):
         age_for_api=age_for_api,
         current_lang=current_lang,
         ui=ui,
+        top_issues=bundle["report"]["top_issues"],
+        health_summary=bundle["health_summary"],
+        recommended_videos=recommended_videos,
+        selected_concern_label=selected_concern_label,
         health_risk_url=url_for(
             'comhealth.health_risk_result',
             serviceNo=serviceNo,
@@ -4426,6 +4483,12 @@ def customer_result(serviceNo, email, servicedate, age=None):
             servicedate=servicedate,
             age=age_display,
             lang='en',
+        ),
+        more_videos_url=url_for(
+            'comhealth.health_education_videos_page',
+            concern=concern_keys[0] if concern_keys else '',
+            lang=current_lang,
+            report_url=request.url,
         ),
     )
 
@@ -4458,6 +4521,11 @@ def health_risk_result(serviceNo, email, servicedate, age=None):
     current_lang = 'en' if current_lang.startswith('en') else 'th'
     ui = get_health_risk_copy(current_lang)
     bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age_display, current_lang)
+    top_issues = bundle['report']['top_issues']
+    issue_video_map = _related_health_education_videos_by_issue(
+        [issue.get('key') for issue in top_issues if issue.get('key')],
+        limit=3,
+    )
 
     return render_template(
         'comhealth/health_risk_result.html',
@@ -4470,9 +4538,10 @@ def health_risk_result(serviceNo, email, servicedate, age=None):
         age_for_api=age_for_api,
         current_lang=current_lang,
         ui=ui,
-        top_issues=bundle["report"]["top_issues"],
+        top_issues=top_issues,
         health_summary=bundle["health_summary"],
-        recommended_videos=bundle["report"].get("recommended_videos", []),
+        issue_video_map=issue_video_map,
+        videos_page_url=url_for('comhealth.health_education_videos_page', lang=current_lang, report_url=request.url),
         switch_url_th=url_for(
             'comhealth.health_risk_result',
             serviceNo=serviceNo,
@@ -4595,10 +4664,24 @@ def health_risk_issues_partial(serviceNo, email, servicedate, age=None):
         issue for issue in bundle["report"]["issues"]
         if issue.get("concern_score", 0) >= min_score
     ]
+    issue_video_map = _related_health_education_videos_by_issue(
+        [issue.get('key') for issue in issues if issue.get('key')],
+        limit=3,
+    )
+    report_url = url_for(
+        'comhealth.health_risk_result',
+        serviceNo=serviceNo,
+        email=email,
+        servicedate=servicedate,
+        lang=current_lang,
+        **({'age': age} if age and str(age).isdigit() else {}),
+    )
     return render_template(
         'comhealth/partials/health_risk_issues.html',
         ui=ui,
         issues=issues,
+        issue_video_map=issue_video_map,
+        videos_page_url=url_for('comhealth.health_education_videos_page', lang=current_lang, report_url=report_url),
     )
 
 @comhealth.route('/api/physical/<int:serviceNo>')

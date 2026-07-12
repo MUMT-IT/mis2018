@@ -1,11 +1,119 @@
 from __future__ import annotations
 
+import datetime as dt
 import re
 from urllib.parse import parse_qs, urlparse
 
 
 DEFAULT_SOURCE_NAME = "Mahidol University YouTube"
 YOUTUBE_VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
+
+CONCERN_VIDEO_TERMS = {
+    "diabetes_risk": (
+        "diabetes",
+        "เบาหวาน",
+        "น้ำตาลในเลือด",
+        "น้ำตาล",
+        "ก่อนเบาหวาน",
+        "blood sugar",
+        "glucose",
+        "hba1c",
+        "prediabetes",
+        "insulin",
+        "อินซูลิน",
+        "diet",
+        "อาหาร",
+        "exercise",
+        "ออกกำลังกาย",
+        "weight management",
+        "ควบคุมน้ำหนัก",
+    ),
+    "cardiovascular_risk": (
+        "heart",
+        "หัวใจ",
+        "cardiovascular",
+        "หลอดเลือด",
+        "cholesterol",
+        "คอเลสเตอรอล",
+        "blood pressure",
+        "ความดันโลหิต",
+        "hypertension",
+        "ความดันสูง",
+        "ldl",
+        "แอลดีแอล",
+        "hdl",
+        "เอชดีแอล",
+        "triglycerides",
+        "ไตรกลีเซอไรด์",
+        "exercise",
+        "ออกกำลังกาย",
+    ),
+    "kidney_health": (
+        "kidney",
+        "ไต",
+        "renal",
+        "ไตวาย",
+        "creatinine",
+        "ครีเอตินิน",
+        "egfr",
+        "อัตราการกรองของไต",
+        "urine protein",
+        "โปรตีนในปัสสาวะ",
+        "hydration",
+        "การดื่มน้ำ",
+    ),
+    "liver_health": (
+        "liver",
+        "ตับ",
+        "fatty liver",
+        "ไขมันพอกตับ",
+        "hepatitis",
+        "ไวรัสตับอักเสบ",
+        "ast",
+        "alt",
+        "alp",
+    ),
+    "obesity_metabolic_health": (
+        "obesity",
+        "อ้วน",
+        "metabolic syndrome",
+        "เมตาบอลิกซินโดรม",
+        "weight management",
+        "ควบคุมน้ำหนัก",
+        "bmi",
+        "diet",
+        "อาหาร",
+        "exercise",
+        "ออกกำลังกาย",
+        "triglycerides",
+        "ไตรกลีเซอไรด์",
+    ),
+    "anemia_concern": (
+        "anemia",
+        "โลหิตจาง",
+        "iron",
+        "ธาตุเหล็ก",
+        "hemoglobin",
+        "ฮีโมโกลบิน",
+        "hematocrit",
+        "ฮีมาโตคริต",
+        "mcv",
+        "fatigue",
+        "อ่อนเพลีย",
+    ),
+    "gout_risk": (
+        "gout",
+        "เกาต์",
+        "uric acid",
+        "กรดยูริก",
+        "purine",
+        "พิวรีน",
+        "arthritis",
+        "ข้ออักเสบ",
+        "hydration",
+        "ดื่มน้ำ",
+    ),
+}
 
 
 def normalize_csv_values(raw):
@@ -76,6 +184,100 @@ def parse_checkbox_value(value, default=False):
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() not in {"", "0", "false", "off", "no", "none"}
+
+
+def _fold_text(value):
+    if value is None:
+        return ""
+    text = str(value).casefold()
+    text = re.sub(r"[^\w]+", " ", text, flags=re.UNICODE)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _video_sort_timestamp(value):
+    if isinstance(value, dt.datetime):
+        return value.timestamp()
+    return 0.0
+
+
+def _video_search_blob(video):
+    parts = [
+        getattr(video, "title", ""),
+        getattr(video, "summary", ""),
+        getattr(video, "source_name", ""),
+        getattr(video, "source_channel", ""),
+        " ".join(getattr(video, "health_topics", None) or []),
+        " ".join(getattr(video, "keywords", None) or []),
+    ]
+    return _fold_text(" ".join(part for part in parts if part))
+
+
+def _video_term_sets(video):
+    return {
+        "topics": {_fold_text(item) for item in (getattr(video, "health_topics", None) or []) if _fold_text(item)},
+        "keywords": {_fold_text(item) for item in (getattr(video, "keywords", None) or []) if _fold_text(item)},
+    }
+
+
+def _default_video_sort_key(video):
+    display_order = getattr(video, "display_order", None)
+    return (
+        display_order is None,
+        display_order if display_order is not None else 0,
+        -_video_sort_timestamp(getattr(video, "updated_at", None)),
+        -_video_sort_timestamp(getattr(video, "created_at", None)),
+        _fold_text(getattr(video, "title", "")),
+    )
+
+
+def score_health_education_video(video, concern_keys=None):
+    concern_keys = [key for key in (concern_keys or []) if key]
+    if not concern_keys:
+        return 0
+
+    blob = _video_search_blob(video)
+    term_sets = _video_term_sets(video)
+    score = 0
+
+    for rank, concern_key in enumerate(concern_keys):
+        concern_weight = max(1, len(concern_keys) - rank)
+        concern_terms = CONCERN_VIDEO_TERMS.get(concern_key, ())
+        normalized_concern = _fold_text(concern_key.replace("_", " "))
+
+        if normalized_concern and normalized_concern in blob:
+            score += 3 * concern_weight
+
+        for term in concern_terms:
+            normalized_term = _fold_text(term)
+            if not normalized_term:
+                continue
+            if normalized_term in term_sets["topics"]:
+                score += 8 * concern_weight
+            elif normalized_term in term_sets["keywords"]:
+                score += 6 * concern_weight
+            elif normalized_term in blob:
+                score += 2 * concern_weight
+
+    return score
+
+
+def order_health_education_videos(videos, concern_keys=None):
+    if concern_keys:
+        return sorted(
+            videos,
+            key=lambda video: (
+                -score_health_education_video(video, concern_keys=concern_keys),
+                *_default_video_sort_key(video),
+            ),
+        )
+    return sorted(videos, key=_default_video_sort_key)
+
+
+def get_top_related_health_education_videos(videos, concern_keys=None, limit=3):
+    ordered_videos = order_health_education_videos(videos, concern_keys=concern_keys)
+    if limit is None:
+        return ordered_videos
+    return ordered_videos[:limit]
 
 
 def build_health_education_video_attributes(form_data):
