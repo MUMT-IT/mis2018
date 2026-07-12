@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title>{{ ui.videos_page_title }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary-medical: #0f766e;
+            --secondary-medical: #0d9488;
+            --accent-medical: #f0fdfa;
+            --surface: #ffffff;
+            --surface-muted: #f8fafc;
+            --border: #dbe4ea;
+            --text: #0f172a;
+            --muted: #64748b;
+            --shadow: 0 20px 40px -18px rgba(15, 23, 42, 0.18);
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(13, 148, 136, 0.14), transparent 28%),
+                radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 20%),
+                linear-gradient(180deg, #ecfeff 0%, #f8fafc 40%, #ffffff 100%);
+            color: var(--text);
+        }
+
+        .page-shell {
+            max-width: 1200px;
+            margin: 1.5rem auto 3rem;
+            padding: 0 1rem;
+        }
+
+        .hero-card,
+        .section-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            border-radius: 1.5rem;
+        }
+
+        .hero-card {
+            overflow: hidden;
+            position: relative;
+            padding: 2rem;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-medical) 0%, #155e75 60%, #0f172a 100%);
+        }
+
+        .hero-card::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0;
+            height: 34px;
+            background: #ffffff;
+            clip-path: ellipse(52% 100% at 50% 100%);
+        }
+
+        .hero-kicker {
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .hero-title {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 56rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .tag.is-soft {
+            background: rgba(255, 255, 255, 0.14);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 999px;
+        }
+
+        .section-card {
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .video-list {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .video-link {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.75rem;
+            width: 100%;
+            text-align: left;
+            white-space: normal;
+            min-height: 3rem;
+        }
+
+        .empty-state {
+            padding: 1.5rem;
+            border-radius: 1.25rem;
+            border: 1px dashed var(--border);
+            background: #f8fafc;
+        }
+
+        @media (max-width: 768px) {
+            .hero-card,
+            .section-card {
+                border-radius: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <section class="hero-card">
+            <div class="is-flex is-align-items-center is-justify-content-space-between is-flex-wrap-wrap" style="gap: 1rem;">
+                <div>
+                    <div class="hero-kicker">ComHealth</div>
+                    <h1 class="title is-2 hero-title">{{ ui.videos_page_title }}</h1>
+                    <p class="hero-subtitle">{{ ui.videos_page_subtitle }}</p>
+                </div>
+                <div class="has-text-right">
+                    <div class="tags are-medium" style="justify-content:flex-end;">
+                        <span class="tag is-soft">{{ videos|length }} videos</span>
+                        {% if selected_concern_label %}
+                            <span class="tag is-soft">{{ selected_concern_label }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-actions">
+                {% if report_url %}
+                    <a class="button is-light is-rounded" href="{{ report_url }}">
+                        <span class="icon"><i class="fa-solid fa-arrow-left"></i></span>
+                        <span>{{ ui.videos_page_back }}</span>
+                    </a>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if recommended_videos %}
+            <section class="section-card">
+                <div class="section-head">
+                    <div>
+                        <h2 class="title is-4 mb-1">{{ ui.related_videos_title }}</h2>
+                        {% if selected_concern_label %}
+                            <p class="is-size-7 has-text-grey">Based on {{ selected_concern_label }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="video-list">
+                    {% for video in recommended_videos %}
+                        <a class="button is-link is-light is-rounded video-link" href="{{ video.youtube_url }}" target="_blank" rel="noopener noreferrer">
+                            <span class="icon is-small"><i class="fa-solid fa-play"></i></span>
+                            <span>{{ video.title }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        <section class="section-card">
+            <div class="section-head">
+                <div>
+                    <h2 class="title is-4 mb-1">{{ ui.videos_page_all_title }}</h2>
+                    <p class="is-size-7 has-text-grey">{{ ui.videos_page_metadata }}</p>
+                </div>
+            </div>
+
+            {% if videos %}
+                <div class="video-list">
+                    {% for video in videos %}
+                        <a class="button is-link is-light is-rounded video-link" href="{{ video.youtube_url }}" target="_blank" rel="noopener noreferrer">
+                            <span class="icon is-small"><i class="fa-solid fa-play"></i></span>
+                            <span>{{ video.title }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="is-flex is-align-items-flex-start" style="gap: 0.75rem;">
+                        <span class="icon has-text-info mt-1"><i class="fa-solid fa-video"></i></span>
+                        <div>
+                            <p class="has-text-weight-semibold mb-1">No videos found</p>
+                            <p class="is-size-7 has-text-grey">Add videos in the admin page to populate this catalog.</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</body>
+</html>

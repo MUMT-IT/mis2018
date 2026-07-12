@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from flask import Flask, render_template
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -21,8 +22,10 @@ build_health_education_video_attributes = VIDEO_ADMIN.build_health_education_vid
 build_youtube_embed_url = VIDEO_ADMIN.build_youtube_embed_url
 extract_youtube_video_id = VIDEO_ADMIN.extract_youtube_video_id
 filter_health_education_videos = VIDEO_ADMIN.filter_health_education_videos
+get_top_related_health_education_videos = VIDEO_ADMIN.get_top_related_health_education_videos
 is_valid_youtube_url = VIDEO_ADMIN.is_valid_youtube_url
 normalize_csv_values = VIDEO_ADMIN.normalize_csv_values
+order_health_education_videos = VIDEO_ADMIN.order_health_education_videos
 persist_health_education_video = VIDEO_ADMIN.persist_health_education_video
 
 
@@ -235,3 +238,166 @@ def test_filtering_by_topic_keyword_language_and_active_status():
 
     filtered = filter_health_education_videos(videos, is_active='false')
     assert [video.title for video in filtered] == ['B']
+
+
+def test_related_videos_are_ranked_by_concern_and_limited_to_three():
+    videos = [
+        SimpleNamespace(
+            title='Diabetes basics',
+            youtube_url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            youtube_video_id='dQw4w9WgXcQ',
+            source_name='Mahidol University YouTube',
+            source_channel='Health Channel',
+            health_topics=['diabetes', 'exercise'],
+            keywords=['blood sugar'],
+            summary='How to manage blood sugar.',
+            language='th',
+            audience_level='general',
+            is_active=True,
+            is_embeddable=True,
+            youtube_embed_url='https://www.youtube.com/embed/dQw4w9WgXcQ',
+            youtube_thumbnail_url='https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+            display_order=2,
+            created_at=None,
+            updated_at=None,
+        ),
+        SimpleNamespace(
+            title='Heart health',
+            youtube_url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            youtube_video_id='abcdefghijk',
+            source_name='Mahidol University YouTube',
+            source_channel='Health Channel',
+            health_topics=['cardiovascular'],
+            keywords=['cholesterol'],
+            summary='Heart health guidance.',
+            language='th',
+            audience_level='general',
+            is_active=True,
+            is_embeddable=True,
+            youtube_embed_url='https://www.youtube.com/embed/abcdefghijk',
+            youtube_thumbnail_url='https://img.youtube.com/vi/abcdefghijk/hqdefault.jpg',
+            display_order=1,
+            created_at=None,
+            updated_at=None,
+        ),
+        SimpleNamespace(
+            title='Kidney care',
+            youtube_url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            youtube_video_id='lmnopqrstuv',
+            source_name='Mahidol University YouTube',
+            source_channel='Health Channel',
+            health_topics=['kidney'],
+            keywords=['creatinine'],
+            summary='Kidney care guidance.',
+            language='th',
+            audience_level='general',
+            is_active=True,
+            is_embeddable=True,
+            youtube_embed_url='https://www.youtube.com/embed/lmnopqrstuv',
+            youtube_thumbnail_url='https://img.youtube.com/vi/lmnopqrstuv/hqdefault.jpg',
+            display_order=3,
+            created_at=None,
+            updated_at=None,
+        ),
+        SimpleNamespace(
+            title='Liver care',
+            youtube_url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            youtube_video_id='zyxwvutsrqp',
+            source_name='Mahidol University YouTube',
+            source_channel='Health Channel',
+            health_topics=['liver'],
+            keywords=['alt'],
+            summary='Liver care guidance.',
+            language='th',
+            audience_level='general',
+            is_active=True,
+            is_embeddable=True,
+            youtube_embed_url='https://www.youtube.com/embed/zyxwvutsrqp',
+            youtube_thumbnail_url='https://img.youtube.com/vi/zyxwvutsrqp/hqdefault.jpg',
+            display_order=4,
+            created_at=None,
+            updated_at=None,
+        ),
+    ]
+
+    ordered = order_health_education_videos(videos, concern_keys=['diabetes_risk'])
+    assert ordered[0].title == 'Diabetes basics'
+
+    top_three = get_top_related_health_education_videos(videos, concern_keys=['diabetes_risk'], limit=3)
+    assert len(top_three) == 3
+    assert [video.title for video in top_three] == ['Diabetes basics', 'Heart health', 'Kidney care']
+
+
+def test_thai_terms_match_related_videos():
+    videos = [
+        SimpleNamespace(
+            title='ดูแลผู้ป่วยเบาหวาน',
+            youtube_url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            youtube_video_id='dQw4w9WgXcQ',
+            source_name='Mahidol University YouTube',
+            source_channel='Health Channel',
+            health_topics=['เบาหวาน', 'อาหาร'],
+            keywords=['น้ำตาลในเลือด'],
+            summary='คลิปให้ความรู้เรื่องเบาหวาน',
+            language='th',
+            audience_level='general',
+            is_active=True,
+            is_embeddable=True,
+            youtube_embed_url='https://www.youtube.com/embed/dQw4w9WgXcQ',
+            youtube_thumbnail_url='https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+            display_order=1,
+            created_at=None,
+            updated_at=None,
+        ),
+        SimpleNamespace(
+            title='เรื่องสุขภาพทั่วไป',
+            youtube_url='https://www.youtube.com/watch?v=abcdefghijk',
+            youtube_video_id='abcdefghijk',
+            source_name='Mahidol University YouTube',
+            source_channel='Health Channel',
+            health_topics=['ทั่วไป'],
+            keywords=['สุขภาพ'],
+            summary='คลิปทั่วไป',
+            language='th',
+            audience_level='general',
+            is_active=True,
+            is_embeddable=True,
+            youtube_embed_url='https://www.youtube.com/embed/abcdefghijk',
+            youtube_thumbnail_url='https://img.youtube.com/vi/abcdefghijk/hqdefault.jpg',
+            display_order=2,
+            created_at=None,
+            updated_at=None,
+        ),
+    ]
+
+    top_one = get_top_related_health_education_videos(videos, concern_keys=['diabetes_risk'], limit=1)
+    assert [video.title for video in top_one] == ['ดูแลผู้ป่วยเบาหวาน']
+
+
+def test_videos_page_renders_titles_as_clickable_links():
+    app = Flask("test", template_folder=str(PROJECT_ROOT / "app" / "templates"))
+    video = SimpleNamespace(
+        title='Diabetes basics',
+        youtube_url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    )
+
+    with app.test_request_context('/comhealth/health-education-videos'):
+        rendered = render_template(
+            'comhealth/health_education_videos.html',
+            current_lang='en',
+            ui={
+                'videos_page_title': 'Health Education Videos',
+                'videos_page_subtitle': 'Browse the full catalog with metadata for each video.',
+                'videos_page_back': 'Back to report',
+                'related_videos_title': 'Recommended related videos',
+            },
+            videos=[video],
+            recommended_videos=[video],
+            report_url='',
+            selected_concern_label='',
+        )
+
+    assert 'href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"' in rendered
+    assert 'Diabetes basics' in rendered
+    assert 'Source' not in rendered
+    assert 'Duration' not in rendered

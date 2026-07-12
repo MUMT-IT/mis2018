@@ -1638,8 +1638,10 @@ def view_monthly_records():
 @manager_permission.union(secretary_permission).require()
 def view_staff_monthly_records(staff_id, announcement_id):
     staff = StaffAccount.query.get(staff_id)
+    announcement = OtPaymentAnnounce.query.get_or_404(announcement_id)
     return render_template('ot/staff_admin_records.html',
-                           staff=staff, announcement_id=announcement_id)
+                           staff=staff, announcement_id=announcement_id,
+                           signatories=announcement.signatories)
 
 
 @ot.route('/admin/announcements/<int:announcement_id>/shifts')
@@ -1816,6 +1818,7 @@ def convert_time_format(time):
 
 
 def write_ot_report_workbook(writer, records_df, format='timesheet'):
+    records_df = _normalize_ot_export_frame(records_df)
     total_work_minutes = records_df.groupby(['fullname', 'sap'])['work_minutes'].sum()
     total_work_minutes.apply(convert_time_format).to_excel(writer, sheet_name='total_minutes')
 
@@ -1868,7 +1871,34 @@ def format_buddhist_date_range(start_date, end_date):
     return f'{start_text} - {end_text}'
 
 
+def _normalize_ot_export_frame(records_df):
+    frame = records_df.copy()
+    for column in [
+        'fullname',
+        'sap',
+        'position',
+        'rate',
+        'start',
+        'end',
+        'checkins',
+        'checkouts',
+        'late_checkin_display',
+        'late_minutes',
+        'early_checkout_display',
+        'early_minutes',
+        'work_minutes',
+        'payment',
+        'staff',
+        'timeslot',
+        'startDate',
+    ]:
+        if column not in frame.columns:
+            frame[column] = pd.NA
+    return frame
+
+
 def build_custom_ot_report_workbook(records_df, cal_start, cal_end, selected_signatory=None):
+    records_df = _normalize_ot_export_frame(records_df)
     report_df = records_df[records_df['payment'].notna()].copy()
     workbook = Workbook()
     workbook.remove(workbook.active)
@@ -1921,12 +1951,15 @@ def write_total_payment_custom_sheet(workbook, report_df):
     total_payment = report_df.groupby(['fullname', 'sap'])['payment'].sum().reset_index()
     for row in total_payment.itertuples(index=False):
         sheet.append([row.fullname, row.sap, round(row.payment, 2)])
-    total_row = sheet.max_row + 1
-    sheet.cell(row=total_row, column=3).value = f'=SUM(C2:C{total_row - 1})'
+    if sheet.max_row > 1:
+        total_row = sheet.max_row + 1
+        sheet.cell(row=total_row, column=3).value = f'=SUM(C2:C{total_row - 1})'
 
 
 def write_summary_report_custom_sheet(workbook, renamed_df, cal_end):
     sheet = workbook.create_sheet('summary_report ไม่แก้ไข')
+    if renamed_df.empty:
+        return
 
     date_values = sorted(renamed_df['วันที่'].dropna().unique())
     start_col = 6
@@ -2128,6 +2161,7 @@ def _signer_display_position(signatory):
 
 
 def build_finance_pdf(records_df, cal_start, cal_end, selected_signatory=None):
+    records_df = _normalize_ot_export_frame(records_df)
     report_df = records_df[records_df['payment'].notna()].copy()
     renamed_df = report_df.copy()
     if 'staff' in renamed_df.columns:
