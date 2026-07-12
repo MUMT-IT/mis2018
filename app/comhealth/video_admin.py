@@ -280,6 +280,18 @@ def get_top_related_health_education_videos(videos, concern_keys=None, limit=3):
     return ordered_videos[:limit]
 
 
+def visible_health_risk_issues(issues, min_score=1):
+    try:
+        min_score = int(min_score or 0)
+    except (TypeError, ValueError):
+        min_score = 0
+    min_score = max(min_score, 1)
+    return [
+        issue for issue in issues
+        if issue.get("concern_score", 0) >= min_score
+    ]
+
+
 def build_health_education_video_attributes(form_data):
     youtube_url = (form_data.get("youtube_url") or "").strip()
     youtube_video_id = extract_youtube_video_id(youtube_url)

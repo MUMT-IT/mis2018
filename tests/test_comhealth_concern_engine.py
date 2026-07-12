@@ -34,6 +34,7 @@ def _load_module(module_name: str, file_path: str):
 _load_module("app.comhealth.concern_rules", os.path.join(COMHEALTH_DIR, "concern_rules.py"))
 concern_engine = _load_module("app.comhealth.concern_engine", os.path.join(COMHEALTH_DIR, "concern_engine.py"))
 build_health_risk_report = concern_engine.build_health_risk_report
+video_admin = _load_module("app.comhealth.video_admin", os.path.join(COMHEALTH_DIR, "video_admin.py"))
 health_risk_summary = _load_module("app.comhealth.health_risk_summary", os.path.join(COMHEALTH_DIR, "health_risk_summary.py"))
 build_health_risk_summary = health_risk_summary.build_health_risk_summary
 health_risk_copy = _load_module("app.comhealth.health_risk_copy", os.path.join(COMHEALTH_DIR, "health_risk_copy.py"))
@@ -299,12 +300,24 @@ def test_issue_cards_include_related_videos_link():
             ui=get_health_risk_copy("en"),
             issues=[issue],
             issue_video_map={"diabetes_risk": recommended_videos},
-            videos_page_url="/comhealth/health-education-videos",
+            issue_videos_page_urls={
+                "diabetes_risk": "/comhealth/health-education-videos?lang=en&report_url=/result&concern=diabetes_risk"
+            },
         )
 
-    assert 'href="/comhealth/health-education-videos"' in rendered
+    assert 'href="/comhealth/health-education-videos?lang=en&amp;report_url=/result&amp;concern=diabetes_risk"' in rendered
     assert 'href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"' in rendered
     assert "Diabetes basics" in rendered
+
+
+def test_zero_score_issues_are_filtered_out():
+    issues = [
+        {"key": "diabetes_risk", "concern_score": 0},
+        {"key": "kidney_health", "concern_score": 1},
+    ]
+
+    filtered = video_admin.visible_health_risk_issues(issues, 0)
+    assert [issue["key"] for issue in filtered] == ["kidney_health"]
 
 
 def test_related_videos_section_renders_empty_state():

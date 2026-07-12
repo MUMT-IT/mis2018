@@ -379,6 +379,14 @@ def test_videos_page_renders_titles_as_clickable_links():
     video = SimpleNamespace(
         title='Diabetes basics',
         youtube_url='https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        youtube_embed_url='https://www.youtube.com/embed/dQw4w9WgXcQ',
+        is_embeddable=True,
+        source_name='Mahidol University YouTube',
+        source_channel='Health Channel',
+        language='th',
+        audience_level='general',
+        duration_seconds=245,
+        summary='How to manage blood sugar.',
     )
 
     with app.test_request_context('/comhealth/health-education-videos'):
@@ -388,16 +396,27 @@ def test_videos_page_renders_titles_as_clickable_links():
             ui={
                 'videos_page_title': 'Health Education Videos',
                 'videos_page_subtitle': 'Browse the full catalog with metadata for each video.',
-                'videos_page_back': 'Back to report',
+                'videos_page_back': 'Back to result',
                 'related_videos_title': 'Recommended related videos',
+                'no_related_videos': 'No related videos are available yet',
+                'no_related_videos_help': 'Recommended videos will appear here when the report finds a matching concern.',
             },
-            videos=[video],
             recommended_videos=[video],
             report_url='',
             selected_concern_label='',
         )
 
-    assert 'href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"' in rendered
+    assert 'src="https://www.youtube.com/embed/dQw4w9WgXcQ"' in rendered
     assert 'Diabetes basics' in rendered
-    assert 'Source' not in rendered
-    assert 'Duration' not in rendered
+    assert 'Source' in rendered
+    assert 'Mahidol University YouTube' in rendered
+    assert 'Channel' in rendered
+    assert 'Health Channel' in rendered
+    assert 'Lang' in rendered
+    assert 'TH' in rendered
+    assert 'Level' in rendered
+    assert 'general' in rendered
+    assert 'Duration' in rendered
+    assert '4m 05s' in rendered
+    assert 'How to manage blood sugar.' in rendered
+    assert 'All videos' not in rendered
