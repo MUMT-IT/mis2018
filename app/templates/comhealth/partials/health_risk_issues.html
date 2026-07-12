@@ -1,6 +1,6 @@
 <section class="mb-5 section-shell" id="issue-cards-section">
     {% set issue_video_map = issue_video_map|default({}) %}
-    {% set videos_page_url = videos_page_url|default('#') %}
+    {% set issue_videos_page_urls = issue_videos_page_urls|default({}) %}
     <h2 class="title is-4 mb-3">{{ ui.issue_cards }}</h2>
     {% for issue in issues %}
         {% set level_class = 'level-low' %}
@@ -31,6 +31,7 @@
 
             {% set related_videos = issue_video_map.get(issue.key, []) %}
             {% if related_videos %}
+                {% set videos_page_url = issue_videos_page_urls.get(issue.key, '#') %}
                 <div class="box mt-4">
                     <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap" style="gap: 1rem;">
                         <div>
