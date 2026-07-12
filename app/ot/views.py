@@ -2569,7 +2569,14 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
             ot_record_checkins[record] = 0
 
             if checkin_pairs[record.staff_account_id]:
+                best_complete = None
+                best_complete_rank = None
+                best_open = None
+                best_open_rank = None
                 for _pair in checkin_pairs[record.staff_account_id]:
+                    is_reusable_complete = bool(_pair.end and _pair.start_id and _pair.end_id)
+                    is_open_or_synthetic = not is_reusable_complete
+
                     # Ignore scan pairs that do not belong to the shift day.
                     # Open rows must stay on their own day so a later scan cannot satisfy an earlier shift.
                     if _pair.end is None:
@@ -2580,17 +2587,42 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
 
                     # Treat midnight as a real check-in only for midnight-starting shifts.
                     if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
-                        if _pair.end and _pair.start_id is None:
+                        if is_open_or_synthetic and _pair.end:
                             used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
                         continue
                     # Do not reuse a checkout after midnight as a later check-in.
-                    if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
+                    if is_open_or_synthetic and _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         continue
 
                     attendance = _compute_work_minutes(record, shift_start, shift_end, _pair)
                     if not attendance:
                         continue
 
+                    checkin = attendance['checkin']
+                    checkout = attendance['checkout']
+                    checkin_late_minutes = attendance['checkin_late_minutes']
+                    checkout_early_minutes = attendance['checkout_early_minutes']
+                    total_work_minutes = attendance['total_work_minutes']
+                    total_pay = attendance['total_pay']
+                    selection_rank = (
+                        0 if is_reusable_complete else 1,
+                        checkin_late_minutes,
+                        checkout_early_minutes,
+                        abs((_pair.start - shift_start).total_seconds()) / 60.0,
+                    )
+
+                    if total_work_minutes is None:
+                        if best_open_rank is None or selection_rank < best_open_rank:
+                            best_open_rank = selection_rank
+                            best_open = (_pair, attendance)
+                    elif total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
+                        if best_complete_rank is None or selection_rank < best_complete_rank:
+                            best_complete_rank = selection_rank
+                            best_complete = (_pair, attendance)
+
+                chosen = best_complete or best_open
+                if chosen is not None:
+                    _pair, attendance = chosen
                     checkin = attendance['checkin']
                     checkout = attendance['checkout']
                     checkin_late_minutes = attendance['checkin_late_minutes']
@@ -2610,9 +2642,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                         })
                         if _pair.end and _pair.start_id is None:
                             used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
-                        continue
-
-                    if total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
+                    else:
                         rec.update({
                             'checkin_staff_id': _pair.staff_id,
                             'checkin_id': _pair.start_id,
@@ -2630,7 +2660,6 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                         ot_record_checkins[record] += 1
                         if _pair.end and _pair.start_id is None:
                             used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
-                        break
             all_records.append(rec)
 
     if download == 'yes':
