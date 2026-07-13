@@ -906,6 +906,11 @@ class ServiceTestItem(db.Model):
         else:
             return None
 
+    @property
+    def download_all_final_files(self):
+        result = self.request.results.filter(ServiceResult.request_id == self.request_id).first()
+        return result.download_all_final_files
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -923,6 +928,7 @@ class ServiceTestItem(db.Model):
             'invoice_id': self.get_invoice().id if self.get_invoice() else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations
                              if quotation.confirmed_at],
+            'download_all_final_files': self.download_all_final_files if self.download_all_final_files else None,
         }
 
 
@@ -1282,7 +1288,8 @@ class ServiceResult(db.Model):
             'is_edited': self.is_edited if self.is_edited else None,
             'approved_at': self.approved_at if self.approved_at else None,
             'creator': self.creator.fullname if self.creator else None,
-            'request_id': self.request_id if self.request_id else None
+            'request_id': self.request_id if self.request_id else None,
+            'download_all_final_files': self.download_all_final_files if self.download_all_final_files else None,
         }
 
     @property
@@ -1307,6 +1314,11 @@ class ServiceResult(db.Model):
             else:
                 quotation_id = None
         return quotation_id
+
+    @property
+    def download_all_final_files(self):
+        all_download = all(item.is_downloaded for item in self.result_items)
+        return all_download
 
     @property
     def admin_status(self):
