@@ -662,11 +662,78 @@ def test_get_all_ot_records_table_keeps_row_when_late_checkin_exceeds_limit(ot_v
     assert len(payload["data"]) == 1
     row = payload["data"][0]
     assert row["fullname"] == "Too Late"
-    assert row["checkins"] is None
-    assert row["checkouts"] is None
-    assert row["late_minutes"] is None
-    assert row["early_minutes"] is None
-    assert row["payment"] is None
+    assert row["checkins"] == "2024-01-02T09:46:00+07:00"
+    assert row["checkouts"] == "2024-01-02T17:00:00+07:00"
+    assert row["late_minutes"] == 46.0
+    assert row["early_minutes"] == 0
+    assert row["work_minutes"] == 434.0
+    assert row["payment"] == 0.0
+
+
+def test_get_all_ot_records_table_does_not_reuse_too_late_complete_pair_for_later_shift(ot_views):
+    shift_one = _make_record(
+        staff_id=512,
+        fullname="Late Span Staff",
+        sap_id="SAP-512",
+        shift_start=datetime(2026, 6, 24, 7, 0),
+        shift_end=datetime(2026, 6, 24, 8, 0),
+        rate=100.0,
+    )
+    shift_two = _make_record(
+        staff_id=512,
+        fullname="Late Span Staff",
+        sap_id="SAP-512",
+        shift_start=datetime(2026, 6, 24, 16, 0),
+        shift_end=datetime(2026, 6, 24, 17, 0),
+        rate=100.0,
+    )
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_one.shift.datetime.lower, upper=shift_one.shift.datetime.upper),
+            records=[shift_one],
+        ),
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_two.shift.datetime.lower, upper=shift_two.shift.datetime.upper),
+            records=[shift_two],
+        ),
+    ]
+    logins = [
+        _make_login(512, 91, _bangkok_dt(2026, 6, 24, 7, 46), None),
+        _make_login(512, 92, _bangkok_dt(2026, 6, 24, 16, 9), None),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2026-06-24T00:00:00%2B07:00&end=2026-06-24T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    payload = response.get_json()
+    assert len(payload["data"]) == 2
+    first_row, second_row = payload["data"]
+
+    assert first_row["fullname"] == "Late Span Staff"
+    assert first_row["checkins"] == "2026-06-24T07:46:00+07:00"
+    assert first_row["checkouts"] == "2026-06-24T16:09:00+07:00"
+    assert first_row["late_minutes"] == 46.0
+    assert first_row["early_minutes"] == 0
+    assert first_row["work_minutes"] == 14.0
+    assert first_row["payment"] == 0.0
+
+    assert second_row["fullname"] == "Late Span Staff"
+    assert second_row["checkins"] is None
+    assert second_row["checkouts"] is None
+    assert second_row["payment"] is None
 
 
 def test_get_all_ot_records_table_ignores_midnight_checkout_as_fake_checkin(ot_views):
