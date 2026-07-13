@@ -2558,6 +2558,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
 
     all_records = []
     used_checkouts = defaultdict(set)
+    rejected_complete_pairs = defaultdict(set)
     ot_record_checkins = {}
     for shift in shift_query.order_by(OtShift.datetime):
         for record in shift.records:
@@ -2576,6 +2577,15 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                 for _pair in checkin_pairs[record.staff_account_id]:
                     is_reusable_complete = bool(_pair.end and _pair.start_id and _pair.end_id)
                     is_open_or_synthetic = not is_reusable_complete
+                    pair_key = (
+                        _pair.start.strftime('%Y-%m-%d %H:%M:%S'),
+                        _pair.end.strftime('%Y-%m-%d %H:%M:%S') if _pair.end else None,
+                        _pair.start_id,
+                        _pair.end_id,
+                    )
+
+                    if is_reusable_complete and pair_key in rejected_complete_pairs[record.staff_account_id]:
+                        continue
 
                     # Ignore scan pairs that do not belong to the shift day.
                     # Open rows must stay on their own day so a later scan cannot satisfy an earlier shift.
@@ -2615,7 +2625,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                         if best_open_rank is None or selection_rank < best_open_rank:
                             best_open_rank = selection_rank
                             best_open = (_pair, attendance)
-                    elif total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
+                    elif total_work_minutes > 0:
                         if best_complete_rank is None or selection_rank < best_complete_rank:
                             best_complete_rank = selection_rank
                             best_complete = (_pair, attendance)
@@ -2629,6 +2639,7 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                     checkout_early_minutes = attendance['checkout_early_minutes']
                     total_work_minutes = attendance['total_work_minutes']
                     total_pay = attendance['total_pay']
+                    is_late_cutoff = checkin_late_minutes > MAX_LATE_MINUTES
 
                     if total_work_minutes is None:
                         rec.update({
@@ -2653,13 +2664,15 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                             'late_minutes': checkin_late_minutes,
                             'early_minutes': checkout_early_minutes,
                             'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
-                            'payment': total_pay,
+                            'payment': 0.0 if is_late_cutoff else total_pay,
                             'work_minutes': total_work_minutes,
                             'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes else None,
                         })
                         ot_record_checkins[record] += 1
                         if _pair.end and _pair.start_id is None:
                             used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                        if is_late_cutoff and _pair.end and _pair.start_id and _pair.end_id:
+                            rejected_complete_pairs[record.staff_account_id].add(pair_key)
             all_records.append(rec)
 
     if download == 'yes':
