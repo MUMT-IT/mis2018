@@ -179,21 +179,23 @@
             },
             {
                 data: 'checkins',
-                render: function(data, type) {
+                render: function(data, type, row) {
                     if (data) {
                         return moment(data).format('lll')
                     } else {
-                        return '<span class="tag is-danger is-rounded">not found</span>'
+                        let warning = row.anchor_warning ? '<div class="tag is-warning is-light is-rounded mt-1">May need a 00:00 anchor</div>' : ''
+                        return '<span class="tag is-danger is-rounded">not found</span>' + warning
                     }
                 }
             },
             {
                 data: 'checkouts',
-                render: function(data, type) {
+                render: function(data, type, row) {
                     if (data) {
                         return moment(data).format('lll')
                     } else {
-                        return '<span class="tag is-danger is-rounded">not found</span>'
+                        let warning = row.anchor_warning ? '<div class="tag is-warning is-light is-rounded mt-1">May need a 00:00 anchor</div>' : ''
+                        return '<span class="tag is-danger is-rounded">not found</span>' + warning
                     }
                 }
             },

@@ -524,6 +524,89 @@ def test_get_all_ot_records_table_reuses_one_complete_pair_across_adjacent_morni
     assert second_row["work_minutes"] == 60
 
 
+def test_get_all_ot_records_table_reuses_adjacent_day_open_pair_across_midnight_shifts(ot_views):
+    shift_one = _make_record(
+        staff_id=416,
+        fullname="Midnight Span Staff",
+        sap_id="SAP-416",
+        shift_start=datetime(2026, 6, 10, 8, 0),
+        shift_end=datetime(2026, 6, 10, 16, 0),
+        rate=100.0,
+    )
+    shift_two = _make_record(
+        staff_id=416,
+        fullname="Midnight Span Staff",
+        sap_id="SAP-416",
+        shift_start=datetime(2026, 6, 10, 16, 0),
+        shift_end=datetime(2026, 6, 11, 0, 0),
+        rate=100.0,
+    )
+    shift_three = _make_record(
+        staff_id=416,
+        fullname="Midnight Span Staff",
+        sap_id="SAP-416",
+        shift_start=datetime(2026, 6, 11, 0, 0),
+        shift_end=datetime(2026, 6, 11, 8, 0),
+        rate=100.0,
+    )
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_one.shift.datetime.lower, upper=shift_one.shift.datetime.upper),
+            records=[shift_one],
+        ),
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_two.shift.datetime.lower, upper=shift_two.shift.datetime.upper),
+            records=[shift_two],
+        ),
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_three.shift.datetime.lower, upper=shift_three.shift.datetime.upper),
+            records=[shift_three],
+        ),
+    ]
+    logins = [
+        _make_login(416, 35, _bangkok_dt(2026, 6, 10, 7, 42), _bangkok_dt(2026, 6, 11, 8, 6)),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2026-06-10T00:00:00%2B07:00&end=2026-06-11T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    payload = response.get_json()
+    assert len(payload["data"]) == 3
+    first_row, second_row, third_row = payload["data"]
+
+    assert first_row["checkins"] == "2026-06-10T07:42:00+07:00"
+    assert first_row["checkouts"] == "2026-06-11T08:06:00+07:00"
+    assert first_row["work_minutes"] == 480
+    assert first_row["payment"] == _expected_pay(480, 100.0)
+    assert first_row["anchor_warning"] is True
+    assert first_row["anchor_warning_display"] == "May need a 00:00 anchor"
+
+    assert second_row["checkins"] == "2026-06-10T07:42:00+07:00"
+    assert second_row["checkouts"] == "2026-06-11T08:06:00+07:00"
+    assert second_row["work_minutes"] == 480
+    assert second_row["payment"] == _expected_pay(480, 100.0)
+    assert second_row["anchor_warning"] is True
+
+    assert third_row["checkins"] == "2026-06-10T07:42:00+07:00"
+    assert third_row["checkouts"] == "2026-06-11T08:06:00+07:00"
+    assert third_row["work_minutes"] == 480
+    assert third_row["payment"] == _expected_pay(480, 100.0)
+    assert third_row["anchor_warning"] is True
+
+
 def test_get_all_ot_records_table_pays_full_for_per_period_staff(ot_views):
     shift_record = _make_record(
         staff_id=404,
