@@ -779,11 +779,8 @@ def menu():
             )
         ).count()
         report_count = ServiceResult.query.join(ServiceResult.request).filter(
-            ServiceRequest.customer_id == current_user.id,
-            and_(ServiceResult.sent_at != None,
-                 ServiceResult.approved_at == None,
-                 or_(ServiceResult.req_edit_at == None, ServiceResult.is_edited == True)
-                )
+            ServiceRequest.customer_id == current_user.id, ServiceResult.sent_at != None,
+            ServiceResult.approved_at == None
         ).count()
     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 invoice_count=invoice_count, report_count=report_count)
