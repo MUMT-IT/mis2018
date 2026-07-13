@@ -21,6 +21,7 @@ This document captures the current rules used by `get_all_ot_records_table()` an
 - Open rows that should remain visible as incomplete attendance.
 - Per-period OT rows that pay full shift value when the pair is complete.
 - Overnight sequences that legitimately cross midnight.
+- Long adjacent-day spans that should be treated as one continuous attendance window.
 - Reuse of one complete pair across adjacent shifts when the pair truly spans them.
 
 ## Known Limitation
@@ -28,6 +29,7 @@ This document captures the current rules used by `get_all_ot_records_table()` an
 - A single complete pair that spans multiple adjacent shifts is still easiest to calculate when a `00:00` anchor exists.
 - Without that anchor, the current matching logic may not always distribute the pair the way a human would expect across adjacent shifts.
 - A complete pair that exceeds the late cutoff is not paid, even though work duration is still computed and displayed.
+- A long adjacent-day open sequence is only inferred when the scan times move forward across the day boundary.
 
 ## Non-Goals
 

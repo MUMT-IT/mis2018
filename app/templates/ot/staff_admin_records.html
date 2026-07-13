@@ -200,21 +200,25 @@
             },
             {
                 data: 'checkins',
-                render: function(data, type) {
+                render: function(data, type, row) {
                     if (data) {
                         return moment(data).format('lll')
                     } else {
-                        return 'not found'
+                        return row.anchor_warning
+                            ? 'not found <span class="tag is-warning is-light is-rounded ml-2">May need a 00:00 anchor</span>'
+                            : 'not found'
                     }
                 }
             },
             {
                 data: 'checkouts',
-                render: function(data, type) {
+                render: function(data, type, row) {
                     if (data) {
                         return moment(data).format('lll')
                     } else {
-                        return 'not found'
+                        return row.anchor_warning
+                            ? 'not found <span class="tag is-warning is-light is-rounded ml-2">May need a 00:00 anchor</span>'
+                            : 'not found'
                     }
                 }
             },
