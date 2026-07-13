@@ -199,15 +199,17 @@
                                 <td>
                                     {% if result.request.status.status_id == 24 %}
                                         <div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-info is-rounded"
-                                                    href="{{ url_for('academic_services.create_copy_result',
-                                                    result_id=result.id, menu=menu, tab=tab) }}"
-                                                >
-                                                    <span class="icon"><i class="fas fa-copy"></i></span>
-                                                    <span>ขอสำเนา</span>
-                                                </a>
-                                            </div>
+                                            {% if not result.all_copy_file %}
+                                                <div class="control">
+                                                    <a class="button is-small is-info is-rounded"
+                                                        href="{{ url_for('academic_services.create_copy_result',
+                                                        result_id=result.id, menu=menu, tab=tab) }}"
+                                                    >
+                                                        <span class="icon"><i class="fas fa-copy"></i></span>
+                                                        <span>ขอสำเนา</span>
+                                                    </a>
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     {% endif %}
                                 </td>
