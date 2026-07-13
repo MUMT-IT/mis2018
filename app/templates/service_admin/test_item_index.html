@@ -132,7 +132,7 @@
                         data: null,
                         render: function (data, type, row) {
                             var tab = '{{ tab }}';
-                            if (row.approved_at) {
+                            if (row.approved_at && row.download_all_final_files == null) {
                                  var result_url = '/service_admin/result/final/edit/' + row.result_id + '?request_id=' + row.request_id + '&menu=report&tab=all';
                                   return '<div class="field has-addons">' +
                                     '<div class="control">' +
