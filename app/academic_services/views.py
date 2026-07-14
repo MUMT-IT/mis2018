@@ -7225,6 +7225,21 @@ def view_result_item(result_id, result_item_id):
                            menu=menu, tab=tab, generate_url=generate_url, result_item_id=result_item_id)
 
 
+@academic_services.route('/customer/result/final/view/<int:result_id>/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
+def view_final_result_item(result_id, result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result = ServiceResult.query.get(result_id)
+    result_item = next((i for i in result.result_items if i.id == result_item_id), None)
+    if not result_item:
+        flash('ไม่พบรายการผล', 'danger')
+        return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
+    return render_template('academic_services/view_final_result_item.html', result=result,
+                           result_item=result_item, menu=menu, tab=tab, generate_url=generate_url,
+                           result_item_id=result_item_id)
+
+
 @academic_services.route('/customer/result_item/confirm/<int:result_item_id>', methods=['GET', 'POST'])
 def confirm_result_item(result_item_id):
     menu = request.args.get('menu')
