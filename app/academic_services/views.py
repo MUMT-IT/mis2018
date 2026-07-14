@@ -7483,7 +7483,8 @@ def create_copy_result(result_id):
                        'ออกในนาม {}\n' \
                        'ณ วันที่ {} รอดำเนินการออกสำเนาใบรายงานผลการทดสอบ\n' \
                        'กรุณาดำเนินการแนบไฟล์ในระบบ\n'
-                       'คลิกลิ้งค์เพื่อดำเนินการ\n'.format(result_item.result.request.request_no,
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(result_item.result.request.request_no,
                                                          result_item.result.request.customer.customer_name,
                                                          datetime, link)
                        )
