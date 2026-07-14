@@ -1392,6 +1392,7 @@ class ServiceResultItem(db.Model):
     sequence = db.Column('sequence', db.Integer())
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship(ServiceResult, backref=db.backref('result_items'))
+    category = db.Column('category', db.String())
     report_language = db.Column('report_language', db.String())
     url = db.Column('url', db.String())
     draft_file = db.Column('draft_file', db.String())
