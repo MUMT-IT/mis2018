@@ -198,8 +198,8 @@
                                 </td>
                                 <td>
                                     {% if result.request.status.status_id == 24 %}
-                                        <div class="field has-addons">
-                                            {% if not result.all_copy_file %}
+                                        {% if not result.all_copy_file %}
+                                            <div class="field has-addons">
                                                 <div class="control">
                                                     <a class="button is-small is-info is-rounded"
                                                         href="{{ url_for('academic_services.create_copy_result',
@@ -209,9 +209,25 @@
                                                         <span>ขอสำเนา</span>
                                                     </a>
                                                 </div>
+                                            </div>
+                                        {% endif %}
+                                        {% for item in result.result_items|sort(attribute='sequence') %}
+                                            {% if item.category in ['original', 'electronic'] %}
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a class="button is-small is-warning is-rounded"
+                                                           href="{{ url_for('academic_services.view_final_result_item',
+                                                                  result_id=result.id, result_item_id=item.id,
+                                                                  menu=menu, tab=tab) }}"
+                                                        >
+                                                            <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                                    <span>ขอแก้ไข{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
                                             {% endif %}
-                                        </div>
-                                    {% endif %}
+                                        {% endfor %}
+{#                                    {% endif %}#}
                                 </td>
                             </tr>
                         {% endfor %}
