@@ -1496,6 +1496,22 @@ class ServiceResultItem(db.Model):
         return {'status': status, 'color': color}
 
 
+class ServiceFinalResultItemReversion(db.Model):
+    __tablename__ = 'service_final_result_item_reversions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    note = db.Column('note', db.Text())
+    is_approved = db.Column('is_approved', db.Boolean())
+    result_item_id = db.Column('result_item_id', db.ForeignKey('service_result_items.id'))
+    result_item = db.relationship(ServiceResultItem, backref=db.backref('final_reversion'))
+    requested_at = db.Column('requested_at', db.DateTime(timezone=True))
+    requester_id = db.Column('requester_id', db.ForeignKey("service_customer_accounts.id"))
+    requester = db.relationship(ServiceCustomerAccount, foreign_keys=[requester_id])
+    edited_at = db.Column('edited_at', db.DateTime(timezone=True))
+    approved_at = db.Column(' approved_at', db.DateTime(timezone=True))
+    approver_id = db.Column('approver_id', db.ForeignKey("service_customer_accounts.id"))
+    approver = db.relationship(ServiceCustomerAccount, foreign_keys=[approver_id])
+
+
 class ServiceOrder(db.Model):
     __tablename__ = 'service_orders'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
