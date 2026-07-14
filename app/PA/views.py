@@ -1735,6 +1735,7 @@ def rate_performance(scoresheet_id):
         return redirect(url_for('pa.all_performance', scoresheet_id=scoresheet_id))
     head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee=committee, is_consolidated=False).first()
     self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
+    categories = PAItemCategory.query.all()
     core_competency_items = PACoreCompetencyItem.query.all()
     if for_self == 'true':
         next_url = url_for('pa.add_pa_item', round_id=pa.round_id)
@@ -1768,6 +1769,7 @@ def rate_performance(scoresheet_id):
                            head_scoresheet=head_scoresheet,
                            self_scoresheet=self_scoresheet,
                            next_url=next_url,
+                           categories=categories,
                            core_competency_items=core_competency_items,
                            for_self=for_self)
 
@@ -2162,10 +2164,32 @@ def pa_detail(round_id, pa_id):
         items = []
         for item in kpi.pa_kpi_items:
             items.append((item.id, item.goal))
+    relate_idp = []
+    for idp in IDP.query.filter_by(staff_account_id=pa.staff_account_id).join(PAFunctionalCompetencyRound).all():
+        if idp.round.start.year >= pa.round.start.year and idp.round.start.year <= pa.round.start.year+1:
+            relate_idp.append(idp)
     return render_template('staff/HR/PA/pa_detail.html',
                            pa_round=pa_round,
                            pa=pa,
-                           categories=categories)
+                           categories=categories, relate_idp=relate_idp)
+
+
+@pa.route('/rounds/<int:round_id>/<int:pa_id>/<int:idp_id>/change-head-idp')
+@login_required
+def change_head_idp(round_id,pa_id,idp_id):
+    pa = PAAgreement.query.get(pa_id)
+    idp = IDP.query.get(idp_id)
+    if pa and idp:
+        idp.approver = pa.head_committee_staff_account
+        db.session.add(idp)
+        db.session.commit()
+        flash('เปลี่ยนผู้ประเมิน idp รอบ {}({}) เรียบร้อยแล้ว'.format(idp.round.desc,idp.round), 'success')
+    else:
+        if pa:
+            flash('ไม่พบ idp ที่ค้นหา', 'danger')
+        else:
+            flash('ไม่พบรอบ pa กรุณาติดต่อ it', 'danger')
+    return redirect(url_for('pa.pa_detail', round_id=round_id, pa_id=pa_id))
 
 
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/head-committee', methods=['GET', 'POST'])
