@@ -9203,6 +9203,7 @@ def create_draft_result(result_id=None):
                                                                          result='result_' + str(result_list.id))
                     for rl in service_request.report_languages:
                         result_item = ServiceResultItem(sequence=sequence_no.number,
+                                                        category=rl.report_language.category,
                                                         report_language=rl.report_language.item,
                                                         result=result_list,
                                                         released_at=arrow.now('Asia/Bangkok').datetime,
