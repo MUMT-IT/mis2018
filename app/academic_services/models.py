@@ -1321,6 +1321,25 @@ class ServiceResult(db.Model):
         return all_download
 
     @property
+    def all_copy_file(self):
+        selected_files = {
+            assoc.report_language.language
+            for assoc in self.request.report_languages
+        }
+
+        copy_files = {
+            rl.item
+            for rl in self.request.sub_lab.report_languages
+            if rl.category == "copy" and rl.language in selected_files
+        }
+
+        result_items = {
+            item.report_language
+            for item in self.result_items
+        }
+        return copy_files.issubset(result_items)
+
+    @property
     def admin_status(self):
         uploaded_all = all(item.draft_file for item in self.result_items)
         if self.approved_at:
