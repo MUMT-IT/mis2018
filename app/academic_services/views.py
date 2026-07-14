@@ -7384,7 +7384,22 @@ def create_copy_result(result_id):
     menu = request.args.get('menu')
     tab = request.args.get('tab')
     result = ServiceResult.query.get(result_id)
-    report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=result.request.sub_lab_id)
+    selected_files = {
+        assoc.report_language.language
+        for assoc in result.request.report_languages
+    }
+    result_items = {
+        item.report_language
+        for item in result.result_items
+    }
+    report_languages = [
+        rl
+        for rl in result.request.sub_lab.report_languages
+        if rl.category == "copy"
+           and rl.language in selected_files
+           and rl.item not in result_items
+    ]
+    # report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=result.request.sub_lab_id)
     for a in result.request.sub_lab.admins:
         if a.is_supervisor:
             supervisor_id = a.admin_id
