@@ -7462,6 +7462,43 @@ def create_copy_result(result_id):
                 db.session.add(invoice_item)
                 db.session.commit()
             db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            admins = (
+                ServiceAdmin.query
+                .join(ServiceSubLab)
+                .filter(ServiceSubLab.code == result_item.result.request.sub_lab.code)
+                .all()
+            )
+            link = url_for("service_admin.create_draft_result", result_id=result_item.result_id, menu='report',
+                           tab='all', _external=True, _scheme=scheme)
+            if admins:
+                datetime = arrow.now('Asia/Bangkok').datetime
+                title = f'''รายการขอสำเนาใบรายงานผลการทดสอบ'''
+                message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.lab.lab}\n\n'''
+                message += f'''มีใบคำขอรับบริการเลขที่ {result_item.result.request.request_no} ที่รอดำเนินการออกสำเนาใบรายงานผลการทดสอบ'''
+                message += f'''ท่านสามารถดำเนินการออกสำเนาใบรายงานผลได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+                msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
+                       'ออกในนาม {}\n' \
+                       'ณ วันที่ {} รอดำเนินการออกสำเนาใบรายงานผลการทดสอบ\n' \
+                       'กรุณาดำเนินการแนบไฟล์ในระบบ\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'.format(result_item.result.request.request_no,
+                                                         result_item.result.request.customer.customer_name,
+                                                         datetime, link)
+                       )
+                if not current_app.debug:
+                    send_mail(
+                        [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                        title, message)
+                    for a in admins:
+                        if not a.is_central_admin and not a.is_assistant:
+                            try:
+                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
+                else:
+                    print('message', message, 'msg', msg)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
         else:
