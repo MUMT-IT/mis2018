@@ -6211,6 +6211,12 @@ def result_index():
             for i in item.result_items:
                 edit_html = ''
                 note_html = ''
+                edit_draft_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
+                                      result_item_id=i.id)
+                edit_final_result = url_for('service_admin.edit_final_result', menu='report', tab='edit',
+                                            result_item_id=i.id)
+                view_final_result = url_for('service_admin.view_final_result_item', menu='report', tab='edit',
+                                            result_item_id=i.id)
                 if i.final_file:
                     download_file = url_for('service_admin.download_file', key=i.final_file,
                                             download_filename=f"{i.report_language} (ฉบับจริง).pdf")
@@ -6227,29 +6233,48 @@ def result_index():
                 elif i.draft_file:
                     download_file = url_for('service_admin.download_file', key=i.draft_file,
                                             download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
-                    edit_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
-                                          result_item_id=i.id)
                     html = f'''
-                                                <div class="field has-addons">
-                                                    <div class="control">
-                                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                                            <span>{i.report_language} (ฉบับร่าง)</span>
-                                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            '''
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                            <span>{i.report_language} (ฉบับร่าง)</span>
+                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            '''
                 else:
                     html = ''
 
                 html_blocks.append(html)
 
                 if i.req_edit_at and not i.is_edited:
-                    edit_html = f'''<div class="field has-addons">
+                    if i.final_file and i.final_reversion and not i.final_reversion[-1].is_approved:
+                        edit_html = f'''<div class="field has-addons">
                                             <div class="control">
-                                                <a class="button is-small is-warning is-rounded" href="{edit_result}">
+                                                <a class="button is-small is-warning is-rounded" href="{view_final_result}">
                                                     <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                                    <span>แก้ไข{i.report_language}</span>
+                                                    <span>ตรวจสอบคำขอแก้ไข{i.report_language} (ฉบับจริง)</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        '''
+                    elif i.final_file and i.final_reversion and i.final_reversion[-1].is_approved:
+                        edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{edit_final_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไข{i.report_language} (ฉบับจริง)</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    '''
+                    else:
+                        edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{edit_draft_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไข{i.report_language} (ฉบับร่าง)</span>
                                                 </a>
                                             </div>
                                         </div>
