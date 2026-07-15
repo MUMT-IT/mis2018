@@ -74,7 +74,7 @@
                     <th>หมายเลขติดตามพัสดุ</th>
                     <th>วัน-เวลาที่ออกผล</th>
                     <th>ช่องทางรับผล</th>
-                    <th>รายละเอียดการขอแก้ไข</th>
+{#                    <th>รายละเอียดการขอแก้ไข</th>#}
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
                     <th></th>
@@ -86,17 +86,17 @@
                                 <td>{{ result.tracking_number or '' }}</td>
                                 <td>{{ result.sent_at|localdatetime or '' }}</td>
                                 <td>{{ result.request.report_receive_channel.item }}</td>
-                                <td>
-                                    {%  for item in result.result_items|sort(attribute='sequence') %}
-                                        {% if item.req_edit_at %}
-                                            {{ item.report_language }} : {{ item.note or '' }}<br/>
-                                            {% if item.is_edited %}
-                                                <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
-                                                <br/>
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </td>
+{#                                <td>#}
+{#                                    {%  for item in result.result_items|sort(attribute='sequence') %}#}
+{#                                        {% if item.req_edit_at %}#}
+{#                                            {{ item.report_language }} : {{ item.note or '' }}<br/>#}
+{#                                            {% if item.is_edited %}#}
+{#                                                <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>#}
+{#                                                <br/>#}
+{#                                            {% endif %}#}
+{#                                        {% endif %}#}
+{#                                    {% endfor %}#}
+{#                                </td>#}
                                 <td>
                                     <span class="tag {{ result.customer_status.color }}">
                                         {{ result.customer_status.status }}
@@ -221,7 +221,7 @@
                                                                   menu=menu, tab=tab) }}"
                                                         >
                                                             <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                                                    <span>ขอแก้ไข{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                            <span>ขอแก้ไข{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
                                                         </a>
                                                     </div>
                                                 </div>

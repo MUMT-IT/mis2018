@@ -61,7 +61,7 @@
                     <th>วัน-เวลาที่ออกผล</th>
                     <th>ช่องทางรับผล</th>
                     <th>ผลการทดสอบ</th>
-                    <th>รายละเอียดการขอแก้ไข</th>
+{#                    <th>รายละเอียดการขอแก้ไข</th>#}
                     <th>ผู้ออก</th>
                     <th>สถานะ</th>
                     <th></th>
@@ -140,16 +140,15 @@
                         }
                     },
                     { data: 'files' },
-                    {
-                        data: 'note',
-                        render: function (data) {
-                            if (data !== null) {
-                                return data;
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
+                    {#{#}
+                    {#    data: 'note',#}
+                    {#    render: function (data) {#}
+                    {#        if (data !== null) {#}
+                    {#            return data;#}
+                    {#        } else {#}
+                    {#            return ''#}
+                    {#        }#}
+                    {#    }#}
                     {data: 'creator' },
                     {
                         data: 'admin_status',
