@@ -6162,213 +6162,6 @@ def export_virus_request_pdf(request_id):
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
-@service_admin.route('/result/index')
-@login_required
-def result_index():
-    tab = request.args.get('tab')
-    menu = request.args.get('menu')
-    api = request.args.get('api', 'false')
-    query = (
-        ServiceResult.query
-        .join(ServiceResult.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(
-            ServiceAdmin.admin_id == current_user.id
-        )
-    )
-    pending_query = query.filter(ServiceResult.sent_at == None)
-    edit_query = query.filter(ServiceResult.req_edit_at != None, ServiceResult.is_edited == False)
-    approve_query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
-                                 or_(ServiceResult.req_edit_at == None, ServiceResult.is_edited == True
-                                     )
-                                 )
-    confirm_query = query.filter(ServiceResult.approved_at != None)
-    if api == 'true':
-        if tab == 'pending':
-            query = pending_query
-        elif tab == 'edit':
-            query = edit_query
-        elif tab == 'approve':
-            query = approve_query
-        elif tab == 'confirm':
-            query = confirm_query
-
-        records_total = query.count()
-        search = request.args.get('search[value]')
-        if search:
-            query = query.filter(ServiceRequest.request_no).contains(search)
-        start = request.args.get('start', type=int)
-        length = request.args.get('length', type=int)
-        total_filtered = query.count()
-        query = query.offset(start).limit(length)
-        data = []
-        for item in query:
-            html_blocks = []
-            edit_html_blocks = []
-            note_html_blocks = []
-            item_data = item.to_dict()
-            for i in item.result_items:
-                edit_html = ''
-                note_html = ''
-                edit_draft_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
-                                      result_item_id=i.id)
-                edit_final_result = url_for('service_admin.edit_final_result', menu='report', tab='edit',
-                                            result_item_id=i.id)
-                view_final_result = url_for('service_admin.view_final_result_item', menu='report', tab='edit',
-                                            result_id=i.result_id, result_item_id=i.id)
-                if i.final_file:
-                    download_file = url_for('service_admin.download_file', key=i.final_file,
-                                            download_filename=f"{i.report_language} (ฉบับจริง).pdf")
-                    html = f'''
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                            <span>{i.report_language} (ฉบับจริง)</span>
-                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            '''
-                elif i.draft_file:
-                    download_file = url_for('service_admin.download_file', key=i.draft_file,
-                                            download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
-                    html = f'''
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                            <span>{i.report_language} (ฉบับร่าง)</span>
-                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                        </a>
-                                    </div>
-                                </div>
-                            '''
-                else:
-                    html = ''
-
-                html_blocks.append(html)
-
-                if i.req_edit_at and not i.is_edited:
-                    if i.final_file and i.final_reversion and not i.final_reversion[-1].is_approved:
-                        edit_html = f'''<div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-warning is-rounded" href="{view_final_result}">
-                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                                    <span>ตรวจสอบคำขอแก้ไข{i.report_language} (ฉบับจริง)</span>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        '''
-                    elif i.final_file and i.final_reversion and i.final_reversion[-1].is_approved:
-                        edit_html = f'''<div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-warning is-rounded" href="{edit_final_result}">
-                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                                    <span>แก้ไข{i.report_language} (ฉบับจริง)</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    '''
-                    else:
-                        edit_html = f'''<div class="field has-addons">
-                                            <div class="control">
-                                                <a class="button is-small is-warning is-rounded" href="{edit_draft_result}">
-                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
-                                                    <span>แก้ไข{i.report_language} (ฉบับร่าง)</span>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    '''
-                    note_html = f'''{i.report_language} : {i.note}<br/>'''
-                elif i.req_edit_at and i.is_edited:
-                    note_html = f'''{i.report_language} : {i.note}
-                                    <br/>
-                                    <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
-                                    <br/>
-                                '''
-                if edit_html:
-                    edit_html_blocks.append(edit_html)
-                if note_html:
-                    note_html_blocks.append(note_html)
-            item_data['files'] = ''.join(
-                html_blocks) if html_blocks else ''
-            item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
-            item_data['note'] = ''.join(note_html_blocks) if note_html_blocks else ''
-            data.append(item_data)
-        return jsonify({'data': data,
-                        'recordFiltered': total_filtered,
-                        'recordTotal': records_total,
-                        'draw': request.args.get('draw', type=int)
-                        })
-    return render_template('service_admin/result_index.html', menu=menu, tab=tab,
-                           pending_count=pending_query.count(),
-                           edit_count=edit_query.count(), approve_count=approve_query.count())
-
-
-@service_admin.route('/result/final/view/<int:result_id>/<int:result_item_id>', methods=['GET', 'POST'])
-@login_required
-def view_final_result_item(result_id, result_item_id):
-    tab = request.args.get('tab')
-    menu = request.args.get('menu')
-    result = ServiceResult.query.get(result_id)
-    result_item = next((i for i in result.result_items if i.id == result_item_id), None)
-    if not result_item:
-        flash('ไม่พบรายการผล', 'danger')
-        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
-    return render_template('service_admin/view_final_result_item.html', result=result,
-                           result_item=result_item, menu=menu, tab=tab, generate_url=generate_url,
-                           result_item_id=result_item_id)
-
-
-@service_admin.route('/result/delete/<int:item_id>', methods=['GET', 'POST'])
-def delete_result_file(item_id):
-    status_id = get_status(11)
-    item = ServiceResultItem.query.get(item_id)
-    item.url = None
-    item.modified_at = arrow.now('Asia/Bangkok').datetime
-    item.result.status_id = status_id
-    item.result.modified_at = arrow.now('Asia/Bangkok').datetime
-    db.session.add(item)
-    db.session.commit()
-    flash("ลบไฟล์เรียบร้อยแล้ว", "success")
-    resp = make_response()
-    resp.headers['HX-Refresh'] = 'true'
-    return resp
-
-
-@service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
-def add_tracking_number(result_id):
-    tab = request.args.get('tab')
-    menu = request.args.get('menu')
-    result = ServiceResult.query.get(result_id)
-    form = ServiceResultForm(obj=result)
-    if form.validate_on_submit():
-        form.populate_obj(result)
-        db.session.add(result)
-        db.session.commit()
-        customer_name = result.request.customer.customer_name.replace(' ', '_')
-        title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
-        title = f'''แจ้งจัดส่งรายงานผลการทดสอบ'''
-        message = f'''เรียน {title_prefix}{result.request.customer.customer_name}\n\n'''
-        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
-        message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการจัดส่งรายงานผลการทดสอบฉบับจริงให้แก่ท่านทางไปรษณีย์เป็นที่เรียบร้อยแล้ว\nหมายเลขพัสดุ : {result.tracking_number}\n'''
-        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
-        message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
-        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
-        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
-        if not current_app.debug:
-            send_mail([result.request.customer.email], title, message)
-        else:
-            print('message', message)
-        flash('อัพเดตข้อมูลสำเร็จ', 'success')
-        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
-    else:
-        for field, error in form.errors.items():
-            flash(f'{field}: {error}', 'danger')
-    return render_template('service_admin/add_tracking_number_for_result.html', form=form, menu=menu,
-                           tab=tab, result_id=result_id)
-
-
 @service_admin.route('/lab/index/<int:customer_id>')
 @login_required
 def lab_index(customer_id):
@@ -9219,6 +9012,213 @@ def add_meeting():
     return render_template('procurement/add_meeting.html')
 
 
+@service_admin.route('/result/index')
+@login_required
+def result_index():
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    api = request.args.get('api', 'false')
+    query = (
+        ServiceResult.query
+        .join(ServiceResult.request)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .filter(
+            ServiceAdmin.admin_id == current_user.id
+        )
+    )
+    pending_query = query.filter(ServiceResult.sent_at == None)
+    edit_query = query.filter(ServiceResult.req_edit_at != None, ServiceResult.is_edited == False)
+    approve_query = query.filter(ServiceResult.sent_at != None, ServiceResult.approved_at == None,
+                                 or_(ServiceResult.req_edit_at == None, ServiceResult.is_edited == True
+                                     )
+                                 )
+    confirm_query = query.filter(ServiceResult.approved_at != None)
+    if api == 'true':
+        if tab == 'pending':
+            query = pending_query
+        elif tab == 'edit':
+            query = edit_query
+        elif tab == 'approve':
+            query = approve_query
+        elif tab == 'confirm':
+            query = confirm_query
+
+        records_total = query.count()
+        search = request.args.get('search[value]')
+        if search:
+            query = query.filter(ServiceRequest.request_no).contains(search)
+        start = request.args.get('start', type=int)
+        length = request.args.get('length', type=int)
+        total_filtered = query.count()
+        query = query.offset(start).limit(length)
+        data = []
+        for item in query:
+            html_blocks = []
+            edit_html_blocks = []
+            note_html_blocks = []
+            item_data = item.to_dict()
+            for i in item.result_items:
+                edit_html = ''
+                note_html = ''
+                edit_draft_result = url_for('service_admin.edit_draft_result', menu='report', tab='approve',
+                                      result_item_id=i.id)
+                edit_final_result = url_for('service_admin.edit_final_result', menu='report', tab='edit',
+                                            result_item_id=i.id)
+                view_final_result = url_for('service_admin.view_final_result_item', menu='report', tab='edit',
+                                            result_id=i.result_id, result_item_id=i.id)
+                if i.final_file:
+                    download_file = url_for('service_admin.download_file', key=i.final_file,
+                                            download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+                    html = f'''
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                            <span>{i.report_language} (ฉบับจริง)</span>
+                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            '''
+                elif i.draft_file:
+                    download_file = url_for('service_admin.download_file', key=i.draft_file,
+                                            download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+                    html = f'''
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+                                            <span>{i.report_language} (ฉบับร่าง)</span>
+                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            '''
+                else:
+                    html = ''
+
+                html_blocks.append(html)
+
+                if i.req_edit_at and not i.is_edited:
+                    if i.final_file and i.final_reversion and not i.final_reversion[-1].is_approved:
+                        edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{view_final_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>ตรวจสอบคำขอแก้ไข{i.report_language} (ฉบับจริง)</span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        '''
+                    elif i.final_file and i.final_reversion and i.final_reversion[-1].is_approved:
+                        edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{edit_final_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไข{i.report_language} (ฉบับจริง)</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    '''
+                    else:
+                        edit_html = f'''<div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-rounded" href="{edit_draft_result}">
+                                                    <span class="icon is-small"><i class="fas fa-pen"></i></span>
+                                                    <span>แก้ไข{i.report_language} (ฉบับร่าง)</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    '''
+                    note_html = f'''{i.report_language} : {i.note}<br/>'''
+                elif i.req_edit_at and i.is_edited:
+                    note_html = f'''{i.report_language} : {i.note}
+                                    <br/>
+                                    <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                    <br/>
+                                '''
+                if edit_html:
+                    edit_html_blocks.append(edit_html)
+                if note_html:
+                    note_html_blocks.append(note_html)
+            item_data['files'] = ''.join(
+                html_blocks) if html_blocks else ''
+            item_data['edit_file'] = ''.join(edit_html_blocks) if edit_html_blocks else ''
+            item_data['note'] = ''.join(note_html_blocks) if note_html_blocks else ''
+            data.append(item_data)
+        return jsonify({'data': data,
+                        'recordFiltered': total_filtered,
+                        'recordTotal': records_total,
+                        'draw': request.args.get('draw', type=int)
+                        })
+    return render_template('service_admin/result_index.html', menu=menu, tab=tab,
+                           pending_count=pending_query.count(),
+                           edit_count=edit_query.count(), approve_count=approve_query.count())
+
+
+@service_admin.route('/result/final/view/<int:result_id>/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
+def view_final_result_item(result_id, result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result = ServiceResult.query.get(result_id)
+    result_item = next((i for i in result.result_items if i.id == result_item_id), None)
+    if not result_item:
+        flash('ไม่พบรายการผล', 'danger')
+        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
+    return render_template('service_admin/view_final_result_item.html', result=result,
+                           result_item=result_item, menu=menu, tab=tab, generate_url=generate_url,
+                           result_item_id=result_item_id)
+
+
+@service_admin.route('/result/delete/<int:item_id>', methods=['GET', 'POST'])
+def delete_result_file(item_id):
+    status_id = get_status(11)
+    item = ServiceResultItem.query.get(item_id)
+    item.url = None
+    item.modified_at = arrow.now('Asia/Bangkok').datetime
+    item.result.status_id = status_id
+    item.result.modified_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(item)
+    db.session.commit()
+    flash("ลบไฟล์เรียบร้อยแล้ว", "success")
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
+
+
+@service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
+def add_tracking_number(result_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result = ServiceResult.query.get(result_id)
+    form = ServiceResultForm(obj=result)
+    if form.validate_on_submit():
+        form.populate_obj(result)
+        db.session.add(result)
+        db.session.commit()
+        customer_name = result.request.customer.customer_name.replace(' ', '_')
+        title_prefix = 'คุณ' if result.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''แจ้งจัดส่งรายงานผลการทดสอบ'''
+        message = f'''เรียน {title_prefix}{result.request.customer.customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+        message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการจัดส่งรายงานผลการทดสอบฉบับจริงให้แก่ท่านทางไปรษณีย์เป็นที่เรียบร้อยแล้ว\nหมายเลขพัสดุ : {result.tracking_number}\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        if not current_app.debug:
+            send_mail([result.request.customer.email], title, message)
+        else:
+            print('message', message)
+        flash('อัพเดตข้อมูลสำเร็จ', 'success')
+        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('service_admin/add_tracking_number_for_result.html', form=form, menu=menu,
+                           tab=tab, result_id=result_id)
+
+
 @service_admin.route('/result/draft/add', methods=['GET', 'POST'])
 @service_admin.route('/result/draft/edit/<int:result_id>', methods=['GET', 'POST'])
 @login_required
@@ -9525,6 +9525,40 @@ def delete_final_result(item_id):
     resp = make_response()
     resp.headers['HX-Refresh'] = 'true'
     return resp
+
+
+@service_admin.route('/result/final/approve/<int:result_item_id>', methods=['GET', 'POST'])
+def approve_final_result_revision(result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result_item = ServiceResultItem.query.get(result_item_id)
+    if result_item.final_reversion:
+        result_item.final_reversion[-1].is_approved = True
+        db.session.add(result_item)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        result_url = url_for('academic_services.result_index', menu='report', tab='confirm', _external=True,
+                             _scheme=scheme)
+        title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''แจ้งอนุมัติการขอแก้ไขรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ'''
+        message = f'''เรียน {title_prefix}{result_item.result.request.customer.customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+        message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการอนุมัติการขอแก้ไข{result_item.report_language}ฉบับจริง ท่านสามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงค์ด้านล่าง\n'''
+        message += f'''{result_url}\n\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        if not current_app.debug:
+            send_mail([result_item.result.request.customer.email], title, message)
+        else:
+            print('message', message)
+        flash("อนุมัติสำเร็จ", "success")
+        return redirect(url_for('service_admin.edit_final_result', result_item_id=result_item_id, menu=menu,
+                                tab=tab))
+    return render_template('service_admin/view_final_result_item.html', result=result_item.result,
+                           result_item=result_item, menu=menu, tab=tab, generate_url=generate_url,
+                           result_item_id=result_item_id)
 
 
 @service_admin.route('/invoice/payment/index')
