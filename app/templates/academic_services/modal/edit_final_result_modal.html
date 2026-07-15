@@ -1,4 +1,4 @@
-<div class="modal is-active animate__animated" id="add-tracking-number-modal">
+<div class="modal is-active animate__animated" id="edit-final-result-modal">
     <div class="modal-background"></div>
         <div class="modal-card">
             <header class="modal-card-head">
@@ -37,7 +37,7 @@
 </div>
 <script>
     window.document.getElementById("cancelButton").addEventListener("click", function() {
-        htmx.addClass(htmx.find('#add-tracking-number-modal'), 'animate__fadeOut')
-        htmx.removeClass(htmx.find('#add-tracking-number-modal'), "is-active", 500)
+        htmx.addClass(htmx.find('#edit-final-result-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#edit-final-result-modal'), "is-active", 500)
     })
 </script>
