@@ -6216,7 +6216,7 @@ def result_index():
                 edit_final_result = url_for('service_admin.edit_final_result', menu='report', tab='edit',
                                             result_item_id=i.id)
                 view_final_result = url_for('service_admin.view_final_result_item', menu='report', tab='edit',
-                                            result_item_id=i.id)
+                                            result_id=i.result_id, result_item_id=i.id)
                 if i.final_file:
                     download_file = url_for('service_admin.download_file', key=i.final_file,
                                             download_filename=f"{i.report_language} (ฉบับจริง).pdf")
@@ -9326,7 +9326,8 @@ def edit_draft_result(result_item_id):
     menu = request.args.get('menu')
     result_item = ServiceResultItem.query.get(result_item_id)
     if result_item.is_edited:
-        return render_template('service_admin/result_edit_notice_page.html', menu=menu, tab=tab)
+        return render_template('service_admin/result_edit_notice_page.html', menu=menu, tab=tab,
+                               type='ฉบับร่าง')
     else:
         form = ServiceResultItemForm(obj=result_item)
         if form.validate_on_submit():
@@ -9358,8 +9359,6 @@ def edit_draft_result(result_item_id):
             result_url = url_for('academic_services.view_result_item', result_id=result_item.result_id,
                                  result_item_id=result_item_id, menu='report', tab=tab, _external=True,
                                  _scheme=scheme)
-            customer_name = result_item.result.request.customer.customer_name.replace(' ', '_')
-            # contact_email = result_item.result.request.customer.contact_email if result_item.result.request.customer.contact_email else result_item.result.request.customer.email
             title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
             title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับร่างของใบคำขอรับบริการ'''
             message = f'''เรียน {title_prefix}{result_item.result.request.customer.customer_name}\n\n'''
@@ -9379,6 +9378,71 @@ def edit_draft_result(result_item_id):
             return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
         else:
             return render_template('service_admin/edit_draft_result.html', result_item_id=result_item_id,
+                                   menu=menu, tab=tab, result_item=result_item, result_id=result_item.result_id)
+
+
+@service_admin.route('/result_item/final/edit/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
+def edit_final_result(result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result_item = ServiceResultItem.query.get(result_item_id)
+    if result_item.is_edited:
+        return render_template('service_admin/result_edit_notice_page.html', menu=menu, tab=tab,
+                               type='ฉบับจริง')
+    else:
+        form = ServiceResultItemForm(obj=result_item)
+        if form.validate_on_submit():
+            file = request.files.get(f'file_{result_item_id}')
+            if file and allowed_file(file.filename):
+                mime_type = file.mimetype
+                file_name = '{}.{}'.format(result_item.report_language, file.filename.split('.')[-1])
+                file_data = file.stream.read()
+                response = s3.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=file_name,
+                    Body=file_data,
+                    ContentType=mime_type
+                )
+                result_item.final_file = file_name
+                result_item.edited_at = arrow.now('Asia/Bangkok').datetime
+                result_item.is_edited = True
+                result_item.modified_at = arrow.now('Asia/Bangkok').datetime
+                if result_item.final_reversion:
+                    result_item.final_reversion[-1].edited_at = arrow.now('Asia/Bangkok').datetime
+                    result_item.final_reversion[-1].editor_id = current_user.id
+                db.session.add(result_item)
+                db.session.commit()
+            edited_all = all(item.edited_at for item in result_item.result.result_items if item.req_edit_at)
+            tab = 'approve' if edited_all else 'edit'
+            if edited_all:
+                result_item.result.is_edited = True
+                result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(result_item)
+                db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            result_url = url_for('academic_services.view_final_result_item', result_id=result_item.result_id,
+                                 result_item_id=result_item_id, menu='report', tab=tab, _external=True,
+                                 _scheme=scheme)
+            title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
+            title = f'''แจ้งแก้ไขรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ'''
+            message = f'''เรียน {title_prefix}{result_item.result.request.customer.customer_name}\n\n'''
+            message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+            message += f'''ขณะนี้ทางเจ้าหน้าที่ได้แก้ไข{result_item.report_language}ฉบับจริงเรียบร้อยแล้ว\n'''
+            message += f'''ท่านสามารถตรวจสอบความถูกต้องของข้อมูลในรายงานผลการทดสอบฉบับจริง และดำเนินการยืนยันได้ที่ลิงค์ด้านล่าง\n'''
+            message += f'''{result_url}\n\n'''
+            message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+            message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
+            message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+            message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            if not current_app.debug:
+                send_mail([result_item.result.request.customer.email], title, message)
+            else:
+                print('message', message)
+            flash("บันทึกไฟล์เรียบร้อยแล้ว", "success")
+            return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
+        else:
+            return render_template('service_admin/edit_final_result.html', result_item_id=result_item_id,
                                    menu=menu, tab=tab, result_item=result_item, result_id=result_item.result_id)
 
 
