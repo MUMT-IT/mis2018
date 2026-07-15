@@ -1501,6 +1501,7 @@ class ServiceFinalResultItemReversion(db.Model):
     __tablename__ = 'service_final_result_item_reversions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     note = db.Column('note', db.Text())
+    remark = db.Column('remark', db.Text())
     is_approved = db.Column('is_approved', db.Boolean())
     result_item_id = db.Column('result_item_id', db.ForeignKey('service_result_items.id'))
     result_item = db.relationship(ServiceResultItem, backref=db.backref('final_reversion'))
