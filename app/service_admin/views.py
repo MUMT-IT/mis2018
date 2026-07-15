@@ -919,16 +919,25 @@ def menu():
             ServiceAdmin.admin_id == current_user.id
         )
         ).count()
+        # test_item_count = (ServiceTestItem.query
+        # .join(ServiceTestItem.request)
+        # .join(ServiceRequest.sub_lab)
+        # .join(ServiceSubLab.admins)
+        # .outerjoin(ServiceResult)
+        # .filter(
+        #     ServiceAdmin.admin_id == current_user.id, or_(ServiceResult.request_id == None,
+        #                                                   ServiceResult.sent_at == None,
+        #                                                   and_(ServiceResult.req_edit_at != None,
+        #                                                        ServiceResult.is_edited == False))
+        # )
+        # ).count()
         test_item_count = (ServiceTestItem.query
         .join(ServiceTestItem.request)
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .outerjoin(ServiceResult)
         .filter(
-            ServiceAdmin.admin_id == current_user.id, or_(ServiceResult.request_id == None,
-                                                          ServiceResult.sent_at == None,
-                                                          and_(ServiceResult.req_edit_at != None,
-                                                               ServiceResult.is_edited == False))
+            ServiceAdmin.admin_id == current_user.id, ServiceResult.request_id == None
         )
         ).count()
         invoice_count = (ServiceRequest.query
