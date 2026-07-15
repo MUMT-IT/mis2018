@@ -7461,6 +7461,45 @@ def confirm_result_item(result_item_id):
     return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
 
 
+@academic_services.route('/customer/result_item/final/confirm/<int:result_item_id>', methods=['GET', 'POST'])
+def confirm_final_result_item(result_item_id):
+    menu = request.args.get('menu')
+    result_item = ServiceResultItem.query.get(result_item_id)
+    result = ServiceResult.query.get(result_item.result_id)
+    result_item.approver_id = current_user.id
+    result_item.approved_at = arrow.now('Asia/Bangkok').datetime
+    if result_item.final_reversion:
+        result_item.final_reversion[-1].approver_id = current_user.id
+        result_item.final_reversion[-1].approved_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(result_item)
+    db.session.commit()
+    approved_all = all(item.approved_at is not None for item in result.result_items)
+    tab = 'confirm' if approved_all else 'approve'
+    if approved_all:
+        result_item.result.approved_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(result_item)
+        db.session.commit()
+        admins = (
+            ServiceAdmin.query
+            .join(ServiceSubLab)
+            .filter(ServiceSubLab.code == result_item.result.request.sub_lab.code)
+            .all()
+        )
+        if admins:
+            title = f'''รายการยืนยันใบรายงานผลการทดสอบฉบับจริง'''
+            message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.lab.lab}\n\n'''
+            message += f'''มีใบรายงานผลฉบับจริงของใบคำขอรับบริการเลขที่ {result_item.result.request.request_no} ได้รับการยืนยันจากลูกค้าแล้ว '''
+            message += f'''ระบบงานบริการวิชาการ'''
+            if not current_app.debug:
+                send_mail(
+                    [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                    title, message)
+            else:
+                print('message', message)
+    flash('ยืนยันใบรายงานผลเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
+
+
 @academic_services.route('/customer/result/create/<int:result_id>', methods=['GET', 'POST'])
 def create_copy_result(result_id):
     admin_id = None
