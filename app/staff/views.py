@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 from io import BytesIO
+from functools import wraps
 
 import arrow
 import pandas as pd
@@ -2534,31 +2535,17 @@ def get_login_records():
     return jsonify({'data': events})
 
 
-def _parse_checkin_reminder_cutoff(date_value, time_value):
-    target_date = datetime.now(tz).date() if not date_value else datetime.strptime(date_value, '%d/%m/%Y').date()
-    target_time = time_value or '09:00'
-    parsed_time = None
-    for time_format in ('%H:%M:%S', '%H:%M'):
-        try:
-            parsed_time = datetime.strptime(target_time, time_format).time()
-            break
-        except ValueError:
-            continue
-    if parsed_time is None:
-        raise ValueError('Invalid time format. Use HH:MM or HH:MM:SS.')
-    return tz.localize(datetime.combine(target_date, parsed_time))
+def _parse_checkin_reminder_date(date_value):
+    return datetime.now(tz).date() if not date_value else datetime.strptime(date_value, '%d/%m/%Y').date()
 
 
-def _build_missing_checkin_recipients(cutoff_dt, records=None):
-    day_start = cutoff_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+def _build_missing_checkin_recipients(target_date, records=None, staff_email=None):
+    target_date_id = target_date.strftime('%Y%m%d')
     if records is None:
-        records = StaffWorkLogin.query.filter(
-            func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= day_start,
-            func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) < cutoff_dt,
-        ).all()
+        records = StaffWorkLogin.query.filter_by(date_id=target_date_id).all()
     eligible_records = [
         rec for rec in records
-        if rec.staff_id and rec.start_datetime and _to_bangkok(rec.start_datetime) < cutoff_dt
+        if rec.staff_id and getattr(rec, 'date_id', None) == target_date_id
     ]
     checked_in_staff_ids = {rec.staff_id for rec in eligible_records}
 
@@ -2568,17 +2555,19 @@ def _build_missing_checkin_recipients(cutoff_dt, records=None):
             continue
         if getattr(staff_account.personal_info, 'academic_staff', None) is True:
             continue
+        if staff_email and (staff_account.email or '').strip().lower() != staff_email:
+            continue
         if staff_account.id in checked_in_staff_ids:
             continue
         recipients.append(staff_account)
     return recipients
 
 
-def _build_missing_checkin_reminder_message(staff_account, cutoff_dt):
-    cutoff_label = cutoff_dt.astimezone(tz).strftime('%H:%M')
+def _build_missing_checkin_reminder_message(staff_account, target_date):
+    reminder_date = target_date.strftime('%d/%m/%Y')
     return (
-        f'สวัสดี {staff_account.fullname} วันนี้ยังไม่พบการสแกนเข้างานก่อนเวลา {cutoff_label} '
-        f'ถ้าเริ่มปฏิบัติงานแล้ว รบกวนสแกนเข้างานในระบบด้วยนะครับ'
+        f'สวัสดี {staff_account.fullname} วันนี้ยังไม่พบการสแกนเข้างาน '
+        f'({reminder_date}) ถ้าเริ่มปฏิบัติงานแล้ว รบกวนสแกนเข้างานในระบบด้วยนะครับ'
     )
 
 
@@ -2637,49 +2626,60 @@ def _get_holiday_for_date(target_date):
     return Holidays.query.filter(cast(Holidays.holiday_date, Date) == target_date).first()
 
 
-def send_missing_checkin_reminders(cutoff_dt):
-    holiday = _get_holiday_for_date(cutoff_dt.astimezone(tz).date())
+def _is_valid_checkin_scheduler_request():
+    configured_token = os.environ.get('JOB_TOKEN')
+    if not configured_token:
+        return True
+    request_token = request.values.get('job_token')
+    return bool(request_token and request_token == configured_token)
+
+
+def send_missing_checkin_reminders(target_date, staff_email=None, recipients=None):
+    holiday = _get_holiday_for_date(target_date)
     if holiday:
         return {
-            'cutoff': cutoff_dt.isoformat(),
+            'date': target_date.isoformat(),
             'holiday_name': holiday.holiday_name,
             'recipient_count': 0,
             'sent_count': 0,
             'failed_count': 0,
         }
 
-    recipients = _build_missing_checkin_recipients(cutoff_dt)
+    if recipients is None:
+        recipients = _build_missing_checkin_recipients(target_date, staff_email=staff_email)
     sent_count = 0
     failed_count = 0
     for staff_account in recipients:
         try:
             line_bot_api.push_message(
                 to=staff_account.line_id,
-                messages=_build_missing_checkin_reminder_flex(cutoff_dt),
+                messages=_build_missing_checkin_reminder_flex(tz.localize(datetime.combine(target_date, datetime.min.time()))),
             )
             sent_count += 1
         except LineBotApiError:
             failed_count += 1
     return {
-        'cutoff': cutoff_dt.isoformat(),
+        'date': target_date.isoformat(),
         'recipient_count': len(recipients),
         'sent_count': sent_count,
         'failed_count': failed_count,
     }
 
 
-@staff.route('/admin/line-remind-missing-checkin', methods=['GET', 'POST'])
-@admin_permission.require()
-@login_required
-def line_remind_missing_checkin():
-    cutoff_dt = _parse_checkin_reminder_cutoff(
-        request.values.get('date'),
-        request.values.get('time'),
-    )
-    holiday = _get_holiday_for_date(cutoff_dt.astimezone(tz).date())
+def _line_remind_missing_checkin_impl():
+    scheduler_request = _is_valid_checkin_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not admin_permission.can():
+            abort(403)
+
+    staff_email = (_normalize_staff_email(request.values.get('email')) or '').lower()
+    target_date = _parse_checkin_reminder_date(request.values.get('date'))
+    holiday = _get_holiday_for_date(target_date)
     if holiday:
         payload = {
-            'cutoff': cutoff_dt.isoformat(),
+            'date': target_date.isoformat(),
             'holiday_name': holiday.holiday_name,
             'message': 'preview' if request.method == 'GET' else 'success',
             'recipient_count': 0,
@@ -2689,7 +2689,7 @@ def line_remind_missing_checkin():
         }
         return jsonify(payload)
 
-    recipients = _build_missing_checkin_recipients(cutoff_dt)
+    recipients = _build_missing_checkin_recipients(target_date, staff_email=staff_email or None)
     preview = [
         {'staff_id': staff_account.id, 'staff_name': staff_account.fullname}
         for staff_account in recipients
@@ -2698,14 +2698,24 @@ def line_remind_missing_checkin():
     if request.method == 'GET':
         return jsonify({
             'message': 'preview',
-            'cutoff': cutoff_dt.isoformat(),
+            'date': target_date.isoformat(),
             'recipient_count': len(preview),
             'recipients': preview,
+            'staff_email': staff_email or None,
         })
 
-    summary = send_missing_checkin_reminders(cutoff_dt)
+    summary = send_missing_checkin_reminders(target_date, staff_email=staff_email or None, recipients=recipients)
     summary['message'] = 'success'
+    if staff_email:
+        summary['staff_email'] = staff_email
     return jsonify(summary)
+
+
+@csrf.exempt
+@staff.route('/admin/line-remind-missing-checkin', methods=['GET', 'POST'])
+@wraps(_line_remind_missing_checkin_impl)
+def line_remind_missing_checkin():
+    return _line_remind_missing_checkin_impl()
 
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
@@ -4697,6 +4707,17 @@ def staff_edit_info(staff_id):
             )
             db.session.add(createstaff)
 
+        retired = True if form.getlist("retired") else False
+        if form.getlist("rejoined"):
+            create_resign = StaffResignation(
+                staff_account_id=staff_account.id,
+                hire_date=staff_account.personal_info.employed_date,
+                resign_date=staff_account.personal_info.resignation_date,
+            )
+            db.session.add(create_resign)
+            db.session.commit()
+            retired = False
+
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y').date() if start_d else None
         resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y').date() \
@@ -4721,16 +4742,6 @@ def staff_edit_info(staff_id):
         staff.org_id = form.get('org_id')
         academic_staff = True if form.getlist("academic_staff") else False
         staff.academic_staff = academic_staff
-        retired = True if form.getlist("retired") else False
-        if form.getlist("rejoined"):
-            create_resign = StaffResignation(
-                staff_account_id=staff_account.id,
-                hire_date=staff_account.personal_info.employed_date,
-                resign_date=staff_account.personal_info.resignation_date,
-            )
-            db.session.add(create_resign)
-            db.session.commit()
-            retired = False
         staff.retired = retired
         if not staff.retired:
             if staff.resignation_date:

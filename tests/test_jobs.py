@@ -3,10 +3,7 @@ from __future__ import annotations
 import importlib
 import sys
 import types
-from datetime import datetime
 from types import SimpleNamespace
-
-import pytz
 
 
 class _CapturingScheduler:
@@ -31,7 +28,7 @@ def _module(name: str, **attrs):
     return mod
 
 
-def _import_jobs(monkeypatch):
+def _import_jobs(monkeypatch, requests_module=None):
     _CapturingScheduler.instances.clear()
     monkeypatch.setitem(sys.modules, 'apscheduler', _module('apscheduler'))
     monkeypatch.setitem(sys.modules, 'apscheduler.schedulers', _module('apscheduler.schedulers'))
@@ -40,21 +37,14 @@ def _import_jobs(monkeypatch):
         'apscheduler.schedulers.blocking',
         _module('apscheduler.schedulers.blocking', BlockingScheduler=_CapturingScheduler),
     )
-    monkeypatch.setitem(
-        sys.modules,
-        'requests',
-        _module(
+    if requests_module is None:
+        requests_module = _module(
             'requests',
             request=lambda **kwargs: SimpleNamespace(status_code=200, url=kwargs['url'], text='ok'),
             get=lambda url, **kwargs: SimpleNamespace(status_code=200, url=url, text='ok'),
             HTTPError=RuntimeError,
-        ),
-    )
-    monkeypatch.setitem(
-        sys.modules,
-        'app.staff.views',
-        _module('app.staff.views', send_missing_checkin_reminders=lambda *_args, **_kwargs: None),
-    )
+        )
+    monkeypatch.setitem(sys.modules, 'requests', requests_module)
     sys.modules.pop('app.jobs', None)
     return importlib.import_module('app.jobs')
 
@@ -75,35 +65,27 @@ def test_jobs_registers_weekday_checkin_reminder(monkeypatch):
     assert scheduler.started is True
 
 
-def test_send_checkin_reminder_uses_0850_bangkok_cutoff(monkeypatch):
-    jobs = _import_jobs(monkeypatch)
-    captured = []
+def test_send_checkin_reminder_posts_tokenized_request(monkeypatch):
+    monkeypatch.setenv('JOB_TOKEN', 'test-job-token')
+    monkeypatch.setenv('JOBS_BASE_URL', 'https://example.test')
 
-    monkeypatch.setitem(
-        sys.modules,
-        'app.staff.views',
-        _module('app.staff.views', send_missing_checkin_reminders=lambda cutoff_dt: captured.append(cutoff_dt)),
+    captured = {}
+
+    def request(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(status_code=200, url=kwargs['url'], text='ok')
+
+    requests_module = _module(
+        'requests',
+        request=request,
+        get=lambda url, **kwargs: SimpleNamespace(status_code=200, url=url, text='ok'),
+        HTTPError=RuntimeError,
     )
-
-    class FakeDatetime:
-        @staticmethod
-        def now(tz=None):
-            dt = datetime(2026, 6, 26, 12, 0)
-            if tz is None:
-                return dt
-            if hasattr(tz, 'localize'):
-                return tz.localize(dt)
-            return dt.replace(tzinfo=tz)
-
-        @staticmethod
-        def combine(date_value, time_value):
-            return datetime.combine(date_value, time_value)
-
-    monkeypatch.setattr(jobs, 'datetime', FakeDatetime)
+    jobs = _import_jobs(monkeypatch, requests_module=requests_module)
 
     jobs.send_checkin_reminder()
 
-    assert len(captured) == 1
-    cutoff_dt = captured[0]
-    assert cutoff_dt.tzinfo is not None
-    assert cutoff_dt.astimezone(pytz.timezone('Asia/Bangkok')).strftime('%H:%M') == '08:50'
+    assert captured['method'] == 'POST'
+    assert captured['url'] == 'https://example.test/staff/admin/line-remind-missing-checkin'
+    assert 'date' in captured['params']
+    assert captured['params']['job_token'] == 'test-job-token'

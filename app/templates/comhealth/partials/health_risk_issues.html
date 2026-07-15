@@ -1,0 +1,182 @@
+<section class="mb-5 section-shell" id="issue-cards-section">
+    {% set issue_video_map = issue_video_map|default({}) %}
+    {% set issue_videos_page_urls = issue_videos_page_urls|default({}) %}
+    <h2 class="title is-4 mb-3">{{ ui.issue_cards }}</h2>
+    {% for issue in issues %}
+        {% set level_class = 'level-low' %}
+        {% if issue.concern_score >= 5 %}
+            {% set level_class = 'level-high' %}
+        {% elif issue.concern_score >= 3 %}
+            {% set level_class = 'level-moderate' %}
+        {% elif issue.concern_score >= 1 %}
+            {% set level_class = 'level-mild' %}
+        {% endif %}
+        <article class="issue-card {{ level_class }}">
+            <div class="issue-head">
+                <div>
+                    <h3 class="title is-5 mb-1 is-flex is-align-items-center">
+                        <span class="icon risk-icon {{ issue.concern_badge_class }}"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                        <span>{{ issue.issue_name }}</span>
+                    </h3>
+                    <p class="issue-meta">{{ ui.evidence_completeness }}: {{ issue.evidence_completeness }}%</p>
+                </div>
+                <div class="has-text-right">
+                    <span class="badge {{ issue.concern_badge_class }}">{{ issue.concern_level }}</span>
+                    <p class="issue-meta mt-2">{{ ui.score }}: {{ issue.concern_score }}</p>
+                </div>
+            </div>
+
+            <p class="issue-explanation">{{ issue.short_explanation }}</p>
+            <p class="is-size-7 has-text-grey mt-2">{{ issue.description }}</p>
+
+            {% set related_videos = issue_video_map.get(issue.key, []) %}
+            {% if related_videos %}
+                {% set videos_page_url = issue_videos_page_urls.get(issue.key, '#') %}
+                <div class="box mt-4">
+                    <div class="is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap" style="gap: 1rem;">
+                        <div>
+                            <h4 class="title is-6 mb-1">{{ ui.related_videos_title }}</h4>
+                            <p class="is-size-7 has-text-grey">{{ issue.issue_name }}</p>
+                        </div>
+                        <a class="button is-link is-light is-rounded is-small" href="{{ videos_page_url }}">
+                            <span>more..</span>
+                        </a>
+                    </div>
+
+                    <div class="content mt-3">
+                        <ul style="list-style:none; margin-left:0; display:grid; gap:0.75rem;">
+                            {% for video in related_videos %}
+                                <li>
+                                    <a class="button is-link is-light is-rounded is-fullwidth is-justify-content-flex-start" href="{{ video.youtube_url }}" target="_blank" rel="noopener noreferrer">
+                                        <span class="icon is-small"><i class="fa-solid fa-play"></i></span>
+                                        <span>{{ video.title }}</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if issue.concern_score == 0 %}
+                <details class="mt-4">
+                    <summary class="button is-light is-small is-rounded">
+                        <span class="icon is-small"><i class="fa-solid fa-angle-down"></i></span>
+                        <span>{{ ui.show_evidence }}</span>
+                    </summary>
+                    <div class="mt-4">
+                        <div class="mt-4">
+                            <div class="section-title is-size-7 mb-2">{{ ui.missing_evidence }}</div>
+                            {% if issue.missing_evidence %}
+                                <div class="pill-list">
+                                    {% for item in issue.missing_evidence %}
+                                        <span class="pill">{{ item }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="has-text-success is-size-7">{{ ui.complete }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="evidence-table-wrap">
+                            <table class="table is-fullwidth mb-0">
+                                <thead>
+                                    <tr class="is-size-7">
+                                        <th>{{ ui.table.test_name }}</th>
+                                        <th class="has-text-centered">{{ ui.table.value }}</th>
+                                        <th class="has-text-centered">{{ ui.table.unit }}</th>
+                                        <th class="has-text-centered">{{ ui.table.reference }}</th>
+                                        <th class="has-text-centered">{{ ui.table.status }}</th>
+                                        <th class="has-text-centered">{{ ui.table.score }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in issue.evidence_table %}
+                                        <tr>
+                                            <td>
+                                                <div class="has-text-weight-semibold">{{ item.label }}</div>
+                                                <div class="is-size-7 has-text-grey">{{ item.raw_name }}</div>
+                                            </td>
+                                            <td class="has-text-centered">{{ item.value }}</td>
+                                            <td class="has-text-centered">{{ item.unit or '-' }}</td>
+                                            <td class="has-text-centered">{{ item.reference_range or '-' }}</td>
+                                            <td class="has-text-centered">
+                                                {% if item.status == 'normal' %}
+                                                    <span class="badge is-success">{{ ui.status.normal }}</span>
+                                                {% elif item.status == 'borderline' %}
+                                                    <span class="badge is-warning">{{ ui.status.borderline }}</span>
+                                                {% elif item.status == 'abnormal' %}
+                                                    <span class="badge is-danger">{{ ui.status.abnormal }}</span>
+                                                {% elif item.status == 'critical' %}
+                                                    <span class="badge is-dark">{{ ui.status.critical }}</span>
+                                                {% else %}
+                                                    <span class="badge is-dark">{{ ui.status.missing }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="has-text-centered">{{ item.score }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </details>
+            {% else %}
+                <div class="mt-4">
+                    <div class="section-title is-size-7 mb-2">{{ ui.missing_evidence }}</div>
+                    {% if issue.missing_evidence %}
+                        <div class="pill-list">
+                            {% for item in issue.missing_evidence %}
+                                <span class="pill">{{ item }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span class="has-text-success is-size-7">{{ ui.complete }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="evidence-table-wrap">
+                    <table class="table is-fullwidth mb-0">
+                        <thead>
+                            <tr class="is-size-7">
+                                <th>{{ ui.table.test_name }}</th>
+                                <th class="has-text-centered">{{ ui.table.value }}</th>
+                                <th class="has-text-centered">{{ ui.table.unit }}</th>
+                                <th class="has-text-centered">{{ ui.table.reference }}</th>
+                                <th class="has-text-centered">{{ ui.table.status }}</th>
+                                <th class="has-text-centered">{{ ui.table.score }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in issue.evidence_table %}
+                                <tr>
+                                    <td>
+                                        <div class="has-text-weight-semibold">{{ item.label }}</div>
+                                        <div class="is-size-7 has-text-grey">{{ item.raw_name }}</div>
+                                    </td>
+                                    <td class="has-text-centered">{{ item.value }}</td>
+                                    <td class="has-text-centered">{{ item.unit or '-' }}</td>
+                                    <td class="has-text-centered">{{ item.reference_range or '-' }}</td>
+                                    <td class="has-text-centered">
+                                        {% if item.status == 'normal' %}
+                                            <span class="badge is-success">{{ ui.status.normal }}</span>
+                                        {% elif item.status == 'borderline' %}
+                                            <span class="badge is-warning">{{ ui.status.borderline }}</span>
+                                        {% elif item.status == 'abnormal' %}
+                                            <span class="badge is-danger">{{ ui.status.abnormal }}</span>
+                                        {% elif item.status == 'critical' %}
+                                            <span class="badge is-dark">{{ ui.status.critical }}</span>
+                                        {% else %}
+                                            <span class="badge is-dark">{{ ui.status.missing }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="has-text-centered">{{ item.score }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </article>
+    {% endfor %}
+</section>

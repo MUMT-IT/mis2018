@@ -1,6 +1,7 @@
 import pytz
 from psycopg2._range import DateTimeRange
 from sqlalchemy import func
+from sqlalchemy.orm import synonym
 
 from ..main import db
 from pytz import timezone
@@ -10,6 +11,12 @@ from app.staff.models import StaffAccount
 from datetime import datetime, timedelta
 
 localtz = timezone('Asia/Bangkok')
+
+
+def _ensure_bangkok_datetime(value):
+    if value.tzinfo is None:
+        return localtz.localize(value)
+    return value.astimezone(localtz)
 
 ot_announce_document_assoc_table = db.Table('ot_announce_document_assoc',
                                             db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'),
@@ -40,6 +47,10 @@ class OtPaymentAnnounce(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship(Org)
+    signatories = db.relationship('OtAnnouncementSignatory',
+                                  backref=db.backref('announcement'),
+                                  cascade='all, delete-orphan',
+                                  order_by='OtAnnouncementSignatory.sort_order')
 
     def __str__(self):
         return self.topic
@@ -50,6 +61,26 @@ class OtPaymentAnnounce(db.Model):
         for doc in self.approved_documents:
             eligible_staff |= set(doc.staff)
         return eligible_staff
+
+
+class OtAnnouncementSignatory(db.Model):
+    __tablename__ = 'ot_announcement_signatories'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'), nullable=False)
+    report_creator_staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'), nullable=True)
+    report_creator_staff = db.relationship(StaffAccount, foreign_keys=[report_creator_staff_account_id])
+    report_creator_position = db.Column('position', db.String(), nullable=True, info={'label': u'ตำแหน่งผู้จัดทำ'})
+    signer_staff_account_id = db.Column('signer_staff_account_id', db.ForeignKey('staff_account.id'), nullable=True)
+    signer_staff = db.relationship(StaffAccount, foreign_keys=[signer_staff_account_id],
+                                   backref=db.backref('ot_announcement_signings',
+                                                      foreign_keys=[signer_staff_account_id]))
+    signer_position = db.Column('signer_position', db.String(), nullable=True, info={'label': u'ตำแหน่งผู้ลงนาม'})
+    sort_order = db.Column('sort_order', db.Integer(), default=0, nullable=False)
+
+    def __str__(self):
+        creator_name = self.report_creator_staff.fullname if self.report_creator_staff else ''
+        signer_name = self.signer_staff.fullname if self.signer_staff else ''
+        return f'{creator_name} / {signer_name}'
 
 
 class OtCompensationRate(db.Model):
@@ -76,12 +107,17 @@ class OtCompensationRate(db.Model):
     detail = db.Column('detail', db.String())
     abbr = db.Column('abbr', db.String())
     timeslot_id = db.Column('timeslot_id', db.ForeignKey('ot_timeslots.id'))
-    time_slot = db.relationship('OtTimeSlot')
+    time_slot = db.relationship('OtTimeSlot', backref=db.backref('compensation_rates'))
     ot_job_role_id = db.Column('ot_job_role_id', db.ForeignKey('ot_job_roles.id'))
     ot_job_role = db.relationship('OtJobRole', backref=db.backref('ot_rates'))
 
     def __str__(self):
         return f'{self.ot_job_role}: {self.per_hour or self.per_day or self.per_period or ""}{self.unit}'
+
+    @property
+    def dropdown_label(self):
+        role_name = self.ot_job_role.role if self.ot_job_role else self.role or '-'
+        return f'{role_name} | {self.rate}'
 
     @property
     def rate(self):
@@ -126,6 +162,7 @@ class OtTimeSlot(db.Model):
     retired_at = db.Column('retired_at', db.DateTime(timezone=True))
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
     work_for_org = db.relationship(Org)
+    work_at_org = synonym('work_for_org')
     color = db.Column(db.String())
     note = db.Column('note', db.String())
 
@@ -149,6 +186,14 @@ class OtJobRole(db.Model):
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
     work_for_org = db.relationship(Org)
 
+    @property
+    def work_at_org(self):
+        return self.work_for_org
+
+    @work_at_org.setter
+    def work_at_org(self, value):
+        self.work_for_org = value
+
     def __str__(self):
         return f'{self.role}'
 
@@ -165,8 +210,8 @@ class OtShift(db.Model):
     creator = db.relationship(StaffAccount)
 
     def __init__(self, date, timeslot, creator):
-        start = datetime.combine(date, timeslot.start, tzinfo=pytz.timezone('Asia/Bangkok'))
-        end = datetime.combine(date, timeslot.end, tzinfo=pytz.timezone('Asia/Bangkok'))
+        start = datetime.combine(date, timeslot.start)
+        end = datetime.combine(date, timeslot.end)
         if timeslot.end.hour == 0 and timeslot.end.minute == 0:
             end += timedelta(days=1)
         self.datetime = DateTimeRange(lower=start, upper=end, bounds='[)')
@@ -236,11 +281,11 @@ class OtRecord(db.Model):
 
     @property
     def start_datetime(self):
-        return self.shift.datetime.lower.astimezone(localtz)
+        return _ensure_bangkok_datetime(self.shift.datetime.lower)
 
     @property
     def end_datetime(self):
-        return self.shift.datetime.upper.astimezone(localtz)
+        return _ensure_bangkok_datetime(self.shift.datetime.upper)
 
     @property
     def total_shift_minutes(self):

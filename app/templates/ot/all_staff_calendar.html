@@ -16,7 +16,7 @@
             <div class="column">
                 <div class="tabs is-boxed">
                     <ul>
-                        <li><a href="{{ url_for('ot.add_ot_schedule', announcement_id=announcement_id) }}">รายวัน</a></li>
+                        <li><a href="{{ url_for('ot.add_ot_schedule', announcement_id=announcement_id, org_id=work_at_org_id) }}">รายวัน</a></li>
                         <li class="is-active"><a>รายเดือน</a></li>
                         <li><a href="{{ url_for('ot.view_eligible_staff', announcement_id=announcement_id) }}">รายชื่อผู้ได้รับอนุมัติ</a></li>
                         <li><a href="{{ url_for('ot.view_documents', announcement_id=announcement_id) }}">รายการหนังสืออนุมัติหลักการ</a></li>
@@ -40,18 +40,18 @@
                          </span>
                         <span>กลับ</span>
                     </a>
-                    <a class="button is-warning" onclick="download_report()">
+                    <button class="button is-warning" type="button" id="report-signatory-button">
                          <span class="icon">
                              <i class="fa-solid fa-download"></i>
                          </span>
                         <span>report</span>
-                    </a>
-                    <a class="button is-danger" onclick="download_finance_pdf()">
+                    </button>
+                    <button class="button is-danger" type="button" id="finance-signatory-button">
                          <span class="icon">
                              <i class="fa-solid fa-file-pdf"></i>
                          </span>
                         <span>finance pdf</span>
-                    </a>
+                    </button>
                     <a class="button is-link" onclick="download_shedule()">
                          <span class="icon">
                              <i class="fa-solid fa-download"></i>
@@ -59,6 +59,48 @@
                         <span>schedule</span>
                     </a>
                 </div>
+            </div>
+        </div>
+        <div class="modal" id="signatoryModal">
+            <div class="modal-background" onclick="closeSignatoryModal()"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">เลือกผู้ลงนาม</p>
+                    <button class="delete" aria-label="close" type="button" onclick="closeSignatoryModal()"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="field">
+                        <label class="label">เลือกชุดผู้ลงนาม</label>
+                        <div class="control">
+                            {% for signatory in signatories %}
+                            <label class="box radio" style="display:block; cursor:pointer;">
+                                <input type="radio"
+                                       name="finance-signatory-id"
+                                       value="{{ signatory.id }}"
+                                       {% if loop.first %}checked{% endif %}>
+                                <div class="mt-2">
+                                    <div class="has-text-weight-semibold">ผู้จัดทำ</div>
+                                    <div>
+                                        {{ signatory.report_creator_staff.personal_info.fullname if signatory.report_creator_staff and signatory.report_creator_staff.personal_info else '-' }}
+                                        {% if signatory.report_creator_position %} — {{ signatory.report_creator_position }}{% endif %}
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="has-text-weight-semibold">ผู้ควบคุมการปฏิบัติงาน</div>
+                                    <div>
+                                        {{ signatory.signer_staff.personal_info.fullname if signatory.signer_staff and signatory.signer_staff.personal_info else '-' }}
+                                        {% if signatory.signer_position %} — {{ signatory.signer_position }}{% endif %}
+                                    </div>
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button is-link" type="button" id="signatoryModalConfirmButton" onclick="confirmSignatoryDownload()">สร้างรายงาน</button>
+                    <button class="button" type="button" onclick="closeSignatoryModal()">ยกเลิก</button>
+                </footer>
             </div>
         </div>
         <div class="columns">
@@ -137,21 +179,23 @@
             },
             {
                 data: 'checkins',
-                render: function(data, type) {
+                render: function(data, type, row) {
                     if (data) {
                         return moment(data).format('lll')
                     } else {
-                        return '<span class="tag is-danger is-rounded">not found</span>'
+                        let warning = row.anchor_warning ? '<div class="tag is-warning is-light is-rounded mt-1">May need a 00:00 anchor</div>' : ''
+                        return '<span class="tag is-danger is-rounded">not found</span>' + warning
                     }
                 }
             },
             {
                 data: 'checkouts',
-                render: function(data, type) {
+                render: function(data, type, row) {
                     if (data) {
                         return moment(data).format('lll')
                     } else {
-                        return '<span class="tag is-danger is-rounded">not found</span>'
+                        let warning = row.anchor_warning ? '<div class="tag is-warning is-light is-rounded mt-1">May need a 00:00 anchor</div>' : ''
+                        return '<span class="tag is-danger is-rounded">not found</span>' + warning
                     }
                 }
             },
@@ -182,11 +226,37 @@
     function download_schedule() {
         window.location = baseURL + '?download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
-    function download_report() {
-        window.location = baseURL + '?download=yes&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    function openSignatoryModal(format) {
+        $('#signatoryModal').addClass('is-active');
+        $('#signatoryModal').data('download-format', format);
+        const buttonLabel = format === 'finance-pdf' ? 'สร้าง PDF' : 'สร้างรายงาน';
+        $('#signatoryModalConfirmButton').text(buttonLabel);
     }
-    function download_finance_pdf() {
-        window.location = baseURL + '?download=yes&format=finance-pdf&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+    function closeSignatoryModal() {
+        $('#signatoryModal').removeClass('is-active');
+        $('#signatoryModal').removeData('download-format');
     }
+    function confirmSignatoryDownload() {
+        const selectedSignatory = $('input[name="finance-signatory-id"]:checked').val();
+        const format = $('#signatoryModal').data('download-format') || 'report';
+        const params = new URLSearchParams({
+            download: 'yes',
+            format: format,
+            start: $("input[name='dates']").data("daterangepicker").startDate.toISOString(),
+            end: $("input[name='dates']").data("daterangepicker").endDate.toISOString(),
+        });
+        if (selectedSignatory) {
+            params.set('signatory_id', selectedSignatory);
+        }
+        window.location = baseURL + '?' + params.toString()
+    }
+
+    document.addEventListener('click', function (event) {
+        if (event.target.closest('#report-signatory-button')) {
+            openSignatoryModal('report')
+        } else if (event.target.closest('#finance-signatory-button')) {
+            openSignatoryModal('finance-pdf')
+        }
+    })
     </script>
 {% endblock %}

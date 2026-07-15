@@ -1,0 +1,334 @@
+{% extends "continueing_edu/base_frontend.html" %}
+
+{% block title %}{{ survey_name }}{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+  :root {
+    --survey-bg-start: #f3fbf8;
+    --survey-bg-end: #eef5ff;
+    --survey-primary: #0f766e;
+    --survey-primary-soft: #dff6f2;
+    --survey-accent: #ea580c;
+    --survey-text: #1f2937;
+    --survey-muted: #64748b;
+    --survey-border: #d8e3ef;
+    --survey-shadow: 0 20px 45px rgba(15, 118, 110, 0.12);
+  }
+
+  .ce-survey-section {
+    background:
+      radial-gradient(circle at top right, rgba(15, 118, 110, 0.16), transparent 42%),
+      radial-gradient(circle at 8% 16%, rgba(234, 88, 12, 0.16), transparent 30%),
+      linear-gradient(145deg, var(--survey-bg-start), var(--survey-bg-end));
+  }
+
+  .ce-survey-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .ce-survey-hero {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--survey-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: var(--survey-shadow);
+  }
+
+  .ce-survey-kicker {
+    margin: 0 0 0.35rem;
+    color: var(--survey-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .ce-event-title {
+    margin: 0;
+    color: var(--survey-text);
+    font-size: 1.75rem;
+    line-height: 1.2;
+    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+    font-weight: 700;
+  }
+
+  .ce-survey-name {
+    margin-top: 0.6rem;
+    color: var(--survey-primary);
+    font-weight: 600;
+  }
+
+  .ce-survey-type {
+    background: var(--survey-primary-soft);
+    color: var(--survey-primary);
+    border: 1px solid rgba(15, 118, 110, 0.28);
+    border-radius: 999px;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0.85rem;
+  }
+
+  .ce-survey-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--survey-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 15px 35px rgba(15, 23, 42, 0.09);
+  }
+
+  .ce-question {
+    border-bottom: 1px dashed #d3dfeb;
+    padding-bottom: 1.2rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .ce-question:last-of-type {
+    border-bottom: 0;
+    margin-bottom: 0;
+  }
+
+  .ce-question .label {
+    color: var(--survey-text);
+    font-size: 1rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .ce-rating-help {
+    color: var(--survey-muted);
+    font-size: 0.82rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .ce-rating-group {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .ce-rating-input,
+  .ce-choice-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ce-rating-chip,
+  .ce-choice-chip {
+    border: 1px solid #ccd9e6;
+    border-radius: 12px;
+    background: #f8fbff;
+    color: #334155;
+    font-weight: 700;
+    text-align: center;
+    padding: 0.75rem 0.2rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .ce-rating-chip:hover,
+  .ce-choice-chip:hover {
+    border-color: var(--survey-primary);
+    transform: translateY(-1px);
+  }
+
+  .ce-rating-input:checked + .ce-rating-chip,
+  .ce-choice-input:checked + .ce-choice-chip {
+    border-color: var(--survey-primary);
+    background: var(--survey-primary-soft);
+    color: var(--survey-primary);
+    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.16);
+  }
+
+  .ce-choice-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    max-width: 360px;
+  }
+
+  .ce-share-box {
+    margin-bottom: 1.2rem;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    border-radius: 14px;
+    padding: 0.95rem;
+  }
+
+  .ce-share-note {
+    color: #1e40af;
+    margin-top: 0.5rem;
+  }
+
+  .ce-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+  }
+
+  .ce-submit-btn {
+    background: linear-gradient(135deg, #0f766e, #0b4f4a);
+    color: #fff;
+    border: 0;
+    font-weight: 700;
+    border-radius: 10px;
+  }
+
+  .ce-submit-btn:hover {
+    color: #fff;
+    filter: brightness(1.05);
+  }
+
+  @media (max-width: 768px) {
+    .ce-event-title {
+      font-size: 1.35rem;
+    }
+
+    .ce-survey-card,
+    .ce-survey-hero {
+      padding: 1rem;
+      border-radius: 14px;
+    }
+
+    .ce-rating-group {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .ce-choice-group {
+      max-width: none;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section ce-survey-section">
+  <div class="container is-max-desktop ce-survey-wrapper">
+    {% set TH = (current_lang == 'th') %}
+    {% set event_title = (event.title_th if TH and event.title_th else (event.title_en or event.title_th)) or (texts.get('label_untitled_event', 'Course/Webinar') if not TH else texts.get('label_untitled_event', 'คอร์ส/เว็บบินาร์')) %}
+    {% set event_type_label = texts.get('label_event_type_course', 'หลักสูตร' if TH else 'Course') if event.event_type == 'course' else texts.get('label_event_type_webinar', 'เว็บบินาร์' if TH else 'Webinar') %}
+    {% set v_overall = (form_data.get('overall_rating') if form_data else (response.overall_rating if response else '')) %}
+    {% set v_content = (form_data.get('content_rating') if form_data else (response.content_rating if response else '')) %}
+    {% set v_instructor = (form_data.get('instructor_rating') if form_data else (response.instructor_rating if response else '')) %}
+    {% set v_platform = (form_data.get('platform_rating') if form_data else (response.platform_rating if response else '')) %}
+    {% set v_recommend = (form_data.get('recommend_to_others') if form_data else (('1' if response.recommend_to_others else '0') if response and response.recommend_to_others is not none else '')) %}
+    {% set v_comment = (form_data.get('comment_text') if form_data else (response.comment_text if response else '')) %}
+
+    <nav class="breadcrumb" aria-label="breadcrumbs">
+      <ul>
+        <li><a href="{{ url_for('continuing_edu.index', lang=current_lang) }}">{{ texts.get('breadcrumb_home', 'Home') }}</a></li>
+        {% if event.event_type == 'course' %}
+        <li><a href="{{ url_for('continuing_edu.course_learn', course_id=event.id, lang=current_lang) }}">{{ texts.get('breadcrumb_learning', 'Learning') }}</a></li>
+        {% else %}
+        <li><a href="{{ url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang=current_lang) }}">{{ texts.get('breadcrumb_webinar_detail', 'Webinar detail') }}</a></li>
+        {% endif %}
+        <li class="is-active"><a href="#" aria-current="page">{{ texts.get('satisfaction_form', 'Satisfaction Survey') }}</a></li>
+      </ul>
+    </nav>
+
+    <div class="ce-survey-hero">
+      <span class="ce-survey-type">{{ event_type_label }}</span>
+      <p class="ce-survey-kicker">{{ texts.get('satisfaction_form', 'Satisfaction Survey') }}</p>
+      <h1 class="ce-event-title">{{ event_title }}</h1>
+      <p class="ce-survey-name">{{ survey_name }}</p>
+    </div>
+
+    <div class="ce-survey-card">
+      {% if share_link %}
+      <div class="ce-share-box">
+        <p class="mb-2"><strong>{{ texts.get('label_share_link', 'Share link') }}</strong></p>
+        <div class="field has-addons">
+          <div class="control is-expanded">
+            <input id="ce-share-link" class="input" type="text" readonly value="{{ share_link }}" onclick="this.select();">
+          </div>
+          <div class="control">
+            <button class="button is-info is-light" type="button" onclick="copySatisfactionShareLink()">
+              {{ texts.get('button_copy_link', 'Copy') }}
+            </button>
+          </div>
+        </div>
+        <p class="help ce-share-note">{{ texts.get('message_share_link_once', 'This link can be used once and will expire automatically.') }}</p>
+      </div>
+      {% endif %}
+
+      <form method="post" action="{{ form_action or url_for('continuing_edu.satisfaction_survey', event_id=event.id, lang=current_lang) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% for field_name, label, selected in [
+          ('overall_rating', (texts.get('satisfaction_overall', 'Overall satisfaction')), v_overall),
+          ('content_rating', (texts.get('satisfaction_content', 'Content quality')), v_content),
+          ('instructor_rating', (texts.get('satisfaction_instructor', 'Instructor quality')), v_instructor),
+          ('platform_rating', (texts.get('satisfaction_platform', 'Platform/organization quality')), v_platform)
+        ] %}
+        <div class="field ce-question">
+          <label class="label">{{ label }} <span class="has-text-danger">*</span></label>
+          <p class="ce-rating-help">{{ texts.get('satisfaction_score_hint', 'Rate from 1 (lowest) to 5 (highest)') }}</p>
+          <div class="control ce-rating-group">
+            {% for i in range(1, 6) %}
+            {% set input_id = field_name ~ '_' ~ i %}
+            <input class="ce-rating-input" type="radio" id="{{ input_id }}" name="{{ field_name }}" value="{{ i }}" {% if selected|string == i|string %}checked{% endif %}>
+            <label class="ce-rating-chip" for="{{ input_id }}">{{ i }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+
+        <div class="field ce-question">
+          <label class="label">{{ texts.get('satisfaction_recommend', 'Would you recommend this course/webinar to others?') }}</label>
+          <div class="control ce-choice-group">
+            <input class="ce-choice-input" type="radio" id="recommend_yes" name="recommend_to_others" value="1" {% if v_recommend == '1' %}checked{% endif %}>
+            <label class="ce-choice-chip" for="recommend_yes">{{ texts.get('label_yes', 'Yes') }}</label>
+            <input class="ce-choice-input" type="radio" id="recommend_no" name="recommend_to_others" value="0" {% if v_recommend == '0' %}checked{% endif %}>
+            <label class="ce-choice-chip" for="recommend_no">{{ texts.get('label_no', 'No') }}</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">{{ texts.get('satisfaction_comment', 'Additional comments') }}</label>
+          <div class="control">
+            <textarea class="textarea" name="comment_text" rows="4" maxlength="4000">{{ v_comment or '' }}</textarea>
+          </div>
+        </div>
+
+        <div class="ce-actions">
+          <button class="button ce-submit-btn" type="submit">{{ texts.get('button_submit', 'Submit') }}</button>
+          {% if event.event_type == 'course' %}
+          <a class="button" href="{{ url_for('continuing_edu.course_learn', course_id=event.id, lang=current_lang) }}">{{ texts.get('button_cancel', 'Cancel') }}</a>
+          {% else %}
+          <a class="button" href="{{ url_for('continuing_edu.webinar_detail', webinar_id=event.id, lang=current_lang) }}">{{ texts.get('button_cancel', 'Cancel') }}</a>
+          {% endif %}
+        </div>
+      </form>
+      {% if logged_in_user %}
+      <hr>
+      <form method="post" action="{{ url_for('continuing_edu.generate_satisfaction_share_link', event_id=event.id, lang=current_lang) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="button is-light is-small" type="submit">{{ texts.get('button_generate_share_link', 'Generate share link') }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</section>
+<script>
+  function copySatisfactionShareLink() {
+    const field = document.getElementById('ce-share-link');
+    if (!field) return;
+    field.select();
+    field.setSelectionRange(0, 99999);
+    try {
+      navigator.clipboard.writeText(field.value);
+    } catch (e) {
+      document.execCommand('copy');
+    }
+  }
+</script>
+{% endblock %}

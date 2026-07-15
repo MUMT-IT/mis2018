@@ -62,6 +62,7 @@
         <th>Member</th>
         <th>Event</th>
         <th>Amount</th>
+        <th>Method</th>
         <th>Status</th>
         <th>Proof</th>
         <th></th>
@@ -74,29 +75,57 @@
         <td>{{ p.member.username }} ({{ p.member.email }})</td>
         <td>{{ p.event_entity.title_en or p.event_entity.title_th }}</td>
         <td>{{ '%.2f'|format(p.payment_amount or 0) }} THB</td>
+        <td>{{ p.payment_method or '-' }}</td>
         <td>
           {% set badge = p.payment_status_ref.css_badge if p.payment_status_ref and p.payment_status_ref.css_badge else
           'is-light' %}
           <span class="tag {{ badge }}">{{ p.payment_status_ref.name_en if p.payment_status_ref else 'N/A' }}</span>
         </td>
         <td>
-          {% if p.payment_proof_url %}
-            <button class="button is-small is-light" type="button" onclick="openProofModal('{{ p.proof_presigned_url()|e }}')">View</button>
+          {% set proof_url = p.proof_presigned_url() %}
+          {% if proof_url %}
+            <button class="button is-small is-light" type="button" onclick="openProofModal('{{ proof_url|e }}')">View</button>
+          {% elif p.payment_proof_url %}
+            <span class="tag is-warning is-light">Uploaded (preview unavailable)</span>
           {% else %}
             <em>None</em>
           {% endif %}
         </td>
         <td class="has-text-right">
-          <form method="post" action="{{ url_for('continuing_edu_admin.payment_approve', payment_id=p.id) }}"
-            style="display:inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button class="button is-small is-success" type="submit">Approve</button>
-          </form>
-          <form method="post" action="{{ url_for('continuing_edu_admin.payment_reject', payment_id=p.id) }}"
-            style="display:inline">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-            <button class="button is-small is-danger is-light" type="submit">Reject</button>
-          </form>
+          {% set action_meta = payment_action_meta.get(p.id, {}) %}
+          {% set can_decide = action_meta.get('can_decide', False) %}
+          {% set method = (p.payment_method or '')|lower %}
+          {% set requires_proof = method in ['bank_transfer', 'counter'] %}
+          {% set has_proof = (p.payment_proof_url is not none and p.payment_proof_url|length > 0) %}
+          {% set status_code = ((p.payment_status_ref.register_payment_status_code if p.payment_status_ref and p.payment_status_ref.register_payment_status_code else (p.payment_status_ref.name_en if p.payment_status_ref else ''))|lower) %}
+          {% set is_finalized = status_code in ['paid', 'cancelled', 'canceled'] %}
+
+          {% if can_decide and not is_finalized %}
+            {% if requires_proof and not has_proof %}
+            <button class="button is-small is-success" type="button" disabled title="Payment proof required before approval">Approve</button>
+            {% else %}
+            <form method="post" action="{{ url_for('continuing_edu_admin.payment_approve', payment_id=p.id) }}"
+              style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button class="button is-small is-success" type="submit">Approve</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('continuing_edu_admin.payment_reject', payment_id=p.id) }}"
+              style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button class="button is-small is-danger is-light" type="submit">Reject</button>
+            </form>
+          {% elif can_decide and is_finalized %}
+            <span class="tag is-light">Finalized</span>
+          {% else %}
+            <span class="tag is-warning is-light">No permission</span>
+            <p class="is-size-7 has-text-grey mt-1">Required: {{ action_meta.get('required_role', 'Payment Approver') }}</p>
+            {% if action_meta.get('authorized_staff') %}
+            <p class="is-size-7 has-text-grey">Authorized: {{ action_meta.get('authorized_staff')|join(', ') }}</p>
+            {% else %}
+            <p class="is-size-7 has-text-grey">Authorized: no assignee configured</p>
+            {% endif %}
+          {% endif %}
           {% if p.receipt %}<a class="button is-small is-light"
             href="{{ url_for('continuing_edu_admin.payment_receipt', payment_id=p.id) }}">View Receipt</a>{% endif %}
         </td>
