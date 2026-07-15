@@ -6305,6 +6305,21 @@ def result_index():
                            edit_count=edit_query.count(), approve_count=approve_query.count())
 
 
+@service_admin.route('/result/final/view/<int:result_id>/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
+def view_final_result_item(result_id, result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result = ServiceResult.query.get(result_id)
+    result_item = next((i for i in result.result_items if i.id == result_item_id), None)
+    if not result_item:
+        flash('ไม่พบรายการผล', 'danger')
+        return redirect(url_for('service_admin.result_index', menu=menu, tab=tab))
+    return render_template('service_admin/view_final_result_item.html', result=result,
+                           result_item=result_item, menu=menu, tab=tab, generate_url=generate_url,
+                           result_item_id=result_item_id)
+
+
 @service_admin.route('/result/delete/<int:item_id>', methods=['GET', 'POST'])
 def delete_result_file(item_id):
     status_id = get_status(11)
