@@ -7345,8 +7345,9 @@ def edit_final_result_item(result_item_id):
             .filter(ServiceSubLab.code == result_item.result.request.sub_lab.code)
             .all()
         )
-        link = url_for("service_admin.edit_draft_result", result_item_id=result_item_id, menu='test_item',
-                        tab='edit', _external=True, _scheme=scheme)
+        link = url_for('service_admin.view_final_result_item', result_id=result_item.result_id,
+                                 result_item_id=result_item_id, menu='report', tab=tab, _external=True,
+                                 _scheme=scheme)
         if admins:
             title = f'''รายการขอแก้ไขใบรายงานผลการทดสอบฉบับจริง'''
             message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.lab.lab}\n\n'''
