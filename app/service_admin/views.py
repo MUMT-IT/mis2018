@@ -9568,7 +9568,7 @@ def unapprove_final_result_reversion(result_item_id):
     result_item = ServiceResultItem.query.get(result_item_id)
     if request.method == 'POST':
         remark = request.form.get("remark")
-        result_item.final_reversion[-1].is_approved = True
+        result_item.final_reversion[-1].is_approved = False
         result_item.final_reversion[-1].remark = remark
         db.session.add(result_item)
         db.session.commit()
@@ -9594,7 +9594,7 @@ def unapprove_final_result_reversion(result_item_id):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return render_template('service_admin/modal/unapprove_final_result_reversion.html',
+    return render_template('service_admin/modal/unapprove_final_result_reversion_modal.html',
                            result_item_id=result_item_id, menu=menu, tab=tab)
 
 

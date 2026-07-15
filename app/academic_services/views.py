@@ -7351,7 +7351,7 @@ def edit_final_result_item(result_item_id):
         if admins:
             title = f'''รายการขอแก้ไขใบรายงานผลการทดสอบฉบับจริง'''
             message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.lab.lab}\n\n'''
-            message += f'''มีใบรายงานผลฉบับจริงของใบคำขอรับบริการเลขที่ {result_item.result.request.request_no} ที่ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {note}\n'''
+            message += f'''มี{result_item.report_language}ฉบับจริงของใบคำขอรับบริการเลขที่ {result_item.result.request.request_no} ที่ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {note}\n'''
             message += f'''ท่านสามารถดำเนินการตรวจสอบได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
             message += f'''ผู้ประสานงาน\n'''
