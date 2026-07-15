@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.css" rel="stylesheet"/>
+    <style>
+        .toast {
+            opacity: 1 !important;
+            transition: none !important;
+        }
+        #toast-container.toast-top-full-width > .toast {
+            width: 100% !important;
+        }
+    </style>
+{% endblock %}
+{% include "service_admin/admin_nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <h1 class="title has-text-centered">ปฏิเสธการรับตัวอย่าง</h1>
+            <h1 class="subtitle has-text-centered">{{ request_no }}</h1>
+            <div class="columns">
+                <div class="box column is-half is-offset-3">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">
+                                {{ form.reason.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.reason(class='textarea', required=true) }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('service_admin.sample_index', menu=menu, tab=tab) }}" class="button">ย้อนกลับ</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/toastr@2.1.4/build/toastr.min.js"></script>
+    <script>
+        function showToast(message) {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": false,
+                "positionClass": "toast-top-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+            toastr.success(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        showToast({{ message|tojson }}, 7000);
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+{% endblock %}

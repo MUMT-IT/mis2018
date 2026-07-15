@@ -95,6 +95,24 @@ def sort_quotation_item(items):
     return (priority, items.id)
 
 
+def build_notification(invoice, service_request, link):
+    title = f'รายการออกใบรายงานผลการทดสอบ'
+    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.lab.lab}\n\n'''
+    message += f'''ทางแอดมินกลางได้ดำเนินการออกใบแจ้งหนี้ของใบคำขอรับบริการเลขที่ {service_request.request_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการออกใบรายงานผลการทดสอบ\n'''
+    message += f'''ท่านสามารถดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+    message += f'''{link}\n\n'''
+    message += f'''ระบบบริการวิชาการ'''
+    msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
+           'ออกในนาม {}\n' \
+           'ณ วันที่ {} รอดำเนินการออกใบรายงานผลการทดสอบ\n' \
+           'กรุณาดำเนินการแนบไฟล์ในระบบ\n'
+           'คลิกลิ้งค์เพื่อดำเนินการ\n'
+           '{}'.format(service_request.request_no, service_request.quotation_address.name,
+                       invoice.file_attached_at.astimezone(localtz).strftime('%d/%m/%Y'), link
+                       )
+           )
+    return title, message, msg
+
 @service_admin.route('/aws-s3/download/<key>', methods=['GET'])
 def download_file(key):
     download_filename = request.args.get('download_filename')
@@ -881,7 +899,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([2, 24]),
+            ServiceStatus.status_id.in_([3, 6]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         quotation_count = (ServiceRequest.query
@@ -889,7 +907,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([3, 4, 5]),
+            ServiceStatus.status_id.in_([4, 5, 7]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         sample_count = (ServiceRequest.query
@@ -897,7 +915,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([6, 8, 9]),
+            ServiceStatus.status_id.in_([8, 10]),
             ServiceAdmin.admin_id == current_user.id
         )
         ).count()
@@ -908,7 +926,9 @@ def menu():
         .outerjoin(ServiceResult)
         .filter(
             ServiceAdmin.admin_id == current_user.id, or_(ServiceResult.request_id == None,
-                                                          ServiceResult.approved_at == None)
+                                                          ServiceResult.sent_at == None,
+                                                          and_(ServiceResult.req_edit_at != None,
+                                                               ServiceResult.is_edited == False))
         )
         ).count()
         invoice_count = (ServiceRequest.query
@@ -916,7 +936,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([16, 17, 18, 19, 20]),
+            ServiceStatus.status_id.in_([15, 18, 19, 20]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         invoice_count_for_central_admin = (ServiceRequest.query
@@ -924,7 +944,7 @@ def menu():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.in_([19, 20]),
+            ServiceStatus.status_id.in_([21, 22]),
             ServiceAdmin.admin_id == current_user.id
         )).count()
         report_count = (
@@ -933,8 +953,11 @@ def menu():
             .join(ServiceRequest.sub_lab)
             .join(ServiceSubLab.admins)
             .filter(
-                ServiceResult.approved_at == None,
-                ServiceAdmin.admin_id == current_user.id
+                ServiceAdmin.admin_id == current_user.id,
+                or_(ServiceResult.sent_at == None,
+                    and_(ServiceResult.req_edit_at != None,
+                         ServiceResult.is_edited == False)
+                    )
             )
         ).count()
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
@@ -1010,8 +1033,7 @@ def request_index():
             admin = True
         sub_labs.append(a.sub_lab.code)
 
-    ids = list(range(2, 23))
-    ids.append(24)
+    ids = list(range(3, 25))
 
     status_groups = {
         'all': {
@@ -1020,19 +1042,19 @@ def request_index():
             'icon': '<i class="fas fa-list-ul"></i>'
         },
         'create_quotation': {
-            'id': [2, 3, 4, 5, 24],
-            'name': 'รอออก/ยืนยันใบเสนอราคา',
+            'id': [3, 4, 5, 6],
+            'name': 'รอออก/อนุมัติใบเสนอราคา',
             'color': 'is-info',
             'icon': '<i class="fas fa-file-invoice"></i>'
         },
         'received_sample': {
-            'id': [6, 8, 9],
+            'id': [8, 10],
             'name': 'รอรับตัวอย่าง',
             'color': 'is-info',
             'icon': '<i class="fas fa-people-carry"></i>'
         },
         'waiting_test': {
-            'id': [10],
+            'id': [11],
             'name': 'รอทดสอบตัวอย่าง',
             'color': 'is-info',
             'icon': '<i class="fas fa-vial"></i>'
@@ -1044,19 +1066,19 @@ def request_index():
         #     'icon': '<i class="fas fa-file-alt"></i>'
         # },
         'create_invoice': {
-            'id': [13, 16, 17, 18, 19],
-            'name': 'รอออก/ยืนยันใบแจ้งหนี้',
+            'id': [15, 18, 19, 20, 21],
+            'name': 'รอออก/อนุมัติใบแจ้งหนี้',
             'color': 'is-info',
             'icon': '<i class="fas fa-file-invoice-dollar"></i>'
         },
         'wait_payment': {
-            'id': [20, 21],
+            'id': [22, 23],
             'name': 'รอชำระเงิน',
             'color': 'is-info',
             'icon': '<i class="fas fa-money-check-alt"></i>'
         },
         'confirm_payment': {
-            'id': [22],
+            'id': [24],
             'name': 'ชำระเงินสำเร็จ',
             'color': 'is-light',
             'icon': '<i class="fas fa-check"></i>'
@@ -1064,7 +1086,7 @@ def request_index():
     }
 
     for key, group in status_groups.items():
-        group_ids = [i for i in group['id'] if i != 7]
+        group_ids = [i for i in group['id'] if i != 9 and i!= 12]
         query = (
             ServiceRequest.query
             .join(ServiceRequest.status)
@@ -1089,7 +1111,7 @@ def get_requests():
         .join(ServiceRequest.sub_lab)
         .join(ServiceSubLab.admins)
         .filter(
-            ServiceStatus.status_id.notin_([1, 23]),
+            ServiceStatus.status_id.notin_([1, 2]),
             ServiceAdmin.admin_id == current_user.id
 
         )
@@ -4191,8 +4213,9 @@ def sample_index():
     schedule_query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                                   ServiceSample.received_at == None)
     delivery_query = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
-                                  ServiceSample.received_at == None)
+                                  ServiceSample.received_at == None, ServiceSample.rejected_at == None)
     received_query = query.filter(ServiceSample.received_at != None)
+    reject_query = query.filter(ServiceSample.rejected_at != None)
 
     if api == 'true':
         if tab == 'schedule':
@@ -4201,6 +4224,8 @@ def sample_index():
             query = delivery_query
         elif tab == 'received':
             query = received_query
+        elif tab == 'reject':
+            query = reject_query
 
         records_total = query.count()
         search = request.args.get('search[value]')
@@ -4246,6 +4271,8 @@ def get_samples():
                              ServiceSample.received_at == None)
     elif tab == 'received':
         query = query.filter(ServiceSample.received_at != None)
+    elif tab == 'reject':
+        query = query.filter(ServiceSample.rejected_at != None, ServiceSample.is_rescheduled == False)
     else:
         query = query
     records_total = query.count()
@@ -4279,7 +4306,7 @@ def sample_verification(sample_id):
             form.process()
         if form.validate_on_submit():
             form.populate_obj(sample)
-            status_id = get_status(10)
+            status_id = get_status(11)
             sample.received_at = arrow.now('Asia/Bangkok').datetime
             sample.receiver_id = current_user.id
             sample.request.status_id = status_id
@@ -4295,7 +4322,7 @@ def sample_verification(sample_id):
             # link = url_for("academic_services.request_index", menu='request', _external=True, _scheme=scheme)
             title = f'''แจ้งตรวจรับตัวอย่างจากคำขอรับบริการ'''
             message = f'''เรียน {title_prefix}{sample.request.customer.customer_name}\n\n'''
-            message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว '''
+            message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจรับตัวอย่างของท่านเรียบร้อยแล้ว\n'''
             message += f'''เจ้าหน้าที่จะดำเนินการตรวจวิเคราะห์ และจัดทำรายงานผลการตรวจวิเคราะห์ต่อไป\n'''
             # message += f'''ท่านสามารถติดตามสถานะการตรวจวิเคราะห์ได้ที่ลิงก์ด้านล่างนี้้\n'''
             # message += f'''{link}\n\n'''
@@ -4313,6 +4340,44 @@ def sample_verification(sample_id):
         return render_template('service_admin/sample_verify_page.html', request_no=sample.request.request_no,
                                menu=menu, tab='received')
     return render_template('service_admin/sample_verification_form.html', form=form, menu=menu, tab=tab,
+                           request_no=sample.request.request_no)
+
+
+@service_admin.route('/sample/reject/<int:sample_id>', methods=['GET', 'POST'])
+@login_required
+def reject_sample(sample_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    sample = ServiceSample.query.get(sample_id)
+    form = ServiceSampleForm(obj=sample)
+    if form.validate_on_submit():
+        form.populate_obj(sample)
+        status_id = get_status(12)
+        sample.rejected_at = arrow.now('Asia/Bangkok').datetime
+        sample.rejecter_id = current_user.id
+        sample.request.status_id = status_id
+        db.session.add(sample)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        title_prefix = 'คุณ' if sample.request.customer.customer_info.type.type == 'บุคคล' else ''
+        link = url_for("academic_services.reject_sample_appointment_page", menu='sample', tab='schedule',
+                       sample_id=sample_id, _external=True, _scheme=scheme)
+        title = f'''แจ้งปฏิเสธรับตัวอย่างจากคำขอรับบริการ'''
+        message = f'''เรียน {title_prefix}{sample.request.customer.customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ส่งตัวอย่างเพื่อตรวจวิเคราะห์มายังคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ปฏิเสธการรับตัวอย่างขิงท่าน เนื่องจาก{sample.reason}]\n'''
+        message += f'''กรุณาดำเนินการนัดหมายส่งตัวอย่างอีกครั้ง โดยท่านสามารถนัดหมายส่งตัวอย่างได้ที่ลิงก์ด้านล่างนี้้\n'''
+        message += f'''{link}\n\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอขอบพระคุณที่ใช้บริการ\n\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        if not current_app.debug:
+            send_mail([sample.request.customer.email], title, message)
+        else:
+            print('message', message)
+        flash('ปฏิเสธเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('service_admin.sample_index', menu=menu, tab='reject'))
+    return render_template('service_admin/reject_sample_form.html', form=form, menu=menu, tab=tab,
                            request_no=sample.request.request_no)
 
 
@@ -6531,7 +6596,7 @@ def create_invoice(quotation_id):
             db.session.add(invoice_item)
             db.session.commit()
         db.session.commit()
-        status_id = get_status(16)
+        status_id = get_status(18)
         quotation.request.status_id = status_id
         db.session.add(quotation)
         db.session.add(invoice)
@@ -6564,7 +6629,7 @@ def approve_invoice(invoice_id):
         invoice_for_central_admin_url = url_for("service_admin.view_invoice_for_central_admin", invoice_id=invoice.id,
                                                 menu=menu, _external=True,
                                                 tab=tab, _scheme=scheme)
-        status_id = get_status(19)
+        status_id = get_status(21)
         invoice.quotation.request.status_id = status_id
         invoice.assistant_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.assistant_id = current_user.id
@@ -6611,7 +6676,7 @@ def approve_invoice(invoice_id):
                 else:
                     print('message_email', message, 'message_line', msg)
     elif admin == 'supervisor':
-        status_id = get_status(18)
+        status_id = get_status(20)
         invoice.quotation.request.status_id = status_id
         invoice.head_approved_at = arrow.now('Asia/Bangkok').datetime
         invoice.head_id = current_user.id
@@ -6652,7 +6717,7 @@ def approve_invoice(invoice_id):
                 else:
                     print('message_email', message, 'message_line', msg)
     else:
-        status_id = get_status(17)
+        status_id = get_status(19)
         invoice.sent_at = arrow.now('Asia/Bangkok').datetime
         invoice.sender_id = current_user.id
         invoice.quotation.request.status_id = status_id
@@ -6675,7 +6740,6 @@ def approve_invoice(invoice_id):
                        )
                 send_mail(email, title, message)
                 if not current_app.debug:
-
                     for a in admins:
                         if a.is_supervisor:
                             try:
@@ -6695,10 +6759,16 @@ def upload_invoice_file(invoice_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
+    admins = (
+        ServiceAdmin.query
+        .join(ServiceSubLab)
+        .filter(ServiceSubLab.code == invoice.quotation.request.sub_lab.code)
+        .all()
+    )
     form = ServiceInvoiceForm(obj=invoice)
     if form.validate_on_submit():
         form.populate_obj(invoice)
-        status_id = get_status(20)
+        status_id = get_status(22)
         file = form.file_upload.data
         invoice.quotation.request.status_id = status_id
         invoice.file_attached_id = current_user.id
@@ -6719,11 +6789,12 @@ def upload_invoice_file(invoice_id):
             db.session.commit()
             scheme = 'http' if current_app.debug else 'https'
             title_prefix = 'คุณ' if invoice.quotation.request.customer.customer_info.type.type == 'บุคคล' else ''
-            # contact_email = invoice.quotation.request.customer.contact_email if invoice.quotation.request.customer.contact_email else invoice.quotation.request.customer.email
             org = Org.query.filter_by(name='หน่วยการเงินและบัญชี').first()
             staff = StaffAccount.get_account_by_email(org.head)
             invoice_url = url_for("academic_services.view_invoice", invoice_id=invoice.id, menu='invoice',
                                   tab='pending', _external=True, _scheme=scheme)
+            result_url = url_for("service_admin.create_draft_result", request_id=invoice.quotation.request_id,
+                                 menu='report', tab='not_started', _external=True, _scheme=scheme)
             msg = (f'แจ้งออกใบแจ้งหนี้เลขที่ {invoice.invoice_no}\n\n'
                    f'เรียน ฝ่ายการเงิน\n\n'
                    f'หน่วยงาน{invoice.quotation.request.sub_lab.sub_lab} ได้ดำเนินการออกใบแจ้งหนี้เลขที่ {invoice.invoice_no} เรียบร้อยแล้ว\n'
@@ -6742,13 +6813,26 @@ def upload_invoice_file(invoice_id):
             message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
             message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
             message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+            title_for_admin, message_for_admin, msg_for_admin = build_notification(invoice=invoice, service_request=invoice.quotation.request, link=result_url)
             if not current_app.debug:
                 send_mail([invoice.quotation.request.customer.email], title, message)
+                if admins:
+                    send_mail([a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_assistant and not a.is_central_admin],
+                              title_for_admin, message_for_admin)
                 try:
                     line_bot_api.push_message(to=staff.line_id, messages=TextSendMessage(text=msg))
+                    if admins:
+                        for a in admins:
+                            if not a.is_assistant and not a.is_central_admin:
+                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg_for_admin))
                 except LineBotApiError:
                     pass
             else:
+                if admins:
+                    for a in admins:
+                        if not a.is_assistant and not a.is_central_admin:
+                            print('user_email', a.admin.email, 'message_email', message_for_admin, 'user_line',
+                                  a.admin.line_id, 'message_line', msg_for_admin)
                 print('message_email', message, 'message_line', msg)
             flash('บันทึกข้อมูลสำเร็จ', 'success')
             return redirect(url_for('service_admin.invoice_index_for_central_admin', menu=menu, tab='waiting_payment'))
@@ -6803,8 +6887,8 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
     doc = SimpleDocTemplate(buffer,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
-                            bottomMargin=10,
+                            topMargin=30,
+                            bottomMargin=25,
                             )
     data = []
 
@@ -6917,7 +7001,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         Paragraph('<font size=12>{:,.2f}</font>'.format(invoice.grand_total), style=bold_style),
     ])
 
-    item_table = Table(items, colWidths=[50, 250, 75, 75])
+    item_table = Table(items, colWidths=[50, 250, 75, 75], repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
@@ -7011,6 +7095,7 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         fontSize=17,
         leading=20,
     )
+    assistant = invoice.assistant.fullname if invoice.assistant else ''
 
     sign = [
         [Paragraph('<font size=12>ขอแสดงความนับถือ<br/></font>', style=sign_style)],
@@ -7020,8 +7105,9 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
         [Paragraph(f'<font size=12><br/></font>', style=sign_style)],
-        [Paragraph(f'<font size=12>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/></font>', style=sign_style)],
-        [Paragraph('<font size=12>คณบดีคณะเทคนิคการแพทย์</font>', style=sign_style)]
+        [Paragraph(f'<font size=12>({assistant})<br/></font>', style=sign_style)],
+        [Paragraph('<font size=12>ผู้ช่วยคณบดีฝ่ายบริการวิชาการ</font>', style=sign_style)],
+        [Paragraph('<font size=12>ปฏิบัติหน้าที่แทนคณบดีคณะเทคนิคการแพทย์</font>', style=sign_style)]
     ]
     sign_table = Table(sign, colWidths=[200])
     sign_table.hAlign = 'RIGHT'
@@ -7033,12 +7119,11 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
 
-    data.append(KeepTogether(Spacer(30, 30)))
     data.append(KeepTogether(header_ori))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(item_table))
+    data.append(item_table)
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(remark_table))
 
@@ -7085,7 +7170,6 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
 @service_admin.route('/invoice/pdf/<int:invoice_id>', methods=['GET', 'POST'])
 @login_required
 def export_invoice_pdf(invoice_id):
-    is_download = request.args.get('is_download', 'false')
     invoice = ServiceInvoice.query.get(invoice_id)
     sub_lab = ServiceSubLab.query.filter_by(code=invoice.quotation.request.sub_lab.code).first()
     ref1 = invoice.invoice_no
@@ -7097,8 +7181,8 @@ def export_invoice_pdf(invoice_id):
     else:
         qr_image_base64 = None
     buffer = generate_invoice_pdf(invoice, qr_image_base64=qr_image_base64)
-    if is_download == 'true' and not invoice.downloaded_at:
-        invoice.downloaded_at = arrow.now('Asia/Bangkok').datetime
+    if not invoice.admin_downloaded_at:
+        invoice.admin_downloaded_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(invoice)
         db.session.commit()
     return send_file(buffer, download_name=f'Invoice {invoice.invoice_no}.pdf', as_attachment=True)
@@ -7116,7 +7200,7 @@ def add_payment():
     if form.validate_on_submit():
         payment = ServicePayment()
         form.populate_obj(payment)
-        status_id = get_status(21)
+        status_id = get_status(23)
         file = form.file_upload.data
         if (file and form.paid_at.data and form.payment_type.data and form.amount_paid.data):
             payment.invoice_id = invoice_id
@@ -7708,7 +7792,7 @@ def generate_bacteria_antimicrobial_activity_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7802,7 +7886,7 @@ def generate_virus_disinfection_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7899,7 +7983,7 @@ def generate_virus_air_disinfection_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7985,7 +8069,7 @@ def generate_heavy_metal_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8080,7 +8164,7 @@ def generate_food_safety_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8168,7 +8252,7 @@ def generate_protein_identification_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8267,7 +8351,7 @@ def generate_sds_page_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8358,7 +8442,7 @@ def generate_quantitative_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8442,7 +8526,7 @@ def generate_endotoxin_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8530,7 +8614,7 @@ def generate_toxicology_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -8576,7 +8660,7 @@ def create_quotation_for_admin(quotation_id):
         form.populate_obj(quotation)
         if action == 'approve':
             scheme = 'http' if current_app.debug else 'https'
-            status_id = get_status(4)
+            status_id = get_status(5)
             quotation.sent_at = arrow.now('Asia/Bangkok').datetime
             quotation.request.status_id = status_id
             db.session.add(quotation)
@@ -8710,9 +8794,8 @@ def approval_quotation_for_supervisor(quotation_id):
     if not quotation.approved_at:
         if request.method == 'POST':
             if quotation.digital_signature is None:
-
                 try:
-                    status_id = get_status(5)
+                    status_id = get_status(7)
                     password = request.form.get('password')
                     quotation.approver_id = current_user.id
                     quotation.approved_at = arrow.now('Asia/Bangkok').datetime
@@ -8800,7 +8883,7 @@ def disapprove_quotation(quotation_id):
     if form.validate_on_submit():
         form.populate_obj(quotation)
         if form.note.data:
-            status_id = get_status(24)
+            status_id = get_status(6)
             quotation.disapprover_id = current_user.id
             quotation.disapproved_at = arrow.now('Asia/Bangkok').datetime
             quotation.request.status_id = status_id
@@ -8856,8 +8939,9 @@ def view_quotation(quotation_id):
 
 def generate_quotation_pdf(quotation, sign=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
-    approver = quotation.approver.fullname if sign else ''
-    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
+    approver = quotation.approver.fullname if sign or quotation.approver else ''
+    print('q', approver)
+    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign or quotation.approver else (
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
@@ -8873,8 +8957,8 @@ def generate_quotation_pdf(quotation, sign=False):
     doc = SimpleDocTemplate(buffer,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
-                            bottomMargin=10,
+                            topMargin=30,
+                            bottomMargin=25,
                             )
     data = []
 
@@ -8988,7 +9072,7 @@ def generate_quotation_pdf(quotation, sign=False):
         Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total()), style=bold_style),
     ])
 
-    item_table = Table(items, colWidths=[50, 250, 75, 75])
+    item_table = Table(items, colWidths=[50, 250, 75, 75], repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
@@ -9065,12 +9149,11 @@ def generate_quotation_pdf(quotation, sign=False):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
 
-    data.append(KeepTogether(Spacer(30, 30)))
     data.append(KeepTogether(header_ori))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(item_table))
+    data.append(item_table)
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(remark_table))
     data.append(KeepTogether(Spacer(1, 16)))
@@ -9107,6 +9190,9 @@ def create_draft_result(result_id=None):
     service_request = ServiceRequest.query.get(request_id)
     if not result_id:
         result = ServiceResult.query.filter_by(request_id=request_id).first()
+        if result and result.sent_at:
+            return render_template('service_admin/result_create_notice_page.html', menu=menu, tab=tab,
+                                   request_no=result.request.request_no)
         if not result:
             if request.method == 'GET':
                 result_list = ServiceResult(request_id=request_id, released_at=arrow.now('Asia/Bangkok').datetime,
@@ -9117,6 +9203,7 @@ def create_draft_result(result_id=None):
                                                                          result='result_' + str(result_list.id))
                     for rl in service_request.report_languages:
                         result_item = ServiceResultItem(sequence=sequence_no.number,
+                                                        category=rl.report_language.category,
                                                         report_language=rl.report_language.item,
                                                         result=result_list,
                                                         released_at=arrow.now('Asia/Bangkok').datetime,
@@ -9466,7 +9553,7 @@ def view_invoice_for_finance(invoice_id):
 
 @service_admin.route('/invoice/payment/confirm/<int:invoice_id>', methods=['GET', 'POST'])
 def confirm_payment(invoice_id):
-    status_id = get_status(22)
+    status_id = get_status(24)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
     if not payment:
         invoice = ServiceInvoice.query.get(invoice_id)
@@ -9495,7 +9582,7 @@ def confirm_payment(invoice_id):
 
 @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
 def cancel_payment(invoice_id):
-    status_id = get_status(20)
+    status_id = get_status(22)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
     db.session.delete(payment)
     db.session.commit()

@@ -100,21 +100,12 @@
                                 {{ invoice.invoice_no }}
                             </div>
                         </div>
-                        {% if invoice.file_attached_at %}
-                            <div class="mb-4 is-flex is-align-items-center">
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่</p>
-                                <div style="margin-left: 1.75rem;">
-                                    {{ invoice.file_attached_at.strftime('%d/%m/%Y') }}
-                                </div>
+                        <div class="mb-4 is-flex is-align-items-center">
+                            <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
+                            <div style="margin-left: 1.75rem;">
+                                {{ invoice.created_at.strftime('%d/%m/%Y') }}
                             </div>
-                        {% else %}
-                            <div class="mb-4 is-flex is-align-items-center">
-                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">วันที่ร่าง</p>
-                                <div style="margin-left: 1.75rem;">
-                                    {{ invoice.created_at.strftime('%d/%m/%Y') }}
-                                </div>
-                            </div>
-                        {% endif %}
+                        </div>
                         <div class="mb-4 is-flex is-align-items-center">
                             <p class="subtitle is-6 mb-1 has-text-weight-semibold">เรื่อง</p>
                             <div style="margin-left: 1.75rem;">
@@ -186,7 +177,7 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                {% if invoice.quotation.request.status.status_id == 16 and admin %}
+                                {% if invoice.quotation.request.status.status_id == 18 and admin %}
                                     <a class="button is-success is-rounded is-small mb-2"
                                        href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
                                            admin='admin', menu=menu, tab='pending_supervisor') }}"
@@ -194,8 +185,8 @@
                                         <span class="icon"><i class="fas fa-check"></i></span>
                                         <span>เสนอหัวหน้าอนุมัติ</span>
                                     </a>
-                                {% elif (invoice.quotation.request.status.status_id == 17 and supervisor) or
-                                        (invoice.quotation.request.status.status_id == 18 and assistant) %}
+                                {% elif (invoice.quotation.request.status.status_id == 19 and supervisor) or
+                                        (invoice.quotation.request.status.status_id == 20 and assistant) %}
                                     <a class="button is-success is-rounded is-small mb-2"
                                             {% if supervisor %}
                                        href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
@@ -246,17 +237,42 @@
                             </ul>
                             <hr>
                             <p class="menu-label">
-                                วันที่ส่งใบแจ้งหนี้
+                                วันที่ส่ง
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {% if invoice.mhesi_issued_at %}
-                                        <span class="icon">
-                                            <i class="fas fa-clock"></i>
-                                        </span>
-                                        {{ invoice.mhesi_issued_at.strftime('%d/%m/%Y') }}
+                                    {% if invoice.file_attached_at %}
+                                        <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                                        {{ invoice.file_attached_at.strftime('%d/%m/%Y') }}
                                     {% else %}
                                         ยังไม่ดำเนินการส่ง
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <p class="menu-label">
+                                วันที่ครบกำหนดชำระ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if invoice.due_date %}
+                                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
+                                        {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ได้กำหนด
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                วันที่ดาวน์โหลด
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if invoice.customer_downloaded_at %}
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        {{ invoice.customer_downloaded_at.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ดาวน์โหลด
                                     {% endif %}
                                 </li>
                             </ul>

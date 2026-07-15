@@ -69,7 +69,7 @@
                                         <span class="icon is-large active-icon" style="display:block; font-size:1.6rem">
                                             {{ group.icon | safe }}
                                         </span>
-                                        {% if group.count and 22 not in group.id %}
+                                        {% if group.count and group.name != 'รายการทั้งหมด' %}
                                             <span class="tag is-danger is-rounded is-size-7 mt-1">{{ group.count }}</span>
                                         {% endif %}
                                         <span class="name is-size-7 mt-1 active-text" style="display:block;">{{ group.name }}</span>
@@ -205,7 +205,7 @@
                                 } else if(row.result_sent_at != null) {
                                     return`<span class="tag is-warning">รอยืนยันใบรายงานผล</span>`;
                                 } else if (row.result_sent_at == null) {
-                                    return`<span class="tag is-primary">กำลังดำเนินการทดสอบ</span>`;
+                                    return`<span class="tag is-primary">กำลังออกรายงานผล</span>`;
                                 }
                                 else {
                                     return`<span class="tag is-danger">ยังไม่ดำเนินการทดสอบ</span>`;
@@ -234,7 +234,7 @@
                             var admin = '{{ admin }}';
                             var supervisor = '{{ supervisor }}';
                             var assistant = '{{ assistant }}';
-                            if (admin == 'True' && (row.status_id == 2 || row.status_id == 24) && row.is_completed) {
+                            if (admin == 'True' && (row.status_id == 3 || row.status_id == 6) && row.is_completed) {
                                 var quotation_url = '/service_admin/quotation/generate?request_id=' + data + '&tab=draft' + '&menu=quotation&code=' + row.code;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -252,7 +252,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (admin == 'True' && row.status_id == 3) {
+                            } else if (admin == 'True' && row.status_id == 4) {
                                 var quotation_url = '/service_admin/admin/quotation/add/' + row.quotation_id + '?tab=draft' + '&menu=quotation';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -270,7 +270,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (supervisor == 'True' && row.status_id == 4) {
+                            } else if (supervisor == 'True' && row.status_id == 5) {
                                 var quotaiton_url = '/service_admin/quotation/supervisor/approve/' + row.quotation_id + '?tab=pending_approval&menu=quotation';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -288,7 +288,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 9) {
+                            } else if (row.status_id == 10) {
                                 var sample_url = '/service_admin/sample/verification/add/' + row.sample_id + '?menu=sample&tab=delivery';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -353,7 +353,7 @@
                             {#        '</a>' +#}
                             {#        '</div>' +#}
                             {#        '</div>'#}
-                            } else if (row.status_id == 10) {
+                            } else if (admin == 'True' && row.status_id == 15) {
                                 var invoice_url = '/service_admin/invoice/add/' + row.quotation_id + '?menu=invoice&tab=draft';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -371,7 +371,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.status_id == 16) {
+                            } else if (admin == 'True' && row.status_id == 18) {
                                 var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=draft';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -389,7 +389,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (supervisor == 'True' && row.status_id == 17) {
+                            } else if (supervisor == 'True' && row.status_id == 19) {
                                 var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=pending_supervisor';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -407,7 +407,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (assistant == 'True' && row.status_id == 18) {
+                            } else if (assistant == 'True' && row.status_id == 20) {
                                 var invoice_url = '/service_admin/invoice/view/' + row.invoice_id + '?menu=invoice&tab=pending_assistant';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +

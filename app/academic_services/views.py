@@ -98,9 +98,19 @@ def get_status(s_id):
 def download_file(key):
     download_filename = request.args.get('download_filename')
     result_item = ServiceResultItem.query.filter_by(final_file=key).first()
-    if result_item:
+    invoice = ServiceInvoice.query.filter_by(file=key).first()
+    if invoice and not invoice.customer_downloaded_at:
+        invoice.customer_downloaded_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(invoice)
+        db.session.commit()
+    elif result_item:
         req = result_item.result.request
-        if req.is_downloaded == None or req.is_downloaded == False:
+        download_all = all(item.is_downloaded for item in result_item.result.result_items)
+        if not result_item.is_downloaded:
+            result_item.is_downloaded = True
+            db.session.add(result_item)
+            db.session.commit()
+        if download_all and req.is_downloaded == None or req.is_downloaded == False:
             req.is_downloaded = True
             db.session.add(req)
             db.session.commit()
@@ -741,14 +751,14 @@ def menu():
         request_count = (ServiceRequest.query
         .join(ServiceRequest.status)
         .filter(
-            ServiceStatus.status_id.in_([1, 2]),
+            ServiceStatus.status_id.in_([1]),
             ServiceRequest.customer_id == current_user.id
         )).count()
         quotation_count = (
             ServiceRequest.query
             .join(ServiceRequest.status)
             .filter(
-                ServiceStatus.status_id.in_([5]),
+                ServiceStatus.status_id.in_([7]),
                 ServiceRequest.customer_id == current_user.id
             )
         ).count()
@@ -756,7 +766,7 @@ def menu():
             ServiceRequest.query
             .join(ServiceRequest.status)
             .filter(
-                ServiceStatus.status_id.in_([6, 8, 9]),
+                ServiceStatus.status_id.in_([8, 10, 12]),
                 ServiceRequest.customer_id == current_user.id
             )
         ).count()
@@ -764,12 +774,14 @@ def menu():
             ServiceRequest.query
             .join(ServiceRequest.status)
             .filter(
-                ServiceStatus.status_id.in_([20, 21]),
+                ServiceStatus.status_id.in_([22, 23]),
                 ServiceRequest.customer_id == current_user.id
             )
         ).count()
         report_count = ServiceResult.query.join(ServiceResult.request).filter(
-            ServiceRequest.customer_id == current_user.id, ServiceResult.approved_at == None).count()
+            ServiceRequest.customer_id == current_user.id, ServiceResult.sent_at != None,
+            ServiceResult.approved_at == None
+        ).count()
     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 invoice_count=invoice_count, report_count=report_count)
 
@@ -4232,29 +4244,31 @@ def create_customer_detail(request_id):
 @login_required
 def request_index():
     menu = request.args.get('menu')
+    ids = list(range(1, 25))
+
     status_groups = {
         'all': {
-            'id': list(range(1, 24)),
+            'id': ids,
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },
         'send_request': {
-            'id': [1, 2],
+            'id': [1],
             'name': 'รอส่งคำขอรับบริการ',
             'icon': '<i class="fas fa-paper-plane"></i>'
         },
         'confirm_quotation': {
-            'id': [3, 4, 5],
+            'id': [7],
             'name': 'รอยืนยันใบเสนอราคา',
             'icon': '<i class="fas fa-file-invoice"></i>'
         },
         'send_sample': {
-            'id': [6, 8, 9],
+            'id': [12],
             'name': 'รอส่งตัวอย่าง',
             'icon': '<i class="fas fa-truck"></i>'
         },
         'wait_test': {
-            'id': [10],
+            'id': [11],
             'name': 'รอทดสอบตัวอย่าง',
             'icon': '<i class="fas fa-vial"></i>'
         },
@@ -4264,19 +4278,19 @@ def request_index():
         #     'icon': '<i class="fas fa-file-alt"></i>'
         # },
         'wait_payment': {
-            'id': [20, 21],
+            'id': [22, 23],
             'name': 'รอชำระเงิน',
             'icon': '<i class="fas fa-money-check-alt"></i>'
         },
         'download_report': {
-            'id': [22],
+            'id': [24],
             'name': 'ใบรายงานผลฉบับจริง',
             'icon': '<i class="fas fa-download"></i>'
         }
     }
 
     for key, group in status_groups.items():
-        group_ids = [i for i in group['id'] if i != 7 and i != 23]
+        group_ids = [i for i in group['id'] if i != 2 and i != 9]
 
         query = (
             ServiceRequest.query
@@ -6013,7 +6027,7 @@ def get_quotation_addresses():
 @academic_services.route('/customer/request/quotation/<int:request_id>', methods=['GET', 'POST'])
 def request_quotation(request_id):
     menu = request.args.get('menu')
-    status_id = get_status(2)
+    status_id = get_status(3)
     service_request = ServiceRequest.query.get(request_id)
     service_request.status_id = status_id
     db.session.add(service_request)
@@ -6139,8 +6153,8 @@ def view_quotation(quotation_id):
 
 def generate_quotation_pdf(quotation, sign=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
-    approver = quotation.approver.fullname if sign else ''
-    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign else (
+    approver = quotation.approver.fullname if sign or quotation.approver else ''
+    digital_sign = 'ลายมือชื่อดิจิทัล/Digital Signature' if sign or quotation.approver else (
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
@@ -6156,8 +6170,8 @@ def generate_quotation_pdf(quotation, sign=False):
     doc = SimpleDocTemplate(buffer,
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
-                            bottomMargin=10,
+                            topMargin=30,
+                            bottomMargin=25,
                             )
     data = []
 
@@ -6271,7 +6285,7 @@ def generate_quotation_pdf(quotation, sign=False):
         Paragraph('<font size=12>{:,.2f}</font>'.format(quotation.grand_total()), style=bold_style),
     ])
 
-    item_table = Table(items, colWidths=[50, 250, 75, 75])
+    item_table = Table(items, colWidths=[50, 250, 75, 75], repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
@@ -6348,12 +6362,11 @@ def generate_quotation_pdf(quotation, sign=False):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
 
-    data.append(KeepTogether(Spacer(30, 30)))
     data.append(KeepTogether(header_ori))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(customer_table))
     data.append(KeepTogether(Spacer(1, 16)))
-    data.append(KeepTogether(item_table))
+    data.append(item_table)
     data.append(KeepTogether(Spacer(1, 16)))
     data.append(KeepTogether(remark_table))
     data.append(KeepTogether(Spacer(1, 16)))
@@ -6374,7 +6387,7 @@ def export_quotation_pdf(quotation_id):
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
-    status_id = get_status(6)
+    status_id = get_status(8)
     scheme = 'http' if current_app.debug else 'https'
     quotation = ServiceQuotation.query.get(quotation_id)
     quotation.confirmed_at = arrow.now('Asia/Bangkok').datetime
@@ -6429,7 +6442,7 @@ def reject_quotation(quotation_id):
     form = ServiceQuotationForm(obj=quotation)
     if form.validate_on_submit():
         form.populate_obj(quotation)
-        status_id = get_status(7)
+        status_id = get_status(9)
         quotation.canceller_id = current_user.id
         quotation.cancelled_at = arrow.now('Asia/Bangkok').datetime
         quotation.request.status_id = status_id
@@ -6681,8 +6694,10 @@ def sample_index():
     schedule_query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
                                   ServiceSample.received_at == None)
     delivery_query = query.filter(or_(ServiceSample.appointment_date != None, ServiceSample.tracking_number != None),
-                                  ServiceSample.received_at == None)
+                                  ServiceSample.received_at == None, ServiceSample.rejected_at == None)
     received_query = query.filter(ServiceSample.received_at != None)
+    reject_query = query.filter(ServiceSample.rejected_at != None)
+    reject_count = query.filter(ServiceSample.rejected_at != None, ServiceSample.is_rescheduled == False)
 
     if tab == 'schedule':
         samples = schedule_query
@@ -6690,15 +6705,32 @@ def sample_index():
         samples = delivery_query
     elif tab == 'received':
         samples = received_query
+    elif tab == 'reject':
+        samples = reject_query
     else:
         samples = query
     return render_template('academic_services/sample_index.html', samples=samples, menu=menu, tab=tab,
-                           schedule_count=schedule_query.count(), delivery_count=delivery_query.count())
+                           schedule_count=schedule_query.count(), delivery_count=delivery_query.count(),
+                           reject_count=reject_count.count())
 
 
 @academic_services.route('/customer/sample/add/<int:sample_id>', methods=['GET', 'POST'])
 @login_required
 def create_sample_appointment(sample_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    old_sample = ServiceSample.query.get(sample_id)
+    old_sample.request.status_id = get_status(8)
+    old_sample.is_rescheduled = True
+    sample = ServiceSample(request_id=old_sample.request_id, created_at=arrow.now('Asia/Bangkok').datetime)
+    db.session.add(sample)
+    db.session.add(old_sample)
+    db.session.commit()
+    return redirect(url_for('academic_services.edit_sample_appointment', sample_id=sample.id, tab=tab,
+                            menu=menu))
+@academic_services.route('/customer/sample/edit/<int:sample_id>', methods=['GET', 'POST'])
+@login_required
+def edit_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     sample = ServiceSample.query.get(sample_id)
@@ -6740,7 +6772,7 @@ def create_sample_appointment(sample_id):
                        _external=True, _scheme=scheme)
         customer_name = sample.request.customer.customer_name.replace(' ', '_')
         if admins:
-            if sample.request.status.status_id == 9:
+            if sample.request.status.status_id == 10:
                 title = f'''รายการแก้ไขนัดหมายส่งตัวอย่าง'''
                 message = f'''เรียน เจ้าหน้าที่{sample.request.sub_lab.lab.lab}\n\n'''
                 # message += f'''ใบคำขอรับบริการเลขที่ {sample.request.request_no}\n'''
@@ -6803,8 +6835,8 @@ def create_sample_appointment(sample_id):
                     title, message)
             else:
                 print('message', message)
-        if sample.request.status.status_id == 6:
-            status_id = get_status(9)
+        if sample.request.status.status_id == 8:
+            status_id = get_status(10)
             sample.request.status_id = status_id
             db.session.add(sample)
             db.session.commit()
@@ -6826,6 +6858,14 @@ def confirm_sample_appointment_page(request_id):
     service_request = ServiceRequest.query.get(request_id)
     return render_template('academic_services/confirm_sample_appointment_page.html', request_id=request_id,
                            menu=menu, tab=tab, code=code, service_request=service_request)
+
+
+@academic_services.route('/customer/sample/reject/page/<int:sample_id>', methods=['GET', 'POST'])
+def reject_sample_appointment_page(sample_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    return render_template('academic_services/reject_sample_appointment.html', menu=menu, tab=tab,
+                           sample_id=sample_id)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
@@ -6890,19 +6930,19 @@ def invoice_index():
     )
     pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
                                                            today <= ServiceInvoice.due_date)
-    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at == None,
+    verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at == None,
                                                       ServicePayment.cancelled_at == None)
-    verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
+    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
                                                      ServicePayment.cancelled_at == None)
     overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
                                                            today > ServiceInvoice.due_date)
     if api == 'true':
         if tab == 'pending':
             query = pending_query
-        elif tab == 'payment':
-            query = payment_query
         elif tab == 'verify':
             query = verify_query
+        elif tab == 'payment':
+            query = payment_query
         elif tab == 'overdue':
             query = overdue_query
 
@@ -6941,8 +6981,7 @@ def invoice_index():
                         'draw': request.args.get('draw', type=int)
                         })
     return render_template('academic_services/invoice_index.html', menu=menu, tab=tab,
-                           pending_count=pending_query.count(), payment_count=payment_query.count(),
-                           verify_count=verify_query.count(), overdue_count=overdue_query.count())
+                           pending_count=pending_query.count(), verify_count=verify_query.count(), overdue_count=overdue_query.count())
 
 
 @academic_services.route('/customer/payment/add', methods=['GET', 'POST'])
@@ -6960,7 +6999,7 @@ def add_payment():
         if form.validate_on_submit():
             payment = ServicePayment()
             form.populate_obj(payment)
-            status_id = get_status(21)
+            status_id = get_status(23)
             file = form.file_upload.data
             if (file and form.paid_at.data and form.payment_type.data and form.amount_paid.data):
                 payment.invoice_id = invoice_id
@@ -7045,6 +7084,10 @@ def view_invoice(invoice_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     invoice = ServiceInvoice.query.get(invoice_id)
+    invoice_view = ServiceInvoiceView(invoice_id=invoice_id, viewed_at=arrow.now('Asia/Bangkok').datetime,
+                                      customer_id=current_user.id)
+    db.session.add(invoice_view)
+    db.session.commit()
     return render_template('academic_services/view_invoice.html', invoice_id=invoice_id, menu=menu,
                            tab=tab, invoice=invoice)
 
@@ -7052,7 +7095,7 @@ def view_invoice(invoice_id):
 @academic_services.route('/customer/request/cancel/<int:request_id>', methods=['GET'])
 def cancel_request(request_id):
     menu = request.args.get('menu')
-    status_id = get_status(23)
+    status_id = get_status(2)
     service_request = ServiceRequest.query.get(request_id)
     service_request.status_id = status_id
     db.session.add(service_request)
@@ -7332,3 +7375,134 @@ def edit_result_item(result_item_id):
         return resp
     return render_template('academic_services/modal/edit_result_modal.html', form=form, result_item_id=result_item_id,
                            menu=menu, tab=tab)
+
+
+@academic_services.route('/customer/result/create/<int:result_id>', methods=['GET', 'POST'])
+def create_copy_result(result_id):
+    admin_id = None
+    supervisor_id = None
+    menu = request.args.get('menu')
+    tab = request.args.get('tab')
+    result = ServiceResult.query.get(result_id)
+    selected_files = {
+        assoc.report_language.language
+        for assoc in result.request.report_languages
+    }
+    result_items = {
+        item.report_language
+        for item in result.result_items
+    }
+    report_languages = [
+        rl
+        for rl in result.request.sub_lab.report_languages
+        if rl.category == "copy"
+           and rl.language in selected_files
+           and rl.item not in result_items
+    ]
+    # report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=result.request.sub_lab_id)
+    for a in result.request.sub_lab.admins:
+        if a.is_supervisor:
+            supervisor_id = a.admin_id
+        if not a.is_assistant and not a.is_central_admin and not a.is_supervisor:
+            admin_id = a.admin_id
+        if supervisor_id and admin_id:
+            break
+    if request.method == 'POST':
+        items = request.form.getlist('check_report_language')
+        if items:
+            sequence_no = ServiceSequenceResultItemID.get_number('RS', db, result='result_' + str(result_id))
+            quotation_no = ServiceNumberID.get_number('Quotation', db, lab=result.request.sub_lab.ref)
+            quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=result.request_id,
+                                         name=result.request.quotation_name, address=result.request.quotation_issue_address,
+                                         taxpayer_identification_no=result.request.taxpayer_identification_no,
+                                         creator_id=admin_id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                         sender_id=admin_id, sent_at=arrow.now('Asia/Bangkok').datetime,
+                                         approver_id=supervisor_id, approved_at=arrow.now('Asia/Bangkok').datetime,
+                                         confirmer_id=current_user.id, confirmed_at=arrow.now('Asia/Bangkok').datetime
+                                         )
+            db.session.add(quotation)
+            db.session.commit()
+            quotation_item_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+            for item_id in items:
+                report_language = ServiceReportLanguage.query.get(int(item_id))
+                result_item = ServiceResultItem(sequence=sequence_no.number, report_language=report_language.item,
+                                                result_id=result_id, released_at=arrow.now('Asia/Bangkok').datetime,
+                                                creator_id=admin_id)
+                sequence_no.count += 1
+                db.session.add(result_item)
+                quotation_item = ServiceQuotationItem(sequence=quotation_item_no.number, quotation_id=quotation.id,
+                                                      item=report_language.item, quantity=1,
+                                                      unit_price=report_language.price, total_price=report_language.price)
+                quotation_item_no.count += 1
+                db.session.add(quotation_item)
+            result.request.status_id = get_status(18)
+            result.sent_at = None
+            result.req_edit_at = None
+            result.is_edited = False
+            result.approved_at = None
+            result.result_edit_at = None
+            db.session.add(result)
+            db.session.commit()
+            invoice_no = ServiceNumberID.get_number('Invoice', db, lab=quotation.request.sub_lab.ref)
+            invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation.id, name=quotation.name,
+                                     address=quotation.address,
+                                     taxpayer_identification_no=quotation.taxpayer_identification_no,
+                                     created_at=arrow.now('Asia/Bangkok').datetime,
+                                     creator_id=admin_id)
+            invoice_no.count += 1
+            db.session.add(invoice)
+            for quotation_item in quotation.quotation_items:
+                invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence,
+                                                  discount_type=quotation_item.discount_type,
+                                                  invoice_id=invoice.id, item=quotation_item.item,
+                                                  quantity=quotation_item.quantity,
+                                                  unit_price=quotation_item.unit_price,
+                                                  total_price=quotation_item.total_price,
+                                                  discount=quotation_item.discount)
+                db.session.add(invoice_item)
+                db.session.commit()
+            db.session.commit()
+            scheme = 'http' if current_app.debug else 'https'
+            admins = (
+                ServiceAdmin.query
+                .join(ServiceSubLab)
+                .filter(ServiceSubLab.code == result_item.result.request.sub_lab.code)
+                .all()
+            )
+            link = url_for("service_admin.create_draft_result", result_id=result_item.result_id, menu='report',
+                           tab='all', _external=True, _scheme=scheme)
+            if admins:
+                datetime = arrow.now('Asia/Bangkok').datetime
+                title = f'''รายการขอสำเนาใบรายงานผลการทดสอบ'''
+                message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.lab.lab}\n\n'''
+                message += f'''มีใบคำขอรับบริการเลขที่ {result_item.result.request.request_no} ที่รอดำเนินการออกสำเนาใบรายงานผลการทดสอบ'''
+                message += f'''ท่านสามารถดำเนินการออกสำเนาใบรายงานผลได้ที่ลิงก์ด้านล่าง\n'''
+                message += f'''{link}\n\n'''
+                message += f'''ระบบงานบริการวิชาการ'''
+                msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
+                       'ออกในนาม {}\n' \
+                       'ณ วันที่ {} รอดำเนินการออกสำเนาใบรายงานผลการทดสอบ\n' \
+                       'กรุณาดำเนินการแนบไฟล์ในระบบ\n'
+                       'คลิกลิ้งค์เพื่อดำเนินการ\n'
+                       '{}'.format(result_item.result.request.request_no,
+                                                         result_item.result.request.customer.customer_name,
+                                                         datetime, link)
+                       )
+                if not current_app.debug:
+                    send_mail(
+                        [a.admin.email + '@mahidol.ac.th' for a in admins if not a.is_central_admin and not a.is_assistant],
+                        title, message)
+                    for a in admins:
+                        if not a.is_central_admin and not a.is_assistant:
+                            try:
+                                line_bot_api.push_message(to=a.admin.line_id, messages=TextSendMessage(text=msg))
+                            except LineBotApiError:
+                                pass
+                else:
+                    print('message', message, 'msg', msg)
+            flash('บันทึกข้อมูลสำเร็จ', 'success')
+            return redirect(url_for('academic_services.result_index', menu=menu, tab=tab))
+        else:
+            flash('กรุณาเลือกสำเนาใบรายงานผล', 'danger')
+    return render_template('academic_services/create_copy_result.html', menu=menu, tab=tab,
+                           report_languages=report_languages, result=result)

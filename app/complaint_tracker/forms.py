@@ -50,6 +50,8 @@ class ComplaintRepairCompanyForm(ModelForm):
     class Meta:
         model = ComplaintRepairCompany
 
+    file_upload = FileField('File Upload')
+
 
 def create_record_form(record_id, topic_id):
     class ComplaintRecordForm(ModelForm):

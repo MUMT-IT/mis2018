@@ -108,6 +108,7 @@
                                 <a class="button is-info is-outlined is-rounded is-small mb-2"
                                    href="{{ url_for('academic_services.download_file', key=invoice.file,
                                             download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
+                                   onclick="setTimeout(() => location.reload(), 3000)"
                                 >
                                     <span class="icon"><i class="fas fa-download"></i></span>
                                     <span>ดาวน์โหลดใบแจ้งหนี้</span>
@@ -133,7 +134,26 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-                                    {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                    {% if invoice.due_date %}
+                                        <span class="icon"><i class="fas fa-calendar-alt"></i></span>
+                                        {{ invoice.due_date.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ได้กำหนด
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                วันที่ดาวน์โหลด
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if invoice.customer_downloaded_at %}
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        {{ invoice.customer_downloaded_at.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        ยังไม่ดาวน์โหลด
+                                    {% endif %}
                                 </li>
                             </ul>
                             {#                            <hr>#}

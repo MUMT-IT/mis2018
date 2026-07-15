@@ -77,6 +77,7 @@
                     <th>รายละเอียดการขอแก้ไข</th>
                     <th>สถานะ</th>
                     <th>ผลการทดสอบ</th>
+                    <th></th>
                     </thead>
                     <tbody>
                         {% for result in results|sort(attribute='released_at', reverse=True) %}
@@ -101,12 +102,12 @@
                                         {{ result.customer_status.status }}
                                     </span>
                                 </td>
-                                    <td>
+                                <td>
                                     {% for item in result.result_items|sort(attribute='sequence') %}
                                         {% if result.approved_at and item.final_file %}
                                             <div class="field has-addons">
                                                 <div class="control">
-                                                    <a {% if item.result.request.status.status_id == 22 %}
+                                                    <a {% if item.result.request.status.status_id == 24 or item.is_downloaded %}
                                                         class="button is-small is-link is-light is-rounded"
                                                         href="{{ url_for('academic_services.download_file', key=item.final_file,
                                                             download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
@@ -120,7 +121,23 @@
                                                 </div>
                                             </div>
                                         {% elif result.sent_at %}
-                                            {% if item.approved_at %}
+                                            {% if item.final_file %}
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a {% if item.result.request.status.status_id == 24 or item.is_downloaded %}
+                                                            class="button is-small is-link is-light is-rounded"
+                                                            href="{{ url_for('academic_services.download_file', key=item.final_file,
+                                                                download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                        {% else %}
+                                                            class="button is-small is-link is-light is-rounded Warn"
+                                                        {% endif %}
+                                                        >
+                                                            <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% elif item.approved_at %}
                                                 <div class="field has-addons">
                                                     <div class="control">
                                                         <a class="button is-small is-light is-rounded"
@@ -157,9 +174,44 @@
                                                 </div>
                                             {% endif %}
                                         {% else %}
-                                            {{ '' }}
+                                            {% if item.final_file %}
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a {% if item.result.request.status.status_id == 24 or item.is_downloaded %}
+                                                            class="button is-small is-link is-light is-rounded"
+                                                            href="{{ url_for('academic_services.download_file', key=item.final_file,
+                                                                download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                        {% else %}
+                                                            class="button is-small is-link is-light is-rounded Warn"
+                                                        {% endif %}
+                                                        >
+                                                            <span>{{ item.report_language + ' ' + '(ฉบับจริง)' or 'ไม่ระบุภาษา' }}</span>
+                                                            <span class="icon is-small"><i class="fas fa-download"></i></span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                {{ '' }}
+                                            {% endif %}
                                         {% endif %}
                                     {% endfor %}
+                                </td>
+                                <td>
+                                    {% if result.request.status.status_id == 24 %}
+                                        <div class="field has-addons">
+                                            {% if not result.all_copy_file %}
+                                                <div class="control">
+                                                    <a class="button is-small is-info is-rounded"
+                                                        href="{{ url_for('academic_services.create_copy_result',
+                                                        result_id=result.id, menu=menu, tab=tab) }}"
+                                                    >
+                                                        <span class="icon"><i class="fas fa-copy"></i></span>
+                                                        <span>ขอสำเนา</span>
+                                                    </a>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
