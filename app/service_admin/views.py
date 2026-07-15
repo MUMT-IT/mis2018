@@ -9528,7 +9528,7 @@ def delete_final_result(item_id):
 
 
 @service_admin.route('/result/final/approve/<int:result_item_id>', methods=['GET', 'POST'])
-def approve_final_result_revision(result_item_id):
+def approve_final_result_reversion(result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     result_item = ServiceResultItem.query.get(result_item_id)
@@ -9537,8 +9537,8 @@ def approve_final_result_revision(result_item_id):
         db.session.add(result_item)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
-        result_url = url_for('academic_services.result_index', menu='report', tab='confirm', _external=True,
-                             _scheme=scheme)
+        result_url = url_for('academic_services.view_final_result_item', result_id=result_item.result_id,
+                             result_item_id=result_item_id, menu='report', tab=tab, _external=True, _scheme=scheme)
         title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
         title = f'''แจ้งอนุมัติการขอแก้ไขรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ'''
         message = f'''เรียน {title_prefix}{result_item.result.request.customer.customer_name}\n\n'''
@@ -9559,6 +9559,43 @@ def approve_final_result_revision(result_item_id):
     return render_template('service_admin/view_final_result_item.html', result=result_item.result,
                            result_item=result_item, menu=menu, tab=tab, generate_url=generate_url,
                            result_item_id=result_item_id)
+
+
+@service_admin.route('/result/final/unapprove/<int:result_item_id>', methods=['GET', 'POST'])
+def unapprove_final_result_reversion(result_item_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    result_item = ServiceResultItem.query.get(result_item_id)
+    if request.method == 'POST':
+        remark = request.form.get("remark")
+        result_item.final_reversion[-1].is_approved = True
+        result_item.final_reversion[-1].remark = remark
+        db.session.add(result_item)
+        db.session.commit()
+        scheme = 'http' if current_app.debug else 'https'
+        result_url = url_for('academic_services.view_final_result_item', result_id=result_item.result_id,
+                             result_item_id=result_item_id, menu='report', tab=tab, _external=True, _scheme=scheme)
+        title_prefix = 'คุณ' if result_item.result.request.customer.customer_info.type.type == 'บุคคล' else ''
+        title = f'''แจ้งไม่อนุมัติการขอแก้ไขรายงานผลการทดสอบฉบับจริงของใบคำขอรับบริการ'''
+        message = f'''เรียน {title_prefix}{result_item.result.request.customer.customer_name}\n\n'''
+        message += f'''ตามที่ท่านได้ขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\n'''
+        message += f'''ขณะนี้ทางเจ้าหน้าที่ได้ดำเนินการไม่อนุมัติการขอแก้ไข{result_item.report_language}ฉบับจริงเนื่องจาก {remark}\n'''
+        message += f'''ท่านสามารถดูรายละเอียดเพิ่มเติมได้ที่ลิงค์ด้านล่าง\n'''
+        message += f'''{result_url}\n\n'''
+        message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+        message += f'''ขอขอบพระคุณที่ใช้บริการ\n'''
+        message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+        message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+        if not current_app.debug:
+            send_mail([result_item.result.request.customer.email], title, message)
+        else:
+            print('message', message)
+            flash('ไม่อนุมัติสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return render_template('service_admin/modal/unapprove_final_result_reversion.html',
+                           result_item_id=result_item_id, menu=menu, tab=tab)
 
 
 @service_admin.route('/invoice/payment/index')
