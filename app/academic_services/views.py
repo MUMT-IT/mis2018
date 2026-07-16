@@ -7544,6 +7544,7 @@ def create_copy_result(result_id):
                                          approver_id=supervisor_id, approved_at=arrow.now('Asia/Bangkok').datetime,
                                          confirmer_id=current_user.id, confirmed_at=arrow.now('Asia/Bangkok').datetime
                                          )
+            quotation_no.count += 1
             db.session.add(quotation)
             db.session.commit()
             quotation_item_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))

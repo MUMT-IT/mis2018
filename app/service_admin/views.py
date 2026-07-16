@@ -9538,13 +9538,45 @@ def delete_final_result(item_id):
 
 @service_admin.route('/result/final/approve/<int:result_item_id>', methods=['GET', 'POST'])
 def approve_final_result_reversion(result_item_id):
+    supervisor_id = None
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     result_item = ServiceResultItem.query.get(result_item_id)
+    for a in result_item.result.request.sub_lab.admins:
+        if a.is_supervisor:
+            supervisor_id = a.admin_id
+        if supervisor_id:
+            break
     if result_item.final_reversion:
+        quotation_no = ServiceNumberID.get_number('Quotation', db, lab=result_item.result.request.sub_lab.ref)
+        quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=result_item.result.request_id,
+                                     name=result_item.result.request.quotation_name,
+                                     address=result_item.result.request.quotation_issue_address,
+                                     taxpayer_identification_no=result_item.result.request.taxpayer_identification_no,
+                                     creator_id=current_user.id, created_at=arrow.now('Asia/Bangkok').datetime,
+                                     sender_id=current_user.id, sent_at=arrow.now('Asia/Bangkok').datetime,
+                                     approver_id=supervisor_id, approved_at=arrow.now('Asia/Bangkok').datetime,
+                                     confirmer_id=result_item.result.request.customer_id, confirmed_at=arrow.now('Asia/Bangkok').datetime
+                                     )
+        quotation_no.count += 1
+        db.session.add(quotation)
+        db.session.commit()
+        quotation_item_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
+        quotation_item = ServiceQuotationItem(sequence=quotation_item_no.number, quotation_id=quotation.id,
+                                              item=result_item.report_language, quantity=1, unit_price=300, total_price=300)
+        quotation_item_no.count += 1
+        db.session.add(quotation_item)
         result_item.final_reversion[-1].is_approved = True
         db.session.add(result_item)
         db.session.commit()
+        invoice_no = ServiceNumberID.get_number('Invoice', db, lab=quotation.request.sub_lab.ref)
+        invoice = ServiceInvoice(invoice_no=invoice_no.number, quotation_id=quotation.id, name=quotation.name,
+                                 address=quotation.address,
+                                 taxpayer_identification_no=quotation.taxpayer_identification_no,
+                                 created_at=arrow.now('Asia/Bangkok').datetime,
+                                 creator_id=current_user.id)
+        invoice_no.count += 1
+        db.session.add(invoice)
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.view_final_result_item', result_id=result_item.result_id,
                              result_item_id=result_item_id, menu='report', tab=tab, _external=True, _scheme=scheme)
