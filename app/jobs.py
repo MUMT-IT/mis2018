@@ -306,6 +306,6 @@ scheduler.add_job(send_line_reminder_no_status_today,
 scheduler.add_job(send_checkin_reminder,
                   'cron', day_of_week='mon-fri',
                   hour='8',
-                  minute='50',
+                  minute='29',
                   timezone='Asia/Bangkok')
 scheduler.start()
