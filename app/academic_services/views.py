@@ -7254,6 +7254,7 @@ def edit_result_item(result_item_id):
         if form.note.data:
             result_item.edited_at = None
             result_item.is_edited = False
+            result_item.status_note = False
             result_item.edit_requester_id = current_user.id
             result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
             result_item.result.req_edit_at = arrow.now('Asia/Bangkok').datetime
@@ -7330,6 +7331,7 @@ def edit_final_result_item(result_item_id):
         db.session.add(reversion)
         result_item.edited_at = None
         result_item.is_edited = False
+        result_item.status_note = False
         result_item.edit_requester_id = current_user.id
         result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
         result_item.result.req_edit_at = arrow.now('Asia/Bangkok').datetime

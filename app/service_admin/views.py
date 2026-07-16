@@ -9354,6 +9354,7 @@ def edit_draft_result(result_item_id):
                 result_item.draft_file = file_name
                 result_item.edited_at = arrow.now('Asia/Bangkok').datetime
                 result_item.is_edited = True
+                result_item.status_note = True
                 result_item.modified_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(result_item)
                 db.session.commit()
@@ -9416,6 +9417,7 @@ def edit_final_result(result_item_id):
                 result_item.final_file = file_name
                 result_item.edited_at = arrow.now('Asia/Bangkok').datetime
                 result_item.is_edited = True
+                result_item.status_note = True
                 result_item.modified_at = arrow.now('Asia/Bangkok').datetime
                 if result_item.final_reversion:
                     result_item.final_reversion[-1].edited_at = arrow.now('Asia/Bangkok').datetime
@@ -9563,7 +9565,7 @@ def approve_final_result_reversion(result_item_id):
         db.session.commit()
         quotation_item_no = ServiceSequenceQuotationID.get_number('QT', db, quotation='quotation_' + str(quotation.id))
         quotation_item = ServiceQuotationItem(sequence=quotation_item_no.number, quotation_id=quotation.id,
-                                              item=result_item.report_language, quantity=1, unit_price=300, total_price=300)
+                                              item=f'ค่าปรับปรุง{result_item.report_language}ฉบับจริง', quantity=1, unit_price=300, total_price=300)
         quotation_item_no.count += 1
         db.session.add(quotation_item)
         result_item.final_reversion[-1].is_approved = True
@@ -9577,6 +9579,15 @@ def approve_final_result_reversion(result_item_id):
                                  creator_id=current_user.id)
         invoice_no.count += 1
         db.session.add(invoice)
+        invoice_item = ServiceInvoiceItem(sequence=quotation_item.sequence,
+                                          discount_type=quotation_item.discount_type,
+                                          invoice_id=invoice.id, item=quotation_item.item,
+                                          quantity=quotation_item.quantity,
+                                          unit_price=quotation_item.unit_price,
+                                          total_price=quotation_item.total_price,
+                                          discount=quotation_item.discount)
+        db.session.add(invoice_item)
+        db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
         result_url = url_for('academic_services.view_final_result_item', result_id=result_item.result_id,
                              result_item_id=result_item_id, menu='report', tab=tab, _external=True, _scheme=scheme)
