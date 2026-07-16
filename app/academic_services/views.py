@@ -96,8 +96,9 @@ def get_status(s_id):
 
 @academic_services.route('/aws-s3/download/<key>', methods=['GET'])
 def download_file(key):
+    result_id = request.args.get('result_id', type=int)
     download_filename = request.args.get('download_filename')
-    result_item = ServiceResultItem.query.filter_by(final_file=key).first()
+    result_item = ServiceResultItem.query.filter_by(final_file=key, result_id=result_id).first()
     invoice = ServiceInvoice.query.filter_by(file=key).first()
     if invoice and not invoice.customer_downloaded_at:
         invoice.customer_downloaded_at = arrow.now('Asia/Bangkok').datetime
