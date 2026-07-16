@@ -245,46 +245,46 @@
                                     </a>
                                     </li>
                                 {% endif %}
-                                <a class="button is-link is-outlined is-rounded is-small mb-2"
-                                   href="{{ url_for('academic_services.export_request_pdf', code=service_request.sub_lab.code,
-                                       request_id=service_request.id) }}"
-                                >
-                                    <span class="icon"><i class="fas fa-clipboard-list"></i></span>
-                                    <span>ดาวน์โหลดใบคำขอรับบริการ</span>
-                                </a>
-                                {% if service_request.quotations %}
-                                    {% for quotation in service_request.quotations %}
-                                        {% if quotation.approved_at %}
-                                            <a class="button is-link is-outlined is-rounded is-small mb-2"
-                                               href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation.id) }}"
-                                            >
-                                                <span class="icon"><i class="fas fa-file-invoice"></i></span>
-                                                <span>ดาวน์โหลดใบเสนอราคา</span>
-                                            </a>
-                                            {% for invoice in quotation.invoices %}
-                                                {% if invoice.file %}
-                                                    <a class="button is-link is-outlined is-rounded is-small mb-2"
-                                                       href="{{ url_for('academic_services.download_file', key=invoice.file,
-                                                       download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
-                                                    >
-                                                        <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
-                                                        <span>ดาวน์โหลดใบแจ้งหนี้</span>
-                                                    </a>
-                                                    {% if invoice.receipts %}
-                                                        {% for receipt in invoice.receipts %}
-                                                            <a class="button is-link is-outlined is-rounded is-small mb-2"
-                                                               href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id) }}"
-                                                            >
-                                                                <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
-                                                                <span>ดาวน์โหลดใบเสร็จรับเงิน</span>
-                                                            </a>
-                                                        {% endfor %}
-                                                    {% endif %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
+{#                                <a class="button is-link is-outlined is-rounded is-small mb-2"#}
+{#                                   href="{{ url_for('academic_services.export_request_pdf', code=service_request.sub_lab.code,#}
+{#                                       request_id=service_request.id) }}"#}
+{#                                >#}
+{#                                    <span class="icon"><i class="fas fa-clipboard-list"></i></span>#}
+{#                                    <span>ดาวน์โหลดใบคำขอรับบริการ</span>#}
+{#                                </a>#}
+{#                                {% if service_request.quotations %}#}
+{#                                    {% for quotation in service_request.quotations %}#}
+{#                                        {% if quotation.approved_at %}#}
+{#                                            <a class="button is-link is-outlined is-rounded is-small mb-2"#}
+{#                                               href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation.id) }}"#}
+{#                                            >#}
+{#                                                <span class="icon"><i class="fas fa-file-invoice"></i></span>#}
+{#                                                <span>ดาวน์โหลดใบเสนอราคา</span>#}
+{#                                            </a>#}
+{#                                            {% for invoice in quotation.invoices %}#}
+{#                                                {% if invoice.file %}#}
+{#                                                    <a class="button is-link is-outlined is-rounded is-small mb-2"#}
+{#                                                       href="{{ url_for('academic_services.download_file', key=invoice.file,#}
+{#                                                       download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"#}
+{#                                                    >#}
+{#                                                        <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>#}
+{#                                                        <span>ดาวน์โหลดใบแจ้งหนี้</span>#}
+{#                                                    </a>#}
+{#                                                    {% if invoice.receipts %}#}
+{#                                                        {% for receipt in invoice.receipts %}#}
+{#                                                            <a class="button is-link is-outlined is-rounded is-small mb-2"#}
+{#                                                               href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id) }}"#}
+{#                                                            >#}
+{#                                                                <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>#}
+{#                                                                <span>ดาวน์โหลดใบเสร็จรับเงิน</span>#}
+{#                                                            </a>#}
+{#                                                        {% endfor %}#}
+{#                                                    {% endif %}#}
+{#                                                {% endif %}#}
+{#                                            {% endfor %}#}
+{#                                        {% endif %}#}
+{#                                    {% endfor %}#}
+{#                                {% endif %}#}
                             </div>
                         </div>
                     </div>
@@ -301,6 +301,118 @@
                             {#                                </li>#}
                             {#                            </ul>#}
                             {#                            <hr>#}
+                            <hr>
+                            <p class="menu-label">
+                                ใบคำขอรับบริการ
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    <a class="button is-link is-outlined is-rounded is-fullwidt is-small mb-2"
+                                       href="{{ url_for('academic_services.export_request_pdf', request_id=service_request.id,
+                                           code=service_request.sub_lab.code) }}"
+                                    >
+                                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                                        <span>ใบคำขอรับบริการ {{ service_request.request_no }}</span>
+                                    </a>
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ใบเสนอราคา
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if service_request.quotations %}
+                                        {% for quotation in service_request.quotations %}
+                                            {% if quotation.approved_at %}
+                                                <a class="button is-link is-outlined is-rounded is-small mb-2"
+                                                   href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation.id) }}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-file-invoice"></i></span>
+                                                    <span>ใบเสนอราคา {{ quotation.quotation_no }}</span>
+                                                </a>
+                                            {% else %}
+                                                <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                         <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ใบแจ้งหนี้
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% set ns = namespace(has_file=false) %}
+                                    {% if service_request.quotations %}
+                                        {% for quotation in service_request.quotations %}
+                                            {% if quotation.invoices and quotation.invoices[0].file %}
+                                                {% set ns.has_file = true %}
+                                            {% endif %}
+                                            {% if quotation.invoices %}
+                                                {% for invoice in quotation.invoices %}
+                                                    {% if invoice.file %}
+                                                        <a class="button is-link is-outlined is-rounded is-small mb-2"
+                                                           href="{{ url_for('academic_services.download_file', key=invoice.file,
+                                                                   download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
+                                                        >
+                                                            <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                            <span>ใบแจ้งหนี้ {{ invoice.invoice_no }}</span>
+                                                        </a>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% else %}
+                                                <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                    {% endif %}
+                                     {% if not ns.has_file %}
+                                        <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ใบเสร็จรับเงิน
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% set ns = namespace(has_receipt=false) %}
+                                    {% if service_request.quotations %}
+                                        {% for quotation in service_request.quotations %}
+                                            {% if quotation.invoices %}
+                                                {% for invoice in quotation.invoices %}
+                                                    {% if invoice.receipts and invoice.receipts[0].number %}
+                                                        {% set ns.has_receipt = true %}
+                                                    {% endif %}
+                                                    {% if invoice.receipts %}
+                                                        {% for receipt in invoice.receipts %}
+                                                            <a class="button is-link is-outlined is-rounded is-small mb-2"
+                                                               href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id) }}"
+                                                            >
+                                                                <span class="icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                                <span>ใบเสร็จรับเงิน {{ receipt.number }}</span>
+                                                            </a>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% else %}
+                                                <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                    {% endif %}
+                                     {% if not ns.has_receipt %}
+                                        <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
                             {% if service_request.results %}
                                 <p class="menu-label">
                                     ใบรายงานผล
