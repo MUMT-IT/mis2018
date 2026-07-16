@@ -64,6 +64,16 @@
                                 </div>
                             </div>
                             <div class="field">
+                                <label class="label">สถานะการแก้ไข</label>
+                                <div class="control">
+                                    {% if result_item.status_note != None %}
+                                        <span class="tag has-text-success is-rounded">ดำเนินการแล้ว</span>
+                                    {% else %}
+                                        <span class="tag is-danger is-light is-rounded">ยังไม่ดำเนินการ</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="field">
                                 <label class="label">วันที่แก้ไข</label>
                                 <div class="control">
                                     {% if result_item.edited_at %}
