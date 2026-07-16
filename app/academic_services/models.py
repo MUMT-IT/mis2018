@@ -908,7 +908,7 @@ class ServiceTestItem(db.Model):
     @property
     def download_all_final_files(self):
         result = self.request.results.filter(ServiceResult.request_id == self.request_id).first()
-        return result.download_all_final_files
+        return result.download_all_final_files if result else None
 
     def to_dict(self):
         return {
