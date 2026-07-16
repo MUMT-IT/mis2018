@@ -7450,7 +7450,7 @@ def generate_bacteria_disinfection_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(4)
+        status_id = get_status(3)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7533,7 +7533,7 @@ def generate_bacteria_sterility_test_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(4)
+        status_id = get_status(3)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()

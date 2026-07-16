@@ -1,0 +1,194 @@
+{% extends 'continueing_edu/admin/base.html' %}
+{% block title %}Satisfaction Report{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="level">
+    <div class="level-left">
+      <h1 class="title">Satisfaction Report</h1>
+    </div>
+    <div class="level-right">
+      <span class="tag is-light">Responses {{ total_responses }}</span>
+    </div>
+  </div>
+
+  <form class="box" method="get">
+    <div class="columns is-multiline">
+      <div class="column is-3">
+        <label class="label">Event Type</label>
+        <div class="select is-fullwidth">
+          <select name="event_type">
+            <option value="">All</option>
+            {% for et in available_event_types %}
+              <option value="{{ et }}" {% if selected_event_type == et %}selected{% endif %}>{{ et|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-3">
+        <label class="label">Year</label>
+        <div class="select is-fullwidth">
+          <select name="year">
+            <option value="">All</option>
+            {% for y in available_years %}
+              <option value="{{ y }}" {% if selected_year == y|string %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="column is-3">
+        <label class="label">Start Date</label>
+        <input class="input" type="date" name="start" value="{{ start_value or '' }}">
+      </div>
+      <div class="column is-3">
+        <label class="label">End Date</label>
+        <input class="input" type="date" name="end" value="{{ end_value or '' }}">
+      </div>
+      <div class="column is-2">
+        <label class="label">&nbsp;</label>
+        <button class="button is-link is-fullwidth" type="submit">Filter</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="columns is-multiline">
+    <div class="column is-one-fifth">
+      <div class="box has-background-primary has-text-white">
+        <p class="heading">Responses</p>
+        <p class="title is-3">{{ total_responses }}</p>
+      </div>
+    </div>
+    <div class="column is-one-fifth">
+      <div class="box">
+        <p class="heading">Overall Avg</p>
+        <p class="title is-4">{{ "{:.2f}".format(overall_avg) }}/5</p>
+      </div>
+    </div>
+    <div class="column is-one-fifth">
+      <div class="box">
+        <p class="heading">Content Avg</p>
+        <p class="title is-4">{{ "{:.2f}".format(content_avg) }}/5</p>
+      </div>
+    </div>
+    <div class="column is-one-fifth">
+      <div class="box">
+        <p class="heading">Instructor Avg</p>
+        <p class="title is-4">{{ "{:.2f}".format(instructor_avg) }}/5</p>
+      </div>
+    </div>
+    <div class="column is-one-fifth">
+      <div class="box">
+        <p class="heading">Platform Avg</p>
+        <p class="title is-4">{{ "{:.2f}".format(platform_avg) }}/5</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2 class="title is-5">By Course/Webinar</h2>
+    <div class="table-container">
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Type</th>
+            <th class="has-text-right">Responses</th>
+            <th class="has-text-right">Overall</th>
+            <th class="has-text-right">Content</th>
+            <th class="has-text-right">Instructor</th>
+            <th class="has-text-right">Platform</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in events_summary %}
+          <tr>
+            <td>{{ row.title_en or row.title_th or ('Event #' ~ row.id) }}</td>
+            <td>{{ row.event_type|capitalize }}</td>
+            <td class="has-text-right">{{ row.responses }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.overall_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.content_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.instructor_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.platform_avg or 0) }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="has-text-centered has-text-grey">No data found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2 class="title is-5">Yearly Summary</h2>
+    <div class="table-container">
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Event Type</th>
+            <th class="has-text-right">Responses</th>
+            <th class="has-text-right">Overall</th>
+            <th class="has-text-right">Content</th>
+            <th class="has-text-right">Instructor</th>
+            <th class="has-text-right">Platform</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in yearly_summary %}
+          <tr>
+            <td>{{ row.year|int }}</td>
+            <td>{{ row.event_type|capitalize }}</td>
+            <td class="has-text-right">{{ row.responses }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.overall_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.content_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.instructor_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.platform_avg or 0) }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="has-text-centered has-text-grey">No yearly summary.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2 class="title is-5">By Speaker</h2>
+    <div class="table-container">
+      <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+          <tr>
+            <th>Speaker</th>
+            <th class="has-text-right">Events</th>
+            <th class="has-text-right">Responses</th>
+            <th class="has-text-right">Overall</th>
+            <th class="has-text-right">Content</th>
+            <th class="has-text-right">Instructor</th>
+            <th class="has-text-right">Platform</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in speaker_summary %}
+          <tr>
+            <td>{{ row.speaker_name }}</td>
+            <td class="has-text-right">{{ row.events_count }}</td>
+            <td class="has-text-right">{{ row.responses }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.overall_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.content_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.instructor_avg or 0) }}</td>
+            <td class="has-text-right">{{ "{:.2f}".format(row.platform_avg or 0) }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="has-text-centered has-text-grey">No speaker summary.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

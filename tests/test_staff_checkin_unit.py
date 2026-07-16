@@ -348,12 +348,37 @@ def test_get_login_records_collapses_multiple_scans_and_filters_by_department(st
     assert row["location"] == '<a href="https://maps.google.com/?q=13.1,100.1">Click</a>'
 
 
-def test_build_missing_checkin_recipients_uses_cutoff_time(staff_views, monkeypatch):
-    cutoff = pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 9, 0))
-    active_a = SimpleNamespace(id=1, fullname="Alice", line_id="line-a", personal_info=SimpleNamespace(academic_staff=False))
-    active_b = SimpleNamespace(id=2, fullname="Bob", line_id="line-b", personal_info=SimpleNamespace(academic_staff=None))
-    academic = SimpleNamespace(id=3, fullname="Cara", line_id="line-c", personal_info=SimpleNamespace(academic_staff=True))
-    no_line = SimpleNamespace(id=4, fullname="Dana", line_id=None, personal_info=SimpleNamespace(academic_staff=False))
+def test_build_missing_checkin_recipients_uses_same_day_records(staff_views, monkeypatch):
+    target_date = datetime(2026, 6, 26).date()
+    target_date_id = "20260626"
+    active_a = SimpleNamespace(
+        id=1,
+        email="alice",
+        fullname="Alice",
+        line_id="line-a",
+        personal_info=SimpleNamespace(academic_staff=False),
+    )
+    active_b = SimpleNamespace(
+        id=2,
+        email="bob",
+        fullname="Bob",
+        line_id="line-b",
+        personal_info=SimpleNamespace(academic_staff=None),
+    )
+    academic = SimpleNamespace(
+        id=3,
+        email="cara",
+        fullname="Cara",
+        line_id="line-c",
+        personal_info=SimpleNamespace(academic_staff=True),
+    )
+    no_line = SimpleNamespace(
+        id=4,
+        email="dana",
+        fullname="Dana",
+        line_id=None,
+        personal_info=SimpleNamespace(academic_staff=False),
+    )
 
     monkeypatch.setattr(
         staff_views,
@@ -362,22 +387,94 @@ def test_build_missing_checkin_recipients_uses_cutoff_time(staff_views, monkeypa
     )
 
     records = [
-        SimpleNamespace(staff_id=1, start_datetime=pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 8, 45))),
-        SimpleNamespace(staff_id=2, start_datetime=pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 9, 0))),
-        SimpleNamespace(staff_id=2, start_datetime=pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 9, 15))),
+        SimpleNamespace(
+            staff_id=1,
+            date_id=target_date_id,
+            start_datetime=pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 8, 45)),
+        ),
     ]
 
-    recipients = staff_views._build_missing_checkin_recipients(cutoff, records=records)
+    recipients = staff_views._build_missing_checkin_recipients(target_date, records=records)
 
     assert recipients == [active_b]
 
 
-def test_line_remind_missing_checkin_sends_only_to_missing_staff(staff_views, monkeypatch):
-    cutoff = pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 9, 0))
-    recipient = SimpleNamespace(id=11, fullname="Test User", line_id="line-11")
+def test_build_missing_checkin_recipients_queries_by_date_id(staff_views, monkeypatch):
+    target_date = datetime(2026, 6, 26).date()
+    target_date_id = "20260626"
+    active_a = SimpleNamespace(
+        id=1,
+        email="alice",
+        fullname="Alice",
+        line_id="line-a",
+        personal_info=SimpleNamespace(academic_staff=False),
+    )
+    active_b = SimpleNamespace(
+        id=2,
+        email="bob",
+        fullname="Bob",
+        line_id="line-b",
+        personal_info=SimpleNamespace(academic_staff=False),
+    )
+    fake_query = _FakeQuery()
+    fake_query.rows = [
+        SimpleNamespace(staff_id=1, date_id=target_date_id),
+    ]
 
-    monkeypatch.setattr(staff_views, "_parse_checkin_reminder_cutoff", lambda *_args, **_kwargs: cutoff)
-    monkeypatch.setattr(staff_views, "_build_missing_checkin_recipients", lambda *_args, **_kwargs: [recipient])
+    monkeypatch.setattr(
+        staff_views,
+        "StaffAccount",
+        SimpleNamespace(get_active_accounts=lambda: [active_a, active_b]),
+    )
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", SimpleNamespace(query=fake_query))
+
+    recipients = staff_views._build_missing_checkin_recipients(target_date)
+
+    assert recipients == [active_b]
+    assert fake_query.filters == [{"date_id": target_date_id}]
+
+
+def test_build_missing_checkin_recipients_filters_by_staff_email(staff_views, monkeypatch):
+    target_date = datetime(2026, 6, 26).date()
+    active_a = SimpleNamespace(
+        id=1,
+        email="alice",
+        fullname="Alice",
+        line_id="line-a",
+        personal_info=SimpleNamespace(academic_staff=False),
+    )
+    active_b = SimpleNamespace(
+        id=2,
+        email="bob",
+        fullname="Bob",
+        line_id="line-b",
+        personal_info=SimpleNamespace(academic_staff=False),
+    )
+
+    monkeypatch.setattr(
+        staff_views,
+        "StaffAccount",
+        SimpleNamespace(get_active_accounts=lambda: [active_a, active_b]),
+    )
+
+    records = [SimpleNamespace(staff_id=2, start_datetime=pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 8, 45)))]
+
+    recipients = staff_views._build_missing_checkin_recipients(target_date, records=records, staff_email="alice")
+
+    assert recipients == [active_a]
+
+
+def test_line_remind_missing_checkin_sends_only_to_missing_staff(staff_views, monkeypatch):
+    target_date = datetime(2026, 6, 26).date()
+    recipient = SimpleNamespace(id=11, email="alice", fullname="Test User", line_id="line-11")
+    captured = []
+
+    monkeypatch.setattr(staff_views, "_parse_checkin_reminder_date", lambda *_args, **_kwargs: target_date)
+    monkeypatch.setattr(
+        staff_views,
+        "_build_missing_checkin_recipients",
+        lambda *_args, **kwargs: captured.append(kwargs.get("staff_email")) or [recipient],
+    )
     monkeypatch.setattr(staff_views, "_get_holiday_for_date", lambda *_args, **_kwargs: None)
 
     pushes = []
@@ -389,7 +486,9 @@ def test_line_remind_missing_checkin_sends_only_to_missing_staff(staff_views, mo
         "request",
         SimpleNamespace(
             method="POST",
-            values=SimpleNamespace(get=lambda key, default=None: {"date": "26/06/2026", "time": "09:00"}.get(key, default)),
+            values=SimpleNamespace(
+                get=lambda key, default=None: {"date": "26/06/2026", "email": "alice"}.get(key, default)
+            ),
         ),
     )
 
@@ -407,14 +506,16 @@ def test_line_remind_missing_checkin_sends_only_to_missing_staff(staff_views, mo
         "ท่านยังไม่ได้ลงชื่อเข้างานในวันนี้"
     )
     assert pushes[0]["messages"].contents.body.contents[1].contents[1].contents[0].text == "26/06/2026"
+    assert captured == ["alice"]
+    assert payload["staff_email"] == "alice"
 
 
 def test_line_remind_missing_checkin_skips_holidays(staff_views, monkeypatch):
-    cutoff = pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 9, 0))
+    target_date = datetime(2026, 6, 26).date()
     holiday = SimpleNamespace(holiday_name="Holiday")
 
     monkeypatch.setattr(staff_views, "_get_holiday_for_date", lambda *_args, **_kwargs: holiday)
-    monkeypatch.setattr(staff_views, "_parse_checkin_reminder_cutoff", lambda *_args, **_kwargs: cutoff)
+    monkeypatch.setattr(staff_views, "_parse_checkin_reminder_date", lambda *_args, **_kwargs: target_date)
     monkeypatch.setattr(staff_views, "_build_missing_checkin_recipients", lambda *_args, **_kwargs: [SimpleNamespace(id=11, fullname="Test User", line_id="line-11")])
 
     pushes = []
@@ -425,7 +526,7 @@ def test_line_remind_missing_checkin_skips_holidays(staff_views, monkeypatch):
         "request",
         SimpleNamespace(
             method="POST",
-            values=SimpleNamespace(get=lambda key, default=None: {"date": "26/06/2026", "time": "09:00"}.get(key, default)),
+            values=SimpleNamespace(get=lambda key, default=None: {"date": "26/06/2026"}.get(key, default)),
         ),
     )
 

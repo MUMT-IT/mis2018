@@ -1,11 +1,12 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField, FloatField, PasswordField, \
-    TextAreaField
-from wtforms.validators import DataRequired, Email, optional
+    TextAreaField, BooleanField, SubmitField
+from wtforms.validators import DataRequired, Email, Optional, optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from wtforms_components import EmailField
 
 from app.comhealth.models import ComHealthTest, ComHealthContainer, ComHealthDepartment, ComHealthDivision
+from app.comhealth.video_admin import DEFAULT_SOURCE_NAME
 from app.main import db
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -100,3 +101,22 @@ class SendMailToCustomerForm(FlaskForm):
             Email(message='Please enter a valid email address / กรุณากรอกอีเมลที่ถูกต้อง')
         ]
     )
+
+
+class HealthEducationVideoForm(FlaskForm):
+    title = StringField('Video title', validators=[DataRequired()])
+    youtube_url = StringField('YouTube URL', validators=[DataRequired()])
+    source_name = StringField('Source name', default=DEFAULT_SOURCE_NAME)
+    source_channel = StringField('Source channel')
+    health_topics = StringField('Health topics', validators=[DataRequired()])
+    keywords = StringField('Keywords')
+    summary = TextAreaField('Short summary')
+    language = StringField('Language')
+    audience_level = StringField('Audience level')
+    is_embeddable = BooleanField('Allow embedding', default=True)
+    thumbnail_url = StringField('Thumbnail URL')
+    duration_seconds = IntegerField('Duration (seconds)', validators=[Optional()])
+    display_order = IntegerField('Display order', validators=[Optional()])
+    notes_internal = TextAreaField('Internal notes')
+    is_active = BooleanField('Active', default=True)
+    submit = SubmitField('Save')

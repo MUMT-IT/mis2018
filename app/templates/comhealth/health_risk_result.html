@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title>{{ ui.page_title }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <style>
+        :root {
+            --primary-medical: #0f766e;
+            --secondary-medical: #0d9488;
+            --accent-medical: #f0fdfa;
+            --summary-bg: #fffbeb;
+            --summary-border: #fde68a;
+            --risk-low: #15803d;
+            --risk-mild: #d97706;
+            --risk-moderate: #c2410c;
+            --risk-high: #b91c1c;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: linear-gradient(180deg, #ecfeff 0%, #f8fafc 40%, #ffffff 100%);
+            color: #334155;
+        }
+
+        .report-shell {
+            max-width: 1180px;
+            margin: 2rem auto;
+            background: #ffffff;
+            border-radius: 2rem;
+            overflow: hidden;
+            box-shadow: 0 20px 40px -16px rgba(15, 23, 42, 0.12);
+        }
+
+        .hero {
+            position: relative;
+            padding: 2.5rem 2rem 4rem;
+            color: white;
+            background: linear-gradient(135deg, var(--primary-medical) 0%, #155e75 100%);
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 38px;
+            background: #ffffff;
+            clip-path: ellipse(52% 100% at 50% 100%);
+        }
+
+        .hero .subtitle {
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .disclaimer-banner {
+            margin: -2rem 2rem 0;
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(217, 119, 6, 0.35);
+            background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
+            box-shadow: 0 14px 30px -22px rgba(180, 83, 9, 0.45);
+            position: relative;
+            z-index: 2;
+        }
+
+        .disclaimer-banner .disclaimer-label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #b45309;
+        }
+
+        .disclaimer-banner .disclaimer-text {
+            color: #7c2d12;
+            font-weight: 700;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        .summary-card, .issue-card, .evidence-table-wrap {
+            border-radius: 1.25rem;
+        }
+
+        .summary-card {
+            padding: 1rem 1.1rem;
+            background: #fff;
+            border: 1px solid rgba(253, 230, 138, 0.8);
+            box-shadow: 0 10px 20px -18px rgba(15, 23, 42, 0.2);
+        }
+
+        .summary-card.ai-summary {
+            background: linear-gradient(135deg, #fffdf5 0%, #fefce8 100%);
+            border: 1px solid #fde68a;
+            box-shadow: 0 16px 34px -24px rgba(180, 83, 9, 0.35);
+        }
+
+        .summary-card .title {
+            margin-bottom: 0.35rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            font-weight: 700;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .badge.is-success { background: #dcfce7; color: #166534; }
+        .badge.is-warning { background: #fef3c7; color: #92400e; }
+        .badge.is-danger { background: #fee2e2; color: #991b1b; }
+        .badge.is-dark { background: #e2e8f0; color: #334155; }
+
+        .issue-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-left-width: 6px;
+            border-left-style: solid;
+            box-shadow:
+                0 16px 34px -18px rgba(185, 28, 28, 0.42),
+                0 3px 10px -4px rgba(185, 28, 28, 0.18);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .issue-card.level-low {
+            border-color: rgba(234, 179, 8, 0.28);
+            border-left-color: #eab308;
+        }
+
+        .issue-card.level-mild {
+            border-color: rgba(245, 158, 11, 0.28);
+            border-left-color: #f59e0b;
+        }
+
+        .issue-card.level-moderate {
+            border-color: rgba(234, 88, 12, 0.28);
+            border-left-color: #ea580c;
+        }
+
+        .issue-card.level-high {
+            border-color: rgba(220, 38, 38, 0.28);
+            border-left-color: #dc2626;
+        }
+
+        .issue-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .risk-icon {
+            width: 1.6rem;
+            height: 1.6rem;
+            margin-right: 0.35rem;
+        }
+
+        .risk-icon.is-success { color: #eab308; }
+        .risk-icon.is-warning { color: #f59e0b; }
+        .risk-icon.is-danger { color: #ea580c; }
+        .risk-icon.is-dark { color: #dc2626; }
+
+        .issue-meta {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .issue-explanation {
+            margin-top: 0.75rem;
+            color: #475569;
+        }
+
+        .table thead th {
+            background: #f8fafc;
+            color: #475569;
+        }
+
+        .evidence-table-wrap {
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .section-title {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .pill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.6rem;
+        }
+
+        .pill {
+            border-radius: 9999px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            padding: 0.3rem 0.65rem;
+            font-size: 0.85rem;
+        }
+
+        .what-matters-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .what-matters-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.9rem 1rem;
+            border-radius: 1rem;
+            background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+            border: 1px solid rgba(251, 146, 60, 0.28);
+            box-shadow: 0 10px 20px -22px rgba(180, 83, 9, 0.35);
+        }
+
+        .video-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .what-matters-badge {
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 9999px;
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #fff;
+            background: linear-gradient(135deg, #f59e0b 0%, #dc2626 100%);
+            box-shadow: 0 8px 16px -12px rgba(220, 38, 38, 0.7);
+        }
+
+        .what-matters-text {
+            color: #7c2d12;
+            font-weight: 600;
+            line-height: 1.45;
+        }
+
+        .footer-link {
+            color: var(--primary-medical);
+            font-weight: 700;
+        }
+
+        .section-shell {
+            min-height: 120px;
+        }
+
+        .loading-panel {
+            border-radius: 1.25rem;
+            border: 1px dashed #cbd5e1;
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+            padding: 1.25rem 1rem;
+            color: #475569;
+        }
+
+        .loading-panel .loading-title {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .loading-panel .loading-subtitle {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .loading-shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading-shimmer::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+            animation: shimmer 1.25s infinite;
+        }
+
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+
+        @media (max-width: 768px) {
+            .report-shell {
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .hero {
+                padding: 2rem 1rem 3.5rem;
+            }
+
+            .disclaimer-banner {
+                margin: -1.5rem 1rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-shell">
+        <section class="hero has-text-centered">
+            <div class="mb-3">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Mahidol University Logo" style="height:72px; width:auto;" onerror="this.style.display='none'">
+            </div>
+            <h1 class="title is-2 has-text-white mb-2">{{ ui.page_title }}</h1>
+            <p class="subtitle is-6 mb-4">{{ ui.page_subtitle }}</p>
+            <p class="is-size-6 has-text-white-ter">
+                {{ employee.prename }}{{ employee.fname }} {{ employee.lname }} · {{ servicedate_thai }} · {{ ui.lab_no }}: <strong>{{ service_no }}</strong>
+            </p>
+            <div class="mt-4 is-flex is-justify-content-center" style="gap: 0.75rem; flex-wrap: wrap;">
+                <a class="button is-light is-rounded" href="{{ switch_url_th }}" {% if current_lang == 'th' %}aria-current="page"{% endif %}>{{ ui.switch_to_th }}</a>
+                <a class="button is-light is-rounded" href="{{ switch_url_en }}" {% if current_lang == 'en' %}aria-current="page"{% endif %}>{{ ui.switch_to_en }}</a>
+                <a class="button is-light is-rounded" href="{{ legacy_report_url }}">{{ ui.back_to_legacy }}</a>
+            </div>
+        </section>
+
+        <section class="disclaimer-banner">
+            <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
+                <span class="icon has-text-warning"><i class="fa-solid fa-triangle-exclamation fa-lg"></i></span>
+                <div>
+                    <div class="disclaimer-label">{{ ui.disclaimer_label }}</div>
+                    <div class="disclaimer-text">{{ ui.not_diagnosis }}</div>
+                </div>
+            </div>
+        </section>
+
+        <main class="section" style="padding-top: 1.75rem;">
+            <section
+                id="top-concerns-section"
+                class="mb-5 section-shell"
+                hx-get="{{ url_for('comhealth.health_risk_top_concerns_partial', serviceNo=service_no, email=employee_email, servicedate=servicedate_iso, age=age, lang=current_lang) }}"
+                hx-trigger="load"
+                hx-swap="outerHTML"
+            >
+                <div class="loading-panel loading-shimmer">
+                    <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
+                        <span class="icon has-text-warning"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                        <div>
+                            <div class="loading-title">{{ ui.loading_top_concerns }}</div>
+                            <div class="loading-subtitle">HTMX is loading this section.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section
+                id="ai-summary-section"
+                class="mb-5 section-shell"
+                hx-get="{{ url_for('comhealth.health_risk_ai_summary_partial', serviceNo=service_no, email=employee_email, servicedate=servicedate_iso, age=age, lang=current_lang) }}"
+                hx-trigger="load"
+                hx-swap="outerHTML"
+            >
+                <div class="loading-panel loading-shimmer">
+                    <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
+                        <span class="icon has-text-warning"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                        <div>
+                            <div class="loading-title">{{ ui.loading_ai_summary }}</div>
+                            <div class="loading-subtitle">HTMX is loading this section.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section
+                id="issue-cards-section"
+                class="mb-5 section-shell"
+                hx-get="{{ url_for('comhealth.health_risk_issues_partial', serviceNo=service_no, email=employee_email, servicedate=servicedate_iso, age=age, lang=current_lang) }}"
+                hx-trigger="load"
+                hx-swap="outerHTML"
+            >
+                <div class="loading-panel loading-shimmer">
+                    <div class="is-flex is-align-items-center" style="gap: 0.75rem;">
+                        <span class="icon has-text-warning"><i class="fa-solid fa-spinner fa-spin"></i></span>
+                        <div>
+                            <div class="loading-title">{{ ui.loading_issue_cards }}</div>
+                            <div class="loading-subtitle">HTMX is loading this section.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</body>
+</html>

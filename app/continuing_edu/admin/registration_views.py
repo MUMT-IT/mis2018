@@ -1,25 +1,442 @@
 """
 Registration Management Views for Continuing Education Admin
 """
-from flask import render_template, request, redirect, url_for, flash, jsonify, Response
+from flask import render_template, request, redirect, url_for, flash, jsonify, Response, current_app
 from flask_login import login_required
-from sqlalchemy import or_, and_, func, desc
+from sqlalchemy import or_, func, desc
 from sqlalchemy.orm import joinedload
 import csv
 import io
+import json
+import re
 from datetime import datetime, timezone
+from urllib.parse import parse_qs, urlparse
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired, BadData
 
 from app.continuing_edu.admin.views import admin_bp
-from app.continuing_edu.admin.decorators import admin_required, get_current_staff, can_manage_registrations
+from app.continuing_edu.admin.decorators import (
+    admin_required,
+    get_current_staff,
+    can_manage_registrations,
+    check_can_manage_registrations,
+)
 from app.continuing_edu.models import (
     CEMemberRegistration,
     CEMember,
     CEEventEntity,
+    CERegisterPayment,
     CERegistrationStatus,
     CEMemberType,
     CEEventRegistrationFee,
     db
 )
+
+CHECKIN_QR_PREFIX = "CECHECKIN:"
+CHECKIN_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 365 * 3
+
+
+def _checkin_serializer():
+    return URLSafeTimedSerializer(
+        secret_key=current_app.config.get('SECRET_KEY'),
+        salt='continuing-edu-checkin',
+    )
+
+
+def build_attendance_qr_payload(registration):
+    token = _checkin_serializer().dumps(
+        {
+            'registration_id': registration.id,
+            'event_id': registration.event_entity_id,
+        }
+    )
+    return f"{CHECKIN_QR_PREFIX}{token}"
+
+
+def _resolve_registration_from_payload(raw_value):
+    raw = (raw_value or '').strip()
+    if not raw:
+        return None, None, 'empty_payload'
+
+    if raw.isdigit():
+        return int(raw), None, None
+
+    # Supported format: CECHECKIN:<signed-token>
+    if raw.startswith(CHECKIN_QR_PREFIX):
+        token = raw[len(CHECKIN_QR_PREFIX):].strip()
+        if not token:
+            return None, None, 'invalid_token'
+        try:
+            payload = _checkin_serializer().loads(token, max_age=CHECKIN_TOKEN_MAX_AGE_SECONDS)
+        except (BadSignature, SignatureExpired, BadData):
+            return None, None, 'invalid_token'
+
+        registration_id = payload.get('registration_id')
+        event_id = payload.get('event_id')
+        if not isinstance(registration_id, int):
+            return None, None, 'invalid_token'
+        return registration_id, event_id, None
+
+    # Support URL payloads: ...?registration_id=123 or .../registrations/123
+    parsed = urlparse(raw)
+    if parsed.scheme and parsed.netloc:
+        qs = parse_qs(parsed.query)
+        for key in ('registration_id', 'reg_id', 'id'):
+            values = qs.get(key) or []
+            if values and str(values[0]).isdigit():
+                return int(values[0]), None, None
+        path_match = re.search(r"/registrations/(\d+)", parsed.path or '')
+        if path_match:
+            return int(path_match.group(1)), None, None
+
+    # Support JSON payload: {"registration_id": 123, "event_id": 8}
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError):
+        payload = None
+    if isinstance(payload, dict):
+        reg_val = payload.get('registration_id')
+        event_val = payload.get('event_id')
+        if isinstance(reg_val, int):
+            return reg_val, event_val if isinstance(event_val, int) else None, None
+
+    # Fallback: CE-REG-123 or text ending with digits.
+    generic_match = re.search(r"(\d+)$", raw)
+    if generic_match:
+        return int(generic_match.group(1)), None, None
+
+    return None, None, 'unsupported_payload'
+
+
+def _wants_json_response():
+    if request.args.get('format') == 'json':
+        return True
+    if request.form.get('response_format') == 'json':
+        return True
+    if request.is_json:
+        return True
+    accept = request.headers.get('Accept', '')
+    return 'application/json' in accept
+
+
+def _registration_status_counts(base_query):
+    rows = (
+        base_query
+        .join(CERegistrationStatus, CEMemberRegistration.status_id == CERegistrationStatus.id)
+        .with_entities(
+            func.lower(
+                func.coalesce(
+                    CERegistrationStatus.registration_status_code,
+                    CERegistrationStatus.name_en,
+                )
+            ).label('status_code'),
+            func.count(CEMemberRegistration.id),
+        )
+        .group_by('status_code')
+        .all()
+    )
+    counts = {code: count for code, count in rows if code}
+    return {
+        'total': base_query.count(),
+        'registered': counts.get('registered', 0),
+        'in_progress': counts.get('in_progress', 0),
+        'completed': counts.get('completed', 0),
+        'cancelled': counts.get('cancelled', 0) + counts.get('canceled', 0),
+    }
+
+
+def _attendance_error(message, event_id=None, status_code=400, details=None):
+    details = details or {}
+    if _wants_json_response():
+        payload = {'success': False, 'message': message}
+        payload.update(details)
+        return jsonify(payload), status_code
+
+    flash(message, 'danger')
+    next_url = request.form.get('next') or request.referrer
+    if next_url:
+        return redirect(next_url)
+    return redirect(url_for('continuing_edu_admin.attendance_management', event_id=event_id))
+
+
+@admin_bp.route('/attendance')
+@login_required
+@admin_required
+@can_manage_registrations
+def attendance_management():
+    """Track and manage attendance for registrations."""
+    staff = get_current_staff()
+
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    event_id = request.args.get('event_id', type=int)
+    checked_in = (request.args.get('checked_in') or '').strip().lower()
+    search_query = (request.args.get('q') or '').strip()
+
+    filtered_query = CEMemberRegistration.query
+    if event_id:
+        filtered_query = filtered_query.filter(CEMemberRegistration.event_entity_id == event_id)
+
+    if search_query:
+        search_pattern = f'%{search_query}%'
+        if search_query.isdigit():
+            filtered_query = filtered_query.filter(
+                or_(
+                    CEMemberRegistration.id == int(search_query),
+                    CEMemberRegistration.member_id == int(search_query),
+                    CEMemberRegistration.event_entity_id == int(search_query),
+                )
+            )
+        else:
+            filtered_query = (
+                filtered_query
+                .join(CEMember)
+                .join(CEEventEntity)
+                .filter(
+                    or_(
+                        CEMember.full_name_th.ilike(search_pattern),
+                        CEMember.full_name_en.ilike(search_pattern),
+                        CEMember.username.ilike(search_pattern),
+                        CEMember.email.ilike(search_pattern),
+                        CEEventEntity.title_th.ilike(search_pattern),
+                        CEEventEntity.title_en.ilike(search_pattern),
+                    )
+                )
+            )
+
+    stats_query = filtered_query
+    checked_in_condition = or_(
+        CEMemberRegistration.started_at.isnot(None),
+        CEMemberRegistration.attendance_count > 0,
+    )
+
+    if checked_in == 'yes':
+        filtered_query = filtered_query.filter(checked_in_condition)
+    elif checked_in == 'no':
+        filtered_query = filtered_query.filter(~checked_in_condition)
+
+    query = filtered_query.options(
+        joinedload(CEMemberRegistration.member),
+        joinedload(CEMemberRegistration.event_entity),
+        joinedload(CEMemberRegistration.status_ref),
+    ).order_by(
+        CEMemberRegistration.event_entity_id.desc(),
+        CEMemberRegistration.registration_date.desc(),
+    )
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    registrations = pagination.items
+
+    now = datetime.now(timezone.utc)
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    stats = {
+        'total': stats_query.count(),
+        'checked_in': stats_query.filter(checked_in_condition).count(),
+        'not_checked_in': stats_query.filter(~checked_in_condition).count(),
+        'today_checkins': stats_query.filter(CEMemberRegistration.started_at >= start_of_day).count(),
+    }
+
+    events = (
+        CEEventEntity.query
+        .join(CEMemberRegistration, CEMemberRegistration.event_entity_id == CEEventEntity.id)
+        .distinct()
+        .order_by(CEEventEntity.created_at.desc())
+        .all()
+    )
+
+    checkin_payloads = {reg.id: build_attendance_qr_payload(reg) for reg in registrations}
+
+    return render_template(
+        'continueing_edu/admin/attendance.html',
+        logged_in_admin=staff,
+        registrations=registrations,
+        pagination=pagination,
+        events=events,
+        stats=stats,
+        checkin_payloads=checkin_payloads,
+        filters={
+            'event_id': event_id,
+            'checked_in': checked_in,
+            'q': search_query,
+            'per_page': per_page,
+        },
+    )
+
+
+@admin_bp.route('/attendance/qrcode')
+@login_required
+@admin_required
+@can_manage_registrations
+def attendance_qrcode():
+    """QR code check-in console for event attendance."""
+    staff = get_current_staff()
+    event_id = request.args.get('event_id', type=int)
+
+    recent_query = (
+        CEMemberRegistration.query
+        .options(
+            joinedload(CEMemberRegistration.member),
+            joinedload(CEMemberRegistration.event_entity),
+            joinedload(CEMemberRegistration.status_ref),
+        )
+        .filter(
+            or_(
+                CEMemberRegistration.started_at.isnot(None),
+                CEMemberRegistration.attendance_count > 0,
+            )
+        )
+    )
+    if event_id:
+        recent_query = recent_query.filter(CEMemberRegistration.event_entity_id == event_id)
+
+    recent_checkins = (
+        recent_query
+        .order_by(CEMemberRegistration.started_at.desc(), CEMemberRegistration.id.desc())
+        .limit(20)
+        .all()
+    )
+
+    events = (
+        CEEventEntity.query
+        .join(CEMemberRegistration, CEMemberRegistration.event_entity_id == CEEventEntity.id)
+        .distinct()
+        .order_by(CEEventEntity.created_at.desc())
+        .all()
+    )
+
+    return render_template(
+        'continueing_edu/admin/attendance_qrcode.html',
+        logged_in_admin=staff,
+        event_id=event_id,
+        events=events,
+        recent_checkins=recent_checkins,
+    )
+
+
+@admin_bp.route('/attendance/checkin', methods=['POST'])
+@login_required
+@admin_required
+def attendance_checkin():
+    """Mark attendance from QR payload or registration id."""
+    staff = get_current_staff()
+    if not staff:
+        return _attendance_error('Staff account not found.', status_code=403)
+
+    event_filter_id = request.form.get('event_id', type=int)
+    registration_id = request.form.get('registration_id', type=int)
+    qr_data = (request.form.get('qr_data') or '').strip()
+
+    embedded_event_id = None
+    if not registration_id and qr_data:
+        registration_id, embedded_event_id, parse_error = _resolve_registration_from_payload(qr_data)
+        if parse_error:
+            return _attendance_error(
+                'QR payload format is invalid. Please scan a valid attendance QR code.',
+                event_id=event_filter_id,
+                details={'error_code': parse_error},
+            )
+
+    if not registration_id:
+        return _attendance_error('Registration ID is required.', event_id=event_filter_id)
+
+    registration = (
+        CEMemberRegistration.query
+        .options(
+            joinedload(CEMemberRegistration.member),
+            joinedload(CEMemberRegistration.event_entity),
+            joinedload(CEMemberRegistration.status_ref),
+        )
+        .get(registration_id)
+    )
+    if not registration:
+        return _attendance_error(
+            f'Registration #{registration_id} not found.',
+            event_id=event_filter_id,
+            status_code=404,
+        )
+
+    if not check_can_manage_registrations(staff.id, registration.event_entity_id):
+        return _attendance_error(
+            'You do not have permission to check in this registration.',
+            event_id=event_filter_id,
+            status_code=403,
+        )
+
+    if event_filter_id and registration.event_entity_id != event_filter_id:
+        return _attendance_error(
+            'Scanned registration does not belong to selected event.',
+            event_id=event_filter_id,
+        )
+
+    if embedded_event_id and registration.event_entity_id != embedded_event_id:
+        return _attendance_error(
+            'QR payload does not match registration event.',
+            event_id=event_filter_id,
+        )
+
+    status_name = (registration.status_ref.name_en or '').strip().lower() if registration.status_ref else ''
+    if 'cancel' in status_name:
+        return _attendance_error(
+            'This registration is cancelled and cannot be checked in.',
+            event_id=event_filter_id,
+        )
+
+    hours_to_add = request.form.get('hours', type=float)
+    increment_count = request.form.get('increment_count') == '1'
+
+    now = datetime.now(timezone.utc)
+    already_checked_in = bool(registration.started_at) or (registration.attendance_count or 0) > 0
+
+    if not registration.started_at:
+        registration.started_at = now
+    if not already_checked_in:
+        registration.attendance_count = max(1, registration.attendance_count or 0)
+    elif increment_count:
+        registration.attendance_count = (registration.attendance_count or 0) + 1
+
+    if hours_to_add is not None and hours_to_add > 0:
+        registration.total_hours_attended = float(registration.total_hours_attended or 0.0) + hours_to_add
+
+    db.session.commit()
+
+    member_name = (
+        registration.member.full_name_th
+        or registration.member.full_name_en
+        or registration.member.username
+        or f'Member #{registration.member_id}'
+    )
+    event_title = (
+        registration.event_entity.title_th
+        or registration.event_entity.title_en
+        or f'Event #{registration.event_entity_id}'
+    )
+
+    if already_checked_in and not increment_count:
+        message = f'{member_name} already checked in.'
+    else:
+        message = f'Checked in {member_name} successfully.'
+
+    payload = {
+        'success': True,
+        'message': message,
+        'already_checked_in': already_checked_in,
+        'registration_id': registration.id,
+        'member_name': member_name,
+        'member_email': registration.member.email,
+        'event_id': registration.event_entity_id,
+        'event_title': event_title,
+        'attendance_count': registration.attendance_count or 0,
+        'total_hours_attended': float(registration.total_hours_attended or 0.0),
+        'checked_in_at': registration.started_at.isoformat() if registration.started_at else None,
+    }
+
+    if _wants_json_response():
+        return jsonify(payload)
+
+    flash(payload['message'], 'success' if not already_checked_in else 'info')
+    next_url = request.form.get('next') or request.referrer
+    if next_url:
+        return redirect(next_url)
+    return redirect(url_for('continuing_edu_admin.attendance_management', event_id=event_filter_id or registration.event_entity_id))
 
 
 @admin_bp.route('/registrations')
@@ -51,7 +468,8 @@ def list_registrations():
     # Apply filters
     if status_filter:
         status = CERegistrationStatus.query.filter(
-            func.lower(CERegistrationStatus.name_en) == status_filter.lower()
+            (func.lower(CERegistrationStatus.name_en) == status_filter.lower()) |
+            (func.lower(CERegistrationStatus.registration_status_code) == status_filter.lower())
         ).first()
         if status:
             query = query.filter(CEMemberRegistration.status_id == status.id)
@@ -104,18 +522,7 @@ def list_registrations():
     statuses = CERegistrationStatus.query.all()
     
     # Statistics
-    stats = {
-        'total': CEMemberRegistration.query.count(),
-        'pending': CEMemberRegistration.query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'pending'
-        ).count(),
-        'confirmed': CEMemberRegistration.query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'confirmed'
-        ).count(),
-        'cancelled': CEMemberRegistration.query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'cancelled'
-        ).count(),
-    }
+    stats = _registration_status_counts(CEMemberRegistration.query)
     
     return render_template(
         'continueing_edu/admin/registrations/list.html',
@@ -155,8 +562,11 @@ def view_registration(registration_id):
         event_entity_id=registration.event_entity_id
     ).all()
     
-    # Get payments related to this registration
-    payments = registration.payments
+    # Get payments related to this registration (by member + event)
+    payments = CERegisterPayment.query.filter_by(
+        member_id=registration.member_id,
+        event_entity_id=registration.event_entity_id
+    ).order_by(CERegisterPayment.payment_date.desc()).all()
     
     # Get all registration statuses for dropdown
     statuses = CERegistrationStatus.query.all()
@@ -347,7 +757,8 @@ def export_registrations():
     
     if status_filter:
         status = CERegistrationStatus.query.filter(
-            func.lower(CERegistrationStatus.name_en) == status_filter.lower()
+            (func.lower(CERegistrationStatus.name_en) == status_filter.lower()) |
+            (func.lower(CERegistrationStatus.registration_status_code) == status_filter.lower())
         ).first()
         if status:
             query = query.filter(CEMemberRegistration.status_id == status.id)
@@ -450,18 +861,7 @@ def event_registrations(event_id):
     registrations = pagination.items
     
     # Statistics for this event
-    stats = {
-        'total': query.count(),
-        'pending': query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'pending'
-        ).count(),
-        'confirmed': query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'confirmed'
-        ).count(),
-        'cancelled': query.join(CERegistrationStatus).filter(
-            func.lower(CERegistrationStatus.name_en) == 'cancelled'
-        ).count(),
-    }
+    stats = _registration_status_counts(CEMemberRegistration.query.filter_by(event_entity_id=event_id))
     
     return render_template(
         'continueing_edu/admin/registrations/event_registrations.html',

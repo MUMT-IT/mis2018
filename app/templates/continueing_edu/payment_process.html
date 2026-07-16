@@ -752,6 +752,7 @@
                               </p>
                               <form action="{{ url_for('continuing_edu.upload_payment_slip', payment_id=payment.id, lang=current_lang) }}"
                                         method="post" enctype="multipart/form-data" id="uploadSlipForm">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <div class="file-input-wrapper">
                                                   <input type="file" name="slip" id="slipFile" accept="image/*,.pdf"
                                                             required onchange="showFileName()">
@@ -821,6 +822,7 @@
 
                     <form action="{{ url_for('continuing_edu.process_credit_card', payment_id=payment.id, lang=current_lang) }}"
                               method="post" class="card-form" id="creditCardForm">
+                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                               <div class="form-group">
                                         <label class="form-label">{{ texts.get('card_number', 'หมายเลขบัตร' if
                                                   current_lang == 'th' else 'Card Number') }}</label>
@@ -966,6 +968,7 @@
                               </p>
                               <form action="{{ url_for('continuing_edu.upload_payment_slip', payment_id=payment.id, lang=current_lang) }}"
                                         method="post" enctype="multipart/form-data" id="uploadReceiptForm">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <div class="file-input-wrapper">
                                                   <input type="file" name="slip" id="receiptFile" accept="image/*,.pdf"
                                                             onchange="showReceiptName()">

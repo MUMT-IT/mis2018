@@ -13,6 +13,12 @@
             <div class="column">
                 <div class="has-text-centered">
                     <h1 class="title">ประกาศ หลักเกณฑ์และอัตราการจ่ายเงินค่าตอบแทน</h1>
+                    <a class="button is-primary" href="{{ url_for('ot.announcement_create_document') }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>เพิ่มประกาศ</span>
+                    </a>
                 </div>
                 <table id="myTable" class="table is-striped is-fullwidth">
                     <thead>
@@ -68,32 +74,6 @@
             <div class="column">
                 <div class="notification is-info is-light">
                     <span>ประกาศทั้งหมดจะแสดงในหน้านี้ แม้ยังไม่ได้เพิ่มตำแหน่ง</span>
-                </div>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <div class="container has-text-centered">
-                    <div class="box">
-                        <a href="{{ url_for('ot.announcement_create_document') }}">
-                        <span class="icon is-large">
-                            <i class="fas fa-plus fa-2x"></i>
-                        </span>
-                            <span class="is-size-4">เพิ่มประกาศ</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="column">
-                <div class="container has-text-centered">
-                    <div class="box">
-                        <a href="{{ url_for('ot.announcement_add_compensation') }}">
-                        <span class="icon is-large">
-                            <i class="fas fa-plus fa-2x"></i>
-                        </span>
-                            <span class="is-size-4">เพิ่มตำแหน่ง</span>
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
