@@ -428,7 +428,8 @@
                                                         <a {% if service_request.status.status_id == 24 or item.is_downloaded %}
                                                             class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2"
                                                             href="{{ url_for('academic_services.download_file', key=item.final_file,
-                                                                        download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                                        download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf',
+                                                                    result_id=item.result_id) }}"
                                                         {% else %}
                                                             class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2 Warn"
                                                         {% endif %}
@@ -442,7 +443,8 @@
                                                             <a {% if service_request.status.status_id == 24 or item.is_downloaded %}
                                                                 class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2"
                                                                 href="{{ url_for('academic_services.download_file', key=item.final_file,
-                                                                            download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf') }}"
+                                                                            download_filename=item.report_language + ' ' + '(ฉบับจริง)' + '.pdf',
+                                                                        result_id=item.result_id) }}"
                                                             {% else %}
                                                                 class="button cut-text is-small is-link is-light is-rounded is-fullwidth mb-2 Warn"
                                                             {% endif %}
