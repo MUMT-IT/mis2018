@@ -478,12 +478,10 @@ class ServiceRequest(db.Model):
                                            if quotation.sent_at) if self.quotations else None,
             'quotation_approved_at': ', '.join(str(quotation.approved_at) for quotation in self.quotations
                                                if quotation.approved_at) if self.quotations else None,
-            'quotation_confirmed_at': ', '.join(str(quotation.confirmed_at) for quotation in self.quotations
-                                                if quotation.confirmed_at) if self.quotations else None,
+            'quotation_confirmed_at': self.quotations[-1].confirmed_at if self.quotations else None,
             'quotation_cancelled_at': ', '.join(str(quotation.cancelled_at) for quotation in
                                        self.quotations if quotation.cancelled_at) if self.quotations else None,
-            'sample_received_at': ', '.join(str(sample.received_at) for sample in self.samples if sample.received_at)
-                if self.samples else None,
+            'sample_received_at': self.samples[-1].received_at if self.samples else None,
             'sample_test_at' : ', '.join(str(result.released_at) for result in self.results if result.released_at)
                 if self.results else None,
             'result_approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
@@ -506,16 +504,17 @@ class ServiceRequest(db.Model):
                                                   if quotation.invoices for invoice in quotation.invoices
                                                   if invoice.payments for payment in invoice.payments if payment.paid_at)
                                                     if self.quotations else None,
-            'verified_at':  ', '.join(str(payment.verified_at) for quotation in self.quotations
-                                                  if quotation.invoices for invoice in quotation.invoices
-                                                  if invoice.payments for payment in invoice.payments if payment.verified_at)
-                                                    if self.quotations else None,
+            'verified_at': (self.quotations[-1].invoices[-1].payments[-1].verified_at
+                            if (self.quotations and self.quotations[-1].invoices
+                                and self.quotations[-1].invoices[-1].payments.count() > 0)
+                            else None
+            ),
             'invoice_no': invoice_no,
             'invoice_file': invoice_file,
             'has_invoice': has_invoice,
-            'invoice_id': [invoice.id for quotation in self.quotations
-                           if quotation.invoices for invoice in quotation.invoices]
-                            if self.quotations else None,
+            'invoice_id':(self.quotations[-1].invoices[-1].id
+                            if (self.quotations and self.quotations[-1].invoices)
+                            else None),
             'result_id': [result.id for result in self.results] if self.results else None
         }
 
