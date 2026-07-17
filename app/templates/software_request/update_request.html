@@ -47,7 +47,10 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ detail.created_by.fullname }} ({{ detail.created_by.personal_info.org }})
+                                        {{ form.created_by(class='js-example-basic-single') }}
+                                        {% if detail.create_by %}
+                                            ({{ detail.created_by.personal_info.org }})
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -584,6 +587,9 @@
         }
 
         $(document).ready(function () {
+             $('.js-example-basic-single').select2({
+                placeholder: 'กรุณาเลือกผู้ส่งคำขอ'
+            })
             $('.js-example-basic-multiple').select2({
                 width: '100%',
                 placeholder: 'กรุณาเลือกผู้รับผิดชอบ'
