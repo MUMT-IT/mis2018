@@ -578,6 +578,20 @@ def update_request(detail_id):
         detail.approver_id = current_user.id
         detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime if form.appointment_date.data else None
         detail.status = form.status.data if form.status.data else status
+        if form.status.data in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ']:
+            if detail.timelines:
+                for timeline in detail.timelines:
+                    if timeline.status not in ('ยกเลิกการพัฒนา', 'เสร็จสิ้น'):
+                        timeline.status = 'เสร็จสิ้น'
+                        db.session.add(timeline)
+            if detail.issues:
+                for issue in detail.issues:
+                    if not (issue.closed_at or issue.cancelled_at):
+                        issue.closed_at = arrow.now('Asia/Bangkok').datetime
+                        issue.updated_at = arrow.now('Asia/Bangkok').datetime
+                        issue.tested_at = None
+                        issue.accepted_at = None
+                        db.session.add(issue)
         db.session.add(detail)
         db.session.commit()
         scheme = 'http' if current_app.debug else 'https'
