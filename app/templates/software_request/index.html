@@ -16,16 +16,46 @@
                             <span>ส่งคำขอรับบริการ</span>
                         </a>
                     </div>
+                    <h1 class="subtitle">รายการทดสอบระบบ</h1>
+                    <hr style="background-color: #CCCCCC;">
+                    {% for request in current_user.created_requests %}
+                        {% for test_result in request.test_results %}
+                            <table id="test_result" class="table is-fullwidth">
+                                <thead>
+                                    <th>Requirement</th>
+                                    <th>Title</th>
+                                    <th>Detail</th>
+                                    <th>View</th>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        {% if not test_result.status %}
+                                            <td>{{ test_result.issue.issue }}</td>
+                                            <td>{{ test_result.request.title }}</td>
+                                            <td>{{ test_result.request.description }}</td>
+                                            <td>
+                                                <a href="{{ url_for('software_request.view_request',
+                                                    detail_id=test_result.request_id) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                </a>
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        {% endfor %}
+                    {% endfor %}
+                    <div style="margin-top: 40px;"></div>
+                    <h1 class="subtitle">รายการคำขอพัฒนาระบบ</h1>
+                    <hr style="background-color: #CCCCCC;">
                     <table id="detail" class="table is-fullwidth">
                         <thead>
-                            <tr>
                             <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
                             <th>รายละเอียด</th>
-                            </tr>
                         </thead>
                         <tbody>
                         </tbody>
@@ -40,6 +70,9 @@
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
+            $('#test_result').DataTable({
+
+            });
             $('#detail').DataTable({
                 processing: true,
                 serverSide: true,

@@ -201,17 +201,17 @@
                                                 </div>
                                            </div>`;
                                 } else if (row.result_edit_at && row.result_is_edited == null) {
-                                    return`<span class="tag is-info">ขอแก้ไขใบรายงานผล</span>`;
+                                    return`<span class="tag is-info is-light is-rounded">ขอแก้ไขใบรายงานผล</span>`;
                                 } else if(row.result_sent_at != null) {
-                                    return`<span class="tag is-warning">รอยืนยันใบรายงานผล</span>`;
+                                    return`<span class="tag is-warning is-light is-rounded">รอยืนยันใบรายงานผล</span>`;
                                 } else if (row.result_sent_at == null) {
-                                    return`<span class="tag is-primary">กำลังออกรายงานผล</span>`;
+                                    return`<span class="tag is-primary is-light is-rounded">กำลังออกรายงานผล</span>`;
                                 }
                                 else {
-                                    return`<span class="tag is-danger">ยังไม่ดำเนินการทดสอบ</span>`;
+                                    return`<span class="tag is-danger is-light is-rounded">ยังไม่ดำเนินการทดสอบ</span>`;
                                 }
                             } else {
-                                return`<span class="tag is-danger">ยังไม่ดำเนินการทดสอบ</span>`;
+                                return`<span class="tag is-danger is-light is-rounded">ยังไม่ดำเนินการทดสอบ</span>`;
                             }
                         }
                     },
