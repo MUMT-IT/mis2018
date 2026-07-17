@@ -1062,6 +1062,7 @@ def show_event_detail(event_id=None):
 @room.route('/events/cancel/<int:event_id>')
 @login_required
 def cancel(event_id=None):
+    repeat = request.args.get('repeat', 'false')
     if not event_id:
         return redirect(url_for('room.index'))
 
@@ -1099,8 +1100,10 @@ def cancel(event_id=None):
             send_mail(participant_emails, title, message)
     else:
         print(msg, event.room.coordinator)
-
-    return redirect(url_for('room.index'))
+    if repeat == 'true' and event.master_id:
+        return redirect(url_for('room.show_event_detail', event_id=event.master_id))
+    else:
+        return redirect(url_for('room.index'))
 
 
 @room.route('/events/approve/<int:event_id>')
