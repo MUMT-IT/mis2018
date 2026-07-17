@@ -560,7 +560,7 @@ def update_request(detail_id):
     status = detail.status
     required_information = detail.required_information
     suggestion = detail.suggestion
-
+    old_created_by = detail.created_by
     SoftwareRequestDetailForm = create_request_form(detail_id=detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
@@ -570,6 +570,10 @@ def update_request(detail_id):
     appointment_date = form.appointment_date.data.astimezone(localtz) if form.appointment_date.data else None
     if form.validate_on_submit():
         form.populate_obj(detail)
+        if not form.created_by.data or not detail.created_by:
+            flash('กรุณาเลือกผู้ส่งคำขอ', 'danger')
+            return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
+                                   file_url=file_url, appointment_date=appointment_date)
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
         detail.approver_id = current_user.id
         detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime if form.appointment_date.data else None
@@ -581,6 +585,10 @@ def update_request(detail_id):
 
         # Consolidate notifications so submit does not block on multiple synchronous mail sends.
         message_sections = []
+        if old_created_by != detail.created_by:
+            message_sections.append(
+                 '''ทางหน่วยงานไอทีได้ปรับเปลี่ยนให้ท่านเป็นผู้รับผิดชอบคำขอการพัฒนานี้'''
+            )
         if required_information != detail.required_information:
             message_sections.append(
                 f'''ทางหน่วยงานไอทีมีความประสงค์ขอข้อมูลเพิ่มเติมเพื่อใช้ประกอบการดำเนินงาน ดังนี้\n{detail.required_information}'''
