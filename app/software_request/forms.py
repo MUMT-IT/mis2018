@@ -17,6 +17,20 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
+class QuerySelectFieldRequired(QuerySelectField):
+    def iter_choices(self):
+        for value, label, selected in super().iter_choices():
+            if value == '__None':
+                yield '', label, selected
+            else:
+                yield value, label, selected
+
+    def process_formdata(self, valuelist):
+        if valuelist and valuelist[0] == '':
+            valuelist = ['__None']
+        return super().process_formdata(valuelist)
+
+
 def create_request_form(detail_id):
     class SoftwareRequestDetailForm(ModelForm):
         class Meta:
@@ -27,6 +41,9 @@ def create_request_form(detail_id):
                                 allow_blank=True, blank_text='กรุณาเลือกห้อง')
             staffs = QuerySelectMultipleField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_role(role='software_request'),
                                               get_label='fullname')
+            created_by = QuerySelectFieldRequired('ผู้ส่งคำขอ', query_factory=lambda: StaffAccount.get_active_accounts(),
+                                                  allow_blank=True, blank_text='กรุณาเลือกผู้ส่งคำขอ', get_label='fullname',
+                                                  render_kw={'required': True})
         else:
             file_upload = FileField('File Upload')
             system = QuerySelectField('ระบบที่ต้องการปรับปรุง', query_factory=lambda: SoftwareRequestSystem.query.all(), allow_blank=True,
@@ -105,20 +122,6 @@ class SoftwareRequestIssueForm(ModelForm):
                                        render_kw={'required': True})
     staff = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_role(role='software_request'),
                              get_label='fullname')
-
-
-class QuerySelectFieldRequired(QuerySelectField):
-    def iter_choices(self):
-        for value, label, selected in super().iter_choices():
-            if value == '__None':
-                yield '', label, selected
-            else:
-                yield value, label, selected
-
-    def process_formdata(self, valuelist):
-        if valuelist and valuelist[0] == '':
-            valuelist = ['__None']
-        return super().process_formdata(valuelist)
 
 
 def create_test_result_form(detail_id, has_note=False):
