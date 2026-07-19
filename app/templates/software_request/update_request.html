@@ -47,7 +47,11 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.created_by(class='js-example-basic-single') }}
+                                        {% if request.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
+                                            {{ form.created_by(class='js-example-basic-single') }}
+                                        {% else %}
+                                            {{ detail.created_by.fullname }}
+                                        {% endif %}
                                         {% if detail.created_by %}
                                             ({{ detail.created_by.personal_info.org }})
                                         {% endif %}
