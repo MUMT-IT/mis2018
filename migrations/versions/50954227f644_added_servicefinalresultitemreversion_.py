@@ -26,7 +26,7 @@ def upgrade():
     sa.Column('requested_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('requester_id', sa.Integer(), nullable=True),
     sa.Column('edited_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column(' approved_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('approved_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('approver_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['approver_id'], ['service_customer_accounts.id'], ),
     sa.ForeignKeyConstraint(['requester_id'], ['service_customer_accounts.id'], ),
