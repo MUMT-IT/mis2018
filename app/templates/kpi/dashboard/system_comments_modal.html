@@ -1,0 +1,50 @@
+<div class="modal is-active" id="system-comment-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card" style="width: 90vw; max-width: 900px;">
+        <header class="modal-card-head">
+            <p class="modal-card-title" id="system-comment-modal-title">
+                {{ system_label }} ความคิดเห็น
+            </p>
+            <button type="button" class="delete" aria-label="close" data-system-comment-modal-close></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="mb-4">
+                <p class="is-size-7 has-text-grey">
+                    ช่วงวันที่:
+                    {% if start_date or end_date %}
+                        {{ date_range_value or '-' }}
+                    {% else %}
+                        ทั้งหมด
+                    {% endif %}
+                </p>
+                <p class="is-size-7 has-text-grey">
+                    จำนวนความคิดเห็น: {{ comment_count }}
+                </p>
+            </div>
+            <div id="system-comment-modal-body" class="content">
+                {% if comments %}
+                    <div class="block">
+                        {% for record in comments %}
+                            <article class="box">
+                                <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
+                                    <p class="is-size-7 has-text-grey mb-0">
+                                        {{ record.created_at|localdatetime }}
+                                    </p>
+                                    <span class="tag {{ record.sentiment_class }} is-light">
+                                        <span class="icon is-small">
+                                            <i class="{{ record.sentiment_icon }}"></i>
+                                        </span>
+                                        <span>{{ record.sentiment_label }}</span>
+                                    </span>
+                                </div>
+                                <p>{{ record.comment }}</p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="has-text-grey">ไม่พบความคิดเห็นในช่วงเวลาที่เลือก</p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</div>

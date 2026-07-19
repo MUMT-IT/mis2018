@@ -1,12 +1,15 @@
 import json
 from datetime import datetime
+import os
 
 import arrow
+import requests
 from flask_wtf.csrf import generate_csrf
 from pytz import timezone
 from sqlalchemy.sql import select
+from sqlalchemy import Date, cast, func
 from flask import request, make_response, url_for, flash
-from flask import jsonify, render_template, Response
+from flask import jsonify, render_template, Response, current_app
 from flask_login import login_required, current_user
 import pandas as pd
 from pandas import DataFrame
@@ -19,6 +22,7 @@ from ..data_blueprint.forms import KPIForm, KPIModalForm
 from ..main import db, get_json_keyfile
 from ..models import (Org, KPI, Strategy, StrategyTactic,
                       StrategyTheme, StrategyActivity, KPISchema, Dashboard)
+from ..user_eval.models import EvaluationRecord
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -27,6 +31,9 @@ from ..roles import executive_permission
 
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
+
+TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
+TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 
 def get_credential(json_keyfile=None):
@@ -44,6 +51,439 @@ def convert_python_bool(data, key):
         return None
     else:
         return 'true' if value else 'false'
+
+
+def _build_typhoon_eval_summary_prompt(summary_payload):
+    top_systems = summary_payload.get('top_systems') or []
+    top_system_labels = ', '.join(
+        item.get('label', '') for item in top_systems if item.get('label')
+    ) or 'ไม่มีระบบ'
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'You are writing a short internal Thai summary for a KPI dashboard. '
+                'Summarize evaluation comments across all systems during the selected time span. '
+                'Do not repeat raw comments, names, emails, IDs, or any personal data. '
+                'Focus on recurring themes, strengths, weaknesses, and actionable improvement points. '
+                f'You must mention each of these system labels at least once in the summary: {top_system_labels}. '
+                'Keep the tone factual and concise. '
+                'Return plain Thai only.'
+            ),
+        },
+        {
+            'role': 'user',
+            'content': (
+                'สรุปความคิดเห็นจากแบบประเมินทั้งหมดในช่วงเวลาที่เลือกให้สั้น กระชับ และเป็นภาษาไทย:\n'
+                f'{json.dumps(summary_payload, ensure_ascii=False, indent=2)}'
+            ),
+        },
+    ]
+
+
+def _build_eval_comment_fallback(summary_payload):
+    top_systems = summary_payload.get('top_systems') or []
+    top_systems_text = ', '.join(
+        f"{item['label']} {item['total_records']} รายการ" for item in top_systems
+    ) or 'ไม่มีข้อมูลระบบเด่น'
+    return (
+        f"ภาพรวมความคิดเห็น\n"
+        f"ในช่วงเวลาที่เลือกมีแบบประเมินทั้งหมด {summary_payload['total_records']} รายการ "
+        f"จากผู้ประเมินไม่ซ้ำ {summary_payload['total_evaluators']} คน "
+        f"ระบบที่นำมาสรุปคือ {top_systems_text}. "
+        f"ความคิดเห็นที่พบโดยรวมสะท้อนประเด็นเรื่องคุณภาพการใช้งาน ความสะดวกในการเข้าถึงระบบ "
+        f"ความเร็ว/เสถียรภาพ และการสนับสนุนการใช้งาน ซึ่งควรใช้เป็นแนวทางในการปรับปรุงรอบถัดไป."
+    )
+
+
+def _build_system_label(blueprint):
+    return blueprint.replace('_', ' ').title() if blueprint else '-'
+
+
+def _build_typhoon_comment_sentiment_prompt(comments):
+    payload = {
+        'comments': [
+            {
+                'index': index,
+                'text': comment_text,
+            }
+            for index, comment_text in enumerate(comments)
+        ]
+    }
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'You classify Thai and English evaluation comments into sentiment labels for a KPI dashboard. '
+                'Use only one of: positive, negative, neutral. '
+                'Positive means clearly favorable, satisfied, or praise. '
+                'Negative means clearly unfavorable, dissatisfied, or complaint. '
+                'Neutral means mixed, descriptive, or not clearly positive or negative. '
+                'Return valid JSON only in this exact shape: '
+                '{"results":[{"index":0,"sentiment":"positive"}]}. '
+                'Do not include markdown, code fences, or extra text.'
+            ),
+        },
+        {
+            'role': 'user',
+            'content': json.dumps(payload, ensure_ascii=False),
+        },
+    ]
+
+
+def _normalize_sentiment_value(value):
+    normalized = (value or '').strip().lower()
+    if normalized in {'positive', 'pos', 'happy', 'good'}:
+        return 'positive'
+    if normalized in {'negative', 'neg', 'sad', 'bad'}:
+        return 'negative'
+    return 'neutral'
+
+
+def _sentiment_display(sentiment):
+    if sentiment == 'positive':
+        return {
+            'sentiment': 'positive',
+            'sentiment_label': 'เชิงบวก',
+            'sentiment_icon': 'fas fa-smile',
+            'sentiment_class': 'is-success',
+        }
+    if sentiment == 'negative':
+        return {
+            'sentiment': 'negative',
+            'sentiment_label': 'เชิงลบ',
+            'sentiment_icon': 'fas fa-frown',
+            'sentiment_class': 'is-danger',
+        }
+    return {
+        'sentiment': 'neutral',
+        'sentiment_label': 'กลาง',
+        'sentiment_icon': 'fas fa-meh',
+        'sentiment_class': 'is-light',
+    }
+
+
+def _extract_json_payload(text):
+    if not text:
+        raise ValueError('Empty Typhoon response.')
+    cleaned = text.strip()
+    if cleaned.startswith('```'):
+        cleaned = cleaned.strip('`')
+        if cleaned.lower().startswith('json'):
+            cleaned = cleaned[4:]
+        cleaned = cleaned.strip()
+    start = cleaned.find('{')
+    end = cleaned.rfind('}')
+    if start == -1 or end == -1 or end <= start:
+        raise ValueError('No JSON object found in Typhoon response.')
+    return json.loads(cleaned[start:end + 1])
+
+
+def _call_typhoon_comment_sentiments(comment_texts):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0,
+            'max_tokens': max(256, len(comment_texts) * 20),
+            'messages': _build_typhoon_comment_sentiment_prompt(comment_texts),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    parsed = _extract_json_payload(content)
+    results = parsed.get('results')
+    if not isinstance(results, list):
+        raise ValueError('Typhoon sentiment response missing results list.')
+
+    sentiments = {}
+    for item in results:
+        if not isinstance(item, dict):
+            continue
+        try:
+            index = int(item.get('index'))
+        except (TypeError, ValueError):
+            continue
+        sentiments[index] = _normalize_sentiment_value(item.get('sentiment'))
+    return sentiments
+
+
+def _fallback_comment_sentiment(comment_text):
+    text = (comment_text or '').strip().lower()
+    if not text:
+        return _sentiment_display('neutral')
+
+    positive_terms = [
+        'ดีมาก',
+        'พอใจ',
+        'ประทับใจ',
+        'ใช้งานง่าย',
+        'สะดวก',
+        'รวดเร็ว',
+        'เร็ว',
+        'เสถียร',
+        'ช่วยได้',
+        'มีประโยชน์',
+        'ยอดเยี่ยม',
+        'excellent',
+        'great',
+        'good',
+        'happy',
+        'easy',
+        'fast',
+        'smooth',
+    ]
+    negative_terms = [
+        'ไม่ดี',
+        'ไม่พอใจ',
+        'ช้า',
+        'ล่ม',
+        'ค้าง',
+        'error',
+        'bug',
+        'ใช้งานยาก',
+        'ซับซ้อน',
+        'ติดขัด',
+        'ปัญหา',
+        'ผิดพลาด',
+        'slow',
+        'bad',
+        'sad',
+        'crash',
+    ]
+
+    def _term_score(terms):
+        score = 0
+        for term in terms:
+            score += text.count(term)
+        return score
+
+    positive_score = _term_score(positive_terms)
+    negative_score = _term_score(negative_terms)
+    if positive_score > negative_score:
+        return _sentiment_display('positive')
+    if negative_score > positive_score:
+        return _sentiment_display('negative')
+    return _sentiment_display('neutral')
+
+
+def _call_typhoon_eval_summary(summary_payload):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.2,
+            'max_tokens': 500,
+            'messages': _build_typhoon_eval_summary_prompt(summary_payload),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    if not content or not content.strip():
+        raise ValueError('Empty Typhoon summary response.')
+    return content.strip()
+
+
+def _build_evaluation_dashboard_context(start_date_raw='', end_date_raw='', include_summary=False):
+    start_date = None
+    end_date = None
+    date_range_value = ''
+
+    if start_date_raw:
+        try:
+            start_date = datetime.strptime(start_date_raw, '%Y-%m-%d').date()
+        except ValueError:
+            start_date_raw = ''
+    if end_date_raw:
+        try:
+            end_date = datetime.strptime(end_date_raw, '%Y-%m-%d').date()
+        except ValueError:
+            end_date_raw = ''
+    if start_date_raw and end_date_raw:
+        date_range_value = f'{start_date_raw} - {end_date_raw}'
+    elif start_date_raw:
+        date_range_value = start_date_raw
+    elif end_date_raw:
+        date_range_value = end_date_raw
+
+    query = EvaluationRecord.query
+    if start_date:
+        query = query.filter(cast(func.timezone('Asia/Bangkok', EvaluationRecord.created_at), Date) >= start_date)
+    if end_date:
+        query = query.filter(cast(func.timezone('Asia/Bangkok', EvaluationRecord.created_at), Date) <= end_date)
+
+    records = (
+        query
+        .order_by(EvaluationRecord.created_at.desc(), EvaluationRecord.id.desc())
+        .all()
+    )
+    latest_records = records[:10]
+    total_records = len(records)
+    average_score = round(sum(record.score for record in records) / total_records, 2) if total_records else 0
+    total_evaluators = (
+        query.with_entities(EvaluationRecord.staff_id).distinct().count()
+        if total_records
+        else 0
+    )
+
+    system_averages_raw = (
+        query
+        .with_entities(
+            EvaluationRecord.blueprint.label('blueprint'),
+            func.avg(EvaluationRecord.score).label('average_score'),
+            func.count(EvaluationRecord.id).label('total_records'),
+            func.count(func.distinct(EvaluationRecord.staff_id)).label('total_evaluators'),
+            func.count(func.nullif(func.trim(EvaluationRecord.comment), '')).label('comment_count'),
+        )
+        .group_by(EvaluationRecord.blueprint)
+        .order_by(EvaluationRecord.blueprint.asc())
+        .all()
+    )
+    system_averages = [
+        {
+            'blueprint': row.blueprint,
+            'label': _build_system_label(row.blueprint),
+            'average_score': round(float(row.average_score or 0), 2),
+            'total_records': row.total_records,
+            'total_evaluators': row.total_evaluators,
+            'comment_count': row.comment_count,
+        }
+        for row in system_averages_raw
+    ]
+
+    system_labels = {item['blueprint']: item['label'] for item in system_averages}
+    comment_entries = [
+        {
+            'system': system_labels.get(record.blueprint, record.blueprint.replace('_', ' ').title() if record.blueprint else '-'),
+            'comment': record.comment.strip(),
+        }
+        for record in records
+        if record.comment and record.comment.strip()
+    ]
+    summary_payload = {
+        'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
+        'total_records': total_records,
+        'total_evaluators': total_evaluators,
+        'comment_count': len(comment_entries),
+        'top_systems': system_averages[:5],
+        'comments': comment_entries,
+    }
+    summary_systems = [item['label'] for item in system_averages[:5]]
+
+    comment_summary = None
+    if include_summary:
+        if comment_entries:
+            try:
+                comment_summary = _call_typhoon_eval_summary(summary_payload)
+            except Exception:
+                current_app.logger.exception('Failed to generate evaluation comment summary with Typhoon AI.')
+                comment_summary = _build_eval_comment_fallback(summary_payload)
+        else:
+            comment_summary = 'ยังไม่มีความคิดเห็นในช่วงเวลาที่เลือก'
+
+    score_distribution = {score: 0 for score in range(1, 6)}
+    for record in records:
+        score_distribution[record.score] = score_distribution.get(record.score, 0) + 1
+
+    latest_record = records[0] if records else None
+    return {
+        'records': records,
+        'latest_records': latest_records,
+        'total_records': total_records,
+        'average_score': average_score,
+        'total_evaluators': total_evaluators,
+        'system_averages': system_averages,
+        'summary_systems': summary_systems,
+        'date_filter_payload': {
+            'start_date': start_date_raw,
+            'end_date': end_date_raw,
+        },
+        'score_distribution': score_distribution,
+        'latest_record': latest_record,
+        'comment_summary': comment_summary,
+        'start_date': start_date_raw,
+        'end_date': end_date_raw,
+        'date_range_value': date_range_value,
+    }
+
+
+def _get_evaluation_comments_for_system(blueprint, start_date_raw='', end_date_raw=''):
+    start_date = None
+    end_date = None
+    if start_date_raw:
+        try:
+            start_date = datetime.strptime(start_date_raw, '%Y-%m-%d').date()
+        except ValueError:
+            start_date = None
+    if end_date_raw:
+        try:
+            end_date = datetime.strptime(end_date_raw, '%Y-%m-%d').date()
+        except ValueError:
+            end_date = None
+
+    query = EvaluationRecord.query.filter_by(blueprint=blueprint)
+    if start_date:
+        query = query.filter(cast(func.timezone('Asia/Bangkok', EvaluationRecord.created_at), Date) >= start_date)
+    if end_date:
+        query = query.filter(cast(func.timezone('Asia/Bangkok', EvaluationRecord.created_at), Date) <= end_date)
+
+    comments = (
+        query
+        .filter(EvaluationRecord.comment.isnot(None))
+        .filter(func.length(func.trim(EvaluationRecord.comment)) > 0)
+        .order_by(EvaluationRecord.created_at.desc(), EvaluationRecord.id.desc())
+        .all()
+    )
+    comment_texts = [record.comment.strip() for record in comments]
+    sentiments_by_index = {}
+    if comment_texts:
+        try:
+            sentiments_by_index = _call_typhoon_comment_sentiments(comment_texts)
+        except Exception:
+            current_app.logger.exception('Failed to classify evaluation comments with Typhoon AI.')
+    comment_items = []
+    for index, record in enumerate(comments):
+        comment_text = comment_texts[index]
+        sentiment = _sentiment_display(sentiments_by_index.get(index, 'neutral'))
+        if not sentiments_by_index:
+            sentiment = _fallback_comment_sentiment(comment_text)
+        comment_items.append({
+            'created_at': record.created_at,
+            'comment': comment_text,
+            'sentiment': sentiment['sentiment'],
+            'sentiment_label': sentiment['sentiment_label'],
+            'sentiment_icon': sentiment['sentiment_icon'],
+            'sentiment_class': sentiment['sentiment_class'],
+        })
+    return {
+        'blueprint': blueprint,
+        'system_label': _build_system_label(blueprint),
+        'comments': comment_items,
+        'comment_count': len(comment_items),
+        'start_date': start_date_raw,
+        'end_date': end_date_raw,
+        'date_range_value': '',
+    }
 
 
 @kpi.route('/')
@@ -2073,3 +2513,50 @@ def dashboard_index():
     return render_template('kpi/dashboard/index.html',
                            executive_permission=executive_permission,
                            dashboard=dashboard)
+
+
+@kpi.route('/dashboard/it-system-users-evaluation-results')
+@login_required
+def it_system_users_evaluation_results():
+    start_date_raw = request.args.get('start_date', '').strip()
+    end_date_raw = request.args.get('end_date', '').strip()
+    context = _build_evaluation_dashboard_context(start_date_raw=start_date_raw, end_date_raw=end_date_raw)
+    return render_template(
+        'kpi/dashboard/it_system_users_evaluation_results.html',
+        **context,
+    )
+
+
+@kpi.route('/dashboard/it-system-users-evaluation-results/summary')
+@login_required
+def it_system_users_evaluation_results_summary():
+    start_date_raw = request.args.get('start_date', '').strip()
+    end_date_raw = request.args.get('end_date', '').strip()
+    context = _build_evaluation_dashboard_context(
+        start_date_raw=start_date_raw,
+        end_date_raw=end_date_raw,
+        include_summary=True,
+    )
+    return jsonify({
+        'summary': context['comment_summary'],
+    })
+
+
+@kpi.route('/dashboard/it-system-users-evaluation-results/comments')
+@login_required
+def it_system_users_evaluation_results_comments():
+    blueprint = request.args.get('blueprint', '').strip()
+    start_date_raw = request.args.get('start_date', '').strip()
+    end_date_raw = request.args.get('end_date', '').strip()
+    if not blueprint:
+        return jsonify({'error': 'Missing blueprint'}), 400
+
+    context = _get_evaluation_comments_for_system(
+        blueprint=blueprint,
+        start_date_raw=start_date_raw,
+        end_date_raw=end_date_raw,
+    )
+    return render_template(
+        'kpi/dashboard/system_comments_modal.html',
+        **context,
+    )
