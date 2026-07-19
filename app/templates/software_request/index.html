@@ -29,7 +29,7 @@
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        {% if not test_result.status %}
+                                        {% if not test_result.status and request.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
                                             <td>{{ test_result.issue.issue }}</td>
                                             <td>{{ test_result.request.title }}</td>
                                             <td>{{ test_result.request.description }}</td>
