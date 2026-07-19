@@ -472,7 +472,8 @@ class ServiceRequest(db.Model):
             'customer_status': self.status.customer_status if self.status else None,
             'quotation_id': [quotation.id for quotation in self.quotations if quotation.disapproved_at == None] if self.quotations else None,
             'sample_id': [sample.id for sample in self.samples if not sample.rejected_at] if self.samples else None,
-            'reject_sample_id': self.samples[-1].rejected_at if self.samples else None,
+            'reject_sample_id': [sample.id for sample in self.samples if sample.rejected_at and sample.is_rescheduled == False]
+                                if self.samples else None,
             'customer_status_color': self.status.customer_status_color if self.status else None,
             'quotation_sent_at': ', '.join(str(quotation.sent_at) for quotation in self.quotations
                                            if quotation.sent_at) if self.quotations else None,
