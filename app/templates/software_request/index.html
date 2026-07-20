@@ -18,16 +18,16 @@
                     </div>
                     <h1 class="subtitle">รายการทดสอบระบบ</h1>
                     <hr style="background-color: #CCCCCC;">
-                    {% for request in current_user.created_requests %}
-                        {% for test_result in request.test_results %}
-                            <table id="test_result" class="table is-fullwidth">
-                                <thead>
-                                    <th>Requirement</th>
-                                    <th>Title</th>
-                                    <th>Detail</th>
-                                    <th>View</th>
-                                </thead>
-                                <tbody>
+                    <table id="test_result" class="table is-fullwidth">
+                        <thead>
+                            <th>Requirement</th>
+                            <th>Title</th>
+                            <th>Detail</th>
+                            <th>View</th>
+                        </thead>
+                        <tbody>
+                            {% for request in current_user.created_requests %}
+                                {% for test_result in request.test_results %}
                                     {% if not test_result.status and request.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
                                         <tr>
                                             <td>{{ test_result.issue.issue }}</td>
@@ -41,10 +41,10 @@
                                             </td>
                                         </tr>
                                     {% endif %}
-                                </tbody>
-                            </table>
-                        {% endfor %}
-                    {% endfor %}
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
                     <div style="margin-top: 40px;"></div>
                     <h1 class="subtitle">รายการคำขอพัฒนาระบบ</h1>
                     <hr style="background-color: #CCCCCC;">
