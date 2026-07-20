@@ -334,46 +334,39 @@ def get_thai_month_name(month_number):
 
 def build_home_mini_calendar(now, upcoming_events, upcoming_pre_registers, tz):
     today = now.astimezone(tz).date()
-    events_by_day = defaultdict(list)
+    items = []
 
-    def add_item(day_value, title, meta, item_type):
-        events_by_day[day_value].append({
+    def add_item(day_value, title, meta, item_type, time_label):
+        items.append({
+            'date': day_value,
             'title': title,
             'meta': meta,
             'type': item_type,
+            'time': time_label,
         })
 
     for event in upcoming_events:
         event_day = event.datetime.lower.astimezone(tz).date()
-        add_item(event_day, event.title, f'ห้อง {event.room}', 'room')
+        event_time = f"{event.datetime.lower.astimezone(tz).strftime('%H:%M')} - {event.datetime.upper.astimezone(tz).strftime('%H:%M')}"
+        add_item(event_day, event.title, f'ห้อง {event.room}', 'room', event_time)
 
     for pre_regis in upcoming_pre_registers:
         event_day = pre_regis.seminar.start_datetime.astimezone(tz).date()
+        event_time = f"{pre_regis.seminar.start_datetime.astimezone(tz).strftime('%H:%M')} - {pre_regis.seminar.end_datetime.astimezone(tz).strftime('%H:%M')}"
         if pre_regis.attend_online:
             meta = pre_regis.seminar.online_detail or 'online'
         else:
             meta = pre_regis.seminar.location or 'ไม่ระบุสถานที่'
-        add_item(event_day, pre_regis.seminar.topic, meta, 'seminar')
+        add_item(event_day, pre_regis.seminar.topic, meta, 'seminar', event_time)
 
-    weeks = []
-    for week_days in calendar.Calendar(firstweekday=6).monthdatescalendar(today.year, today.month):
-        week = []
-        for day in week_days:
-            day_items = events_by_day.get(day, [])
-            week.append({
-                'date': day,
-                'day': day.day,
-                'in_month': day.month == today.month,
-                'is_today': day == today,
-                'items': day_items[:2],
-                'extra_count': max(0, len(day_items) - 2),
-            })
-        weeks.append(week)
+    items.sort(key=lambda item: (item['date'], item['time']))
+    visible_items = items[:10]
 
     return {
-        'month_label': f'{get_thai_month_name(today.month)} {today.year + 543}',
-        'weeks': weeks,
-        'weekday_labels': ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
+        'month_label': 'กิจกรรมถัดไป',
+        'total_count': len(items),
+        'items': visible_items,
+        'extra_count': max(0, len(items) - len(visible_items)),
     }
 
 
@@ -415,6 +408,13 @@ def build_home_today_calendar(now, upcoming_events, upcoming_pre_registers, tz):
 
 
 def get_homepage_dashboard_context(user, now):
+    tz = timezone('Asia/Bangkok')
+    current_month_start = now.astimezone(tz).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if current_month_start.month == 12:
+        next_month_start = current_month_start.replace(year=current_month_start.year + 1, month=1)
+    else:
+        next_month_start = current_month_start.replace(month=current_month_start.month + 1)
+
     upcoming_invitations_query = (
         MeetingInvitation.query
         .options(joinedload(MeetingInvitation.meeting))
@@ -458,14 +458,16 @@ def get_homepage_dashboard_context(user, now):
     calendar_room_events = (
         RoomEvent.query
         .options(joinedload(RoomEvent.room))
+        .outerjoin(event_participant_assoc, RoomEvent.id == event_participant_assoc.c.event_id)
         .filter(
             RoomEvent.start >= now,
             RoomEvent.cancelled_at.is_(None),
             or_(
                 RoomEvent.created_by == user.id,
-                RoomEvent.participants.any(StaffAccount.id == user.id),
+                event_participant_assoc.c.staff_id == user.id,
             ),
         )
+        .distinct()
         .order_by(RoomEvent.start.asc())
         .all()
     )
@@ -479,7 +481,6 @@ def get_homepage_dashboard_context(user, now):
             StaffSeminar.end_datetime >= now,
         )
         .order_by(StaffSeminar.start_datetime.asc())
-        .limit(6)
         .all()
     )
     mini_calendar = build_home_mini_calendar(
