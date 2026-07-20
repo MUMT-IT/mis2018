@@ -359,7 +359,15 @@
                             <ul class="menu-list">
                                 <li>
                                     {% if service_request.quotations %}
-                                        {% for quotation in service_request.quotations %}
+                                        {% set quotations = service_request.quotations %}
+                                        {% set first_quotation = quotations[0] %}
+                                        {% if first_quotation.approved_at %}
+                                        {% elif first_quotation.sent_at %}
+                                            <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>
+                                        {% else %}
+                                            <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                        {% endif %}
+                                        {% for quotation in quotations %}
                                             {% if quotation.approved_at %}
                                                 <a class="button is-link is-outlined is-rounded is-small mb-2"
                                                    href="{{ url_for('service_admin.export_quotation_pdf', quotation_id=quotation.id) }}"
@@ -367,8 +375,6 @@
                                                     <span class="icon"><i class="fas fa-file-invoice"></i></span>
                                                     <span>ใบเสนอราคา {{ quotation.quotation_no }}</span>
                                                 </a>
-{#                                            {% else %}#}
-{#                                                <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>#}
                                             {% endif %}
                                         {% endfor %}
                                     {% else %}
@@ -382,12 +388,21 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-{#                                    {% set ns = namespace(has_file=false) %}#}
                                     {% if service_request.quotations %}
-                                        {% for quotation in service_request.quotations %}
-{#                                            {% if quotation.invoices and quotation.invoices[0].file %}#}
-{#                                                {% set ns.has_file = true %}#}
-{#                                            {% endif %}#}
+                                        {% set quotations = service_request.quotations %}
+                                        {% set first_quotation = quotations[0] %}
+                                        {% if first_quotation.invoices %}
+                                            {% set first_invoice = first_quotation.invoices[0] %}
+                                            {% if first_invoice.file %}
+                                            {% elif first_invoice.sent_at or first_invoice.head_approved_at or first_invoice.assistant_approved_at or first_invoice.file_attached_at %}
+                                                <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>
+                                            {% else %}
+                                                <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                        {% endif %}
+                                        {% for quotation in quotations %}
                                             {% if quotation.invoices %}
                                                 {% for invoice in quotation.invoices %}
                                                     {% if invoice.file %}
@@ -400,16 +415,11 @@
                                                         </a>
                                                     {% endif %}
                                                 {% endfor %}
-{#                                            {% else %}#}
-{#                                                <span class="tag is-light">ยังไม่ดำเนินการออก</span>#}
                                             {% endif %}
                                         {% endfor %}
                                     {% else %}
                                         <span class="tag is-light">ยังไม่ดำเนินการออก</span>
                                     {% endif %}
-{#                                    {% if not ns.has_file %}#}
-{#                                        <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>#}
-{#                                    {% endif %}#}
                                 </li>
                             </ul>
                             <hr>
@@ -418,14 +428,24 @@
                             </p>
                             <ul class="menu-list">
                                 <li>
-{#                                    {% set ns = namespace(has_receipt=false) %}#}
                                     {% if service_request.quotations %}
-                                        {% for quotation in service_request.quotations %}
+                                        {% set quotations = service_request.quotations %}
+                                        {% set first_quotation = quotations[0] %}
+                                        {% if first_quotation.invoices %}
+                                            {% set first_invoice = first_quotation.invoices[0] %}
+                                            {% set first_payment = first_invoice.get_payment() if first_invoice else none %}
+                                            {% if first_invoice.receipts %}
+                                            {% elif first_payment and first_payment.verified_at %}
+                                                <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>
+                                            {% else %}
+                                                <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="tag is-light">ยังไม่ดำเนินการออก</span>
+                                        {% endif %}
+                                        {% for quotation in quotations %}
                                             {% if quotation.invoices %}
                                                 {% for invoice in quotation.invoices %}
-{#                                                    {% if invoice.receipts and invoice.receipts[0].number %}#}
-{#                                                        {% set ns.has_receipt = true %}#}
-{#                                                    {% endif %}#}
                                                     {% if invoice.receipts %}
                                                         {% for receipt in invoice.receipts %}
                                                             <a class="button is-link is-outlined is-rounded is-small mb-2"
@@ -437,16 +457,11 @@
                                                         {% endfor %}
                                                     {% endif %}
                                                 {% endfor %}
-{#                                            {% else %}#}
-{#                                                <span class="tag is-light">ยังไม่ดำเนินการออก</span>#}
                                             {% endif %}
                                         {% endfor %}
                                     {% else %}
                                         <span class="tag is-light">ยังไม่ดำเนินการออก</span>
                                     {% endif %}
-{#                                    {% if not ns.has_receipt %}#}
-{#                                        <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>#}
-{#                                    {% endif %}#}
                                 </li>
                             </ul>
                             {% if service_request.results %}
@@ -454,11 +469,21 @@
                                 <p class="menu-label">
                                     ใบรายงานผล
                                 </p>
-                                <ul class="menu-list">
-                                    <li>
-                                        {% if not service_request.get_result() %}
+                            <ul class="menu-list">
+                                <li>
+                                        {% set first_result = service_request.get_result() %}
+                                        {% if not first_result %}
                                             <span class="tag is-light">ยังไม่ดำเนินการทดสอบ</span>
                                         {% else %}
+                                            {% set first_result_item = first_result.result_items[0] if first_result.result_items else none %}
+                                            {% if first_result_item and first_result.sent_at %}
+                                            {% elif first_result_item and not first_result.sent_at %}
+                                                <span class="tag is-info is-light">อยู่ระหว่างการจัดทำ</span>
+                                            {% else %}
+                                                <span class="tag is-light">ยังไม่ดำเนินการทดสอบ</span>
+                                            {% endif %}
+                                        {% endif %}
+                                        {% if first_result %}
                                             {% for result in service_request.results %}
                                                 {% for item in result.result_items %}
                                                     {% if item.final_file %}
