@@ -67,6 +67,12 @@
             margin-top: 1.5rem;
         }
 
+        .home-summary-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
         .home-stat,
         .home-panel,
         .home-service-card {
@@ -119,8 +125,95 @@
             line-height: 1.15;
         }
 
+        .home-today-calendar {
+            padding: 1rem 1.05rem;
+        }
+
+        .home-today-calendar-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .home-today-calendar-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .home-today-calendar-date {
+            color: var(--theme-muted);
+            font-size: 0.78rem;
+            margin-top: 0.1rem;
+        }
+
+        .home-today-calendar-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.75rem;
+        }
+
+        .home-mini-calendar-toggle {
+            background: transparent;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            color: var(--theme-navy-deep);
+            font-size: 0.72rem;
+            font-weight: 700;
+            height: 1.9rem;
+            padding: 0 0.55rem;
+        }
+
+        .home-mini-calendar-toggle:hover,
+        .home-mini-calendar-toggle:focus {
+            border-color: rgba(18, 39, 84, 0.24);
+            color: var(--theme-navy-deep);
+        }
+
+        .home-today-calendar-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .home-today-calendar-event {
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(18, 39, 84, 0.06);
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            padding: 0.55rem 0.65rem;
+        }
+
+        .home-today-calendar-event-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.82rem;
+            font-weight: 700;
+            line-height: 1.25;
+            margin: 0;
+        }
+
+        .home-today-calendar-event-meta {
+            color: var(--theme-muted);
+            font-size: 0.73rem;
+            line-height: 1.2;
+        }
+
+        .home-today-calendar-empty {
+            color: var(--theme-muted);
+            font-size: 0.82rem;
+            padding: 0.1rem 0;
+        }
+
         .home-main-grid {
             margin-top: 1.5rem;
+        }
+
+        .home-mini-calendar-panel.is-hidden {
+            display: none;
         }
 
         .home-announcement {
@@ -166,6 +259,10 @@
         .home-panel {
             height: 100%;
             padding: 1.2rem;
+        }
+
+        .home-panel-fullwidth {
+            grid-column: 1 / -1;
         }
 
         .home-panel-header {
@@ -246,8 +343,18 @@
             gap: 0.85rem;
         }
 
+        .home-feed-grid {
+            display: grid;
+            gap: 0.85rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
         .home-feed.is-compact .home-feed-item {
             padding: 0.85rem 0.95rem;
+        }
+
+        .home-feed-grid.is-compact .home-feed-item {
+            height: 100%;
         }
 
         .home-feed-item {
@@ -261,9 +368,168 @@
             margin-bottom: 0;
         }
 
-        .home-feed-meta {
+        .home-feed-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 0.2rem;
+        }
+
+        .home-mini-calendar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .home-mini-calendar-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .home-mini-calendar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .home-mini-calendar-toggle {
+            background: transparent;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            color: var(--theme-navy-deep);
+            font-size: 0.72rem;
+            font-weight: 700;
+            height: 1.9rem;
+            padding: 0 0.55rem;
+        }
+
+        .home-mini-calendar-toggle:hover,
+        .home-mini-calendar-toggle:focus {
+            border-color: rgba(18, 39, 84, 0.24);
+            color: var(--theme-navy-deep);
+        }
+
+        .home-mini-calendar-body.is-hidden {
+            display: none;
+        }
+
+        .home-mini-calendar-weeks {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .home-mini-calendar-weekdays,
+        .home-mini-calendar-grid {
+            display: grid;
+            gap: 0.5rem;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+        }
+
+        .home-mini-calendar-weekday {
             color: var(--theme-muted);
-            font-size: 0.86rem;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .home-mini-calendar-week-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.35rem;
+        }
+
+        .home-mini-day {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            min-height: 6.2rem;
+            padding: 0.5rem;
+        }
+
+        .home-mini-day.is-outside {
+            opacity: 0.45;
+        }
+
+        .home-mini-day.is-today {
+            border-color: rgba(184, 67, 63, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(184, 67, 63, 0.1);
+        }
+
+        .home-mini-day-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .home-mini-day-number {
+            color: var(--theme-navy-deep);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .home-mini-day.is-outside .home-mini-day-number {
+            color: var(--theme-muted);
+        }
+
+        .home-mini-day-events {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-height: 0;
+        }
+
+        .home-mini-event {
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.05rem;
+            padding: 0.35rem 0.45rem;
+        }
+
+        .home-mini-event.is-room {
+            background: rgba(202, 168, 74, 0.12);
+        }
+
+        .home-mini-event.is-seminar {
+            background: rgba(18, 39, 84, 0.06);
+        }
+
+        .home-mini-event-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.72rem;
+            font-weight: 700;
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .home-mini-event-meta {
+            color: var(--theme-muted);
+            font-size: 0.65rem;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .home-mini-event-more {
+            color: var(--theme-muted);
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0 0.2rem;
         }
 
         .home-feed-actions {
@@ -416,6 +682,16 @@
                 align-items: flex-start;
                 flex-direction: column;
             }
+
+            .home-mini-calendar-weekdays,
+            .home-mini-calendar-grid {
+                gap: 0.35rem;
+            }
+
+            .home-mini-day {
+                min-height: 5.6rem;
+                padding: 0.45rem;
+            }
         }
     </style>
 {% endblock %}
@@ -469,24 +745,57 @@
                         </p>
 
                         <div class="home-summary-grid">
-                            <a class="home-stat home-summary-link" href="{{ url_for('staff.index') }}">
-                                <span class="home-summary-link-copy">
-                                    <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
-                                    <span>
-                                        <span class="home-stat-value">บุคลากร</span>
+                            <div class="home-summary-stack">
+                                {% if today_calendar %}
+                                    <div class="home-stat home-today-calendar">
+                                        <div class="home-today-calendar-head">
+                                            <div>
+                                                <p class="home-today-calendar-title">กิจกรรมวันนี้</p>
+                                                <p class="home-today-calendar-date">{{ today_calendar.today_label }}</p>
+                                            </div>
+                                            <span class="home-badge">{{ today_calendar.count }} รายการ</span>
+                                        </div>
+                                        <div class="home-today-calendar-list">
+                                            {% for item in today_calendar['items'] %}
+                                                <div class="home-today-calendar-event">
+                                                    <p class="home-today-calendar-event-title">{{ item.title }}</p>
+                                                    <p class="home-today-calendar-event-meta">{{ item.time }} · {{ item.meta }}</p>
+                                                </div>
+                                            {% else %}
+                                                <div class="home-today-calendar-empty">วันนี้ไม่มีนัดหมาย</div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="home-today-calendar-actions">
+                                            <button type="button"
+                                                    class="button is-small is-rounded home-mini-calendar-toggle"
+                                                    data-mini-calendar-toggle
+                                                    aria-expanded="false">
+                                                แสดงรายการทั้งหมด
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="home-summary-stack">
+                                <a class="home-stat home-summary-link" href="{{ url_for('staff.index') }}">
+                                    <span class="home-summary-link-copy">
+                                        <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
+                                        <span>
+                                            <span class="home-stat-value">บุคลากร</span>
+                                        </span>
                                     </span>
-                                </span>
-                                <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
-                            </a>
-                            <a class="home-stat home-summary-link" href="{{ url_for('comhealth.landing') }}">
-                                <span class="home-summary-link-copy">
-                                    <span class="icon is-medium"><i class="fa-solid fa-heart-pulse"></i></span>
-                                    <span>
-                                        <span class="home-stat-value">ระบบงานบริการสุขภาพชุมชน</span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-stat home-summary-link" href="{{ url_for('comhealth.landing') }}">
+                                    <span class="home-summary-link-copy">
+                                        <span class="icon is-medium"><i class="fa-solid fa-heart-pulse"></i></span>
+                                        <span>
+                                            <span class="home-stat-value">ระบบงานบริการสุขภาพชุมชน</span>
+                                        </span>
                                     </span>
-                                </span>
-                                <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
-                            </a>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div class="column is-5-desktop p-6 pt-0-mobile">
@@ -581,4 +890,25 @@
             {% endif %}
         </div>
     </section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('click', function (event) {
+        var toggleButton = event.target.closest('[data-mini-calendar-toggle]');
+        if (!toggleButton) {
+            return;
+        }
+
+        var panel = document.querySelector('[data-mini-calendar-panel]');
+        if (!panel) {
+            return;
+        }
+
+        var isHidden = panel.classList.toggle('is-hidden');
+        toggleButton.setAttribute('aria-expanded', String(!isHidden));
+        toggleButton.textContent = isHidden ? 'แสดงรายการทั้งหมด' : 'ซ่อนปฏิทินกิจกรรม';
+    });
+</script>
 {% endblock %}

@@ -1,4 +1,6 @@
 import uuid
+import calendar
+from collections import defaultdict
 
 import click
 import pandas
@@ -310,6 +312,108 @@ def get_homepage_role_flags(user):
     return central_admin, assistant
 
 
+def get_thai_month_name(month_number):
+    thai_months = [
+        'มกราคม',
+        'กุมภาพันธ์',
+        'มีนาคม',
+        'เมษายน',
+        'พฤษภาคม',
+        'มิถุนายน',
+        'กรกฎาคม',
+        'สิงหาคม',
+        'กันยายน',
+        'ตุลาคม',
+        'พฤศจิกายน',
+        'ธันวาคม',
+    ]
+    if 1 <= month_number <= 12:
+        return thai_months[month_number - 1]
+    return '-'
+
+
+def build_home_mini_calendar(now, upcoming_events, upcoming_pre_registers, tz):
+    today = now.astimezone(tz).date()
+    events_by_day = defaultdict(list)
+
+    def add_item(day_value, title, meta, item_type):
+        events_by_day[day_value].append({
+            'title': title,
+            'meta': meta,
+            'type': item_type,
+        })
+
+    for event in upcoming_events:
+        event_day = event.datetime.lower.astimezone(tz).date()
+        add_item(event_day, event.title, f'ห้อง {event.room}', 'room')
+
+    for pre_regis in upcoming_pre_registers:
+        event_day = pre_regis.seminar.start_datetime.astimezone(tz).date()
+        if pre_regis.attend_online:
+            meta = pre_regis.seminar.online_detail or 'online'
+        else:
+            meta = pre_regis.seminar.location or 'ไม่ระบุสถานที่'
+        add_item(event_day, pre_regis.seminar.topic, meta, 'seminar')
+
+    weeks = []
+    for week_days in calendar.Calendar(firstweekday=6).monthdatescalendar(today.year, today.month):
+        week = []
+        for day in week_days:
+            day_items = events_by_day.get(day, [])
+            week.append({
+                'date': day,
+                'day': day.day,
+                'in_month': day.month == today.month,
+                'is_today': day == today,
+                'items': day_items[:2],
+                'extra_count': max(0, len(day_items) - 2),
+            })
+        weeks.append(week)
+
+    return {
+        'month_label': f'{get_thai_month_name(today.month)} {today.year + 543}',
+        'weeks': weeks,
+        'weekday_labels': ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
+    }
+
+
+def build_home_today_calendar(now, upcoming_events, upcoming_pre_registers, tz):
+    today = now.astimezone(tz).date()
+    items = []
+
+    def add_item(title, meta, item_type, event_time):
+        items.append({
+            'title': title,
+            'meta': meta,
+            'type': item_type,
+            'time': event_time,
+        })
+
+    for event in upcoming_events:
+        event_day = event.datetime.lower.astimezone(tz).date()
+        if event_day != today:
+            continue
+        event_time = f"{event.datetime.lower.astimezone(tz).strftime('%H:%M')} - {event.datetime.upper.astimezone(tz).strftime('%H:%M')}"
+        add_item(event.title, f'ห้อง {event.room}', 'room', event_time)
+
+    for pre_regis in upcoming_pre_registers:
+        event_day = pre_regis.seminar.start_datetime.astimezone(tz).date()
+        if event_day != today:
+            continue
+        event_time = f"{pre_regis.seminar.start_datetime.astimezone(tz).strftime('%H:%M')} - {pre_regis.seminar.end_datetime.astimezone(tz).strftime('%H:%M')}"
+        if pre_regis.attend_online:
+            meta = pre_regis.seminar.online_detail or 'online'
+        else:
+            meta = pre_regis.seminar.location or 'ไม่ระบุสถานที่'
+        add_item(pre_regis.seminar.topic, meta, 'seminar', event_time)
+
+    return {
+        'today_label': f'วันนี้ {today.day} {get_thai_month_name(today.month)} {today.year + 543}',
+        'items': items[:4],
+        'count': len(items),
+    }
+
+
 def get_homepage_dashboard_context(user, now):
     upcoming_invitations_query = (
         MeetingInvitation.query
@@ -363,6 +467,12 @@ def get_homepage_dashboard_context(user, now):
         .limit(6)
         .all()
     )
+    mini_calendar = build_home_mini_calendar(
+        now=now,
+        upcoming_events=upcoming_events,
+        upcoming_pre_registers=upcoming_pre_registers,
+        tz=timezone('Asia/Bangkok'),
+    )
     return {
         'now': now,
         'upcoming_events': upcoming_events,
@@ -371,6 +481,7 @@ def get_homepage_dashboard_context(user, now):
         'upcoming_polls': upcoming_polls,
         'upcoming_polls_count': upcoming_polls_count,
         'upcoming_pre_registers': upcoming_pre_registers,
+        'mini_calendar': mini_calendar,
     }
 
 
@@ -378,11 +489,21 @@ def get_homepage_dashboard_context(user, now):
 def index():
     now = datetime.now(tz=timezone('Asia/Bangkok'))
     central_admin, assistant = get_homepage_role_flags(current_user)
+    today_calendar = None
+    if current_user.is_authenticated:
+        dashboard_context = get_homepage_dashboard_context(current_user, now)
+        today_calendar = build_home_today_calendar(
+            now=now,
+            upcoming_events=dashboard_context['upcoming_events'],
+            upcoming_pre_registers=dashboard_context['upcoming_pre_registers'],
+            tz=timezone('Asia/Bangkok'),
+        )
     return render_template(
         'index.html',
         assistant=assistant,
         central_admin=central_admin,
         now=now,
+        today_calendar=today_calendar,
     )
 
 
@@ -1928,7 +2049,7 @@ def get_fiscal_date(date):
     return start_fiscal_date, end_fiscal_date
 
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 @dbutils.command('migrate-room-datetime')
