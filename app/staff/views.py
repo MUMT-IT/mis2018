@@ -2899,6 +2899,7 @@ def send_summary_data():
     wfhs = []
     seminars = []
     logins = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
     for emp in employees:
         if tab in ['login', 'all']:
             for row in _daily_work_login_rows(
@@ -2907,9 +2908,27 @@ def send_summary_data():
                 .all()
             ):
                 end = row['end']
+                start_dt = parser.isoparse(row['start']) if row['start'] else None
+                end_dt = parser.isoparse(end) if end else None
+                hours_delta = None
+                worked_hours = None
+                if start_dt and end_dt:
+                    worked_hours = round((end_dt - start_dt).total_seconds() / 3600.0, 1)
+                    hours_delta = round(worked_hours - 8.0, 1)
+                    if abs(hours_delta) < 0.05:
+                        hours_delta = 0.0
+                hours_is_negative = False
+                worked_hours_display = None
+                if hours_delta is not None:
+                    hours_is_negative = hours_delta < 0
+                if worked_hours is not None:
+                    worked_hours_display = '{:.1f} hrs.'.format(worked_hours)
+                is_late = bool(start_dt and start_dt.time() > office_start_time)
                 border_color = '#ffffff' if end else '#f56956'
-                text_color = '#ffffff'
-                bg_color = '#7d9df0'
+                text_color = '#8b1e1e' if is_late else '#ffffff'
+                bg_color = '#f8caca' if is_late else '#7d9df0'
+                if is_late:
+                    border_color = '#e59b9b'
                 '''
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
@@ -2935,6 +2954,10 @@ def send_summary_data():
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,
+                    'hours_is_negative': hours_is_negative,
+                    'worked_hours_display': worked_hours_display,
+                    'worked_hours': worked_hours,
+                    'className': ['is-late-login'] if is_late else [],
                     'type': 'login'
                 })
 

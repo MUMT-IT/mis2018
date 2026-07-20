@@ -6,63 +6,498 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 <style>
+    .staff-login-shell {
+        padding: 1.5rem 0 3rem;
+    }
+
+    .staff-login-hero,
+    .staff-login-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
+        border: 1px solid var(--theme-border);
+        border-radius: 28px;
+        box-shadow: var(--theme-shadow);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .staff-login-hero::after {
+        background: linear-gradient(135deg, rgba(240, 196, 25, 0.18), rgba(184, 67, 63, 0));
+        border-radius: 999px;
+        content: "";
+        height: 14rem;
+        position: absolute;
+        right: -4rem;
+        top: -5rem;
+        width: 14rem;
+    }
+
+    .staff-login-hero-inner,
+    .staff-login-card-inner {
+        padding: 1.25rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .staff-login-kicker {
+        color: var(--theme-gold);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        margin-bottom: 0.45rem;
+        text-transform: uppercase;
+    }
+
+    .staff-login-title {
+        color: var(--theme-navy-deep);
+        font-size: 1.45rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 0.35rem;
+    }
+
+    .staff-login-subtitle {
+        color: var(--theme-muted);
+        font-size: 0.92rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .staff-login-header {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .staff-login-header-copy {
+        min-width: 0;
+    }
+
+    .staff-login-badge {
+        align-items: center;
+        background: var(--theme-navy-soft);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        display: inline-flex;
+        flex-shrink: 0;
+        font-size: 0.78rem;
+        font-weight: 700;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        white-space: nowrap;
+    }
+
+    .staff-login-toolbar {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .staff-login-calendar-shell {
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 22px;
+        box-shadow: 0 12px 30px rgba(18, 39, 84, 0.08);
+        padding: 0.9rem;
+    }
+
+    .staff-login-calendar-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem 1rem;
+        justify-content: space-between;
+        margin-bottom: 0.9rem;
+    }
+
+    .staff-login-calendar-head-copy {
+        min-width: 0;
+    }
+
+    .staff-login-calendar-label {
+        color: var(--theme-navy-deep);
+        font-size: 0.98rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .staff-login-calendar-date {
+        color: var(--theme-muted);
+        font-size: 0.8rem;
+        margin-top: 0.15rem;
+    }
+
+    .staff-login-calendar-controls {
+        align-items: center;
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+    }
+
+    .staff-login-calendar-button {
+        align-items: center;
+        background: #fff;
+        border: 1px solid rgba(18, 39, 84, 0.1);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 700;
+        height: 2rem;
+        justify-content: center;
+        padding: 0 0.75rem;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .staff-login-calendar-button:hover,
+    .staff-login-calendar-button:focus {
+        border-color: rgba(18, 39, 84, 0.24);
+        box-shadow: 0 8px 18px rgba(18, 39, 84, 0.08);
+        color: var(--theme-navy-deep);
+        transform: translateY(-1px);
+    }
+
+    .staff-login-calendar-button.is-icon {
+        width: 2rem;
+        padding: 0;
+    }
+
+    .staff-login-calendar-button.is-primary {
+        background: linear-gradient(135deg, rgba(202, 168, 74, 0.18), rgba(202, 168, 74, 0.08));
+        border-color: rgba(202, 168, 74, 0.22);
+    }
+
+    .staff-login-calendar {
+        min-height: 680px;
+    }
+
+    .staff-login-calendar .fc,
+    .staff-login-calendar .fc-view-container,
+    .staff-login-calendar .fc-view,
+    .staff-login-calendar .fc-view > table,
+    .staff-login-calendar .fc-day-grid,
+    .staff-login-calendar .fc-time-grid {
+        background: transparent;
+    }
+
+    .staff-login-calendar .fc-toolbar {
+        display: none;
+    }
+
+    .staff-login-calendar .fc-view-container {
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .staff-login-calendar .fc-head,
+    .staff-login-calendar .fc-body,
+    .staff-login-calendar .fc-row,
+    .staff-login-calendar .fc-widget-header,
+    .staff-login-calendar .fc-widget-content,
+    .staff-login-calendar .fc-divider {
+        border-color: rgba(18, 39, 84, 0.08);
+    }
+
+    .staff-login-calendar .fc-day-header {
+        color: var(--theme-muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 0.7rem 0.35rem;
+        text-transform: uppercase;
+    }
+
+    .staff-login-calendar .fc-day-number {
+        color: var(--theme-navy-deep);
+        font-size: 0.82rem;
+        font-weight: 700;
+        padding: 0.45rem 0.55rem 0 0;
+    }
+
+    .staff-login-calendar .fc-day.fc-today {
+        background: rgba(184, 67, 63, 0.04);
+        box-shadow: inset 0 0 0 1px rgba(184, 67, 63, 0.12);
+    }
+
+    .staff-login-calendar .fc-other-month {
+        background: rgba(255, 255, 255, 0.6);
+    }
+
+    .staff-login-calendar .fc-event {
+        border: 0;
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgba(18, 39, 84, 0.04);
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 2px;
+        padding: 0.2rem 0.35rem;
+    }
+
+    .staff-login-calendar .fc-event .fc-content {
+        display: block;
+        white-space: normal;
+    }
+
+    .staff-login-calendar .fc-event .fc-title {
+        display: block;
+    }
+
+    .staff-login-calendar .fc-day-grid-event .fc-content {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .staff-login-calendar .fc-more {
+        color: var(--theme-muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+    }
+
+    .staff-login-calendar .fc-more:hover {
+        color: var(--theme-navy-deep);
+        text-decoration: none;
+    }
+
+    .staff-login-calendar .fc-popover {
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 18px 40px rgba(18, 39, 84, 0.18);
+        overflow: hidden;
+    }
+
+    .staff-login-calendar .fc-event,
+    .staff-login-calendar .fc-event:hover {
+        color: #1f2f57;
+    }
+
+    .staff-login-calendar .fc-event.is-late-login {
+        background: rgba(248, 202, 202, 0.98);
+        border-color: rgba(229, 155, 155, 0.96);
+    }
+
+    .staff-login-calendar .fc-event,
+    .staff-login-calendar .fc-event.fc-start,
+    .staff-login-calendar .fc-event.fc-end {
+        background: rgba(202, 168, 74, 0.16);
+    }
+
+    .staff-login-calendar .fc-time-grid-event .fc-content {
+        padding: 0.1rem 0;
+    }
+
+    .staff-login-calendar .fc-axis,
+    .staff-login-calendar .fc-widget-header a,
+    .staff-login-calendar .fc-day-header a {
+        color: var(--theme-muted);
+    }
+
+    .staff-login-calendar .fc-center h2 {
+        color: var(--theme-navy-deep);
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .staff-login-calendar .staff-login-event-content {
+        align-items: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        line-height: 1.25;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .staff-login-calendar .staff-login-event-head {
+        align-items: baseline;
+        display: flex;
+        gap: 0.35rem;
+        justify-content: space-between;
+        min-width: 0;
+    }
+
+    .staff-login-calendar .staff-login-event-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .staff-login-calendar .staff-login-event-hours {
+        flex-shrink: 0;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .staff-login-calendar .staff-login-event-hours.is-total {
+        color: var(--theme-navy-deep);
+    }
+
+    .staff-login-calendar .staff-login-event-meter {
+        background: rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        height: 0.35rem;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.2s ease;
+        width: var(--staff-login-meter-width, 0%);
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-negative {
+        background: linear-gradient(90deg, rgba(184, 63, 63, 0.95), rgba(221, 123, 123, 0.95));
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-positive {
+        background: linear-gradient(90deg, rgba(46, 139, 87, 0.95), rgba(122, 191, 146, 0.95));
+    }
+
+    .staff-login-calendar .staff-login-event-meter-label {
+        color: var(--theme-muted);
+        font-size: 0.64rem;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-top: 0.1rem;
+        white-space: nowrap;
+    }
+
+    .staff-login-table-card,
+    .staff-login-export-card {
+        margin-top: 1rem;
+    }
+
+    .staff-login-table-card table {
+        margin-bottom: 0;
+    }
+
+    .staff-login-table-card .table,
+    .staff-login-export-card .table {
+        background: transparent;
+    }
+
+    .staff-login-export-note {
+        color: var(--theme-muted);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
     th, td { white-space: nowrap; }
+
+    @media screen and (max-width: 768px) {
+        .staff-login-hero-inner,
+        .staff-login-card-inner {
+            padding: 1rem;
+        }
+
+        .staff-login-calendar-shell {
+            padding: 0.75rem;
+        }
+
+        .staff-login-calendar {
+            min-height: 520px;
+        }
+
+        .staff-login-title {
+            font-size: 1.2rem;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block page_content %}
-<section class="section" id="app">
-    <div class="columns">
-        <div class="column">
-            <h1 class="title">สรุปข้อมูลการเข้าปฏิบัติงานของบุคลากร</h1>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div id="calendar"></div>
-            </div>
-        </div>
-    </div>
-</section>
-<section class="section">
+<section class="section staff-login-shell" id="app">
     <div class="container">
-        <table class="table is-fullwidth is-striped" id="timeTable">
-            <thead>
-            <th>ชื่อ</th>
-            <th>เข้างาน</th>
-            <th>QR Code หมดอายุ</th>
-            <th>ออกงาน</th>
-            <th>QR Code หมดอายุ</th>
-            <th>พิกัดละติจูด</th>
-            <th>พิกัดลองจิจูด</th>
-            <th>ตำแหน่งที่สร้าง QR Code</th>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-</section>
-<section class="section">
-    <div class="container">
-        <h1 class="title has-text-centered">Data Export</h1>
-        <p>คลิกเพื่อเลือกช่วงวันที่ต้องการนำออก</p>
-        <form method="post" action="{{ url_for('staff.export_login_summary') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="field">
-                <div class="control has-icons-left">
-                    <input class="input" name="datePicker" id="datePicker">
-                    <span class="icon is-small is-left">
-                        <i class="far fa-calendar-alt"></i>
+        <div class="staff-login-hero">
+            <div class="staff-login-hero-inner">
+                <div class="staff-login-header">
+                    <div class="staff-login-header-copy">
+                        <div class="staff-login-kicker">Staff summary</div>
+                        <h1 class="staff-login-title">สรุปข้อมูลการเข้าปฏิบัติงานของบุคลากร</h1>
+                        <p class="staff-login-subtitle">มุมมองปฏิทินนี้ใช้สไตล์เดียวกับหน้า index เพื่อให้ดูสะอาด เรียบ และอ่านง่ายขึ้น</p>
+                    </div>
+                    <span class="staff-login-badge">
+                        <i class="far fa-calendar-alt" aria-hidden="true"></i>
+                        Calendar summary
                     </span>
                 </div>
-            </div>
-            <div class="field">
-                <div class="control">
-                    <input type="submit" class="button is-info" value="Download">
+                <div class="staff-login-calendar-shell">
+                    <div class="staff-login-calendar-head">
+                        <div class="staff-login-calendar-head-copy">
+                            <p class="staff-login-calendar-label" id="calendarTitle">กำลังโหลดปฏิทิน...</p>
+                            <div class="staff-login-calendar-date" id="calendarSubtitle"></div>
+                        </div>
+                        <div class="staff-login-calendar-controls">
+                            <button type="button" class="staff-login-calendar-button is-icon" id="calendarPrev" aria-label="เดือนก่อนหน้า">
+                                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="staff-login-calendar-button is-primary" id="calendarToday">Today</button>
+                            <button type="button" class="staff-login-calendar-button is-icon" id="calendarNext" aria-label="เดือนถัดไป">
+                                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="calendar" class="staff-login-calendar"></div>
                 </div>
             </div>
-        </form>
+        </div>
+
+        <div class="staff-login-card staff-login-table-card">
+            <div class="staff-login-card-inner">
+                <h2 class="title is-5 mb-3">รายละเอียดการลงเวลา</h2>
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped" id="timeTable">
+                        <thead>
+                        <tr>
+                            <th>ชื่อ</th>
+                            <th>เข้างาน</th>
+                            <th>QR Code หมดอายุ</th>
+                            <th>ออกงาน</th>
+                            <th>QR Code หมดอายุ</th>
+                            <th>พิกัดละติจูด</th>
+                            <th>พิกัดลองจิจูด</th>
+                            <th>ตำแหน่งที่สร้าง QR Code</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="staff-login-card staff-login-export-card">
+            <div class="staff-login-card-inner">
+                <h2 class="title is-5 mb-2">Data Export</h2>
+                <p class="staff-login-export-note">คลิกเพื่อเลือกช่วงวันที่ต้องการนำออก</p>
+                <form method="post" action="{{ url_for('staff.export_login_summary') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field">
+                        <div class="control has-icons-left">
+                            <input class="input" name="datePicker" id="datePicker">
+                            <span class="icon is-small is-left">
+                                <i class="far fa-calendar-alt"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <input type="submit" class="button is-info is-rounded" value="Download">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
@@ -117,24 +552,61 @@
                 startDate: moment()
             }
         );
-        $('#calendar').fullCalendar({
+        let calendar = $('#calendar').fullCalendar({
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
-            header: {
-                left: 'title',
-            },
+            header: false,
             locale: 'th',
             events: {{ url_for("staff.send_summary_data", tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }},
             displayEventEnd: true,
+            defaultView: 'month',
+            fixedWeekCount: false,
+            height: 'auto',
+            eventLimit: true,
             timeFormat: 'H(:mm)',
             navLinks: true,
             navLinkDayClick: function(date, jsEvent) {
                 table.ajax.url(apiUrl + '&date=' + date.format('L')).load()
             },
+            eventRender: function(event, element) {
+                if (event.type !== 'login') {
+                    return;
+                }
+                var name = $('<span/>').text(event.title || '').html();
+                var workedHours = event.worked_hours_display ? $('<span/>').text(event.worked_hours_display).html() : '';
+                var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / 12) * 100, 12), 100) : 0;
+                var hoursClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
+                var meterClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
+                var content = '<span class="staff-login-event-content">';
+                content += '<span class="staff-login-event-head">';
+                content += '<span class="staff-login-event-name">' + name + '</span>';
+                if (workedHours) {
+                    content += '<span class="staff-login-event-hours is-total">' + workedHours + '</span>';
+                }
+                content += '</span>';
+                if (workedHours) {
+                    content += '<span class="staff-login-event-meter" aria-hidden="true">';
+                    content += '<span class="staff-login-event-meter-fill ' + meterClass + '" style="--staff-login-meter-width: ' + meterWidth + '%"></span>';
+                    content += '</span>';
+                }
+                content += '</span>';
+                element.find('.fc-title').html(content);
+            },
             viewRender: function(view, element) {
                 let d = $('#calendar').fullCalendar('getDate');
+                $('#calendarTitle').text(view.title);
+                $('#calendarSubtitle').text(view.intervalStart.format('dddd, D MMMM YYYY'));
                 table.ajax.url(apiUrl + '&date=' + d.format('L')).load()
                 $('#datePicker').data('daterangepicker').setStartDate(d);
             }
+        });
+        $('#calendarPrev').on('click', function() {
+            calendar.fullCalendar('prev');
+        });
+        $('#calendarNext').on('click', function() {
+            calendar.fullCalendar('next');
+        });
+        $('#calendarToday').on('click', function() {
+            calendar.fullCalendar('today');
         });
         table.ajax.url(apiUrl + '&date=' + moment().format('L')).load()
     });
