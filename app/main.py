@@ -1149,6 +1149,7 @@ admin.add_views(ModelView(ServiceInvoiceView, db.session, category='Academic Ser
 admin.add_views(ModelView(ServicePayment, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceResult, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceResultItem, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceFinalResultItemReversion, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceipt, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Service'))
 
