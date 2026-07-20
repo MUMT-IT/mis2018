@@ -1,0 +1,23 @@
+<div class="home-stat home-week-ai-summary">
+    <div class="home-week-ai-summary-head">
+        <div>
+            <p class="home-today-calendar-title">สรุปกิจกรรมสัปดาห์นี้ที่ท่านต้องเข้าร่วม</p>
+            <p class="home-today-calendar-date">
+                {{ week_start.strftime('%d/%m') }} - {{ week_end.strftime('%d/%m/%Y') }}
+            </p>
+        </div>
+        {% if summary %}
+            <span class="home-ai-badge">
+                <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                AI generated
+            </span>
+        {% endif %}
+    </div>
+    {% if summary %}
+        <p class="home-week-ai-summary-text">{{ summary }}</p>
+    {% elif event_count == 0 %}
+        <p class="home-week-ai-summary-empty">สัปดาห์นี้ยังไม่มีกิจกรรมสำหรับสรุป</p>
+    {% else %}
+        <p class="home-week-ai-summary-error">{{ error_message }}</p>
+    {% endif %}
+</div>

@@ -208,6 +208,54 @@
             padding: 0.1rem 0;
         }
 
+        .home-week-ai-summary {
+            background: linear-gradient(145deg, rgba(255, 252, 240, 0.96), rgba(255, 255, 255, 0.92));
+            border-color: rgba(202, 168, 74, 0.24);
+        }
+
+        .home-week-ai-summary-head {
+            align-items: flex-start;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            margin-bottom: 0.7rem;
+        }
+
+        .home-ai-badge {
+            align-items: center;
+            background: rgba(202, 168, 74, 0.14);
+            border: 1px solid rgba(202, 168, 74, 0.2);
+            border-radius: 999px;
+            color: #765b0b;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 0.65rem;
+            font-weight: 700;
+            gap: 0.3rem;
+            padding: 0.3rem 0.5rem;
+        }
+
+        .home-week-ai-summary-text,
+        .home-week-ai-summary-empty,
+        .home-week-ai-summary-error {
+            color: var(--theme-navy-deep);
+            font-size: 0.8rem;
+            line-height: 1.55;
+            margin: 0;
+            white-space: pre-line;
+        }
+
+        .home-week-ai-summary-empty,
+        .home-week-ai-summary-error {
+            color: var(--theme-muted);
+        }
+
+        .home-week-ai-summary-loading {
+            align-items: center;
+            display: flex;
+            gap: 0.55rem;
+        }
+
         .home-main-grid {
             margin-top: 1.5rem;
         }
@@ -805,6 +853,15 @@
                                                     aria-expanded="false">
                                                 แสดงรายการทั้งหมด
                                             </button>
+                                        </div>
+                                    </div>
+                                    <div class="home-stat home-week-ai-summary"
+                                         hx-get="{{ url_for('home_week_events_summary') }}"
+                                         hx-trigger="load"
+                                         hx-swap="outerHTML">
+                                        <div class="home-week-ai-summary-loading">
+                                            <span class="icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                                            <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
                                         </div>
                                     </div>
                                 {% endif %}
