@@ -1511,7 +1511,7 @@ class ServiceFinalResultItemReversion(db.Model):
     edited_at = db.Column('edited_at', db.DateTime(timezone=True))
     editor_id = db.Column('editor_id', db.ForeignKey("staff_account.id"))
     editor = db.relationship(StaffAccount, foreign_keys=[editor_id])
-    approved_at = db.Column(' approved_at', db.DateTime(timezone=True))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey("service_customer_accounts.id"))
     approver = db.relationship(ServiceCustomerAccount, foreign_keys=[approver_id])
 
