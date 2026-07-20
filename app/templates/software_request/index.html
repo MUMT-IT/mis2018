@@ -28,8 +28,8 @@
                                     <th>View</th>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        {% if not test_result.status and request.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
+                                    {% if not test_result.status and request.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
+                                        <tr>
                                             <td>{{ test_result.issue.issue }}</td>
                                             <td>{{ test_result.request.title }}</td>
                                             <td>{{ test_result.request.description }}</td>
@@ -39,8 +39,8 @@
                                                     <span class="icon"><i class="fas fa-eye"></i></span>
                                                 </a>
                                             </td>
-                                        {% endif %}
-                                    </tr>
+                                        </tr>
+                                    {% endif %}
                                 </tbody>
                             </table>
                         {% endfor %}
