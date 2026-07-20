@@ -5,40 +5,26 @@
                 <p class="home-panel-title">การใช้ห้องประชุม/ห้องเรียน</p>
                 <p class="home-panel-subtitle">{{ mini_calendar.month_label }}</p>
             </div>
-            <span class="home-badge">{{ (upcoming_events|length) + (upcoming_pre_registers|length) }} รายการ</span>
+            <span class="home-badge">{{ mini_calendar.total_count }} รายการ</span>
         </div>
         <div class="home-mini-calendar">
-            <div class="home-mini-calendar-weekdays">
-                {% for weekday in mini_calendar.weekday_labels %}
-                    <div class="home-mini-calendar-weekday">{{ weekday }}</div>
-                {% endfor %}
-            </div>
-            <div class="home-mini-calendar-weeks">
-            {% for week in mini_calendar.weeks %}
-                <div class="home-mini-calendar-week">
-                    <div class="home-mini-calendar-grid">
-                        {% for day in week %}
-                            <article class="home-mini-day {% if not day.in_month %}is-outside{% endif %} {% if day.is_today %}is-today{% endif %}">
-                                <div class="home-mini-day-head">
-                                    <span class="home-mini-day-number">{{ day.day }}</span>
-                                </div>
-                                <div class="home-mini-day-events">
-                                    {% for item in day['items'] %}
-                                        <div class="home-mini-event is-{{ item.type }}">
-                                            <span class="home-mini-event-title">{{ item.title }}</span>
-                                            <span class="home-mini-event-meta">{{ item.meta }}</span>
-                                        </div>
-                                    {% endfor %}
-                                    {% if day.extra_count > 0 %}
-                                        <div class="home-mini-event-more">+{{ day.extra_count }} เพิ่มเติม</div>
-                                    {% endif %}
-                                </div>
-                            </article>
-                        {% endfor %}
+            {% for item in mini_calendar.items %}
+                <div class="home-mini-event-card">
+                    <div class="home-mini-event-card-head">
+                        <span class="home-mini-event-date">{{ item.date.strftime('%d/%m') }}</span>
+                        <span class="home-mini-event-time">{{ item.time }}</span>
+                    </div>
+                    <div class="home-mini-event is-{{ item.type }}">
+                        <span class="home-mini-event-title">{{ item.title }}</span>
+                        <span class="home-mini-event-meta">{{ item.meta }}</span>
                     </div>
                 </div>
+            {% else %}
+                <div class="home-feed-empty">ไม่มีรายการกิจกรรมถัดไป</div>
             {% endfor %}
-            </div>
+            {% if mini_calendar.extra_count > 0 %}
+                <div class="home-mini-event-more">+{{ mini_calendar.extra_count }} เพิ่มเติม</div>
+            {% endif %}
         </div>
     </div>
 </div>
