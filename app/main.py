@@ -489,6 +489,11 @@ def get_home_week_events(user, now):
         events.append({
             'title': event.title,
             'type': 'การใช้ห้องประชุม/ห้องเรียน',
+            'attendance_source': (
+                'ผู้สร้างกิจกรรม'
+                if event.created_by == user.id
+                else 'ผู้ได้รับเชิญให้เข้าร่วม'
+            ),
             'start': start,
             'end': end,
             'location': str(event.room) if event.room else 'ไม่ระบุห้อง',
@@ -504,6 +509,7 @@ def get_home_week_events(user, now):
         events.append({
             'title': seminar.topic,
             'type': 'สัมมนา',
+            'attendance_source': 'ผู้ลงทะเบียนเข้าร่วมสัมมนา',
             'start': start,
             'end': end,
             'location': location,
@@ -525,56 +531,86 @@ def call_typhoon_home_week_summary(week_data):
     event_lines = []
     for index, event in enumerate(week_data['events'], start=1):
         event_lines.append(
-            '{index}. {date} {start}-{end} | {type_name} | {title} | {location}'.format(
+            '{index}. {date} {start}-{end} | {type_name} | {attendance_source} | {title} | {location}'.format(
                 index=index,
                 date=event['start'].strftime('%A %d/%m/%Y'),
                 start=event['start'].strftime('%H:%M'),
                 end=event['end'].strftime('%H:%M'),
                 type_name=event['type'],
+                attendance_source=event['attendance_source'],
                 title=event['title'],
                 location=event['location'],
             )
         )
 
-    response = requests.post(
-        'https://api.opentyphoon.ai/v1/chat/completions',
-        headers={
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
+    messages = [
+        {
+            'role': 'system',
+            'content': (
+                'คุณเป็นผู้ช่วยสรุปตารางกิจกรรมประจำสัปดาห์เป็นภาษาไทย '
+                'รายการที่ได้รับประกอบด้วยกิจกรรมที่ผู้ใช้สร้างเอง กิจกรรมที่ผู้ใช้ได้รับเชิญ '
+                'และสัมมนาที่ผู้ใช้ลงทะเบียน ซึ่งทั้งหมดเป็นกิจกรรมที่ต้องเข้าร่วม '
+                'ต้องกล่าวถึงชื่อกิจกรรมทุกรายการที่ได้รับอย่างชัดเจนอย่างน้อยหนึ่งครั้ง '
+                'ห้ามละเว้นกิจกรรมที่ระบุว่าเป็นผู้ได้รับเชิญให้เข้าร่วม '
+                'สรุปภาพรวม จำนวนกิจกรรม วันที่มีกิจกรรมมาก และประเด็นด้านเวลาที่ควรเตรียมตัว '
+                'ใช้ข้อมูลที่ให้มาเท่านั้น ห้ามแต่งข้อมูล ห้ามกล่าวถึงชื่อบุคคล '
+                'เขียนให้อ่านง่ายและกระชับโดยให้ความครบถ้วนสำคัญกว่าความสั้น และไม่ใช้ Markdown'
+            ),
         },
-        json={
-            'model': os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct'),
-            'temperature': 0.2,
-            'max_tokens': 350,
-            'messages': [
-                {
-                    'role': 'system',
-                    'content': (
-                        'คุณเป็นผู้ช่วยสรุปตารางกิจกรรมประจำสัปดาห์เป็นภาษาไทย '
-                        'สรุปภาพรวม จำนวนกิจกรรม วันที่มีกิจกรรมมาก และประเด็นด้านเวลาที่ควรเตรียมตัว '
-                        'ใช้ข้อมูลที่ให้มาเท่านั้น ห้ามแต่งข้อมูล ห้ามกล่าวถึงชื่อบุคคล '
-                        'เขียนให้อ่านง่าย กระชับ 2-4 ประโยค และไม่ใช้หัวข้อหรือ Markdown'
-                    ),
-                },
-                {
-                    'role': 'user',
-                    'content': (
-                        'กรุณาสรุปกิจกรรมของสัปดาห์นี้ ({start} ถึง {end}) จากรายการต่อไปนี้:\n{events}'
-                    ).format(
-                        start=week_data['week_start'].strftime('%d/%m/%Y'),
-                        end=week_data['week_end'].strftime('%d/%m/%Y'),
-                        events='\n'.join(event_lines),
-                    ),
-                },
-            ],
+        {
+            'role': 'user',
+            'content': (
+                'กรุณาสรุปกิจกรรมของสัปดาห์นี้ ({start} ถึง {end}) จากรายการต่อไปนี้:\n{events}'
+            ).format(
+                start=week_data['week_start'].strftime('%d/%m/%Y'),
+                end=week_data['week_end'].strftime('%d/%m/%Y'),
+                events='\n'.join(event_lines),
+            ),
         },
-        timeout=45,
-    )
-    response.raise_for_status()
-    content = response.json()['choices'][0]['message']['content']
-    if not content or not content.strip():
-        raise ValueError('Empty Typhoon weekly event summary response.')
-    return content.strip()
+    ]
+
+    def request_summary(request_messages):
+        response = requests.post(
+            'https://api.opentyphoon.ai/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct'),
+                'temperature': 0.2,
+                'max_tokens': min(1000, max(350, len(week_data['events']) * 80)),
+                'messages': request_messages,
+            },
+            timeout=45,
+        )
+        response.raise_for_status()
+        summary_text = response.json()['choices'][0]['message']['content']
+        if not summary_text or not summary_text.strip():
+            raise ValueError('Empty Typhoon weekly event summary response.')
+        return summary_text.strip()
+
+    content = request_summary(messages)
+    normalized_content = ' '.join(content.casefold().split())
+    missing_titles = [
+        event['title']
+        for event in week_data['events']
+        if ' '.join(event['title'].casefold().split()) not in normalized_content
+    ]
+    if missing_titles:
+        messages.extend([
+            {'role': 'assistant', 'content': content},
+            {
+                'role': 'user',
+                'content': (
+                    'สรุปนี้ยังไม่กล่าวถึงกิจกรรมต่อไปนี้: {titles} '
+                    'กรุณาเขียนสรุปใหม่ทั้งหมดและกล่าวถึงชื่อกิจกรรมเหล่านี้ให้ครบถ้วน'
+                ).format(titles=', '.join(missing_titles)),
+            },
+        ])
+        content = request_summary(messages)
+
+    return content
 
 
 def get_homepage_dashboard_context(user, now):
