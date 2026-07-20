@@ -430,6 +430,97 @@
             gap: 0.7rem;
         }
 
+        .home-mini-calendar-tabs {
+            background: rgba(18, 39, 84, 0.05);
+            border-radius: 999px;
+            display: inline-flex;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            padding: 0.25rem;
+        }
+
+        .home-mini-calendar-tab {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            border-radius: 999px;
+            color: var(--theme-muted);
+            cursor: pointer;
+            display: inline-flex;
+            font: inherit;
+            font-size: 0.76rem;
+            font-weight: 700;
+            gap: 0.4rem;
+            padding: 0.5rem 0.8rem;
+        }
+
+        .home-mini-calendar-tab.is-active {
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(18, 39, 84, 0.1);
+            color: var(--theme-navy-deep);
+        }
+
+        .home-mini-calendar-grid-shell {
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .home-mini-calendar-month-nav {
+            align-items: center;
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: auto 1fr auto;
+            margin-bottom: 0.85rem;
+        }
+
+        .home-mini-calendar-month-heading {
+            align-items: center;
+            display: flex;
+            gap: 0.55rem;
+            justify-content: center;
+        }
+
+        .home-mini-calendar-month-label {
+            color: var(--theme-navy-deep);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .home-mini-calendar-month-actions {
+            align-items: center;
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .home-mini-calendar-nav-button,
+        .home-mini-calendar-today-button {
+            align-items: center;
+            background: #fff;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 999px;
+            color: var(--theme-navy-deep);
+            cursor: pointer;
+            display: inline-flex;
+            font: inherit;
+            font-size: 0.72rem;
+            font-weight: 700;
+            height: 2rem;
+            justify-content: center;
+        }
+
+        .home-mini-calendar-nav-button {
+            width: 2rem;
+        }
+
+        .home-mini-calendar-today-button {
+            padding: 0 0.7rem;
+        }
+
+        .home-mini-calendar-nav-button:hover,
+        .home-mini-calendar-today-button:hover {
+            border-color: rgba(18, 39, 84, 0.25);
+        }
+
         .home-mini-event-card {
             background: rgba(255, 255, 255, 0.82);
             border: 1px solid rgba(18, 39, 84, 0.08);
@@ -504,6 +595,7 @@
             display: grid;
             gap: 0.5rem;
             grid-template-columns: repeat(7, minmax(0, 1fr));
+            min-width: 700px;
         }
 
         .home-mini-calendar-weekday {
@@ -575,6 +667,20 @@
             padding: 0.35rem 0.45rem;
         }
 
+        .home-mini-event-button {
+            border: 0;
+            cursor: pointer;
+            font: inherit;
+            text-align: left;
+            width: 100%;
+        }
+
+        .home-mini-event-button:hover,
+        .home-mini-event-button:focus-visible {
+            box-shadow: inset 0 0 0 1px rgba(18, 39, 84, 0.16);
+            outline: none;
+        }
+
         .home-mini-event.is-room {
             background: rgba(202, 168, 74, 0.12);
         }
@@ -611,6 +717,94 @@
             font-size: 0.68rem;
             font-weight: 700;
             padding: 0 0.2rem;
+        }
+
+        .home-calendar-event-popup {
+            align-items: center;
+            background: rgba(12, 24, 48, 0.28);
+            display: flex;
+            inset: 0;
+            justify-content: center;
+            padding: 1rem;
+            position: fixed;
+            z-index: 1000;
+        }
+
+        .home-calendar-event-popup.is-hidden {
+            display: none;
+        }
+
+        .home-calendar-event-popup-card {
+            background: #fff;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 24px 70px rgba(18, 39, 84, 0.22);
+            max-width: 430px;
+            padding: 1.15rem;
+            position: relative;
+            width: 100%;
+        }
+
+        .home-calendar-event-popup-close {
+            align-items: center;
+            background: rgba(18, 39, 84, 0.06);
+            border: 0;
+            border-radius: 999px;
+            color: var(--theme-muted);
+            cursor: pointer;
+            display: flex;
+            height: 1.9rem;
+            justify-content: center;
+            position: absolute;
+            right: 0.85rem;
+            top: 0.85rem;
+            width: 1.9rem;
+        }
+
+        .home-calendar-event-popup-type {
+            background: rgba(202, 168, 74, 0.14);
+            border-radius: 999px;
+            color: #765b0b;
+            display: inline-flex;
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin-bottom: 0.55rem;
+            max-width: calc(100% - 2.4rem);
+            padding: 0.28rem 0.55rem;
+        }
+
+        .home-calendar-event-popup-title {
+            color: var(--theme-navy-deep);
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.4;
+            margin: 0 2.2rem 0.85rem 0;
+        }
+
+        .home-calendar-event-popup-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .home-calendar-event-popup-row {
+            align-items: flex-start;
+            color: var(--theme-muted);
+            display: flex;
+            font-size: 0.78rem;
+            gap: 0.55rem;
+            line-height: 1.45;
+        }
+
+        .home-calendar-event-popup-row > i {
+            color: var(--theme-navy);
+            flex: 0 0 1rem;
+            margin-top: 0.16rem;
+            text-align: center;
+        }
+
+        .home-calendar-event-popup-row strong {
+            color: var(--theme-navy-deep);
         }
 
         .home-feed-actions {
@@ -851,7 +1045,7 @@
                                                     class="button is-small is-rounded home-mini-calendar-toggle"
                                                     data-mini-calendar-toggle
                                                     aria-expanded="false">
-                                                แสดงรายการทั้งหมด
+                                                แสดงปฏิทินกิจกรรม
                                             </button>
                                         </div>
                                     </div>
@@ -985,7 +1179,71 @@
 {% block scripts %}
 {{ super() }}
 <script>
+    function closeHomeCalendarEventPopup() {
+        var popup = document.querySelector('[data-calendar-event-popup]');
+        if (popup) {
+            popup.classList.add('is-hidden');
+        }
+    }
+
     document.addEventListener('click', function (event) {
+        var eventDetailButton = event.target.closest('[data-calendar-event-detail]');
+        if (eventDetailButton) {
+            var popup = document.querySelector('[data-calendar-event-popup]');
+            if (!popup) {
+                return;
+            }
+
+            popup.querySelector('[data-calendar-event-popup-title]').textContent = eventDetailButton.dataset.eventTitle;
+            popup.querySelector('[data-calendar-event-popup-type]').textContent = eventDetailButton.dataset.eventType;
+            popup.querySelector('[data-calendar-event-popup-date]').textContent = eventDetailButton.dataset.eventDate;
+            popup.querySelector('[data-calendar-event-popup-time]').textContent = eventDetailButton.dataset.eventTime;
+            popup.querySelector('[data-calendar-event-popup-location]').textContent = eventDetailButton.dataset.eventLocation;
+
+            var org = eventDetailButton.dataset.eventOrg || '';
+            var orgRow = popup.querySelector('[data-calendar-event-popup-org-row]');
+            orgRow.classList.toggle('is-hidden', !org);
+            popup.querySelector('[data-calendar-event-popup-org]').textContent = org;
+
+            var participants = eventDetailButton.dataset.eventParticipants || '';
+            var participantsRow = popup.querySelector('[data-calendar-event-popup-participants-row]');
+            participantsRow.classList.toggle('is-hidden', !participants);
+            popup.querySelector('[data-calendar-event-popup-participants]').textContent = participants;
+
+            popup.classList.remove('is-hidden');
+            popup.querySelector('[data-calendar-event-popup-close]').focus();
+            return;
+        }
+
+        var popupCloseButton = event.target.closest('[data-calendar-event-popup-close]');
+        var popupBackdrop = event.target.matches('[data-calendar-event-popup]');
+        if (popupCloseButton || popupBackdrop) {
+            closeHomeCalendarEventPopup();
+            return;
+        }
+
+        var viewButton = event.target.closest('[data-mini-calendar-view-button]');
+        if (viewButton) {
+            var viewPanel = viewButton.closest('[data-mini-calendar-panel]');
+            var selectedView = viewButton.getAttribute('data-mini-calendar-view-button');
+            if (!viewPanel) {
+                return;
+            }
+
+            viewPanel.querySelectorAll('[data-mini-calendar-view-button]').forEach(function (button) {
+                var isSelected = button === viewButton;
+                button.classList.toggle('is-active', isSelected);
+                button.setAttribute('aria-selected', String(isSelected));
+            });
+            viewPanel.querySelectorAll('[data-mini-calendar-view]').forEach(function (view) {
+                view.classList.toggle(
+                    'is-hidden',
+                    view.getAttribute('data-mini-calendar-view') !== selectedView
+                );
+            });
+            return;
+        }
+
         var toggleButton = event.target.closest('[data-mini-calendar-toggle]');
         if (!toggleButton) {
             return;
@@ -998,7 +1256,13 @@
 
         var isHidden = panel.classList.toggle('is-hidden');
         toggleButton.setAttribute('aria-expanded', String(!isHidden));
-        toggleButton.textContent = isHidden ? 'แสดงรายการทั้งหมด' : 'ซ่อนปฏิทินกิจกรรม';
+        toggleButton.textContent = isHidden ? 'แสดงปฏิทินกิจกรรม' : 'ซ่อนปฏิทินกิจกรรม';
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeHomeCalendarEventPopup();
+        }
     });
 </script>
 {% endblock %}

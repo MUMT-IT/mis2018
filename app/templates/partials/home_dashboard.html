@@ -3,34 +3,99 @@
         <div class="home-panel-header">
             <div>
                 <p class="home-panel-title">การใช้ห้องประชุม/ห้องเรียน</p>
-                <p class="home-panel-subtitle">{{ mini_calendar.month_label }}</p>
+                <p class="home-panel-subtitle">ปฏิทินกิจกรรมและรายการที่จะเกิดขึ้น</p>
             </div>
-            <span class="home-badge">{{ mini_calendar.total_count }} รายการ</span>
         </div>
-        <div class="home-mini-calendar">
-            {% for item in mini_calendar['items'] %}
-                <div class="home-mini-event-card">
-                    <div class="home-mini-event-card-head">
-                        <span class="home-mini-event-date">{{ item.date.strftime('%d/%m') }}</span>
-                        <span class="home-mini-event-time">{{ item.time }}</span>
+        <div class="home-mini-calendar-tabs" role="tablist" aria-label="รูปแบบการแสดงกิจกรรม">
+            <button type="button"
+                    class="home-mini-calendar-tab is-active"
+                    role="tab"
+                    aria-selected="true"
+                    data-mini-calendar-view-button="calendar">
+                <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                ปฏิทิน
+            </button>
+            <button type="button"
+                    class="home-mini-calendar-tab"
+                    role="tab"
+                    aria-selected="false"
+                    data-mini-calendar-view-button="list">
+                <i class="fa-solid fa-list" aria-hidden="true"></i>
+                กิจกรรมที่จะเกิดขึ้น ({{ mini_calendar.upcoming_count }})
+            </button>
+        </div>
+
+        <div data-mini-calendar-view="calendar">
+            {% include 'partials/home_calendar_month.html' %}
+        </div>
+
+        <div class="is-hidden" data-mini-calendar-view="list">
+            <div class="home-mini-calendar">
+                {% for item in mini_calendar['items'] %}
+                    <div class="home-mini-event-card">
+                        <div class="home-mini-event-card-head">
+                            <span class="home-mini-event-date">{{ item.date.strftime('%d/%m') }}</span>
+                            <span class="home-mini-event-time">{{ item.time }}</span>
+                        </div>
+                        <div class="home-mini-event is-{{ item.type }}">
+                            <span class="home-mini-event-title">{{ item.title }}</span>
+                            <span class="home-mini-event-meta">{{ item.meta }}</span>
+                            {% if item.org_name %}
+                                <span class="home-mini-event-meta">หน่วยงาน: {{ item.org_name }}</span>
+                            {% endif %}
+                            {% if item.participants_text %}
+                                <span class="home-mini-event-meta">รายชื่อผู้เข้าร่วม: {{ item.participants_text }}</span>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="home-mini-event is-{{ item.type }}">
-                        <span class="home-mini-event-title">{{ item.title }}</span>
-                        <span class="home-mini-event-meta">{{ item.meta }}</span>
-                        {% if item.org_name %}
-                            <span class="home-mini-event-meta">หน่วยงาน: {{ item.org_name }}</span>
-                        {% endif %}
-                        {% if item.participants_text %}
-                            <span class="home-mini-event-meta">รายชื่อผู้เข้าร่วม: {{ item.participants_text }}</span>
-                        {% endif %}
+                {% else %}
+                    <div class="home-feed-empty">ไม่มีรายการกิจกรรมถัดไป</div>
+                {% endfor %}
+                {% if mini_calendar.extra_count > 0 %}
+                    <div class="home-mini-event-more">+{{ mini_calendar.extra_count }} เพิ่มเติม</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="home-calendar-event-popup is-hidden"
+             data-calendar-event-popup
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="home-calendar-event-popup-title">
+            <div class="home-calendar-event-popup-card">
+                <button type="button"
+                        class="home-calendar-event-popup-close"
+                        aria-label="ปิดรายละเอียดกิจกรรม"
+                        data-calendar-event-popup-close>
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+                <span class="home-calendar-event-popup-type" data-calendar-event-popup-type></span>
+                <h3 id="home-calendar-event-popup-title"
+                    class="home-calendar-event-popup-title"
+                    data-calendar-event-popup-title></h3>
+                <div class="home-calendar-event-popup-details">
+                    <div class="home-calendar-event-popup-row">
+                        <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                        <span data-calendar-event-popup-date></span>
+                    </div>
+                    <div class="home-calendar-event-popup-row">
+                        <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                        <span data-calendar-event-popup-time></span>
+                    </div>
+                    <div class="home-calendar-event-popup-row">
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                        <span data-calendar-event-popup-location></span>
+                    </div>
+                    <div class="home-calendar-event-popup-row" data-calendar-event-popup-org-row>
+                        <i class="fa-solid fa-building" aria-hidden="true"></i>
+                        <span><strong>หน่วยงาน:</strong> <span data-calendar-event-popup-org></span></span>
+                    </div>
+                    <div class="home-calendar-event-popup-row" data-calendar-event-popup-participants-row>
+                        <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+                        <span><strong>ผู้เข้าร่วม:</strong> <span data-calendar-event-popup-participants></span></span>
                     </div>
                 </div>
-            {% else %}
-                <div class="home-feed-empty">ไม่มีรายการกิจกรรมถัดไป</div>
-            {% endfor %}
-            {% if mini_calendar.extra_count > 0 %}
-                <div class="home-mini-event-more">+{{ mini_calendar.extra_count }} เพิ่มเติม</div>
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>
