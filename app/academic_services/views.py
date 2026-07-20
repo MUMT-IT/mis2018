@@ -6721,14 +6721,25 @@ def create_sample_appointment(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     old_sample = ServiceSample.query.get(sample_id)
-    old_sample.request.status_id = get_status(8)
-    old_sample.is_rescheduled = True
-    sample = ServiceSample(request_id=old_sample.request_id, created_at=arrow.now('Asia/Bangkok').datetime)
-    db.session.add(sample)
-    db.session.add(old_sample)
-    db.session.commit()
+    if old_sample.is_rescheduled == True:
+        new_sample = ServiceSample.query.filter(ServiceSample.request_id==old_sample.request_id,
+                                                ServiceSample.rejected_at==None).first()
+        if new_sample.received_at:
+            return render_template('academic_services/receive_sample_page.html', sample=new_sample,
+                                   menu=menu, tab=tab)
+        else:
+            return redirect(url_for('academic_services.edit_sample_appointment', sample_id=new_sample.id, tab=tab,
+                                    menu=menu))
+    else:
+        old_sample.request.status_id = get_status(8)
+        old_sample.is_rescheduled = True
+        sample = ServiceSample(request_id=old_sample.request_id, created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(sample)
+        db.session.add(old_sample)
+        db.session.commit()
     return redirect(url_for('academic_services.edit_sample_appointment', sample_id=sample.id, tab=tab,
                             menu=menu))
+
 @academic_services.route('/customer/sample/edit/<int:sample_id>', methods=['GET', 'POST'])
 @login_required
 def edit_sample_appointment(sample_id):
@@ -6865,8 +6876,9 @@ def confirm_sample_appointment_page(request_id):
 def reject_sample_appointment_page(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
-    return render_template('academic_services/reject_sample_appointment.html', menu=menu, tab=tab,
-                           sample_id=sample_id)
+    sample = ServiceSample.query.get(sample_id)
+    return render_template('academic_services/reject_sample_appointment_page.html', menu=menu, tab=tab,
+                           sample_id=sample_id, sample=sample)
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])

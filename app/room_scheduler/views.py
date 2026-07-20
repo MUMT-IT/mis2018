@@ -1062,6 +1062,7 @@ def show_event_detail(event_id=None):
 @room.route('/events/cancel/<int:event_id>')
 @login_required
 def cancel(event_id=None):
+    repeat = request.args.get('repeat', 'false')
     if not event_id:
         return redirect(url_for('room.index'))
 
@@ -1099,8 +1100,10 @@ def cancel(event_id=None):
             send_mail(participant_emails, title, message)
     else:
         print(msg, event.room.coordinator)
-
-    return redirect(url_for('room.index'))
+    if repeat == 'true' and event.master_id:
+        return redirect(url_for('room.show_event_detail', event_id=event.master_id))
+    else:
+        return redirect(url_for('room.index'))
 
 
 @room.route('/events/approve/<int:event_id>')
@@ -1174,14 +1177,23 @@ def edit_detail(event_id):
             current_start = start.shift(days=day)
             current_end = end.shift(days=day)
             while (current_start.date() <= repeat_end and current_end.date() <= repeat_end):
-                # if calendar.weekday(current_date.year, current_date.month, current_date.day) < 5:
-                current_startdatetime = current_start.datetime
-                current_enddatetime = current_end.datetime
-                event_overlaps = get_overlaps(event.room_id, current_startdatetime, current_enddatetime)
-                if not event_overlaps:
-                    new_evts = create_event(current_startdatetime, current_enddatetime, repeat_end, master_id, event.room_id,
-                                            form)
-                    new_events.append(new_evts)
+                if form.booking.data == 'ทุกวัน (ไม่รวมเสาร์-อาทิตย์)':
+                    if calendar.weekday(current_start.year, current_start.month, current_start.day) < 5:
+                        current_startdatetime = current_start.datetime
+                        current_enddatetime = current_end.datetime
+                        event_overlaps = get_overlaps(event.room_id, current_startdatetime, current_enddatetime)
+                        if not event_overlaps:
+                            new_evts = create_event(current_startdatetime, current_enddatetime, repeat_end, master_id,
+                                                    event.room_id, form)
+                            new_events.append(new_evts)
+                else:
+                    current_startdatetime = current_start.datetime
+                    current_enddatetime = current_end.datetime
+                    event_overlaps = get_overlaps(event.room_id, current_startdatetime, current_enddatetime)
+                    if not event_overlaps:
+                        new_evts = create_event(current_startdatetime, current_enddatetime, repeat_end, master_id,
+                                                    event.room_id, form)
+                        new_events.append(new_evts)
                 current_start = current_start.shift(days=day)
                 current_end = current_end.shift(days=day)
         else:
@@ -1350,12 +1362,21 @@ def room_reserve(room_id):
                 current_start = start.shift(days=day)
                 current_end = end.shift(days=day)
                 while (current_start.date() <= repeat_end and current_end.date() <= repeat_end):
-                    # if calendar.weekday(current_date.year, current_date.month, current_date.day) < 5:
-                    current_startdatetime = current_start.datetime
-                    current_enddatetime = current_end.datetime
-                    event_overlaps = get_overlaps(room_id, current_startdatetime, current_enddatetime)
-                    if not event_overlaps:
-                        create_event(current_startdatetime, current_enddatetime, repeat_end, new_event.id, room_id, form)
+                    if form.booking.data == 'ทุกวัน (ไม่รวมเสาร์-อาทิตย์)':
+                        if calendar.weekday(current_start.year, current_start.month, current_start.day) < 5:
+                            current_startdatetime = current_start.datetime
+                            current_enddatetime = current_end.datetime
+                            event_overlaps = get_overlaps(room_id, current_startdatetime, current_enddatetime)
+                            if not event_overlaps:
+                                create_event(current_startdatetime, current_enddatetime, repeat_end, new_event.id,
+                                             room_id, form)
+                    else:
+                        current_startdatetime = current_start.datetime
+                        current_enddatetime = current_end.datetime
+                        event_overlaps = get_overlaps(room_id, current_startdatetime, current_enddatetime)
+                        if not event_overlaps:
+                            create_event(current_startdatetime, current_enddatetime, repeat_end, new_event.id, room_id,
+                                         form)
                     current_start = current_start.shift(days=day)
                     current_end = current_end.shift(days=day)
             else:

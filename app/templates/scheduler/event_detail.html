@@ -189,9 +189,15 @@
                 background-color: #f0f7ff;
                 transform: translateX(2px);
             }
+            .recurring-link {
+                flex: 1;
+                display: block;
+                color: inherit;
+                text-decoration: none;
+            }
             .recurring-item-label {
                 color: var(--theme-text);
-                display: block;
+                {#display: block;#}
             }
         </style>
         <div class="container event-detail-shell">
@@ -269,17 +275,26 @@
                             <h3 class="title is-5 event-detail-section-title">รายการจองต่อเนื่อง</h3>
                             <div class="recurring-list-container">
                                 {% if repeat_events %}
-                                    {% for repeat_event in repeat_events %}
-                                        <a href="{{ url_for('room.show_event_detail', event_id=repeat_event.id) }}"
-                                           class="recurring-item">
-                                            <span class="is-size-6 recurring-item-label">
-                                                <i class="far fa-calendar mr-2 has-text-grey"></i>
-                                                ครั้งที่ {{ loop.index }} : {{ repeat_event.start|localdatetime }} - {{ repeat_event.end|localdatetime }}
-                                            </span>
-                                            <span class="icon has-text-grey">
-                                                <i class="far fa-eye"></i>
-                                            </span>
-                                        </a>
+                                    {% for repeat_event in repeat_events if not repeat_event.cancelled_at %}
+                                        <div class="recurring-item">
+                                            <a href="{{ url_for('room.show_event_detail', event_id=repeat_event.id) }}"
+                                               class="recurring-link">
+                                                <span class="is-size-6 recurring-item-label">
+                                                    <i class="far fa-calendar mr-2 has-text-grey"></i>
+                                                    ครั้งที่ {{ loop.index }} : {{ repeat_event.start|localdatetime }} - {{ repeat_event.end|localdatetime }}
+                                                </span>
+                                            </a>
+                                            <div>
+                                                <a href="{{ url_for('room.show_event_detail', event_id=repeat_event.id) }}"
+                                                   class="icon has-text-grey mr-3">
+                                                    <i class="far fa-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('room.cancel', event_id=repeat_event.id, repeat="true") }}"
+                                                   class="icon has-text-danger">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </a>
+                                            </div>
+                                        </div>
                                     {% endfor %}
                                 {% else %}
                                     <div class="recurring-item">

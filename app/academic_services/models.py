@@ -472,7 +472,8 @@ class ServiceRequest(db.Model):
             'customer_status': self.status.customer_status if self.status else None,
             'quotation_id': [quotation.id for quotation in self.quotations if quotation.disapproved_at == None] if self.quotations else None,
             'sample_id': [sample.id for sample in self.samples if not sample.rejected_at] if self.samples else None,
-            'reject_sample_id': [sample.id for sample in self.samples if sample.rejected_at] if self.samples else None,
+            'reject_sample_id': [sample.id for sample in self.samples if sample.rejected_at and sample.is_rescheduled == False]
+                                if self.samples else None,
             'customer_status_color': self.status.customer_status_color if self.status else None,
             'quotation_sent_at': ', '.join(str(quotation.sent_at) for quotation in self.quotations
                                            if quotation.sent_at) if self.quotations else None,
@@ -1510,7 +1511,7 @@ class ServiceFinalResultItemReversion(db.Model):
     edited_at = db.Column('edited_at', db.DateTime(timezone=True))
     editor_id = db.Column('editor_id', db.ForeignKey("staff_account.id"))
     editor = db.relationship(StaffAccount, foreign_keys=[editor_id])
-    approved_at = db.Column(' approved_at', db.DateTime(timezone=True))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey("service_customer_accounts.id"))
     approver = db.relationship(ServiceCustomerAccount, foreign_keys=[approver_id])
 
