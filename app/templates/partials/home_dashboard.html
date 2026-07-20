@@ -1,145 +1,44 @@
 <div class="home-top-panels">
-    <div class="home-panel" hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'>
-        <div class="home-panel-header">
-            <div>
-                <p class="home-panel-title">การนัดหมายประชุม</p>
-                <p class="home-panel-subtitle">ติดตามและตอบรับคำเชิญล่าสุด</p>
-            </div>
-            <span class="home-badge">{{ upcoming_invitations_count }} รายการ</span>
-        </div>
-        <div class="home-feed is-compact">
-            {% for invite in upcoming_invitations %}
-                <article class="home-feed-item">
-                    <p class="is-size-6 has-text-weight-semibold mb-2">{{ invite.meeting.title }}</p>
-                    <p class="home-feed-meta mb-2">
-                        <span class="icon is-small"><i class="fa-regular fa-clock"></i></span>
-                        {{ invite.meeting.start|humanizedt }}
-                    </p>
-                    <p class="home-feed-meta">
-                        <span class="icon is-small"><i class="fa-solid fa-circle-info"></i></span>
-                        {{ invite.meeting.detail or 'ไม่มีรายละเอียด' }}
-                    </p>
-                    <div class="home-feed-actions">
-                        <a class="tag is-white"
-                           hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
-                           hx-target="#target-{{ invite.id }}">
-                            <span class="icon is-small"><i class="fas fa-reply"></i></span>
-                            <span>{{ invite.responded_at|localdatetime or 'ยังไม่ตอบรับ' }}</span>
-                        </a>
-                        {% if invite.response == None %}
-                            <a class="tag is-success"
-                               hx-boost="true"
-                               hx-target="#left-icon-{{ invite.id }}"
-                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
-                                เข้าร่วม
-                            </a>
-                            <a class="tag is-danger"
-                               hx-boost="true"
-                               hx-target="#left-icon-{{ invite.id }}"
-                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
-                                ไม่เข้าร่วม
-                            </a>
-                            <a class="tag is-light"
-                               hx-boost="true"
-                               hx-target="#left-icon-{{ invite.id }}"
-                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
-                                ไม่แน่ใจ
-                            </a>
-                        {% endif %}
-                    </div>
-                    <div id="left-icon-{{ invite.id }}" class="is-hidden"></div>
-                    <div id="target-{{ invite.id }}" class="mt-2"></div>
-                </article>
-            {% else %}
-                <div class="home-feed-empty">ไม่มีคำเชิญประชุมที่กำลังจะมาถึง</div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <div class="home-panel">
-        <div class="home-panel-header">
-            <div>
-                <p class="home-panel-title">สำรวจวันเวลาประชุม</p>
-                <p class="home-panel-subtitle">แบบสำรวจที่เปิดให้ตอบในช่วงนี้</p>
-            </div>
-            <span class="home-badge">{{ upcoming_polls_count }} รายการ</span>
-        </div>
-        <div class="home-feed is-compact">
-            {% for poll in upcoming_polls %}
-                <article class="home-feed-item">
-                    <p class="is-size-6 has-text-weight-semibold mb-2">{{ poll.poll_name }}</p>
-                    <p class="home-feed-meta mb-2">
-                        <span class="icon is-small"><i class="fas fa-calendar-minus"></i></span>
-                        {{ poll.start_vote|localdatetime }} - {{ poll.close_vote|localdatetime }}
-                    </p>
-                    <p class="home-feed-meta mb-2">
-                        <span class="icon is-small"><i class="fas fa-history"></i></span>
-                        {% if poll.start_vote >= now %}
-                            Start {{ poll.start_vote|humanizedt }}
-                        {% else %}
-                            End {{ poll.close_vote|humanizedt }}
-                        {% endif %}
-                    </p>
-                    {% if poll.start_vote <= now %}
-                        <a class="button is-small is-light" href="{{ url_for('meeting_planner.add_vote', poll_id=poll.id) }}">
-                            <span class="icon"><i class="fas fa-pencil"></i></span>
-                            <span>สำรวจ</span>
-                        </a>
-                    {% endif %}
-                </article>
-            {% else %}
-                <div class="home-feed-empty">ไม่มีแบบสำรวจเวลาประชุมที่กำลังเปิดอยู่</div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <div class="home-panel">
+    <div class="home-panel home-panel-fullwidth home-mini-calendar-panel is-hidden" data-mini-calendar-panel>
         <div class="home-panel-header">
             <div>
                 <p class="home-panel-title">การใช้ห้องประชุม/ห้องเรียน</p>
-                <p class="home-panel-subtitle">กิจกรรมที่กำลังจะมาถึง</p>
+                <p class="home-panel-subtitle">{{ mini_calendar.month_label }}</p>
             </div>
+            <span class="home-badge">{{ (upcoming_events|length) + (upcoming_pre_registers|length) }} รายการ</span>
         </div>
-        <div class="home-feed is-compact">
-            {% for event in upcoming_events %}
-                <article class="home-feed-item">
-                    <p class="is-size-6 has-text-weight-semibold mb-2">{{ event.title }}</p>
-                    <p class="home-feed-meta mb-2">
-                        <span class="icon is-small"><i class="fa-regular fa-clock"></i></span>
-                        {{ event.datetime.lower|localize|localdatetime }} - {{ event.datetime.upper|localize|localdatetime }}
-                    </p>
-                    <p class="home-feed-meta">
-                        <span class="icon is-small"><i class="fa-solid fa-map-pin"></i></span>
-                        ห้อง {{ event.room }}
-                    </p>
-                </article>
+        <div class="home-mini-calendar">
+            <div class="home-mini-calendar-weekdays">
+                {% for weekday in mini_calendar.weekday_labels %}
+                    <div class="home-mini-calendar-weekday">{{ weekday }}</div>
+                {% endfor %}
+            </div>
+            <div class="home-mini-calendar-weeks">
+            {% for week in mini_calendar.weeks %}
+                <div class="home-mini-calendar-week">
+                    <div class="home-mini-calendar-grid">
+                        {% for day in week %}
+                            <article class="home-mini-day {% if not day.in_month %}is-outside{% endif %} {% if day.is_today %}is-today{% endif %}">
+                                <div class="home-mini-day-head">
+                                    <span class="home-mini-day-number">{{ day.day }}</span>
+                                </div>
+                                <div class="home-mini-day-events">
+                                    {% for item in day['items'] %}
+                                        <div class="home-mini-event is-{{ item.type }}">
+                                            <span class="home-mini-event-title">{{ item.title }}</span>
+                                            <span class="home-mini-event-meta">{{ item.meta }}</span>
+                                        </div>
+                                    {% endfor %}
+                                    {% if day.extra_count > 0 %}
+                                        <div class="home-mini-event-more">+{{ day.extra_count }} เพิ่มเติม</div>
+                                    {% endif %}
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </div>
             {% endfor %}
-
-            {% for pre_regis in upcoming_pre_registers %}
-                <article class="home-feed-item">
-                    <p class="is-size-6 has-text-weight-semibold mb-2">{{ pre_regis.seminar.topic }}</p>
-                    <p class="home-feed-meta mb-2">
-                        <span class="icon is-small"><i class="fa-regular fa-clock"></i></span>
-                        {{ pre_regis.seminar.start_datetime|localdatetime }} - {{ pre_regis.seminar.end_datetime|localdatetime }}
-                    </p>
-                    <p class="home-feed-meta">
-                        <span class="icon is-small"><i class="fa-solid fa-location-dot"></i></span>
-                        {% if pre_regis.attend_online %}
-                            {% if pre_regis.seminar.online_detail %}
-                                online: {{ pre_regis.seminar.online_detail }}
-                            {% else %}
-                                online
-                            {% endif %}
-                        {% else %}
-                            {{ pre_regis.seminar.location or 'ไม่ระบุสถานที่' }}
-                        {% endif %}
-                    </p>
-                </article>
-            {% endfor %}
-
-            {% if not upcoming_events and not upcoming_pre_registers %}
-                <div class="home-feed-empty">ยังไม่มีกิจกรรมการใช้ห้องหรือรายการลงทะเบียนล่วงหน้า</div>
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>
