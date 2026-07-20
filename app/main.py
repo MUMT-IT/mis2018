@@ -332,6 +332,12 @@ def get_thai_month_name(month_number):
     return '-'
 
 
+def normalize_home_event_datetime(value, tz):
+    if value.tzinfo is None or value.utcoffset() is None:
+        return tz.localize(value)
+    return value.astimezone(tz)
+
+
 def build_home_mini_calendar(now, upcoming_events, upcoming_pre_registers, tz, display_date=None):
     today = now.astimezone(tz).date()
     display_date = display_date or today
@@ -352,8 +358,10 @@ def build_home_mini_calendar(now, upcoming_events, upcoming_pre_registers, tz, d
         })
 
     for event in upcoming_events:
-        event_day = event.datetime.lower.astimezone(tz).date()
-        event_time = f"{event.datetime.lower.astimezone(tz).strftime('%H:%M')} - {event.datetime.upper.astimezone(tz).strftime('%H:%M')}"
+        event_start = normalize_home_event_datetime(event.start, tz)
+        event_end = normalize_home_event_datetime(event.end, tz)
+        event_day = event_start.date()
+        event_time = f"{event_start.strftime('%H:%M')} - {event_end.strftime('%H:%M')}"
         creator_org = getattr(getattr(getattr(event, 'creator', None), 'personal_info', None), 'org', None)
         org_name = creator_org.display_name if creator_org else ''
         participant_names = [
@@ -364,7 +372,7 @@ def build_home_mini_calendar(now, upcoming_events, upcoming_pre_registers, tz, d
         participants_text = ' , '.join(participant_names) if participant_names else ''
         add_item(
             event_day,
-            event.datetime.lower.astimezone(tz),
+            event_start,
             event.title,
             f'ห้อง {event.room}',
             'room',
@@ -374,8 +382,10 @@ def build_home_mini_calendar(now, upcoming_events, upcoming_pre_registers, tz, d
         )
 
     for pre_regis in upcoming_pre_registers:
-        event_day = pre_regis.seminar.start_datetime.astimezone(tz).date()
-        event_time = f"{pre_regis.seminar.start_datetime.astimezone(tz).strftime('%H:%M')} - {pre_regis.seminar.end_datetime.astimezone(tz).strftime('%H:%M')}"
+        seminar_start = normalize_home_event_datetime(pre_regis.seminar.start_datetime, tz)
+        seminar_end = normalize_home_event_datetime(pre_regis.seminar.end_datetime, tz)
+        event_day = seminar_start.date()
+        event_time = f"{seminar_start.strftime('%H:%M')} - {seminar_end.strftime('%H:%M')}"
         org_name = pre_regis.seminar.organize_by or ''
         participant_names = [
             pre_regis.staff.fullname
@@ -387,7 +397,7 @@ def build_home_mini_calendar(now, upcoming_events, upcoming_pre_registers, tz, d
             meta = pre_regis.seminar.location or 'ไม่ระบุสถานที่'
         add_item(
             event_day,
-            pre_regis.seminar.start_datetime.astimezone(tz),
+            seminar_start,
             pre_regis.seminar.topic,
             meta,
             'seminar',
@@ -460,17 +470,21 @@ def build_home_today_calendar(now, upcoming_events, upcoming_pre_registers, tz):
         })
 
     for event in upcoming_events:
-        event_day = event.datetime.lower.astimezone(tz).date()
+        event_start = normalize_home_event_datetime(event.start, tz)
+        event_end = normalize_home_event_datetime(event.end, tz)
+        event_day = event_start.date()
         if event_day != today:
             continue
-        event_time = f"{event.datetime.lower.astimezone(tz).strftime('%H:%M')} - {event.datetime.upper.astimezone(tz).strftime('%H:%M')}"
+        event_time = f"{event_start.strftime('%H:%M')} - {event_end.strftime('%H:%M')}"
         add_item(event.title, f'ห้อง {event.room}', 'room', event_time)
 
     for pre_regis in upcoming_pre_registers:
-        event_day = pre_regis.seminar.start_datetime.astimezone(tz).date()
+        seminar_start = normalize_home_event_datetime(pre_regis.seminar.start_datetime, tz)
+        seminar_end = normalize_home_event_datetime(pre_regis.seminar.end_datetime, tz)
+        event_day = seminar_start.date()
         if event_day != today:
             continue
-        event_time = f"{pre_regis.seminar.start_datetime.astimezone(tz).strftime('%H:%M')} - {pre_regis.seminar.end_datetime.astimezone(tz).strftime('%H:%M')}"
+        event_time = f"{seminar_start.strftime('%H:%M')} - {seminar_end.strftime('%H:%M')}"
         if pre_regis.attend_online:
             meta = pre_regis.seminar.online_detail or 'online'
         else:
@@ -530,8 +544,8 @@ def get_home_week_events(user, now):
 
     events = []
     for event in room_events:
-        start = event.start.astimezone(tz)
-        end = event.end.astimezone(tz)
+        start = normalize_home_event_datetime(event.start, tz)
+        end = normalize_home_event_datetime(event.end, tz)
         events.append({
             'title': event.title,
             'type': 'การใช้ห้องประชุม/ห้องเรียน',
@@ -546,8 +560,8 @@ def get_home_week_events(user, now):
         })
     for registration in seminar_registrations:
         seminar = registration.seminar
-        start = seminar.start_datetime.astimezone(tz)
-        end = seminar.end_datetime.astimezone(tz)
+        start = normalize_home_event_datetime(seminar.start_datetime, tz)
+        end = normalize_home_event_datetime(seminar.end_datetime, tz)
         if registration.attend_online:
             location = seminar.online_detail or 'ออนไลน์'
         else:
