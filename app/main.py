@@ -455,6 +455,21 @@ def get_homepage_dashboard_context(user, now):
         .all()
     )
 
+    calendar_room_events = (
+        RoomEvent.query
+        .options(joinedload(RoomEvent.room))
+        .filter(
+            RoomEvent.start >= now,
+            RoomEvent.cancelled_at.is_(None),
+            or_(
+                RoomEvent.created_by == user.id,
+                RoomEvent.participants.any(StaffAccount.id == user.id),
+            ),
+        )
+        .order_by(RoomEvent.start.asc())
+        .all()
+    )
+
     upcoming_pre_registers = (
         StaffSeminarPreRegister.query
         .options(joinedload(StaffSeminarPreRegister.seminar))
@@ -469,7 +484,7 @@ def get_homepage_dashboard_context(user, now):
     )
     mini_calendar = build_home_mini_calendar(
         now=now,
-        upcoming_events=upcoming_events,
+        upcoming_events=calendar_room_events,
         upcoming_pre_registers=upcoming_pre_registers,
         tz=timezone('Asia/Bangkok'),
     )
@@ -481,6 +496,7 @@ def get_homepage_dashboard_context(user, now):
         'upcoming_polls': upcoming_polls,
         'upcoming_polls_count': upcoming_polls_count,
         'upcoming_pre_registers': upcoming_pre_registers,
+        'calendar_room_events': calendar_room_events,
         'mini_calendar': mini_calendar,
     }
 
@@ -494,7 +510,7 @@ def index():
         dashboard_context = get_homepage_dashboard_context(current_user, now)
         today_calendar = build_home_today_calendar(
             now=now,
-            upcoming_events=dashboard_context['upcoming_events'],
+            upcoming_events=dashboard_context['calendar_room_events'],
             upcoming_pre_registers=dashboard_context['upcoming_pre_registers'],
             tz=timezone('Asia/Bangkok'),
         )
