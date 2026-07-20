@@ -245,7 +245,7 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
             quota_limit = quota.max_per_year
     else:
         if delta.months > 5:
-            if datetime.today().month in [10, 11, 12]:
+            if date_time.month in [10, 11, 12]:
                 if max_cum_quota:
                     if this_year_quota:
                         quota_limit = this_year_quota.quota_days
