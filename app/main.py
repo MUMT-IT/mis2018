@@ -455,9 +455,8 @@ def get_homepage_dashboard_context(user, now):
         .all()
     )
 
-    calendar_room_events = (
-        RoomEvent.query
-        .options(joinedload(RoomEvent.room))
+    calendar_room_event_ids = (
+        db.session.query(RoomEvent.id)
         .outerjoin(event_participant_assoc, RoomEvent.id == event_participant_assoc.c.event_id)
         .filter(
             RoomEvent.start >= now,
@@ -468,6 +467,13 @@ def get_homepage_dashboard_context(user, now):
             ),
         )
         .distinct()
+        .subquery()
+    )
+
+    calendar_room_events = (
+        RoomEvent.query
+        .options(joinedload(RoomEvent.room))
+        .filter(RoomEvent.id.in_(db.session.query(calendar_room_event_ids.c.id)))
         .order_by(RoomEvent.start.asc())
         .all()
     )
