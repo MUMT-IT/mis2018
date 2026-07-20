@@ -8,7 +8,7 @@
             <span class="home-badge">{{ mini_calendar.total_count }} รายการ</span>
         </div>
         <div class="home-mini-calendar">
-            {% for item in mini_calendar.items %}
+            {% for item in mini_calendar['items'] %}
                 <div class="home-mini-event-card">
                     <div class="home-mini-event-card-head">
                         <span class="home-mini-event-date">{{ item.date.strftime('%d/%m') }}</span>
