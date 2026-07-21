@@ -175,31 +175,35 @@
         .home-today-calendar-list {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.65rem;
         }
 
         .home-today-calendar-event {
-            background: rgba(255, 255, 255, 0.72);
-            border: 1px solid rgba(18, 39, 84, 0.06);
+            background: linear-gradient(135deg, rgba(228, 243, 233, 0.98), rgba(246, 251, 248, 0.96));
+            border: 1px solid #b8ddc4;
+            border-left: 4px solid #4f8f67;
             border-radius: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 0.1rem;
-            padding: 0.55rem 0.65rem;
+            padding: 0.7rem 0.75rem;
+        }
+
+        .home-today-calendar-event-copy {
+            min-width: 0;
         }
 
         .home-today-calendar-event-title {
             color: var(--theme-navy-deep);
-            font-size: 0.82rem;
-            font-weight: 700;
-            line-height: 1.25;
+            font-size: 0.88rem;
+            font-weight: 800;
+            line-height: 1.3;
             margin: 0;
         }
 
         .home-today-calendar-event-meta {
-            color: var(--theme-muted);
-            font-size: 0.73rem;
-            line-height: 1.2;
+            color: #52627d;
+            font-size: 0.76rem;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-top: 0.15rem;
         }
 
         .home-today-calendar-empty {
@@ -311,6 +315,92 @@
 
         .home-panel-fullwidth {
             grid-column: 1 / -1;
+        }
+
+        .home-checkin-panel {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(228, 243, 233, 0.98), rgba(245, 250, 247, 0.96));
+            border: 1px solid #b8ddc4;
+            border-radius: 22px;
+            box-shadow: var(--theme-shadow);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 1.1rem 1.2rem;
+        }
+
+        .home-checkin-panel.is-missing {
+            background: linear-gradient(135deg, rgba(255, 243, 191, 0.98), rgba(255, 250, 229, 0.96));
+            border-color: #e6cf73;
+        }
+
+        .home-checkin-content {
+            align-items: center;
+            display: flex;
+            gap: 0.85rem;
+            min-width: 0;
+        }
+
+        .home-checkin-icon {
+            align-items: center;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 16px;
+            color: #397550;
+            display: inline-flex;
+            flex-shrink: 0;
+            height: 2.8rem;
+            justify-content: center;
+            width: 2.8rem;
+        }
+
+        .home-checkin-panel.is-missing .home-checkin-icon {
+            color: #9a7610;
+        }
+
+        .home-checkin-label {
+            color: var(--theme-muted);
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.1rem;
+            text-transform: uppercase;
+        }
+
+        .home-checkin-time {
+            color: #245b38;
+            font-size: 1.45rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin: 0;
+        }
+
+        .home-checkin-panel.is-missing .home-checkin-time {
+            color: var(--theme-navy-deep);
+            font-size: 1rem;
+            line-height: 1.3;
+        }
+
+        .home-checkin-meta {
+            color: var(--theme-muted);
+            font-size: 0.78rem;
+            margin-top: 0.2rem;
+        }
+
+        .home-checkin-action {
+            background: var(--theme-navy-deep);
+            border-color: var(--theme-navy-deep);
+            color: #fff;
+            flex-shrink: 0;
+            font-weight: 700;
+        }
+
+        .home-checkin-action:hover,
+        .home-checkin-action:focus {
+            background: var(--theme-navy);
+            border-color: var(--theme-navy);
+            color: #fff;
         }
 
         .home-panel-header {
@@ -967,6 +1057,15 @@
                 min-height: 5.6rem;
                 padding: 0.45rem;
             }
+
+            .home-checkin-panel {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .home-checkin-action {
+                width: 100%;
+            }
         }
     </style>
 {% endblock %}
@@ -991,7 +1090,8 @@
         <div class="container">
             {% include "messages.html" %}
 
-            <div class="home-announcement">
+            {# Temporarily hidden; retain the banner markup for easy restoration. #}
+            {# <div class="home-announcement">
                 <span class="icon is-medium">
                     <i class="fa-solid fa-bullhorn"></i>
                 </span>
@@ -1001,7 +1101,7 @@
                         ตั้งแต่วันที่ 1 มิถุนายน 2569 เป็นต้นไป ระบบจะปิดการลงชื่อเข้าใช้งาน (log in) ด้วย username, password ขอให้บุคลากรทุกท่าน log in เข้าระบบด้วย Google หรือ Line เพื่อเพิ่มความปลอดภัย
                     </p>
                 </div>
-            </div>
+            </div> #}
 
             <section class="home-hero">
                 <div class="columns is-variable is-6 is-vcentered m-0">
@@ -1032,9 +1132,11 @@
                                         </div>
                                         <div class="home-today-calendar-list">
                                             {% for item in today_calendar['items'] %}
-                                                <div class="home-today-calendar-event">
-                                                    <p class="home-today-calendar-event-title">{{ item.title }}</p>
-                                                    <p class="home-today-calendar-event-meta">{{ item.time }} · {{ item.meta }}</p>
+                                                <div class="home-today-calendar-event is-{{ item.type }}">
+                                                    <div class="home-today-calendar-event-copy">
+                                                        <p class="home-today-calendar-event-title">{{ item.title }}</p>
+                                                        <p class="home-today-calendar-event-meta">{{ item.time }} · {{ item.meta }}</p>
+                                                    </div>
                                                 </div>
                                             {% else %}
                                                 <div class="home-today-calendar-empty">วันนี้ไม่มีนัดหมาย</div>
@@ -1083,6 +1185,30 @@
                         </div>
                     </div>
                     <div class="column is-5-desktop p-6 pt-0-mobile">
+                        {% if today_checkin_status %}
+                            <div class="home-checkin-panel{% if not today_checkin_status.checked_in %} is-missing{% endif %}">
+                                <div class="home-checkin-content">
+                                    <span class="home-checkin-icon">
+                                        <i class="fa-solid {% if today_checkin_status.checked_in %}fa-user-check{% else %}fa-clock{% endif %}" aria-hidden="true"></i>
+                                    </span>
+                                    <div>
+                                        <p class="home-checkin-label">Today's check-in</p>
+                                        {% if today_checkin_status.checked_in %}
+                                            <p class="home-checkin-time">{{ today_checkin_status.time_label }} น.</p>
+                                            <p class="home-checkin-meta">ลงชื่อเข้างานแล้ว · {{ today_checkin_status.date_label }}</p>
+                                        {% else %}
+                                            <p class="home-checkin-time">วันนี้ยังไม่ได้ลงชื่อเข้างาน</p>
+                                            <p class="home-checkin-meta">อย่าลืมลงชื่อเมื่อเริ่มปฏิบัติงาน</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if not today_checkin_status.checked_in %}
+                                    <a class="button is-small is-rounded home-checkin-action" href="{{ url_for('staff.geo_checkin') }}">
+                                        ลงชื่อเข้างาน
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                         <div class="home-panel">
                             <div class="home-panel-header">
                                 <div>
