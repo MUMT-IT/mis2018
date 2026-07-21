@@ -7383,7 +7383,7 @@ def generate_bacteria_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -7450,7 +7450,7 @@ def generate_bacteria_disinfection_quotation():
                                      creator=current_user, created_at=arrow.now('Asia/Bangkok').datetime)
         db.session.add(quotation)
         quotation_no.count += 1
-        status_id = get_status(3)
+        status_id = get_status(4)
         service_request.status_id = status_id
         db.session.add(service_request)
         db.session.commit()
@@ -7487,7 +7487,7 @@ def generate_bacteria_sterility_test_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -7570,7 +7570,7 @@ def generate_bacteria_antimicrobial_activity_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -7671,7 +7671,7 @@ def generate_virus_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -7766,7 +7766,7 @@ def generate_virus_air_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -7862,7 +7862,7 @@ def generate_heavy_metal_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -7948,7 +7948,7 @@ def generate_food_safety_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -8043,7 +8043,7 @@ def generate_protein_identification_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -8131,7 +8131,7 @@ def generate_sds_page_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -8232,7 +8232,7 @@ def generate_quantitative_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -8322,7 +8322,7 @@ def generate_endotoxin_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
@@ -8405,7 +8405,7 @@ def generate_toxicology_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
-    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None).first()
+    quotation = ServiceQuotation.query.filter_by(request_id=request_id, disapproved_at=None, cancelled_at=None).first()
     if not quotation:
         sheet_price_id = '1hX0WT27oRlGnQm997EV1yasxlRoBSnhw3xit1OljQ5g'
         gc = get_credential()
