@@ -7349,6 +7349,7 @@ def edit_final_result_item(result_item_id):
         result_item.req_edit_at = arrow.now('Asia/Bangkok').datetime
         result_item.result.req_edit_at = arrow.now('Asia/Bangkok').datetime
         result_item.result.is_edited = False
+        result_item.result.approved_at = None
         result_item.approved_at = None
         result_item.approver_id = None
         db.session.add(result_item)
