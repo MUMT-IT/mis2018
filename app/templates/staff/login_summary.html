@@ -101,7 +101,7 @@
         background: rgba(255, 255, 255, 0.78);
         border: 1px solid rgba(18, 39, 84, 0.08);
         border-radius: 22px;
-        box-shadow: 0 12px 30px rgba(18, 39, 84, 0.08);
+        box-shadow: none;
         padding: 0.9rem;
     }
 
@@ -283,6 +283,18 @@
         border-color: rgba(229, 155, 155, 0.96);
     }
 
+    .staff-login-calendar .fc-event.is-short-hours {
+        background: #fff3bf;
+        border-color: #e6cf73;
+        color: var(--theme-navy-deep);
+    }
+
+    .staff-login-calendar .fc-event.is-complete-hours {
+        background: #e4f3e9;
+        border-color: #b8ddc4;
+        color: #245b38;
+    }
+
     .staff-login-calendar .fc-event,
     .staff-login-calendar .fc-event.fc-start,
     .staff-login-calendar .fc-event.fc-end {
@@ -339,6 +351,10 @@
         color: var(--theme-navy-deep);
     }
 
+    .staff-login-calendar .staff-login-event-hours.is-negative {
+        color: #b83f3f;
+    }
+
     .staff-login-calendar .staff-login-event-meter {
         background: rgba(18, 39, 84, 0.08);
         border-radius: 999px;
@@ -360,7 +376,11 @@
     }
 
     .staff-login-calendar .staff-login-event-meter-fill.is-positive {
-        background: linear-gradient(90deg, rgba(46, 139, 87, 0.95), rgba(122, 191, 146, 0.95));
+        background: linear-gradient(90deg, #4f8f67, #76ad89);
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-late {
+        background: linear-gradient(90deg, #a85f5f, #c98787);
     }
 
     .staff-login-calendar .staff-login-event-meter-label {
@@ -575,12 +595,12 @@
                 var workedHours = event.worked_hours_display ? $('<span/>').text(event.worked_hours_display).html() : '';
                 var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / 12) * 100, 12), 100) : 0;
                 var hoursClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
-                var meterClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
+                var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
                 var content = '<span class="staff-login-event-content">';
                 content += '<span class="staff-login-event-head">';
                 content += '<span class="staff-login-event-name">' + name + '</span>';
                 if (workedHours) {
-                    content += '<span class="staff-login-event-hours is-total">' + workedHours + '</span>';
+                    content += '<span class="staff-login-event-hours is-total ' + hoursClass + '">' + workedHours + '</span>';
                 }
                 content += '</span>';
                 if (workedHours) {
