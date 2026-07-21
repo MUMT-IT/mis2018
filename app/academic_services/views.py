@@ -7369,9 +7369,6 @@ def edit_final_result_item(result_item_id):
             message += f'''มี{result_item.report_language}ฉบับจริงของใบคำขอรับบริการเลขที่ {result_item.result.request.request_no} ที่ได้ขอดำเนินการแก้ไขรายงานผลการทดสอบเนื่องจาก {note}\n'''
             message += f'''ท่านสามารถดำเนินการตรวจสอบได้ที่ลิงก์ด้านล่าง\n'''
             message += f'''{link}\n\n'''
-            message += f'''ผู้ประสานงาน\n'''
-            message += f'''{result_item.result.request.customer.customer_name}\n'''
-            message += f'''เบอร์โทร {result_item.result.request.customer.contact_phone_number}\n\n'''
             message += f'''ระบบงานบริการวิชาการ'''
             msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
                     'ออกในนาม {}\n'
@@ -7504,7 +7501,7 @@ def confirm_final_result_item(result_item_id):
         if admins:
             title = f'''รายการยืนยันใบรายงานผลการทดสอบฉบับจริง'''
             message = f'''เรียน เจ้าหน้าที่{result_item.result.request.sub_lab.lab.lab}\n\n'''
-            message += f'''มีใบรายงานผลฉบับจริงของใบคำขอรับบริการเลขที่ {result_item.result.request.request_no} ได้รับการยืนยันจากลูกค้าแล้ว '''
+            message += f'''มี{result_item.report_language}ฉบับจริงของใบคำขอรับบริการเลขที่ {result_item.result.request.request_no} ที่ได้รับการยืนยันจากลูกค้าแล้ว\n'''
             message += f'''ระบบงานบริการวิชาการ'''
             if not current_app.debug:
                 send_mail(
