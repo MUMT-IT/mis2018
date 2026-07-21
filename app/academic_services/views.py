@@ -6481,7 +6481,8 @@ def reject_quotation(quotation_id):
             else:
                 print('message', message)
         resp = make_response()
-        resp.headers['HX-Redirect'] = url_for('academic_services.quotation_index', menu=menu, tab='cancel')
+        resp.headers['HX-Redirect'] = url_for('academic_services.view_quotation', quotation_id=quotation_id,
+                                              menu=menu, tab='cancel')
         return resp
     else:
         for field, error in form.errors.items():
