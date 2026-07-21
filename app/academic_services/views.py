@@ -6096,6 +6096,21 @@ def request_quotation(request_id):
     return redirect(url_for('academic_services.request_index', menu=menu))
 
 
+@academic_services.route('/request/copy/<int:request_id>')
+@login_required
+def copy_request(request_id):
+    old_service_request = ServiceRequest.query.get(request_id)
+    request_no = ServiceNumberID.get_number('Request', db, lab=old_service_request.sub_lab.ref)
+    new_service_request = ServiceRequest(customer_id=current_user.id, status_id=get_status(1),
+                                         created_at=arrow.now('Asia/Bangkok').datetime, request_no=request_no.number,
+                                         sub_lab=old_service_request.sub_lab, data=old_service_request.data)
+    db.session.add(new_service_request)
+    db.session.commit()
+    flash('คัดลอกข้อมูลสำเร็จ', 'success')
+    return redirect(url_for('academic_services.create_request', request_id=new_service_request.id,
+                            code=new_service_request.sub_lab.code))
+
+
 @academic_services.route('/customer/quotation/index')
 @login_required
 def quotation_index():
