@@ -9568,6 +9568,7 @@ def approve_final_result_reversion(result_item_id):
                                               item=f'ค่าปรับปรุง{result_item.report_language}ฉบับจริง', quantity=1, unit_price=300, total_price=300)
         quotation_item_no.count += 1
         db.session.add(quotation_item)
+        result_item.result.status_id = get_status(18)
         result_item.final_reversion[-1].is_approved = True
         db.session.add(result_item)
         db.session.commit()
