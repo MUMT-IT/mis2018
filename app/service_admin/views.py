@@ -9568,6 +9568,8 @@ def approve_final_result_reversion(result_item_id):
                                               item=f'ค่าปรับปรุง{result_item.report_language}ฉบับจริง', quantity=1, unit_price=300, total_price=300)
         quotation_item_no.count += 1
         db.session.add(quotation_item)
+        result_item.is_downloaded = False
+        result_item.result.request.status_id = get_status(18)
         result_item.final_reversion[-1].is_approved = True
         db.session.add(result_item)
         db.session.commit()
@@ -9620,6 +9622,9 @@ def unapprove_final_result_reversion(result_item_id):
     result_item = ServiceResultItem.query.get(result_item_id)
     if request.method == 'POST':
         remark = request.form.get("remark")
+        result_item.result.approved_at = arrow.now('Asia/Bangkok').datetime
+        result_item.result.is_edited = True
+        result_item.result.result_edit_at = arrow.now('Asia/Bangkok').datetime
         result_item.final_reversion[-1].is_approved = False
         result_item.final_reversion[-1].remark = remark
         db.session.add(result_item)
