@@ -36,6 +36,7 @@ import re
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import base64
+from pytz import timezone, utc
 
 # from app.besttime.models import BestTimePoll, BestTimeDateTimeSlot, BestTimeMasterDateTimeSlot, BestTimePollVote, \
 #     BestTimePollMessage
@@ -498,6 +499,38 @@ def build_home_today_calendar(now, upcoming_events, upcoming_pre_registers, tz):
     }
 
 
+def get_home_checkin_status(user, now):
+    work_logins = getattr(user, 'work_logins', None)
+    if work_logins is None:
+        return None
+
+    bangkok_tz = timezone('Asia/Bangkok')
+    local_now = now.astimezone(bangkok_tz)
+    first_scan = (
+        work_logins
+        .filter_by(date_id=local_now.strftime('%Y%m%d'))
+        .filter(StaffWorkLogin.start_datetime.isnot(None))
+        .order_by(StaffWorkLogin.start_datetime.asc(), StaffWorkLogin.id.asc())
+        .first()
+    )
+    status = {
+        'checked_in': False,
+        'date_label': f'{local_now.day} {get_thai_month_name(local_now.month)} {local_now.year + 543}',
+    }
+    if first_scan is None:
+        return status
+
+    checkin_at = first_scan.start_datetime
+    if checkin_at.tzinfo is None or checkin_at.utcoffset() is None:
+        checkin_at = utc.localize(checkin_at)
+    checkin_at = checkin_at.astimezone(bangkok_tz)
+    status.update({
+        'checked_in': True,
+        'time_label': checkin_at.strftime('%H:%M'),
+    })
+    return status
+
+
 def get_home_week_events(user, now):
     tz = timezone('Asia/Bangkok')
     local_now = now.astimezone(tz)
@@ -761,6 +794,7 @@ def index():
     now = datetime.now(tz=timezone('Asia/Bangkok'))
     central_admin, assistant = get_homepage_role_flags(current_user)
     today_calendar = None
+    today_checkin_status = None
     if current_user.is_authenticated:
         dashboard_context = get_homepage_dashboard_context(current_user, now)
         today_calendar = build_home_today_calendar(
@@ -769,12 +803,14 @@ def index():
             upcoming_pre_registers=dashboard_context['upcoming_pre_registers'],
             tz=timezone('Asia/Bangkok'),
         )
+        today_checkin_status = get_home_checkin_status(current_user, now)
     return render_template(
         'index.html',
         assistant=assistant,
         central_admin=central_admin,
         now=now,
         today_calendar=today_calendar,
+        today_checkin_status=today_checkin_status,
     )
 
 
