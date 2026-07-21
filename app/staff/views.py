@@ -19,7 +19,7 @@ from flask import (abort, jsonify, render_template, render_template_string, requ
 from datetime import date, timedelta, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc, cast, Date, or_, extract
+from sqlalchemy import and_, desc, cast, Date, or_, extract, func
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from app.linebot_compat import TextSendMessage, FlexSendMessage, BubbleContainer, BoxComponent, TextComponent
@@ -174,6 +174,131 @@ def _daily_work_login_rows(records):
 
     rows.sort(key=lambda row: (row['date'], row['staff_name']))
     return rows
+
+
+def _parse_login_summary_date(value, *, default=None):
+    if not value:
+        return default
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    return datetime.strptime(value.strip(), '%d/%m/%Y').date()
+
+
+def _build_login_summary_dashboard(start_date, end_date, dept_id):
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    office_end_time = datetime.strptime('16:30', '%H:%M').time()
+
+    employee_query = StaffPersonalInfo.query.filter_by(org_id=dept_id)
+    employees = employee_query.all()
+    employees_by_id = {
+        employee.staff_account.id: employee
+        for employee in employees
+        if getattr(employee, 'staff_account', None) is not None
+    }
+
+    if not employees_by_id:
+        return {
+            'date_range': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat(),
+            },
+            'totals': {
+                'employees': 0,
+                'employees_with_records': 0,
+                'complete_days': 0,
+                'late_checkins': 0,
+                'early_checkouts': 0,
+                'total_hours': 0.0,
+                'average_hours_per_day': 0.0,
+            },
+            'employees': [],
+        }
+
+    start_datetime_column = getattr(StaffWorkLogin, 'start_datetime', None)
+    if start_datetime_column is not None:
+        records = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', start_datetime_column), Date).between(start_date, end_date)
+        ).all()
+    else:
+        records = StaffWorkLogin.query.all()
+    daily_rows = _daily_work_login_rows(records)
+
+    rows_by_staff = defaultdict(list)
+    for row in daily_rows:
+        if row['staff_id'] in employees_by_id:
+            rows_by_staff[row['staff_id']].append(row)
+
+    total_complete_days = 0
+    total_late_checkins = 0
+    total_early_checkouts = 0
+    total_hours = 0.0
+    employees_payload = []
+
+    for staff_id, employee in employees_by_id.items():
+        employee_rows = sorted(rows_by_staff.get(staff_id, []), key=lambda row: (row['date'], row['staff_name']))
+        complete_days = 0
+        late_checkins = 0
+        early_checkouts = 0
+        worked_hours_total = 0.0
+
+        for row in employee_rows:
+            start_dt = parser.isoparse(row['start']) if row['start'] else None
+            end_dt = parser.isoparse(row['end']) if row['end'] else None
+            worked_hours = _calculate_work_hours(start_dt, end_dt)
+            if worked_hours is not None:
+                worked_hours_total += worked_hours
+            if start_dt and end_dt:
+                complete_days += 1
+            if start_dt and start_dt.time() > office_start_time:
+                late_checkins += 1
+            if end_dt and end_dt.time() < office_end_time:
+                early_checkouts += 1
+
+        average_hours_per_day = round(worked_hours_total / complete_days, 1) if complete_days else 0.0
+        completion_rate = round((complete_days / len(employee_rows)) * 100, 1) if employee_rows else 0.0
+        latest_row = employee_rows[-1] if employee_rows else None
+
+        total_complete_days += complete_days
+        total_late_checkins += late_checkins
+        total_early_checkouts += early_checkouts
+        total_hours += worked_hours_total
+
+        employees_payload.append({
+            'staff_id': staff_id,
+            'name': employee.fullname,
+            'org_name': employee.org.name if employee.org else '',
+            'position': employee.position or (employee.job_position.th_title if employee.job_position else ''),
+            'academic_staff': bool(employee.academic_staff),
+            'complete_days': complete_days,
+            'late_checkins': late_checkins,
+            'early_checkouts': early_checkouts,
+            'average_hours_per_day': average_hours_per_day,
+            'completion_rate': completion_rate,
+            'days_with_records': len(employee_rows),
+        })
+
+    employees_payload.sort(key=lambda item: (-item['complete_days'], item['name']))
+    total_employees_with_records = sum(1 for item in employees_payload if item['days_with_records'])
+    average_hours_per_day = round(total_hours / total_complete_days, 1) if total_complete_days else 0.0
+
+    return {
+        'date_range': {
+            'start': start_date.isoformat(),
+            'end': end_date.isoformat(),
+        },
+        'totals': {
+            'employees': len(employees_payload),
+            'employees_with_records': total_employees_with_records,
+            'complete_days': total_complete_days,
+            'late_checkins': total_late_checkins,
+            'early_checkouts': total_early_checkouts,
+            'total_hours': round(total_hours, 1),
+            'average_hours_per_day': average_hours_per_day,
+        },
+        'employees': employees_payload,
+    }
 
 
 def _calculate_work_hours(start_dt, end_dt):
@@ -3083,9 +3208,28 @@ def summary_index():
 @manager_or_secretary_permission.require()
 @login_required
 def login_summary():
+    today = datetime.today().date()
+    start_date = date(today.year, today.month, 1)
+    end_date = today
     return render_template('staff/login_summary.html',
                            tab='login',
-                           curr_dept_id=current_user.personal_info.org.id)
+                           curr_dept_id=current_user.personal_info.org.id,
+                           summary_start_date=start_date.strftime('%d/%m/%Y'),
+                           summary_end_date=end_date.strftime('%d/%m/%Y'))
+
+
+@staff.route('/api/login-summary')
+@manager_or_secretary_permission.require()
+@login_required
+def get_login_summary_data():
+    dept_id = request.args.get('dept_id', type=int) or current_user.personal_info.org.id
+    today = datetime.today().date()
+    default_start = date(today.year, today.month, 1)
+    start_date = _parse_login_summary_date(request.args.get('start'), default=default_start)
+    end_date = _parse_login_summary_date(request.args.get('end'), default=today)
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    return jsonify(_build_login_summary_dashboard(start_date, end_date, dept_id))
 
 
 @staff.route('/summary/logins/export', methods=['POST'])
