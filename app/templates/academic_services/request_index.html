@@ -302,7 +302,7 @@
                                 var url = '/academic_services/portal/request?code=' + row.code + '&menu=' + '{{ menu }}' + '&request_id=' + data;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
                                     '<span>แก้ไข</span>' +
                                     '</a>' +
@@ -351,7 +351,7 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>'
-                            } else if (row.is_completed && row.status_id == 1) {
+                            } else if (row.is_completed && row.status_id == 1 && row.has_quotation == null) {
                                 var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -373,13 +373,13 @@
                                 var url = '/academic_services/portal/request?code=' + row.code + '&menu=' + '{{ menu }}' + '&request_id=' + data;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-rounded is-warning" ' + 'href=' + url + '>' +
+                                    '<a class="button is-small is-light is-rounded is-warning" ' + 'href=' + url + '>' +
                                     '<span class="icon"><i class="fas fa-pen"></i></span>' +
                                     '<span>แก้ไข</span>' +
                                     '</a>' +
                                     '</div>' +
                                     '<div class="control">' +
-                                    '<a class="button is-small is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
+                                    '<a class="button is-small is-light is-danger is-rounded" onclick="vm.warn(' + data + ')">' +
                                     '<span class="icon">' +
                                     '<i class="fas fa-ban"></i>' +
                                     '</span>' +
