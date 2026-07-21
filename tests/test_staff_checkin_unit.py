@@ -288,6 +288,55 @@ def test_to_bangkok_normalizes_naive_utc_datetimes(staff_views):
     assert converted.isoformat() == "2026-06-26T07:48:00+07:00"
 
 
+@pytest.mark.parametrize(
+    ("start_time", "end_time", "expected_hours"),
+    [
+        ((7, 30), (17, 30), 8.0),
+        ((8, 30), (16, 30), 8.0),
+        ((9, 15), (18, 45), 8.0),
+        ((9, 15), (15, 0), 5.8),
+        ((6, 30), (7, 30), 0.0),
+        ((18, 0), (19, 0), 1.0),
+    ],
+)
+def test_calculate_work_hours_starts_at_eight_and_caps_total(
+    staff_views, start_time, end_time, expected_hours
+):
+    tz = pytz.timezone("Asia/Bangkok")
+    start_dt = tz.localize(datetime(2026, 6, 26, *start_time))
+    end_dt = tz.localize(datetime(2026, 6, 26, *end_time))
+
+    assert staff_views._calculate_work_hours(start_dt, end_dt) == expected_hours
+
+
+def test_calculate_work_hours_requires_checkout(staff_views):
+    start_dt = pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 8, 0))
+
+    assert staff_views._calculate_work_hours(start_dt, None) is None
+
+
+def test_work_login_event_style_uses_warning_for_short_hours(staff_views):
+    text_color, background_color, border_color, class_names = (
+        staff_views._work_login_event_style(True, True, True)
+    )
+
+    assert text_color == "#10264c"
+    assert background_color == "#fff3bf"
+    assert border_color == "#e6cf73"
+    assert class_names == ["is-late-login", "is-short-hours"]
+
+
+def test_work_login_event_style_uses_soft_green_for_complete_hours(staff_views):
+    text_color, background_color, border_color, class_names = (
+        staff_views._work_login_event_style(False, False, True)
+    )
+
+    assert text_color == "#245b38"
+    assert background_color == "#e4f3e9"
+    assert border_color == "#b8ddc4"
+    assert class_names == ["is-complete-hours"]
+
+
 def test_get_login_records_collapses_multiple_scans_and_filters_by_department(staff_views, monkeypatch):
     tz = pytz.timezone("Asia/Bangkok")
     org_id = 41

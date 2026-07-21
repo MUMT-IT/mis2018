@@ -176,6 +176,31 @@ def _daily_work_login_rows(records):
     return rows
 
 
+def _calculate_work_hours(start_dt, end_dt):
+    if not start_dt or not end_dt:
+        return None
+
+    workday_start = start_dt.replace(hour=8, minute=0, second=0, microsecond=0)
+    effective_start = max(start_dt, workday_start)
+    worked_seconds = max(0, (end_dt - effective_start).total_seconds())
+    return min(8.0, round(worked_seconds / 3600.0, 1))
+
+
+def _work_login_event_style(is_late, hours_is_negative, has_checkout):
+    class_names = []
+    if is_late:
+        class_names.append('is-late-login')
+    if hours_is_negative:
+        class_names.append('is-short-hours')
+        return '#10264c', '#fff3bf', '#e6cf73', class_names
+    if is_late:
+        return '#8b1e1e', '#f8caca', '#e59b9b', class_names
+    if has_checkout:
+        class_names.append('is-complete-hours')
+        return '#245b38', '#e4f3e9', '#b8ddc4', class_names
+    return '#ffffff', '#7d9df0', '#f56956', class_names
+
+
 def get_fiscal_date(date):
     if date.month >= 10:
         start_fiscal_date = datetime(date.year, 10, 1)
@@ -2899,6 +2924,7 @@ def send_summary_data():
     wfhs = []
     seminars = []
     logins = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
     for emp in employees:
         if tab in ['login', 'all']:
             for row in _daily_work_login_rows(
@@ -2907,9 +2933,24 @@ def send_summary_data():
                 .all()
             ):
                 end = row['end']
-                border_color = '#ffffff' if end else '#f56956'
-                text_color = '#ffffff'
-                bg_color = '#7d9df0'
+                start_dt = parser.isoparse(row['start']) if row['start'] else None
+                end_dt = parser.isoparse(end) if end else None
+                hours_delta = None
+                worked_hours = _calculate_work_hours(start_dt, end_dt)
+                if worked_hours is not None:
+                    hours_delta = round(worked_hours - 8.0, 1)
+                    if abs(hours_delta) < 0.05:
+                        hours_delta = 0.0
+                hours_is_negative = False
+                worked_hours_display = None
+                if hours_delta is not None:
+                    hours_is_negative = hours_delta < 0
+                if worked_hours is not None:
+                    worked_hours_display = '{:.1f} hrs.'.format(worked_hours)
+                is_late = bool(start_dt and start_dt.time() > office_start_time)
+                text_color, bg_color, border_color, class_names = _work_login_event_style(
+                    is_late, hours_is_negative, bool(end)
+                )
                 '''
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
@@ -2935,6 +2976,11 @@ def send_summary_data():
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,
+                    'hours_is_negative': hours_is_negative,
+                    'worked_hours_display': worked_hours_display,
+                    'worked_hours': worked_hours,
+                    'is_late': is_late,
+                    'className': class_names,
                     'type': 'login'
                 })
 
@@ -4545,11 +4591,21 @@ def send_time_report_data():
         .all()
     )
     records = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
     for row in rows:
-        # The event object is a dict object with a 'summary' key.
-        text_color = '#ffffff'
-        bg_color = '#4da6ff'
-        border_color = '#ffffff'
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        hours_is_negative = False
+        worked_hours_display = None
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        if worked_hours is not None:
+            hours_is_negative = worked_hours < 8.0
+            worked_hours_display = '{:.1f} hrs.'.format(worked_hours)
+
+        is_late = bool(start_dt and start_dt.time() > office_start_time)
+        text_color, bg_color, border_color, class_names = _work_login_event_style(
+            is_late, hours_is_negative, bool(row['end'])
+        )
         records.append({
             'id': f"{row['staff_id']}-{row['date'].isoformat()}",
             'start': row['start'],
@@ -4558,6 +4614,11 @@ def send_time_report_data():
             'backgroundColor': bg_color,
             'borderColor': border_color,
             'textColor': text_color,
+            'worked_hours_display': worked_hours_display,
+            'worked_hours': worked_hours,
+            'hours_is_negative': hours_is_negative,
+            'is_late': is_late,
+            'className': class_names,
             'type': 'login'
         })
     return jsonify(records)
