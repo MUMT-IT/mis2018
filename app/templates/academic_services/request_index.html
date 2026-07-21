@@ -387,7 +387,24 @@
                                     '</a>' +
                                     '</div>' +
                                     '</div>';
-                            } else {
+                            } else if (row.has_result != null) {
+                                return '<div class="field has-addons">' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-warning is-light is-rounded" onclick="vm.copy(' + data + ')">' +
+                                    '<span class="icon">' +
+                                    '<i class="fas fa-copy"></i>' +
+                                    '</span>' +
+                                    '<span>คัดลอก</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '<div class="control">' +
+                                    '<a class="button is-small is-light is-rounded is-info" ' + 'href=' + url + '>' +
+                                    '<span class="icon"><i class="fas fa-eye"></i></span>' +
+                                    '<span>รายละเอียด</span>' +
+                                    '</a>' +
+                                    '</div>' +
+                                    '</div>';
+                            }else {
                                 var url = '/academic_services/request/view/' + data + '?menu=' + '{{ menu }}';
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -451,6 +468,16 @@
                             window.location.href = url;
                         },
                         type: 'is-danger'
+                    });
+                },
+                copy: function (request_id) {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการคัดลอกใบคำขอรับบริการนี้จริงหรือไม่',
+                        onConfirm: () => {
+                            const url = `/academic_services/request/copy/${request_id}`;
+                            window.location.href = url;
+                        },
+                        type: 'is-info'
                     });
                 }
             }
