@@ -219,7 +219,7 @@
                         </div>
                         <div class="field">
                             <div class="buttons is-centered">
-                                {% if service_request.status.status_id == 1 %}
+                                {% if service_request.status.status_id == 1 or service_request.status.status_id == 9 %}
                                     <form method="post"
                                           action="{{ url_for('academic_services.request_quotation',
                                               request_id=service_request.id, menu=menu) }}"
@@ -237,13 +237,14 @@
                                         <span class="icon"><i class="fas fa-pen"></i></span>
                                         <span>แก้ไขข้อมูลคำขอ</span>
                                     </a>
+                                {% endif %}
+                                {% if service_request.status.status_id == 1 and not service_request.quotations %}
                                     <a class="button is-rounded is-danger is-outlined is-small mb-2"
                                        @click="cancel({{ service_request.id }})"
                                     >
                                         <span class="icon"><i class="fas fa-ban"></i></span>
                                         <span>ยกเลิกคำขอรับบริการ</span>
                                     </a>
-                                    </li>
                                 {% endif %}
 {#                                <a class="button is-link is-outlined is-rounded is-small mb-2"#}
 {#                                   href="{{ url_for('academic_services.export_request_pdf', code=service_request.sub_lab.code,#}
