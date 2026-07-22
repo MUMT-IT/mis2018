@@ -460,6 +460,32 @@
         min-height: 720px;
     }
 
+    .staff-login-calendar-frame {
+        position: relative;
+    }
+
+    .staff-login-calendar-loading {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        display: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        gap: 0.45rem;
+        left: 50%;
+        padding: 0.55rem 0.9rem;
+        position: absolute;
+        top: 0.75rem;
+        transform: translateX(-50%);
+        z-index: 5;
+    }
+
+    .staff-login-calendar-frame.is-loading .staff-login-calendar-loading {
+        display: inline-flex;
+    }
+
     .staff-login-calendar .fc,
     .staff-login-calendar .fc-view-container,
     .staff-login-calendar .fc-view,
@@ -736,7 +762,13 @@
                 <p class="staff-login-calendar-note mb-3">
                     ใช้ปฏิทินนี้เพื่อดูภาพรวมรายเดือน ส่วนแถบด้านบนจะสรุปตามช่วงวันที่ที่เลือก
                 </p>
-                <div id="calendar" class="staff-login-calendar"></div>
+                <div class="staff-login-calendar-frame" id="calendarFrame">
+                    <div id="calendar" class="staff-login-calendar"></div>
+                    <div class="staff-login-calendar-loading" id="calendarLoading" role="status" aria-live="polite">
+                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                        กำลังโหลดปฏิทิน...
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -982,6 +1014,9 @@
             eventLimit: false,
             timeFormat: 'H(:mm)',
             navLinks: true,
+            loading: function(isLoading) {
+                $('#calendarFrame').toggleClass('is-loading', isLoading);
+            },
             eventDataTransform: function(event) {
                 // These endpoints also return pending requests. The summary
                 // calendar should show only approved, active leave and WFH requests.
@@ -1047,6 +1082,11 @@
                 $('#exportDatePicker').val(monthStart.format('DD/MM/YYYY') + ' - ' + monthEnd.format('DD/MM/YYYY'));
             }
         });
+
+        // Ensure all event sources are fetched after the initial month is ready.
+        setTimeout(function() {
+            $('#calendar').fullCalendar('refetchEvents');
+        }, 0);
 
         $('#calendarPrev').on('click', function() {
             $('#calendar').fullCalendar('prev');
