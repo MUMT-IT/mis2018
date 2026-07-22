@@ -1,6 +1,10 @@
-import itertools
+﻿import itertools
+import json
 import re
 import uuid
+from collections import defaultdict
+from html import escape
+import requests
 import qrcode
 import arrow
 import pandas
@@ -29,6 +33,7 @@ from app.service_admin.forms import *
 from app.main import app, get_credential
 from app.main import mail
 from flask_mail import Message
+from ..roles import admin_permission
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -37,6 +42,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 
 localtz = timezone('Asia/Bangkok')
+TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
+TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -64,8 +71,8 @@ def generate_url(file_url):
     return url
 
 
-def send_mail(recp, title, message):
-    message = Message(subject=title, body=message, recipients=recp)
+def send_mail(recp, title, message, html=None):
+    message = Message(subject=title, body=message, recipients=recp, html=html)
     mail.send(message)
 
 
@@ -77,6 +84,259 @@ def format_data(data):
     elif isinstance(data, (date)):
         return data.isoformat()
     return data
+
+
+def _normalize_internal_email(email_value):
+    if not email_value:
+        return None
+    email_value = email_value.strip()
+    if not email_value:
+        return None
+    if '@' not in email_value:
+        email_value = f'{email_value}@mahidol.ac.th'
+    return email_value
+
+
+def _request_flag(name, default=False):
+    raw_value = request.values.get(name)
+    if raw_value is None:
+        return default
+    return str(raw_value).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
+
+
+def _mask_line_id(line_id):
+    if not line_id:
+        return None
+    if len(line_id) <= 6:
+        return '***'
+    return f'{line_id[:3]}***{line_id[-3:]}'
+
+
+def _is_valid_service_admin_scheduler_request():
+    configured_token = os.environ.get('JOB_TOKEN')
+    request_token = request.values.get('job_token')
+    return bool(configured_token and request_token and request_token == configured_token)
+
+
+def _get_service_admin_display_name(admin_row):
+    staff = admin_row.admin if admin_row else None
+    if not staff:
+        return None
+    for attr in ('fullname', 'name'):
+        value = getattr(staff, attr, None)
+        if value:
+            value = str(value).strip()
+            if value:
+                return value
+    email = _normalize_internal_email(getattr(staff, 'email', None))
+    return email or None
+
+
+def _get_service_admin_lab_name(admin_row):
+    sub_lab = admin_row.sub_lab if admin_row else None
+    lab = sub_lab.lab if sub_lab and sub_lab.lab else None
+    if lab and getattr(lab, 'lab', None):
+        lab_name = str(lab.lab).strip()
+        if lab_name:
+            return lab_name
+    if sub_lab and getattr(sub_lab, 'sub_lab', None):
+        sub_lab_name = str(sub_lab.sub_lab).strip()
+        if sub_lab_name:
+            return sub_lab_name
+    return 'ไม่ระบุห้องปฏิบัติการ'
+
+
+def _group_service_admin_recipients(predicate):
+    recipients = {}
+    query = ServiceAdmin.query.join(ServiceAdmin.admin).join(ServiceAdmin.sub_lab)
+    for admin_row in query.all():
+        if not predicate(admin_row):
+            continue
+        display_name = _get_service_admin_display_name(admin_row)
+        if not display_name:
+            continue
+        lab_name = _get_service_admin_lab_name(admin_row)
+        lab_key = getattr(admin_row.sub_lab, 'lab_id', None) or f'lab:{lab_name}'
+        staff = admin_row.admin
+        recipient = recipients.setdefault(lab_key, {
+            'lab_id': getattr(admin_row.sub_lab, 'lab_id', None),
+            'lab_name': lab_name,
+            'name': lab_name,
+            'admin_ids': set(),
+            'line_ids': set(),
+            'emails': set(),
+            'sub_lab_ids': set(),
+            'sub_lab_names': set(),
+            'admin_names': set(),
+            'roles': set(),
+        })
+        recipient['admin_ids'].add(admin_row.admin_id)
+        if display_name:
+            recipient['admin_names'].add(display_name)
+        line_id = getattr(staff, 'line_id', None)
+        if line_id:
+            line_id = str(line_id).strip()
+            if line_id:
+                recipient['line_ids'].add(line_id)
+        email = _normalize_internal_email(getattr(staff, 'email', None))
+        if email:
+            recipient['emails'].add(email)
+        if admin_row.sub_lab_id:
+            recipient['sub_lab_ids'].add(admin_row.sub_lab_id)
+        if admin_row.sub_lab and admin_row.sub_lab.sub_lab:
+            recipient['sub_lab_names'].add(admin_row.sub_lab.sub_lab)
+        if admin_row.is_supervisor:
+            recipient['roles'].add('supervisor')
+        if admin_row.is_assistant:
+            recipient['roles'].add('assistant')
+        if admin_row.is_central_admin:
+            recipient['roles'].add('central_admin')
+
+    normalized = []
+    for recipient in recipients.values():
+        normalized.append({
+            'lab_id': recipient['lab_id'],
+            'lab_name': recipient['lab_name'],
+            'name': recipient['name'],
+            'admin_ids': sorted(recipient['admin_ids']),
+            'line_ids': sorted(recipient['line_ids']),
+            'line_id': sorted(recipient['line_ids'])[0] if recipient['line_ids'] else None,
+            'emails': sorted(recipient['emails']),
+            'email': sorted(recipient['emails'])[0] if recipient['emails'] else None,
+            'sub_lab_ids': sorted(recipient['sub_lab_ids']),
+            'sub_lab_names': sorted(recipient['sub_lab_names']),
+            'admin_names': sorted(recipient['admin_names']),
+            'roles': sorted(recipient['roles']),
+        })
+    return sorted(normalized, key=lambda item: item['lab_name'])
+
+
+def _build_service_admin_scope_label(recipient):
+    sub_lab_names = recipient.get('sub_lab_names') or []
+    if not sub_lab_names:
+        return 'ทุกหน่วยงาน'
+    if len(sub_lab_names) <= 3:
+        return ', '.join(sub_lab_names)
+    return f"{', '.join(sub_lab_names[:3])} และอีก {len(sub_lab_names) - 3} หน่วยงาน"
+
+
+def _group_service_admin_recipients_by_sub_lab(predicate):
+    recipients = {}
+    query = ServiceAdmin.query.join(ServiceAdmin.admin).join(ServiceAdmin.sub_lab)
+    for admin_row in query.all():
+        if not predicate(admin_row):
+            continue
+        sub_lab_id = admin_row.sub_lab_id
+        sub_lab_name = admin_row.sub_lab.sub_lab if admin_row.sub_lab and admin_row.sub_lab.sub_lab else 'ไม่ระบุหน่วยงาน'
+        staff = admin_row.admin
+        email = _normalize_internal_email(getattr(staff, 'email', None))
+        display_name = _get_service_admin_display_name(admin_row)
+        if sub_lab_id not in recipients:
+            recipients[sub_lab_id] = {
+                'sub_lab_id': sub_lab_id,
+                'sub_lab_name': sub_lab_name,
+                'emails': set(),
+                'names': set(),
+                'line_ids': set(),
+                'roles': set(),
+            }
+        recipient = recipients[sub_lab_id]
+        if email:
+            recipient['emails'].add(email)
+        if display_name:
+            recipient['names'].add(display_name)
+        line_id = getattr(staff, 'line_id', None)
+        if line_id:
+            line_id = str(line_id).strip()
+            if line_id:
+                recipient['line_ids'].add(line_id)
+        if admin_row.is_supervisor:
+            recipient['roles'].add('supervisor')
+        if admin_row.is_assistant:
+            recipient['roles'].add('assistant')
+        if admin_row.is_central_admin:
+            recipient['roles'].add('central_admin')
+
+    normalized = []
+    for recipient in recipients.values():
+        normalized.append({
+            'sub_lab_id': recipient['sub_lab_id'],
+            'sub_lab_name': recipient['sub_lab_name'],
+            'emails': sorted(recipient['emails']),
+            'names': sorted(recipient['names']),
+            'line_ids': sorted(recipient['line_ids']),
+            'roles': sorted(recipient['roles']),
+            'name': recipient['sub_lab_name'],
+            'email': sorted(recipient['emails'])[0] if recipient['emails'] else None,
+            'sub_lab_ids': [recipient['sub_lab_id']] if recipient['sub_lab_id'] else [],
+            'sub_lab_names': [recipient['sub_lab_name']] if recipient['sub_lab_name'] else [],
+        })
+    return sorted(normalized, key=lambda item: item['sub_lab_name'])
+
+
+def _group_service_admin_recipients_by_lab(predicate):
+    recipients = {}
+    query = ServiceAdmin.query.join(ServiceAdmin.admin).join(ServiceAdmin.sub_lab).join(ServiceSubLab.lab)
+    for admin_row in query.all():
+        if not predicate(admin_row):
+            continue
+        display_name = _get_service_admin_display_name(admin_row)
+        if not display_name:
+            continue
+        lab_name = _get_service_admin_lab_name(admin_row)
+        lab_id = admin_row.sub_lab.lab_id if admin_row.sub_lab else None
+        group_key = lab_id or lab_name
+        staff = admin_row.admin
+        recipient = recipients.setdefault(group_key, {
+            'lab_id': lab_id,
+            'lab_name': lab_name,
+            'name': lab_name,
+            'admin_ids': set(),
+            'admin_names': set(),
+            'line_ids': set(),
+            'emails': set(),
+            'sub_lab_ids': set(),
+            'sub_lab_names': set(),
+            'roles': set(),
+        })
+        recipient['admin_ids'].add(admin_row.admin_id)
+        recipient['admin_names'].add(display_name)
+        line_id = getattr(staff, 'line_id', None)
+        if line_id:
+            line_id = str(line_id).strip()
+            if line_id:
+                recipient['line_ids'].add(line_id)
+        email = _normalize_internal_email(getattr(staff, 'email', None))
+        if email:
+            recipient['emails'].add(email)
+        if admin_row.sub_lab_id:
+            recipient['sub_lab_ids'].add(admin_row.sub_lab_id)
+        if admin_row.sub_lab and admin_row.sub_lab.sub_lab:
+            recipient['sub_lab_names'].add(admin_row.sub_lab.sub_lab)
+        if admin_row.is_supervisor:
+            recipient['roles'].add('supervisor')
+        if admin_row.is_assistant:
+            recipient['roles'].add('assistant')
+        if admin_row.is_central_admin:
+            recipient['roles'].add('central_admin')
+
+    normalized = []
+    for recipient in recipients.values():
+        normalized.append({
+            'lab_id': recipient['lab_id'],
+            'lab_name': recipient['lab_name'],
+            'name': recipient['lab_name'],
+            'admin_ids': sorted(recipient['admin_ids']),
+            'admin_names': sorted(recipient['admin_names']),
+            'line_ids': sorted(recipient['line_ids']),
+            'line_id': sorted(recipient['line_ids'])[0] if recipient['line_ids'] else None,
+            'emails': sorted(recipient['emails']),
+            'email': sorted(recipient['emails'])[0] if recipient['emails'] else None,
+            'sub_lab_ids': sorted(recipient['sub_lab_ids']),
+            'sub_lab_names': sorted(recipient['sub_lab_names']),
+            'roles': sorted(recipient['roles']),
+        })
+    return sorted(normalized, key=lambda item: item['lab_name'])
 
 
 def get_status(s_id):
@@ -112,6 +372,781 @@ def build_notification(invoice, service_request, link):
                        )
            )
     return title, message, msg
+
+
+def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
+    now = arrow.now('Asia/Bangkok')
+    cutoff_60 = now.shift(days=-60).datetime
+    cutoff_90 = now.shift(days=-90).datetime
+
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .filter(ServiceInvoice.file_attached_at.isnot(None))
+    )
+    if sub_lab_ids:
+        query = query.filter(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
+
+    overdue_60 = []
+    overdue_90 = []
+    top_labs = defaultdict(int)
+    for invoice in query.filter(ServiceInvoice.file_attached_at <= cutoff_60).all():
+        if invoice.paid_at:
+            continue
+        days_overdue = max((now.datetime - invoice.file_attached_at).days, 0)
+        lab_name = invoice.quotation.request.sub_lab.sub_lab if invoice.quotation and invoice.quotation.request and invoice.quotation.request.sub_lab else 'ไม่ระบุหน่วยงาน'
+        item = {
+            'invoice_id': invoice.id,
+            'invoice_no': invoice.invoice_no,
+            'request_no': invoice.quotation.request.request_no if invoice.quotation and invoice.quotation.request else None,
+            'lab_name': lab_name,
+            'file_attached_at': invoice.file_attached_at,
+            'days_overdue': days_overdue,
+            'amount': float(invoice.grand_total) if getattr(invoice, 'grand_total', None) is not None else None,
+        }
+        overdue_60.append(item)
+        top_labs[lab_name] += 1
+        if invoice.file_attached_at <= cutoff_90:
+            overdue_90.append(item)
+
+    overdue_60.sort(key=lambda item: (item['days_overdue'], item['invoice_no'] or ''))
+    overdue_90.sort(key=lambda item: (item['days_overdue'], item['invoice_no'] or ''))
+    return {
+        'generated_at': now.strftime('%d/%m/%Y %H:%M'),
+        'cutoff_60': cutoff_60,
+        'cutoff_90': cutoff_90,
+        'overdue_60_count': len(overdue_60),
+        'overdue_90_count': len(overdue_90),
+        'overdue_60_items': overdue_60,
+        'overdue_90_items': overdue_90,
+        'invoice_top_labs': sorted(top_labs.items(), key=lambda item: (-item[1], item[0])),
+    }
+
+
+def _build_service_admin_result_snapshot(sub_lab_ids=None):
+    query = (
+        ServiceResult.query
+        .join(ServiceResult.request)
+        .join(ServiceRequest.samples)
+        .filter(ServiceSample.received_at.isnot(None))
+    )
+    if sub_lab_ids:
+        query = query.filter(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
+
+    issued = []
+    pending = []
+    top_labs = defaultdict(int)
+    for result in query.distinct().all():
+        request = result.request
+        lab_name = request.sub_lab.sub_lab if request and request.sub_lab else 'ไม่ระบุหน่วยงาน'
+        has_draft = any(item.draft_file for item in result.result_items)
+        sample_received_at = None
+        if request and request.samples:
+            received_values = [sample.received_at for sample in request.samples if sample.received_at]
+            sample_received_at = max(received_values) if received_values else None
+        item = {
+            'result_id': result.id,
+            'request_id': result.request_id,
+            'request_no': request.request_no if request else None,
+            'lab_name': lab_name,
+            'sample_received_at': sample_received_at,
+            'has_draft_file': has_draft,
+        }
+        top_labs[lab_name] += 1
+        if has_draft:
+            issued.append(item)
+        else:
+            pending.append(item)
+
+    issued.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
+    pending.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
+    return {
+        'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
+        'issued_count': len(issued),
+        'pending_count': len(pending),
+        'issued_items': issued,
+        'pending_items': pending,
+        'result_top_labs': sorted(top_labs.items(), key=lambda item: (-item[1], item[0])),
+    }
+
+
+def _build_service_admin_summary_snapshot(sub_lab_ids=None):
+    overdue_snapshot = _build_service_admin_overdue_snapshot(sub_lab_ids=sub_lab_ids)
+    result_snapshot = _build_service_admin_result_snapshot(sub_lab_ids=sub_lab_ids)
+    return {
+        **overdue_snapshot,
+        **result_snapshot,
+    }
+
+
+def _build_service_admin_summary_prompt(snapshot):
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'You are writing a concise monthly management summary in Thai for one service unit at a time. '
+                'Summarize only backlog, payment aging, and report completion status. '
+                'Do not include personal names, IDs, phone numbers, emails, invoice numbers, request numbers, or raw record-level detail. '
+                'Use a formal internal memo tone. '
+                'Keep the writing short, clear, and actionable. '
+                'Use this structure only: '
+                '1) ภาพรวม 1 short paragraph, '
+                '2) ประเด็นที่ควรติดตาม 3 bullet points, '
+                '3) ข้อเสนอแนะสำหรับเดือนถัดไป 1 short paragraph.'
+            )
+        },
+        {
+            'role': 'user',
+            'content': (
+                'สรุปข้อมูลต่อไปนี้เป็นภาษาไทยสำหรับผู้บริหาร โดยไม่ลงรายละเอียดรายกรณี และให้เหมาะกับการส่งเฉพาะหน่วยงาน:\n'
+                f'{json.dumps(snapshot, ensure_ascii=False, indent=2)}'
+            )
+        }
+    ]
+
+
+def _call_typhoon_service_admin_summary(snapshot):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.2,
+            'max_tokens': 700,
+            'messages': _build_service_admin_summary_prompt(snapshot),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    if not content or not content.strip():
+        raise ValueError('Empty Typhoon summary response.')
+    return content.strip()
+
+
+def _build_fallback_service_admin_summary(snapshot):
+    invoice_top_labs = ', '.join(
+        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
+    ) or 'ไม่มีหน่วยงานที่มียอดคงค้าง'
+    result_top_labs = ', '.join(
+        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
+    ) or 'ไม่มีหน่วยงานที่มียอดรายงานผลค้าง'
+    return (
+        f"ภาพรวม\n"
+        f"หน่วยงานนี้มีใบแจ้งหนี้ค้างชำระเกิน 60 วันจำนวน {snapshot['overdue_60_count']} ใบ และเกิน 90 วันจำนวน {snapshot['overdue_90_count']} ใบ "
+        f"โดยรายการคงค้างกระจุกตัวอยู่ที่ {invoice_top_labs}. "
+        f"ด้านงานทดสอบ มีรายการที่รับตัวอย่างแล้วและออกใบรายงานผลแล้ว {snapshot['issued_count']} รายการ "
+        f"ขณะที่ยังไม่ออกใบรายงานผล {snapshot['pending_count']} รายการ โดยประเด็นที่ควรเร่งติดตามคือ {result_top_labs}.\n\n"
+        f"ประเด็นที่ควรติดตาม\n"
+        f"- เร่งติดตามใบแจ้งหนี้ที่ค้างเกิน 60 วันและ 90 วันเป็นพิเศษ\n"
+        f"- เร่งปิดงานทดสอบที่รับตัวอย่างแล้วแต่ยังไม่มี draft_file\n"
+        f"- ตรวจสอบรายการที่ค้างต่อเนื่องและกำหนดผู้รับผิดชอบให้ชัดเจน\n\n"
+        f"ข้อเสนอแนะสำหรับเดือนถัดไป\n"
+        f"ควรติดตามสถานะงานและยอดคงค้างรายเดือนอย่างต่อเนื่อง เพื่อป้องกันการสะสมของงานค้างและช่วยให้การปิดงานเป็นไปตามแผน"
+    )
+
+
+def _build_service_admin_summary_package(recipient, snapshot_cache=None):
+    snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
+    snapshot = snapshot_cache.get('global')
+    if snapshot is None:
+        snapshot = _build_service_admin_summary_snapshot()
+        snapshot_cache['global'] = snapshot
+
+    try:
+        if any((snapshot.get('overdue_60_count', 0), snapshot.get('overdue_90_count', 0),
+                snapshot.get('pending_count', 0), snapshot.get('issued_count', 0))):
+            ai_summary = _call_typhoon_service_admin_summary(snapshot)
+        else:
+            ai_summary = _build_fallback_service_admin_summary(snapshot)
+    except Exception:
+        current_app.logger.exception('Failed to generate service_admin summary with Typhoon AI for %s.', recipient.get('email'))
+        ai_summary = _build_fallback_service_admin_summary(snapshot)
+
+    subject = (
+        f"สรุปเรื่องคงค้างงานบริการวิชาการ - {recipient['sub_lab_name']} "
+        f"({arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M')})"
+    )
+    message = (
+        f"เรียนผู้รับผิดชอบหน่วยงาน {recipient['sub_lab_name']}\n\n"
+        f"{ai_summary}\n\n"
+        f"ตัวเลขสรุป\n"
+        f"- ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
+        f"- ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
+        f"- งานที่รับตัวอย่างแล้วและออกใบรายงานผลแล้ว: {snapshot['issued_count']} รายการ\n"
+        f"- งานที่รับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล: {snapshot['pending_count']} รายการ\n"
+    )
+    return {
+        'recipient': recipient,
+        'snapshot': snapshot,
+        'subject': subject,
+        'message': message,
+        'ai_summary': ai_summary,
+    }
+
+
+def _build_service_admin_line_reminder_message(recipient, snapshot):
+    invoice_top_labs = ', '.join(
+        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
+    ) or 'ไม่มีรายการค้าง'
+    result_top_labs = ', '.join(
+        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
+    ) or 'ไม่มีรายการค้าง'
+    return (
+        f"แจ้งเตือนงานคงค้างงานบริการวิชาการ\n"
+        f"หน่วยงาน: {recipient['sub_lab_name']}\n"
+        f"ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
+        f"ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
+        f"งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล: {snapshot['pending_count']} รายการ\n"
+        f"รายการใบแจ้งหนี้ค้างหลัก: {invoice_top_labs}\n"
+        f"รายการรายงานผลค้างหลัก: {result_top_labs}\n"
+        f"กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม"
+    )
+
+
+def _build_service_admin_line_reminder_message(recipient, snapshot):
+    unit_label = recipient.get('sub_lab_name') or _build_service_admin_scope_label(recipient)
+    invoice_top_labs = ', '.join(
+        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
+    ) or 'ไม่มีรายการค้าง'
+    result_top_labs = ', '.join(
+        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
+    ) or 'ไม่มีรายการค้าง'
+    return (
+        f"แจ้งเตือนงานคงค้างงานบริการวิชาการ\n"
+        f"หน่วยงาน: {unit_label}\n"
+        f"ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
+        f"ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
+        f"งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผลการทดสอบ: {snapshot['pending_count']} รายการ\n"
+        f"รายการใบแจ้งหนี้ค้างหลัก: {invoice_top_labs}\n"
+        f"รายการรายงานผลค้างหลัก: {result_top_labs}\n"
+        f"กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม"
+    )
+
+
+def _build_service_admin_line_reminder_message_by_lab(recipient, snapshot):
+    lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
+    invoice_top_labs = ', '.join(
+        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
+    ) or 'ไม่มีรายการค้าง'
+    result_top_labs = ', '.join(
+        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
+    ) or 'ไม่มีรายการค้าง'
+    return (
+        f"แจ้งเตือนงานคงค้างงานบริการวิชาการ\n"
+        f"ห้องปฏิบัติการ: {lab_name}\n"
+        f"ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
+        f"ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
+        f"งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผลการทดสอบ: {snapshot['pending_count']} รายการ\n"
+        f"รายการใบแจ้งหนี้ค้างหลัก: {invoice_top_labs}\n"
+        f"รายการรายงานผลค้างหลัก: {result_top_labs}\n"
+        f"กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม"
+    )
+
+
+def _build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=None):
+    snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
+    cache_key = tuple(recipient.get('sub_lab_ids') or [])
+    snapshot = snapshot_cache.get(cache_key)
+    if snapshot is None:
+        snapshot = _build_service_admin_overdue_snapshot(sub_lab_ids=recipient.get('sub_lab_ids') or None)
+        result_snapshot = _build_service_admin_result_snapshot(sub_lab_ids=recipient.get('sub_lab_ids') or None)
+        snapshot = {**snapshot, **result_snapshot}
+        snapshot_cache[cache_key] = snapshot
+    message = _build_service_admin_line_reminder_message_by_lab(recipient, snapshot)
+    return {
+        'recipient': recipient,
+        'snapshot': snapshot,
+        'message': message,
+    }
+
+
+def _build_service_admin_summary_package_by_lab(recipient, snapshot_cache=None):
+    snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
+    cache_key = tuple(recipient.get('sub_lab_ids') or [])
+    snapshot = snapshot_cache.get(cache_key)
+    if snapshot is None:
+        snapshot = _build_service_admin_summary_snapshot(sub_lab_ids=recipient.get('sub_lab_ids') or None)
+        snapshot_cache[cache_key] = snapshot
+
+    try:
+        if any((snapshot.get('overdue_60_count', 0), snapshot.get('overdue_90_count', 0),
+                snapshot.get('pending_count', 0), snapshot.get('issued_count', 0))):
+            ai_summary = _call_typhoon_service_admin_summary(snapshot)
+        else:
+            ai_summary = _build_fallback_service_admin_summary(snapshot)
+    except Exception:
+        current_app.logger.exception('Failed to generate service_admin summary with Typhoon AI for %s.', recipient.get('email'))
+        ai_summary = _build_fallback_service_admin_summary(snapshot)
+
+    lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
+    subject = (
+        f"สรุปเรื่องคงค้างงานบริการวิชาการ - {lab_name} "
+        f"({arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M')})"
+    )
+    message = (
+        f"เรียนผู้รับผิดชอบห้องปฏิบัติการ {lab_name}\n\n"
+        f"{ai_summary}\n\n"
+        f"ตัวเลขสรุป\n"
+        f"- ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
+        f"- ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
+        f"- งานที่รับตัวอย่างแล้วแต่ออกใบรายงานผลแล้ว: {snapshot['issued_count']} รายการ\n"
+        f"- งานที่รับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล: {snapshot['pending_count']} รายการ\n"
+    )
+    return {
+        'recipient': recipient,
+        'snapshot': snapshot,
+        'subject': subject,
+        'message': message,
+        'ai_summary': ai_summary,
+    }
+
+
+def _build_service_admin_line_reminder_package(recipient, snapshot_cache=None):
+    snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
+    cache_key = tuple(recipient.get('sub_lab_ids') or [])
+    snapshot = snapshot_cache.get(cache_key)
+    if snapshot is None:
+        snapshot = _build_service_admin_overdue_snapshot(sub_lab_ids=recipient.get('sub_lab_ids') or None)
+        result_snapshot = _build_service_admin_result_snapshot(sub_lab_ids=recipient.get('sub_lab_ids') or None)
+        snapshot = {**snapshot, **result_snapshot}
+        snapshot_cache[cache_key] = snapshot
+    message = _build_service_admin_line_reminder_message(recipient, snapshot)
+    return {
+        'recipient': recipient,
+        'snapshot': snapshot,
+        'message': message,
+    }
+
+
+def _render_service_admin_action_dry_run_html(title, packages, should_send, metrics_builder):
+    cards = []
+    for package in packages:
+        recipient = package['recipient']
+        snapshot = package['snapshot']
+        metrics = metrics_builder(snapshot)
+        message_html = escape(package['message']).replace('\n', '<br>')
+        recipient_emails = recipient.get('emails') or ([recipient.get('email')] if recipient.get('email') else [])
+        recipient_email = ', '.join(email for email in recipient_emails if email) or '-'
+        cards.append(f'''
+        <section class="card">
+            <div class="card-header">
+                <div class="pill">{escape(recipient.get('lab_name') or recipient.get('name') or '-')}</div>
+                <div class="subpill">{escape(', '.join(recipient.get('sub_lab_names') or ['ทุกฝ่ายที่เกี่ยวข้อง']))}</div>
+            </div>
+            <div class="summary-card">
+                <h3>ตัวเลขสำคัญ</h3>
+                <div class="summary-metrics">
+                    {''.join(f'<span><strong>{escape(str(value))}</strong> {escape(label)}</span>' for label, value in metrics)}
+                </div>
+            </div>
+            <div class="meta">
+                <p><strong>Recipients:</strong> {escape(recipient_email)}</p>
+            </div>
+            <div class="message">
+                <h3>Message Preview</h3>
+                <div class="message-body">{message_html}</div>
+            </div>
+        </section>
+        ''')
+
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escape(title)}</title>
+  <style>
+    :root {{
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --line: #dbe4ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0f766e;
+    }}
+    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }}
+    .page {{ max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }}
+    .hero {{ margin-bottom: 24px; }}
+    .hero h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    .hero p {{ margin: 0; color: var(--muted); }}
+    .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
+    .grid {{ display: grid; gap: 20px; }}
+    .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
+    .card-header {{ display: flex; justify-content: flex-start; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }}
+    .pill {{ background: #ecfeff; color: var(--accent); border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .subpill {{ background: #f8fafc; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .summary-card {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
+    .summary-card h3 {{ margin: 0 0 10px; font-size: 16px; }}
+    .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; }}
+    .summary-metrics span {{ color: var(--muted); font-size: 14px; }}
+    .summary-metrics strong {{ color: var(--text); font-size: 20px; margin-right: 4px; }}
+    .meta {{ margin: 16px 0; font-size: 14px; }}
+    .message-body {{ background: #f8fafc; color: #0f172a; border: 1px solid var(--line); border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
+    .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>{escape(title)}</h1>
+      <p>Send flag: {str(should_send)} | Recipient count: {len(packages)}</p>
+      <div class="notice">หน้านี้ใช้สำหรับตรวจสอบผลก่อนส่งจริง และจะแสดงข้อความตัวอย่างของอีเมล/LINE ที่จะถูกส่ง</div>
+    </header>
+    <div class="grid">
+      {''.join(cards) if cards else '<section class="card"><p>No recipients found.</p></section>'}
+    </div>
+  </main>
+</body>
+</html>'''
+
+
+def _render_service_admin_action_dry_run_html_v2(title, packages, should_send, metrics_builder, stats=None, global_snapshot=None, matched_packages=None):
+    matched_packages = matched_packages or []
+    stats = stats or {
+        'total_admin_rows': len(packages),
+        'admins_with_line': len(packages),
+        'unique_recipients': len(packages),
+        'missing_line_names': [],
+    }
+    global_snapshot = global_snapshot or {
+        'total_records': 0,
+        'date_label': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y'),
+    }
+
+    cards = []
+    for package in packages:
+        recipient = package['recipient']
+        snapshot = package['snapshot']
+        metrics = metrics_builder(snapshot)
+        message_html = escape(package['message']).replace('\n', '<br>')
+        recipient_emails = recipient.get('emails') or ([recipient.get('email')] if recipient.get('email') else [])
+        recipient_email = ', '.join(email for email in recipient_emails if email) or '-'
+        line_ids = recipient.get('line_ids') or ([] if not recipient.get('line_id') else [recipient.get('line_id')])
+        example_items = []
+        if snapshot.get('overdue_60_items'):
+            example_items.extend(snapshot['overdue_60_items'][:3])
+        if snapshot.get('pending_items'):
+            example_items.extend(snapshot['pending_items'][:3])
+        example_html = ''.join(
+            f"<li>{escape(str(item.get('request_no') or item.get('invoice_no') or '-'))} - {escape(str(item.get('lab_name') or '-'))}</li>"
+            for item in example_items[:6]
+        ) or '<li>ไม่มีรายการ</li>'
+        cards.append(f'''
+        <section class="card">
+            <div class="card-header">
+                <div class="pill">{escape(recipient.get('lab_name') or recipient.get('name') or '-')}</div>
+                <div class="subpill">{escape(', '.join(recipient.get('sub_lab_names') or ['ทุกฝ่ายที่เกี่ยวข้อง']))}</div>
+            </div>
+            <div class="summary-card">
+                <h3>ตัวเลขสำคัญ</h3>
+                <div class="summary-metrics">
+                    {''.join(f'<span><strong>{escape(str(value))}</strong> {escape(label)}</span>' for label, value in metrics)}
+                </div>
+            </div>
+            <div class="meta">
+                <p><strong>Recipients:</strong> {escape(recipient_email)}</p>
+                <p><strong>LINE ID:</strong> {escape(', '.join(line_ids) if line_ids else '-')}</p>
+            </div>
+            <div class="message">
+                <h3>Message Preview</h3>
+                <div class="message-body">{message_html}</div>
+            </div>
+            <div class="message" style="margin-top:16px;">
+                <h3>รายการตัวอย่าง</h3>
+                <ul class="example-list">{example_html}</ul>
+            </div>
+        </section>
+        ''')
+
+    missing_line_names = ', '.join(stats.get('missing_line_names') or []) or 'None'
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escape(title)}</title>
+  <style>
+    :root {{
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --line: #dbe4ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0f766e;
+    }}
+    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }}
+    .page {{ max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }}
+    .hero {{ margin-bottom: 20px; }}
+    .hero h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    .hero p {{ margin: 0; color: var(--muted); }}
+    .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
+    .grid {{ display: grid; gap: 20px; }}
+    .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
+    .card-header {{ display: flex; justify-content: flex-start; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }}
+    .pill {{ background: #ecfeff; color: var(--accent); border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .subpill {{ background: #f8fafc; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .summary-card {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
+    .summary-card h3 {{ margin: 0 0 10px; font-size: 16px; }}
+    .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; }}
+    .summary-metrics span {{ color: var(--muted); font-size: 14px; }}
+    .summary-metrics strong {{ color: var(--text); font-size: 20px; margin-right: 4px; }}
+    .meta {{ margin: 16px 0; font-size: 14px; }}
+    .message-body {{ background: #f8fafc; color: #0f172a; border: 1px solid var(--line); border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
+    .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
+    .example-list {{ margin: 0; padding-left: 22px; line-height: 1.8; }}
+    .example-list li {{ margin-bottom: 4px; }}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>{escape(title)}</h1>
+      <p>Recipients with line_id: {stats.get('unique_recipients', len(packages))} | matched recipients: {len(matched_packages)} | send={str(should_send).lower()}</p>
+      <div class="notice">หน้านี้ใช้สำหรับตรวจสอบผลก่อนส่งจริง และจะแสดงข้อความตัวอย่างของอีเมล/LINE ที่จะถูกส่ง</div>
+    </header>
+    <section class="card" style="margin-bottom:20px;">
+      <h3 style="margin:0 0 12px;font-size:18px;">Diagnostic Summary</h3>
+      <div class="summary-metrics" style="margin-bottom:12px;">
+        <span><strong>{stats.get('total_admin_rows', len(packages))}</strong> admin rows</span>
+        <span><strong>{stats.get('admins_with_line', len(packages))}</strong> admin rows with line_id</span>
+        <span><strong>{global_snapshot.get('total_records', 0)}</strong> requests with pending summary</span>
+        <span>Date: {escape(global_snapshot.get('date_label', arrow.now('Asia/Bangkok').strftime('%d/%m/%Y')))}</span>
+      </div>
+      <p style="margin:0 0 8px;"><strong>Admins missing line_id</strong></p>
+      <div class="message-body">{escape(missing_line_names)}</div>
+    </section>
+    <div class="grid">
+      {''.join(cards) if cards else '<section class="card"><p>No recipients found.</p></section>'}
+    </div>
+  </main>
+</body>
+</html>'''
+
+
+def _render_service_admin_summary_email_html(package):
+    snapshot = package['snapshot']
+    return f'''<!doctype html>
+<html lang="th">
+<body style="margin:0;padding:24px;background:#f8fafc;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:900px;margin:0 auto;">
+    <h1 style="margin:0 0 16px;font-size:26px;">สรุปเรื่องคงค้างงานบริการวิชาการ</h1>
+    <div style="background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06);">
+      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
+        <div style="display:flex;flex-wrap:wrap;gap:10px 18px;">
+          <span><strong style="font-size:20px;">{snapshot['overdue_60_count']}</strong> ใบค้างเกิน 60 วัน</span>
+          <span><strong style="font-size:20px;">{snapshot['overdue_90_count']}</strong> ใบค้างเกิน 90 วัน</span>
+          <span><strong style="font-size:20px;">{snapshot['issued_count']}</strong> ออกใบรายงานผลแล้ว</span>
+          <span><strong style="font-size:20px;">{snapshot['pending_count']}</strong> ยังไม่ออกใบรายงานผล</span>
+        </div>
+      </div>
+      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:16px;line-height:1.7;white-space:pre-wrap;">{escape(package['message'])}</div>
+    </div>
+  </div>
+</body>
+</html>'''
+
+
+def _service_admin_preview_or_guard():
+    scheduler_request = _is_valid_service_admin_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return False, redirect(url_for('auth.login', next=request.url))
+        if not admin_permission.can():
+            abort(403)
+    return scheduler_request, None
+
+
+@service_admin.route('/admin/line-remind-pending', methods=['GET', 'POST'])
+def line_remind_pending():
+    scheduler_request, guard_response = _service_admin_preview_or_guard()
+    if guard_response:
+        return guard_response
+
+    recipient_groups = _group_service_admin_recipients_by_lab(lambda row: not row.is_assistant)
+    snapshot_cache = {}
+    packages = [_build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=snapshot_cache)
+                for recipient in recipient_groups]
+    matched_packages = [
+        package for package in packages
+        if package['snapshot']['overdue_60_count'] or package['snapshot']['overdue_90_count'] or package['snapshot']['pending_count']
+    ]
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+    current_app.logger.info(
+        'service_admin_line_reminder_checkpoint scheduler_request=%s recipients=%s matched_recipients=%s should_send=%s dry_run=%s',
+        scheduler_request,
+        len(packages),
+        len(matched_packages),
+        should_send,
+        dry_run,
+    )
+
+    if dry_run:
+        return _render_service_admin_action_dry_run_html(
+            'Service Admin Line Reminder Dry Run',
+            packages,
+            should_send,
+            lambda snapshot: [
+                ('ใบค้าง 60 วัน', snapshot['overdue_60_count']),
+                ('ใบค้าง 90 วัน', snapshot['overdue_90_count']),
+                ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
+                ('ออกใบรายงานผลแล้ว', snapshot['issued_count']),
+            ],
+        )
+
+    if not should_send:
+        response = make_response(
+            'Line reminder was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400
+        )
+        response.mimetype = 'text/plain'
+        return response
+
+    if not matched_packages:
+        message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
+        if request.method == 'POST':
+            flash(message, 'warning')
+            return redirect(request.referrer or url_for('service_admin.index'))
+        response = make_response(message + '\n', 404)
+        response.mimetype = 'text/plain'
+        return response
+
+    sent_count = 0
+    failed_count = 0
+    for package in matched_packages:
+        line_ids = package['recipient'].get('line_ids') or ([] if not package['recipient'].get('line_id') else [package['recipient'].get('line_id')])
+        if not line_ids:
+            current_app.logger.info(
+                'service_admin_line_reminder_skip_no_line_id lab_name=%s sub_lab_ids=%s admin_names=%s',
+                package['recipient'].get('lab_name'),
+                package['recipient'].get('sub_lab_ids'),
+                package['recipient'].get('admin_names'),
+            )
+            continue
+        for line_id in line_ids:
+            try:
+                current_app.logger.info(
+                    'service_admin_line_reminder_push_start line_id=%s lab_name=%s',
+                    _mask_line_id(line_id),
+                    package['recipient'].get('lab_name'),
+                )
+                line_bot_api.push_message(
+                    to=line_id,
+                    messages=TextSendMessage(text=package['message'])
+                )
+                sent_count += 1
+            except LineBotApiError:
+                failed_count += 1
+                current_app.logger.exception(
+                    'Failed to send service admin reminder to line_id=%s',
+                    _mask_line_id(line_id)
+                )
+
+    success_message = f'ส่ง Line reminder แล้ว {sent_count} ราย'
+    if failed_count:
+        success_message += f' และส่งไม่สำเร็จ {failed_count} ราย'
+
+    if request.method == 'GET':
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return response
+
+    flash(success_message, 'success' if failed_count == 0 else 'warning')
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(request.referrer or url_for('service_admin.index'))
+
+
+@service_admin.route('/admin/monthly-overdue-summary', methods=['GET', 'POST'])
+def monthly_overdue_summary():
+    scheduler_request, guard_response = _service_admin_preview_or_guard()
+    if guard_response:
+        return guard_response
+
+    recipient_groups = _group_service_admin_recipients_by_lab(lambda row: row.is_supervisor or row.is_assistant)
+    recipient_groups = [recipient for recipient in recipient_groups if recipient.get('emails')]
+    snapshot_cache = {}
+    packages = [_build_service_admin_summary_package_by_lab(recipient, snapshot_cache=snapshot_cache)
+                for recipient in recipient_groups]
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+    current_app.logger.info(
+        'service_admin_monthly_summary_checkpoint scheduler_request=%s recipients=%s should_send=%s dry_run=%s',
+        scheduler_request,
+        len(packages),
+        should_send,
+        dry_run,
+    )
+
+    if dry_run:
+        return _render_service_admin_action_dry_run_html(
+            'Service Admin Monthly Summary Dry Run',
+            packages,
+            should_send,
+            lambda snapshot: [
+                ('ใบค้าง 60 วัน', snapshot['overdue_60_count']),
+                ('ใบค้าง 90 วัน', snapshot['overdue_90_count']),
+                ('ออกใบรายงานผลแล้ว', snapshot['issued_count']),
+                ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
+            ],
+        )
+
+    if not should_send:
+        response = make_response(
+            'Summary was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400
+        )
+        response.mimetype = 'text/plain'
+        return response
+
+    if not packages:
+        message = 'ไม่พบผู้รับสำหรับส่งสรุปเรื่องคงค้าง'
+        if request.method == 'POST':
+            flash(message, 'warning')
+            return redirect(request.referrer or url_for('service_admin.index'))
+        response = make_response(message + '\n', 404)
+        response.mimetype = 'text/plain'
+        return response
+
+    sent_count = 0
+    for package in packages:
+        recipient_emails = package['recipient'].get('emails') or []
+        if not recipient_emails:
+            continue
+        send_mail(
+            recipient_emails,
+            package['subject'],
+            package['message'],
+            html=_render_service_admin_summary_email_html(package),
+        )
+        sent_count += 1
+
+    success_message = f'ส่งสรุปเรื่องคงค้างแล้ว {sent_count} ราย'
+    if request.method == 'GET':
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return response
+
+    flash(success_message, 'success')
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(request.referrer or url_for('service_admin.index'))
+
 
 @service_admin.route('/aws-s3/download/<key>', methods=['GET'])
 def download_file(key):
@@ -809,10 +1844,10 @@ request_data_paths = {'bacteria_disinfection': bacteria_disinfection_request_dat
                       }
 
 
-@service_admin.route('/')
-# @login_required
-def index():
-    return render_template('service_admin/index.html')
+@service_admin.route('/task/dashboard')
+@login_required
+def task_dashboard():
+    return render_template('service_admin/task_dashboard.html')
 
 
 @service_admin.route('/service_guide')
