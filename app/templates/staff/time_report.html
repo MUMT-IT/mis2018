@@ -419,8 +419,8 @@
             eventSources: [
                 {{ url_for('staff.send_time_report_data')|tojson|safe }},
                 {{ url_for('staff.send_holidays_data')|tojson|safe }},
-                {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id)|tojson|safe }},
-                {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id)|tojson|safe }}
+                {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id, approved_only=1)|tojson|safe }},
+                {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id, approved_only=1)|tojson|safe }}
             ],
             defaultView: 'month',
             fixedWeekCount: false,
@@ -429,12 +429,6 @@
             displayEventTime: true,
             displayEventEnd: true,
             timeFormat: 'H(:mm)',
-            eventDataTransform: function(event) {
-                if ((event.type === 'leave' || event.type === 'wfh') && event.status !== 'Approved') {
-                    return null;
-                }
-                return event;
-            },
             eventRender: function(event, element) {
                 if (event.type !== 'login') {
                     var eventTitle = String(event.title || '');

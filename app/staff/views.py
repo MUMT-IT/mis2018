@@ -3232,6 +3232,7 @@ def send_summary_data():
     cal_end = request.args.get('end')
     curr_dept_id = request.args.get('curr_dept_id', type=int)
     tab = request.args.get('tab')
+    approved_only = request.args.get('approved_only', type=int) == 1
     if cal_start:
         cal_start = parser.isoparse(cal_start)
     if cal_end:
@@ -3301,7 +3302,7 @@ def send_summary_data():
             for leave_req in StaffLeaveRequest.query.filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffLeaveRequest.start_datetime)
                                     .between(cal_start, cal_end)):
-                if not leave_req.cancelled_at:
+                if not leave_req.cancelled_at and (not approved_only or leave_req.get_approved):
                     if leave_req.get_approved:
                         text_color = '#ffffff'
                         bg_color = '#2b8c36'
@@ -3312,13 +3313,14 @@ def send_summary_data():
                         bg_color = '#d1e0e0'
                         border_color = '#ffffff'
                         leave_status = 'Pending'
+                    leave_type = getattr(getattr(leave_req.quota, 'leave_type', None), 'type_', 'Leave')
                     leaves.append({
-                        'id': leave_req.id,
-                        'start': leave_req.start_datetime.astimezone(tz).isoformat() \
+                        'id': 'leave-{}'.format(leave_req.id),
+                        'start': _to_bangkok(leave_req.start_datetime).isoformat() \
                             if leave_req.start_datetime else None,
-                        'end': leave_req.end_datetime.astimezone(tz).isoformat() \
+                        'end': _to_bangkok(leave_req.end_datetime).isoformat() \
                             if leave_req.end_datetime else None,
-                        'title': u'{} {}'.format(emp.th_firstname, leave_req.quota.leave_type),
+                        'title': u'{} {}'.format(emp.th_firstname, leave_type),
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
@@ -3331,7 +3333,8 @@ def send_summary_data():
                     .filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.start_datetime)
                                     .between(cal_start, cal_end)):
-                if not wfh_req.cancelled_at and not wfh_req.get_unapproved:
+                if not wfh_req.cancelled_at and not wfh_req.get_unapproved \
+                        and (not approved_only or wfh_req.get_approved):
                     if wfh_req.get_approved:
                         text_color = '#989898'
                         bg_color = '#C5ECFB'
@@ -3343,10 +3346,10 @@ def send_summary_data():
                         border_color = '#ffffff'
                         wfh_status = 'Pending'
                     wfhs.append({
-                        'id': wfh_req.id,
-                        'start': wfh_req.start_datetime.astimezone(tz).isoformat() \
+                        'id': 'wfh-{}'.format(wfh_req.id),
+                        'start': _to_bangkok(wfh_req.start_datetime).isoformat() \
                             if wfh_req.start_datetime else None,
-                        'end': wfh_req.end_datetime.astimezone(tz).isoformat() \
+                        'end': _to_bangkok(wfh_req.end_datetime).isoformat() \
                             if wfh_req.end_datetime else None,
                         'title': emp.th_firstname + " WFH",
                         'backgroundColor': bg_color,

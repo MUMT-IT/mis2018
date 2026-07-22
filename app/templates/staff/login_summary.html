@@ -842,8 +842,8 @@
 
     const summaryApiUrl = {{ url_for('staff.get_login_summary_data', dept_id=curr_dept_id)|tojson|safe }};
     const calendarApiUrl = {{ url_for('staff.send_summary_data', tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }};
-    const leaveCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=curr_dept_id)|tojson|safe }};
-    const wfhCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=curr_dept_id)|tojson|safe }};
+    const leaveCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
+    const wfhCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
     let employeeSummaryMap = {};
 
     function escapeHtml(value) {
@@ -1016,17 +1016,6 @@
             navLinks: true,
             loading: function(isLoading) {
                 $('#calendarFrame').toggleClass('is-loading', isLoading);
-            },
-            eventDataTransform: function(event) {
-                // These endpoints also return pending requests. The summary
-                // calendar should show only approved, active leave and WFH requests.
-                if (event.type === 'leave' && event.status !== 'Approved') {
-                    return null;
-                }
-                if (event.type === 'wfh' && event.status !== 'Approved') {
-                    return null;
-                }
-                return event;
             },
             eventRender: function(event, element) {
                 if (event.type !== 'login') {
