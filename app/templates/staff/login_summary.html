@@ -810,6 +810,8 @@
 
     const summaryApiUrl = {{ url_for('staff.get_login_summary_data', dept_id=curr_dept_id)|tojson|safe }};
     const calendarApiUrl = {{ url_for('staff.send_summary_data', tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }};
+    const leaveCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=curr_dept_id)|tojson|safe }};
+    const wfhCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=curr_dept_id)|tojson|safe }};
     let employeeSummaryMap = {};
 
     function escapeHtml(value) {
@@ -972,16 +974,48 @@
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             header: false,
             locale: 'th',
-            events: calendarApiUrl,
+            eventSources: [calendarApiUrl, leaveCalendarApiUrl, wfhCalendarApiUrl],
             displayEventEnd: true,
             defaultView: 'month',
             fixedWeekCount: false,
             height: 'auto',
-            eventLimit: true,
+            eventLimit: false,
             timeFormat: 'H(:mm)',
             navLinks: true,
+            eventDataTransform: function(event) {
+                // These endpoints also return pending requests. The summary
+                // calendar should show only approved, active leave and WFH requests.
+                if (event.type === 'leave' && event.status !== 'Approved') {
+                    return null;
+                }
+                if (event.type === 'wfh' && event.status !== 'Approved') {
+                    return null;
+                }
+                return event;
+            },
             eventRender: function(event, element) {
                 if (event.type !== 'login') {
+                    if (event.type === 'leave' && String(event.title || '').indexOf('ลาป่วย') !== -1) {
+                        var leaveTitle = $('<span/>').text(event.title || '').html();
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-face-frown-open staff-login-leave-icon" aria-hidden="true"></i> ' + leaveTitle
+                        );
+                    }
+                    if (event.type === 'leave' && (
+                        String(event.title || '').indexOf('ลาพักร้อน') !== -1 ||
+                        String(event.title || '').indexOf('ลาพักผ่อน') !== -1
+                    )) {
+                        var vacationTitle = $('<span/>').text(event.title || '').html();
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-plane-departure staff-login-leave-icon" aria-hidden="true"></i> ' + vacationTitle
+                        );
+                    }
+                    if (event.type === 'wfh') {
+                        var wfhTitle = $('<span/>').text(event.title || '').html();
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-house-chimney-user staff-login-wfh-icon" aria-hidden="true"></i> ' + wfhTitle
+                        );
+                    }
                     return;
                 }
                 var name = $('<span/>').text(event.title || '').html();

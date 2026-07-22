@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<style>
+    .hr-manual-checkin-shell {
+        padding: 1.5rem 0 3rem;
+    }
+
+    .hr-manual-checkin-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 252, 0.96));
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 28px;
+        box-shadow: 0 18px 50px rgba(18, 39, 84, 0.08);
+        overflow: hidden;
+    }
+
+    .hr-manual-checkin-card-inner {
+        padding: 1.75rem;
+    }
+
+    .hr-manual-checkin-kicker {
+        color: var(--theme-gold);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        margin-bottom: 0.45rem;
+        text-transform: uppercase;
+    }
+
+    .hr-manual-checkin-title {
+        color: var(--theme-navy-deep);
+        font-size: 1.55rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 0.35rem;
+    }
+
+    .hr-manual-checkin-subtitle {
+        color: var(--theme-muted);
+        line-height: 1.55;
+        margin-bottom: 0;
+    }
+
+    .hr-manual-checkin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+    }
+
+    .hr-manual-checkin-card .select2-container {
+        width: 100% !important;
+    }
+
+    .hr-manual-checkin-card .select2-container--default .select2-selection--single {
+        align-items: center;
+        border: 1px solid rgba(18, 39, 84, 0.12);
+        border-radius: 12px;
+        display: flex;
+        height: 2.5rem;
+        padding-left: 0.2rem;
+    }
+
+    .hr-manual-checkin-card .select2-container--default .select2-selection__rendered {
+        color: var(--theme-navy-deep);
+        font-weight: 600;
+        line-height: 2.5rem;
+        padding-left: 0.6rem;
+        padding-right: 2rem;
+    }
+
+    .hr-manual-checkin-card .select2-container--default .select2-selection__arrow {
+        height: 2.4rem;
+        right: 0.35rem;
+    }
+
+    .hr-manual-checkin-card .select2-container--default .select2-selection--single:focus {
+        outline: none;
+    }
+
+    .hr-manual-checkin-card .select2-container--default.select2-container--focus .select2-selection--single {
+        border-color: rgba(18, 39, 84, 0.24);
+        box-shadow: 0 0 0 0.08rem rgba(18, 39, 84, 0.06);
+    }
+
+    .hr-manual-checkin-select-dropdown .select2-results__option {
+        padding: 0.55rem 0.75rem;
+    }
+
+    .hr-manual-checkin-select-dropdown .select2-results__option--highlighted[aria-selected] {
+        background: rgba(18, 39, 84, 0.08);
+        color: var(--theme-navy-deep);
+    }
+
+    .hr-manual-checkin-calendar-shell {
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 22px;
+        box-shadow: none;
+        margin-top: 1rem;
+        padding: 0.9rem;
+    }
+
+    .hr-manual-checkin-calendar .fc,
+    .hr-manual-checkin-calendar .fc-view-container,
+    .hr-manual-checkin-calendar .fc-view,
+    .hr-manual-checkin-calendar .fc-view > table,
+    .hr-manual-checkin-calendar .fc-day-grid,
+    .hr-manual-checkin-calendar .fc-time-grid {
+        background: transparent;
+    }
+
+    .hr-manual-checkin-calendar .fc-view-container {
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .hr-manual-checkin-calendar .fc-head,
+    .hr-manual-checkin-calendar .fc-body,
+    .hr-manual-checkin-calendar .fc-row,
+    .hr-manual-checkin-calendar .fc-widget-header,
+    .hr-manual-checkin-calendar .fc-widget-content,
+    .hr-manual-checkin-calendar .fc-divider {
+        border-color: rgba(18, 39, 84, 0.08);
+    }
+
+    .hr-manual-checkin-calendar .fc-day-header {
+        color: var(--theme-muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 0.7rem 0.35rem;
+        text-transform: uppercase;
+    }
+
+    .hr-manual-checkin-calendar .fc-day-number {
+        color: var(--theme-navy-deep);
+        font-size: 0.82rem;
+        font-weight: 700;
+        padding: 0.45rem 0.55rem 0 0;
+    }
+
+    .hr-manual-checkin-calendar .fc-day.fc-today {
+        background: rgba(184, 67, 63, 0.04);
+        box-shadow: inset 0 0 0 1px rgba(184, 67, 63, 0.12);
+    }
+
+    .hr-manual-checkin-calendar .fc-other-month {
+        background: rgba(255, 255, 255, 0.6);
+    }
+
+    .hr-manual-checkin-calendar .fc-event {
+        border: 0;
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgba(18, 39, 84, 0.04);
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 2px;
+        padding: 0.2rem 0.35rem;
+    }
+
+    .hr-manual-checkin-calendar .fc-event .fc-content,
+    .hr-manual-checkin-calendar .fc-event .fc-title {
+        display: block;
+        white-space: normal;
+    }
+
+    .hr-manual-checkin-calendar .fc-day-grid-event .fc-content {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .hr-manual-checkin-calendar .fc-more {
+        color: var(--theme-muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+    }
+
+    .hr-manual-checkin-calendar .fc-more:hover {
+        color: var(--theme-navy-deep);
+        text-decoration: none;
+    }
+
+    .hr-manual-checkin-calendar .fc-popover {
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 16px;
+        box-shadow: 0 18px 40px rgba(18, 39, 84, 0.18);
+        overflow: hidden;
+    }
+
+    .hr-manual-checkin-calendar .fc-event.is-late-login {
+        background: rgba(248, 202, 202, 0.98);
+        border-color: rgba(229, 155, 155, 0.96);
+        color: #8b1e1e;
+    }
+
+    .hr-manual-checkin-calendar .fc-event.is-short-hours {
+        background: #fff3bf;
+        border-color: #e6cf73;
+        color: var(--theme-navy-deep);
+    }
+
+    .hr-manual-checkin-calendar .fc-event.is-complete-hours {
+        background: #e4f3e9;
+        border-color: #b8ddc4;
+        color: #245b38;
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-content {
+        align-items: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        line-height: 1.25;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-head {
+        align-items: baseline;
+        display: flex;
+        gap: 0.35rem;
+        justify-content: space-between;
+        min-width: 0;
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-hours {
+        color: var(--theme-navy-deep);
+        flex-shrink: 0;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-hours.is-negative {
+        color: #b83f3f;
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-meter {
+        background: rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        height: 0.35rem;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-meter-fill {
+        border-radius: 999px;
+        display: block;
+        height: 100%;
+        transition: width 0.2s ease;
+        width: var(--staff-login-meter-width, 0%);
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-meter-fill.is-negative {
+        background: linear-gradient(90deg, rgba(184, 63, 63, 0.95), rgba(221, 123, 123, 0.95));
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-meter-fill.is-positive {
+        background: linear-gradient(90deg, #4f8f67, #76ad89);
+    }
+
+    .hr-manual-checkin-calendar .staff-login-event-meter-fill.is-late {
+        background: linear-gradient(90deg, #a85f5f, #c98787);
+    }
+
+    .hr-manual-checkin-calendar-empty {
+        color: var(--theme-muted);
+        padding: 1.25rem 0.5rem;
+        text-align: center;
+    }
+
+    @media screen and (max-width: 768px) {
+        .hr-manual-checkin-card-inner {
+            padding: 1rem;
+        }
+
+        .hr-manual-checkin-calendar {
+            min-height: 520px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="section hr-manual-checkin-shell">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <div class="hr-manual-checkin-kicker">HR tools</div>
+                <h1 class="hr-manual-checkin-title">เพิ่มรายการเข้างานด้วยตนเอง</h1>
+                <p class="hr-manual-checkin-subtitle">
+                    ใช้สำหรับบันทึกการเข้างานแบบ manual ของบุคลากร เมื่อไม่มีรายการจากการสแกนปกติ
+                </p>
+            </div>
+        </div>
+
+        <div class="columns is-centered">
+            <div class="column is-12-tablet is-11-desktop">
+                <div class="hr-manual-checkin-card">
+                    <div class="hr-manual-checkin-card-inner">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label">บุคลากร</label>
+                                <div class="control">
+                                    <select
+                                        id="staffSelect"
+                                        name="staffname"
+                                        class="hr-manual-checkin-select"
+                                        data-placeholder="ค้นหาด้วยชื่อหรือสังกัด"
+                                        required>
+                                        {% if selected_staff_id %}
+                                            <option value="{{ selected_staff_id }}" selected data-fullname="{{ selected_staff_name }}" data-org="">{{ selected_staff_name }}</option>
+                                        {% else %}
+                                            <option value=""></option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                                <p class="help">ค้นหาด้วยชื่อหรือสังกัด</p>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">วันและเวลาเข้างาน</label>
+                                <div class="control has-icons-left">
+                                    <input class="input" type="datetime-local" name="checkin_datetime" id="manualCheckinDatetime"
+                                           value="{{ default_checkin_datetime }}" required>
+                                    <span class="icon is-small is-left">
+                                        <i class="far fa-calendar-alt" aria-hidden="true"></i>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">หมายเหตุ</label>
+                                <div class="control">
+                                    <input class="input" type="text" name="note"
+                                           value="{{ note_value or '' }}"
+                                           placeholder="เช่น เพิ่มรายการย้อนหลังโดย HR">
+                                </div>
+                            </div>
+
+                            <div class="notification is-light is-info">
+                                <strong>Selected:</strong>
+                                <span id="selectedStaffName">{{ selected_staff_name or '-' }}</span>
+                            </div>
+
+                            <div class="hr-manual-checkin-actions">
+                                <button type="submit" class="button is-info is-rounded">
+                                    <span class="icon"><i class="fas fa-save" aria-hidden="true"></i></span>
+                                    <span>บันทึกเข้างาน</span>
+                                </button>
+                                <a href="{{ url_for('staff.hr_login_summary_report') }}" class="button is-light is-rounded">
+                                    ย้อนกลับ
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="hr-manual-checkin-calendar-shell">
+                    <div class="staff-login-calendar-head">
+                        <div class="staff-login-calendar-head-copy">
+                            <p class="staff-login-calendar-label" id="calendarTitle">กำลังโหลดปฏิทิน...</p>
+                            <div class="staff-login-calendar-date" id="calendarSubtitle"></div>
+                        </div>
+                        <div class="staff-login-calendar-controls">
+                            <button type="button" class="staff-login-calendar-button is-icon" id="calendarPrev" aria-label="เดือนก่อนหน้า">
+                                <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="staff-login-calendar-button is-primary" id="calendarToday">Today</button>
+                            <button type="button" class="staff-login-calendar-button is-icon" id="calendarNext" aria-label="เดือนถัดไป">
+                                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="loginCalendar" class="staff-login-calendar hr-manual-checkin-calendar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script>
+    moment.locale('th');
+
+    const manualCheckinCalendarApiUrl = {{ url_for('staff.hr_manual_checkin_calendar_data')|tojson|safe }};
+    const initialStaffId = {{ selected_staff_id|tojson|safe }};
+    const initialStaffName = {{ selected_staff_name|tojson|safe }};
+    const initialMonth = {{ selected_month|tojson|safe }};
+    const initialCheckinValue = {{ default_checkin_datetime|tojson|safe }};
+    window.manualCheckinState = {
+        staffId: initialStaffId,
+        staffName: initialStaffName,
+        month: initialMonth || (initialCheckinValue ? initialCheckinValue.slice(0, 7) : moment().format('YYYY-MM'))
+    };
+
+    function updateSelectedStaffName(name) {
+        $('#selectedStaffName').text(name || '-');
+    }
+
+    function syncCalendarFromDatetime() {
+        const value = $('#manualCheckinDatetime').val();
+        if (!value) return;
+        window.manualCheckinState.month = moment(value).format('YYYY-MM');
+        if ($('#loginCalendar').data('fullCalendar')) {
+            $('#loginCalendar').fullCalendar('gotoDate', moment(value).startOf('month'));
+            $('#loginCalendar').fullCalendar('refetchEvents');
+        }
+    }
+
+    function refreshManualCheckinCalendar() {
+        if (!window.manualCheckinState.staffId || !window.manualCheckinState.month) {
+            $('#loginCalendar').fullCalendar('removeEvents');
+            return;
+        }
+        $('#loginCalendar').fullCalendar('refetchEvents');
+    }
+
+    $(function() {
+        const $staffSelect = $('#staffSelect');
+
+        function initializeStaffSelect(items) {
+            const selectedId = String(initialStaffId || '');
+            const existingIds = new Set();
+
+            $staffSelect.find('option').each(function() {
+                existingIds.add(String($(this).val()));
+            });
+
+            items.forEach(function(item) {
+                const staffId = String(item.id);
+                if (existingIds.has(staffId)) {
+                    return;
+                }
+                const label = item.fullname + ' — ' + item.org;
+                const option = new Option(label, item.id, false, false);
+                $(option).attr('data-fullname', item.fullname);
+                $(option).attr('data-org', item.org);
+                $staffSelect.append(option);
+            });
+
+            $staffSelect.select2({
+                width: '100%',
+                placeholder: $staffSelect.data('placeholder'),
+                theme: 'default',
+                dropdownCssClass: 'hr-manual-checkin-select-dropdown',
+                templateResult: function(item) {
+                    if (!item.id) {
+                        return item.text;
+                    }
+                    const $element = item.element ? $(item.element) : null;
+                    const fullname = item.fullname || ($element ? $element.data('fullname') : null) || item.text;
+                    const org = item.org || ($element ? $element.data('org') : null) || '-';
+                    const $row = $('<div class="media"></div>');
+                    const $content = $('<div class="media-content"></div>');
+                    $('<div></div>').text(fullname).appendTo($content);
+                    $('<small></small>').text('สังกัด: ' + org).appendTo($content);
+                    $content.appendTo($row);
+                    return $row;
+                },
+                templateSelection: function(item) {
+                    if (!item.id) {
+                        return item.text || '';
+                    }
+                    const $element = item.element ? $(item.element) : null;
+                    return item.fullname || ($element ? $element.data('fullname') : null) || item.text || '';
+                },
+                escapeMarkup: function(markup) {
+                    return markup;
+                }
+            });
+
+            $staffSelect.on('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const staffId = $(this).val() || '';
+                const staffName = selectedOption ? (selectedOption.getAttribute('data-fullname') || selectedOption.text || '') : '';
+                window.manualCheckinState.staffId = staffId;
+                window.manualCheckinState.staffName = staffName;
+                updateSelectedStaffName(staffName);
+                refreshManualCheckinCalendar();
+            });
+
+            if (selectedId) {
+                $staffSelect.val(selectedId).trigger('change');
+            } else {
+                updateSelectedStaffName('');
+            }
+        }
+
+        $.getJSON('/staff/api/staffids', {active: 1})
+            .done(function(items) {
+                initializeStaffSelect(items || []);
+            })
+            .fail(function() {
+                initializeStaffSelect([]);
+            });
+
+        $('#manualCheckinDatetime').on('change input', syncCalendarFromDatetime);
+        $('#calendarPrev').on('click', function() {
+            $('#loginCalendar').fullCalendar('prev');
+        });
+        $('#calendarToday').on('click', function() {
+            $('#loginCalendar').fullCalendar('today');
+            window.manualCheckinState.month = moment().format('YYYY-MM');
+            refreshManualCheckinCalendar();
+        });
+        $('#calendarNext').on('click', function() {
+            $('#loginCalendar').fullCalendar('next');
+        });
+
+        $('#loginCalendar').fullCalendar({
+            header: false,
+            locale: 'th',
+            defaultView: 'month',
+            fixedWeekCount: false,
+            height: 'auto',
+            eventLimit: true,
+            displayEventTime: true,
+            displayEventEnd: true,
+            timeFormat: 'H(:mm)',
+            events: function(start, end, timezone, callback) {
+                if (!window.manualCheckinState.staffId || !window.manualCheckinState.month) {
+                    callback([]);
+                    return;
+                }
+                $.getJSON(manualCheckinCalendarApiUrl, {
+                    staff_id: window.manualCheckinState.staffId,
+                    month: window.manualCheckinState.month
+                }).done(function(response) {
+                    const events = response.events || [];
+                    window.manualCheckinState.staffName = response.staff_name || window.manualCheckinState.staffName;
+                    callback(events);
+                }).fail(function() {
+                    callback([]);
+                });
+            },
+            eventRender: function(event, element) {
+                if (event.type !== 'login') {
+                    return;
+                }
+                var name = $('<span/>').text(event.first_name || event.title || '').html();
+                var workedHours = event.worked_hours_display ? $('<span/>').text(event.worked_hours_display).html() : '';
+                var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / 8) * 100, 12), 100) : 0;
+                var hoursClass = event.hours_is_negative ? 'is-negative' : '';
+                var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
+                var content = '<span class="staff-login-event-content">';
+                content += '<span class="staff-login-event-head">';
+                content += '<span class="staff-login-event-name">' + name + '</span>';
+                if (workedHours) {
+                    content += '<span class="staff-login-event-hours ' + hoursClass + '">' + workedHours + '</span>';
+                }
+                content += '</span>';
+                if (workedHours) {
+                    content += '<span class="staff-login-event-meter" aria-hidden="true">';
+                    content += '<span class="staff-login-event-meter-fill ' + meterClass + '" style="--staff-login-meter-width: ' + meterWidth + '%"></span>';
+                    content += '</span>';
+                }
+                content += '</span>';
+                element.find('.fc-title').html(content);
+            },
+            viewRender: function(view) {
+                const month = moment(view.intervalStart).format('YYYY-MM');
+                if (window.manualCheckinState.month !== month) {
+                    window.manualCheckinState.month = month;
+                }
+                $('#calendarTitle').text(view.title);
+                $('#calendarSubtitle').text(view.intervalStart.format('dddd, D MMMM YYYY'));
+            }
+        });
+
+        if (window.manualCheckinState.staffId) {
+            $('#loginCalendar').fullCalendar('gotoDate', moment(window.manualCheckinState.month + '-01'));
+            $('#loginCalendar').fullCalendar('refetchEvents');
+        }
+
+        if (initialCheckinValue) {
+            $('#manualCheckinDatetime').val(initialCheckinValue);
+        }
+    });
+</script>
+{% endblock %}
