@@ -464,7 +464,7 @@ def _build_service_admin_result_snapshot(sub_lab_ids=None):
     pending.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
     return {
         'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
-        'issued_count': len(issued),
+        'due_soon_count': len(issued),
         'pending_count': len(pending),
         'issued_items': issued,
         'pending_items': pending,
@@ -486,8 +486,8 @@ def _build_service_admin_summary_prompt(snapshot):
         {
             'role': 'system',
             'content': (
-                'You are writing a concise monthly management summary in Thai for one service unit at a time. '
-                'Summarize only backlog, payment aging, and report completion status. '
+                'You are writing a detailed monthly management report in Thai for one service unit at a time. '
+                'Summarize backlog, payment aging, and report completion status in a way that reads like an internal report, not a short note. '
                 'Do not include personal names, IDs, phone numbers, emails, invoice numbers, request numbers, or raw record-level detail. '
                 'Use a formal internal memo tone. '
                 'Keep the writing short, clear, and actionable. '
@@ -501,6 +501,7 @@ def _build_service_admin_summary_prompt(snapshot):
             'role': 'user',
             'content': (
                 'สรุปข้อมูลต่อไปนี้เป็นภาษาไทยสำหรับผู้บริหาร โดยไม่ลงรายละเอียดรายกรณี และให้เหมาะกับการส่งเฉพาะหน่วยงาน:\n'
+                'เขียนให้ละเอียดและเป็นรายงานมากกว่าข้อความสั้น\n'
                 f'{json.dumps(snapshot, ensure_ascii=False, indent=2)}'
             )
         }
@@ -535,64 +536,63 @@ def _call_typhoon_service_admin_summary(snapshot):
 
 
 def _build_fallback_service_admin_summary(snapshot):
+    due_soon_count = snapshot.get('due_soon_count', 0)
     invoice_top_labs = ', '.join(
         f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
-    ) or 'ไม่มีหน่วยงานที่มียอดคงค้าง'
+    ) or 'ไม่มียอดค้างชำระ'
     result_top_labs = ', '.join(
         f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
-    ) or 'ไม่มีหน่วยงานที่มียอดรายงานผลค้าง'
+    ) or 'ไม่มีรายงานผลที่ค้างออกผล'
     return (
         f"ภาพรวม\n"
-        f"หน่วยงานนี้มีใบแจ้งหนี้ค้างชำระเกิน 60 วันจำนวน {snapshot['overdue_60_count']} ใบ และเกิน 90 วันจำนวน {snapshot['overdue_90_count']} ใบ "
+        f"ขณะนี้มียอดค้างชำระเกิน 60 วันจำนวน {snapshot['overdue_60_count']} รายการ และเกิน 90 วันจำนวน {snapshot['overdue_90_count']} รายการ "
         f"โดยรายการคงค้างกระจุกตัวอยู่ที่ {invoice_top_labs}. "
-        f"ด้านงานทดสอบ มีรายการที่รับตัวอย่างแล้วและออกใบรายงานผลแล้ว {snapshot['issued_count']} รายการ "
-        f"ขณะที่ยังไม่ออกใบรายงานผล {snapshot['pending_count']} รายการ โดยประเด็นที่ควรเร่งติดตามคือ {result_top_labs}.\n\n"
+        f"ด้านงานทดสอบ มีรายการที่รับตัวอย่างแล้วและใกล้ถึงกำหนดชำระ {due_soon_count} ราย "
+        f"ขณะที่ยังไม่ออกรายงานผล {snapshot['pending_count']} รายการ โดยประเด็นที่ควรเร่งติดตามคือ {result_top_labs}.\n\n"
         f"ประเด็นที่ควรติดตาม\n"
-        f"- เร่งติดตามใบแจ้งหนี้ที่ค้างเกิน 60 วันและ 90 วันเป็นพิเศษ\n"
-        f"- เร่งปิดงานทดสอบที่รับตัวอย่างแล้วแต่ยังไม่มี draft_file\n"
+        f"- เร่งติดตามยอดที่ค้างเกิน 60 วันและ 90 วันเป็นพิเศษ\n"
+        f"- เร่งปิดงานทดสอบที่รับตัวอย่างแล้วแต่ยังไม่ออกรายงานผล\n"
         f"- ตรวจสอบรายการที่ค้างต่อเนื่องและกำหนดผู้รับผิดชอบให้ชัดเจน\n\n"
         f"ข้อเสนอแนะสำหรับเดือนถัดไป\n"
         f"ควรติดตามสถานะงานและยอดคงค้างรายเดือนอย่างต่อเนื่อง เพื่อป้องกันการสะสมของงานค้างและช่วยให้การปิดงานเป็นไปตามแผน"
     )
 
 
-def _build_service_admin_summary_package(recipient, snapshot_cache=None):
-    snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
-    snapshot = snapshot_cache.get('global')
-    if snapshot is None:
-        snapshot = _build_service_admin_summary_snapshot()
-        snapshot_cache['global'] = snapshot
-
-    try:
-        if any((snapshot.get('overdue_60_count', 0), snapshot.get('overdue_90_count', 0),
-                snapshot.get('pending_count', 0), snapshot.get('issued_count', 0))):
-            ai_summary = _call_typhoon_service_admin_summary(snapshot)
-        else:
-            ai_summary = _build_fallback_service_admin_summary(snapshot)
-    except Exception:
-        current_app.logger.exception('Failed to generate service_admin summary with Typhoon AI for %s.', recipient.get('email'))
-        ai_summary = _build_fallback_service_admin_summary(snapshot)
-
-    subject = (
-        f"สรุปเรื่องคงค้างงานบริการวิชาการ - {recipient['sub_lab_name']} "
-        f"({arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M')})"
-    )
-    message = (
-        f"เรียนผู้รับผิดชอบหน่วยงาน {recipient['sub_lab_name']}\n\n"
-        f"{ai_summary}\n\n"
-        f"ตัวเลขสรุป\n"
-        f"- ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
-        f"- ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
-        f"- งานที่รับตัวอย่างแล้วและออกใบรายงานผลแล้ว: {snapshot['issued_count']} รายการ\n"
-        f"- งานที่รับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล: {snapshot['pending_count']} รายการ\n"
-    )
-    return {
-        'recipient': recipient,
-        'snapshot': snapshot,
-        'subject': subject,
-        'message': message,
-        'ai_summary': ai_summary,
-    }
+def _render_service_admin_overview_chart_html(snapshot):
+    rows = [
+        ('ค้างชำระเกิน 60 วัน', snapshot['overdue_60_count']),
+        ('ค้างชำระเกิน 90 วัน', snapshot['overdue_90_count']),
+        ('ใกล้ครบกำหนด', snapshot['due_soon_count']),
+        ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
+    ]
+    max_value = max([value for _, value in rows] + [1])
+    bar_width = 320
+    rendered_rows = []
+    for label, value in rows:
+        fill_width = max(int((value / max_value) * bar_width), 0) if max_value else 0
+        if value > 0 and fill_width == 0:
+            fill_width = 10
+        gap_width = max(bar_width - fill_width, 0)
+        rendered_rows.append(
+            f'''
+            <tr>
+              <td style="padding:7px 14px 7px 0;font-size:13px;color:#1e3a8a;white-space:nowrap;">{escape(label)} ({value})</td>
+              <td style="padding:7px 0;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="{bar_width}" style="width:{bar_width}px;border-collapse:collapse;">
+                  <tr>
+                    <td width="{fill_width}" style="width:{fill_width}px;height:16px;line-height:16px;font-size:0;background:#cbd5e1;">&nbsp;</td>
+                    <td width="{gap_width}" style="width:{gap_width}px;height:16px;line-height:16px;font-size:0;background:#e2e8f0;">&nbsp;</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            '''
+        )
+    return f'''
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+      {''.join(rendered_rows)}
+    </table>
+    '''
 
 
 def _build_service_admin_line_reminder_message(recipient, snapshot):
@@ -671,7 +671,7 @@ def _build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=
     }
 
 
-def _build_service_admin_summary_package_by_lab(recipient, snapshot_cache=None):
+def _build_service_admin_summary_package(recipient, snapshot_cache=None):
     snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
     cache_key = tuple(recipient.get('sub_lab_ids') or [])
     snapshot = snapshot_cache.get(cache_key)
@@ -681,7 +681,7 @@ def _build_service_admin_summary_package_by_lab(recipient, snapshot_cache=None):
 
     try:
         if any((snapshot.get('overdue_60_count', 0), snapshot.get('overdue_90_count', 0),
-                snapshot.get('pending_count', 0), snapshot.get('issued_count', 0))):
+                snapshot.get('pending_count', 0), snapshot.get('due_soon_count', 0))):
             ai_summary = _call_typhoon_service_admin_summary(snapshot)
         else:
             ai_summary = _build_fallback_service_admin_summary(snapshot)
@@ -691,16 +691,18 @@ def _build_service_admin_summary_package_by_lab(recipient, snapshot_cache=None):
 
     lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
     subject = (
-        f"สรุปเรื่องคงค้างงานบริการวิชาการ - {lab_name} "
-        f"({arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M')})"
+        f"สรุปภาพรวมเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออก (ห้องปฏิบัติการ: {lab_name})"
+        f" ณ {arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M')}"
     )
     message = (
-        f"เรียนผู้รับผิดชอบห้องปฏิบัติการ {lab_name}\n\n"
+        f"สรุปภาพรวมเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออก ณ {arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M')}\n\n"
+        f"รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน\n\n"
+        f"ห้องปฏิบัติการ: {lab_name})\n\n"
         f"{ai_summary}\n\n"
-        f"ตัวเลขสรุป\n"
-        f"- ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
-        f"- ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
-        f"- งานที่รับตัวอย่างแล้วแต่ออกใบรายงานผลแล้ว: {snapshot['issued_count']} รายการ\n"
+        f"ตัวเลขประกอบการติดตาม\n"
+        f"- ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
+        f"- ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
+        f"- ใบแจ้งหนี้ที่ใกล้ถึงกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n"
         f"- งานที่รับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล: {snapshot['pending_count']} รายการ\n"
     )
     return {
@@ -728,99 +730,7 @@ def _build_service_admin_line_reminder_package(recipient, snapshot_cache=None):
         'message': message,
     }
 
-
-def _render_service_admin_action_dry_run_html(title, packages, should_send, metrics_builder):
-    cards = []
-    for package in packages:
-        recipient = package['recipient']
-        snapshot = package['snapshot']
-        metrics = metrics_builder(snapshot)
-        message_html = escape(package['message']).replace('\n', '<br>')
-        recipient_emails = recipient.get('emails') or ([recipient.get('email')] if recipient.get('email') else [])
-        recipient_email = ', '.join(email for email in recipient_emails if email) or '-'
-        admin_names = ', '.join(recipient.get('admin_names') or recipient.get('names') or []) or '-'
-        line_ids = recipient.get('line_ids') or ([] if not recipient.get('line_id') else [recipient.get('line_id')])
-        subject_html = package.get('subject')
-        cards.append(f'''
-        <section class="card">
-            <div class="card-header">
-                <div class="pill">{escape(recipient.get('lab_name') or recipient.get('name') or '-')}</div>
-                <div class="subpill">{escape(', '.join(recipient.get('sub_lab_names') or ['ทุกฝ่ายที่เกี่ยวข้อง']))}</div>
-            </div>
-            <div class="summary-card">
-                <h3>ตัวเลขสำคัญ</h3>
-                <div class="summary-metrics">
-                    {''.join(f'<span><strong>{escape(str(value))}</strong> {escape(label)}</span>' for label, value in metrics)}
-                </div>
-            </div>
-            <div class="meta">
-                <p><strong>Recipients:</strong> {escape(recipient_email)}</p>
-                <p><strong>Admins:</strong> {escape(admin_names)}</p>
-                <p><strong>LINE IDs:</strong> {escape(', '.join(line_ids) if line_ids else '-')}</p>
-                {f'<p><strong>Subject:</strong> {escape(subject_html)}</p>' if subject_html else ''}
-            </div>
-            <div class="message">
-                <h3>Message Preview</h3>
-                <div class="message-body">{message_html}</div>
-            </div>
-        </section>
-        ''')
-
-    return f'''<!doctype html>
-<html lang="th">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{escape(title)}</title>
-  <style>
-    :root {{
-      --bg: #f8fafc;
-      --panel: #ffffff;
-      --line: #dbe4ee;
-      --text: #0f172a;
-      --muted: #64748b;
-      --accent: #0f766e;
-    }}
-    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }}
-    .page {{ max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }}
-    .hero {{ margin-bottom: 24px; }}
-    .hero h1 {{ margin: 0 0 8px; font-size: 28px; }}
-    .hero p {{ margin: 0; color: var(--muted); }}
-    .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
-    .grid {{ display: grid; gap: 20px; }}
-    .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
-    .card-header {{ display: flex; justify-content: flex-start; gap: 16px; align-items: start; margin-bottom: 16px; flex-wrap: wrap; }}
-    .pill {{ background: #ecfeff; color: var(--accent); border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
-    .subpill {{ background: #f8fafc; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
-    .summary-card {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
-    .summary-card h3 {{ margin: 0 0 10px; font-size: 16px; }}
-    .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; }}
-    .summary-metrics span {{ color: var(--muted); font-size: 14px; }}
-    .summary-metrics strong {{ color: var(--text); font-size: 20px; margin-right: 4px; }}
-    .meta {{ margin: 16px 0; font-size: 14px; }}
-    .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
-    .message-body {{ background: #f8fafc; color: #0f172a; border: 1px solid var(--line); border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
-    @media (max-width: 800px) {{
-      .card-header {{ flex-direction: column; }}
-    }}
-  </style>
-</head>
-<body>
-  <main class="page">
-    <header class="hero">
-      <h1>{escape(title)}</h1>
-      <p>Send flag: {str(should_send)} | Recipient count: {len(packages)}</p>
-      <div class="notice">หน้านี้ใช้สำหรับตรวจสอบผลก่อนส่งจริง และจะแสดงข้อความตัวอย่างของอีเมลหรือ LINE ที่จะถูกส่ง</div>
-    </header>
-    <div class="grid">
-      {''.join(cards) if cards else '<section class="card"><p>No recipients found.</p></section>'}
-    </div>
-  </main>
-</body>
-</html>'''
-
-
-def _render_service_admin_action_dry_run_html_v2(title, packages, should_send, metrics_builder, stats=None, global_snapshot=None, matched_packages=None):
+def _render_service_admin_action_dry_run_html(title, packages, should_send, metrics_builder, stats=None, global_snapshot=None, matched_packages=None):
     matched_packages = matched_packages or []
     stats = stats or {
         'total_admin_rows': len(packages),
@@ -917,6 +827,7 @@ def _render_service_admin_action_dry_run_html_v2(title, packages, should_send, m
     .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
     .example-list {{ margin: 0; padding-left: 22px; line-height: 1.8; }}
     .example-list li {{ margin-bottom: 4px; }}
+    .chart-wrap h3, .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
   </style>
 </head>
 <body>
@@ -947,22 +858,47 @@ def _render_service_admin_action_dry_run_html_v2(title, packages, should_send, m
 
 def _render_service_admin_summary_email_html(package):
     snapshot = package['snapshot']
+    overview_chart_html = _render_service_admin_overview_chart_html(snapshot)
+    subject_html = escape(package['subject'])
+    recipient = package.get('recipient') or {}
+    message_html = escape(package['message']).replace('\n', '<br>')
+    lab_name_html = escape(recipient.get('sub_lab_name') or recipient.get('lab_name') or recipient.get('name') or '-')
     return f'''<!doctype html>
 <html lang="th">
 <body style="margin:0;padding:24px;background:#f8fafc;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:900px;margin:0 auto;">
-    <h1 style="margin:0 0 16px;font-size:26px;">สรุปเรื่องคงค้างงานบริการวิชาการ</h1>
-    <div style="background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06);">
-      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
-        <div style="display:flex;flex-wrap:wrap;gap:10px 18px;">
-          <span><strong style="font-size:20px;">{snapshot['overdue_60_count']}</strong> ใบค้างเกิน 60 วัน</span>
-          <span><strong style="font-size:20px;">{snapshot['overdue_90_count']}</strong> ใบค้างเกิน 90 วัน</span>
-          <span><strong style="font-size:20px;">{snapshot['issued_count']}</strong> ออกใบรายงานผลแล้ว</span>
-          <span><strong style="font-size:20px;">{snapshot['pending_count']}</strong> ยังไม่ออกใบรายงานผล</span>
+    <h1 style="margin:0 0 8px;font-size:28px;">สรุปรายงานเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออก</h1>
+    <div style="margin-top:14px;background:#ecfeff;color:#115e59;border:1px solid #99f6e4;border-radius:14px;padding:14px 16px;line-height:1.6;font-size:14px;">
+      รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน
+    </div>
+    <br>
+    <section style="background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06);">
+      <div style="display:flex;justify-content:flex-start;gap:16px;align-items:flex-start;margin-bottom:16px;">
+        <div style="background:#ecfeff;color:#0f766e;border:1px solid #99f6e4;border-radius:999px;padding:8px 12px;font-size:13px;">
+          ห้องปฏิบัติการ: {lab_name_html}
         </div>
       </div>
-      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:16px;line-height:1.7;white-space:pre-wrap;">{escape(package['message'])}</div>
-    </div>
+      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
+        <h3 style="margin:0 0 10px;font-size:16px;">ตัวเลขสำคัญ</h3>
+        <div style="font-size:14px;color:#64748b;line-height:1.9;">
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_60_count']}</strong>ค้างชำระเกิน 60 วัน</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_90_count']}</strong>ค้างชำระเกิน 90 วัน</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['due_soon_count']}</strong>ใกล้ถึงกำหนดชำระ</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['pending_count']}</strong>ยังไม่ออกรายงานผล</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <h3>ภาพรวมงานคงค้าง</h3>
+        {overview_chart_html}
+      </div>
+      <div style="margin:16px 0;font-size:14px;">
+        <p style="margin:0 0 8px;"><strong>Subject:</strong> {escape(package['subject'])}</p>
+      </div>
+      <div>
+        <h3 style="margin:0 0 12px;font-size:16px;">รายงานสรุป</h3>
+        <div style="background:#f8fafc;color:#0f172a;border:1px solid #dbe4ee;border-radius:14px;padding:16px;line-height:1.65;font-size:14px;">{message_html}</div>
+      </div>
+    </section>
   </div>
 </body>
 </html>'''
@@ -1002,7 +938,7 @@ def line_remind_pending():
     )
 
     if dry_run:
-        return _render_service_admin_action_dry_run_html_v2(
+        return _render_service_admin_action_dry_run_html(
             'Service Admin Line Reminder Dry Run',
             packages,
             should_send,
@@ -1010,7 +946,7 @@ def line_remind_pending():
                 ('ใบค้าง 60 วัน', snapshot['overdue_60_count']),
                 ('ใบค้าง 90 วัน', snapshot['overdue_90_count']),
                 ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
-                ('ออกใบรายงานผลแล้ว', snapshot['issued_count']),
+                ('ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
             ],
             stats={
                 'total_admin_rows': len(recipient_groups),
@@ -1105,7 +1041,7 @@ def monthly_overdue_summary():
     recipient_groups = _group_service_admin_recipients_by_lab(lambda row: row.is_supervisor or row.is_assistant)
     recipient_groups = [recipient for recipient in recipient_groups if recipient.get('emails')]
     snapshot_cache = {}
-    packages = [_build_service_admin_summary_package_by_lab(recipient, snapshot_cache=snapshot_cache)
+    packages = [_build_service_admin_summary_package(recipient, snapshot_cache=snapshot_cache)
                 for recipient in recipient_groups]
     should_send = _request_flag('send')
     dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
@@ -1118,14 +1054,14 @@ def monthly_overdue_summary():
     )
 
     if dry_run:
-        return _render_service_admin_action_dry_run_html_v2(
+        return _render_service_admin_action_dry_run_html(
             'Service Admin Monthly Summary Dry Run',
             packages,
             should_send,
             lambda snapshot: [
-                ('ใบค้าง 60 วัน', snapshot['overdue_60_count']),
-                ('ใบค้าง 90 วัน', snapshot['overdue_90_count']),
-                ('ออกใบรายงานผลแล้ว', snapshot['issued_count']),
+                ('ค้างชำระ 60 วัน', snapshot['overdue_60_count']),
+                ('ค้างชำระ 90 วัน', snapshot['overdue_90_count']),
+                ('ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
                 ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
             ],
             stats={
@@ -1177,14 +1113,14 @@ def monthly_overdue_summary():
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
-        return response
+        return redirect(url_for('service_admin.task_dashboard'))
 
     flash(success_message, 'success')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return redirect(request.referrer or url_for('service_admin.index'))
+    return redirect(url_for('service_admin.task_dashboard'))
 
 
 @service_admin.route('/aws-s3/download/<key>', methods=['GET'])
