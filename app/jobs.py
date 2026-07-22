@@ -258,6 +258,24 @@ def send_line_reminder_no_status_today():
     _run_job(job_name, _job)
 
 
+def send_service_admin_monthly_overdue_summary():
+    job_name = 'send_service_admin_monthly_overdue_summary'
+
+    def _job():
+        params = {'send': 'true'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/service_admin/admin/monthly-overdue-summary',
+            params=params,
+            timeout=90,
+        )
+
+    _run_job(job_name, _job)
+
+
 def send_checkin_reminder():
     job_name = 'send_checkin_reminder'
 
@@ -301,6 +319,11 @@ scheduler.add_job(send_complaint_summary_report,
 scheduler.add_job(send_line_reminder_no_status_today,
                   'cron', day_of_week='mon-fri',
                   hour='15',
+                  minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_service_admin_monthly_overdue_summary,
+                  'cron', day='1',
+                  hour='9',
                   minute='00',
                   timezone='Asia/Bangkok')
 scheduler.add_job(send_checkin_reminder,
