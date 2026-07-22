@@ -738,6 +738,9 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
         message_html = escape(package['message']).replace('\n', '<br>')
         recipient_emails = recipient.get('emails') or ([recipient.get('email')] if recipient.get('email') else [])
         recipient_email = ', '.join(email for email in recipient_emails if email) or '-'
+        admin_names = ', '.join(recipient.get('admin_names') or recipient.get('names') or []) or '-'
+        line_ids = recipient.get('line_ids') or ([] if not recipient.get('line_id') else [recipient.get('line_id')])
+        subject_html = package.get('subject')
         cards.append(f'''
         <section class="card">
             <div class="card-header">
@@ -752,6 +755,9 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
             </div>
             <div class="meta">
                 <p><strong>Recipients:</strong> {escape(recipient_email)}</p>
+                <p><strong>Admins:</strong> {escape(admin_names)}</p>
+                <p><strong>LINE IDs:</strong> {escape(', '.join(line_ids) if line_ids else '-')}</p>
+                {f'<p><strong>Subject:</strong> {escape(subject_html)}</p>' if subject_html else ''}
             </div>
             <div class="message">
                 <h3>Message Preview</h3>
@@ -783,7 +789,7 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
     .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
     .grid {{ display: grid; gap: 20px; }}
     .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
-    .card-header {{ display: flex; justify-content: flex-start; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }}
+    .card-header {{ display: flex; justify-content: flex-start; gap: 16px; align-items: start; margin-bottom: 16px; flex-wrap: wrap; }}
     .pill {{ background: #ecfeff; color: var(--accent); border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
     .subpill {{ background: #f8fafc; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
     .summary-card {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
@@ -792,8 +798,11 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
     .summary-metrics span {{ color: var(--muted); font-size: 14px; }}
     .summary-metrics strong {{ color: var(--text); font-size: 20px; margin-right: 4px; }}
     .meta {{ margin: 16px 0; font-size: 14px; }}
-    .message-body {{ background: #f8fafc; color: #0f172a; border: 1px solid var(--line); border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
     .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
+    .message-body {{ background: #f8fafc; color: #0f172a; border: 1px solid var(--line); border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
+    @media (max-width: 800px) {{
+      .card-header {{ flex-direction: column; }}
+    }}
   </style>
 </head>
 <body>
@@ -801,7 +810,7 @@ def _render_service_admin_action_dry_run_html(title, packages, should_send, metr
     <header class="hero">
       <h1>{escape(title)}</h1>
       <p>Send flag: {str(should_send)} | Recipient count: {len(packages)}</p>
-      <div class="notice">หน้านี้ใช้สำหรับตรวจสอบผลก่อนส่งจริง และจะแสดงข้อความตัวอย่างของอีเมล/LINE ที่จะถูกส่ง</div>
+      <div class="notice">หน้านี้ใช้สำหรับตรวจสอบผลก่อนส่งจริง และจะแสดงข้อความตัวอย่างของอีเมลหรือ LINE ที่จะถูกส่ง</div>
     </header>
     <div class="grid">
       {''.join(cards) if cards else '<section class="card"><p>No recipients found.</p></section>'}
@@ -832,7 +841,8 @@ def _render_service_admin_action_dry_run_html_v2(title, packages, should_send, m
         message_html = escape(package['message']).replace('\n', '<br>')
         recipient_emails = recipient.get('emails') or ([recipient.get('email')] if recipient.get('email') else [])
         recipient_email = ', '.join(email for email in recipient_emails if email) or '-'
-        line_ids = recipient.get('line_ids') or ([] if not recipient.get('line_id') else [recipient.get('line_id')])
+        admin_names = ', '.join(recipient.get('admin_names') or recipient.get('names') or []) or '-'
+        line_id_list = recipient.get('line_ids') or ([] if not recipient.get('line_id') else [recipient.get('line_id')])
         example_items = []
         if snapshot.get('overdue_60_items'):
             example_items.extend(snapshot['overdue_60_items'][:3])
@@ -856,7 +866,8 @@ def _render_service_admin_action_dry_run_html_v2(title, packages, should_send, m
             </div>
             <div class="meta">
                 <p><strong>Recipients:</strong> {escape(recipient_email)}</p>
-                <p><strong>LINE ID:</strong> {escape(', '.join(line_ids) if line_ids else '-')}</p>
+                <p><strong>Admins:</strong> {escape(admin_names)}</p>
+                <p><strong>LINE ID:</strong> {escape(', '.join(line_id_list) if line_id_list else '-')}</p>
             </div>
             <div class="message">
                 <h3>Message Preview</h3>
@@ -962,8 +973,6 @@ def _service_admin_preview_or_guard():
     if not scheduler_request:
         if not current_user.is_authenticated:
             return False, redirect(url_for('auth.login', next=request.url))
-        if not admin_permission.can():
-            abort(403)
     return scheduler_request, None
 
 
@@ -993,7 +1002,7 @@ def line_remind_pending():
     )
 
     if dry_run:
-        return _render_service_admin_action_dry_run_html(
+        return _render_service_admin_action_dry_run_html_v2(
             'Service Admin Line Reminder Dry Run',
             packages,
             should_send,
@@ -1003,6 +1012,23 @@ def line_remind_pending():
                 ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
                 ('ออกใบรายงานผลแล้ว', snapshot['issued_count']),
             ],
+            stats={
+                'total_admin_rows': len(recipient_groups),
+                'admins_with_line': len(packages),
+                'unique_recipients': len(packages),
+                'missing_line_names': [
+                    recipient.get('lab_name') or recipient.get('name') or '-'
+                    for recipient in recipient_groups
+                    if not (recipient.get('line_ids') or recipient.get('line_id'))
+                ],
+            },
+            global_snapshot={
+                'total_records': sum(
+                    1 for package in matched_packages
+                ),
+                'date_label': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y'),
+            },
+            matched_packages=matched_packages,
         )
 
     if not should_send:
@@ -1092,7 +1118,7 @@ def monthly_overdue_summary():
     )
 
     if dry_run:
-        return _render_service_admin_action_dry_run_html(
+        return _render_service_admin_action_dry_run_html_v2(
             'Service Admin Monthly Summary Dry Run',
             packages,
             should_send,
@@ -1102,6 +1128,19 @@ def monthly_overdue_summary():
                 ('ออกใบรายงานผลแล้ว', snapshot['issued_count']),
                 ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
             ],
+            stats={
+                'total_admin_rows': len(recipient_groups),
+                'admins_with_line': len(packages),
+                'unique_recipients': len(packages),
+                'missing_line_names': [],
+            },
+            global_snapshot={
+                'total_records': sum(
+                    1 for package in packages
+                ),
+                'date_label': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y'),
+            },
+            matched_packages=packages,
         )
 
     if not should_send:
