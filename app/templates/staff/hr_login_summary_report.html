@@ -1,13 +1,135 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 
+{% block head %}
+{{ super() }}
+<style>
+    .hr-login-report-shell {
+        padding: 1.5rem 0 3rem;
+    }
+
+    .hr-login-report-layout {
+        align-items: flex-start;
+    }
+
+    .hr-login-report-sidebar {
+        position: sticky;
+        top: 1.2rem;
+    }
+
+    .hr-login-report-sidebar .panel {
+        border-radius: 22px;
+        box-shadow: 0 12px 34px rgba(18, 39, 84, 0.08);
+        overflow: hidden;
+    }
+
+    .hr-login-report-sidebar .panel-heading {
+        background: linear-gradient(135deg, rgba(18, 39, 84, 0.96), rgba(29, 55, 109, 0.96));
+        color: #fff;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+    }
+
+    .hr-login-report-sidebar .panel-block {
+        align-items: center;
+        border-left: 0;
+        border-right: 0;
+        display: flex;
+        justify-content: space-between;
+        padding: 0.95rem 1rem;
+    }
+
+    .hr-login-report-sidebar .panel-block:hover {
+        background: rgba(18, 39, 84, 0.04);
+    }
+
+    .hr-login-report-sidebar .panel-icon {
+        margin-right: 0.75rem;
+    }
+
+    .hr-login-report-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 252, 0.96));
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 28px;
+        box-shadow: 0 18px 50px rgba(18, 39, 84, 0.08);
+        overflow: hidden;
+    }
+
+    .hr-login-report-card + .hr-login-report-card {
+        margin-top: 1rem;
+    }
+
+    .hr-login-report-card-inner {
+        padding: 1.25rem;
+    }
+
+    .hr-login-report-title {
+        color: var(--theme-navy-deep);
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 0.35rem;
+    }
+
+    .hr-login-report-subtitle {
+        color: var(--theme-muted);
+        line-height: 1.55;
+        margin: 0;
+    }
+
+    .hr-login-report-chart {
+        margin-top: 1rem;
+    }
+
+    @media screen and (max-width: 768px) {
+        .hr-login-report-sidebar {
+            position: static;
+        }
+
+        .hr-login-report-card-inner {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block page_content %}
-    <section class="section">
-        <h1 class="title">สรุปรายงานการเข้าออกงานประจำวัน</h1>
+    <section class="section hr-login-report-shell">
         <div class="container">
-            <div id="calendar_checkin"></div>
-            <div id="calendar_wfh"></div>
-            <div id="calendar_leave"></div>
+            <div class="columns hr-login-report-layout">
+                <div class="column is-3">
+                    <aside class="hr-login-report-sidebar">
+                        <nav class="panel is-info">
+                            <p class="panel-heading">Quick Actions</p>
+                            <a class="panel-block" href="{{ url_for('staff.hr_manual_checkin') }}">
+                                <span>
+                                    <span class="icon"><i class="fas fa-map-marker-alt" aria-hidden="true"></i></span>
+                                    <span class="is-size-6">Add Check-In</span>
+                                </span>
+                                <span class="icon"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                            </a>
+                            <a class="panel-block" href="{{ url_for('staff.index') }}">
+                                <span>
+                                    <span class="icon"><i class="fas fa-house" aria-hidden="true"></i></span>
+                                    <span class="is-size-6">Dashboard</span>
+                                </span>
+                                <span class="icon"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                            </a>
+                        </nav>
+                    </aside>
+                </div>
+                <div class="column is-9">
+                    <div class="hr-login-report-card">
+                        <div class="hr-login-report-card-inner">
+                            <h1 class="hr-login-report-title">สรุปรายงานการเข้าออกงานประจำวัน</h1>
+                            <p class="hr-login-report-subtitle">สรุปภาพรวมการเข้าออกงาน, work from home และการลาในมุมมองรายวัน</p>
+                            <div class="hr-login-report-chart" id="calendar_checkin"></div>
+                            <div class="hr-login-report-chart" id="calendar_wfh"></div>
+                            <div class="hr-login-report-chart" id="calendar_leave"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 {% endblock %}

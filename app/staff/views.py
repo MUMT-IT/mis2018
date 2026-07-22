@@ -308,18 +308,18 @@ def _calculate_work_hours(start_dt, end_dt):
     workday_start = start_dt.replace(hour=8, minute=0, second=0, microsecond=0)
     effective_start = max(start_dt, workday_start)
     worked_seconds = max(0, (end_dt - effective_start).total_seconds())
-    return min(8.0, round(worked_seconds / 3600.0, 1))
+    worked_hours = worked_seconds / 3600.0
+    return min(8.0, worked_hours)
 
 
 def _work_login_event_style(is_late, hours_is_negative, has_checkout):
     class_names = []
     if is_late:
         class_names.append('is-late-login')
+        return '#8b1e1e', '#f8caca', '#e59b9b', class_names
     if hours_is_negative:
         class_names.append('is-short-hours')
         return '#10264c', '#fff3bf', '#e6cf73', class_names
-    if is_late:
-        return '#8b1e1e', '#f8caca', '#e59b9b', class_names
     if has_checkout:
         class_names.append('is-complete-hours')
         return '#245b38', '#e4f3e9', '#b8ddc4', class_names
@@ -2440,6 +2440,179 @@ def hr_login_summary_report():
     return render_template('staff/hr_login_summary_report.html')
 
 
+@staff.route('/api/for-hr/login-report/manual-check-in/calendar')
+@hr_permission.require()
+@login_required
+def hr_manual_checkin_calendar_data():
+    staff_id = request.args.get('staff_id', type=int)
+    month_value = (request.args.get('month') or '').strip()
+    if not staff_id or not month_value:
+        return jsonify({'events': [], 'count': 0, 'staff_name': '', 'month': month_value})
+
+    staff_person = StaffPersonalInfo.query.get(staff_id)
+    if not staff_person or not getattr(staff_person, 'staff_account', None):
+        return jsonify({'events': [], 'count': 0, 'staff_name': '', 'month': month_value})
+
+    try:
+        month_start = tz.localize(datetime.strptime(month_value + '-01', '%Y-%m-%d'))
+    except ValueError:
+        month_start = tz.localize(datetime.now(tz).replace(day=1, hour=0, minute=0, second=0, microsecond=0))
+        month_value = month_start.strftime('%Y-%m')
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1)
+
+    records = (
+        StaffWorkLogin.query.filter_by(staff=staff_person.staff_account)
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= month_start)
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) < next_month_start)
+        .order_by(StaffWorkLogin.start_datetime.asc(), StaffWorkLogin.id.asc())
+        .all()
+    )
+    daily_rows = _daily_work_login_rows(records)
+    events = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    for row in daily_rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        if not start_dt:
+            continue
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
+        worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+        is_late = bool(start_dt and start_dt.time() > office_start_time)
+        text_color, background_color, border_color, class_names = _work_login_event_style(
+            is_late, hours_is_negative, bool(end_dt)
+        )
+        checkin_display = start_dt.strftime('%H:%M') if start_dt else ''
+        checkout_display = end_dt.strftime('%H:%M') if end_dt else ''
+        if checkin_display and checkout_display:
+            note = f'{checkin_display} • {checkout_display}'
+        elif checkin_display:
+            note = checkin_display
+        else:
+            note = ''
+        staff_first_name = (
+            getattr(staff_person, 'th_firstname', None)
+            or getattr(staff_person, 'en_firstname', None)
+            or (row['staff_name'] or '').split()[0]
+        )
+        events.append({
+            'id': f"{row['staff_id']}-{row['date'].isoformat()}",
+            'start': row['start'],
+            'end': row['end'],
+            'status': 'Done' if end_dt else 'Not done',
+            'title': staff_first_name,
+            'first_name': staff_first_name,
+            'note': note,
+            'worked_hours_display': worked_hours_display,
+            'worked_hours': worked_hours,
+            'is_late': is_late,
+            'backgroundColor': background_color,
+            'borderColor': border_color,
+            'textColor': text_color,
+            'hours_is_negative': hours_is_negative,
+            'className': class_names,
+            'type': 'login'
+        })
+
+    return jsonify({
+        'events': events,
+        'count': len(events),
+        'staff_name': staff_person.fullname,
+        'month': month_value,
+    })
+
+
+@staff.route('/for-hr/login-report/manual-check-in', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def hr_manual_checkin():
+    def _render_page(*, selected_staff=None, checkin_value=None, note_value='', selected_month=None):
+        selected_staff_id = selected_staff.id if selected_staff else ''
+        selected_staff_name = selected_staff.fullname if selected_staff else ''
+        checkin_value = checkin_value or datetime.now(tz).strftime('%Y-%m-%dT%H:%M')
+        selected_month = selected_month or checkin_value[:7]
+        return render_template(
+            'staff/hr_manual_checkin.html',
+            selected_staff=selected_staff,
+            selected_staff_id=selected_staff_id,
+            selected_staff_name=selected_staff_name,
+            default_checkin_datetime=checkin_value,
+            selected_month=selected_month,
+            note_value=note_value,
+        )
+
+    staff_id = request.args.get('staff_id', type=int)
+    checkin_arg = (request.args.get('checkin_datetime') or '').strip()
+    month_arg = (request.args.get('month') or '').strip()
+    selected_staff = StaffPersonalInfo.query.get(staff_id) if staff_id else None
+    if checkin_arg and not month_arg and len(checkin_arg) >= 7:
+        month_arg = checkin_arg[:7]
+
+    if request.method == 'POST':
+        form = request.form
+        staff_id = form.get('staffname', type=int)
+        staff_person = StaffPersonalInfo.query.get(staff_id) if staff_id else None
+        checkin_raw = (form.get('checkin_datetime') or '').strip()
+        note = (form.get('note') or '').strip()
+
+        if not staff_person:
+            flash('ไม่พบข้อมูลบุคลากรที่เลือก', 'warning')
+            return _render_page(checkin_value=checkin_raw, note_value=note, selected_month=month_arg)
+
+        if not checkin_raw:
+            flash('กรุณาระบุวันและเวลาที่ต้องการบันทึก', 'warning')
+            return _render_page(selected_staff=staff_person, note_value=note, selected_month=month_arg or None)
+
+        try:
+            checkin_dt = tz.localize(datetime.strptime(checkin_raw, '%Y-%m-%dT%H:%M'))
+        except ValueError:
+            flash('รูปแบบวันและเวลาไม่ถูกต้อง', 'warning')
+            return _render_page(
+                selected_staff=staff_person,
+                checkin_value=checkin_raw,
+                note_value=note,
+                selected_month=month_arg or None,
+            )
+
+        staff_account = staff_person.staff_account
+        if not staff_account:
+            flash('บุคลากรที่เลือกยังไม่มีบัญชีผู้ใช้งาน', 'warning')
+            return _render_page(
+                selected_staff=staff_person,
+                checkin_value=checkin_raw,
+                note_value=note,
+                selected_month=month_arg or None,
+            )
+
+        date_id = StaffWorkLogin.generate_date_id(checkin_dt)
+        num_scans = StaffWorkLogin.query.filter_by(date_id=date_id, staff=staff_account).count() + 1
+        record = StaffWorkLogin(
+            date_id=date_id,
+            staff=staff_account,
+            start_datetime=checkin_dt,
+            lat=0.0,
+            long=0.0,
+            num_scans=num_scans,
+            note=note or 'บันทึกโดย HR',
+        )
+        db.session.add(record)
+        db.session.commit()
+        flash('บันทึกการเข้างานเรียบร้อยแล้ว', 'success')
+        return redirect(url_for(
+            'staff.hr_manual_checkin',
+            staff_id=staff_person.id,
+            checkin_datetime=checkin_dt.strftime('%Y-%m-%dT%H:%M'),
+            month=checkin_dt.strftime('%Y-%m'),
+        ))
+
+    if not month_arg:
+        month_arg = checkin_arg[:7] if checkin_arg else datetime.now(tz).strftime('%Y-%m')
+    return _render_page(selected_staff=selected_staff, checkin_value=checkin_arg or None, selected_month=month_arg)
+
+
 def _handle_login_scan_request(template_name, *, note):
     DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
 
@@ -3060,18 +3233,9 @@ def send_summary_data():
                 end = row['end']
                 start_dt = parser.isoparse(row['start']) if row['start'] else None
                 end_dt = parser.isoparse(end) if end else None
-                hours_delta = None
                 worked_hours = _calculate_work_hours(start_dt, end_dt)
-                if worked_hours is not None:
-                    hours_delta = round(worked_hours - 8.0, 1)
-                    if abs(hours_delta) < 0.05:
-                        hours_delta = 0.0
-                hours_is_negative = False
-                worked_hours_display = None
-                if hours_delta is not None:
-                    hours_is_negative = hours_delta < 0
-                if worked_hours is not None:
-                    worked_hours_display = '{:.1f} hrs.'.format(worked_hours)
+                hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
+                worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
                 is_late = bool(start_dt and start_dt.time() > office_start_time)
                 text_color, bg_color, border_color, class_names = _work_login_event_style(
                     is_late, hours_is_negative, bool(end)
@@ -3279,8 +3443,15 @@ def export_login_summary():
 @staff.route('/api/staffids')
 @login_required
 def get_staffid():
+    only_active = request.args.get('active', type=int) == 1
+    if only_active:
+        staffs = StaffAccount.get_active_accounts()
+        staff_infos = [account.personal_info for account in staffs if account.personal_info]
+    else:
+        staff_infos = StaffPersonalInfo.query.all()
+
     staff = []
-    for sid in StaffPersonalInfo.query.all():
+    for sid in staff_infos:
         staff.append({
             'id': sid.id,
             'fullname': sid.fullname,
