@@ -3234,12 +3234,8 @@ def send_summary_data():
     tab = request.args.get('tab')
     if cal_start:
         cal_start = parser.isoparse(cal_start)
-        if cal_start.tzinfo:
-            cal_start = cal_start.astimezone(tz).replace(tzinfo=None)
     if cal_end:
         cal_end = parser.isoparse(cal_end)
-        if cal_end.tzinfo:
-            cal_end = cal_end.astimezone(tz).replace(tzinfo=None)
     selected_org = Org.query.get(curr_dept_id) if curr_dept_id else None
     org_ids = get_org_and_children_ids(selected_org) if selected_org else [curr_dept_id]
     employees = StaffPersonalInfo.query.filter(StaffPersonalInfo.org_id.in_(org_ids))
