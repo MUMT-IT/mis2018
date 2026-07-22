@@ -1,5 +1,6 @@
 import uuid
 import calendar
+import time
 from collections import defaultdict
 
 import click
@@ -11,7 +12,7 @@ from sqlalchemy.orm import joinedload
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, request, abort, session
+from flask import Flask, g, render_template, redirect, url_for, request, abort, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -182,6 +183,42 @@ def create_app():
 
 app = create_app()
 api = Api(app)
+
+
+@app.before_request
+def start_request_diagnostics():
+    """Attach a correlation id and monotonic start time to each request."""
+    incoming_request_id = request.headers.get('X-Request-ID', '')
+    if not re.fullmatch(r'[A-Za-z0-9._-]{1,64}', incoming_request_id):
+        incoming_request_id = uuid.uuid4().hex
+    g.request_id = incoming_request_id
+    g.request_started_at = time.perf_counter()
+
+
+@app.after_request
+def finish_request_diagnostics(response):
+    started_at = getattr(g, 'request_started_at', None)
+    if started_at is None:
+        return response
+
+    duration_ms = (time.perf_counter() - started_at) * 1000
+    response.headers['X-Request-ID'] = g.request_id
+    try:
+        slow_threshold_ms = float(os.environ.get('SLOW_REQUEST_MS', '750'))
+    except ValueError:
+        slow_threshold_ms = 750.0
+    if duration_ms >= slow_threshold_ms:
+        app.logger.warning(
+            'slow_request request_id=%s method=%s path=%s endpoint=%s status=%s duration_ms=%.1f user_id=%s',
+            g.request_id,
+            request.method,
+            request.path,
+            request.endpoint or '-',
+            response.status_code,
+            duration_ms,
+            getattr(current_user, 'id', None),
+        )
+    return response
 
 EXTERNAL_ALLOWED_ENDPOINTS = {
     'static',
