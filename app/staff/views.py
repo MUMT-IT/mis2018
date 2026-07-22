@@ -217,10 +217,15 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
         }
 
     start_datetime_column = getattr(StaffWorkLogin, 'start_datetime', None)
+    staff_id_column = getattr(StaffWorkLogin, 'staff_id', None)
+    staff_ids = list(employees_by_id)
     if start_datetime_column is not None:
-        records = StaffWorkLogin.query.filter(
+        records_query = StaffWorkLogin.query.filter(
             cast(func.timezone('Asia/Bangkok', start_datetime_column), Date).between(start_date, end_date)
-        ).all()
+        )
+        if staff_id_column is not None:
+            records_query = records_query.filter(staff_id_column.in_(staff_ids))
+        records = records_query.all()
     else:
         records = StaffWorkLogin.query.all()
     daily_rows = _daily_work_login_rows(records)
@@ -2416,17 +2421,31 @@ def get_hr_leave_summary_report_data():
 @login_required
 def get_hr_login_time_data():
     description = {'timeofday': ("timeofday", "Time"), 'heads': ("number", "heads")}
-    data = defaultdict(int)
-    for rec in StaffWorkLogin.query.all():
-        start_datetime = rec.start_datetime.astimezone(tz)
-        data[(start_datetime.hour, start_datetime.minute, 0)] += 1
-
-    count_data = []
-    for tod, heads in data.items():
-        count_data.append({
-            'timeofday': list(tod),
-            'heads': heads
-        })
+    local_start = func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
+    grouped_rows = (
+        db.session.query(
+            extract('hour', local_start).label('hour'),
+            extract('minute', local_start).label('minute'),
+            func.count(StaffWorkLogin.id).label('heads'),
+        )
+        .filter(StaffWorkLogin.start_datetime.isnot(None))
+        .group_by(
+            extract('hour', local_start),
+            extract('minute', local_start),
+        )
+        .order_by(
+            extract('hour', local_start),
+            extract('minute', local_start),
+        )
+        .all()
+    )
+    count_data = [
+        {
+            'timeofday': [int(row.hour), int(row.minute), 0],
+            'heads': int(row.heads),
+        }
+        for row in grouped_rows
+    ]
 
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
@@ -3218,6 +3237,9 @@ def send_summary_data():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     employees = StaffPersonalInfo.query.filter_by(org_id=curr_dept_id)
+    staff_id = request.args.get('staff_id', type=int)
+    if staff_id:
+        employees = employees.filter(StaffPersonalInfo.staff_account.has(StaffAccount.id == staff_id))
     leaves = []
     wfhs = []
     seminars = []

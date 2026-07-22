@@ -418,7 +418,9 @@
             locale: 'th',
             eventSources: [
                 {{ url_for('staff.send_time_report_data')|tojson|safe }},
-                {{ url_for('staff.send_holidays_data')|tojson|safe }}
+                {{ url_for('staff.send_holidays_data')|tojson|safe }},
+                {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id)|tojson|safe }},
+                {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=current_user.personal_info.org.id, staff_id=current_user.id)|tojson|safe }}
             ],
             defaultView: 'month',
             fixedWeekCount: false,
@@ -427,8 +429,32 @@
             displayEventTime: true,
             displayEventEnd: true,
             timeFormat: 'H(:mm)',
+            eventDataTransform: function(event) {
+                if ((event.type === 'leave' || event.type === 'wfh') && event.status !== 'Approved') {
+                    return null;
+                }
+                return event;
+            },
             eventRender: function(event, element) {
                 if (event.type !== 'login') {
+                    var eventTitle = String(event.title || '');
+                    var escapedEventTitle = $('<span/>').text(eventTitle).html();
+                    if (event.type === 'leave' && eventTitle.indexOf('ลาป่วย') !== -1) {
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-face-frown-open staff-login-leave-icon" aria-hidden="true"></i> ' + escapedEventTitle
+                        );
+                    } else if (event.type === 'leave' && (
+                        eventTitle.indexOf('ลาพักร้อน') !== -1 ||
+                        eventTitle.indexOf('ลาพักผ่อน') !== -1
+                    )) {
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-plane-departure staff-login-leave-icon" aria-hidden="true"></i> ' + escapedEventTitle
+                        );
+                    } else if (event.type === 'wfh') {
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-house-chimney-user staff-login-wfh-icon" aria-hidden="true"></i> ' + escapedEventTitle
+                        );
+                    }
                     return;
                 }
 
