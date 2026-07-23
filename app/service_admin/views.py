@@ -458,19 +458,17 @@ def _call_typhoon_service_admin_summary(snapshot):
 
 
 def _build_fallback_service_admin_summary(snapshot):
-    due_soon_count = snapshot.get('due_soon_count', 0)
-    invoice_top_labs = snapshot.get('invoice_top_labs') or []
     urgency_items = [
         ('งานรับตัวอย่างแล้วที่ยังไม่ออกใบรายงานผล', snapshot.get('pending_count', 0)),
         ('ยอดค้างชำระเกิน 90 วัน', snapshot.get('overdue_90_count', 0)),
         ('ยอดค้างชำระเกิน 60 วัน', snapshot.get('overdue_60_count', 0)),
-        ('งานที่ใกล้ครบกำหนดชำระ', due_soon_count),
+        ('งานที่ใกล้ครบกำหนดชำระ', snapshot.get('due_soon_count', 0)),
     ]
     top_urgency = next((label for label, count in urgency_items if count), 'ไม่มีรายการคงค้าง')
     return (
         f"ภาพรวม\n"
         f"ขณะนี้มียอดค้างชำระเกิน 60 วันจำนวน {snapshot['overdue_60_count']} รายการ และยอดค้างเกิน 90 วันจำนวน {snapshot['overdue_90_count']} รายการ "
-        f"พร้อมทั้งมีงานที่ใกล้ครบกำหนดชำระ {due_soon_count} รายการ "
+        f"พร้อมทั้งมีงานที่ใกล้ครบกำหนดชำระ {snapshot['due_soon_count']} รายการ "
         f"ขณะที่งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผลมี {snapshot['pending_count']} รายการ "
         f"โดยประเด็นที่ควรเร่งติดตามคือ {top_urgency}\n\n"
         f"ประเด็นที่ควรติดตาม\n"
@@ -862,10 +860,10 @@ def line_remind_pending():
         message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
         if request.method == 'POST':
             flash(message, 'warning')
-            return redirect(request.referrer or url_for('service_admin.index'))
+            return redirect(url_for('service_admin.task_dashboard'))
         response = make_response(message + '\n', 404)
         response.mimetype = 'text/plain'
-        return response
+        return redirect(url_for('service_admin.task_dashboard'))
 
     sent_count = 0
     failed_count = 0
@@ -905,14 +903,14 @@ def line_remind_pending():
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
-        return response
+        return redirect(url_for('service_admin.task_dashboard'))
 
     flash(success_message, 'success' if failed_count == 0 else 'warning')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return redirect(request.referrer or url_for('service_admin.index'))
+    return redirect(url_for('service_admin.task_dashboard'))
 
 
 @service_admin.route('/admin/monthly-overdue-summary', methods=['GET', 'POST'])
@@ -974,7 +972,7 @@ def monthly_overdue_summary():
         message = 'ไม่พบผู้รับสำหรับส่งสรุปเรื่องคงค้าง'
         if request.method == 'POST':
             flash(message, 'warning')
-            return redirect(request.referrer or url_for('service_admin.index'))
+            return redirect(url_for('service_admin.task_dashboard'))
         response = make_response(message + '\n', 404)
         response.mimetype = 'text/plain'
         return response
