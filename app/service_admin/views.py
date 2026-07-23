@@ -1,4 +1,5 @@
-﻿import itertools
+import itertools
+import os
 import json
 import re
 import uuid
@@ -338,10 +339,17 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     }
 
 
+def _service_admin_result_is_complete(service_request):
+    result = service_request.get_result() if service_request else None
+    if not result:
+        return False
+    result_items = list(result.result_items)
+    return bool(result_items) and all(item.draft_file for item in result_items)
+
+
 def _build_service_admin_result_snapshot(sub_lab_ids=None):
     query = (
-        ServiceResult.query
-        .join(ServiceResult.request)
+        ServiceRequest.query
         .join(ServiceRequest.samples)
         .filter(ServiceSample.received_at.isnot(None))
     )
@@ -351,26 +359,26 @@ def _build_service_admin_result_snapshot(sub_lab_ids=None):
     issued = []
     pending = []
     top_labs = defaultdict(int)
-    for result in query.distinct().all():
-        request = result.request
+    for request in query.distinct().all():
         lab_name = request.sub_lab.sub_lab if request and request.sub_lab else 'ไม่ระบุหน่วยงาน'
-        has_draft = any(item.draft_file for item in result.result_items)
+        has_complete_draft = _service_admin_result_is_complete(request)
+        result = request.get_result() if request else None
         sample_received_at = None
         if request and request.samples:
             received_values = [sample.received_at for sample in request.samples if sample.received_at]
             sample_received_at = max(received_values) if received_values else None
         item = {
-            'result_id': result.id,
-            'request_id': result.request_id,
+            'result_id': result.id if result else None,
+            'request_id': request.id if request else None,
             'request_no': request.request_no if request else None,
             'lab_name': lab_name,
             'sample_received_at': sample_received_at,
-            'has_draft_file': has_draft,
+            'has_complete_draft_file': has_complete_draft,
         }
-        top_labs[lab_name] += 1
-        if has_draft:
+        if has_complete_draft:
             issued.append(item)
         else:
+            top_labs[lab_name] += 1
             pending.append(item)
 
     issued.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
