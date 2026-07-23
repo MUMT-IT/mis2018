@@ -11,7 +11,7 @@ import pandas
 from io import BytesIO
 from bahttext import bahttext
 from pytz import timezone
-from datetime import date
+from datetime import date, timedelta
 from base64 import b64decode
 from reportlab.lib.pagesizes import A4
 from sqlalchemy.orm import make_transient, joinedload
@@ -44,6 +44,7 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
 localtz = timezone('Asia/Bangkok')
 TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
 TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
+SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS = 7
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -69,6 +70,12 @@ def generate_url(file_url):
                                     Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
                                     ExpiresIn=3600)
     return url
+
+
+def _service_admin_invoice_due_date_local_date(invoice):
+    if not invoice or not invoice.due_date:
+        return None
+    return arrow.get(invoice.due_date).to('Asia/Bangkok').date()
 
 
 def send_mail(recp, title, message, html=None):
@@ -146,71 +153,6 @@ def _get_service_admin_lab_name(admin_row):
     return 'ไม่ระบุห้องปฏิบัติการ'
 
 
-def _group_service_admin_recipients(predicate):
-    recipients = {}
-    query = ServiceAdmin.query.join(ServiceAdmin.admin).join(ServiceAdmin.sub_lab)
-    for admin_row in query.all():
-        if not predicate(admin_row):
-            continue
-        display_name = _get_service_admin_display_name(admin_row)
-        if not display_name:
-            continue
-        lab_name = _get_service_admin_lab_name(admin_row)
-        lab_key = getattr(admin_row.sub_lab, 'lab_id', None) or f'lab:{lab_name}'
-        staff = admin_row.admin
-        recipient = recipients.setdefault(lab_key, {
-            'lab_id': getattr(admin_row.sub_lab, 'lab_id', None),
-            'lab_name': lab_name,
-            'name': lab_name,
-            'admin_ids': set(),
-            'line_ids': set(),
-            'emails': set(),
-            'sub_lab_ids': set(),
-            'sub_lab_names': set(),
-            'admin_names': set(),
-            'roles': set(),
-        })
-        recipient['admin_ids'].add(admin_row.admin_id)
-        if display_name:
-            recipient['admin_names'].add(display_name)
-        line_id = getattr(staff, 'line_id', None)
-        if line_id:
-            line_id = str(line_id).strip()
-            if line_id:
-                recipient['line_ids'].add(line_id)
-        email = _normalize_internal_email(getattr(staff, 'email', None))
-        if email:
-            recipient['emails'].add(email)
-        if admin_row.sub_lab_id:
-            recipient['sub_lab_ids'].add(admin_row.sub_lab_id)
-        if admin_row.sub_lab and admin_row.sub_lab.sub_lab:
-            recipient['sub_lab_names'].add(admin_row.sub_lab.sub_lab)
-        if admin_row.is_supervisor:
-            recipient['roles'].add('supervisor')
-        if admin_row.is_assistant:
-            recipient['roles'].add('assistant')
-        if admin_row.is_central_admin:
-            recipient['roles'].add('central_admin')
-
-    normalized = []
-    for recipient in recipients.values():
-        normalized.append({
-            'lab_id': recipient['lab_id'],
-            'lab_name': recipient['lab_name'],
-            'name': recipient['name'],
-            'admin_ids': sorted(recipient['admin_ids']),
-            'line_ids': sorted(recipient['line_ids']),
-            'line_id': sorted(recipient['line_ids'])[0] if recipient['line_ids'] else None,
-            'emails': sorted(recipient['emails']),
-            'email': sorted(recipient['emails'])[0] if recipient['emails'] else None,
-            'sub_lab_ids': sorted(recipient['sub_lab_ids']),
-            'sub_lab_names': sorted(recipient['sub_lab_names']),
-            'admin_names': sorted(recipient['admin_names']),
-            'roles': sorted(recipient['roles']),
-        })
-    return sorted(normalized, key=lambda item: item['lab_name'])
-
-
 def _build_service_admin_scope_label(recipient):
     sub_lab_names = recipient.get('sub_lab_names') or []
     if not sub_lab_names:
@@ -220,61 +162,7 @@ def _build_service_admin_scope_label(recipient):
     return f"{', '.join(sub_lab_names[:3])} และอีก {len(sub_lab_names) - 3} หน่วยงาน"
 
 
-def _group_service_admin_recipients_by_sub_lab(predicate):
-    recipients = {}
-    query = ServiceAdmin.query.join(ServiceAdmin.admin).join(ServiceAdmin.sub_lab)
-    for admin_row in query.all():
-        if not predicate(admin_row):
-            continue
-        sub_lab_id = admin_row.sub_lab_id
-        sub_lab_name = admin_row.sub_lab.sub_lab if admin_row.sub_lab and admin_row.sub_lab.sub_lab else 'ไม่ระบุหน่วยงาน'
-        staff = admin_row.admin
-        email = _normalize_internal_email(getattr(staff, 'email', None))
-        display_name = _get_service_admin_display_name(admin_row)
-        if sub_lab_id not in recipients:
-            recipients[sub_lab_id] = {
-                'sub_lab_id': sub_lab_id,
-                'sub_lab_name': sub_lab_name,
-                'emails': set(),
-                'names': set(),
-                'line_ids': set(),
-                'roles': set(),
-            }
-        recipient = recipients[sub_lab_id]
-        if email:
-            recipient['emails'].add(email)
-        if display_name:
-            recipient['names'].add(display_name)
-        line_id = getattr(staff, 'line_id', None)
-        if line_id:
-            line_id = str(line_id).strip()
-            if line_id:
-                recipient['line_ids'].add(line_id)
-        if admin_row.is_supervisor:
-            recipient['roles'].add('supervisor')
-        if admin_row.is_assistant:
-            recipient['roles'].add('assistant')
-        if admin_row.is_central_admin:
-            recipient['roles'].add('central_admin')
-
-    normalized = []
-    for recipient in recipients.values():
-        normalized.append({
-            'sub_lab_id': recipient['sub_lab_id'],
-            'sub_lab_name': recipient['sub_lab_name'],
-            'emails': sorted(recipient['emails']),
-            'names': sorted(recipient['names']),
-            'line_ids': sorted(recipient['line_ids']),
-            'roles': sorted(recipient['roles']),
-            'name': recipient['sub_lab_name'],
-            'email': sorted(recipient['emails'])[0] if recipient['emails'] else None,
-            'sub_lab_ids': [recipient['sub_lab_id']] if recipient['sub_lab_id'] else [],
-            'sub_lab_names': [recipient['sub_lab_name']] if recipient['sub_lab_name'] else [],
-        })
-    return sorted(normalized, key=lambda item: item['sub_lab_name'])
-
-
-def _group_service_admin_recipients_by_lab(predicate):
+def _group_service_admin_recipients(predicate):
     recipients = {}
     query = ServiceAdmin.query.join(ServiceAdmin.admin).join(ServiceAdmin.sub_lab).join(ServiceSubLab.lab)
     for admin_row in query.all():
@@ -426,6 +314,9 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
 
 
 def _build_service_admin_result_snapshot(sub_lab_ids=None):
+    today = arrow.now('Asia/Bangkok').date()
+    due_soon_end = today + timedelta(days=SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS)
+
     query = (
         ServiceResult.query
         .join(ServiceResult.request)
@@ -462,12 +353,47 @@ def _build_service_admin_result_snapshot(sub_lab_ids=None):
 
     issued.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
     pending.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
+
+    due_soon_query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .join(ServiceRequest.sub_lab)
+        .filter(
+            ServiceInvoice.file_attached_at.isnot(None),
+            ServiceInvoice.due_date.isnot(None),
+        )
+    )
+    if sub_lab_ids:
+        due_soon_query = due_soon_query.filter(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
+
+    due_soon = []
+    for invoice in due_soon_query.all():
+        if invoice.paid_at:
+            continue
+        due_date = _service_admin_invoice_due_date_local_date(invoice)
+        if due_date is None or due_date < today or due_date > due_soon_end:
+            continue
+
+        lab_name = invoice.quotation.request.sub_lab.sub_lab if invoice.quotation and invoice.quotation.request and invoice.quotation.request.sub_lab else 'ไม่ระบุหน่วยงาน'
+        due_soon.append({
+            'invoice_id': invoice.id,
+            'invoice_no': invoice.invoice_no,
+            'request_no': invoice.quotation.request.request_no if invoice.quotation and invoice.quotation.request else None,
+            'lab_name': lab_name,
+            'due_date': due_date,
+            'days_until_due': (due_date - today).days,
+            'amount': float(invoice.grand_total) if getattr(invoice, 'grand_total', None) is not None else None,
+        })
+
+    due_soon.sort(key=lambda item: (item['days_until_due'], item['invoice_no'] or ''))
     return {
         'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
-        'due_soon_count': len(issued),
         'pending_count': len(pending),
         'issued_items': issued,
         'pending_items': pending,
+        'due_soon_items': due_soon,
+        'due_soon_count': len(due_soon),
         'result_top_labs': sorted(top_labs.items(), key=lambda item: (-item[1], item[0])),
     }
 
@@ -596,45 +522,6 @@ def _render_service_admin_overview_chart_html(snapshot):
 
 
 def _build_service_admin_line_reminder_message(recipient, snapshot):
-    invoice_top_labs = ', '.join(
-        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
-    ) or 'ไม่มีรายการค้าง'
-    result_top_labs = ', '.join(
-        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
-    ) or 'ไม่มีรายการค้าง'
-    return (
-        f"แจ้งเตือนงานคงค้างงานบริการวิชาการ\n"
-        f"หน่วยงาน: {recipient['sub_lab_name']}\n"
-        f"ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
-        f"ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
-        f"งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล: {snapshot['pending_count']} รายการ\n"
-        f"รายการใบแจ้งหนี้ค้างหลัก: {invoice_top_labs}\n"
-        f"รายการรายงานผลค้างหลัก: {result_top_labs}\n"
-        f"กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม"
-    )
-
-
-def _build_service_admin_line_reminder_message(recipient, snapshot):
-    unit_label = recipient.get('sub_lab_name') or _build_service_admin_scope_label(recipient)
-    invoice_top_labs = ', '.join(
-        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
-    ) or 'ไม่มีรายการค้าง'
-    result_top_labs = ', '.join(
-        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
-    ) or 'ไม่มีรายการค้าง'
-    return (
-        f"แจ้งเตือนงานคงค้างงานบริการวิชาการ\n"
-        f"หน่วยงาน: {unit_label}\n"
-        f"ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
-        f"ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
-        f"งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผลการทดสอบ: {snapshot['pending_count']} รายการ\n"
-        f"รายการใบแจ้งหนี้ค้างหลัก: {invoice_top_labs}\n"
-        f"รายการรายงานผลค้างหลัก: {result_top_labs}\n"
-        f"กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม"
-    )
-
-
-def _build_service_admin_line_reminder_message_by_lab(recipient, snapshot):
     lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
     invoice_top_labs = ', '.join(
         f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
@@ -663,7 +550,7 @@ def _build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=
         result_snapshot = _build_service_admin_result_snapshot(sub_lab_ids=recipient.get('sub_lab_ids') or None)
         snapshot = {**snapshot, **result_snapshot}
         snapshot_cache[cache_key] = snapshot
-    message = _build_service_admin_line_reminder_message_by_lab(recipient, snapshot)
+    message = _build_service_admin_line_reminder_message(recipient, snapshot)
     return {
         'recipient': recipient,
         'snapshot': snapshot,
@@ -883,7 +770,7 @@ def _render_service_admin_summary_email_html(package):
         <div style="font-size:14px;color:#64748b;line-height:1.9;">
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_60_count']}</strong>ค้างชำระเกิน 60 วัน</span>
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_90_count']}</strong>ค้างชำระเกิน 90 วัน</span>
-          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['due_soon_count']}</strong>ใกล้ถึงกำหนดชำระ</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['due_soon_count']}</strong>ใกล้ถึงกำหนดชำระภายใน {SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS} วัน</span>
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['pending_count']}</strong>ยังไม่ออกรายงานผล</span>
         </div>
       </div>
@@ -918,7 +805,7 @@ def line_remind_pending():
     if guard_response:
         return guard_response
 
-    recipient_groups = _group_service_admin_recipients_by_lab(lambda row: not row.is_assistant)
+    recipient_groups = _group_service_admin_recipients(lambda row: not row.is_assistant)
     snapshot_cache = {}
     packages = [_build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=snapshot_cache)
                 for recipient in recipient_groups]
@@ -946,7 +833,7 @@ def line_remind_pending():
                 ('ใบค้าง 60 วัน', snapshot['overdue_60_count']),
                 ('ใบค้าง 90 วัน', snapshot['overdue_90_count']),
                 ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
-                ('ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
+                (f'ใกล้ถึงกำหนดชำระภายใน {SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS} วัน', snapshot['due_soon_count']),
             ],
             stats={
                 'total_admin_rows': len(recipient_groups),
@@ -1038,7 +925,7 @@ def monthly_overdue_summary():
     if guard_response:
         return guard_response
 
-    recipient_groups = _group_service_admin_recipients_by_lab(lambda row: row.is_supervisor or row.is_assistant)
+    recipient_groups = _group_service_admin_recipients(lambda row: row.is_supervisor or row.is_assistant)
     recipient_groups = [recipient for recipient in recipient_groups if recipient.get('emails')]
     snapshot_cache = {}
     packages = [_build_service_admin_summary_package(recipient, snapshot_cache=snapshot_cache)
@@ -1061,7 +948,7 @@ def monthly_overdue_summary():
             lambda snapshot: [
                 ('ค้างชำระ 60 วัน', snapshot['overdue_60_count']),
                 ('ค้างชำระ 90 วัน', snapshot['overdue_90_count']),
-                ('ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
+                (f'ใกล้ถึงกำหนดชำระภายใน {SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS} วัน', snapshot['due_soon_count']),
                 ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
             ],
             stats={
