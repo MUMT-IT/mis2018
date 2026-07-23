@@ -407,8 +407,9 @@ def _build_service_admin_summary_prompt(snapshot):
             'role': 'system',
             'content': (
                 'You are writing a detailed monthly management report in Thai for one service unit at a time. '
-                'Summarize backlog, payment aging, and report completion status in a way that reads like an internal report, not a short note. '
-                'Do not include personal names, IDs, phone numbers, emails, invoice numbers, request numbers, or raw record-level detail. '
+                'Summarize invoice backlog, invoices close to due, and report completion status as separate topics. '
+                'Do not include any unit names, lab names, personal names, IDs, phone numbers, emails, invoice numbers, request numbers, or raw record-level detail in the overview. '
+                'Do not list top labs or departments in the overview. '
                 'Use a formal internal memo tone. '
                 'Keep the writing short, clear, and actionable. '
                 'Use this structure only: '
@@ -420,14 +421,15 @@ def _build_service_admin_summary_prompt(snapshot):
         {
             'role': 'user',
             'content': (
-                'สรุปข้อมูลต่อไปนี้เป็นภาษาไทยสำหรับผู้บริหาร โดยไม่ลงรายละเอียดรายกรณี และให้เหมาะกับการส่งเฉพาะหน่วยงาน:\n'
-                'เขียนให้ละเอียดและเป็นรายงานมากกว่าข้อความสั้น\n'
+                'สรุปข้อมูลต่อไปนี้เป็นภาษาไทยสำหรับผู้บริหาร โดยไม่ลงรายละเอียดรายกรณี และให้แยกประเด็นให้ชัดเจนระหว่าง:\n'
+                '- ยอดค้างชำระ\n'
+                '- ใบแจ้งหนี้ใกล้ครบกำหนดชำระ\n'
+                '- งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล\n'
+                'ห้ามเอายอดใกล้ครบกำหนดชำระไปปนกับยอดรายงานผลที่ยังไม่ออก และห้ามเอาชื่อหน่วยงานหรือชื่อแลปมาใส่ในภาพรวม\n'
                 f'{json.dumps(snapshot, ensure_ascii=False, indent=2)}'
             )
         }
     ]
-
-
 def _call_typhoon_service_admin_summary(snapshot):
     api_key = os.environ.get('SCB_TYPHOON_API_KEY')
     if not api_key:
@@ -457,27 +459,27 @@ def _call_typhoon_service_admin_summary(snapshot):
 
 def _build_fallback_service_admin_summary(snapshot):
     due_soon_count = snapshot.get('due_soon_count', 0)
-    invoice_top_labs = ', '.join(
-        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
-    ) or 'ไม่มียอดค้างชำระ'
-    result_top_labs = ', '.join(
-        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
-    ) or 'ไม่มีรายงานผลที่ค้างออกผล'
+    invoice_top_labs = snapshot.get('invoice_top_labs') or []
+    urgency_items = [
+        ('งานรับตัวอย่างแล้วที่ยังไม่ออกใบรายงานผล', snapshot.get('pending_count', 0)),
+        ('ยอดค้างชำระเกิน 90 วัน', snapshot.get('overdue_90_count', 0)),
+        ('ยอดค้างชำระเกิน 60 วัน', snapshot.get('overdue_60_count', 0)),
+        ('งานที่ใกล้ครบกำหนดชำระ', due_soon_count),
+    ]
+    top_urgency = next((label for label, count in urgency_items if count), 'ไม่มีรายการคงค้าง')
     return (
         f"ภาพรวม\n"
-        f"ขณะนี้มียอดค้างชำระเกิน 60 วันจำนวน {snapshot['overdue_60_count']} รายการ และเกิน 90 วันจำนวน {snapshot['overdue_90_count']} รายการ "
-        f"โดยรายการคงค้างกระจุกตัวอยู่ที่ {invoice_top_labs}. "
-        f"ด้านงานทดสอบ มีรายการที่รับตัวอย่างแล้วและใกล้ถึงกำหนดชำระ {due_soon_count} รายการ "
-        f"ขณะที่ยังไม่ออกรายงานผล {snapshot['pending_count']} รายการ โดยประเด็นที่ควรเร่งติดตามคือ {result_top_labs}.\n\n"
+        f"ขณะนี้มียอดค้างชำระเกิน 60 วันจำนวน {snapshot['overdue_60_count']} รายการ และยอดค้างเกิน 90 วันจำนวน {snapshot['overdue_90_count']} รายการ "
+        f"พร้อมทั้งมีงานที่ใกล้ครบกำหนดชำระ {due_soon_count} รายการ "
+        f"ขณะที่งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผลมี {snapshot['pending_count']} รายการ "
+        f"โดยประเด็นที่ควรเร่งติดตามคือ {top_urgency}\n\n"
         f"ประเด็นที่ควรติดตาม\n"
-        f"- เร่งติดตามยอดที่ค้างเกิน 60 วันและ 90 วันเป็นพิเศษ\n"
-        f"- เร่งปิดงานทดสอบที่รับตัวอย่างแล้วแต่ยังไม่ออกรายงานผล\n"
-        f"- ตรวจสอบรายการที่ค้างต่อเนื่องและกำหนดผู้รับผิดชอบให้ชัดเจน\n\n"
+        f"- เร่งติดตามยอดค้างชำระเกิน 60 วันและ 90 วันเป็นพิเศษ\n"
+        f"- เร่งติดตามงานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล\n"
+        f"- ติดตามงานที่ใกล้ครบกำหนดชำระแยกจากงานรายงานผล\n\n"
         f"ข้อเสนอแนะสำหรับเดือนถัดไป\n"
-        f"ควรติดตามสถานะงานและยอดคงค้างรายเดือนอย่างต่อเนื่อง เพื่อป้องกันการสะสมของงานค้างและช่วยให้การปิดงานเป็นไปตามแผน"
+        f"ควรติดตามสถานะงานและยอดคงค้างอย่างต่อเนื่อง เพื่อป้องกันการสะสมของงานค้างและสนับสนุนการดำเนินงานให้เป็นไปตามแผน"
     )
-
-
 def _render_service_admin_overview_chart_html(snapshot):
     rows = [
         ('ค้างชำระเกิน 60 วัน', snapshot['overdue_60_count']),
