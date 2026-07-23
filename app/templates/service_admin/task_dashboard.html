@@ -266,6 +266,21 @@
           Send summary
         </a>
       </div>
+      <div class="action-card">
+        <div class="icon-box" style="background: linear-gradient(135deg, #7c3aed, #4c1d95);">
+          <i class="fas fa-file-invoice-dollar"></i>
+        </div>
+        <h3>ทดสอบเตือนใบแจ้งหนี้ค้างชำระ</h3>
+        <p>ดูตัวอย่างอีเมลเตือนค้างชำระแยก 60 วันและ 90 วัน พร้อมลิงก์ไปหน้า invoice index ก่อนส่งจริง</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a class="button is-warning is-rounded" href="{{ url_for('service_admin.weekly_overdue_invoice_reminder', dry_run='true') }}">
+            Preview
+          </a>
+          <a class="button is-info is-rounded" href="{{ url_for('service_admin.weekly_overdue_invoice_reminder', send='true') }}">
+            Send now
+          </a>
+        </div>
+      </div>
     </div>
 
 {#    <div class="section-title">#}
