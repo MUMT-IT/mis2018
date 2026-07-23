@@ -44,7 +44,6 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
 localtz = timezone('Asia/Bangkok')
 TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
 TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
-SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS = 7
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
@@ -266,6 +265,8 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     now = arrow.now('Asia/Bangkok')
     cutoff_60 = now.shift(days=-60).datetime
     cutoff_90 = now.shift(days=-90).datetime
+    today = now.date()
+    due_soon_end = today + timedelta(days=7)
 
     query = (
         ServiceInvoice.query
@@ -279,28 +280,50 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
 
     overdue_60 = []
     overdue_90 = []
+    due_soon = []
     top_labs = defaultdict(int)
-    for invoice in query.filter(ServiceInvoice.file_attached_at <= cutoff_60).all():
+    for invoice in query.all():
         if invoice.paid_at:
             continue
-        days_overdue = max((now.datetime - invoice.file_attached_at).days, 0)
+        file_attached_at = invoice.file_attached_at
+        if file_attached_at is None:
+            continue
+
+        days_overdue = max((now.datetime - file_attached_at).days, 0)
         lab_name = invoice.quotation.request.sub_lab.sub_lab if invoice.quotation and invoice.quotation.request and invoice.quotation.request.sub_lab else 'ไม่ระบุหน่วยงาน'
         item = {
             'invoice_id': invoice.id,
             'invoice_no': invoice.invoice_no,
             'request_no': invoice.quotation.request.request_no if invoice.quotation and invoice.quotation.request else None,
             'lab_name': lab_name,
-            'file_attached_at': invoice.file_attached_at,
+            'file_attached_at': file_attached_at,
             'days_overdue': days_overdue,
             'amount': float(invoice.grand_total) if getattr(invoice, 'grand_total', None) is not None else None,
         }
-        overdue_60.append(item)
-        top_labs[lab_name] += 1
-        if invoice.file_attached_at <= cutoff_90:
+
+        if file_attached_at <= cutoff_60:
+            top_labs[lab_name] += 1
+
+        if cutoff_90 < file_attached_at <= cutoff_60:
+            overdue_60.append(item)
+        elif file_attached_at <= cutoff_90:
             overdue_90.append(item)
+
+        due_date = _service_admin_invoice_due_date_local_date(invoice)
+        if due_date is not None and today <= due_date <= due_soon_end:
+            due_soon.append({
+                'invoice_id': invoice.id,
+                'invoice_no': invoice.invoice_no,
+                'request_no': item['request_no'],
+                'lab_name': lab_name,
+                'due_date': due_date,
+                'days_until_due': (due_date - today).days,
+                'amount': item['amount'],
+            })
 
     overdue_60.sort(key=lambda item: (item['days_overdue'], item['invoice_no'] or ''))
     overdue_90.sort(key=lambda item: (item['days_overdue'], item['invoice_no'] or ''))
+    due_soon.sort(key=lambda item: (item['days_until_due'], item['invoice_no'] or ''))
     return {
         'generated_at': now.strftime('%d/%m/%Y %H:%M'),
         'cutoff_60': cutoff_60,
@@ -309,14 +332,13 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
         'overdue_90_count': len(overdue_90),
         'overdue_60_items': overdue_60,
         'overdue_90_items': overdue_90,
+        'due_soon_count': len(due_soon),
+        'due_soon_items': due_soon,
         'invoice_top_labs': sorted(top_labs.items(), key=lambda item: (-item[1], item[0])),
     }
 
 
 def _build_service_admin_result_snapshot(sub_lab_ids=None):
-    today = arrow.now('Asia/Bangkok').date()
-    due_soon_end = today + timedelta(days=SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS)
-
     query = (
         ServiceResult.query
         .join(ServiceResult.request)
@@ -353,47 +375,11 @@ def _build_service_admin_result_snapshot(sub_lab_ids=None):
 
     issued.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
     pending.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
-
-    due_soon_query = (
-        ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
-        .join(ServiceRequest.sub_lab)
-        .filter(
-            ServiceInvoice.file_attached_at.isnot(None),
-            ServiceInvoice.due_date.isnot(None),
-        )
-    )
-    if sub_lab_ids:
-        due_soon_query = due_soon_query.filter(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
-
-    due_soon = []
-    for invoice in due_soon_query.all():
-        if invoice.paid_at:
-            continue
-        due_date = _service_admin_invoice_due_date_local_date(invoice)
-        if due_date is None or due_date < today or due_date > due_soon_end:
-            continue
-
-        lab_name = invoice.quotation.request.sub_lab.sub_lab if invoice.quotation and invoice.quotation.request and invoice.quotation.request.sub_lab else 'ไม่ระบุหน่วยงาน'
-        due_soon.append({
-            'invoice_id': invoice.id,
-            'invoice_no': invoice.invoice_no,
-            'request_no': invoice.quotation.request.request_no if invoice.quotation and invoice.quotation.request else None,
-            'lab_name': lab_name,
-            'due_date': due_date,
-            'days_until_due': (due_date - today).days,
-            'amount': float(invoice.grand_total) if getattr(invoice, 'grand_total', None) is not None else None,
-        })
-
-    due_soon.sort(key=lambda item: (item['days_until_due'], item['invoice_no'] or ''))
     return {
         'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
         'pending_count': len(pending),
         'issued_items': issued,
         'pending_items': pending,
-        'due_soon_items': due_soon,
-        'due_soon_count': len(due_soon),
         'result_top_labs': sorted(top_labs.items(), key=lambda item: (-item[1], item[0])),
     }
 
@@ -473,7 +459,7 @@ def _build_fallback_service_admin_summary(snapshot):
         f"ภาพรวม\n"
         f"ขณะนี้มียอดค้างชำระเกิน 60 วันจำนวน {snapshot['overdue_60_count']} รายการ และเกิน 90 วันจำนวน {snapshot['overdue_90_count']} รายการ "
         f"โดยรายการคงค้างกระจุกตัวอยู่ที่ {invoice_top_labs}. "
-        f"ด้านงานทดสอบ มีรายการที่รับตัวอย่างแล้วและใกล้ถึงกำหนดชำระ {due_soon_count} ราย "
+        f"ด้านงานทดสอบ มีรายการที่รับตัวอย่างแล้วและใกล้ถึงกำหนดชำระ {due_soon_count} รายการ "
         f"ขณะที่ยังไม่ออกรายงานผล {snapshot['pending_count']} รายการ โดยประเด็นที่ควรเร่งติดตามคือ {result_top_labs}.\n\n"
         f"ประเด็นที่ควรติดตาม\n"
         f"- เร่งติดตามยอดที่ค้างเกิน 60 วันและ 90 วันเป็นพิเศษ\n"
@@ -770,7 +756,7 @@ def _render_service_admin_summary_email_html(package):
         <div style="font-size:14px;color:#64748b;line-height:1.9;">
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_60_count']}</strong>ค้างชำระเกิน 60 วัน</span>
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_90_count']}</strong>ค้างชำระเกิน 90 วัน</span>
-          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['due_soon_count']}</strong>ใกล้ถึงกำหนดชำระภายใน {SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS} วัน</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['due_soon_count']}</strong>ใกล้ถึงกำหนดชำระ</span>
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['pending_count']}</strong>ยังไม่ออกรายงานผล</span>
         </div>
       </div>
@@ -833,7 +819,7 @@ def line_remind_pending():
                 ('ใบค้าง 60 วัน', snapshot['overdue_60_count']),
                 ('ใบค้าง 90 วัน', snapshot['overdue_90_count']),
                 ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
-                (f'ใกล้ถึงกำหนดชำระภายใน {SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS} วัน', snapshot['due_soon_count']),
+                (f'ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
             ],
             stats={
                 'total_admin_rows': len(recipient_groups),
@@ -948,7 +934,7 @@ def monthly_overdue_summary():
             lambda snapshot: [
                 ('ค้างชำระ 60 วัน', snapshot['overdue_60_count']),
                 ('ค้างชำระ 90 วัน', snapshot['overdue_90_count']),
-                (f'ใกล้ถึงกำหนดชำระภายใน {SERVICE_ADMIN_DUE_SOON_WINDOW_DAYS} วัน', snapshot['due_soon_count']),
+                (f'ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
                 ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
             ],
             stats={
