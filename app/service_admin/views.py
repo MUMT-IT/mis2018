@@ -72,15 +72,15 @@ def generate_url(file_url):
     return url
 
 
-def _service_admin_invoice_due_date_local_date(invoice):
-    if not invoice or not invoice.due_date:
-        return None
-    return arrow.get(invoice.due_date).to('Asia/Bangkok').date()
-
-
 def send_mail(recp, title, message, html=None):
     message = Message(subject=title, body=message, recipients=recp, html=html)
     mail.send(message)
+
+
+def get_status(s_id):
+    statuses = ServiceStatus.query.filter_by(status_id=s_id).first()
+    status_id = statuses.id
+    return status_id
 
 
 def format_data(data):
@@ -91,6 +91,41 @@ def format_data(data):
     elif isinstance(data, (date)):
         return data.isoformat()
     return data
+
+
+def sort_quotation_item(items):
+    if 'สำเนา' in items.item:
+        priority = 2
+    elif 'ใบรายงานผล' in items.item:
+        priority = 1
+    else:
+        priority = 0
+    return (priority, items.id)
+
+
+def build_notification(invoice, service_request, link):
+    title = f'รายการออกใบแจ้งหนี้ฉบับลงนามผู้ช่วยคณบดีฝ่ายบริการวิชาการ'
+    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.lab.lab}\n\n'''
+    message += f'''ทางแอดมินกลางได้ดำเนินการออกใบแจ้งหนี้ฉบับลงนามผู้ช่วยคณบดีฝ่ายบริการวิชาการของใบคำขอรับบริการเลขที่ {service_request.request_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการออกใบรายงานผลการทดสอบฉบับร่าง\n'''
+    message += f'''ท่านสามารถดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
+    message += f'''{link}\n\n'''
+    message += f'''ระบบบริการวิชาการ'''
+    msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
+           'ออกในนาม {}\n' \
+           'ณ วันที่ {} รอดำเนินการออกใบรายงานผลการทดสอบฉบับร่าง\n' \
+           'กรุณาดำเนินการแนบไฟล์ในระบบ\n'
+           'คลิกลิ้งค์เพื่อดำเนินการ\n'
+           '{}'.format(service_request.request_no, service_request.quotation_address.name,
+                       invoice.file_attached_at.astimezone(localtz).strftime('%d/%m/%Y'), link
+                       )
+           )
+    return title, message, msg
+
+
+def _service_admin_invoice_due_date_local_date(invoice):
+    if not invoice or not invoice.due_date:
+        return None
+    return arrow.get(invoice.due_date).to('Asia/Bangkok').date()
 
 
 def _normalize_internal_email(email_value):
@@ -225,41 +260,6 @@ def _group_service_admin_recipients(predicate):
             'roles': sorted(recipient['roles']),
         })
     return sorted(normalized, key=lambda item: item['lab_name'])
-
-
-def get_status(s_id):
-    statuses = ServiceStatus.query.filter_by(status_id=s_id).first()
-    status_id = statuses.id
-    return status_id
-
-
-def sort_quotation_item(items):
-    if 'สำเนา' in items.item:
-        priority = 2
-    elif 'ใบรายงานผล' in items.item:
-        priority = 1
-    else:
-        priority = 0
-    return (priority, items.id)
-
-
-def build_notification(invoice, service_request, link):
-    title = f'รายการออกใบแจ้งหนี้ฉบับลงนามผู้ช่วยคณบดีฝ่ายบริการวิชาการ'
-    message = f'''เรียน เจ้าหน้าที่{service_request.sub_lab.lab.lab}\n\n'''
-    message += f'''ทางแอดมินกลางได้ดำเนินการออกใบแจ้งหนี้ฉบับลงนามผู้ช่วยคณบดีฝ่ายบริการวิชาการของใบคำขอรับบริการเลขที่ {service_request.request_no} เป็นที่เรียบร้อยแล้ว กรุณาดำเนินการออกใบรายงานผลการทดสอบฉบับร่าง\n'''
-    message += f'''ท่านสามารถดำเนินการได้ที่ลิงก์ด้านล่าง\n'''
-    message += f'''{link}\n\n'''
-    message += f'''ระบบบริการวิชาการ'''
-    msg = ('ใบคำขอรับบริการเลขที่ {}\n' \
-           'ออกในนาม {}\n' \
-           'ณ วันที่ {} รอดำเนินการออกใบรายงานผลการทดสอบฉบับร่าง\n' \
-           'กรุณาดำเนินการแนบไฟล์ในระบบ\n'
-           'คลิกลิ้งค์เพื่อดำเนินการ\n'
-           '{}'.format(service_request.request_no, service_request.quotation_address.name,
-                       invoice.file_attached_at.astimezone(localtz).strftime('%d/%m/%Y'), link
-                       )
-           )
-    return title, message, msg
 
 
 def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
@@ -483,7 +483,7 @@ def _render_service_admin_overview_chart_html(snapshot):
         ('ค้างชำระเกิน 60 วัน', snapshot['overdue_60_count']),
         ('ค้างชำระเกิน 90 วัน', snapshot['overdue_90_count']),
         ('ใกล้ครบกำหนด', snapshot['due_soon_count']),
-        ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
+        ('ยังไม่ออกรายงานผล', snapshot['pending_count']),
     ]
     max_value = max([value for _, value in rows] + [1])
     bar_width = 320
@@ -517,20 +517,13 @@ def _render_service_admin_overview_chart_html(snapshot):
 
 def _build_service_admin_line_reminder_message(recipient, snapshot):
     lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
-    invoice_top_labs = ', '.join(
-        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('invoice_top_labs') or [])[:3]
-    ) or 'ไม่มีรายการค้าง'
-    result_top_labs = ', '.join(
-        f"{lab} {count} เรื่อง" for lab, count in (snapshot.get('result_top_labs') or [])[:3]
-    ) or 'ไม่มีรายการค้าง'
     return (
-        f"แจ้งเตือนงานคงค้างงานบริการวิชาการ\n"
+        f"แจ้งเตือนสรุปภาพรวมเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออกของระบบบริการวิชาการ\n"
         f"ห้องปฏิบัติการ: {lab_name}\n"
-        f"ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} ใบ\n"
-        f"ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} ใบ\n"
-        f"งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผลการทดสอบ: {snapshot['pending_count']} รายการ\n"
-        f"รายการใบแจ้งหนี้ค้างหลัก: {invoice_top_labs}\n"
-        f"รายการรายงานผลค้างหลัก: {result_top_labs}\n"
+        f"ยอดค้างค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
+        f"ยอดค้างค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
+        f"ยอดชำระที่ใกล้ถึงกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n"
+        f"งานที่รับตัวอย่างแล้วแต่ยังไม่ออกรายงานผล: {snapshot['pending_count']} รายการ\n"
         f"กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม"
     )
 
@@ -826,7 +819,7 @@ def line_remind_pending():
             lambda snapshot: [
                 ('ใบค้าง 60 วัน', snapshot['overdue_60_count']),
                 ('ใบค้าง 90 วัน', snapshot['overdue_90_count']),
-                ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
+                ('ยังไม่ออกรายงานผล', snapshot['pending_count']),
                 (f'ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
             ],
             stats={
@@ -943,7 +936,7 @@ def monthly_overdue_summary():
                 ('ค้างชำระ 60 วัน', snapshot['overdue_60_count']),
                 ('ค้างชำระ 90 วัน', snapshot['overdue_90_count']),
                 (f'ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
-                ('ยังไม่ออกใบรายงานผล', snapshot['pending_count']),
+                ('ยังไม่ออกรายงานผล', snapshot['pending_count']),
             ],
             stats={
                 'total_admin_rows': len(recipient_groups),
