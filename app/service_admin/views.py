@@ -385,7 +385,7 @@ def _build_service_admin_result_snapshot(sub_lab_ids=None):
     pending.sort(key=lambda item: (item['request_no'] or '', item['lab_name']))
     return {
         'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
-        'pending_count': len(pending),
+        'pending_result_count': len(pending),
         'issued_items': issued,
         'pending_items': pending,
         'result_top_labs': sorted(top_labs.items(), key=lambda item: (-item[1], item[0])),
@@ -459,7 +459,7 @@ def _call_typhoon_service_admin_summary(snapshot):
 
 def _build_fallback_service_admin_summary(snapshot):
     urgency_items = [
-        ('งานรับตัวอย่างแล้วที่ยังไม่ออกใบรายงานผล', snapshot.get('pending_count', 0)),
+        ('งานรับตัวอย่างแล้วที่ยังไม่ออกใบรายงานผล', snapshot.get('pending_result_count', 0)),
         ('ยอดค้างชำระเกิน 90 วัน', snapshot.get('overdue_90_count', 0)),
         ('ยอดค้างชำระเกิน 60 วัน', snapshot.get('overdue_60_count', 0)),
         ('งานที่ใกล้ครบกำหนดชำระ', snapshot.get('due_soon_count', 0)),
@@ -469,7 +469,7 @@ def _build_fallback_service_admin_summary(snapshot):
         f"ภาพรวม\n"
         f"ขณะนี้มียอดค้างชำระเกิน 60 วันจำนวน {snapshot['overdue_60_count']} รายการ และยอดค้างเกิน 90 วันจำนวน {snapshot['overdue_90_count']} รายการ "
         f"พร้อมทั้งมีงานที่ใกล้ครบกำหนดชำระ {snapshot['due_soon_count']} รายการ "
-        f"ขณะที่งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผลมี {snapshot['pending_count']} รายการ "
+        f"ขณะที่งานรับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผลมี {snapshot['pending_result_count']} รายการ "
         f"โดยประเด็นที่ควรเร่งติดตามคือ {top_urgency}\n\n"
         f"ประเด็นที่ควรติดตาม\n"
         f"- เร่งติดตามยอดค้างชำระเกิน 60 วันและ 90 วันเป็นพิเศษ\n"
@@ -483,7 +483,7 @@ def _render_service_admin_overview_chart_html(snapshot):
         ('ค้างชำระเกิน 60 วัน', snapshot['overdue_60_count']),
         ('ค้างชำระเกิน 90 วัน', snapshot['overdue_90_count']),
         ('ใกล้ครบกำหนด', snapshot['due_soon_count']),
-        ('ยังไม่ออกรายงานผล', snapshot['pending_count']),
+        ('ยังไม่ออกรายงานผล', snapshot['pending_result_count']),
     ]
     max_value = max([value for _, value in rows] + [1])
     bar_width = 320
@@ -523,7 +523,7 @@ def _build_service_admin_line_reminder_message(recipient, snapshot):
         f"ยอดค้างค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
         f"ยอดค้างค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
         f"ยอดชำระที่ใกล้ถึงกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n"
-        f"งานที่รับตัวอย่างแล้วแต่ยังไม่ออกรายงานผล: {snapshot['pending_count']} รายการ\n"
+        f"งานที่รับตัวอย่างแล้วแต่ยังไม่ออกรายงานผล: {snapshot['pending_result_count']} รายการ\n"
         f"กรุณาตรวจสอบและเร่งดำเนินการตามความเหมาะสม"
     )
 
@@ -555,7 +555,7 @@ def _build_service_admin_summary_package(recipient, snapshot_cache=None):
 
     try:
         if any((snapshot.get('overdue_60_count', 0), snapshot.get('overdue_90_count', 0),
-                snapshot.get('pending_count', 0), snapshot.get('due_soon_count', 0))):
+                snapshot.get('pending_result_count', 0), snapshot.get('due_soon_count', 0))):
             ai_summary = _call_typhoon_service_admin_summary(snapshot)
         else:
             ai_summary = _build_fallback_service_admin_summary(snapshot)
@@ -577,7 +577,7 @@ def _build_service_admin_summary_package(recipient, snapshot_cache=None):
         f"- ใบแจ้งหนี้ค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
         f"- ใบแจ้งหนี้ค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
         f"- ใบแจ้งหนี้ที่ใกล้ถึงกำหนดชำระ: {snapshot['due_soon_count']} รายการ\n"
-        f"- งานที่รับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล: {snapshot['pending_count']} รายการ\n"
+        f"- งานที่รับตัวอย่างแล้วแต่ยังไม่ออกใบรายงานผล: {snapshot['pending_result_count']} รายการ\n"
     )
     return {
         'recipient': recipient,
@@ -758,7 +758,7 @@ def _render_service_admin_summary_email_html(package):
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_60_count']}</strong>ค้างชำระเกิน 60 วัน</span>
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['overdue_90_count']}</strong>ค้างชำระเกิน 90 วัน</span>
           <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['due_soon_count']}</strong>ใกล้ถึงกำหนดชำระ</span>
-          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['pending_count']}</strong>ยังไม่ออกรายงานผล</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['pending_result_count']}</strong>ยังไม่ออกรายงานผล</span>
         </div>
       </div>
       <div class="chart-wrap">
@@ -798,7 +798,7 @@ def line_remind_pending():
                 for recipient in recipient_groups]
     matched_packages = [
         package for package in packages
-        if package['snapshot']['overdue_60_count'] or package['snapshot']['overdue_90_count'] or package['snapshot']['pending_count']
+        if package['snapshot']['overdue_60_count'] or package['snapshot']['overdue_90_count'] or package['snapshot']['pending_result_count']
     ]
     should_send = _request_flag('send')
     dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
@@ -819,7 +819,7 @@ def line_remind_pending():
             lambda snapshot: [
                 ('ใบค้าง 60 วัน', snapshot['overdue_60_count']),
                 ('ใบค้าง 90 วัน', snapshot['overdue_90_count']),
-                ('ยังไม่ออกรายงานผล', snapshot['pending_count']),
+                ('ยังไม่ออกรายงานผล', snapshot['pending_result_count']),
                 (f'ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
             ],
             stats={
@@ -849,14 +849,14 @@ def line_remind_pending():
         response.mimetype = 'text/plain'
         return response
 
-    if not matched_packages:
-        message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
-        if request.method == 'POST':
-            flash(message, 'warning')
-            return redirect(url_for('service_admin.task_dashboard'))
-        response = make_response(message + '\n', 404)
-        response.mimetype = 'text/plain'
-        return redirect(url_for('service_admin.task_dashboard'))
+    # if not matched_packages:
+    #     message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
+    #     if request.method == 'POST':
+    #         flash(message, 'warning')
+    #         return redirect(url_for('service_admin.task_dashboard'))
+    #     response = make_response(message + '\n', 404)
+    #     response.mimetype = 'text/plain'
+    #     return redirect(url_for('service_admin.task_dashboard'))
 
     sent_count = 0
     failed_count = 0
@@ -936,7 +936,7 @@ def monthly_overdue_summary():
                 ('ค้างชำระ 60 วัน', snapshot['overdue_60_count']),
                 ('ค้างชำระ 90 วัน', snapshot['overdue_90_count']),
                 (f'ใกล้ถึงกำหนดชำระ', snapshot['due_soon_count']),
-                ('ยังไม่ออกรายงานผล', snapshot['pending_count']),
+                ('ยังไม่ออกรายงานผล', snapshot['pending_result_count']),
             ],
             stats={
                 'total_admin_rows': len(recipient_groups),
