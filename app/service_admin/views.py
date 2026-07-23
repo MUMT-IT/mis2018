@@ -588,6 +588,231 @@ def _build_service_admin_summary_package(recipient, snapshot_cache=None):
     }
 
 
+def _normalize_customer_email(email_value):
+    if not email_value:
+        return None
+    email_value = str(email_value).strip()
+    return email_value or None
+
+
+def g_et_service_admin_invoice_overdue_days(invoice, today=None):
+    if not invoice or not invoice.due_date:
+        return None
+    today = today or arrow.now('Asia/Bangkok').date()
+    due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+    return (today - due_date).days
+
+
+def _build_service_admin_weekly_overdue_invoice_snapshot():
+    today = arrow.now('Asia/Bangkok').date()
+    query = (
+        ServiceInvoice.query
+        .join(ServiceInvoice.quotation)
+        .join(ServiceQuotation.request)
+        .outerjoin(ServicePayment)
+        .filter(
+            ServiceInvoice.due_date.isnot(None),
+            ServicePayment.invoice_id == None,
+        )
+    )
+
+    customer_groups = {}
+    overdue_60_count = 0
+    overdue_90_count = 0
+
+    for invoice in query.all():
+        customer = invoice.quotation.request.customer if invoice.quotation and invoice.quotation.request else None
+        if not customer:
+            continue
+
+        customer_email = _normalize_customer_email(getattr(customer, 'email', None))
+        if not customer_email:
+            continue
+
+        days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
+        if days_overdue is None or days_overdue < 60:
+            continue
+
+        if days_overdue >= 90:
+            bucket = 'overdue_90'
+            overdue_90_count += 1
+        else:
+            bucket = 'overdue_60'
+            overdue_60_count += 1
+
+        customer_key = customer.id or customer_email
+        customer_name = (
+            getattr(customer, 'customer_name', None)
+            or getattr(customer, 'display_name', None)
+            or customer_email
+        )
+        customer_group = customer_groups.setdefault(customer_key, {
+            'customer_id': customer.id,
+            'customer_name': customer_name,
+            'email': customer_email,
+            'invoices': [],
+        })
+        customer_group['invoices'].append({
+            'invoice_id': invoice.id,
+            'invoice_no': invoice.invoice_no,
+            'days_overdue': days_overdue,
+            'bucket': bucket,
+            'grand_total': float(invoice.grand_total) if getattr(invoice, 'grand_total', None) is not None else None,
+            'due_date': invoice.due_date,
+        })
+
+    for customer_group in customer_groups.values():
+        customer_group['invoices'].sort(key=lambda item: (-item['days_overdue'], item['invoice_no'] or ''))
+        customer_group['overdue_60_count'] = sum(1 for item in customer_group['invoices'] if item['bucket'] == 'overdue_60')
+        customer_group['overdue_90_count'] = sum(1 for item in customer_group['invoices'] if item['bucket'] == 'overdue_90')
+        customer_group['total_overdue_count'] = len(customer_group['invoices'])
+
+    ordered_customers = sorted(
+        customer_groups.values(),
+        key=lambda item: (item['customer_name'] or '', item['email'] or ''),
+    )
+
+    return {
+        'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
+        'invoice_index_url': url_for('service_admin.invoice_index', menu='invoice', tab='overdue'),
+        'customers': ordered_customers,
+        'overdue_60_count': overdue_60_count,
+        'overdue_90_count': overdue_90_count,
+        'total_overdue_count': overdue_60_count + overdue_90_count,
+    }
+
+
+def _build_service_admin_weekly_overdue_invoice_message(snapshot, customer_group):
+    invoice_index_url = snapshot['invoice_index_url']
+    lines = [
+        f"เรียน {customer_group['customer_name']}",
+        '',
+        'ระบบพบใบแจ้งหนี้ค้างชำระที่ยังไม่ได้รับการชำระเงิน',
+        f"ค้างชำระทั้งหมด {customer_group['total_overdue_count']} รายการ",
+        f"- ค้างเกิน 60 วัน: {customer_group['overdue_60_count']} รายการ",
+        f"- ค้างเกิน 90 วันขึ้นไป: {customer_group['overdue_90_count']} รายการ",
+        '',
+        'รายการใบแจ้งหนี้ที่ค้างชำระ:',
+    ]
+    for item in customer_group['invoices']:
+        lines.append(f"- {item['invoice_no']} ({item['days_overdue']} วัน)")
+    lines.extend([
+        '',
+        f"ตรวจสอบรายละเอียดเพิ่มเติมได้ที่: {invoice_index_url}",
+        '',
+        'กรุณาดำเนินการชำระเงินโดยเร็วเพื่อป้องกันการค้างชำระต่อเนื่อง',
+    ])
+    return '\n'.join(lines)
+
+
+def _render_service_admin_weekly_overdue_preview_html(snapshot):
+    cards = []
+    for customer_group in snapshot['customers']:
+        subject = (
+            f"แจ้งเตือนใบแจ้งหนี้ค้างชำระ {customer_group['total_overdue_count']} รายการ "
+            f"(60-89 วัน {customer_group['overdue_60_count']} / 90+ วัน {customer_group['overdue_90_count']})"
+        )
+        message = _build_service_admin_weekly_overdue_invoice_message(snapshot, customer_group)
+        message_html = escape(message).replace('\n', '<br>')
+        invoice_items_html = []
+        for item in customer_group['invoices']:
+            grand_total_text = f" - {escape(str(item['grand_total']))} THB" if item.get('grand_total') is not None else ''
+            due_date_text = ''
+            if item.get('due_date') is not None:
+                due_date_text = f" | due {arrow.get(item['due_date']).to('Asia/Bangkok').format('DD/MM/YYYY')}"
+            invoice_items_html.append(
+                f"<li><strong>{escape(str(item['invoice_no'] or '-'))}</strong>"
+                f" - {escape(str(item['days_overdue']))} days{due_date_text}{grand_total_text}</li>"
+            )
+        invoice_items = ''.join(invoice_items_html) or '<li>No invoices</li>'
+        cards.append(f'''
+        <section class="card">
+          <div class="card-header">
+            <div class="pill">{escape(customer_group['customer_name'] or '-')}</div>
+            <div class="subpill">{escape(customer_group['email'] or '-')}</div>
+          </div>
+          <div class="summary-card">
+            <h3>Summary</h3>
+            <div class="summary-metrics">
+              <span><strong>{customer_group['total_overdue_count']}</strong> total overdue</span>
+              <span><strong>{customer_group['overdue_60_count']}</strong> overdue 60-89 days</span>
+              <span><strong>{customer_group['overdue_90_count']}</strong> overdue 90+ days</span>
+            </div>
+          </div>
+          <div class="meta">
+            <p><strong>Subject:</strong> {escape(subject)}</p>
+            <p><strong>Invoice index:</strong> <a href="{escape(snapshot['invoice_index_url'])}">{escape(snapshot['invoice_index_url'])}</a></p>
+          </div>
+          <div class="message">
+            <h3>Message Preview</h3>
+            <div class="message-body">{message_html}</div>
+          </div>
+          <div class="message" style="margin-top:16px;">
+            <h3>Invoices</h3>
+            <ul class="example-list">{invoice_items}</ul>
+          </div>
+        </section>
+        ''')
+
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Service Admin Weekly Invoice Overdue Reminder Preview</title>
+  <style>
+    :root {{
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --line: #dbe4ee;
+      --text: #0f172a;
+      --muted: #64748b;
+      --accent: #0f766e;
+    }}
+    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }}
+    .page {{ max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }}
+    .hero {{ margin-bottom: 24px; }}
+    .hero h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    .hero p {{ margin: 0; color: var(--muted); line-height: 1.7; }}
+    .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
+    .grid {{ display: grid; gap: 20px; }}
+    .card {{ background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
+    .card-header {{ display: flex; justify-content: flex-start; gap: 16px; align-items: start; margin-bottom: 16px; flex-wrap: wrap; }}
+    .pill {{ background: #ecfeff; color: var(--accent); border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .subpill {{ background: #f8fafc; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .summary-card {{ background: #f8fafc; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
+    .summary-card h3 {{ margin: 0 0 10px; font-size: 16px; }}
+    .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; }}
+    .summary-metrics span {{ color: var(--muted); font-size: 14px; }}
+    .summary-metrics strong {{ color: var(--text); font-size: 20px; margin-right: 4px; }}
+    .meta {{ margin: 16px 0; font-size: 14px; }}
+    .meta p {{ margin: 6px 0; }}
+    .message-body {{ background: #f8fafc; color: #0f172a; border: 1px solid var(--line); border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
+    .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
+    .example-list {{ margin: 0; padding-left: 22px; line-height: 1.8; }}
+    .example-list li {{ margin-bottom: 4px; }}
+    a {{ color: #1d4ed8; }}
+    @media (max-width: 800px) {{
+      .card-header {{ flex-direction: column; }}
+    }}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>Dry Run Preview</h1>
+      <p>Overdue 60-89 days: {snapshot['overdue_60_count']} items | Overdue 90+ days: {snapshot['overdue_90_count']} items | Total overdue: {snapshot['total_overdue_count']} items | Customers matched: {len(snapshot['customers'])}</p>
+      <p>Invoice index: <a href="{escape(snapshot['invoice_index_url'])}">{escape(snapshot['invoice_index_url'])}</a></p>
+      <div class="notice">หน้านี้ใช้สำหรับตรวจสอบรายการก่อนส่งอีเมลจริง โดยดึงข้อมูลจาก due_date และแยก 90+ ออกจาก 60-89 วันอย่างชัดเจน</div>
+    </header>
+    <div class="grid">
+      {''.join(cards) if cards else '<section class="card"><p>No overdue invoices found.</p></section>'}
+    </div>
+  </main>
+</body>
+</html>'''
+
+
 def _build_service_admin_line_reminder_package(recipient, snapshot_cache=None):
     snapshot_cache = snapshot_cache if snapshot_cache is not None else {}
     cache_key = tuple(recipient.get('sub_lab_ids') or [])
@@ -987,6 +1212,78 @@ def monthly_overdue_summary():
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
+        return redirect(url_for('service_admin.task_dashboard'))
+
+    flash(success_message, 'success')
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(url_for('service_admin.task_dashboard'))
+
+
+@service_admin.route('/admin/weekly-overdue-invoice-reminder', methods=['GET', 'POST'])
+def weekly_overdue_invoice_reminder():
+    scheduler_request, guard_response = _service_admin_preview_or_guard()
+    if guard_response:
+        return guard_response
+
+    snapshot = _build_service_admin_weekly_overdue_invoice_snapshot()
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+    current_app.logger.info(
+        'service_admin_weekly_overdue_invoice_reminder scheduler_request=%s overdue_60=%s overdue_90=%s total_overdue=%s customers=%s should_send=%s dry_run=%s',
+        scheduler_request,
+        snapshot['overdue_60_count'],
+        snapshot['overdue_90_count'],
+        snapshot['total_overdue_count'],
+        len(snapshot['customers']),
+        should_send,
+        dry_run,
+    )
+
+    if dry_run:
+        response = make_response(_render_service_admin_weekly_overdue_preview_html(snapshot))
+        response.mimetype = 'text/html'
+        return response
+
+    if not should_send:
+        response = make_response(
+            'Reminder was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400
+        )
+        response.mimetype = 'text/plain'
+        return response
+
+    if not snapshot['customers']:
+        message = 'ไม่พบรายการใบแจ้งหนี้ค้างชำระสำหรับส่งอีเมล'
+        if request.method == 'POST':
+            flash(message, 'warning')
+            return redirect(url_for('service_admin.task_dashboard'))
+        response = make_response(message + '\n', 404)
+        response.mimetype = 'text/plain'
+        return response
+
+    sent_count = 0
+    for customer_group in snapshot['customers']:
+        recipient_email = customer_group.get('email')
+        if not recipient_email:
+            continue
+        subject = (
+            f"แจ้งเตือนใบแจ้งหนี้ค้างชำระ {customer_group['total_overdue_count']} รายการ "
+            f"(60-89 วัน {customer_group['overdue_60_count']} / 90+ วัน {customer_group['overdue_90_count']})"
+        )
+        message = _build_service_admin_weekly_overdue_invoice_message(snapshot, customer_group)
+        send_mail(
+            [recipient_email],
+            subject,
+            message,
+            html=f"<div style='white-space:pre-wrap;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#0f172a;'>{escape(message).replace(chr(10), '<br>')}</div>",
+        )
+        sent_count += 1
+
+    success_message = f'ส่งอีเมลเตือนใบแจ้งหนี้ค้างชำระแล้ว {sent_count} ราย'
+    if request.method == 'GET':
         return redirect(url_for('service_admin.task_dashboard'))
 
     flash(success_message, 'success')
