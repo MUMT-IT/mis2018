@@ -122,10 +122,10 @@ def build_notification(invoice, service_request, link):
     return title, message, msg
 
 
-def _service_admin_invoice_due_date_local_date(invoice):
-    if not invoice or not invoice.due_date:
-        return None
-    return arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+# def _service_admin_invoice_due_date_local_date(invoice):
+#     if not invoice or not invoice.due_date:
+#         return None
+#     return arrow.get(invoice.due_date).to('Asia/Bangkok').date()
 
 
 def _normalize_internal_email(email_value):
@@ -264,8 +264,8 @@ def _group_service_admin_recipients(predicate):
 
 def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     now = arrow.now('Asia/Bangkok')
-    cutoff_60 = now.shift(days=-60).datetime
-    cutoff_90 = now.shift(days=-90).datetime
+    cutoff_60 = now.shift(days=-60).date()
+    cutoff_90 = now.shift(days=-90).date()
     today = now.date()
     due_soon_end = today + timedelta(days=7)
 
@@ -274,7 +274,7 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
         .join(ServiceInvoice.quotation)
         .join(ServiceQuotation.request)
         .join(ServiceRequest.sub_lab)
-        .filter(ServiceInvoice.file_attached_at.isnot(None))
+        .filter(ServiceInvoice.due_date.isnot(None))
     )
     if sub_lab_ids:
         query = query.filter(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
@@ -284,33 +284,31 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     due_soon = []
     top_labs = defaultdict(int)
     for invoice in query.all():
-        if invoice.paid_at:
-            continue
-        file_attached_at = invoice.file_attached_at
-        if file_attached_at is None:
+        due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date() if invoice.due_date else None
+        if due_date is None:
             continue
 
-        days_overdue = max((now.datetime - file_attached_at).days, 0)
+        days_overdue = max((today - due_date).days, 0)
         lab_name = invoice.quotation.request.sub_lab.sub_lab if invoice.quotation and invoice.quotation.request and invoice.quotation.request.sub_lab else 'ไม่ระบุหน่วยงาน'
         item = {
             'invoice_id': invoice.id,
             'invoice_no': invoice.invoice_no,
             'request_no': invoice.quotation.request.request_no if invoice.quotation and invoice.quotation.request else None,
             'lab_name': lab_name,
-            'file_attached_at': file_attached_at,
+            'due_date': due_date,
             'days_overdue': days_overdue,
             'amount': float(invoice.grand_total) if getattr(invoice, 'grand_total', None) is not None else None,
         }
 
-        if file_attached_at <= cutoff_60:
+        if due_date <= cutoff_60:
             top_labs[lab_name] += 1
 
-        if cutoff_90 < file_attached_at <= cutoff_60:
+        if cutoff_90 < due_date <= cutoff_60:
             overdue_60.append(item)
-        elif file_attached_at <= cutoff_90:
+        elif due_date <= cutoff_90:
             overdue_90.append(item)
 
-        due_date = _service_admin_invoice_due_date_local_date(invoice)
+        # due_date = _service_admin_invoice_due_date_local_date(invoice)
         if due_date is not None and today <= due_date <= due_soon_end:
             due_soon.append({
                 'invoice_id': invoice.id,
