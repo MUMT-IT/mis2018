@@ -1025,7 +1025,9 @@ def line_remind_pending():
     if guard_response:
         return guard_response
 
-    recipient_groups = _group_service_admin_recipients(lambda row: not row.is_assistant)
+    recipient_groups = _group_service_admin_recipients(
+        lambda row: not row.is_assistant and not row.is_supervisor and not row.is_central_admin
+    )
     snapshot_cache = {}
     packages = [_build_service_admin_line_reminder_package_by_lab(recipient, snapshot_cache=snapshot_cache)
                 for recipient in recipient_groups]
@@ -1082,14 +1084,14 @@ def line_remind_pending():
         response.mimetype = 'text/plain'
         return response
 
-    # if not matched_packages:
-    #     message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
-    #     if request.method == 'POST':
-    #         flash(message, 'warning')
-    #         return redirect(url_for('service_admin.task_dashboard'))
-    #     response = make_response(message + '\n', 404)
-    #     response.mimetype = 'text/plain'
-    #     return redirect(url_for('service_admin.task_dashboard'))
+    if not matched_packages:
+        message = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
+        if request.method == 'POST':
+            flash(message, 'warning')
+            return redirect(url_for('service_admin.task_dashboard'))
+        response = make_response(message + '\n', 404)
+        response.mimetype = 'text/plain'
+        return redirect(url_for('service_admin.task_dashboard'))
 
     sent_count = 0
     failed_count = 0
