@@ -1,4 +1,4 @@
-import itertools
+﻿import itertools
 import os
 import json
 import re
@@ -595,7 +595,7 @@ def _normalize_customer_email(email_value):
     return email_value or None
 
 
-def g_et_service_admin_invoice_overdue_days(invoice, today=None):
+def _get_service_admin_invoice_overdue_days(invoice, today=None):
     if not invoice or not invoice.due_date:
         return None
     today = today or arrow.now('Asia/Bangkok').date()
@@ -604,6 +604,7 @@ def g_et_service_admin_invoice_overdue_days(invoice, today=None):
 
 
 def _build_service_admin_weekly_overdue_invoice_snapshot():
+    scheme = 'http' if current_app.debug else 'https'
     today = arrow.now('Asia/Bangkok').date()
     query = (
         ServiceInvoice.query
@@ -650,6 +651,7 @@ def _build_service_admin_weekly_overdue_invoice_snapshot():
             'customer_id': customer.id,
             'customer_name': customer_name,
             'email': customer_email,
+            'customer_type': getattr(getattr(customer, 'customer_info', None), 'type', None).type if getattr(getattr(customer, 'customer_info', None), 'type', None) else None,
             'invoices': [],
         })
         customer_group['invoices'].append({
@@ -674,7 +676,8 @@ def _build_service_admin_weekly_overdue_invoice_snapshot():
 
     return {
         'generated_at': arrow.now('Asia/Bangkok').strftime('%d/%m/%Y %H:%M'),
-        'invoice_index_url': url_for('service_admin.invoice_index', menu='invoice', tab='overdue'),
+        'invoice_index_url': url_for('academic_services.invoice_index', menu='invoice', tab='overdue', _external=True,
+                                     _scheme=scheme),
         'customers': ordered_customers,
         'overdue_60_count': overdue_60_count,
         'overdue_90_count': overdue_90_count,
@@ -684,23 +687,31 @@ def _build_service_admin_weekly_overdue_invoice_snapshot():
 
 def _build_service_admin_weekly_overdue_invoice_message(snapshot, customer_group):
     invoice_index_url = snapshot['invoice_index_url']
+    title_prefix = 'คุณ' if customer_group.get('customer_type') == 'บุคคล' else ''
     lines = [
-        f"เรียน {customer_group['customer_name']}",
+        f"เรียน {title_prefix}{customer_group['customer_name']}",
         '',
-        'ระบบพบใบแจ้งหนี้ค้างชำระที่ยังไม่ได้รับการชำระเงิน',
-        f"ค้างชำระทั้งหมด {customer_group['total_overdue_count']} รายการ",
-        f"- ค้างเกิน 60 วัน: {customer_group['overdue_60_count']} รายการ",
-        f"- ค้างเกิน 90 วันขึ้นไป: {customer_group['overdue_90_count']} รายการ",
+        'ขอเรียนแจ้งให้ทราบว่า ท่านมีรายการใบแจ้งหนี้ค้างชำระกับหน่วยงานตรวจวิเคราะห์',
+        'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล',
+        f"โดยมียอดค้างชำระรวมทั้งสิ้น {customer_group['total_overdue_count']} รายการ",
+        f"- ค้างชำระเกิน 60 วัน จำนวน {customer_group['overdue_60_count']} รายการ",
+        f"- ค้างชำระเกิน 90 วัน จำนวน {customer_group['overdue_90_count']} รายการ",
         '',
-        'รายการใบแจ้งหนี้ที่ค้างชำระ:',
+        'รายละเอียดใบแจ้งหนี้ที่ค้างชำระ',
     ]
     for item in customer_group['invoices']:
-        lines.append(f"- {item['invoice_no']} ({item['days_overdue']} วัน)")
+        lines.append(f"- เลขที่ใบแจ้งหนี้ {item['invoice_no']} ค้างชำระ {item['days_overdue']} วัน")
     lines.extend([
         '',
-        f"ตรวจสอบรายละเอียดเพิ่มเติมได้ที่: {invoice_index_url}",
+        'จึงขอความอนุเคราะห์ให้ท่านดำเนินการชำระเงินโดยเร็ว เพื่อป้องกันการค้างชำระต่อเนื่อง',
+        'ท่านสามารถตรวจสอบรายละเอียดใบแจ้งหนี้เพิ่มเติมได้จากลิงก์ด้านล่าง',
+        f"{invoice_index_url}",
         '',
-        'กรุณาดำเนินการชำระเงินโดยเร็วเพื่อป้องกันการค้างชำระต่อเนื่อง',
+        'หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้',
+        '',
+        'ขอขอบพระคุณที่ใช้บริการ',
+        'ระบบงานบริการตรวจวิเคราะห์',
+        'คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล',
     ])
     return '\n'.join(lines)
 
@@ -709,8 +720,7 @@ def _render_service_admin_weekly_overdue_preview_html(snapshot):
     cards = []
     for customer_group in snapshot['customers']:
         subject = (
-            f"แจ้งเตือนใบแจ้งหนี้ค้างชำระ {customer_group['total_overdue_count']} รายการ "
-            f"(60-89 วัน {customer_group['overdue_60_count']} / 90+ วัน {customer_group['overdue_90_count']})"
+            f"แจ้งเตือนการค้างชำระ"
         )
         message = _build_service_admin_weekly_overdue_invoice_message(snapshot, customer_group)
         message_html = escape(message).replace('\n', '<br>')
@@ -1270,8 +1280,7 @@ def weekly_overdue_invoice_reminder():
         if not recipient_email:
             continue
         subject = (
-            f"แจ้งเตือนใบแจ้งหนี้ค้างชำระ {customer_group['total_overdue_count']} รายการ "
-            f"(60-89 วัน {customer_group['overdue_60_count']} / 90+ วัน {customer_group['overdue_90_count']})"
+            f"แจ้งเตือนการค้างชำระ"
         )
         message = _build_service_admin_weekly_overdue_invoice_message(snapshot, customer_group)
         send_mail(
