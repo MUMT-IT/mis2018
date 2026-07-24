@@ -347,7 +347,7 @@ scheduler.add_job(send_service_admin_monthly_overdue_summary,
 scheduler.add_job(send_academic_services_weekly_overdue_invoice_reminder,
                   'cron', day_of_week='mon',
                   hour='9',
-                  minute='15',
+                  minute='00',
                   timezone='Asia/Bangkok')
 scheduler.add_job(send_checkin_reminder,
                   'cron', day_of_week='mon-fri',
