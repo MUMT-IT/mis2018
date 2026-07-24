@@ -516,7 +516,7 @@ def _render_service_admin_overview_chart_html(snapshot):
 def _build_service_admin_line_reminder_message(recipient, snapshot):
     lab_name = recipient.get('lab_name') or recipient.get('name') or 'ไม่ระบุห้องปฏิบัติการ'
     return (
-        f"แจ้งเตือนสรุปภาพรวมเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออกของระบบบริการวิชาการ\n"
+        f"แจ้งเตือนเรื่องยอดค้างชำระ/รายงานผลที่ยังไม่ออกของระบบบริการวิชาการ\n"
         f"ห้องปฏิบัติการ: {lab_name}\n"
         f"ยอดค้างค้างเกิน 60 วัน: {snapshot['overdue_60_count']} รายการ\n"
         f"ยอดค้างค้างเกิน 90 วัน: {snapshot['overdue_90_count']} รายการ\n"
