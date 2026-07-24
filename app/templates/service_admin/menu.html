@@ -4,6 +4,12 @@
             MENU
         </p>
         <ul class="menu-list">
+{#            <li>#}
+{#                <a {% if menu=='task' %} class="is-active" {% endif %} href="{{ url_for('service_admin.task_dashboard', menu='task') }}">#}
+{#                    <span class="icon"><i class="fas fa-th-large"></i></span>#}
+{#                    <span>ศูนย์รวมเรื่องคงค้าง</span>#}
+{#                </a>#}
+{#            </li>#}
             {% if central_admin %}
                 <li>
                     <a {% if menu=='invoice' %} class="is-active" {% endif %} href="{{ url_for('service_admin.invoice_index_for_central_admin',
