@@ -213,10 +213,9 @@
         <span class="icon"><i class="fas fa-layer-group"></i></span>
         <span>Service Admin Operations Hub</span>
       </div>
-      <h1 class="hero-title">ศูนย์รวมงานคงค้าง แจ้งเตือน และสรุปผู้บริหาร</h1>
+      <h1 class="hero-title">ศูนย์รวมแจ้งเตือน และสรุปผู้บริหาร</h1>
       <p class="hero-subtitle">
-        ใช้หน้านี้เป็นจุดเริ่มต้นของงานบริการวิชาการทั้งหมด ทั้งการทดลองส่ง Line reminder,
-        การส่งเตือนผู้ดูแล, และการสรุปเรื่องคงค้างประจำเดือนแบบอ่านง่ายสำหรับผู้บริหาร
+        ใช้หน้านี้เป็นการทดลองส่ง Line reminder, การส่งเตือนลูกค้าให้ทำการชำระเงิน, และการสรุปภาพรวมงานคงค้างประจำเดือนแบบอ่านง่ายสำหรับผู้บริหาร
       </p>
       <div class="hero-chip-row">
         <span class="hero-chip">Line reminder preview</span>
@@ -225,14 +224,12 @@
         <span class="hero-chip">Test result backlog</span>
       </div>
     </div>
-
     <div class="section-title">
       <div>
         <h2>Actions</h2>
-        <p>ปุ่มสำคัญสำหรับทดสอบและส่งงานทันที</p>
+        <p>ปุ่มสำคัญสำหรับทดสอบและส่งแจ้งเตือนทันที</p>
       </div>
     </div>
-
     <div class="action-grid">
       <div class="action-card">
         <div class="icon-box" style="background: linear-gradient(135deg, #f0c419, #caa84a);">
@@ -249,8 +246,8 @@
         <div class="icon-box" style="background: linear-gradient(135deg, #1a3d7c, #10264c);">
           <i class="fas fa-paper-plane"></i>
         </div>
-        <h3>ส่ง Line reminder ให้ผู้ดูแล</h3>
-        <p>ส่งข้อความเตือนผู้ดูแลโดยอ้างอิงใบแจ้งหนี้ค้างชำระและงานรายงานผลที่ยังไม่ออก</p>
+        <h3>ส่ง Line reminder ให้ผู้บริหาร</h3>
+        <p>ส่งข้อความเตือนสำหรับหัวหน้าแล็ปและผู้ช่วยคณบดีโดยอ้างอิงใบแจ้งหนี้ค้างชำระและงานรายงานผลที่ยังไม่ออก</p>
         <a class="button is-info is-rounded" href="{{ url_for('service_admin.line_remind_pending', send='true') }}">
           Send now
         </a>
@@ -261,7 +258,7 @@
           <i class="fas fa-envelope"></i>
         </div>
         <h3>ส่งสรุปเรื่องคงค้างให้ผู้บริหาร</h3>
-        <p>สรุปรายเดือนสำหรับหัวหน้าแล็ปและผู้ช่วยคณบดี พร้อม AI summary และตัวเลขสำคัญ</p>
+        <p>สรุปรายเดือนสำหรับหัวหน้าแล็ปและผู้ช่วยคณบดี พร้อม AI summary และตัวเลขประกอบการติดตาม</p>
         <a class="button is-success is-rounded" href="{{ url_for('service_admin.monthly_overdue_summary', send='true') }}">
           Send summary
         </a>
@@ -270,12 +267,12 @@
         <div class="icon-box" style="background: linear-gradient(135deg, #7c3aed, #4c1d95);">
           <i class="fas fa-file-invoice-dollar"></i>
         </div>
-        <h3>ทดสอบเตือนใบแจ้งหนี้ค้างชำระ</h3>
-        <p>ดูตัวอย่างอีเมลเตือนค้างชำระแยก 60 วันและ 90 วัน พร้อมลิงก์ไปหน้า invoice index ก่อนส่งจริง</p>
+        <h3>ทดสอบเตือนการค้างชำระให้ลูกค้า</h3>
+        <p>ดูตัวอย่างและทดสอบส่งอีเมลเตือนการค้างชำระ 60 วันและ 90 วันก่อนส่งจริงให้กับลูกค้า</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <a class="button is-warning is-rounded" href="{{ url_for('service_admin.weekly_overdue_invoice_reminder', dry_run='true') }}">
-            Preview
-          </a>
+{#          <a class="button is-warning is-rounded" href="{{ url_for('service_admin.weekly_overdue_invoice_reminder', dry_run='true') }}">#}
+{#            Preview#}
+{#          </a>#}
           <a class="button is-info is-rounded" href="{{ url_for('service_admin.weekly_overdue_invoice_reminder', send='true') }}">
             Send now
           </a>
