@@ -4,139 +4,1102 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 <style>
-    th, td { white-space: nowrap; }
+    .staff-login-shell {
+        padding: 1.5rem 0 3rem;
+    }
+
+    .staff-login-hero,
+    .staff-login-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 252, 0.96));
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 28px;
+        box-shadow: 0 18px 50px rgba(18, 39, 84, 0.08);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .staff-login-hero::after {
+        background: radial-gradient(circle, rgba(202, 168, 74, 0.16), rgba(202, 168, 74, 0));
+        content: "";
+        height: 14rem;
+        position: absolute;
+        right: -2rem;
+        top: -4rem;
+        width: 14rem;
+    }
+
+    .staff-login-hero-inner,
+    .staff-login-card-inner {
+        padding: 1.25rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .staff-login-header {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .staff-login-kicker {
+        color: var(--theme-gold);
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        margin-bottom: 0.45rem;
+        text-transform: uppercase;
+    }
+
+    .staff-login-title {
+        color: var(--theme-navy-deep);
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 0.35rem;
+    }
+
+    .staff-login-subtitle {
+        color: var(--theme-muted);
+        font-size: 0.94rem;
+        line-height: 1.55;
+        margin: 0;
+        max-width: 52rem;
+    }
+
+    .staff-login-badges {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .staff-login-badge {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        display: inline-flex;
+        font-size: 0.76rem;
+        font-weight: 700;
+        gap: 0.35rem;
+        padding: 0.4rem 0.75rem;
+        white-space: nowrap;
+    }
+
+    .staff-login-summary-grid {
+        display: grid;
+        gap: 0.9rem;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        margin-top: 1rem;
+    }
+
+    .staff-login-summary-card {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 20px;
+        padding: 0.95rem;
+    }
+
+    .staff-login-summary-card .eyebrow {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.4rem;
+        text-transform: uppercase;
+    }
+
+    .staff-login-summary-card .value {
+        color: var(--theme-navy-deep);
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .staff-login-summary-card .delta {
+        color: var(--theme-muted);
+        font-size: 0.78rem;
+        margin-top: 0.35rem;
+    }
+
+    .staff-login-summary-card.is-accent {
+        background: linear-gradient(135deg, rgba(202, 168, 74, 0.16), rgba(255, 255, 255, 0.94));
+    }
+
+    .staff-login-board-head {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .staff-login-board-title {
+        color: var(--theme-navy-deep);
+        font-size: 1.05rem;
+        font-weight: 800;
+        margin-bottom: 0.2rem;
+    }
+
+    .staff-login-board-note {
+        color: var(--theme-muted);
+        font-size: 0.88rem;
+    }
+
+    .staff-login-board-count {
+        background: var(--theme-navy-soft);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 0.45rem 0.8rem;
+        white-space: nowrap;
+    }
+
+    .staff-login-employee-list {
+        display: grid;
+        gap: 0.9rem;
+    }
+
+    .staff-login-employee-card {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 22px;
+        overflow: hidden;
+    }
+
+    .staff-login-employee-card button {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        cursor: pointer;
+        display: flex;
+        font: inherit;
+        gap: 0.75rem;
+        justify-content: space-between;
+        padding: 0.95rem 1rem;
+        text-align: left;
+        width: 100%;
+    }
+
+    .staff-login-employee-card button:hover,
+    .staff-login-employee-card button:focus {
+        background: rgba(18, 39, 84, 0.04);
+    }
+
+    .staff-login-employee-left {
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+        min-width: 0;
+    }
+
+    .staff-login-employee-card .staff-login-avatar {
+        align-items: center;
+        background: linear-gradient(135deg, rgba(18, 39, 84, 0.96), rgba(202, 168, 74, 0.96));
+        border-radius: 18px;
+        color: #fff;
+        display: inline-flex;
+        flex-shrink: 0;
+        font-size: 0.88rem;
+        font-weight: 800;
+        height: 2.75rem;
+        justify-content: center;
+        letter-spacing: 0.04em;
+        width: 2.75rem;
+    }
+
+    .staff-login-employee-name {
+        color: var(--theme-navy-deep);
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.25;
+        margin-bottom: 0.15rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .staff-login-employee-meta {
+        color: var(--theme-muted);
+        font-size: 0.82rem;
+        line-height: 1.4;
+    }
+
+    .staff-login-employee-chevron {
+        color: var(--theme-muted);
+        flex-shrink: 0;
+        font-size: 0.85rem;
+    }
+
+    .staff-login-detail-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 1rem;
+    }
+
+    .staff-login-detail-stat {
+        background: rgba(245, 247, 252, 0.95);
+        border: 1px solid rgba(18, 39, 84, 0.06);
+        border-radius: 16px;
+        padding: 0.8rem 0.85rem;
+    }
+
+    .staff-login-detail-stat .label {
+        color: var(--theme-muted);
+        display: flex;
+        font-size: 0.72rem;
+        font-weight: 700;
+        gap: 0.35rem;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.25rem;
+        text-transform: uppercase;
+    }
+
+    .staff-login-detail-stat .value {
+        color: var(--theme-navy-deep);
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .staff-login-detail-note {
+        color: var(--theme-muted);
+        font-size: 0.88rem;
+        margin-top: 0.9rem;
+    }
+
+    .staff-login-employee-metrics {
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 0.9rem;
+    }
+
+    .staff-login-metric {
+        background: rgba(245, 247, 252, 0.92);
+        border-radius: 16px;
+        padding: 0.7rem 0.75rem;
+    }
+
+    .staff-login-metric .label {
+        color: var(--theme-muted);
+        display: flex;
+        font-size: 0.72rem;
+        font-weight: 700;
+        gap: 0.35rem;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.28rem;
+        text-transform: uppercase;
+    }
+
+    .staff-login-metric .metric-value {
+        color: var(--theme-navy-deep);
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .staff-login-progress {
+        background: rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        height: 0.45rem;
+        margin-top: 0.75rem;
+        overflow: hidden;
+    }
+
+    .staff-login-progress-fill {
+        background: linear-gradient(90deg, rgba(202, 168, 74, 0.95), rgba(18, 39, 84, 0.88));
+        border-radius: inherit;
+        display: block;
+        height: 100%;
+        width: var(--staff-login-progress-width, 0%);
+    }
+
+    .staff-login-chart {
+        align-items: end;
+        display: grid;
+        gap: 0.35rem;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+        height: 4.75rem;
+        margin-top: 0.85rem;
+    }
+
+    .staff-login-chart-wrap {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 0;
+    }
+
+    .staff-login-chart-bar {
+        background: linear-gradient(180deg, rgba(202, 168, 74, 0.92), rgba(18, 39, 84, 0.92));
+        border-radius: 999px 999px 6px 6px;
+        min-height: 0.4rem;
+        width: 100%;
+    }
+
+    .staff-login-chart-label {
+        color: var(--theme-muted);
+        font-size: 0.62rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 100%;
+    }
+
+    .staff-login-chart-empty {
+        align-items: center;
+        border: 1px dashed rgba(18, 39, 84, 0.15);
+        border-radius: 16px;
+        color: var(--theme-muted);
+        display: flex;
+        font-size: 0.8rem;
+        height: 4.75rem;
+        justify-content: center;
+        margin-top: 0.85rem;
+    }
+
+    .staff-login-card-head {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: space-between;
+        margin-bottom: 0.85rem;
+    }
+
+    .staff-login-export-note,
+    .staff-login-calendar-note {
+        color: var(--theme-muted);
+        font-size: 0.88rem;
+    }
+
+    .staff-login-calendar-shell {
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 22px;
+        margin-top: 1rem;
+        padding: 0.95rem;
+    }
+
+    .staff-login-calendar-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        justify-content: space-between;
+        margin-bottom: 0.85rem;
+    }
+
+    .staff-login-calendar-label {
+        color: var(--theme-navy-deep);
+        font-size: 0.98rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .staff-login-calendar-date {
+        color: var(--theme-muted);
+        font-size: 0.8rem;
+        margin-top: 0.15rem;
+    }
+
+    .staff-login-calendar-controls {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .staff-login-calendar-button {
+        align-items: center;
+        background: #fff;
+        border: 1px solid rgba(18, 39, 84, 0.1);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 700;
+        height: 2rem;
+        justify-content: center;
+        padding: 0 0.75rem;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .staff-login-calendar-button:hover,
+    .staff-login-calendar-button:focus {
+        border-color: rgba(18, 39, 84, 0.24);
+        box-shadow: 0 8px 18px rgba(18, 39, 84, 0.08);
+        color: var(--theme-navy-deep);
+        transform: translateY(-1px);
+    }
+
+    .staff-login-calendar-button.is-icon {
+        width: 2rem;
+        padding: 0;
+    }
+
+    .staff-login-calendar-button.is-primary {
+        background: linear-gradient(135deg, rgba(202, 168, 74, 0.18), rgba(202, 168, 74, 0.08));
+        border-color: rgba(202, 168, 74, 0.22);
+    }
+
+    .staff-login-calendar {
+        min-height: 720px;
+    }
+
+    .staff-login-calendar-frame {
+        position: relative;
+    }
+
+    .staff-login-calendar-loading {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        display: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        gap: 0.45rem;
+        left: 50%;
+        padding: 0.55rem 0.9rem;
+        position: absolute;
+        top: 0.75rem;
+        transform: translateX(-50%);
+        z-index: 5;
+    }
+
+    .staff-login-calendar-frame.is-loading .staff-login-calendar-loading {
+        display: inline-flex;
+    }
+
+    .staff-login-calendar .fc,
+    .staff-login-calendar .fc-view-container,
+    .staff-login-calendar .fc-view,
+    .staff-login-calendar .fc-view > table,
+    .staff-login-calendar .fc-day-grid,
+    .staff-login-calendar .fc-time-grid {
+        background: transparent;
+    }
+
+    .staff-login-calendar .fc-toolbar {
+        display: none;
+    }
+
+    .staff-login-calendar .fc-view-container {
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .staff-login-calendar .fc-head,
+    .staff-login-calendar .fc-body,
+    .staff-login-calendar .fc-row,
+    .staff-login-calendar .fc-widget-header,
+    .staff-login-calendar .fc-widget-content,
+    .staff-login-calendar .fc-divider {
+        border-color: rgba(18, 39, 84, 0.08);
+    }
+
+    .staff-login-calendar .fc-day-header {
+        color: var(--theme-muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        padding: 0.7rem 0.35rem;
+        text-transform: uppercase;
+    }
+
+    .staff-login-calendar .fc-day-number {
+        color: var(--theme-navy-deep);
+        font-size: 0.82rem;
+        font-weight: 700;
+        padding: 0.45rem 0.55rem 0 0;
+    }
+
+    .staff-login-calendar .fc-day.fc-today {
+        background: rgba(184, 67, 63, 0.04);
+        box-shadow: inset 0 0 0 1px rgba(184, 67, 63, 0.12);
+    }
+
+    .staff-login-calendar .fc-event {
+        border: 0;
+        border-radius: 12px;
+        box-shadow: inset 0 0 0 1px rgba(18, 39, 84, 0.04);
+        color: #1f2f57;
+        font-size: 0.72rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 2px;
+        padding: 0.2rem 0.35rem;
+    }
+
+    .staff-login-calendar .fc-event .fc-content {
+        display: block;
+        white-space: normal;
+    }
+
+    .staff-login-calendar .fc-event .fc-title {
+        display: block;
+    }
+
+    .staff-login-calendar .fc-event.is-late-login {
+        background: rgba(248, 202, 202, 0.98);
+        border-color: rgba(229, 155, 155, 0.96);
+    }
+
+    .staff-login-calendar .fc-event.is-short-hours {
+        background: #fff3bf;
+        border-color: #e6cf73;
+    }
+
+    .staff-login-calendar .fc-event.is-complete-hours {
+        background: #e4f3e9;
+        border-color: #b8ddc4;
+        color: #245b38;
+    }
+
+    .staff-login-calendar .staff-login-event-content {
+        align-items: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 0.12rem;
+        line-height: 1.25;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .staff-login-calendar .staff-login-event-head {
+        align-items: baseline;
+        display: flex;
+        gap: 0.35rem;
+        justify-content: space-between;
+        min-width: 0;
+    }
+
+    .staff-login-calendar .staff-login-event-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .staff-login-calendar .staff-login-event-hours {
+        flex-shrink: 0;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .staff-login-calendar .staff-login-event-hours.is-total {
+        color: var(--theme-navy-deep);
+    }
+
+    .staff-login-calendar .staff-login-event-hours.is-negative {
+        color: #b83f3f;
+    }
+
+    .staff-login-calendar .staff-login-event-meter {
+        background: rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        height: 0.35rem;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill {
+        display: block;
+        height: 100%;
+        width: var(--staff-login-meter-width, 0%);
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-negative {
+        background: linear-gradient(90deg, rgba(184, 63, 63, 0.95), rgba(221, 123, 123, 0.95));
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-positive {
+        background: linear-gradient(90deg, #4f8f67, #76ad89);
+    }
+
+    .staff-login-calendar .staff-login-event-meter-fill.is-late {
+        background: linear-gradient(90deg, #a85f5f, #c98787);
+    }
+
+    .staff-login-calendar .fc-more {
+        color: var(--theme-muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+    }
+
+    .staff-login-calendar .fc-more:hover {
+        color: var(--theme-navy-deep);
+        text-decoration: none;
+    }
+
+    .staff-login-export-card {
+        margin-top: 1rem;
+    }
+
+    @media screen and (max-width: 1100px) {
+        .staff-login-summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media screen and (max-width: 768px) {
+        .staff-login-hero-inner,
+        .staff-login-card-inner {
+            padding: 1rem;
+        }
+
+        .staff-login-title {
+            font-size: 1.2rem;
+        }
+
+        .staff-login-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .staff-login-employee-metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .staff-login-calendar {
+            min-height: 540px;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block page_content %}
-<section class="section" id="app">
-    <div class="columns">
-        <div class="column">
-            <h1 class="title">สรุปข้อมูลการเข้าปฏิบัติงานของบุคลากร</h1>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div id="calendar"></div>
-            </div>
-        </div>
-    </div>
-</section>
-<section class="section">
+<section class="section staff-login-shell" id="app">
     <div class="container">
-        <table class="table is-fullwidth is-striped" id="timeTable">
-            <thead>
-            <th>ชื่อ</th>
-            <th>เข้างาน</th>
-            <th>QR Code หมดอายุ</th>
-            <th>ออกงาน</th>
-            <th>QR Code หมดอายุ</th>
-            <th>พิกัดละติจูด</th>
-            <th>พิกัดลองจิจูด</th>
-            <th>ตำแหน่งที่สร้าง QR Code</th>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-</section>
-<section class="section">
-    <div class="container">
-        <h1 class="title has-text-centered">Data Export</h1>
-        <p>คลิกเพื่อเลือกช่วงวันที่ต้องการนำออก</p>
-        <form method="post" action="{{ url_for('staff.export_login_summary') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="field">
-                <div class="control has-icons-left">
-                    <input class="input" name="datePicker" id="datePicker">
-                    <span class="icon is-small is-left">
-                        <i class="far fa-calendar-alt"></i>
-                    </span>
+        <div class="staff-login-hero">
+            <div class="staff-login-hero-inner">
+                <div class="staff-login-header">
+                    <div>
+                        <div class="staff-login-kicker">Staff dashboard</div>
+                        <h1 class="staff-login-title">สรุปการเข้า-ออกงานของบุคลากร</h1>
+                        <p class="staff-login-subtitle">
+                            มุมมองนี้สรุปสถานะการลงเวลาเป็นรายคน พร้อมชาร์ตขนาดเล็กเพื่อให้ผู้ใช้เห็นภาพรวมได้เร็ว
+                        </p>
+                    </div>
+                    <div class="staff-login-badges">
+                        <span class="staff-login-badge">
+                            <i class="far fa-calendar-alt" aria-hidden="true"></i>
+                            {{ current_user.personal_info.org.name }}
+                        </span>
+                        <span class="staff-login-badge" id="summaryRangeBadge">
+                            <i class="far fa-clock" aria-hidden="true"></i>
+                            Loading range
+                        </span>
+                    </div>
+                </div>
+
+                <div class="staff-login-summary-grid" id="summaryStats">
+                    <div class="staff-login-summary-card is-accent">
+                        <span class="eyebrow">Employees</span>
+                        <div class="value">--</div>
+                        <div class="delta">กำลังโหลดข้อมูล</div>
+                    </div>
+                    <div class="staff-login-summary-card">
+                        <span class="eyebrow">Complete days</span>
+                        <div class="value">--</div>
+                        <div class="delta">เข้างานและออกงานครบ</div>
+                    </div>
+                    <div class="staff-login-summary-card">
+                        <span class="eyebrow">Late check-ins</span>
+                        <div class="value">--</div>
+                        <div class="delta">หลังเวลา 09:00 น.</div>
+                    </div>
+                    <div class="staff-login-summary-card">
+                        <span class="eyebrow">Early check-outs</span>
+                        <div class="value">--</div>
+                        <div class="delta">ก่อนเวลา 16:30 น.</div>
+                    </div>
+                    <div class="staff-login-summary-card">
+                        <span class="eyebrow">Average hrs/day</span>
+                        <div class="value">--</div>
+                        <div class="delta">เฉลี่ยจากวันที่ลงเวลาครบ</div>
+                    </div>
+                    <div class="staff-login-summary-card">
+                        <span class="eyebrow">Total hrs</span>
+                        <div class="value">--</div>
+                        <div class="delta">สะสมทั้งช่วงวันที่เลือก</div>
+                    </div>
                 </div>
             </div>
-            <div class="field">
-                <div class="control">
-                    <input type="submit" class="button is-info" value="Download">
+        </div>
+
+        <div class="staff-login-card staff-login-calendar-shell">
+            <div class="staff-login-card-inner" style="padding-bottom: 0.75rem;">
+                <div class="staff-login-calendar-head">
+                    <div>
+                        <p class="staff-login-calendar-label" id="calendarTitle">กำลังโหลดปฏิทิน...</p>
+                        <div class="staff-login-calendar-date" id="calendarSubtitle"></div>
+                    </div>
+                    <div class="staff-login-calendar-controls">
+                        <button type="button" class="staff-login-calendar-button is-icon" id="calendarPrev" aria-label="เดือนก่อนหน้า">
+                            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="staff-login-calendar-button is-primary" id="calendarToday">Today</button>
+                        <button type="button" class="staff-login-calendar-button is-icon" id="calendarNext" aria-label="เดือนถัดไป">
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="staff-login-calendar-note mb-3">
+                    ใช้ปฏิทินนี้เพื่อดูภาพรวมรายเดือน ส่วนแถบด้านบนจะสรุปตามช่วงวันที่ที่เลือก
+                </p>
+                <div class="staff-login-calendar-frame" id="calendarFrame">
+                    <div id="calendar" class="staff-login-calendar"></div>
+                    <div class="staff-login-calendar-loading" id="calendarLoading" role="status" aria-live="polite">
+                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                        กำลังโหลดปฏิทิน...
+                    </div>
                 </div>
             </div>
-        </form>
+        </div>
+
+        <div class="staff-login-card" id="employeeBoard" style="margin-top: 1rem;">
+            <div class="staff-login-card-inner">
+                <div class="staff-login-board-head">
+                    <div>
+                        <div class="staff-login-board-title">Employee mini dashboard</div>
+                        <div class="staff-login-board-note">
+                            คลิกชื่อบุคลากรเพื่อดูสถิติแบบละเอียดในหน้าต่างป๊อปอัป
+                        </div>
+                    </div>
+                    <div class="staff-login-board-count" id="summaryCount">Loading employees...</div>
+                </div>
+                <div class="staff-login-employee-list" id="employeeList"></div>
+            </div>
+        </div>
+
+        <div class="modal" id="employeeDetailModal">
+            <div class="modal-background"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title" id="employeeDetailTitle">Employee detail</p>
+                    <button class="delete" type="button" aria-label="close" id="employeeDetailClose"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="staff-login-employee-meta" id="employeeDetailMeta"></div>
+                    <div class="staff-login-detail-grid" id="employeeDetailStats"></div>
+                    <div class="staff-login-detail-note" id="employeeDetailNote"></div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button type="button" class="button" id="employeeDetailDismiss">Close</button>
+                </footer>
+            </div>
+        </div>
+
+        <div class="staff-login-card staff-login-export-card">
+            <div class="staff-login-card-inner">
+                <div class="staff-login-card-head">
+                    <div>
+                        <div class="staff-login-board-title">Data export</div>
+                        <div class="staff-login-export-note">ดาวน์โหลดข้อมูลตามช่วงวันที่ที่เลือกจากตัวกรองด้านบน</div>
+                    </div>
+                </div>
+                <form method="post" action="{{ url_for('staff.export_login_summary') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field">
+                        <div class="control">
+                            <input type="hidden" name="datePicker" id="exportDatePicker" value="{{ summary_start_date }} - {{ summary_end_date }}">
+                            <div class="buttons">
+                                <button type="submit" class="button is-info is-rounded">
+                                    <span class="icon"><i class="fas fa-download" aria-hidden="true"></i></span>
+                                    <span>Download Excel</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/locale-all.js" integrity="sha512-vTlIpCig7Yl48kFM3fyxWwW7t+cf+U7Bi22g/o2D4hbGKXnN//6hNZYtIZKSmXQJ5BTdr1jMBz6BUZV030LmuQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
     moment.locale('th');
-    $.fn.dataTable.moment('lll');
-    let apiUrl = "{{ url_for('staff.get_login_records', dept_id=curr_dept_id) }}";
-    $(function() {
-        let table = $('#timeTable').DataTable({
-            ajax: "{{ url_for('staff.get_login_records') }}",
-            dataSrc: "data",
-            processing: true,
-            order: [[1, 'asc']],
-            columns: [
-                { data: 'staff_name' },
-                {
-                    data: 'start',
-                    render: function(data, type, row) {
-                        if (data !== '') {
-                            let d = moment(data)
-                            return d.format('lll')
-                        } else {
-                            return null
-                        }
-                    }
-                },
-                { data: 'start_expired' },
-                {
-                    data: 'end',
-                    render: function(data, type, row) {
-                        if (data !== '') {
-                            let d = moment(data)
-                            return d.format('lll')
-                        } else {
-                            return '-'
-                        }
-                    }
-                },
-                { data: 'end_expired' },
-                { data: 'lat' },
-                { data: 'lon' },
-                { data: 'location' }
-            ],
-        });
-        $('#datePicker').daterangepicker({
-                singleDatePicker: false,
-                startDate: moment()
+
+    const summaryApiUrl = {{ url_for('staff.get_login_summary_data', dept_id=curr_dept_id)|tojson|safe }};
+    const calendarApiUrl = {{ url_for('staff.send_summary_data', tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }};
+    const leaveCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
+    const wfhCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
+    let employeeSummaryMap = {};
+
+    function escapeHtml(value) {
+        return $('<div/>').text(value == null ? '' : String(value)).html();
+    }
+
+    function formatNumber(value, digits = 1) {
+        const num = Number(value || 0);
+        return Number.isInteger(num) ? String(num) : num.toFixed(digits);
+    }
+
+    function initials(name) {
+        if (!name) return '--';
+        const parts = String(name).trim().split(/\s+/).filter(Boolean);
+        const first = parts[0] ? parts[0][0] : '-';
+        const second = parts.length > 1 ? parts[1][0] : (parts[0] ? parts[0][1] || '' : '');
+        return (first + second).toUpperCase();
+    }
+
+    function renderSummaryCards(data) {
+        const totals = data.totals || {};
+        const cards = [
+            {
+                label: 'Employees',
+                value: totals.employees || 0,
+                note: (totals.employees_with_records || 0) + ' with records in range',
+                accent: true,
+                icon: 'fas fa-users'
+            },
+            {
+                label: 'Complete days',
+                value: totals.complete_days || 0,
+                note: 'ครบทั้ง check in and check out',
+                icon: 'fas fa-check-circle'
+            },
+            {
+                label: 'Late check-ins',
+                value: totals.late_checkins || 0,
+                note: 'หลังเวลา 09:00 น.',
+                icon: 'fas fa-clock'
+            },
+            {
+                label: 'Early check-outs',
+                value: totals.early_checkouts || 0,
+                note: 'ก่อนเวลา 16:30 น.',
+                icon: 'fas fa-arrow-right-from-bracket'
+            },
+            {
+                label: 'Average hrs/day',
+                value: formatNumber(totals.average_hours_per_day || 0),
+                note: 'เฉลี่ยจากวันที่ลงเวลาครบ',
+                icon: 'fas fa-chart-line'
+            },
+            {
+                label: 'Total hrs',
+                value: formatNumber(totals.total_hours || 0),
+                note: 'ชั่วโมงรวมในช่วงวันที่เลือก',
+                icon: 'fas fa-hourglass-half'
             }
+        ];
+        const html = cards.map(card => (
+            '<div class="staff-login-summary-card' + (card.accent ? ' is-accent' : '') + '">' +
+            '<span class="eyebrow"><i class="' + card.icon + '" aria-hidden="true"></i> ' + escapeHtml(card.label) + '</span>' +
+            '<div class="value">' + escapeHtml(card.value) + '</div>' +
+            '<div class="delta">' + escapeHtml(card.note) + '</div>' +
+            '</div>'
+        )).join('');
+        $('#summaryStats').html(html);
+        $('#summaryRangeBadge').html('<i class="far fa-clock" aria-hidden="true"></i> ' + escapeHtml(data.date_range.start) + ' - ' + escapeHtml(data.date_range.end));
+        $('#summaryCount').text((totals.employees || 0) + ' employees');
+    }
+
+    function renderEmployeeCard(employee) {
+        const subtitleParts = [];
+        if (employee.org_name) subtitleParts.push(employee.org_name);
+        if (employee.position) subtitleParts.push(employee.position);
+
+        return (
+            '<div class="staff-login-employee-card">' +
+            '<button type="button" class="staff-login-employee-row" data-employee-id="' + escapeHtml(employee.staff_id) + '">' +
+            '<div class="staff-login-employee-left">' +
+            '<div class="staff-login-avatar">' + escapeHtml(initials(employee.name)) + '</div>' +
+            '<div style="min-width: 0; flex: 1;">' +
+            '<div class="staff-login-employee-name">' + escapeHtml(employee.name || '-') + '</div>' +
+            '<div class="staff-login-employee-meta">' + escapeHtml(subtitleParts.join(' • ') || 'No department') + '</div>' +
+            '</div>' +
+            '</div>' +
+            '<span class="staff-login-employee-chevron"><i class="fas fa-chevron-right" aria-hidden="true"></i></span>' +
+            '</button>' +
+            '</div>'
         );
+    }
+
+    function renderEmployeeList(employees) {
+        employeeSummaryMap = {};
+        if (!employees || !employees.length) {
+            $('#employeeList').html('<div class="staff-login-chart-empty">No employees found for the selected range</div>');
+            return;
+        }
+        employees.forEach(function(employee) {
+            employeeSummaryMap[String(employee.staff_id)] = employee;
+        });
+        $('#employeeList').html(employees.map(renderEmployeeCard).join(''));
+    }
+
+    function renderEmployeeDetail(employee) {
+        const subtitleParts = [];
+        if (employee.org_name) subtitleParts.push(employee.org_name);
+        if (employee.position) subtitleParts.push(employee.position);
+        const stats = [
+            { label: 'Complete days', value: employee.complete_days || 0, icon: 'fas fa-check-circle' },
+            { label: 'Late check-ins', value: employee.late_checkins || 0, icon: 'fas fa-clock' },
+            { label: 'Early check-outs', value: employee.early_checkouts || 0, icon: 'fas fa-arrow-right-from-bracket' },
+            { label: 'Average hrs/day', value: formatNumber(employee.average_hours_per_day || 0), icon: 'fas fa-chart-line' }
+        ];
+        $('#employeeDetailTitle').text(employee.name || 'Employee detail');
+        $('#employeeDetailMeta').text(subtitleParts.join(' • ') || 'No department');
+        $('#employeeDetailStats').html(stats.map(function(stat) {
+            return (
+                '<div class="staff-login-detail-stat">' +
+                '<div class="label"><i class="' + stat.icon + '" aria-hidden="true"></i> ' + escapeHtml(stat.label) + '</div>' +
+                '<div class="value">' + escapeHtml(stat.value) + '</div>' +
+                '</div>'
+            );
+        }).join(''));
+        $('#employeeDetailNote').text('Completion rate: ' + formatNumber(employee.completion_rate || 0) + '%');
+    }
+
+    function openEmployeeDetail(employeeId) {
+        const employee = employeeSummaryMap[String(employeeId)];
+        if (!employee) return;
+        renderEmployeeDetail(employee);
+        $('#employeeDetailModal').addClass('is-active');
+    }
+
+    function closeEmployeeDetail() {
+        $('#employeeDetailModal').removeClass('is-active');
+    }
+
+    function loadSummary(startDate, endDate) {
+        $('#summaryCount').text('Loading employees...');
+        $('#employeeList').html('<div class="staff-login-chart-empty">Loading summary...</div>');
+        $.getJSON(summaryApiUrl, {start: startDate, end: endDate})
+            .done(function(response) {
+                renderSummaryCards(response);
+                renderEmployeeList(response.employees || []);
+                $('#exportDatePicker').val(startDate + ' - ' + endDate);
+            })
+            .fail(function() {
+                $('#summaryStats').html(
+                    '<div class="staff-login-summary-card is-accent"><span class="eyebrow">Error</span><div class="value">--</div><div class="delta">Unable to load summary</div></div>'
+                );
+                $('#summaryCount').text('Summary unavailable');
+                $('#employeeList').html('<div class="staff-login-chart-empty">Unable to load summary data</div>');
+            });
+    }
+
+    $(function() {
         $('#calendar').fullCalendar({
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
-            header: {
-                left: 'title',
-            },
+            header: false,
             locale: 'th',
-            events: {{ url_for("staff.send_summary_data", tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }},
+            eventSources: [calendarApiUrl, leaveCalendarApiUrl, wfhCalendarApiUrl],
             displayEventEnd: true,
+            defaultView: 'month',
+            fixedWeekCount: false,
+            height: 'auto',
+            eventLimit: false,
             timeFormat: 'H(:mm)',
             navLinks: true,
-            navLinkDayClick: function(date, jsEvent) {
-                table.ajax.url(apiUrl + '&date=' + date.format('L')).load()
+            loading: function(isLoading) {
+                $('#calendarFrame').toggleClass('is-loading', isLoading);
             },
-            viewRender: function(view, element) {
-                let d = $('#calendar').fullCalendar('getDate');
-                table.ajax.url(apiUrl + '&date=' + d.format('L')).load()
-                $('#datePicker').data('daterangepicker').setStartDate(d);
+            eventRender: function(event, element) {
+                if (event.type !== 'login') {
+                    if (event.type === 'leave' && String(event.title || '').indexOf('ลาป่วย') !== -1) {
+                        var leaveTitle = $('<span/>').text(event.title || '').html();
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-face-frown-open staff-login-leave-icon" aria-hidden="true"></i> ' + leaveTitle
+                        );
+                    }
+                    if (event.type === 'leave' && (
+                        String(event.title || '').indexOf('ลาพักร้อน') !== -1 ||
+                        String(event.title || '').indexOf('ลาพักผ่อน') !== -1
+                    )) {
+                        var vacationTitle = $('<span/>').text(event.title || '').html();
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-plane-departure staff-login-leave-icon" aria-hidden="true"></i> ' + vacationTitle
+                        );
+                    }
+                    if (event.type === 'wfh') {
+                        var wfhTitle = $('<span/>').text(event.title || '').html();
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-house-chimney-user staff-login-wfh-icon" aria-hidden="true"></i> ' + wfhTitle
+                        );
+                    }
+                    return;
+                }
+                var name = $('<span/>').text(event.title || '').html();
+                var workedHours = event.worked_hours_display ? $('<span/>').text(event.worked_hours_display).html() : '';
+                var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / 8) * 100, 12), 100) : 0;
+                var hoursClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
+                var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
+                var content = '<span class="staff-login-event-content">';
+                content += '<span class="staff-login-event-head">';
+                content += '<span class="staff-login-event-name">' + name + '</span>';
+                if (workedHours) {
+                    content += '<span class="staff-login-event-hours is-total ' + hoursClass + '">' + workedHours + '</span>';
+                }
+                content += '</span>';
+                if (workedHours) {
+                    content += '<span class="staff-login-event-meter" aria-hidden="true">';
+                    content += '<span class="staff-login-event-meter-fill ' + meterClass + '" style="--staff-login-meter-width: ' + meterWidth + '%"></span>';
+                    content += '</span>';
+                }
+                content += '</span>';
+                element.find('.fc-title').html(content);
+            },
+            viewRender: function(view) {
+                const monthStart = moment(view.intervalStart).startOf('month');
+                const monthEnd = moment(view.intervalStart).endOf('month');
+                $('#calendarTitle').text(view.title);
+                $('#calendarSubtitle').text(view.intervalStart.format('dddd, D MMMM YYYY'));
+                loadSummary(monthStart.format('DD/MM/YYYY'), monthEnd.format('DD/MM/YYYY'));
+                $('#exportDatePicker').val(monthStart.format('DD/MM/YYYY') + ' - ' + monthEnd.format('DD/MM/YYYY'));
             }
         });
-        table.ajax.url(apiUrl + '&date=' + moment().format('L')).load()
+
+        // Ensure all event sources are fetched after the initial month is ready.
+        setTimeout(function() {
+            $('#calendar').fullCalendar('refetchEvents');
+        }, 0);
+
+        $('#calendarPrev').on('click', function() {
+            $('#calendar').fullCalendar('prev');
+        });
+        $('#calendarToday').on('click', function() {
+            $('#calendar').fullCalendar('today');
+        });
+        $('#calendarNext').on('click', function() {
+            $('#calendar').fullCalendar('next');
+        });
+
+        $('#employeeList').on('click', '.staff-login-employee-row', function() {
+            openEmployeeDetail($(this).data('employee-id'));
+        });
+
+        $('#employeeDetailModal, #employeeDetailClose, #employeeDetailDismiss').on('click', function(event) {
+            if (event.target === this || $(this).is('#employeeDetailClose, #employeeDetailDismiss')) {
+                closeEmployeeDetail();
+            }
+        });
+
+        $('#employeeDetailModal .modal-card').on('click', function(event) {
+            event.stopPropagation();
+        });
     });
 </script>
 {% endblock %}

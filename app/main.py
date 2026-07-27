@@ -1,4 +1,7 @@
 import uuid
+import calendar
+import time
+from collections import defaultdict
 
 import click
 import pandas
@@ -9,7 +12,7 @@ from sqlalchemy.orm import joinedload
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
-from flask import Flask, render_template, redirect, url_for, request, abort, session
+from flask import Flask, g, render_template, redirect, url_for, request, abort, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -34,6 +37,7 @@ import re
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import base64
+from pytz import timezone, utc
 
 # from app.besttime.models import BestTimePoll, BestTimeDateTimeSlot, BestTimeMasterDateTimeSlot, BestTimePollVote, \
 #     BestTimePollMessage
@@ -180,6 +184,42 @@ def create_app():
 app = create_app()
 api = Api(app)
 
+
+@app.before_request
+def start_request_diagnostics():
+    """Attach a correlation id and monotonic start time to each request."""
+    incoming_request_id = request.headers.get('X-Request-ID', '')
+    if not re.fullmatch(r'[A-Za-z0-9._-]{1,64}', incoming_request_id):
+        incoming_request_id = uuid.uuid4().hex
+    g.request_id = incoming_request_id
+    g.request_started_at = time.perf_counter()
+
+
+@app.after_request
+def finish_request_diagnostics(response):
+    started_at = getattr(g, 'request_started_at', None)
+    if started_at is None:
+        return response
+
+    duration_ms = (time.perf_counter() - started_at) * 1000
+    response.headers['X-Request-ID'] = g.request_id
+    try:
+        slow_threshold_ms = float(os.environ.get('SLOW_REQUEST_MS', '750'))
+    except ValueError:
+        slow_threshold_ms = 750.0
+    if duration_ms >= slow_threshold_ms:
+        app.logger.warning(
+            'slow_request request_id=%s method=%s path=%s endpoint=%s status=%s duration_ms=%.1f user_id=%s',
+            g.request_id,
+            request.method,
+            request.path,
+            request.endpoint or '-',
+            response.status_code,
+            duration_ms,
+            getattr(current_user, 'id', None),
+        )
+    return response
+
 EXTERNAL_ALLOWED_ENDPOINTS = {
     'static',
     'external_landing',
@@ -310,7 +350,419 @@ def get_homepage_role_flags(user):
     return central_admin, assistant
 
 
+def get_thai_month_name(month_number):
+    thai_months = [
+        'มกราคม',
+        'กุมภาพันธ์',
+        'มีนาคม',
+        'เมษายน',
+        'พฤษภาคม',
+        'มิถุนายน',
+        'กรกฎาคม',
+        'สิงหาคม',
+        'กันยายน',
+        'ตุลาคม',
+        'พฤศจิกายน',
+        'ธันวาคม',
+    ]
+    if 1 <= month_number <= 12:
+        return thai_months[month_number - 1]
+    return '-'
+
+
+def normalize_home_event_datetime(value, tz):
+    if value.tzinfo is None or value.utcoffset() is None:
+        return tz.localize(value)
+    return value.astimezone(tz)
+
+
+def build_home_mini_calendar(now, upcoming_events, upcoming_pre_registers, tz, display_date=None):
+    today = now.astimezone(tz).date()
+    display_date = display_date or today
+    display_year = display_date.year
+    display_month = display_date.month
+    items = []
+
+    def add_item(day_value, starts_at, title, meta, item_type, time_label, org_name='', participants_text=''):
+        items.append({
+            'date': day_value,
+            'starts_at': starts_at,
+            'title': title,
+            'meta': meta,
+            'type': item_type,
+            'time': time_label,
+            'org_name': org_name,
+            'participants_text': participants_text,
+        })
+
+    for event in upcoming_events:
+        event_start = normalize_home_event_datetime(event.start, tz)
+        event_end = normalize_home_event_datetime(event.end, tz)
+        event_day = event_start.date()
+        event_time = f"{event_start.strftime('%H:%M')} - {event_end.strftime('%H:%M')}"
+        creator_org = getattr(getattr(getattr(event, 'creator', None), 'personal_info', None), 'org', None)
+        org_name = creator_org.display_name if creator_org else ''
+        participant_names = [
+            participant.fullname
+            for participant in (event.participants or [])
+            if getattr(participant, 'fullname', None)
+        ]
+        participants_text = ' , '.join(participant_names) if participant_names else ''
+        add_item(
+            event_day,
+            event_start,
+            event.title,
+            f'ห้อง {event.room}',
+            'room',
+            event_time,
+            org_name=org_name,
+            participants_text=participants_text,
+        )
+
+    for pre_regis in upcoming_pre_registers:
+        seminar_start = normalize_home_event_datetime(pre_regis.seminar.start_datetime, tz)
+        seminar_end = normalize_home_event_datetime(pre_regis.seminar.end_datetime, tz)
+        event_day = seminar_start.date()
+        event_time = f"{seminar_start.strftime('%H:%M')} - {seminar_end.strftime('%H:%M')}"
+        org_name = pre_regis.seminar.organize_by or ''
+        participant_names = [
+            pre_regis.staff.fullname
+        ] if getattr(pre_regis, 'staff', None) and getattr(pre_regis.staff, 'fullname', None) else []
+        participants_text = ' , '.join(participant_names) if participant_names else ''
+        if pre_regis.attend_online:
+            meta = pre_regis.seminar.online_detail or 'online'
+        else:
+            meta = pre_regis.seminar.location or 'ไม่ระบุสถานที่'
+        add_item(
+            event_day,
+            seminar_start,
+            pre_regis.seminar.topic,
+            meta,
+            'seminar',
+            event_time,
+            org_name=org_name,
+            participants_text=participants_text,
+        )
+
+    items.sort(key=lambda item: item['starts_at'])
+    month_items = [
+        item for item in items
+        if item['date'].year == display_year and item['date'].month == display_month
+    ]
+    events_by_day = defaultdict(list)
+    for item in month_items:
+        events_by_day[item['date']].append(item)
+
+    weeks = []
+    for week_days in calendar.Calendar(firstweekday=6).monthdatescalendar(display_year, display_month):
+        week = []
+        for day in week_days:
+            in_month = day.year == display_year and day.month == display_month
+            day_items = events_by_day.get(day, []) if in_month else []
+            week.append({
+                'date': day,
+                'day': day.day,
+                'in_month': in_month,
+                'is_today': day == today,
+                'items': day_items[:2],
+                'extra_count': max(0, len(day_items) - 2),
+            })
+        weeks.append(week)
+
+    upcoming_items = [item for item in items if item['starts_at'] >= now]
+    visible_items = upcoming_items[:10]
+    if display_month == 1:
+        previous_month = datetime(display_year - 1, 12, 1).date()
+    else:
+        previous_month = datetime(display_year, display_month - 1, 1).date()
+    if display_month == 12:
+        next_month = datetime(display_year + 1, 1, 1).date()
+    else:
+        next_month = datetime(display_year, display_month + 1, 1).date()
+
+    return {
+        'month_label': f'{get_thai_month_name(display_month)} {display_year + 543}',
+        'month_value': f'{display_year:04d}-{display_month:02d}',
+        'previous_month_value': previous_month.strftime('%Y-%m'),
+        'next_month_value': next_month.strftime('%Y-%m'),
+        'is_current_month': display_year == today.year and display_month == today.month,
+        'total_count': len(month_items),
+        'weeks': weeks,
+        'weekday_labels': ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
+        'items': visible_items,
+        'upcoming_count': len(upcoming_items),
+        'extra_count': max(0, len(upcoming_items) - len(visible_items)),
+    }
+
+
+def build_home_today_calendar(now, upcoming_events, upcoming_pre_registers, tz):
+    today = now.astimezone(tz).date()
+    items = []
+
+    def add_item(title, meta, item_type, event_time):
+        items.append({
+            'title': title,
+            'meta': meta,
+            'type': item_type,
+            'time': event_time,
+        })
+
+    for event in upcoming_events:
+        event_start = normalize_home_event_datetime(event.start, tz)
+        event_end = normalize_home_event_datetime(event.end, tz)
+        event_day = event_start.date()
+        if event_day != today:
+            continue
+        event_time = f"{event_start.strftime('%H:%M')} - {event_end.strftime('%H:%M')}"
+        add_item(event.title, f'ห้อง {event.room}', 'room', event_time)
+
+    for pre_regis in upcoming_pre_registers:
+        seminar_start = normalize_home_event_datetime(pre_regis.seminar.start_datetime, tz)
+        seminar_end = normalize_home_event_datetime(pre_regis.seminar.end_datetime, tz)
+        event_day = seminar_start.date()
+        if event_day != today:
+            continue
+        event_time = f"{seminar_start.strftime('%H:%M')} - {seminar_end.strftime('%H:%M')}"
+        if pre_regis.attend_online:
+            meta = pre_regis.seminar.online_detail or 'online'
+        else:
+            meta = pre_regis.seminar.location or 'ไม่ระบุสถานที่'
+        add_item(pre_regis.seminar.topic, meta, 'seminar', event_time)
+
+    return {
+        'today_label': f'วันนี้ {today.day} {get_thai_month_name(today.month)} {today.year + 543}',
+        'items': items[:4],
+        'count': len(items),
+    }
+
+
+def get_home_checkin_status(user, now):
+    work_logins = getattr(user, 'work_logins', None)
+    if work_logins is None:
+        return None
+
+    bangkok_tz = timezone('Asia/Bangkok')
+    local_now = now.astimezone(bangkok_tz)
+    first_scan = (
+        work_logins
+        .filter_by(date_id=local_now.strftime('%Y%m%d'))
+        .filter(StaffWorkLogin.start_datetime.isnot(None))
+        .order_by(StaffWorkLogin.start_datetime.asc(), StaffWorkLogin.id.asc())
+        .first()
+    )
+    status = {
+        'checked_in': False,
+        'date_label': f'{local_now.day} {get_thai_month_name(local_now.month)} {local_now.year + 543}',
+    }
+    if first_scan is None:
+        return status
+
+    checkin_at = first_scan.start_datetime
+    if checkin_at.tzinfo is None or checkin_at.utcoffset() is None:
+        checkin_at = utc.localize(checkin_at)
+    checkin_at = checkin_at.astimezone(bangkok_tz)
+    status.update({
+        'checked_in': True,
+        'time_label': checkin_at.strftime('%H:%M'),
+    })
+    return status
+
+
+def get_home_week_events(user, now):
+    tz = timezone('Asia/Bangkok')
+    local_now = now.astimezone(tz)
+    week_start_date = local_now.date() - timedelta(days=local_now.weekday())
+    week_start = tz.localize(datetime(
+        week_start_date.year,
+        week_start_date.month,
+        week_start_date.day,
+    ))
+    week_end = week_start + timedelta(days=7)
+
+    room_event_ids = (
+        db.session.query(RoomEvent.id)
+        .outerjoin(event_participant_assoc, RoomEvent.id == event_participant_assoc.c.event_id)
+        .filter(
+            RoomEvent.start >= week_start,
+            RoomEvent.start < week_end,
+            RoomEvent.cancelled_at.is_(None),
+            or_(
+                RoomEvent.created_by == user.id,
+                event_participant_assoc.c.staff_id == user.id,
+            ),
+        )
+        .distinct()
+        .subquery()
+    )
+    room_events = (
+        RoomEvent.query
+        .options(joinedload(RoomEvent.room))
+        .filter(RoomEvent.id.in_(db.session.query(room_event_ids.c.id)))
+        .all()
+    )
+    seminar_registrations = (
+        StaffSeminarPreRegister.query
+        .options(joinedload(StaffSeminarPreRegister.seminar))
+        .join(StaffSeminar, StaffSeminarPreRegister.seminar_id == StaffSeminar.id)
+        .filter(
+            StaffSeminarPreRegister.staff_account_id == user.id,
+            StaffSeminar.start_datetime >= week_start,
+            StaffSeminar.start_datetime < week_end,
+        )
+        .all()
+    )
+
+    events = []
+    for event in room_events:
+        start = normalize_home_event_datetime(event.start, tz)
+        end = normalize_home_event_datetime(event.end, tz)
+        events.append({
+            'title': event.title,
+            'type': 'การใช้ห้องประชุม/ห้องเรียน',
+            'attendance_source': (
+                'ผู้สร้างกิจกรรม'
+                if event.created_by == user.id
+                else 'ผู้ได้รับเชิญให้เข้าร่วม'
+            ),
+            'start': start,
+            'end': end,
+            'location': str(event.room) if event.room else 'ไม่ระบุห้อง',
+        })
+    for registration in seminar_registrations:
+        seminar = registration.seminar
+        start = normalize_home_event_datetime(seminar.start_datetime, tz)
+        end = normalize_home_event_datetime(seminar.end_datetime, tz)
+        if registration.attend_online:
+            location = seminar.online_detail or 'ออนไลน์'
+        else:
+            location = seminar.location or 'ไม่ระบุสถานที่'
+        events.append({
+            'title': seminar.topic,
+            'type': 'สัมมนา',
+            'attendance_source': 'ผู้ลงทะเบียนเข้าร่วมสัมมนา',
+            'start': start,
+            'end': end,
+            'location': location,
+        })
+
+    events.sort(key=lambda item: item['start'])
+    return {
+        'events': events,
+        'week_start': week_start_date,
+        'week_end': (week_end - timedelta(days=1)).date(),
+    }
+
+
+def call_typhoon_home_week_summary(week_data):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    event_titles = [
+        '{}. {}'.format(index, event['title'])
+        for index, event in enumerate(week_data['events'], start=1)
+    ]
+
+    messages = [
+        {
+            'role': 'system',
+            'content': (
+                'คุณเป็นผู้ช่วยสรุปภาพรวมกิจกรรมประจำสัปดาห์เป็นภาษาไทย '
+                'ตอบเพียง 1-2 ประโยค โดยระบุจำนวนกิจกรรมทั้งหมดและสังเคราะห์ภาพรวมว่าเป็นกิจกรรมเกี่ยวกับเรื่องใด '
+                'วิเคราะห์ภาพรวมจากชื่อกิจกรรมเท่านั้น ห้ามแจกแจงหรือกล่าวซ้ำชื่อกิจกรรมทีละรายการ '
+                'ห้ามกล่าวถึงวัน เวลา สถานที่ ประเภทกิจกรรม สถานะการเข้าร่วม หรือชื่อบุคคล '
+                'ใช้ถ้อยคำตรงประเด็น ห้ามแต่งข้อมูล และไม่ใช้ Markdown'
+            ),
+        },
+        {
+            'role': 'user',
+            'content': (
+                'สัปดาห์นี้มีทั้งหมด {count} กิจกรรม กรุณาสรุปภาพรวมจากชื่อกิจกรรมต่อไปนี้:\n{titles}'
+            ).format(
+                count=len(week_data['events']),
+                titles='\n'.join(event_titles),
+            ),
+        },
+    ]
+
+    def request_summary(request_messages):
+        response = requests.post(
+            'https://api.opentyphoon.ai/v1/chat/completions',
+            headers={
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct'),
+                'temperature': 0.1,
+                'max_tokens': 120,
+                'messages': request_messages,
+            },
+            timeout=45,
+        )
+        response.raise_for_status()
+        summary_text = response.json()['choices'][0]['message']['content']
+        if not summary_text or not summary_text.strip():
+            raise ValueError('Empty Typhoon weekly event summary response.')
+        return summary_text.strip()
+
+    return request_summary(messages)
+
+
+def get_home_calendar_records(user, range_start, range_end=None):
+    room_filters = [
+        RoomEvent.start >= range_start,
+        RoomEvent.cancelled_at.is_(None),
+        or_(
+            RoomEvent.created_by == user.id,
+            event_participant_assoc.c.staff_id == user.id,
+        ),
+    ]
+    seminar_filters = [
+        StaffSeminarPreRegister.staff_account_id == user.id,
+        StaffSeminar.start_datetime >= range_start,
+    ]
+    if range_end is not None:
+        room_filters.append(RoomEvent.start < range_end)
+        seminar_filters.append(StaffSeminar.start_datetime < range_end)
+
+    room_event_ids = (
+        db.session.query(RoomEvent.id)
+        .outerjoin(event_participant_assoc, RoomEvent.id == event_participant_assoc.c.event_id)
+        .filter(*room_filters)
+        .distinct()
+        .subquery()
+    )
+    room_events = (
+        RoomEvent.query
+        .options(
+            joinedload(RoomEvent.room),
+            joinedload(RoomEvent.creator).joinedload(StaffAccount.personal_info).joinedload(StaffPersonalInfo.org),
+            joinedload(RoomEvent.participants).joinedload(StaffAccount.personal_info).joinedload(StaffPersonalInfo.org),
+        )
+        .filter(RoomEvent.id.in_(db.session.query(room_event_ids.c.id)))
+        .order_by(RoomEvent.start.asc())
+        .all()
+    )
+    seminar_registrations = (
+        StaffSeminarPreRegister.query
+        .options(
+            joinedload(StaffSeminarPreRegister.seminar),
+            joinedload(StaffSeminarPreRegister.staff).joinedload(StaffAccount.personal_info).joinedload(StaffPersonalInfo.org),
+        )
+        .join(StaffSeminar, StaffSeminarPreRegister.seminar_id == StaffSeminar.id)
+        .filter(*seminar_filters)
+        .order_by(StaffSeminar.start_datetime.asc())
+        .all()
+    )
+    return room_events, seminar_registrations
+
+
 def get_homepage_dashboard_context(user, now):
+    tz = timezone('Asia/Bangkok')
+    local_now = now.astimezone(tz)
+    month_start = tz.localize(datetime(local_now.year, local_now.month, 1))
+
     upcoming_invitations_query = (
         MeetingInvitation.query
         .options(joinedload(MeetingInvitation.meeting))
@@ -351,17 +803,15 @@ def get_homepage_dashboard_context(user, now):
         .all()
     )
 
-    upcoming_pre_registers = (
-        StaffSeminarPreRegister.query
-        .options(joinedload(StaffSeminarPreRegister.seminar))
-        .join(StaffSeminar, StaffSeminarPreRegister.seminar_id == StaffSeminar.id)
-        .filter(
-            StaffSeminarPreRegister.staff_account_id == user.id,
-            StaffSeminar.end_datetime >= now,
-        )
-        .order_by(StaffSeminar.start_datetime.asc())
-        .limit(6)
-        .all()
+    calendar_room_events, upcoming_pre_registers = get_home_calendar_records(
+        user,
+        month_start,
+    )
+    mini_calendar = build_home_mini_calendar(
+        now=now,
+        upcoming_events=calendar_room_events,
+        upcoming_pre_registers=upcoming_pre_registers,
+        tz=tz,
     )
     return {
         'now': now,
@@ -371,6 +821,8 @@ def get_homepage_dashboard_context(user, now):
         'upcoming_polls': upcoming_polls,
         'upcoming_polls_count': upcoming_polls_count,
         'upcoming_pre_registers': upcoming_pre_registers,
+        'calendar_room_events': calendar_room_events,
+        'mini_calendar': mini_calendar,
     }
 
 
@@ -378,11 +830,24 @@ def get_homepage_dashboard_context(user, now):
 def index():
     now = datetime.now(tz=timezone('Asia/Bangkok'))
     central_admin, assistant = get_homepage_role_flags(current_user)
+    today_calendar = None
+    today_checkin_status = None
+    if current_user.is_authenticated:
+        dashboard_context = get_homepage_dashboard_context(current_user, now)
+        today_calendar = build_home_today_calendar(
+            now=now,
+            upcoming_events=dashboard_context['calendar_room_events'],
+            upcoming_pre_registers=dashboard_context['upcoming_pre_registers'],
+            tz=timezone('Asia/Bangkok'),
+        )
+        today_checkin_status = get_home_checkin_status(current_user, now)
     return render_template(
         'index.html',
         assistant=assistant,
         central_admin=central_admin,
         now=now,
+        today_calendar=today_calendar,
+        today_checkin_status=today_checkin_status,
     )
 
 
@@ -397,6 +862,70 @@ def home_dashboard():
         'central_admin': central_admin,
     })
     return render_template('partials/home_dashboard.html', **context)
+
+
+@app.route('/home/calendar-month')
+@login_required
+def home_calendar_month():
+    tz = timezone('Asia/Bangkok')
+    now = datetime.now(tz=tz)
+    month_value = request.args.get('month', '')
+    try:
+        selected_month = datetime.strptime(month_value, '%Y-%m')
+    except ValueError:
+        selected_month = now
+
+    month_start = tz.localize(datetime(selected_month.year, selected_month.month, 1))
+    if selected_month.month == 12:
+        month_end = tz.localize(datetime(selected_month.year + 1, 1, 1))
+    else:
+        month_end = tz.localize(datetime(selected_month.year, selected_month.month + 1, 1))
+
+    room_events, seminar_registrations = get_home_calendar_records(
+        current_user,
+        month_start,
+        month_end,
+    )
+    mini_calendar = build_home_mini_calendar(
+        now=now,
+        upcoming_events=room_events,
+        upcoming_pre_registers=seminar_registrations,
+        tz=tz,
+        display_date=selected_month.date(),
+    )
+    return render_template(
+        'partials/home_calendar_month.html',
+        mini_calendar=mini_calendar,
+    )
+
+
+@app.route('/home/week-events-summary')
+@login_required
+def home_week_events_summary():
+    now = datetime.now(tz=timezone('Asia/Bangkok'))
+    week_data = get_home_week_events(current_user, now)
+    summary = None
+    error_message = None
+
+    if week_data['events']:
+        try:
+            summary = call_typhoon_home_week_summary(week_data)
+        except (KeyError, ValueError, RuntimeError, requests.RequestException) as exc:
+            app.logger.warning(
+                'Unable to generate Typhoon weekly event summary for user %s: %s',
+                current_user.id,
+                exc,
+            )
+            error_message = 'ไม่สามารถสร้างสรุปกิจกรรมด้วย AI ได้ในขณะนี้'
+
+    return render_template(
+        'partials/home_week_events_summary.html',
+        summary=summary,
+        error_message=error_message,
+        event_count=len(week_data['events']),
+        week_start=week_data['week_start'],
+        week_end=week_data['week_end'],
+    )
 
 
 @app.route('/user-support')
@@ -1929,7 +2458,7 @@ def get_fiscal_date(date):
     return start_fiscal_date, end_fiscal_date
 
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 @dbutils.command('migrate-room-datetime')

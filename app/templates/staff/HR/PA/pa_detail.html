@@ -197,7 +197,7 @@
             <div class="column">
                 <h1 class="title">สถานะการประเมินภาระงาน</h1>
                 <h1 class="subtitle">Head committee(ประธาน PA): {{ pa.head_committee_staff_account.fullname }}
-                    <span hx-get="{{ url_for('pa.pa_change_head_committee', round_id=pa.round.id, pa_id=pa.id) }}"
+                        <span hx-get="{{ url_for('pa.pa_change_head_committee', round_id=pa.round.id, pa_id=pa.id) }}"
                               hx-target="#change-committee-form-container" hx-swap="innerHTML"
                               class="button is-danger is-outlined is-medium">
                         <span class="icon">
@@ -206,6 +206,30 @@
                         <span>เปลี่ยน</span>
                     </span>
                 </h1>
+                <table class="table">
+                    <thead>
+                    <th>รอบ IDP</th>
+                    <th>ช่วง</th>
+                    <th>ผู้ประเมิน IDP</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for idp in relate_idp %}
+                        <tr>
+                            <td>{{ idp.round.desc }}</td>
+                            <td>{{ idp.round }}</td>
+                            <td>{{ idp.approver.personal_info }}</td>
+                            <td>
+                                <a onclick="return confirm('ต้องการดำเนินการเปลี่ยนผู้อนุมัติ IDP รอบ {{ idp.round.desc }} ใช่หรือไม่');"
+                                   href="{{ url_for('pa.change_head_idp', round_id=pa.round.id, pa_id=pa.id, idp_id=idp.id) }}"
+                                  class="button is-danger is-outlined">
+                                <span>เปลี่ยน</span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
                 <h1 class="subtitle">กรรมการ(เพิ่มโดยประธาน):{% for c in pa.committees %}{{ c.staff.fullname }}
                     , {% endfor %}
                 </h1>
