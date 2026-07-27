@@ -10460,7 +10460,7 @@ def create_draft_result(result_id=None):
             file = request.files.get(f'file_{item.id}')
             if file and allowed_file(file.filename):
                 mime_type = file.mimetype
-                file_name = '{}.{}'.format(item.report_language,
+                file_name = '{}.{}'.format(f'{item.report_language} {item.result.request.request_no}',
                                            file.filename.split('.')[-1])
                 file_data = file.stream.read()
                 response = s3.put_object(
@@ -10533,7 +10533,8 @@ def edit_draft_result(result_item_id):
             file = request.files.get(f'file_{result_item_id}')
             if file and allowed_file(file.filename):
                 mime_type = file.mimetype
-                file_name = '{}.{}'.format(result_item.report_language, file.filename.split('.')[-1])
+                file_name = '{}.{}'.format(f'{result_item.report_language} {result_item.result.request.request_no}',
+                                           file.filename.split('.')[-1])
                 file_data = file.stream.read()
                 response = s3.put_object(
                     Bucket=S3_BUCKET_NAME,
@@ -10596,7 +10597,8 @@ def edit_final_result(result_item_id):
             file = request.files.get(f'file_{result_item_id}')
             if file and allowed_file(file.filename):
                 mime_type = file.mimetype
-                file_name = '{}.{}'.format(result_item.report_language, file.filename.split('.')[-1])
+                file_name = '{}.{}'.format(f'{result_item.report_language} {result_item.result.request.request_no}',
+                                           file.filename.split('.')[-1])
                 file_data = file.stream.read()
                 response = s3.put_object(
                     Bucket=S3_BUCKET_NAME,
@@ -10673,7 +10675,7 @@ def create_final_result(result_id=None):
             file = request.files.get(f'file_{item.id}')
             if file and allowed_file(file.filename):
                 mime_type = file.mimetype
-                file_name = '{}.{}'.format(item.report_language,
+                file_name = '{}.{}'.format(f'{item.report_language} {item.result.request.request_no}',
                                            file.filename.split('.')[-1])
                 file_data = file.stream.read()
                 response = s3.put_object(
