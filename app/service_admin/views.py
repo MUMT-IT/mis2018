@@ -5794,13 +5794,25 @@ def test_item_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_lab_ids = [admin.sub_lab_id for admin in admins if admin.sub_lab_id]
+    # query = (
+    #     ServiceTestItem.query
+    #     .join(ServiceTestItem.request)
+    #     .join(ServiceRequest.sub_lab)
+    #     .join(ServiceSubLab.admins)
+    #     .filter(
+    #         ServiceAdmin.admin_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceTestItem.query
-        .join(ServiceTestItem.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
+        .options(
+            joinedload(ServiceTestItem.request)
+            .joinedload(ServiceRequest.sub_lab)
+        )
         .filter(
-            ServiceAdmin.admin_id == current_user.id
+            ServiceTestItem.request.has(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
         )
     )
     not_started_query = query.outerjoin(ServiceResult).filter(ServiceResult.request_id == None)
