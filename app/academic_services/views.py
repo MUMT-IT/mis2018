@@ -4,7 +4,7 @@ import qrcode
 from bahttext import bahttext
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from sqlalchemy import or_, update, and_, exists, func
+from sqlalchemy import or_, update, and_, exists, func, case
 from datetime import date, datetime
 import arrow
 import pandas
@@ -750,6 +750,53 @@ request_data_paths = {'bacteria_disinfection': bacteria_disinfection_request_dat
                       }
 
 
+# @academic_services.context_processor
+# def menu():
+#     request_count = None
+#     quotation_count = None
+#     sample_count = None
+#     invoice_count = None
+#     report_count = None
+#
+#     if current_user.is_authenticated:
+#         request_count = (ServiceRequest.query
+#         .join(ServiceRequest.status)
+#         .filter(
+#             ServiceStatus.status_id.in_([1]),
+#             ServiceRequest.customer_id == current_user.id
+#         )).count()
+#         quotation_count = (
+#             ServiceRequest.query
+#             .join(ServiceRequest.status)
+#             .filter(
+#                 ServiceStatus.status_id.in_([7]),
+#                 ServiceRequest.customer_id == current_user.id
+#             )
+#         ).count()
+#         sample_count = (
+#             ServiceRequest.query
+#             .join(ServiceRequest.status)
+#             .filter(
+#                 ServiceStatus.status_id.in_([8, 10, 12]),
+#                 ServiceRequest.customer_id == current_user.id
+#             )
+#         ).count()
+#         invoice_count = (
+#             ServiceRequest.query
+#             .join(ServiceRequest.status)
+#             .filter(
+#                 ServiceStatus.status_id.in_([22, 23]),
+#                 ServiceRequest.customer_id == current_user.id
+#             )
+#         ).count()
+#         report_count = ServiceResult.query.join(ServiceResult.request).filter(
+#             ServiceRequest.customer_id == current_user.id, ServiceResult.sent_at != None,
+#             ServiceResult.approved_at == None
+#         ).count()
+#     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
+#                 invoice_count=invoice_count, report_count=report_count)
+
+
 @academic_services.context_processor
 def menu():
     request_count = None
@@ -759,40 +806,34 @@ def menu():
     report_count = None
 
     if current_user.is_authenticated:
-        request_count = (ServiceRequest.query
-        .join(ServiceRequest.status)
-        .filter(
-            ServiceStatus.status_id.in_([1]),
-            ServiceRequest.customer_id == current_user.id
-        )).count()
-        quotation_count = (
-            ServiceRequest.query
-            .join(ServiceRequest.status)
-            .filter(
-                ServiceStatus.status_id.in_([7]),
-                ServiceRequest.customer_id == current_user.id
+        counts_row = (
+            db.session.query(
+                func.coalesce(func.sum(case((ServiceStatus.status_id == 1, 1), else_=0)), 0).label('request_count'),
+                func.coalesce(func.sum(case((ServiceStatus.status_id == 7, 1), else_=0)), 0).label('quotation_count'),
+                func.coalesce(func.sum(case((ServiceStatus.status_id.in_([8, 10, 12]), 1), else_=0)), 0).label('sample_count'),
+                func.coalesce(func.sum(case((ServiceStatus.status_id.in_([22, 23]), 1), else_=0)), 0).label('invoice_count')
             )
-        ).count()
-        sample_count = (
-            ServiceRequest.query
+            .select_from(ServiceRequest)
             .join(ServiceRequest.status)
+            .filter(ServiceRequest.customer_id == current_user.id)
+            .first()
+        )
+
+        report_count = (
+            db.session.query(func.count(ServiceResult.id))
+            .join(ServiceResult.request)
             .filter(
-                ServiceStatus.status_id.in_([8, 10, 12]),
-                ServiceRequest.customer_id == current_user.id
+                ServiceRequest.customer_id == current_user.id,
+                ServiceResult.sent_at != None,
+                ServiceResult.approved_at == None
             )
-        ).count()
-        invoice_count = (
-            ServiceRequest.query
-            .join(ServiceRequest.status)
-            .filter(
-                ServiceStatus.status_id.in_([22, 23]),
-                ServiceRequest.customer_id == current_user.id
-            )
-        ).count()
-        report_count = ServiceResult.query.join(ServiceResult.request).filter(
-            ServiceRequest.customer_id == current_user.id, ServiceResult.sent_at != None,
-            ServiceResult.approved_at == None
-        ).count()
+            .scalar()
+        ) or 0
+
+        request_count = counts_row.request_count or 0
+        quotation_count = counts_row.quotation_count or 0
+        sample_count = counts_row.sample_count or 0
+        invoice_count = counts_row.invoice_count or 0
     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 invoice_count=invoice_count, report_count=report_count)
 
