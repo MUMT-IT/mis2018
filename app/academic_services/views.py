@@ -4,7 +4,7 @@ import qrcode
 from bahttext import bahttext
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from sqlalchemy import or_, update, and_, exists
+from sqlalchemy import or_, update, and_, exists, func
 from datetime import date, datetime
 import arrow
 import pandas
@@ -4346,6 +4346,7 @@ def create_customer_detail(request_id):
 def request_index():
     menu = request.args.get('menu')
     ids = list(range(1, 25))
+    status_ids = [i for i in ids if i != 2 and i != 9]
 
     status_groups = {
         'all': {
@@ -4390,23 +4391,39 @@ def request_index():
         }
     }
 
+    counts_by_status = dict(
+        db.session.query(
+            ServiceStatus.status_id,
+            func.count(ServiceRequest.id)
+        )
+        .join(ServiceRequest.status)
+        .filter(
+            ServiceStatus.status_id.in_(status_ids),
+            ServiceRequest.customer_id == current_user.id,
+            or_(
+                ServiceRequest.is_downloaded == None,
+                ServiceRequest.is_downloaded == False
+            )
+        )
+        .group_by(ServiceStatus.status_id)
+        .all()
+    )
+
     for key, group in status_groups.items():
         group_ids = [i for i in group['id'] if i != 2 and i != 9]
-
-        query = (
-            ServiceRequest.query
-            .join(ServiceRequest.status)
-            .filter(
-                ServiceStatus.status_id.in_(group_ids),
-                ServiceRequest.customer_id == current_user.id,
-                or_(
-                    ServiceRequest.is_downloaded == None,
-                    ServiceRequest.is_downloaded == False
-                )
-            )
-        ).count()
-
-        status_groups[key]['count'] = query
+        # query = (
+        #     ServiceRequest.query
+        #     .join(ServiceRequest.status)
+        #     .filter(
+        #         ServiceStatus.status_id.in_(group_ids),
+        #         ServiceRequest.customer_id == current_user.id,
+        #         or_(
+        #             ServiceRequest.is_downloaded == None,
+        #             ServiceRequest.is_downloaded == False
+        #         )
+        #     )
+        # ).count()
+        status_groups[key]['count'] = sum(counts_by_status.get(status_id, 0) for status_id in group_ids)
     return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups)
 
 
