@@ -5805,6 +5805,18 @@ def test_item_index():
     #         ServiceAdmin.admin_id == current_user.id
     #     )
     # )
+    # not_started_query = query.outerjoin(ServiceResult).filter(ServiceResult.request_id == None)
+    # testing_query = query.join(ServiceResult).filter(ServiceResult.sent_at == None)
+    # edit_report_query = query.join(ServiceResult).filter(ServiceResult.req_edit_at != None,
+    #                                                      ServiceResult.is_edited == False)
+    # waiting_confirm_query = query.join(ServiceResult).filter(ServiceResult.sent_at != None,
+    #                                                          ServiceResult.approved_at == None,
+    #                                                          or_(ServiceResult.req_edit_at == None,
+    #                                                              ServiceResult.is_edited == True
+    #                                                              )
+    #                                                          )
+    # confirm_query = query.join(ServiceResult).filter(ServiceResult.approved_at != None)
+
     query = (
         ServiceTestItem.query
         .options(
@@ -5815,17 +5827,35 @@ def test_item_index():
             ServiceTestItem.request.has(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
         )
     )
-    not_started_query = query.outerjoin(ServiceResult).filter(ServiceResult.request_id == None)
-    testing_query = query.join(ServiceResult).filter(ServiceResult.sent_at == None)
-    edit_report_query = query.join(ServiceResult).filter(ServiceResult.req_edit_at != None,
-                                                         ServiceResult.is_edited == False)
-    waiting_confirm_query = query.join(ServiceResult).filter(ServiceResult.sent_at != None,
-                                                             ServiceResult.approved_at == None,
-                                                             or_(ServiceResult.req_edit_at == None,
-                                                                 ServiceResult.is_edited == True
-                                                                 )
-                                                             )
-    confirm_query = query.join(ServiceResult).filter(ServiceResult.approved_at != None)
+    not_started_query = query.filter(
+        ~ServiceTestItem.request.has(ServiceRequest.results.any())
+    )
+    testing_query = query.filter(
+        ServiceTestItem.request.has(ServiceRequest.results.any(ServiceResult.sent_at == None))
+    )
+    edit_report_query = query.filter(
+        ServiceTestItem.request.has(
+            ServiceRequest.results.any(
+                and_(ServiceResult.req_edit_at != None,
+                     ServiceResult.is_edited == False)
+            )
+        )
+    )
+    waiting_confirm_query = query.filter(
+        ServiceTestItem.request.has(
+            ServiceRequest.results.any(
+                and_(ServiceResult.sent_at != None,
+                     ServiceResult.approved_at == None,
+                     or_(ServiceResult.req_edit_at == None,
+                         ServiceResult.is_edited == True))
+            )
+        )
+    )
+    confirm_query = query.filter(
+        ServiceTestItem.request.has(
+            ServiceRequest.results.any(ServiceResult.approved_at != None)
+        )
+    )
     # pending_invoice_query = (
     #     query
     #     .join(
