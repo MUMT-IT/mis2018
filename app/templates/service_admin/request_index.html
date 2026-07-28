@@ -69,7 +69,7 @@
                                         <span class="icon is-large active-icon" style="display:block; font-size:1.6rem">
                                             {{ group.icon | safe }}
                                         </span>
-                                        {% if group.count and group.name != 'รายการทั้งหมด' %}
+                                        {% if group.count and group.name != 'รายการทั้งหมด' and group.name != 'ชำระเงินสำเร็จ' %}
                                             <span class="tag is-danger is-rounded is-size-7 mt-1">{{ group.count }}</span>
                                         {% endif %}
                                         <span class="name is-size-7 mt-1 active-text" style="display:block;">{{ group.name }}</span>
