@@ -15,7 +15,7 @@ from pytz import timezone
 from datetime import date, timedelta
 from base64 import b64decode
 from reportlab.lib.pagesizes import A4
-from sqlalchemy.orm import make_transient, joinedload
+from sqlalchemy.orm import make_transient, joinedload, selectinload
 from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.auth.views import line_bot_api
 from app.academic_services.forms import BacteriaSterilityTestRequestForm, BacteriaAntimicrobialActivityRequestForm, \
@@ -2478,15 +2478,17 @@ def request_index():
 
 @service_admin.route('/api/request/index')
 def get_requests():
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_lab_ids = [admin.sub_lab_id for admin in admins if admin.sub_lab_id]
     query = (
         ServiceRequest.query
-        .join(ServiceRequest.status)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
+        .options(
+            joinedload(ServiceRequest.status),
+            joinedload(ServiceRequest.sub_lab),
+        )
         .filter(
-            ServiceStatus.status_id.notin_([1, 2]),
-            ServiceAdmin.admin_id == current_user.id
-
+            ServiceRequest.status.has(ServiceStatus.status_id.notin_([1, 2])),
+            ServiceRequest.sub_lab_id.in_(sub_lab_ids)
         )
     )
 
@@ -2502,38 +2504,38 @@ def get_requests():
     for item in query:
         item_data = item.to_dict()
         html_blocks = []
-        for result in item.results:
-            for i in result.result_items:
-                if i.final_file:
-                    download_file = url_for('service_admin.download_file', key=i.final_file,
-                                            download_filename=f"{i.report_language} (ฉบับจริง).pdf")
-                    html = f'''
-                            <div class="field has-addons">
-                                <div class="control">
-                                    <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                        <span>{i.report_language} (ฉบับจริง)</span>
-                                        <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                    </a>
-                                </div>
-                            </div>
-                        '''
-                elif i.draft_file:
-                    download_file = url_for('service_admin.download_file', key=i.draft_file,
-                                            download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
-                    html = f'''
-                                <div class="field has-addons">
-                                    <div class="control">
-                                        <a class="button is-small is-light is-link is-rounded" href="{download_file}">
-                                            <span>{i.report_language} (ฉบับร่าง)</span>
-                                                <span class="icon is-small"><i class="fas fa-download"></i></span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                '''
-                else:
-                    html = ''
-                html_blocks.append(html)
-        item_data['files'] = ''.join(html_blocks) if html_blocks else ''
+        # for result in item.results:
+        #     for i in result.result_items:
+        #         if i.final_file:
+        #             download_file = url_for('service_admin.download_file', key=i.final_file,
+        #                                     download_filename=f"{i.report_language} (ฉบับจริง).pdf")
+        #             html = f'''
+        #                     <div class="field has-addons">
+        #                         <div class="control">
+        #                             <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+        #                                 <span>{i.report_language} (ฉบับจริง)</span>
+        #                                 <span class="icon is-small"><i class="fas fa-download"></i></span>
+        #                             </a>
+        #                         </div>
+        #                     </div>
+        #                 '''
+        #         elif i.draft_file:
+        #             download_file = url_for('service_admin.download_file', key=i.draft_file,
+        #                                     download_filename=f"{i.report_language} (ฉบับร่าง).pdf")
+        #             html = f'''
+        #                         <div class="field has-addons">
+        #                             <div class="control">
+        #                                 <a class="button is-small is-light is-link is-rounded" href="{download_file}">
+        #                                     <span>{i.report_language} (ฉบับร่าง)</span>
+        #                                         <span class="icon is-small"><i class="fas fa-download"></i></span>
+        #                                     </a>
+        #                                 </div>
+        #                             </div>
+        #                         '''
+        #         else:
+        #             html = ''
+        #         html_blocks.append(html)
+        # item_data['files'] = ''.join(html_blocks) if html_blocks else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordFiltered': total_filtered,
