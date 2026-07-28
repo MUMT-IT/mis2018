@@ -2368,6 +2368,94 @@ def get_hr_login_summary_report_data():
     return data_table.ToJSon(columns_order=('date', 'heads'))
 
 
+def _parse_hr_login_report_datetime(value, default):
+    if not value:
+        return default
+    parsed = parser.isoparse(value)
+    if parsed.tzinfo is None:
+        return tz.localize(parsed)
+    return parsed.astimezone(tz)
+
+
+@staff.route('/api/for-hr/login-report/summary')
+@hr_permission.require()
+@login_required
+def get_hr_login_summary_report_summary():
+    now = datetime.now(tz)
+    default_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start_datetime = _parse_hr_login_report_datetime(request.args.get('start'), default_start)
+    end_datetime = _parse_hr_login_report_datetime(request.args.get('end'), now)
+    if start_datetime > end_datetime:
+        start_datetime, end_datetime = end_datetime, start_datetime
+
+    employees = StaffPersonalInfo.query.filter(
+        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired == None)
+    ).all()
+    employees_by_id = {
+        employee.staff_account.id: employee
+        for employee in employees
+        if employee.staff_account is not None
+    }
+    staff_ids = list(employees_by_id)
+
+    records = []
+    if staff_ids:
+        records = StaffWorkLogin.query.filter(
+            StaffWorkLogin.staff_id.in_(staff_ids),
+            or_(
+                StaffWorkLogin.start_datetime.between(start_datetime, end_datetime),
+                StaffWorkLogin.end_datetime.between(start_datetime, end_datetime),
+            )
+        ).all()
+
+    checkin_staff_ids = {
+        record.staff_id for record in records
+        if record.start_datetime is not None
+    }
+
+    academic_total = sum(1 for employee in employees_by_id.values() if employee.academic_staff)
+    non_academic_total = len(employees_by_id) - academic_total
+    academic_missed = sum(
+        1 for staff_id, employee in employees_by_id.items()
+        if employee.academic_staff and staff_id not in checkin_staff_ids
+    )
+    non_academic_missed = sum(
+        1 for staff_id, employee in employees_by_id.items()
+        if not employee.academic_staff and staff_id not in checkin_staff_ids
+    )
+
+    daily_rows = _daily_work_login_rows(records)
+    incomplete_checkouts = sum(1 for row in daily_rows if row['start'] and not row['end'])
+    incomplete_checkins = sum(1 for record in records if record.start_datetime is None)
+    manual_records = sum(1 for record in records if record.creator_id is not None)
+
+    def percentage(value, total):
+        return round((value / total) * 100, 1) if total else 0.0
+
+    return jsonify({
+        'date_range': {
+            'start': start_datetime.isoformat(),
+            'end': end_datetime.isoformat(),
+        },
+        'employees': {
+            'total': len(employees_by_id),
+            'academic': {
+                'total': academic_total,
+                'missed_checkin': academic_missed,
+                'missed_percentage': percentage(academic_missed, academic_total),
+            },
+            'non_academic': {
+                'total': non_academic_total,
+                'missed_checkin': non_academic_missed,
+                'missed_percentage': percentage(non_academic_missed, non_academic_total),
+            },
+        },
+        'incomplete_checkins': incomplete_checkins,
+        'incomplete_checkouts': incomplete_checkouts,
+        'manual_records': manual_records,
+    })
+
+
 @staff.route('/api/for-hr/wfh-report')
 @hr_permission.require()
 @login_required
@@ -2456,7 +2544,13 @@ def get_hr_login_time_data():
 @hr_permission.require()
 @login_required
 def hr_login_summary_report():
-    return render_template('staff/hr_login_summary_report.html')
+    now = datetime.now(tz)
+    report_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return render_template(
+        'staff/hr_login_summary_report.html',
+        report_start=report_start,
+        report_end=now,
+    )
 
 
 @staff.route('/api/for-hr/login-report/manual-check-in/calendar')
@@ -2616,6 +2710,7 @@ def hr_manual_checkin():
             long=0.0,
             num_scans=num_scans,
             note=note or 'บันทึกโดย HR',
+            creator_id=current_user.id,
         )
         db.session.add(record)
         db.session.commit()

@@ -105,6 +105,32 @@
         padding: 0.9rem;
     }
 
+    .hr-manual-checkin-calendar-frame {
+        position: relative;
+    }
+
+    .hr-manual-checkin-calendar-loading {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        display: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        gap: 0.45rem;
+        left: 50%;
+        padding: 0.55rem 0.9rem;
+        position: absolute;
+        top: 0.75rem;
+        transform: translateX(-50%);
+        z-index: 5;
+    }
+
+    .hr-manual-checkin-calendar-frame.is-loading .hr-manual-checkin-calendar-loading {
+        display: inline-flex;
+    }
+
     .hr-manual-checkin-calendar .fc,
     .hr-manual-checkin-calendar .fc-view-container,
     .hr-manual-checkin-calendar .fc-view,
@@ -386,7 +412,13 @@
                             </button>
                         </div>
                     </div>
-                    <div id="loginCalendar" class="staff-login-calendar hr-manual-checkin-calendar"></div>
+                    <div class="hr-manual-checkin-calendar-frame" id="calendarFrame">
+                        <div id="loginCalendar" class="staff-login-calendar hr-manual-checkin-calendar"></div>
+                        <div class="hr-manual-checkin-calendar-loading" id="calendarLoading" role="status" aria-live="polite">
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                            กำลังโหลดปฏิทิน...
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -536,14 +568,23 @@
             displayEventTime: true,
             displayEventEnd: true,
             timeFormat: 'H(:mm)',
+            loading: function(isLoading) {
+                $('#calendarFrame').toggleClass('is-loading', isLoading);
+            },
             events: function(start, end, timezone, callback) {
                 if (!window.manualCheckinState.staffId || !window.manualCheckinState.month) {
                     callback([]);
                     return;
                 }
+                // FullCalendar may fetch the next range before viewRender updates
+                // the shared month state, so derive the month from this request.
+                var requestedMonth = moment(start).add(
+                    Math.floor(moment(end).diff(moment(start), 'days') / 2),
+                    'days'
+                ).format('YYYY-MM');
                 $.getJSON(manualCheckinCalendarApiUrl, {
                     staff_id: window.manualCheckinState.staffId,
-                    month: window.manualCheckinState.month
+                    month: requestedMonth
                 }).done(function(response) {
                     const events = response.events || [];
                     window.manualCheckinState.staffName = response.staff_name || window.manualCheckinState.staffName;
