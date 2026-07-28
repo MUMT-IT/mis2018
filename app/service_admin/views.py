@@ -5587,13 +5587,25 @@ def sample_index():
     menu = request.args.get('menu')
     tab = request.args.get('tab')
     api = request.args.get('api', 'false')
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_lab_ids = [admin.sub_lab_id for admin in admins if admin.sub_lab_id]
+    # query = (
+    #     ServiceSample.query
+    #     .join(ServiceSample.request)
+    #     .join(ServiceRequest.sub_lab)
+    #     .join(ServiceSubLab.admins)
+    #     .filter(
+    #         ServiceAdmin.admin_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceSample.query
-        .join(ServiceSample.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
+        .options(
+            joinedload(ServiceSample.request)
+            .joinedload(ServiceRequest.sub_lab)
+        )
         .filter(
-            ServiceAdmin.admin_id == current_user.id
+            ServiceSample.request.has(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
         )
     )
     schedule_query = query.filter(ServiceSample.appointment_date == None, ServiceSample.tracking_number == None,
