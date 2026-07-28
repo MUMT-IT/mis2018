@@ -7079,6 +7079,15 @@ def invoice_index():
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
     today = arrow.now('Asia/Bangkok').date()
+    # query = (
+    #     ServiceInvoice.query
+    #     .join(ServiceInvoice.quotation)
+    #     .join(ServiceQuotation.request)
+    #     .filter(
+    #         ServiceInvoice.file_attached_at != None,
+    #         ServiceRequest.customer_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceInvoice.query
         .filter(
@@ -7309,13 +7318,20 @@ def receipt_index():
 
 @academic_services.route('/api/receipt/index')
 def get_receipts():
+    # query = (
+    #     ServiceInvoice.query
+    #     .join(ServiceInvoice.quotation)
+    #     .join(ServiceQuotation.request)
+    #     .join(ServiceInvoice.receipts)
+    #     .filter(
+    #         ServiceRequest.customer_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceInvoice.query
         .join(ServiceInvoice.receipts)
         .filter(
-            ServiceInvoice.quotation.has(
-                ServiceQuotation.request.has(ServiceRequest.customer_id == current_user.id)
-            )
+            ServiceInvoice.quotation.has(ServiceQuotation.request.has(ServiceRequest.customer_id == current_user.id))
         )
     )
     records_total = query.count()
