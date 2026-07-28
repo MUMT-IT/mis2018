@@ -5045,6 +5045,7 @@ def generate_bacteria_request_pdf(service_request):
 
 
 @academic_services.route('/request/bacteria/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_bacteria_request_pdf(request_id):
     service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_bacteria_request_pdf(service_request)
@@ -5490,6 +5491,7 @@ def generate_bacteria_sterility_test_request_pdf(service_request):
 
 
 @academic_services.route('/request/bacteria/sterility_test/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_bacteria_sterility_test_request_pdf(request_id):
     service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_bacteria_sterility_test_request_pdf(service_request)
@@ -6162,6 +6164,7 @@ def generate_virus_request_pdf(service_request):
 
 
 @academic_services.route('/request/virus/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_virus_request_pdf(request_id):
     service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_virus_request_pdf(service_request)
@@ -6566,6 +6569,7 @@ def generate_quotation_pdf(quotation, sign=False):
 
 
 @academic_services.route('/quotation/pdf/<int:quotation_id>', methods=['GET'])
+@login_required
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     buffer = generate_quotation_pdf(quotation)

@@ -2078,6 +2078,7 @@ def task_dashboard():
 
 
 @service_admin.route('/service_guide')
+@login_required
 def service_guide_index():
     labs = ServiceLab.query.join(ServiceSubLab).join(ServiceAdmin).filter(
         ServiceAdmin.admin_id == current_user.id)
@@ -2085,6 +2086,7 @@ def service_guide_index():
 
 
 @service_admin.route('/service_guide/update/<int:lab_id>', methods=['GET', 'POST'])
+@login_required
 def update_service_guide(lab_id):
     lab = ServiceLab.query.get(lab_id)
     form = ServiceLabForm(obj=lab)
@@ -2512,6 +2514,7 @@ def request_index():
 
 
 @service_admin.route('/api/request/index')
+@login_required
 def get_requests():
     admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     sub_lab_ids = [admin.sub_lab_id for admin in admins if admin.sub_lab_id]
@@ -2674,6 +2677,7 @@ def get_requests():
 #                             code=service_request.sub_lab.code))
 
 @service_admin.route('/portal/request')
+@login_required
 def create_request():
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -2698,6 +2702,7 @@ def create_request():
 
 @service_admin.route('/request/bacteria_disinfection/add', methods=['GET', 'POST'])
 @service_admin.route('/request/bacteria_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_bacteria_disinfection_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -2733,6 +2738,7 @@ def create_bacteria_disinfection_request(request_id=None):
 
 
 @service_admin.route('/request/bacteria_disinfection/condition', methods=['GET', 'POST'])
+@login_required
 def get_bacteria_disinfection_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -2747,6 +2753,7 @@ def get_bacteria_disinfection_condition_form():
 
 
 @service_admin.route('/request/bacteria_liquid_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_liquid_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2762,6 +2769,7 @@ def remove_bacteria_liquid_condition_form():
 
 
 @service_admin.route('/request/bacteria_spray_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_spray_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2776,6 +2784,7 @@ def remove_bacteria_spray_condition_form():
     return ""
 
 @service_admin.route('/request/bacteria_sheet_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_sheet_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2791,6 +2800,7 @@ def remove_bacteria_sheet_condition_form():
 
 
 @service_admin.route('/request/bacteria_after_wash_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_after_wash_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2806,6 +2816,7 @@ def remove_bacteria_after_wash_condition_form():
 
 
 @service_admin.route('/request/bacteria_in_wash_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_in_wash_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2821,6 +2832,7 @@ def remove_bacteria_in_wash_condition_form():
 
 
 @service_admin.route('/request/bacteria_alcohol_based_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_alcohol_based_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2836,6 +2848,7 @@ def remove_bacteria_alcohol_based_condition_form():
 
 
 @service_admin.route('/request/bacteria_soap_reduction_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_soap_reduction_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2851,6 +2864,7 @@ def remove_bacteria_soap_reduction_condition_form():
 
 
 @service_admin.route('/request/bacteria_soap_inhibition_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_soap_inhibition_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2866,6 +2880,7 @@ def remove_bacteria_soap_inhibition_condition_form():
 
 
 @service_admin.route('/request/bacteria_antibacterial_treated_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_antibacterial_treated_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2881,6 +2896,7 @@ def remove_bacteria_antibacterial_treated_condition_form():
 
 
 @service_admin.route('/request/bacteria_dish_wash_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_dish_wash_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2896,6 +2912,7 @@ def remove_bacteria_dish_wash_condition_form():
 
 
 @service_admin.route('/request/bacteria_liquid_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_liquid_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -2937,6 +2954,7 @@ def add_bacteria_liquid_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_liquid_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_liquid_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2952,6 +2970,7 @@ def remove_bacteria_liquid_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_spray_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_spray_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3001,6 +3020,7 @@ def add_bacteria_spray_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_spray_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_spray_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3016,6 +3036,7 @@ def remove_bacteria_spray_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_sheet_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_sheet_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3053,6 +3074,7 @@ def add_bacteria_sheet_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_sheet_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_sheet_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3068,6 +3090,7 @@ def remove_bacteria_sheet_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_after_wash_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_after_wash_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3109,6 +3132,7 @@ def add_bacteria_after_wash_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_after_wash_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_after_wash_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3124,6 +3148,7 @@ def remove_bacteria_after_wash_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_in_wash_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_in_wash_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3165,6 +3190,7 @@ def add_bacteria_in_wash_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_in_wash_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_in_wash_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3180,6 +3206,7 @@ def remove_bacteria_in_wash_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_alcohol_based_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_alcohol_based_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3217,6 +3244,7 @@ def add_bacteria_alcohol_based_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_alcohol_based_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_alcohol_based_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3232,6 +3260,7 @@ def remove_bacteria_alcohol_based_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_soap_reduction_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_soap_reduction_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3273,6 +3302,7 @@ def add_bacteria_soap_reduction_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_soap_reduction_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_soap_reduction_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3288,6 +3318,7 @@ def remove_bacteria_soap_reduction_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_soap_inhibition_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_soap_inhibition_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3321,6 +3352,7 @@ def add_bacteria_soap_inhibition_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_soap_inhibition_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_soap_inhibition_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3336,6 +3368,7 @@ def remove_bacteria_soap_inhibition_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_antibacterial_treated_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_antibacterial_treated_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3373,6 +3406,7 @@ def add_bacteria_antibacterial_treated_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_antibacterial_treated_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_antibacterial_treated_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3388,6 +3422,7 @@ def remove_bacteria_antibacterial_treated_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_dish_wash_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_dish_wash_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3429,6 +3464,7 @@ def add_bacteria_dish_wash_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_dish_wash_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_dish_wash_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -3445,6 +3481,7 @@ def remove_bacteria_dish_wash_organism_form_entry():
 
 @service_admin.route('/request/bacteria_sterility_test/add', methods=['GET', 'POST'])
 @service_admin.route('/request/bacteria_sterility_test/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_bacteria_sterility_test_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -3480,6 +3517,7 @@ def create_bacteria_sterility_test_request(request_id=None):
 
 @service_admin.route('/request/bacteria_antimicrobial_activity/add', methods=['GET', 'POST'])
 @service_admin.route('/request/bacteria_antimicrobial_activity/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_bacteria_antimicrobial_activity_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -3514,6 +3552,7 @@ def create_bacteria_antimicrobial_activity_request(request_id=None):
 
 
 @service_admin.route('/request/bacteria_antimicrobial_activity/condition', methods=['GET', 'POST'])
+@login_required
 def get_bacteria_antimicrobial_activity_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -3528,6 +3567,7 @@ def get_bacteria_antimicrobial_activity_condition_form():
 
 
 @service_admin.route('/request/bacteria_antimicrobial_activity_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_antimicrobial_activity_condition_form():
     field_name = request.args.get('name')
     form = BacteriaAntimicrobialActivityRequestForm()
@@ -3543,6 +3583,7 @@ def remove_bacteria_antimicrobial_activity_condition_form():
 
 
 @service_admin.route('/request/bacteria_antimicrobial_activity_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_antimicrobial_activity_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3582,6 +3623,7 @@ def add_bacteria_antimicrobial_activity_organism_form_entry():
 
 
 @service_admin.route('/request/bacteria_antimicrobial_activity_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_antimicrobial_activity_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaAntimicrobialActivityRequestForm()
@@ -3598,6 +3640,7 @@ def remove_bacteria_antimicrobial_activity_organism_form_entry():
 
 @service_admin.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
 @service_admin.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_virus_disinfection_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -3632,6 +3675,7 @@ def create_virus_disinfection_request(request_id=None):
 
 
 @service_admin.route("/request/product_appearance_other")
+@login_required
 def get_product_appearance_other():
     request_id = request.args.get("request_id")
     product_appearance = request.args.get("product_appearance")
@@ -3665,6 +3709,7 @@ def get_product_appearance_other():
 
 
 @service_admin.route("/request/product_storage_other")
+@login_required
 def get_product_storage_other():
     request_id = request.args.get("request_id")
     product_storage = request.args.get("product_storage")
@@ -3698,6 +3743,7 @@ def get_product_storage_other():
 
 
 @service_admin.route('/request/virus_disinfection/condition', methods=['GET', 'POST'])
+@login_required
 def get_virus_disinfection_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -3712,6 +3758,7 @@ def get_virus_disinfection_condition_form():
 
 
 @service_admin.route('/request/virus_liquid_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_virus_liquid_condition_form():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -3727,6 +3774,7 @@ def remove_virus_liquid_condition_form():
 
 
 @service_admin.route('/request/virus_spray_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_virus_spray_condition_form():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -3742,6 +3790,7 @@ def remove_virus_spray_condition_form():
 
 
 @service_admin.route('/request/virus_coat_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_virus_coat_condition_form():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -3757,6 +3806,7 @@ def remove_virus_coat_condition_form():
 
 
 @service_admin.route('/request/virus_liquid_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_virus_liquid_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3796,6 +3846,7 @@ def add_virus_liquid_organism_form_entry():
 
 
 @service_admin.route('/request/virus_liquid_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_virus_liquid_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -3811,6 +3862,7 @@ def remove_virus_liquid_organism_form_entry():
 
 
 @service_admin.route('/request/virus_spray_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_virus_spray_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3860,6 +3912,7 @@ def add_virus_spray_organism_form_entry():
 
 
 @service_admin.route('/request/virus_spray_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_virus_spray_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -3875,6 +3928,7 @@ def remove_virus_spray_organism_form_entry():
 
 
 @service_admin.route('/request/virus_coat_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_virus_coat_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -3912,6 +3966,7 @@ def add_virus_coat_organism_form_entry():
 
 
 @service_admin.route('/request/virus_coat_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_virus_coat_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -3928,6 +3983,7 @@ def remove_virus_coat_organism_form_entry():
 
 @service_admin.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
 @service_admin.route('/request/virus_air_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_virus_air_disinfection_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -3963,6 +4019,7 @@ def create_virus_air_disinfection_request(request_id=None):
 
 
 @service_admin.route('/request/virus_air_disinfection/condition', methods=['GET', 'POST'])
+@login_required
 def get_virus_air_disinfection_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -3977,6 +4034,7 @@ def get_virus_air_disinfection_condition_form():
 
 
 @service_admin.route('/request/virus_surface_disinfection_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_virus_surface_disinfection_condition_form():
     field_name = request.args.get('name')
     form = VirusAirDisinfectionRequestForm()
@@ -3992,6 +4050,7 @@ def remove_virus_surface_disinfection_condition_form():
 
 
 @service_admin.route('/request/virus_surface_disinfection_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_virus_surface_disinfection_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -4029,6 +4088,7 @@ def add_virus_surface_disinfection_organism_form_entry():
 
 
 @service_admin.route('/request/virus_surface_disinfection_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_virus_surface_disinfection_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusAirDisinfectionRequestForm()
@@ -4044,6 +4104,7 @@ def remove_virus_surface_disinfection_organism_form_entry():
 
 
 @service_admin.route('/request/condition/remove', methods=['GET', 'POST'])
+@login_required
 def remove_condition_form():
     request_id = request.args.get('request_id')
     service_request = ServiceRequest.query.get(request_id)
@@ -4062,6 +4123,7 @@ def remove_condition_form():
 
 @service_admin.route('/request/heavy_metal/add', methods=['GET', 'POST'])
 @service_admin.route('/request/heavy_metal/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_heavy_metal_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -4097,6 +4159,7 @@ def create_heavy_metal_request(request_id=None):
 
 
 @service_admin.route('/api/request/heavy_metal/item/add', methods=['POST'])
+@login_required
 def add_heavy_metal_condition_item():
     form = HeavyMetalRequestForm()
     form.heavy_metal_condition_field.append_entry()
@@ -4146,6 +4209,7 @@ def add_heavy_metal_condition_item():
 
 
 @service_admin.route('/api/request/heavy_metal/item/remove', methods=['DELETE'])
+@login_required
 def remove_heavy_metal_condition_item():
     form = HeavyMetalRequestForm()
     form.heavy_metal_condition_field.pop_entry()
@@ -4198,6 +4262,7 @@ def remove_heavy_metal_condition_item():
 
 @service_admin.route('/request/food_safety/add', methods=['GET', 'POST'])
 @service_admin.route('/request/food_safety/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_food_safety_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -4233,6 +4298,7 @@ def create_food_safety_request(request_id=None):
 
 
 @service_admin.route('/api/request/food_safety/item/add', methods=['POST'])
+@login_required
 def add_food_safety_condition_item():
     form = FoodSafetyRequestForm()
     form.food_safety_condition_field.append_entry()
@@ -4282,6 +4348,7 @@ def add_food_safety_condition_item():
 
 
 @service_admin.route('/api/request/food_safety/item/remove', methods=['DELETE'])
+@login_required
 def remove_food_safety_condition_item():
     form = FoodSafetyRequestForm()
     form.food_safety_condition_field.pop_entry()
@@ -4333,6 +4400,7 @@ def remove_food_safety_condition_item():
 
 
 @service_admin.route("/request/objective")
+@login_required
 def get_objective():
     request_id = request.args.get("request_id")
     objective = request.args.get("objective")
@@ -4366,6 +4434,7 @@ def get_objective():
 
 
 @service_admin.route("/request/standard_limitation")
+@login_required
 def get_standard_limitation():
     request_id = request.args.get("request_id")
     standard_limitation = request.args.get("standard_limitation")
@@ -4399,6 +4468,7 @@ def get_standard_limitation():
 
 
 @service_admin.route("/request/other_service")
+@login_required
 def get_other_service():
     request_id = request.args.get("request_id")
     other_service = request.args.get("other_service")
@@ -4433,6 +4503,7 @@ def get_other_service():
 
 @service_admin.route('/request/protein_identification/add', methods=['GET', 'POST'])
 @service_admin.route('/request/protein_identification/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_protein_identification_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -4468,6 +4539,7 @@ def create_protein_identification_request(request_id=None):
 
 
 @service_admin.route('/api/request/protein_identification/item/add', methods=['POST'])
+@login_required
 def add_protein_identification_condition_item():
     form = ProteinIdentificationRequestForm()
     form.protein_identification_condition_field.append_entry()
@@ -4511,6 +4583,7 @@ def add_protein_identification_condition_item():
 
 
 @service_admin.route('/api/request/protein_identification/item/remove', methods=['DELETE'])
+@login_required
 def remove_protein_identification_condition_item():
     form = ProteinIdentificationRequestForm()
     form.protein_identification_condition_field.pop_entry()
@@ -4557,6 +4630,7 @@ def remove_protein_identification_condition_item():
 
 @service_admin.route('/request/sds_page/add', methods=['GET', 'POST'])
 @service_admin.route('/request/sds_page/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_sds_page_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -4592,6 +4666,7 @@ def create_sds_page_request(request_id=None):
 
 
 @service_admin.route('/api/request/sds_page/item/add', methods=['POST'])
+@login_required
 def add_sds_page_condition_item():
     form = SDSPageRequestForm()
     form.sds_page_condition_field.append_entry()
@@ -4635,6 +4710,7 @@ def add_sds_page_condition_item():
 
 
 @service_admin.route('/api/request/sds_page/item/remove', methods=['DELETE'])
+@login_required
 def remove_sds_page_condition_item():
     form = SDSPageRequestForm()
     form.sds_page_condition_field.pop_entry()
@@ -4681,6 +4757,7 @@ def remove_sds_page_condition_item():
 
 @service_admin.route('/request/quantitative/add', methods=['GET', 'POST'])
 @service_admin.route('/request/quantitative/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_quantitative_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -4716,6 +4793,7 @@ def create_quantitative_request(request_id=None):
 
 
 @service_admin.route('/api/request/quantitative/item/add', methods=['POST'])
+@login_required
 def add_quantitative_condition_item():
     form = QuantitativeRequestForm()
     form.quantitative_condition_field.append_entry()
@@ -4762,6 +4840,7 @@ def add_quantitative_condition_item():
 
 
 @service_admin.route('/api/request/quantitative/item/remove', methods=['DELETE'])
+@login_required
 def remove_quantitative_condition_item():
     form = QuantitativeRequestForm()
     form.quantitative_condition_field.pop_entry()
@@ -4811,6 +4890,7 @@ def remove_quantitative_condition_item():
 
 @service_admin.route('/request/metabolomic/add', methods=['GET', 'POST'])
 @service_admin.route('/request/metabolomic/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_metabolomic_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -4846,6 +4926,7 @@ def create_metabolomic_request(request_id=None):
 
 
 @service_admin.route('/api/request/metabolomic/item/add', methods=['POST'])
+@login_required
 def add_metabolomic_condition_item():
     form = MetabolomicRequestForm()
     form.metabolomic_condition_field.append_entry()
@@ -4890,6 +4971,7 @@ def add_metabolomic_condition_item():
 
 
 @service_admin.route('/api/request/metabolomic/item/remove', methods=['DELETE'])
+@login_required
 def remove_metabolomic_condition_item():
     form = MetabolomicRequestForm()
     form.metabolomic_condition_field.pop_entry()
@@ -4936,6 +5018,7 @@ def remove_metabolomic_condition_item():
 
 
 @service_admin.route("/request/sample_species_other")
+@login_required
 def get_sample_species_other():
     request_id = request.args.get("request_id")
     sample_species = request.args.getlist("sample_species")
@@ -4969,6 +5052,7 @@ def get_sample_species_other():
 
 
 @service_admin.route("/request/gel_slices_other")
+@login_required
 def get_gel_slices_other():
     request_id = request.args.get("request_id")
     gel_slices = request.args.getlist("gel_slices")
@@ -5002,6 +5086,7 @@ def get_gel_slices_other():
 
 
 @service_admin.route("/request/sample_type_other")
+@login_required
 def get_sample_type_other():
     request_id = request.args.get("request_id")
     sample_type = request.args.getlist("sample_type")
@@ -5036,6 +5121,7 @@ def get_sample_type_other():
 
 @service_admin.route('/request/endotoxin/add', methods=['GET', 'POST'])
 @service_admin.route('/request/endotoxin/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_endotoxin_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -5075,6 +5161,7 @@ def create_endotoxin_request(request_id=None):
 
 
 @service_admin.route('/api/request/endotoxin/item/add', methods=['POST'])
+@login_required
 def add_endotoxin_condition_item():
     customer_id = request.args.get('customer_id')
     form = EndotoxinRequestForm()
@@ -5140,6 +5227,7 @@ def add_endotoxin_condition_item():
 
 
 @service_admin.route('/api/request/endotoxin/item/remove', methods=['DELETE'])
+@login_required
 def remove_endotoxin_condition_item():
     form = EndotoxinRequestForm()
     form.endotoxin_condition_field.pop_entry()
@@ -5204,6 +5292,7 @@ def remove_endotoxin_condition_item():
 
 @service_admin.route('/request/toxicology/add', methods=['GET', 'POST'])
 @service_admin.route('/request/toxicology/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_toxicology_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -5239,6 +5328,7 @@ def create_toxicology_request(request_id=None):
 
 
 @service_admin.route('/api/request/toxicology/item/add', methods=['POST'])
+@login_required
 def add_toxicology_condition_item():
     form = ToxicologyRequestForm()
     form.toxicology_condition_field.append_entry()
@@ -5287,6 +5377,7 @@ def add_toxicology_condition_item():
 
 
 @service_admin.route('/api/request/toxicology/item/remove', methods=['DELETE'])
+@login_required
 def remove_toxicology_condition_item():
     form = ToxicologyRequestForm()
     form.toxicology_condition_field.pop_entry()
@@ -5337,6 +5428,7 @@ def remove_toxicology_condition_item():
 
 
 @service_admin.route("/request/other")
+@login_required
 def get_other():
     request_id = request.args.get("request_id")
     sample_type = request.args.get("sample_type")
@@ -5591,6 +5683,7 @@ def edit_customer_address(customer_id=None, address_id=None):
 
 
 @service_admin.route('/customer/address/submit/<int:address_id>', methods=['GET', 'POST'])
+@login_required
 def submit_same_address(address_id):
     customer_id = request.args.get('customer_id')
     if request.method == 'POST':
@@ -5682,6 +5775,7 @@ def sample_index():
 
 
 @service_admin.route('/api/sample/index')
+@login_required
 def get_samples():
     tab = request.args.get('tab')
     query = (
@@ -6520,6 +6614,7 @@ def generate_bacteria_request_pdf(service_request):
 
 
 @service_admin.route('/request/bacteria/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_bacteria_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_bacteria_request_pdf(service_request)
@@ -6965,6 +7060,7 @@ def generate_bacteria_sterility_test_request_pdf(service_request):
 
 
 @service_admin.route('/request/bacteria/sterility_test/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_bacteria_sterility_test_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_bacteria_sterility_test_request_pdf(service_request)
@@ -7631,6 +7727,7 @@ def generate_virus_request_pdf(service_request):
 
 
 @service_admin.route('/request/virus/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_virus_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_virus_request_pdf(service_request)
@@ -7647,6 +7744,7 @@ def lab_index(customer_id):
 
 @service_admin.route('/customer/address/add/<int:customer_id>', methods=['GET', 'POST'])
 @service_admin.route('/customer/address/edit/<int:customer_id>/<int:address_id>', methods=['GET', 'POST'])
+@login_required
 def create_customer_address(customer_id=None, address_id=None):
     customer = ServiceCustomerInfo.query.get(customer_id)
     if address_id:
@@ -7696,6 +7794,7 @@ def create_customer_address(customer_id=None, address_id=None):
 
 
 @service_admin.route('/api/items', methods=['POST'])
+@login_required
 def get_items():
     trigger = request.headers.get('hx-trigger')
     use_type = request.args.get('use_type', type=bool)
@@ -7724,6 +7823,7 @@ def get_items():
 
 
 @service_admin.route('/customer/adress/delete/<int:address_id>', methods=['GET', 'DELETE'])
+@login_required
 def delete_customer_address(address_id):
     customer_id = request.args.get('customer_id')
     address = ServiceCustomerAddress.query.get(address_id)
@@ -7969,6 +8069,7 @@ def create_invoice(quotation_id):
 
 
 @service_admin.route('/invoice/approve/<int:invoice_id>', methods=['GET', 'POST'])
+@login_required
 def approve_invoice(invoice_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -8115,6 +8216,7 @@ def approve_invoice(invoice_id):
 
 
 @service_admin.route('/invoice/file/add/<int:invoice_id>', methods=['GET', 'POST'])
+@login_required
 def upload_invoice_file(invoice_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -8549,6 +8651,7 @@ def export_invoice_pdf(invoice_id):
 
 
 @service_admin.route('/payment/add', methods=['GET', 'POST'])
+@login_required
 def add_payment():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -8908,6 +9011,7 @@ def generate_quotation():
 
 
 @service_admin.route('/quotation/bacteria/disinfection/generate', methods=['GET', 'POST'])
+@login_required
 def generate_bacteria_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9012,6 +9116,7 @@ def generate_bacteria_disinfection_quotation():
 
 
 @service_admin.route('/quotation/bacteria/sterility_test/generate', methods=['GET', 'POST'])
+@login_required
 def generate_bacteria_sterility_test_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9095,6 +9200,7 @@ def generate_bacteria_sterility_test_quotation():
 
 
 @service_admin.route('/quotation/bacteria/antimicrobial_activity/generate', methods=['GET', 'POST'])
+@login_required
 def generate_bacteria_antimicrobial_activity_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9196,6 +9302,7 @@ def generate_bacteria_antimicrobial_activity_quotation():
 
 
 @service_admin.route('/quotation/virus/disinfection/generate', methods=['GET', 'POST'])
+@login_required
 def generate_virus_disinfection_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9387,6 +9494,7 @@ def generate_virus_air_disinfection_quotation():
 
 
 @service_admin.route('/quotation/heavy_metal/generate', methods=['GET', 'POST'])
+@login_required
 def generate_heavy_metal_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9473,6 +9581,7 @@ def generate_heavy_metal_quotation():
 
 
 @service_admin.route('/quotation/food_safety/generate', methods=['GET', 'POST'])
+@login_required
 def generate_food_safety_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9568,6 +9677,7 @@ def generate_food_safety_quotation():
 
 
 @service_admin.route('/quotation/protein_identification/generate', methods=['GET', 'POST'])
+@login_required
 def generate_protein_identification_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9656,6 +9766,7 @@ def generate_protein_identification_quotation():
 
 
 @service_admin.route('/quotation/sds_page/generate', methods=['GET', 'POST'])
+@login_required
 def generate_sds_page_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9757,6 +9868,7 @@ def generate_sds_page_quotation():
 
 
 @service_admin.route('/quotation/quantitative/generate', methods=['GET', 'POST'])
+@login_required
 def generate_quantitative_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9847,6 +9959,7 @@ def generate_quantitative_quotation():
 
 
 @service_admin.route('/quotation/endotoxin/generate', methods=['GET', 'POST'])
+@login_required
 def generate_endotoxin_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -9930,6 +10043,7 @@ def generate_endotoxin_quotation():
 
 
 @service_admin.route('/quotation/toxicology/generate', methods=['GET', 'POST'])
+@login_required
 def generate_toxicology_quotation():
     menu = request.args.get('menu')
     request_id = request.args.get('request_id')
@@ -10084,6 +10198,7 @@ def create_quotation_for_admin(quotation_id):
 
 
 @service_admin.route('/quotation/item/add/<int:quotation_id>', methods=['GET', 'POST'])
+@login_required
 def add_quotation_item(quotation_id):
     menu = request.args.get('menu')
     tab = request.args.get('tab')
@@ -10112,6 +10227,7 @@ def add_quotation_item(quotation_id):
 
 
 @service_admin.route('/quotation/item/edit/<int:quotation_item_id>', methods=['GET', 'POST'])
+@login_required
 def edit_discount_quotation(quotation_item_id):
     menu = request.args.get('menu')
     tab = request.args.get('tab')
@@ -10135,6 +10251,7 @@ def edit_discount_quotation(quotation_item_id):
 
 
 @service_admin.route('/quotation/item/delete/<int:quotation_item_id>', methods=['GET', 'DELETE'])
+@login_required
 def delete_quotation_item(quotation_item_id):
     menu = request.args.get('menu')
     tab = request.args.get('tab')
@@ -10246,6 +10363,7 @@ def enter_password_for_sign_digital(quotation_id):
 
 
 @service_admin.route('/quotation/disapprove/<int:quotation_id>', methods=['GET', 'POST'])
+@login_required
 def disapprove_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
@@ -10536,6 +10654,7 @@ def generate_quotation_pdf(quotation, sign=False):
 
 
 @service_admin.route('/quotation/pdf/<int:quotation_id>', methods=['GET'])
+@login_required
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     if quotation.digital_signature:
@@ -10718,6 +10837,7 @@ def view_final_result_item(result_id, result_item_id):
 
 
 @service_admin.route('/result/delete/<int:item_id>', methods=['GET', 'POST'])
+@login_required
 def delete_result_file(item_id):
     status_id = get_status(11)
     item = ServiceResultItem.query.get(item_id)
@@ -10734,6 +10854,7 @@ def delete_result_file(item_id):
 
 
 @service_admin.route('/result/tracking_number/add/<int:result_id>', methods=['GET', 'POST'])
+@login_required
 def add_tracking_number(result_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -10998,6 +11119,7 @@ def edit_final_result(result_item_id):
 
 
 @service_admin.route('/result/draft/delete/<int:item_id>', methods=['GET', 'POST'])
+@login_required
 def delete_draft_result(item_id):
     item = ServiceResultItem.query.get(item_id)
     item.draft_file = None
@@ -11065,6 +11187,7 @@ def create_final_result(result_id=None):
 
 
 @service_admin.route('/result/final/delete/<int:item_id>', methods=['GET', 'POST'])
+@login_required
 def delete_final_result(item_id):
     item = ServiceResultItem.query.get(item_id)
     item.final_file = None
@@ -11079,6 +11202,7 @@ def delete_final_result(item_id):
 
 
 @service_admin.route('/result/final/approve/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
 def approve_final_result_reversion(result_item_id):
     supervisor_id = None
     tab = request.args.get('tab')
@@ -11156,6 +11280,7 @@ def approve_final_result_reversion(result_item_id):
 
 
 @service_admin.route('/result/final/unapprove/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
 def unapprove_final_result_reversion(result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -11203,6 +11328,7 @@ def invoice_payment_index():
 
 
 @service_admin.route('/api/invoice/payment/index')
+@login_required
 def get_invoice_payments():
     base_query = (ServiceInvoice.query
                   .options(
@@ -11324,6 +11450,7 @@ def view_invoice_for_finance(invoice_id):
 
 
 @service_admin.route('/invoice/payment/confirm/<int:invoice_id>', methods=['GET', 'POST'])
+@login_required
 def confirm_payment(invoice_id):
     status_id = get_status(24)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
@@ -11353,6 +11480,7 @@ def confirm_payment(invoice_id):
 
 
 @service_admin.route('/invoice/payment/cancel/<int:invoice_id>', methods=['GET', 'POST'])
+@login_required
 def cancel_payment(invoice_id):
     status_id = get_status(22)
     payment = ServicePayment.query.filter_by(invoice_id=invoice_id, cancelled_at=None).first()
