@@ -456,6 +456,8 @@
             });
         })
         ;
+        const csrfToken = {{ csrf_token()|tojson|safe }};
+
         vm = new Vue({
             el: '#app',
             methods: {
@@ -474,8 +476,19 @@
                     this.$buefy.dialog.confirm({
                         message: 'ต้องการคัดลอกใบคำขอรับบริการนี้จริงหรือไม่',
                         onConfirm: () => {
-                            const url = `/academic_services/request/copy/${request_id}`;
-                            window.location.href = url;
+                            const form = document.createElement('form');
+                            form.method = 'post';
+                            form.action = `/academic_services/request/copy/${request_id}`;
+                            form.style.display = 'none';
+
+                            const token = document.createElement('input');
+                            token.type = 'hidden';
+                            token.name = 'csrf_token';
+                            token.value = csrfToken;
+
+                            form.appendChild(token);
+                            document.body.appendChild(form);
+                            form.submit();
                         },
                         type: 'is-info'
                     });
