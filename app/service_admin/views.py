@@ -2480,6 +2480,17 @@ def request_index():
 def get_requests():
     admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
     sub_lab_ids = [admin.sub_lab_id for admin in admins if admin.sub_lab_id]
+    # query = (
+    #     ServiceRequest.query
+    #     .join(ServiceRequest.status)
+    #     .join(ServiceRequest.sub_lab)
+    #     .join(ServiceSubLab.admins)
+    #     .filter(
+    #         ServiceStatus.status_id.notin_([1, 2]),
+    #         ServiceAdmin.admin_id == current_user.id
+    #
+    #     )
+    # )
     query = (
         ServiceRequest.query
         .options(
@@ -8493,16 +8504,27 @@ def quotation_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
-    admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    is_admin = any(a for a in admin if not a.is_supervisor)
-    is_supervisor = any(a.is_supervisor for a in admin)
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_lab_ids = [admin.sub_lab_id for admin in admins if admin.sub_lab_id]
+    is_admin = any(a for a in admins if not a.is_supervisor)
+    is_supervisor = any(a.is_supervisor for a in admins)
+    # query = (
+    #     ServiceQuotation.query
+    #     .join(ServiceQuotation.request)
+    #     .join(ServiceRequest.sub_lab)
+    #     .join(ServiceSubLab.admins)
+    #     .filter(
+    #         ServiceAdmin.admin_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceQuotation.query
-        .join(ServiceQuotation.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
+        .options(
+            joinedload(ServiceQuotation.request)
+            .joinedload(ServiceRequest.sub_lab),
+        )
         .filter(
-            ServiceAdmin.admin_id == current_user.id
+            ServiceQuotation.request.has(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
         )
     )
     draft_query = query.filter(ServiceQuotation.sent_at == None)
