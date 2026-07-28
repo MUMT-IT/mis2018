@@ -7358,11 +7358,17 @@ def get_receipts():
 def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    # query = (
+    #     ServiceResult.query
+    #     .join(ServiceResult.request)
+    #     .filter(
+    #         ServiceRequest.customer_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceResult.query
-        .join(ServiceResult.request)
         .filter(
-            ServiceRequest.customer_id == current_user.id
+            ServiceResult.request.has(ServiceRequest.customer_id == current_user.id)
         )
     )
 
