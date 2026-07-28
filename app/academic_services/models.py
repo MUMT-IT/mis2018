@@ -466,6 +466,7 @@ class ServiceRequest(db.Model):
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.status.status_id if self.status else None,
             'is_completed': self.is_completed if self.is_completed else None,
+            'has_quotation': True if self.quotations else None,
             'has_result': True if self.get_result() else None,
             'admin_status': self.status.admin_status if self.status else None,
             'admin_status_color': self.status.admin_status_color if self.status else None,
