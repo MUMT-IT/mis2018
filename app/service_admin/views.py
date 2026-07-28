@@ -11301,15 +11301,33 @@ def receipt_index():
 
 @service_admin.route('/api/receipt/index')
 def get_receipts():
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_lab_ids = [admin.sub_lab_id for admin in admins if admin.sub_lab_id]
+    # query = (
+    #     ServiceInvoice.query
+    #     .join(ServiceInvoice.quotation)
+    #     .join(ServiceQuotation.request)
+    #     .join(ServiceRequest.sub_lab)
+    #     .join(ServiceInvoice.receipts)
+    #     .join(ServiceSubLab.admins)
+    #     .filter(
+    #         ServiceAdmin.admin_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceInvoice.receipts)
-        .join(ServiceSubLab.admins)
+        .options(
+            joinedload(ServiceInvoice.quotation)
+            .joinedload(ServiceQuotation.request),
+            joinedload(ServiceInvoice.receipts),
+        )
         .filter(
-            ServiceAdmin.admin_id == current_user.id
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(
+                    ServiceRequest.sub_lab_id.in_(sub_lab_ids)
+                )
+            ),
+            ServiceInvoice.receipts.any()
         )
     )
     records_total = query.count()
