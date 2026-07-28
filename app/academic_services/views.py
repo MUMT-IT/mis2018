@@ -6096,7 +6096,7 @@ def request_quotation(request_id):
     return redirect(url_for('academic_services.request_index', menu=menu))
 
 
-@academic_services.route('/request/copy/<int:request_id>')
+@academic_services.route('/request/copy/<int:request_id>', methods=['POST'])
 @login_required
 def copy_request(request_id):
     old_service_request = ServiceRequest.query.filter_by(id=request_id, customer_id=current_user.id).first()
