@@ -2495,7 +2495,7 @@ def get_requests():
         ServiceRequest.query
         .options(
             joinedload(ServiceRequest.status),
-            joinedload(ServiceRequest.sub_lab),
+            # joinedload(ServiceRequest.sub_lab),
         )
         .filter(
             ServiceRequest.status.has(ServiceStatus.status_id.notin_([1, 2])),
@@ -5602,7 +5602,7 @@ def sample_index():
         ServiceSample.query
         .options(
             joinedload(ServiceSample.request)
-            .joinedload(ServiceRequest.sub_lab)
+            # .joinedload(ServiceRequest.sub_lab)
         )
         .filter(
             ServiceSample.request.has(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
@@ -5821,7 +5821,7 @@ def test_item_index():
         ServiceTestItem.query
         .options(
             joinedload(ServiceTestItem.request)
-            .joinedload(ServiceRequest.sub_lab)
+            # .joinedload(ServiceRequest.sub_lab)
         )
         .filter(
             ServiceTestItem.request.has(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
@@ -8575,7 +8575,7 @@ def quotation_index():
         ServiceQuotation.query
         .options(
             joinedload(ServiceQuotation.request)
-            .joinedload(ServiceRequest.sub_lab),
+            # .joinedload(ServiceRequest.sub_lab),
         )
         .filter(
             ServiceQuotation.request.has(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
@@ -10469,13 +10469,22 @@ def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
+    admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+    sub_lab_ids = [admin.sub_lab_id for admin in admins if admin.sub_lab_id]
+    # query = (
+    #     ServiceResult.query
+    #     .join(ServiceResult.request)
+    #     .join(ServiceRequest.sub_lab)
+    #     .join(ServiceSubLab.admins)
+    #     .filter(
+    #         ServiceAdmin.admin_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceResult.query
-        .join(ServiceResult.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
+        .options(joinedload(ServiceResult.request))
         .filter(
-            ServiceAdmin.admin_id == current_user.id
+            ServiceResult.request.has(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
         )
     )
     pending_query = query.filter(ServiceResult.sent_at == None)
@@ -10498,7 +10507,7 @@ def result_index():
         records_total = query.count()
         search = request.args.get('search[value]')
         if search:
-            query = query.filter(ServiceRequest.request_no).contains(search)
+            query = query.filter(ServiceResult.request.has(ServiceRequest.request_no.contains(search)))
         start = request.args.get('start', type=int)
         length = request.args.get('length', type=int)
         total_filtered = query.count()
