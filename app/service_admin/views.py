@@ -214,29 +214,34 @@ def _build_service_admin_menu_counts(admin_id):
                 ServiceResult.request_id == None,
                 ServiceTestItem.id
             )))).label('test_item_count'),
-            func.count(func.distinct(case((
-                and_(
-                    ServiceInvoice.id != None,
-                    or_(
-                        ServicePayment.id == None,
-                        ServicePayment.verified_at == None
-                    )
-                ),
-                ServiceRequest.id
-            )))).label('invoice_count'),
-            func.count(func.distinct(case((
-                or_(
-                    ServiceInvoice.id == None,
-                    and_(
-                        ServiceInvoice.file_attached_at != None,
-                        or_(
-                            ServicePayment.id == None,
-                            ServicePayment.verified_at == None
-                        )
-                    )
-                ),
-                ServiceRequest.id
-            )))).label('invoice_count_for_central_admin'),
+            func.count(func.distinct(case((ServiceStatus.status_id.in_([18, 19, 20, 21, 22, 23]),
+                                           ServiceRequest.id))))
+            .label('invoice_count'),
+            func.count(func.distinct(case((ServiceStatus.status_id.in_([22, 23]), ServiceRequest.id))))
+            .label('invoice_count_for_central_admin'),
+            # func.count(func.distinct(case((
+            #     and_(
+            #         ServiceInvoice.id != None,
+            #         or_(
+            #             ServicePayment.id == None,
+            #             ServicePayment.verified_at == None
+            #         )
+            #     ),
+            #     ServiceRequest.id
+            # )))).label('invoice_count'),
+            # func.count(func.distinct(case((
+            #     or_(
+            #         ServiceInvoice.id == None,
+            #         and_(
+            #             ServiceInvoice.file_attached_at != None,
+            #             or_(
+            #                 ServicePayment.id == None,
+            #                 ServicePayment.verified_at == None
+            #             )
+            #         )
+            #     ),
+            #     ServiceRequest.id
+            # )))).label('invoice_count_for_central_admin'),
             func.count(func.distinct(case((
                 or_(
                     ServiceResult.sent_at == None,
