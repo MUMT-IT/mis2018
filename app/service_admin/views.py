@@ -198,6 +198,10 @@ def _build_service_admin_scope_label(recipient):
 
 
 def _build_service_admin_menu_counts(admin_id):
+    sub_lab_ids = [
+        row.sub_lab_id for row in ServiceAdmin.query.filter_by(admin_id=admin_id).all()
+        if row.sub_lab_id
+    ]
     counts = (
         db.session.query(
             func.count(func.distinct(case((ServiceStatus.status_id.in_([3, 6]), ServiceRequest.id))))
@@ -224,11 +228,9 @@ def _build_service_admin_menu_counts(admin_id):
         )
         .select_from(ServiceRequest)
         .join(ServiceRequest.status)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
         .outerjoin(ServiceTestItem, ServiceTestItem.request_id == ServiceRequest.id)
         .outerjoin(ServiceResult, ServiceResult.request_id == ServiceRequest.id)
-        .filter(ServiceAdmin.admin_id == admin_id)
+        .filter(ServiceRequest.sub_lab_id.in_(sub_lab_ids))
         .one()
     )
     return counts
