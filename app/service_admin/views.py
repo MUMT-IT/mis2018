@@ -7713,13 +7713,31 @@ def invoice_index():
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
     is_central_admin = ServiceAdmin.query.filter_by(admin_id=current_user.id, is_central_admin=True).first()
+    sub_lab_ids = [
+        admin.sub_lab_id for admin in ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+        if admin.sub_lab_id
+    ]
+    # query = (
+    #     ServiceInvoice.query
+    #     .join(ServiceInvoice.quotation)
+    #     .join(ServiceQuotation.request)
+    #     .join(ServiceRequest.sub_lab)
+    #     .join(ServiceSubLab.admins)
+    #     .filter(ServiceAdmin.admin_id == current_user.id)
+    # )
     query = (
         ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(ServiceAdmin.admin_id == current_user.id)
+        .options(
+            joinedload(ServiceInvoice.quotation)
+            .joinedload(ServiceQuotation.request),
+        )
+        .filter(
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(
+                    ServiceRequest.sub_lab_id.in_(sub_lab_ids)
+                )
+            )
+        )
     )
     draft_query = query.filter(ServiceInvoice.sent_at == None)
     pending_supervisor_query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
@@ -7727,10 +7745,18 @@ def invoice_index():
                                            ServiceInvoice.assistant_approved_at == None)
     pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None,
                                       ServiceInvoice.file_attached_at == None)
-    waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id == None,
-                                                                       ServicePayment.verified_at == None),
-                                                                   ServiceInvoice.file_attached_at != None)
-    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
+    waiting_payment_query = query.filter(
+        ServiceInvoice.file_attached_at != None,
+        or_(
+            ~ServiceInvoice.payments.any(),
+            ServiceInvoice.payments.any(ServicePayment.verified_at == None)
+        )
+    )
+    payment_query = query.filter(ServiceInvoice.payments.any(ServicePayment.verified_at != None))
+    # waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id == None,
+    #                                                                    ServicePayment.verified_at == None),
+    #                                                                ServiceInvoice.file_attached_at != None)
+    # payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
     if api == 'true':
         if tab == 'draft':
             query = draft_query
@@ -7781,13 +7807,31 @@ def invoice_index_for_central_admin():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
+    sub_lab_ids = [
+        admin.sub_lab_id for admin in ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+        if admin.sub_lab_id
+    ]
+    # query = (
+    #     ServiceInvoice.query
+    #     .join(ServiceInvoice.quotation)
+    #     .join(ServiceQuotation.request)
+    #     .join(ServiceRequest.sub_lab)
+    #     .join(ServiceSubLab.admins)
+    #     .filter(ServiceAdmin.admin_id == current_user.id)
+    # )
     query = (
         ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(ServiceAdmin.admin_id == current_user.id)
+        .options(
+            joinedload(ServiceInvoice.quotation)
+            .joinedload(ServiceQuotation.request),
+        )
+        .filter(
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(
+                    ServiceRequest.sub_lab_id.in_(sub_lab_ids)
+                )
+            )
+        )
     )
     draft_query = query.filter(ServiceInvoice.sent_at == None)
     pending_supervisor_query = query.filter(ServiceInvoice.sent_at != None, ServiceInvoice.head_approved_at == None)
@@ -7795,10 +7839,18 @@ def invoice_index_for_central_admin():
                                            ServiceInvoice.assistant_approved_at == None)
     pending_dean_query = query.filter(ServiceInvoice.assistant_approved_at != None,
                                       ServiceInvoice.file_attached_at == None)
-    waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id == None,
-                                                                       ServicePayment.verified_at == None),
-                                                                   ServiceInvoice.file_attached_at != None)
-    payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
+    waiting_payment_query = query.filter(
+        ServiceInvoice.file_attached_at != None,
+        or_(
+            ~ServiceInvoice.payments.any(),
+            ServiceInvoice.payments.any(ServicePayment.verified_at == None)
+        )
+    )
+    payment_query = query.filter(ServiceInvoice.payments.any(ServicePayment.verified_at != None))
+    # waiting_payment_query = query.outerjoin(ServicePayment).filter(or_(ServicePayment.invoice_id == None,
+    #                                                                    ServicePayment.verified_at == None),
+    #                                                                ServiceInvoice.file_attached_at != None)
+    # payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None)
     if api == 'true':
         if tab == 'draft':
             query = draft_query
