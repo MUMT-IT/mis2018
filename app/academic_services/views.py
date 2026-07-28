@@ -6822,11 +6822,17 @@ def submit_same_address(address_id):
 def sample_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    # query = (
+    #     ServiceSample.query
+    #     .join(ServiceSample.request)
+    #     .filter(
+    #         ServiceRequest.customer_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceSample.query
-        .join(ServiceSample.request)
         .filter(
-            ServiceRequest.customer_id == current_user.id
+            ServiceSample.request.has(ServiceRequest.customer_id == current_user.id)
         )
     )
 
