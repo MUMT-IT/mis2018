@@ -6224,11 +6224,18 @@ def quotation_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
+    # query = (
+    #     ServiceQuotation.query
+    #     .join(ServiceQuotation.request)
+    #     .filter(
+    #         ServiceRequest.customer_id == current_user.id,
+    #         ServiceQuotation.approved_at != None
+    #     )
+    # )
     query = (
         ServiceQuotation.query
-        .join(ServiceQuotation.request)
         .filter(
-            ServiceRequest.customer_id == current_user.id,
+            ServiceQuotation.request.has(ServiceRequest.customer_id == current_user.id),
             ServiceQuotation.approved_at != None
         )
     )
@@ -7068,11 +7075,11 @@ def invoice_index():
     today = arrow.now('Asia/Bangkok').date()
     query = (
         ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
         .filter(
             ServiceInvoice.file_attached_at != None,
-            ServiceRequest.customer_id == current_user.id
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(ServiceRequest.customer_id == current_user.id)
+            )
         )
     )
     pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
@@ -7298,11 +7305,11 @@ def receipt_index():
 def get_receipts():
     query = (
         ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
         .join(ServiceInvoice.receipts)
         .filter(
-            ServiceRequest.customer_id == current_user.id
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(ServiceRequest.customer_id == current_user.id)
+            )
         )
     )
     records_total = query.count()
