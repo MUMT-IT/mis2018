@@ -94,6 +94,16 @@ def get_status(s_id):
     return status_id
 
 
+def get_customer_service_request_or_404(request_id):
+    if not current_user.is_authenticated:
+        abort(404)
+    return (
+        ServiceRequest.query
+        .filter_by(id=request_id, customer_id=current_user.id)
+        .first_or_404()
+    )
+
+
 @academic_services.route('/aws-s3/download/<key>', methods=['GET'])
 def download_file(key):
     result_id = request.args.get('result_id', type=int)
@@ -1343,7 +1353,7 @@ def create_service_request():
 @academic_services.route('/submit-request/edit/<int:request_id>', methods=['GET', 'POST'])
 def submit_request(request_id=None):
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code).first()
     else:
         code = request.args.get('code')
@@ -1374,7 +1384,7 @@ def submit_request(request_id=None):
             elif 'test_sample_of_heavy' in values:
                 products.append(values['test_sample_of_heavy'])
     if request_id:
-        req = ServiceRequest.query.get(request_id)
+        req = get_customer_service_request_or_404(request_id)
         req.data = format_data(form.data)
         req.modified_at = arrow.now('Asia/Bangkok').datetime
         req.product = products
@@ -1420,7 +1430,7 @@ def create_bacteria_disinfection_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = BacteriaDisinfectionRequestForm(data=data)
     else:
@@ -2198,7 +2208,7 @@ def create_bacteria_sterility_test_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = BacteriaSterilityTestRequestForm(data=data)
     else:
@@ -2234,7 +2244,7 @@ def create_bacteria_antimicrobial_activity_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = BacteriaAntimicrobialActivityRequestForm(data=data)
     else:
@@ -2357,7 +2367,7 @@ def create_virus_disinfection_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = VirusDisinfectionRequestForm(data=data)
     else:
@@ -2393,7 +2403,7 @@ def get_product_appearance_other():
     product_appearance = request.args.get("product_appearance")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             product_appearance_other = data.get('product_appearance_other', '')
@@ -2427,7 +2437,7 @@ def get_product_storage_other():
     product_storage = request.args.get("product_storage")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             product_storage_other = data.get('product_storage_other', '')
@@ -2696,7 +2706,7 @@ def create_virus_air_disinfection_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = VirusAirDisinfectionRequestForm(data=data)
     else:
@@ -2816,7 +2826,7 @@ def remove_virus_surface_disinfection_organism_form_entry():
 @login_required
 def remove_condition_form():
     request_id = request.args.get('request_id')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     field = request.form.get("field")
     data = service_request.data or {}
     if field in data:
@@ -2838,7 +2848,7 @@ def create_heavy_metal_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = HeavyMetalRequestForm(data=data)
     else:
@@ -2976,7 +2986,7 @@ def create_food_safety_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = FoodSafetyRequestForm(data=data)
     else:
@@ -3113,7 +3123,7 @@ def get_objective():
     objective = request.args.get("objective")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             objective_other = data.get('objective_other', '')
@@ -3147,7 +3157,7 @@ def get_standard_limitation():
     standard_limitation = request.args.get("standard_limitation")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             standard_limitation_other = data.get('standard_limitation_other', '')
@@ -3181,7 +3191,7 @@ def get_other_service():
     other_service = request.args.get("other_service")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             other_service_note = data.get('other_service_note', '')
@@ -3216,7 +3226,7 @@ def create_protein_identification_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = ProteinIdentificationRequestForm(data=data)
     else:
@@ -3343,7 +3353,7 @@ def create_sds_page_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = SDSPageRequestForm(data=data)
     else:
@@ -3469,7 +3479,7 @@ def create_quantitative_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = QuantitativeRequestForm(data=data)
     else:
@@ -3601,7 +3611,7 @@ def create_metabolomic_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = MetabolomicRequestForm(data=data)
     else:
@@ -3728,7 +3738,7 @@ def get_sample_species_other():
     sample_species = request.args.getlist("sample_species")
     label = 'Comment'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             sample_species_other = data.get('sample_species_other', '')
@@ -3762,7 +3772,7 @@ def get_gel_slices_other():
     gel_slices = request.args.getlist("gel_slices")
     label = 'Comment'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             gel_slices_other = data.get('gel_slices_other', '')
@@ -3796,7 +3806,7 @@ def get_sample_type_other():
     sample_type = request.args.getlist("sample_type")
     label = 'Comment'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             sample_type_other = data.get('sample_type_other', '')
@@ -3831,7 +3841,7 @@ def create_endotoxin_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = EndotoxinRequestForm(data=data)
     else:
@@ -3998,7 +4008,7 @@ def create_toxicology_request(request_id=None):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = ToxicologyRequestForm(data=data)
     else:
@@ -4132,7 +4142,7 @@ def get_other():
     request_id = request.args.get("request_id")
     sample_type = request.args.get("sample_type")
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             volume = data.get('volume', '')
@@ -4183,7 +4193,7 @@ def get_other():
 def create_report_language(request_id):
     menu = request.args.get('menu')
     code = request.args.get('code')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=service_request.sub_lab_id)
     report_receive_channels = ServiceReportReceiveChannel.query.filter_by(sub_lab_id=service_request.sub_lab_id)
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
@@ -4218,7 +4228,7 @@ def create_customer_detail(request_id):
     form = None
     menu = request.args.get('menu')
     code = request.args.get('code')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
     customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
     cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
@@ -4472,7 +4482,7 @@ def get_requests():
 @login_required
 def view_request(request_id=None):
     menu = request.args.get('menu')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     request_data = request_data_paths[service_request.sub_lab.code]
     datas = request_data(service_request, type='form')
     return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
@@ -4978,7 +4988,7 @@ def generate_bacteria_request_pdf(service_request):
 
 @academic_services.route('/request/bacteria/pdf/<int:request_id>', methods=['GET'])
 def export_bacteria_request_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_bacteria_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
@@ -5423,7 +5433,7 @@ def generate_bacteria_sterility_test_request_pdf(service_request):
 
 @academic_services.route('/request/bacteria/sterility_test/pdf/<int:request_id>', methods=['GET'])
 def export_bacteria_sterility_test_request_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_bacteria_sterility_test_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
@@ -6095,7 +6105,7 @@ def generate_virus_request_pdf(service_request):
 
 @academic_services.route('/request/virus/pdf/<int:request_id>', methods=['GET'])
 def export_virus_request_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_virus_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
@@ -6121,7 +6131,7 @@ def get_quotation_addresses():
 def request_quotation(request_id):
     menu = request.args.get('menu')
     status_id = get_status(3)
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     service_request.status_id = status_id
     db.session.add(service_request)
     db.session.commit()
@@ -6989,7 +6999,7 @@ def confirm_sample_appointment_page(request_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     code = request.args.get('code')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     return render_template('academic_services/confirm_sample_appointment_page.html', request_id=request_id,
                            menu=menu, tab=tab, code=code, service_request=service_request)
 
@@ -7234,7 +7244,7 @@ def view_invoice(invoice_id):
 def cancel_request(request_id):
     menu = request.args.get('menu')
     status_id = get_status(2)
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     service_request.status_id = status_id
     db.session.add(service_request)
     db.session.commit()
@@ -7245,7 +7255,7 @@ def cancel_request(request_id):
 @academic_services.route('/edit/academic-service-form', methods=['GET'])
 def edit_request_form():
     request_id = request.args.get('request_id')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential()
@@ -7265,6 +7275,7 @@ def edit_request_form():
 def edit_service_request(request_id):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code)
+    get_customer_service_request_or_404(request_id)
     return render_template('academic_services/edit_request.html', request_id=request_id, sub_lab=sub_lab)
 
 
