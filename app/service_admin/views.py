@@ -29,7 +29,7 @@ from app.service_admin import service_admin
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
     send_file
 from flask_login import current_user, login_required, login_user
-from sqlalchemy import or_, update, and_
+from sqlalchemy import or_, update, and_, case, func
 from app.service_admin.forms import *
 from app.main import app, get_credential
 from app.main import mail
@@ -195,6 +195,43 @@ def _build_service_admin_scope_label(recipient):
     if len(sub_lab_names) <= 3:
         return ', '.join(sub_lab_names)
     return f"{', '.join(sub_lab_names[:3])} และอีก {len(sub_lab_names) - 3} หน่วยงาน"
+
+
+def _build_service_admin_menu_counts(admin_id):
+    counts = (
+        db.session.query(
+            func.count(func.distinct(case((ServiceStatus.status_id.in_([3, 6]), ServiceRequest.id))))
+            .label('request_count'),
+            func.count(func.distinct(case((ServiceStatus.status_id.in_([4, 5, 7]), ServiceRequest.id))))
+            .label('quotation_count'),
+            func.count(func.distinct(case((ServiceStatus.status_id.in_([8, 10]), ServiceRequest.id))))
+            .label('sample_count'),
+            func.count(func.distinct(case((
+                ServiceResult.request_id == None,
+                ServiceTestItem.id
+            )))).label('test_item_count'),
+            func.count(func.distinct(case((ServiceStatus.status_id.in_([15, 18, 19, 20]), ServiceRequest.id))))
+            .label('invoice_count'),
+            func.count(func.distinct(case((ServiceStatus.status_id.in_([21, 22]), ServiceRequest.id))))
+            .label('invoice_count_for_central_admin'),
+            func.count(func.distinct(case((
+                or_(
+                    ServiceResult.sent_at == None,
+                    and_(ServiceResult.req_edit_at != None, ServiceResult.is_edited == False)
+                ),
+                ServiceResult.id
+            )))).label('report_count'),
+        )
+        .select_from(ServiceRequest)
+        .join(ServiceRequest.status)
+        .join(ServiceRequest.sub_lab)
+        .join(ServiceSubLab.admins)
+        .outerjoin(ServiceTestItem, ServiceTestItem.request_id == ServiceRequest.id)
+        .outerjoin(ServiceResult, ServiceResult.request_id == ServiceRequest.id)
+        .filter(ServiceAdmin.admin_id == admin_id)
+        .one()
+    )
+    return counts
 
 
 def _group_service_admin_recipients(predicate):
@@ -2055,6 +2092,116 @@ def update_service_guide(lab_id):
     return render_template('service_admin/update_service_guide.html', form=form, lab=lab)
 
 
+# @service_admin.context_processor
+# def menu():
+#     admin = False
+#     supervisor = False
+#     assistant = False
+#     central_admin = False
+#     request_count = None
+#     quotation_count = None
+#     sample_count = None
+#     test_item_count = None
+#     invoice_count = None
+#     report_count = None
+#     invoice_count_for_central_admin = None
+#     position = None
+#     if current_user.is_authenticated:
+#         admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).first()
+#         if admins and admins.is_assistant:
+#             assistant = True
+#             position = 'Assistant of dean'
+#         elif admins and admins.is_supervisor:
+#             supervisor = True
+#             position = 'Supervisor'
+#         elif admins and admins.is_central_admin:
+#             central_admin = True
+#             position = 'Central Admin'
+#         else:
+#             admin = True
+#             position = 'Admin'
+#
+#         request_count = (ServiceRequest.query
+#         .join(ServiceRequest.status)
+#         .join(ServiceRequest.sub_lab)
+#         .join(ServiceSubLab.admins)
+#         .filter(
+#             ServiceStatus.status_id.in_([3, 6]),
+#             ServiceAdmin.admin_id == current_user.id
+#         )).count()
+#         quotation_count = (ServiceRequest.query
+#         .join(ServiceRequest.status)
+#         .join(ServiceRequest.sub_lab)
+#         .join(ServiceSubLab.admins)
+#         .filter(
+#             ServiceStatus.status_id.in_([4, 5, 7]),
+#             ServiceAdmin.admin_id == current_user.id
+#         )).count()
+#         sample_count = (ServiceRequest.query
+#         .join(ServiceRequest.status)
+#         .join(ServiceRequest.sub_lab)
+#         .join(ServiceSubLab.admins)
+#         .filter(
+#             ServiceStatus.status_id.in_([8, 10]),
+#             ServiceAdmin.admin_id == current_user.id
+#         )
+#         ).count()
+#         # test_item_count = (ServiceTestItem.query
+#         # .join(ServiceTestItem.request)
+#         # .join(ServiceRequest.sub_lab)
+#         # .join(ServiceSubLab.admins)
+#         # .outerjoin(ServiceResult)
+#         # .filter(
+#         #     ServiceAdmin.admin_id == current_user.id, or_(ServiceResult.request_id == None,
+#         #                                                   ServiceResult.sent_at == None,
+#         #                                                   and_(ServiceResult.req_edit_at != None,
+#         #                                                        ServiceResult.is_edited == False))
+#         # )
+#         # ).count()
+#         test_item_count = (ServiceTestItem.query
+#         .join(ServiceTestItem.request)
+#         .join(ServiceRequest.sub_lab)
+#         .join(ServiceSubLab.admins)
+#         .outerjoin(ServiceResult)
+#         .filter(
+#             ServiceAdmin.admin_id == current_user.id, ServiceResult.request_id == None
+#         )
+#         ).count()
+#         invoice_count = (ServiceRequest.query
+#         .join(ServiceRequest.status)
+#         .join(ServiceRequest.sub_lab)
+#         .join(ServiceSubLab.admins)
+#         .filter(
+#             ServiceStatus.status_id.in_([15, 18, 19, 20]),
+#             ServiceAdmin.admin_id == current_user.id
+#         )).count()
+#         invoice_count_for_central_admin = (ServiceRequest.query
+#         .join(ServiceRequest.status)
+#         .join(ServiceRequest.sub_lab)
+#         .join(ServiceSubLab.admins)
+#         .filter(
+#             ServiceStatus.status_id.in_([21, 22]),
+#             ServiceAdmin.admin_id == current_user.id
+#         )).count()
+#         report_count = (
+#             ServiceResult.query
+#             .join(ServiceResult.request)
+#             .join(ServiceRequest.sub_lab)
+#             .join(ServiceSubLab.admins)
+#             .filter(
+#                 ServiceAdmin.admin_id == current_user.id,
+#                 or_(ServiceResult.sent_at == None,
+#                     and_(ServiceResult.req_edit_at != None,
+#                          ServiceResult.is_edited == False)
+#                     )
+#             )
+#         ).count()
+#     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
+#                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
+#                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count,
+#                 invoice_count_for_central_admin=invoice_count_for_central_admin)
+
+
 @service_admin.context_processor
 def menu():
     admin = False
@@ -2084,81 +2231,15 @@ def menu():
             admin = True
             position = 'Admin'
 
-        request_count = (ServiceRequest.query
-        .join(ServiceRequest.status)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(
-            ServiceStatus.status_id.in_([3, 6]),
-            ServiceAdmin.admin_id == current_user.id
-        )).count()
-        quotation_count = (ServiceRequest.query
-        .join(ServiceRequest.status)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(
-            ServiceStatus.status_id.in_([4, 5, 7]),
-            ServiceAdmin.admin_id == current_user.id
-        )).count()
-        sample_count = (ServiceRequest.query
-        .join(ServiceRequest.status)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(
-            ServiceStatus.status_id.in_([8, 10]),
-            ServiceAdmin.admin_id == current_user.id
-        )
-        ).count()
-        # test_item_count = (ServiceTestItem.query
-        # .join(ServiceTestItem.request)
-        # .join(ServiceRequest.sub_lab)
-        # .join(ServiceSubLab.admins)
-        # .outerjoin(ServiceResult)
-        # .filter(
-        #     ServiceAdmin.admin_id == current_user.id, or_(ServiceResult.request_id == None,
-        #                                                   ServiceResult.sent_at == None,
-        #                                                   and_(ServiceResult.req_edit_at != None,
-        #                                                        ServiceResult.is_edited == False))
-        # )
-        # ).count()
-        test_item_count = (ServiceTestItem.query
-        .join(ServiceTestItem.request)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .outerjoin(ServiceResult)
-        .filter(
-            ServiceAdmin.admin_id == current_user.id, ServiceResult.request_id == None
-        )
-        ).count()
-        invoice_count = (ServiceRequest.query
-        .join(ServiceRequest.status)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(
-            ServiceStatus.status_id.in_([15, 18, 19, 20]),
-            ServiceAdmin.admin_id == current_user.id
-        )).count()
-        invoice_count_for_central_admin = (ServiceRequest.query
-        .join(ServiceRequest.status)
-        .join(ServiceRequest.sub_lab)
-        .join(ServiceSubLab.admins)
-        .filter(
-            ServiceStatus.status_id.in_([21, 22]),
-            ServiceAdmin.admin_id == current_user.id
-        )).count()
-        report_count = (
-            ServiceResult.query
-            .join(ServiceResult.request)
-            .join(ServiceRequest.sub_lab)
-            .join(ServiceSubLab.admins)
-            .filter(
-                ServiceAdmin.admin_id == current_user.id,
-                or_(ServiceResult.sent_at == None,
-                    and_(ServiceResult.req_edit_at != None,
-                         ServiceResult.is_edited == False)
-                    )
-            )
-        ).count()
+        # --- Badge counters: fetched together in one round-trip instead of repeating the same joins ---
+        counts = _build_service_admin_menu_counts(current_user.id)
+        request_count = counts.request_count
+        quotation_count = counts.quotation_count
+        sample_count = counts.sample_count
+        test_item_count = counts.test_item_count
+        invoice_count = counts.invoice_count
+        invoice_count_for_central_admin = counts.invoice_count_for_central_admin
+        report_count = counts.report_count
     return dict(admin=admin, supervisor=supervisor, assistant=assistant, central_admin=central_admin, position=position,
                 request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 test_item_count=test_item_count, invoice_count=invoice_count, report_count=report_count,
