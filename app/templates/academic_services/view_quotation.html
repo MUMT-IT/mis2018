@@ -123,6 +123,15 @@
                                             <span class="icon"><i class="fas fa-times"></i></span>
                                             <span>ปฏิเสธ</span>
                                         </a>
+                                    {% elif quotation.request.status.status_id == 1 or
+                                        quotation.request.status.status_id == 9 %}
+                                        <a class="button is-rounded is-outlined is-small mb-2"
+                                           href="{{ url_for('academic_services.create_request',
+                                               request_id=quotation.request_id, code=quotation.request.sub_lab.code) }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-pen"></i></span>
+                                            <span>แก้ไขข้อมูลคำขอ</span>
+                                        </a>
                                     {% endif %}
                                     <a class="button is-info is-outlined is-rounded is-small mb-2"
                                        href="{{ url_for('academic_services.export_quotation_pdf', quotation_id=quotation_id) }}"
