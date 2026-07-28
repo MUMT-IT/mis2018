@@ -2294,6 +2294,95 @@ def create_customer(customer_id=None):
                            form=form, account=account)
 
 
+# @service_admin.route('/request/index')
+# @login_required
+# def request_index():
+#     menu = request.args.get('menu')
+#     admins = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
+#     admin = False
+#     supervisor = False
+#     assistant = False
+#
+#     sub_labs = []
+#     for a in admins:
+#         if a.is_assistant:
+#             assistant = True
+#         elif a.is_supervisor:
+#             supervisor = True
+#         else:
+#             admin = True
+#         sub_labs.append(a.sub_lab.code)
+#
+#     ids = list(range(3, 25))
+#
+#     status_groups = {
+#         'all': {
+#             'id': ids,
+#             'name': 'รายการทั้งหมด',
+#             'icon': '<i class="fas fa-list-ul"></i>'
+#         },
+#         'create_quotation': {
+#             'id': [3, 4, 5, 6],
+#             'name': 'รอออก/อนุมัติใบเสนอราคา',
+#             'color': 'is-info',
+#             'icon': '<i class="fas fa-file-invoice"></i>'
+#         },
+#         'received_sample': {
+#             'id': [8, 10],
+#             'name': 'รอรับตัวอย่าง',
+#             'color': 'is-info',
+#             'icon': '<i class="fas fa-people-carry"></i>'
+#         },
+#         'waiting_test': {
+#             'id': [11],
+#             'name': 'รอทดสอบตัวอย่าง',
+#             'color': 'is-info',
+#             'icon': '<i class="fas fa-vial"></i>'
+#         },
+#         # 'waiting_report': {
+#         #     'id': [11, 12, 14, 15],
+#         #     'name': 'รอออกใบรายงานผล',
+#         #     'color': 'is-info',
+#         #     'icon': '<i class="fas fa-file-alt"></i>'
+#         # },
+#         'create_invoice': {
+#             'id': [15, 18, 19, 20, 21],
+#             'name': 'รอออก/อนุมัติใบแจ้งหนี้',
+#             'color': 'is-info',
+#             'icon': '<i class="fas fa-file-invoice-dollar"></i>'
+#         },
+#         'wait_payment': {
+#             'id': [22, 23],
+#             'name': 'รอชำระเงิน',
+#             'color': 'is-info',
+#             'icon': '<i class="fas fa-money-check-alt"></i>'
+#         },
+#         'confirm_payment': {
+#             'id': [24],
+#             'name': 'ชำระเงินสำเร็จ',
+#             'color': 'is-light',
+#             'icon': '<i class="fas fa-check"></i>'
+#         }
+#     }
+#
+#     for key, group in status_groups.items():
+#         group_ids = [i for i in group['id'] if i != 9 and i!= 12]
+#         query = (
+#             ServiceRequest.query
+#             .join(ServiceRequest.status)
+#             .join(ServiceRequest.sub_lab)
+#             .join(ServiceSubLab.admins)
+#             .filter(
+#                 ServiceStatus.status_id.in_(group_ids),
+#                 ServiceAdmin.admin_id == current_user.id
+#             )
+#         ).count()
+#
+#         status_groups[key]['count'] = query
+#     return render_template('service_admin/request_index.html', menu=menu, admin=admin,
+#                            supervisor=supervisor, assistant=assistant, status_groups=status_groups)
+
+
 @service_admin.route('/request/index')
 @login_required
 def request_index():
@@ -2303,7 +2392,7 @@ def request_index():
     supervisor = False
     assistant = False
 
-    sub_labs = []
+    sub_lab_ids = []
     for a in admins:
         if a.is_assistant:
             assistant = True
@@ -2311,13 +2400,13 @@ def request_index():
             supervisor = True
         else:
             admin = True
-        sub_labs.append(a.sub_lab.code)
-
-    ids = list(range(3, 25))
+        if a.sub_lab_id:
+            sub_lab_ids.append(a.sub_lab_id)
+    status_ids = [i for i in range(3, 25) if i not in (9, 12)]
 
     status_groups = {
         'all': {
-            'id': ids,
+            'id': status_ids,
             'name': 'รายการทั้งหมด',
             'icon': '<i class="fas fa-list-ul"></i>'
         },
@@ -2365,20 +2454,24 @@ def request_index():
         }
     }
 
-    for key, group in status_groups.items():
-        group_ids = [i for i in group['id'] if i != 9 and i!= 12]
-        query = (
-            ServiceRequest.query
-            .join(ServiceRequest.status)
-            .join(ServiceRequest.sub_lab)
-            .join(ServiceSubLab.admins)
-            .filter(
-                ServiceStatus.status_id.in_(group_ids),
-                ServiceAdmin.admin_id == current_user.id
+    counts_by_status = {}
+    if sub_lab_ids:
+        counts_by_status = dict(
+            db.session.query(
+                ServiceStatus.status_id,
+                func.count(ServiceRequest.id)
             )
-        ).count()
+            .join(ServiceRequest.status)
+            .filter(
+                ServiceStatus.status_id.in_(status_ids),
+                ServiceRequest.sub_lab_id.in_(sub_lab_ids)
+            )
+            .group_by(ServiceStatus.status_id)
+            .all()
+        )
 
-        status_groups[key]['count'] = query
+    for key, group in status_groups.items():
+        status_groups[key]['count'] = sum(counts_by_status.get(status_id, 0) for status_id in group['id'])
     return render_template('service_admin/request_index.html', menu=menu, admin=admin,
                            supervisor=supervisor, assistant=assistant, status_groups=status_groups)
 
