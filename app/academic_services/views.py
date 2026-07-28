@@ -6099,7 +6099,7 @@ def request_quotation(request_id):
 @academic_services.route('/request/copy/<int:request_id>')
 @login_required
 def copy_request(request_id):
-    old_service_request = ServiceRequest.query.get(request_id)
+    old_service_request = ServiceRequest.query.filter_by(id=request_id, customer_id=current_user.id).first()
     request_no = ServiceNumberID.get_number('Request', db, lab=old_service_request.sub_lab.ref)
     new_service_request = ServiceRequest(customer_id=current_user.id, status_id=get_status(1),
                                          created_at=arrow.now('Asia/Bangkok').datetime, request_no=request_no.number,
