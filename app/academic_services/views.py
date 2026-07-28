@@ -6104,6 +6104,7 @@ def copy_request(request_id):
     new_service_request = ServiceRequest(customer_id=current_user.id, status_id=get_status(1),
                                          created_at=arrow.now('Asia/Bangkok').datetime, request_no=request_no.number,
                                          sub_lab=old_service_request.sub_lab, data=old_service_request.data)
+    request_no.count += 1
     db.session.add(new_service_request)
     db.session.commit()
     flash('คัดลอกข้อมูลสำเร็จ', 'success')
