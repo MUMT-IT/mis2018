@@ -4,19 +4,24 @@ import json
 import re
 from datetime import datetime, timezone
 
+import boto3
 import fitz
 import requests
-from flask import current_app, flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from werkzeug.utils import secure_filename
+from app.main import db
 
 from . import docs_query
+from .models import DocsQueryDocument
 
 FOLDER_ID = '1PI7ZN5V1W_NxUGRteg8cXvnJMzF2nHOd'
 ALLOWED_EXTENSIONS = {'pdf'}
+S3_BUCKET_NAME = os.getenv('BUCKETEER_BUCKET_NAME')
+S3_PREFIX = 'docs_query'
 
 
 def _load_google_keyfile():
@@ -48,20 +53,22 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
-def _get_extracted_text_dir():
-    output_dir = os.path.join(current_app.instance_path, 'docs_query_extracted')
-    os.makedirs(output_dir, exist_ok=True)
-    return output_dir
+def initialize_s3():
+    return boto3.client(
+        's3',
+        region_name=os.getenv('BUCKETEER_AWS_REGION'),
+        aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY'),
+    )
 
 
-def _get_processed_artifact_dir():
-    output_dir = os.path.join(current_app.instance_path, 'docs_query_processed')
-    os.makedirs(output_dir, exist_ok=True)
-    return output_dir
-
-
-def _get_processed_artifact_path(file_id):
-    return os.path.join(_get_processed_artifact_dir(), '{}.json'.format(file_id))
+def _get_artifact_keys(file_id):
+    prefix = '{}/{}'.format(S3_PREFIX, file_id)
+    return {
+        'extracted_text': '{}/extracted.txt'.format(prefix),
+        'chunks': '{}/chunks.json'.format(prefix),
+        'artifact': '{}/artifact.json'.format(prefix),
+    }
 
 
 def allowed_file(filename):
@@ -106,21 +113,58 @@ def _get_google_drive_file(file_id):
     return file_item
 
 
-def save_processed_artifact(file_id, data):
-    artifact_path = _get_processed_artifact_path(file_id)
-    with open(artifact_path, 'w', encoding='utf-8') as artifact_file:
-        json.dump(data, artifact_file, ensure_ascii=False, indent=2)
-    return artifact_path
+def save_processed_artifacts(file_id, extracted_text, chunks, artifact):
+    if not S3_BUCKET_NAME:
+        raise RuntimeError('BUCKETEER_BUCKET_NAME is not configured')
+
+    keys = _get_artifact_keys(file_id)
+    s3 = initialize_s3()
+    s3.put_object(
+        Bucket=S3_BUCKET_NAME,
+        Key=keys['extracted_text'],
+        Body=extracted_text.encode('utf-8'),
+        ContentType='text/plain; charset=utf-8',
+    )
+    s3.put_object(
+        Bucket=S3_BUCKET_NAME,
+        Key=keys['chunks'],
+        Body=json.dumps(chunks, ensure_ascii=False, indent=2).encode('utf-8'),
+        ContentType='application/json; charset=utf-8',
+    )
+    s3.put_object(
+        Bucket=S3_BUCKET_NAME,
+        Key=keys['artifact'],
+        Body=json.dumps(artifact, ensure_ascii=False, indent=2).encode('utf-8'),
+        ContentType='application/json; charset=utf-8',
+    )
+    return keys
 
 
 def load_processed_artifact(file_id):
-    artifact_path = _get_processed_artifact_path(file_id)
-    with open(artifact_path, encoding='utf-8') as artifact_file:
-        return json.load(artifact_file)
+    document = DocsQueryDocument.query.filter_by(
+        drive_file_id=file_id,
+        status='processed',
+    ).first()
+    if not document or not document.artifact_key or not S3_BUCKET_NAME:
+        raise FileNotFoundError('Processed artifact does not exist for this document')
+
+    response = initialize_s3().get_object(Bucket=S3_BUCKET_NAME, Key=document.artifact_key)
+    return json.loads(response['Body'].read().decode('utf-8'))
 
 
 def processed_artifact_exists(file_id):
-    return os.path.exists(_get_processed_artifact_path(file_id))
+    return DocsQueryDocument.query.filter_by(
+        drive_file_id=file_id,
+        status='processed',
+    ).first() is not None
+
+
+def _get_or_create_document(file_id):
+    document = DocsQueryDocument.query.filter_by(drive_file_id=file_id).first()
+    if not document:
+        document = DocsQueryDocument(drive_file_id=file_id)
+        db.session.add(document)
+    return document
 
 
 def upload_pdf_file(upload_file, metadata):
@@ -270,6 +314,16 @@ def list_pdf_files():
     drive = initialize_gdrive()
     query = "'{}' in parents and trashed=false".format(FOLDER_ID)
     files = drive.ListFile({'q': query}).GetList()
+    file_ids = [file_item.get('id') for file_item in files if file_item.get('id')]
+    processed_ids = set()
+    if file_ids:
+        processed_ids = {
+            document.drive_file_id
+            for document in DocsQueryDocument.query.filter(
+                DocsQueryDocument.drive_file_id.in_(file_ids),
+                DocsQueryDocument.status == 'processed',
+            ).all()
+        }
     pdf_files = []
     for file_item in files:
         mime_type = file_item.get('mimeType')
@@ -285,7 +339,7 @@ def list_pdf_files():
             'mime_type': mime_type,
             'modified_time': file_item.get('modifiedDate'),
             'web_view_link': file_item.get('webViewLink') or file_item.get('alternateLink'),
-            'is_processed': processed_artifact_exists(file_item.get('id')),
+            'is_processed': file_item.get('id') in processed_ids,
         })
     return sorted(pdf_files, key=lambda item: item.get('modified_time') or '', reverse=True)
 
@@ -346,6 +400,7 @@ def upload():
 @login_required
 def extract(file_id):
     pdf_path = None
+    document = None
     extraction_status = 'success'
     warning_message = None
     try:
@@ -353,11 +408,14 @@ def extract(file_id):
         extracted_text = extract_pdf_text(pdf_path)
         document_title = file_item.get('title') or 'Untitled document'
         filename = file_item.get('originalFilename') or file_item.get('title') or '{}.pdf'.format(file_id)
-
-        output_dir = _get_extracted_text_dir()
-        output_path = os.path.join(output_dir, '{}.txt'.format(file_id))
-        with open(output_path, 'w', encoding='utf-8') as output_file:
-            output_file.write(extracted_text)
+        document_type = (_read_drive_properties(file_item).get('document_type') if file_item else '') or ''
+        document = _get_or_create_document(file_id)
+        document.document_title = document_title
+        document.filename = filename
+        document.document_type = document_type
+        document.status = 'processing'
+        document.error_message = None
+        db.session.commit()
 
         extracted_char_count = len(extracted_text)
         if extracted_char_count < 50:
@@ -384,16 +442,12 @@ def extract(file_id):
             }
             for index, chunk in enumerate(chunks)
         ]
-        chunk_output_path = os.path.join(output_dir, '{}_chunks.json'.format(file_id))
-        with open(chunk_output_path, 'w', encoding='utf-8') as chunk_output_file:
-            json.dump(chunk_payload, chunk_output_file, ensure_ascii=False, indent=2)
-
         processed_artifact = {
             'file_id': file_id,
             'document_title': document_title,
             'filename': filename,
             'department': '',
-            'document_type': (_read_drive_properties(file_item).get('document_type') if file_item else '') or '',
+            'document_type': document_type,
             'processing': {
                 'extracted_at': datetime.now(timezone.utc).isoformat(),
                 'chunk_method': chunking_method,
@@ -413,7 +467,17 @@ def extract(file_id):
                 for index, chunk in enumerate(chunks)
             ],
         }
-        save_processed_artifact(file_id, processed_artifact)
+        storage_keys = save_processed_artifacts(file_id, extracted_text, chunk_payload, processed_artifact)
+        document.status = 'processed'
+        document.extracted_text_key = storage_keys['extracted_text']
+        document.chunks_key = storage_keys['chunks']
+        document.artifact_key = storage_keys['artifact']
+        document.extracted_at = datetime.now(timezone.utc)
+        document.extracted_char_count = extracted_char_count
+        document.total_chunks = len(chunks)
+        document.chunking_method = chunking_method
+        document.error_message = None
+        db.session.commit()
 
         return render_template(
             'docs_query/extract_preview.html',
@@ -427,6 +491,12 @@ def extract(file_id):
             warning_message=warning_message,
         )
     except Exception as exc:
+        db.session.rollback()
+        if document:
+            document.status = 'failed'
+            document.error_message = str(exc)
+            db.session.add(document)
+            db.session.commit()
         flash('Failed to extract text from the PDF: {}'.format(exc), 'danger')
         return render_template(
             'docs_query/extract_preview.html',
