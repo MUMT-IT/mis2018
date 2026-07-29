@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Processed Document Artifact{% endblock %}
+{% block title %}MUMT-MIS: ข้อมูลเอกสารที่ประมวลผลแล้ว{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -9,24 +9,24 @@
                     <div class="box docs-query-shell">
                         <div class="level is-mobile mb-5">
                             <div>
-                                <h1 class="title is-3">Processed Document Artifact</h1>
-                                <p class="subtitle is-6 has-text-grey">Local development JSON generated after extraction and chunking.</p>
+                                <h1 class="title is-3">ข้อมูลเอกสารที่ประมวลผลแล้ว</h1>
+                                <p class="subtitle is-6 has-text-grey">ไฟล์ JSON สำหรับตรวจสอบผลการสกัดและแบ่งส่วนข้อความ</p>
                             </div>
                             <div>
-                                <a class="button is-light" href="{{ url_for('docs_query.index') }}">Back</a>
+                                <a class="button is-light" href="{{ url_for('docs_query.admin') }}">ย้อนกลับ</a>
                             </div>
                         </div>
 
                         <div class="content mb-5">
-                            <p><strong>Document title:</strong> {{ artifact.document_title }}</p>
-                            <p><strong>Filename:</strong> {{ artifact.filename }}</p>
-                            <p><strong>Document type:</strong> {{ artifact.document_type or '-' }}</p>
-                            <p><strong>Total characters:</strong> {{ artifact.statistics.total_characters }}</p>
-                            <p><strong>Total chunks:</strong> {{ artifact.statistics.total_chunks }}</p>
+                            <p><strong>ชื่อเอกสาร:</strong> {{ artifact.document_title }}</p>
+                            <p><strong>ชื่อไฟล์:</strong> {{ artifact.filename }}</p>
+                            <p><strong>ประเภทเอกสาร:</strong> {{ artifact.document_type or '-' }}</p>
+                            <p><strong>จำนวนอักขระทั้งหมด:</strong> {{ artifact.statistics.total_characters }}</p>
+                            <p><strong>จำนวนส่วนทั้งหมด:</strong> {{ artifact.statistics.total_chunks }}</p>
                         </div>
 
                         <div class="content">
-                            <h2 class="title is-5">JSON</h2>
+                            <h2 class="title is-5">ข้อมูล JSON</h2>
                             <pre class="artifact-preview">{{ artifact_json }}</pre>
                         </div>
                     </div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Docs Query{% endblock %}
+{% block title %}MUMT-MIS: ค้นหาเอกสาร{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -8,27 +8,33 @@
                     {% include "messages.html" %}
                     <div class="box docs-query-shell">
                         <div class="has-text-centered mb-6">
-                            <h1 class="title is-2">Document Query</h1>
-                            <p class="subtitle is-5 has-text-grey">Search internal documents or upload a PDF for later use.</p>
+                            <h1 class="title is-2">ค้นหาเอกสาร</h1>
+                            <p class="subtitle is-5 has-text-grey">ค้นหาเอกสารภายในและค้นหาแนวปฏิบัติ ประกาศ หรือคำแนะนำที่เกี่ยวข้อง</p>
+                            {% if can_manage_documents %}
+                                <a class="button is-light" href="{{ url_for('docs_query.admin') }}">
+                                    <span class="icon"><i class="fas fa-cog"></i></span>
+                                    <span>จัดการเอกสาร</span>
+                                </a>
+                            {% endif %}
                         </div>
 
                         <form method="post" action="{{ url_for('docs_query.index') }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="field">
-                                <label class="label" for="query">Question or search</label>
+                                <label class="label" for="query">คำถามหรือคำค้น</label>
                                 <div class="control">
                                     <input
                                         class="input is-large"
                                         id="query"
                                         name="query"
                                         type="text"
-                                        placeholder="Search documents or ask a question..."
+                                        placeholder="ค้นหาเอกสารหรือพิมพ์คำถาม..."
                                         value="{{ query or '' }}"
                                     >
                                 </div>
                             </div>
                             <div class="field has-text-centered mt-5">
-                                <button class="button is-info is-medium" type="submit">Search</button>
+                                <button class="button is-info is-medium" type="submit">ค้นหา</button>
                             </div>
                         </form>
 
@@ -36,154 +42,83 @@
                             <div class="mt-5">
                                 <div class="level is-mobile mb-3">
                                     <div>
-                                        <h2 class="title is-4 mb-1">Search Results</h2>
-                                        <p class="has-text-grey is-size-7">Matches for “{{ query }}”</p>
+                                        <h2 class="title is-4 mb-1">ผลการค้นหา</h2>
+                                        <p class="has-text-grey is-size-7">ผลลัพธ์สำหรับ “{{ query }}”</p>
                                     </div>
-                                    {% if search_results %}
-                                        <span class="tag is-info is-light">{{ search_results|length }} results</span>
+                                    {% if related_documents %}
+                                        <span class="tag is-info is-light">พบเอกสารที่อาจเกี่ยวข้อง {{ related_documents|length }} รายการ</span>
                                     {% endif %}
                                 </div>
                                 {% if answer %}
                                     <article class="message is-primary is-light docs-query-answer">
                                         <div class="message-header">
-                                            <p><i class="fas fa-sparkles" aria-hidden="true"></i> Related Documents Overview</p>
+                                            <p><i class="fas fa-sparkles" aria-hidden="true"></i> ภาพรวมเอกสารที่เกี่ยวข้อง</p>
                                             <span class="tag is-warning is-light is-small">AI-generated content</span>
                                         </div>
                                         <div class="message-body">{{ answer }}</div>
                                     </article>
                                 {% endif %}
-                                {% if search_results %}
-                                    {% for result in search_results %}
-                                        <article class="message is-light docs-query-result">
-                                            <div class="message-header">
-                                                <p>{{ result.document.document_title or result.document.filename }}</p>
-                                                <span class="is-size-7">Chunk {{ result.chunk_index + 1 }}</span>
+                                {% if related_documents %}
+                                    <div class="mb-3">
+                                        <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
+                                        <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
+                                    </div>
+                                    <div class="columns is-multiline">
+                                        {% for related in related_documents %}
+                                            <div class="column is-half">
+                                                <div class="box docs-query-related-document">
+                                                    <a href="{{ related.url }}" target="_blank" rel="noopener noreferrer">
+                                                        <div class="is-flex is-justify-content-space-between is-align-items-start">
+                                                            <div>
+                                                                <p class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</p>
+                                                                <p class="is-size-7 has-text-grey">{{ related.document.document_type or 'เอกสาร' }}</p>
+                                                            </div>
+                                                            <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
+                                                        </div>
+                                                    </a>
+                                                    {% if related.document.is_expired %}
+                                                        <span class="tag is-danger is-light mt-3">หมดอายุ</span>
+                                                    {% endif %}
+                                                    {% if related.document.tags %}
+                                                        <div class="tags mt-3 mb-0">
+                                                            {% for tag in related.document.tags %}
+                                                                <span class="tag is-info is-light">{{ tag }}</span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                    <button class="button is-small is-light mt-4 docs-query-reference-trigger" type="button" data-target="docs-query-reference-{{ loop.index }}">
+                                                        <span class="icon"><i class="fas fa-quote-left" aria-hidden="true"></i></span>
+                                                        <span>ดูข้อความอ้างอิง</span>
+                                                    </button>
+                                                </div>
+                                                <div id="docs-query-reference-{{ loop.index }}" class="modal docs-query-reference-modal">
+                                                    <div class="modal-background"></div>
+                                                    <div class="modal-card">
+                                                        <header class="modal-card-head">
+                                                            <p class="modal-card-title is-size-5">{{ related.document.document_title or related.document.filename }}</p>
+                                                            <button class="delete docs-query-modal-close" type="button" aria-label="ปิด"></button>
+                                                        </header>
+                                                        <section class="modal-card-body">
+                                                            <p class="is-size-7 has-text-grey mb-3">ข้อความอ้างอิงจากส่วนที่ {{ related.chunk_index + 1 }}</p>
+                                                            <div class="docs-query-reference-text">{{ related.chunk_text }}</div>
+                                                        </section>
+                                                        <footer class="modal-card-foot">
+                                                            <a class="button is-info is-light" href="{{ related.url }}" target="_blank" rel="noopener noreferrer">เปิดเอกสารต้นฉบับ</a>
+                                                            <button class="button docs-query-modal-close" type="button">ปิด</button>
+                                                        </footer>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="message-body">
-                                                <p class="is-size-7 has-text-grey mb-2">
-                                                    {{ result.document.document_type or 'Document' }}
-                                                </p>
-                                                <p>{{ result.snippet }}</p>
-                                            </div>
-                                        </article>
-                                    {% endfor %}
+                                        {% endfor %}
+                                    </div>
                                 {% else %}
                                     <div class="notification is-light">
-                                        No matching text was found in processed documents.
+                                        ไม่พบเอกสาร
                                     </div>
                                 {% endif %}
                             </div>
                         {% endif %}
 
-                        <hr>
-
-                        <form method="post" action="{{ url_for('docs_query.upload') }}" enctype="multipart/form-data">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="field">
-                                <label class="label" for="document_title">Document title</label>
-                                <div class="control">
-                                    <input class="input" id="document_title" name="document_title" type="text" required>
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label" for="description">Description</label>
-                                <div class="control">
-                                    <textarea class="textarea" id="description" name="description" rows="3"></textarea>
-                                </div>
-                            </div>
-                            <div class="columns">
-                                <div class="column">
-                                    <div class="field">
-                                        <label class="label" for="document_type">Document type</label>
-                                        <div class="control">
-                                            <div class="select is-fullwidth">
-                                                <select id="document_type" name="document_type">
-                                                    <option value="">Select document type</option>
-                                                    <option value="ข้อบังคับ">ข้อบังคับ</option>
-                                                    <option value="ประกาศ">ประกาศ</option>
-                                                    <option value="อื่นๆ">อื่นๆ</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label" for="file">Upload PDF</label>
-                                <div class="control">
-                                    <input class="input" id="file" name="file" type="file" accept="application/pdf,.pdf">
-                                </div>
-                                <p class="help">Only PDF files are accepted.</p>
-                            </div>
-                            <div class="field has-text-centered mt-5">
-                                <button class="button is-success is-medium" type="submit">Upload PDF</button>
-                            </div>
-                        </form>
-
-                        <hr>
-
-                        <div class="mt-5">
-                            <h2 class="title is-4">PDF Files in Google Drive</h2>
-                            {% if pdf_files %}
-                                <div class="table-container">
-                                    <table class="table is-fullwidth is-hoverable">
-                                        <thead>
-                                        <tr>
-                                            <th>Title</th>
-                                            <th>Document Type</th>
-                                            <th>Processed</th>
-                                            <th>Modified</th>
-                                            <th>View</th>
-                                            <th>Extract</th>
-                                            <th>Artifact</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for pdf in pdf_files %}
-                                            <tr>
-                                                <td>
-                                                    <p class="has-text-weight-semibold">{{ pdf.document_title }}</p>
-                                                    <p class="is-size-7 has-text-grey">{{ pdf.name }}</p>
-                                                    <p class="is-size-7 has-text-grey">ID: {{ pdf.id }}</p>
-                                                </td>
-                                                <td>{{ pdf.document_type or '-' }}</td>
-                                                <td>
-                                                    {% if pdf.is_processed %}
-                                                        <span class="tag is-success is-light">Processed</span>
-                                                    {% else %}
-                                                        <span class="tag is-light">Not Processed</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td>{{ pdf.modified_time or '-' }}</td>
-                                                <td>
-                                                    {% if pdf.web_view_link %}
-                                                        <a href="{{ pdf.web_view_link }}" target="_blank" rel="noopener noreferrer">Open</a>
-                                                    {% else %}
-                                                        -
-                                                    {% endif %}
-                                                </td>
-                                                <td>
-                                                    <form method="post" action="{{ url_for('docs_query.extract', file_id=pdf.id) }}">
-                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                        <button class="button is-small is-info is-light" type="submit">Extract Text</button>
-                                                    </form>
-                                                </td>
-                                                <td>
-                                                    {% if pdf.is_processed %}
-                                                        <a class="button is-small is-success is-light" href="{{ url_for('docs_query.view_processed', file_id=pdf.id) }}">View JSON</a>
-                                                    {% else %}
-                                                        <span class="has-text-grey">-</span>
-                                                    {% endif %}
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <p class="has-text-grey">No PDF files found in the configured Google Drive folder.</p>
-                            {% endif %}
-                        </div>
                     </div>
                 </div>
             </div>
@@ -211,6 +146,32 @@
             line-height: 1.65;
         }
 
+        .docs-query-related-document {
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            height: 100%;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .docs-query-related-document:hover {
+            box-shadow: 0 0.5rem 1.5rem rgba(18, 39, 84, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .docs-query-reference-modal .modal-card {
+            width: min(720px, calc(100vw - 2rem));
+        }
+
+        .docs-query-reference-text {
+            background: rgba(18, 39, 84, 0.04);
+            border-left: 3px solid #3273dc;
+            border-radius: 8px;
+            line-height: 1.7;
+            max-height: 28rem;
+            overflow-y: auto;
+            padding: 1rem;
+            white-space: pre-line;
+        }
+
         .docs-query-answer {
             border-radius: 14px;
             margin-bottom: 1.25rem;
@@ -221,4 +182,18 @@
             white-space: pre-line;
         }
     </style>
+    <script>
+        document.querySelectorAll('.docs-query-reference-trigger').forEach(function (trigger) {
+            trigger.addEventListener('click', function () {
+                var modal = document.getElementById(trigger.dataset.target);
+                if (modal) modal.classList.add('is-active');
+            });
+        });
+        document.querySelectorAll('.docs-query-modal-close, .docs-query-reference-modal .modal-background').forEach(function (closeButton) {
+            closeButton.addEventListener('click', function () {
+                var modal = closeButton.closest('.modal');
+                if (modal) modal.classList.remove('is-active');
+            });
+        });
+    </script>
 {% endblock %}

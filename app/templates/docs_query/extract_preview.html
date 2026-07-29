@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}MUMT-MIS: Extracted PDF Text{% endblock %}
+{% block title %}MUMT-MIS: ตัวอย่างข้อความที่สกัด{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -9,21 +9,21 @@
                     <div class="box docs-query-shell">
                         <div class="level is-mobile mb-5">
                             <div>
-                                <h1 class="title is-3">Extracted Text Preview</h1>
-                                <p class="subtitle is-6 has-text-grey">Review extraction quality before later chunking and indexing.</p>
+                                <h1 class="title is-3">ตัวอย่างข้อความที่สกัด</h1>
+                                <p class="subtitle is-6 has-text-grey">ตรวจสอบคุณภาพข้อความก่อนแบ่งส่วนและจัดทำดัชนี</p>
                             </div>
                             <div>
-                                <a class="button is-light" href="{{ url_for('docs_query.index') }}">Back</a>
+                                <a class="button is-light" href="{{ url_for('docs_query.admin') }}">ย้อนกลับ</a>
                             </div>
                         </div>
 
                         <div class="content mb-5">
-                            <p><strong>Document title:</strong> {{ document_title }}</p>
-                            <p><strong>Filename:</strong> {{ filename }}</p>
-                            <p><strong>Status:</strong> {{ extraction_status }}</p>
-                            <p><strong>Chunking method:</strong> {{ chunking_method }}</p>
-                            <p><strong>Extracted character count:</strong> {{ extracted_char_count }}</p>
-                            <p><strong>Total chunk count:</strong> {{ total_chunk_count }}</p>
+                            <p><strong>ชื่อเอกสาร:</strong> {{ document_title }}</p>
+                            <p><strong>ชื่อไฟล์:</strong> {{ filename }}</p>
+                            <p><strong>สถานะ:</strong> {{ {'success': 'สำเร็จ', 'warning': 'มีคำเตือน', 'error': 'ผิดพลาด'}.get(extraction_status, extraction_status) }}</p>
+                            <p><strong>วิธีแบ่งส่วน:</strong> {{ chunking_method }}</p>
+                            <p><strong>จำนวนอักขระที่สกัดได้:</strong> {{ extracted_char_count }}</p>
+                            <p><strong>จำนวนส่วนทั้งหมด:</strong> {{ total_chunk_count }}</p>
                         </div>
 
                         {% if warning_message %}
@@ -35,13 +35,13 @@
                         {% endif %}
 
                         <div class="content">
-                            <h2 class="title is-5">Chunk Preview</h2>
+                            <h2 class="title is-5">ตัวอย่างข้อความแต่ละส่วน</h2>
                             {% if chunk_previews %}
                                 {% for chunk in chunk_previews %}
                                     <article class="message is-light">
                                         <div class="message-header">
-                                            <p>Chunk {{ chunk.chunk_number }}</p>
-                                            <p>{{ chunk.character_count }} chars</p>
+                                            <p>ส่วนที่ {{ chunk.chunk_number }}</p>
+                                            <p>{{ chunk.character_count }} อักขระ</p>
                                         </div>
                                         <div class="message-body">
                                             <pre class="extract-preview">{{ chunk.text }}</pre>
@@ -49,7 +49,7 @@
                                     </article>
                                 {% endfor %}
                             {% else %}
-                                <p class="has-text-grey">No chunks could be generated from this PDF.</p>
+                                <p class="has-text-grey">ไม่สามารถสร้างส่วนข้อความจากไฟล์ PDF นี้ได้</p>
                             {% endif %}
                         </div>
                     </div>
