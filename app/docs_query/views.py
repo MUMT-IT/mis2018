@@ -6,12 +6,13 @@ from datetime import datetime, timezone
 
 import fitz
 import requests
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from sqlalchemy import or_
+from sqlalchemy import or_, text as sqlalchemy_text
+from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 from app.main import db
 
@@ -22,6 +23,78 @@ FOLDER_ID = '1PI7ZN5V1W_NxUGRteg8cXvnJMzF2nHOd'
 ALLOWED_EXTENSIONS = {'pdf'}
 TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
 TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
+EMBEDDING_MODEL = os.getenv('DOCS_QUERY_EMBEDDING_MODEL', 'cohere-embed-multilingual')
+EMBEDDING_DIMENSIONS = 1024
+EMBEDDING_MAX_BYTES = 2048
+
+
+def _embedding_configured():
+    return bool(os.environ.get('EMBEDDING_URL') and os.environ.get('EMBEDDING_KEY'))
+
+
+def _embedding_endpoint():
+    return '{}/v1/embeddings'.format(os.environ['EMBEDDING_URL'].rstrip('/'))
+
+
+def _limit_embedding_input(text):
+    encoded_text = (text or '').encode('utf-8')
+    if len(encoded_text) <= EMBEDDING_MAX_BYTES:
+        return text or ''
+    return encoded_text[:EMBEDDING_MAX_BYTES].decode('utf-8', errors='ignore')
+
+
+def _embed_texts(texts, input_type):
+    if not texts:
+        return []
+    if not _embedding_configured():
+        return None
+
+    embeddings = []
+    for offset in range(0, len(texts), 96):
+        batch = [
+            _limit_embedding_input(text)
+            for text in texts[offset:offset + 96]
+        ]
+        response = requests.post(
+            _embedding_endpoint(),
+            headers={
+                'Authorization': 'Bearer {}'.format(os.environ['EMBEDDING_KEY']),
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': EMBEDDING_MODEL,
+                'input': batch,
+                'input_type': input_type,
+                'encoding_format': 'raw',
+            },
+            timeout=60,
+        )
+        if not response.ok:
+            try:
+                error_details = response.json()
+            except ValueError:
+                error_details = response.text[:500]
+            raise RuntimeError(
+                'Embedding API returned HTTP {}: {}'.format(
+                    response.status_code,
+                    error_details,
+                )
+            )
+        payload = response.json()
+        data = sorted(payload.get('data') or [], key=lambda item: item.get('index', 0))
+        batch_embeddings = [item.get('embedding') for item in data]
+        if len(batch_embeddings) != len(batch):
+            raise ValueError('Embedding service returned an unexpected number of vectors.')
+        if any(len(vector or []) != EMBEDDING_DIMENSIONS for vector in batch_embeddings):
+            raise ValueError('Embedding service returned an unexpected vector dimension.')
+        embeddings.extend(batch_embeddings)
+    return embeddings
+
+
+def _vector_literal(vector):
+    return '[{}]'.format(','.join('{:.9g}'.format(float(value)) for value in vector))
+
+
 def _load_google_keyfile():
     try:
         from app.main import get_json_keyfile
@@ -160,7 +233,17 @@ def _search_snippet(text, query, radius=180):
     return '{}{}{}'.format(prefix, normalized_text[start:end].strip(), suffix)
 
 
-def search_chunks(query, limit=50):
+def _format_search_result(chunk, similarity=None, query=None):
+    return {
+        'document': chunk.document,
+        'chunk_index': chunk.chunk_index,
+        'text': chunk.text,
+        'snippet': _search_snippet(chunk.text, query or ''),
+        'similarity': similarity,
+    }
+
+
+def _keyword_search_chunks(query, limit=50):
     escaped_query = (query.replace('\\', '\\\\')
                      .replace('%', '\\%')
                      .replace('_', '\\_'))
@@ -180,15 +263,72 @@ def search_chunks(query, limit=50):
         .limit(limit)
         .all()
     )
+    return [_format_search_result(match, query=query) for match in matches]
+
+
+def _semantic_search_chunks(query, limit=50):
+    if not _embedding_configured() or db.engine.dialect.name != 'postgresql':
+        return []
+
+    query_embedding = _embed_texts([query], 'search_query')[0]
+    vector = _vector_literal(query_embedding)
+    rows = db.session.execute(
+        sqlalchemy_text(
+            'SELECT c.id, 1 - (c.embedding <=> CAST(:embedding AS vector)) AS similarity '
+            'FROM docs_query_chunks c '
+            'JOIN docs_query_documents d ON d.id = c.document_id '
+            'WHERE d.status = :status AND c.embedding IS NOT NULL '
+            'ORDER BY c.embedding <=> CAST(:embedding AS vector) '
+            'LIMIT :limit'
+        ),
+        {'embedding': vector, 'status': 'processed', 'limit': limit},
+    ).mappings().all()
+    if not rows:
+        return []
+
+    chunk_ids = [row['id'] for row in rows]
+    chunks = (
+        DocsQueryChunk.query
+        .options(joinedload(DocsQueryChunk.document))
+        .filter(DocsQueryChunk.id.in_(chunk_ids))
+        .all()
+    )
+    chunks_by_id = {chunk.id: chunk for chunk in chunks}
     return [
-        {
-            'document': match.document,
-            'chunk_index': match.chunk_index,
-            'text': match.text,
-            'snippet': _search_snippet(match.text, query),
-        }
-        for match in matches
+        _format_search_result(
+            chunks_by_id[row['id']],
+            similarity=float(row['similarity']),
+            query=query,
+        )
+        for row in rows
+        if row['id'] in chunks_by_id
     ]
+
+
+def search_chunks(query, limit=50):
+    try:
+        semantic_results = _semantic_search_chunks(query, limit=limit)
+    except Exception:
+        current_app.logger.exception('Semantic document search failed; using keyword search.')
+        semantic_results = []
+    keyword_results = _keyword_search_chunks(query, limit=limit)
+    if not semantic_results:
+        return keyword_results
+
+    combined = semantic_results[:limit]
+    seen_chunk_ids = {
+        (result['document'].id, result['chunk_index'])
+        for result in semantic_results
+    }
+    for result in keyword_results:
+        chunk_key = (result['document'].id, result['chunk_index'])
+        if chunk_key in seen_chunk_ids:
+            continue
+        combined.append(result)
+        seen_chunk_ids.add(chunk_key)
+        if len(combined) >= limit:
+            break
+    return combined
 
 
 def _build_typhoon_document_prompt(query, search_results):
@@ -351,6 +491,15 @@ def _chunk_from_units(units, max_chars=1200, overlap_chars=200):
     for unit in units:
         piece = unit.strip()
         if not piece:
+            continue
+        if len(piece) > max_chars:
+            if current_parts:
+                chunk = ' '.join(current_parts).strip()
+                if chunk:
+                    chunks.append(chunk)
+            chunks.extend(chunk_text(piece, max_chars=max_chars, overlap_chars=overlap_chars))
+            current_parts = []
+            current_length = 0
             continue
         extra_length = len(piece) + (1 if current_parts else 0)
         if current_parts and current_length + extra_length > max_chars:
@@ -548,9 +697,14 @@ def extract(file_id):
             }
             for index, chunk in enumerate(chunks)
         ]
+        embeddings = (
+            _embed_texts(chunks, 'search_document')
+            if db.engine.dialect.name == 'postgresql'
+            else None
+        )
         extracted_at = datetime.now(timezone.utc)
         DocsQueryChunk.query.filter_by(document_id=document.id).delete(synchronize_session=False)
-        db.session.add_all([
+        chunk_rows = [
             DocsQueryChunk(
                 document_id=document.id,
                 chunk_index=index,
@@ -558,7 +712,21 @@ def extract(file_id):
                 text=chunk,
             )
             for index, chunk in enumerate(chunks)
-        ])
+        ]
+        db.session.add_all(chunk_rows)
+        db.session.flush()
+        if embeddings:
+            db.session.execute(
+                sqlalchemy_text(
+                    'UPDATE docs_query_chunks '
+                    'SET embedding = CAST(:embedding AS vector) '
+                    'WHERE id = :id'
+                ),
+                [
+                    {'id': chunk_row.id, 'embedding': _vector_literal(embedding)}
+                    for chunk_row, embedding in zip(chunk_rows, embeddings)
+                ],
+            )
         document.status = 'processed'
         document.extracted_text_key = None
         document.chunks_key = None

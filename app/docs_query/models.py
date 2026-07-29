@@ -1,6 +1,31 @@
 from datetime import datetime, timezone
 
 from app.main import db
+from sqlalchemy.types import TypeDecorator, UserDefinedType
+
+
+class _PgVector(UserDefinedType):
+    cache_ok = True
+
+    def __init__(self, dimensions):
+        self.dimensions = dimensions
+
+    def get_col_spec(self, **kwargs):
+        return 'vector({})'.format(self.dimensions)
+
+
+class VectorType(TypeDecorator):
+    impl = db.Text
+    cache_ok = True
+
+    def __init__(self, dimensions, **kwargs):
+        self.dimensions = dimensions
+        super().__init__(**kwargs)
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(_PgVector(self.dimensions))
+        return dialect.type_descriptor(db.Text())
 
 
 class DocsQueryDocument(db.Model):
@@ -40,6 +65,7 @@ class DocsQueryChunk(db.Model):
     chunk_index = db.Column(db.Integer, nullable=False)
     char_count = db.Column(db.Integer, nullable=False)
     text = db.Column(db.Text, nullable=False)
+    embedding = db.Column(VectorType(1024))
 
     document = db.relationship(
         DocsQueryDocument,
