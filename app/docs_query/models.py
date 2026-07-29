@@ -74,3 +74,42 @@ class DocsQueryChunk(db.Model):
         DocsQueryDocument,
         backref=db.backref('chunks', cascade='all, delete-orphan', lazy=True),
     )
+
+
+class DocsQuerySearch(db.Model):
+    __tablename__ = 'docs_query_searches'
+
+    id = db.Column(db.Integer, primary_key=True)
+    query_text = db.Column(db.String(1000), nullable=False)
+    result_count = db.Column(db.Integer, nullable=False, default=0)
+    related_document_count = db.Column(db.Integer, nullable=False, default=0)
+    search_method = db.Column(db.String(32), nullable=False, default='keyword')
+    response_time_ms = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False,
+                            default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class DocsQueryClick(db.Model):
+    __tablename__ = 'docs_query_clicks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    search_id = db.Column(
+        db.Integer,
+        db.ForeignKey('docs_query_searches.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    document_id = db.Column(
+        db.Integer,
+        db.ForeignKey('docs_query_documents.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    clicked_at = db.Column(db.DateTime(timezone=True), nullable=False,
+                           default=lambda: datetime.now(timezone.utc), index=True)
+
+    search = db.relationship(
+        DocsQuerySearch,
+        backref=db.backref('clicks', cascade='all, delete-orphan', lazy=True),
+    )
+    document = db.relationship(DocsQueryDocument)

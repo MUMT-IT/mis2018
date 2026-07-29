@@ -67,7 +67,7 @@
                                         {% for related in related_documents %}
                                             <div class="column is-half">
                                                 <div class="box docs-query-related-document">
-                                                    <a href="{{ related.url }}" target="_blank" rel="noopener noreferrer">
+                                                    <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
                                                         <div class="is-flex is-justify-content-space-between is-align-items-start">
                                                             <div>
                                                                 <p class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</p>
@@ -103,7 +103,7 @@
                                                             <div class="docs-query-reference-text">{{ related.chunk_text }}</div>
                                                         </section>
                                                         <footer class="modal-card-foot">
-                                                            <a class="button is-info is-light" href="{{ related.url }}" target="_blank" rel="noopener noreferrer">เปิดเอกสารต้นฉบับ</a>
+                                                            <a class="button is-info is-light" href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">เปิดเอกสารต้นฉบับ</a>
                                                             <button class="button docs-query-modal-close" type="button">ปิด</button>
                                                         </footer>
                                                     </div>

@@ -2,23 +2,24 @@ import os
 import tempfile
 import json
 import re
-from datetime import datetime, timezone
+import time
+from datetime import datetime, timedelta, timezone
 
 import fitz
 import requests
-from flask import current_app, flash, redirect, render_template, request, url_for
+from flask import abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from sqlalchemy import cast, or_, text as sqlalchemy_text
+from sqlalchemy import cast, desc, func, or_, text as sqlalchemy_text
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 from app.main import db
 from app.roles import admin_permission
 
 from . import docs_query
-from .models import DocsQueryChunk, DocsQueryDocument
+from .models import DocsQueryChunk, DocsQueryClick, DocsQueryDocument, DocsQuerySearch
 
 FOLDER_ID = '1PI7ZN5V1W_NxUGRteg8cXvnJMzF2nHOd'
 ALLOWED_EXTENSIONS = {'pdf'}
@@ -353,7 +354,8 @@ def _semantic_search_chunks(query, limit=50):
     ]
 
 
-def search_chunks(query, limit=50):
+def search_chunks(query, limit=50, return_metadata=False):
+    search_method = 'keyword'
     try:
         semantic_results = _semantic_search_chunks(query, limit=limit)
     except Exception:
@@ -361,8 +363,10 @@ def search_chunks(query, limit=50):
         semantic_results = []
     keyword_results = _keyword_search_chunks(query, limit=limit)
     if not semantic_results:
-        return keyword_results
+        results = keyword_results
+        return (results, search_method) if return_metadata else results
 
+    search_method = 'semantic'
     combined = semantic_results[:limit]
     seen_chunk_ids = {
         (result['document'].id, result['chunk_index'])
@@ -376,7 +380,105 @@ def search_chunks(query, limit=50):
         seen_chunk_ids.add(chunk_key)
         if len(combined) >= limit:
             break
-    return combined
+    if keyword_results:
+        search_method = 'semantic+keyword'
+    return (combined, search_method) if return_metadata else combined
+
+
+def _record_search(query, result_count, related_document_count, search_method, response_time_ms):
+    try:
+        search = DocsQuerySearch(
+            query_text=(query or '')[:1000],
+            result_count=result_count,
+            related_document_count=related_document_count,
+            search_method=search_method,
+            response_time_ms=response_time_ms,
+        )
+        db.session.add(search)
+        try:
+            retention_days = int(os.getenv('DOCS_QUERY_STATS_RETENTION_DAYS', '180'))
+        except ValueError:
+            retention_days = 180
+        cutoff = datetime.now(timezone.utc) - timedelta(days=max(retention_days, 1))
+        DocsQuerySearch.query.filter(DocsQuerySearch.created_at < cutoff).delete(
+            synchronize_session=False,
+        )
+        db.session.commit()
+        return search
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Could not record docs query search statistics.')
+        return None
+
+
+def _update_search_response_time(search, response_time_ms):
+    if not search:
+        return
+    try:
+        search.response_time_ms = response_time_ms
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Could not update docs query response time.')
+
+
+def _get_search_statistics():
+    popular_queries = (
+        db.session.query(
+            DocsQuerySearch.query_text,
+            func.count(DocsQuerySearch.id).label('search_count'),
+        )
+        .group_by(DocsQuerySearch.query_text)
+        .order_by(desc('search_count'))
+        .limit(10)
+        .all()
+    )
+    no_result_queries = (
+        db.session.query(
+            DocsQuerySearch.query_text,
+            func.count(DocsQuerySearch.id).label('search_count'),
+        )
+        .filter(DocsQuerySearch.result_count == 0)
+        .group_by(DocsQuerySearch.query_text)
+        .order_by(desc('search_count'))
+        .limit(10)
+        .all()
+    )
+    popular_documents = (
+        db.session.query(
+            DocsQueryDocument,
+            func.count(DocsQueryClick.id).label('click_count'),
+        )
+        .join(DocsQueryClick, DocsQueryClick.document_id == DocsQueryDocument.id)
+        .group_by(DocsQueryDocument.id)
+        .order_by(desc('click_count'))
+        .limit(10)
+        .all()
+    )
+    return {
+        'total_searches': DocsQuerySearch.query.count(),
+        'searches_with_no_results': DocsQuerySearch.query.filter_by(result_count=0).count(),
+        'total_document_clicks': DocsQueryClick.query.count(),
+        'popular_queries': popular_queries,
+        'no_result_queries': no_result_queries,
+        'popular_documents': popular_documents,
+    }
+
+
+@docs_query.route('/click/<int:search_id>/<file_id>')
+@login_required
+def track_document_click(search_id, file_id):
+    search = db.session.get(DocsQuerySearch, search_id)
+    document = DocsQueryDocument.query.filter_by(drive_file_id=file_id).first()
+    if not search or not document:
+        abort(404)
+    try:
+        db.session.add(DocsQueryClick(search_id=search.id, document_id=document.id))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Could not record docs query document click.')
+    return redirect('https://drive.google.com/file/d/{}/view'.format(file_id))
 
 
 def _build_related_documents(search_results, limit=8):
@@ -662,18 +764,39 @@ def index():
     search_results = []
     related_documents = []
     answer = None
+    search_id = None
     if request.method == 'POST':
         query = (request.form.get('query') or '').strip()
         if not query:
             flash('กรุณาระบุคำค้นหรือคำถาม', 'warning')
         else:
+            started_at = time.perf_counter()
             try:
-                search_results = search_chunks(query)
+                search_results, search_method = search_chunks(query, return_metadata=True)
                 related_documents = _build_related_documents(search_results)
+                search = _record_search(
+                    query,
+                    len(search_results),
+                    len(related_documents),
+                    search_method,
+                    round((time.perf_counter() - started_at) * 1000),
+                )
+                if search:
+                    search_id = search.id
+                    for related in related_documents:
+                        related['click_url'] = url_for(
+                            'docs_query.track_document_click',
+                            search_id=search.id,
+                            file_id=related['document'].drive_file_id,
+                        )
                 if not search_results:
                     flash('ไม่พบเอกสารที่ตรงกับคำค้น', 'info')
                 else:
                     answer = _call_typhoon_document_answer(query, search_results)
+                _update_search_response_time(
+                    search,
+                    round((time.perf_counter() - started_at) * 1000),
+                )
             except Exception as exc:
                 flash('การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc), 'danger')
     return render_template(
@@ -682,6 +805,7 @@ def index():
         search_results=search_results,
         related_documents=related_documents,
         answer=answer,
+        search_id=search_id,
         can_manage_documents=admin_permission.can(),
     )
 
@@ -695,7 +819,24 @@ def admin():
     except Exception:
         flash('ไม่สามารถโหลดไฟล์ PDF จาก Google Drive ได้', 'danger')
         pdf_files = []
-    return render_template('docs_query/admin.html', pdf_files=pdf_files)
+    try:
+        statistics = _get_search_statistics()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Could not load docs query statistics.')
+        statistics = {
+            'total_searches': 0,
+            'searches_with_no_results': 0,
+            'total_document_clicks': 0,
+            'popular_queries': [],
+            'no_result_queries': [],
+            'popular_documents': [],
+        }
+    return render_template(
+        'docs_query/admin.html',
+        pdf_files=pdf_files,
+        statistics=statistics,
+    )
 
 
 @docs_query.route('/admin/edit/<file_id>', methods=['GET', 'POST'])

@@ -136,10 +136,70 @@
                     </div>
                 </div>
             </div>
+
+            <div class="box docs-query-admin-card mt-5">
+                <div class="level is-mobile mb-4">
+                    <div>
+                        <h2 class="title is-4 mb-1">สถิติการค้นหา</h2>
+                        <p class="has-text-grey is-size-7">สถิติจากการใช้งานระบบค้นหาเอกสาร</p>
+                    </div>
+                </div>
+                <div class="columns is-mobile is-multiline mb-4">
+                    <div class="column is-one-third">
+                        <p class="heading">การค้นหาทั้งหมด</p>
+                        <p class="title is-4">{{ statistics.total_searches }}</p>
+                    </div>
+                    <div class="column is-one-third">
+                        <p class="heading">ค้นหาไม่พบผลลัพธ์</p>
+                        <p class="title is-4">{{ statistics.searches_with_no_results }}</p>
+                    </div>
+                    <div class="column is-one-third">
+                        <p class="heading">การเปิดเอกสาร</p>
+                        <p class="title is-4">{{ statistics.total_document_clicks }}</p>
+                    </div>
+                </div>
+                <div class="columns is-variable is-5">
+                    <div class="column">
+                        <h3 class="title is-6">คำค้นยอดนิยม</h3>
+                        {% if statistics.popular_queries %}
+                            <ol class="docs-query-stat-list">
+                                {% for query in statistics.popular_queries %}
+                                    <li><span>{{ query.query_text }}</span><span class="tag is-light">{{ query.search_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                    <div class="column">
+                        <h3 class="title is-6">คำค้นที่ไม่พบผลลัพธ์</h3>
+                        {% if statistics.no_result_queries %}
+                            <ol class="docs-query-stat-list">
+                                {% for query in statistics.no_result_queries %}
+                                    <li><span>{{ query.query_text }}</span><span class="tag is-warning is-light">{{ query.search_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                    <div class="column">
+                        <h3 class="title is-6">เอกสารที่ถูกเปิดบ่อย</h3>
+                        {% if statistics.popular_documents %}
+                            <ol class="docs-query-stat-list">
+                                {% for document, click_count in statistics.popular_documents %}
+                                    <li><span>{{ document.document_title or document.filename }}</span><span class="tag is-info is-light">{{ click_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
     <style>
         .docs-query-admin-card { border-radius: 20px; height: 100%; }
         .docs-query-admin-card .table td { vertical-align: middle; }
+        .docs-query-stat-list { margin: 0; padding-left: 1.25rem; }
+        .docs-query-admin-card .columns > .column { min-width: 0; }
+        .docs-query-stat-list li { align-items: center; display: grid; gap: .5rem; grid-template-columns: minmax(0, 1fr) auto; margin-bottom: .6rem; min-width: 0; }
+        .docs-query-stat-list li span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .docs-query-stat-list li .tag { min-width: max-content; }
     </style>
 {% endblock %}
