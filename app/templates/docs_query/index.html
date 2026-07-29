@@ -33,14 +33,46 @@
                         </form>
 
                         {% if query %}
-                            <article class="message is-info is-light mt-5">
-                                <div class="message-header">
-                                    <p>Submitted Query</p>
+                            <div class="mt-5">
+                                <div class="level is-mobile mb-3">
+                                    <div>
+                                        <h2 class="title is-4 mb-1">Search Results</h2>
+                                        <p class="has-text-grey is-size-7">Matches for “{{ query }}”</p>
+                                    </div>
+                                    {% if search_results %}
+                                        <span class="tag is-info is-light">{{ search_results|length }} results</span>
+                                    {% endif %}
                                 </div>
-                                <div class="message-body">
-                                    {{ query }}
-                                </div>
-                            </article>
+                                {% if answer %}
+                                    <article class="message is-primary is-light docs-query-answer">
+                                        <div class="message-header">
+                                            <p><i class="fas fa-sparkles" aria-hidden="true"></i> Related Documents Overview</p>
+                                            <span class="tag is-warning is-light is-small">AI-generated content</span>
+                                        </div>
+                                        <div class="message-body">{{ answer }}</div>
+                                    </article>
+                                {% endif %}
+                                {% if search_results %}
+                                    {% for result in search_results %}
+                                        <article class="message is-light docs-query-result">
+                                            <div class="message-header">
+                                                <p>{{ result.document.document_title or result.document.filename }}</p>
+                                                <span class="is-size-7">Chunk {{ result.chunk_index + 1 }}</span>
+                                            </div>
+                                            <div class="message-body">
+                                                <p class="is-size-7 has-text-grey mb-2">
+                                                    {{ result.document.document_type or 'Document' }}
+                                                </p>
+                                                <p>{{ result.snippet }}</p>
+                                            </div>
+                                        </article>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="notification is-light">
+                                        No matching text was found in processed documents.
+                                    </div>
+                                {% endif %}
+                            </div>
                         {% endif %}
 
                         <hr>
@@ -163,6 +195,30 @@
             border-radius: 28px;
             margin: 3rem auto;
             padding: 2.75rem;
+        }
+
+        .docs-query-result {
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .docs-query-result .message-header {
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .docs-query-result .message-body {
+            line-height: 1.65;
+        }
+
+        .docs-query-answer {
+            border-radius: 14px;
+            margin-bottom: 1.25rem;
+        }
+
+        .docs-query-answer .message-body {
+            line-height: 1.75;
+            white-space: pre-line;
         }
     </style>
 {% endblock %}

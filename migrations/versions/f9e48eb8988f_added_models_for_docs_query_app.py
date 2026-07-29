@@ -41,6 +41,19 @@ def upgrade():
     with op.batch_alter_table('docs_query_documents', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_docs_query_documents_status'), ['status'], unique=False)
 
+    op.create_table(
+        'docs_query_chunks',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('document_id', sa.Integer(), nullable=False),
+        sa.Column('chunk_index', sa.Integer(), nullable=False),
+        sa.Column('char_count', sa.Integer(), nullable=False),
+        sa.Column('text', sa.Text(), nullable=False),
+        sa.ForeignKeyConstraint(['document_id'], ['docs_query_documents.id'], ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('document_id', 'chunk_index', name='uq_docs_query_chunks_document_index'),
+    )
+    op.create_index('ix_docs_query_chunks_document_id', 'docs_query_chunks', ['document_id'])
+
     # ### end Alembic commands ###
 
 
@@ -49,5 +62,7 @@ def downgrade():
     with op.batch_alter_table('docs_query_documents', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_docs_query_documents_status'))
 
+    op.drop_index('ix_docs_query_chunks_document_id', table_name='docs_query_chunks')
+    op.drop_table('docs_query_chunks')
     op.drop_table('docs_query_documents')
     # ### end Alembic commands ###

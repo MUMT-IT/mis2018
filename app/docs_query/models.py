@@ -25,3 +25,23 @@ class DocsQueryDocument(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False,
                             default=lambda: datetime.now(timezone.utc),
                             onupdate=lambda: datetime.now(timezone.utc))
+
+
+class DocsQueryChunk(db.Model):
+    __tablename__ = 'docs_query_chunks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    document_id = db.Column(
+        db.Integer,
+        db.ForeignKey('docs_query_documents.id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    chunk_index = db.Column(db.Integer, nullable=False)
+    char_count = db.Column(db.Integer, nullable=False)
+    text = db.Column(db.Text, nullable=False)
+
+    document = db.relationship(
+        DocsQueryDocument,
+        backref=db.backref('chunks', cascade='all, delete-orphan', lazy=True),
+    )
