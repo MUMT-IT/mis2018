@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from dateutil.utils import today
-from sqlalchemy import func, LargeBinary
+from sqlalchemy import func, LargeBinary, text
 
 from ..main import db, ma
 from sqlalchemy.dialects.postgresql import JSONB
@@ -659,3 +659,83 @@ class ComHealthTestSchema(ma.SQLAlchemyAutoSchema):
 class ComHealthOrgSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ComHealthOrg
+
+
+class ComHealthEducationVideo(db.Model):
+    __tablename__ = 'comhealth_health_education_videos'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(255), nullable=False, index=True)
+    youtube_url = db.Column(db.Text, nullable=False)
+    youtube_video_id = db.Column(db.String(32), nullable=False, unique=True, index=True)
+    source_name = db.Column(db.String(255), nullable=False, default='Mahidol University YouTube')
+    source_channel = db.Column(db.String(255))
+    health_topics = db.Column(db.JSON, nullable=False, default=list)
+    keywords = db.Column(db.JSON, nullable=False, default=list)
+    summary = db.Column(db.Text)
+    language = db.Column(db.String(64), index=True)
+    audience_level = db.Column(db.String(64), index=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, server_default=text('true'))
+    is_embeddable = db.Column(db.Boolean, nullable=False, default=True, server_default=text('true'))
+    thumbnail_url = db.Column(db.String(500))
+    duration_seconds = db.Column(db.Integer)
+    display_order = db.Column(db.Integer, index=True)
+    notes_internal = db.Column(db.Text)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
+
+    def __repr__(self):
+        return f'<ComHealthEducationVideo {self.title!r}>'
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def youtube_embed_url(self):
+        from .video_admin import build_youtube_embed_url
+
+        return build_youtube_embed_url(self.youtube_video_id)
+
+    @property
+    def youtube_thumbnail_url(self):
+        if self.thumbnail_url:
+            return self.thumbnail_url
+        if self.youtube_video_id:
+            return f'https://img.youtube.com/vi/{self.youtube_video_id}/hqdefault.jpg'
+        return None
+
+    @staticmethod
+    def _normalize_terms(value):
+        from .video_admin import normalize_csv_values
+
+        return normalize_csv_values(value)
+
+    @property
+    def health_topics_list(self):
+        return list(self.health_topics or [])
+
+    @health_topics_list.setter
+    def health_topics_list(self, value):
+        self.health_topics = self._normalize_terms(value)
+
+    @property
+    def keywords_list(self):
+        return list(self.keywords or [])
+
+    @keywords_list.setter
+    def keywords_list(self, value):
+        self.keywords = self._normalize_terms(value)
+
+    @property
+    def health_topics_text(self):
+        return ', '.join(self.health_topics_list)
+
+    @property
+    def keywords_text(self):
+        return ', '.join(self.keywords_list)
+
+    def set_topics_from_csv(self, value):
+        self.health_topics_list = value
+
+    def set_keywords_from_csv(self, value):
+        self.keywords_list = value

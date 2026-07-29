@@ -13,18 +13,27 @@
     <div class="columns">
         <div class="column is-one-third is-offset-4">
             <nav class="panel is-info">
-                <p class="panel-heading">หน่วยงาน</p>
-                {% for an in announcements %}
-                <a class="panel-block"
-                   hx-get="{{ url_for('ot.list_announcement_modal', org_id=an.org_id) }}"
-                   hx-target="#popup"
-                   hx-swap="innerHTML"
-                >
-                    <span class="panel-icon">
-                        <i class="fa-solid fa-user"></i>
-                    </span>
-                    <span class="is-size-5">{{ an.org }}</span>
-                </a>
+                <p class="panel-heading">หน่วยงานที่ปฏิบัติงาน</p>
+                {% for org in work_at_orgs %}
+                    {% if org %}
+                        <a class="panel-block"
+                           hx-get="{{ url_for('ot.list_announcement_modal', org_id=org.id) }}"
+                           hx-target="#popup"
+                           hx-swap="innerHTML"
+                        >
+                            <span class="panel-icon">
+                                <i class="fa-solid fa-user"></i>
+                            </span>
+                            <span class="is-size-5">{{ org.display_name }}</span>
+                        </a>
+                    {% else %}
+                        <span class="panel-block is-disabled">
+                            <span class="panel-icon">
+                                <i class="fa-solid fa-user"></i>
+                            </span>
+                            <span class="is-size-5">ไม่ระบุหน่วยงาน</span>
+                        </span>
+                    {% endif %}
                 {% endfor %}
             </nav>
         </div>

@@ -61,7 +61,7 @@
                     <th>วัน-เวลาที่ออกผล</th>
                     <th>ช่องทางรับผล</th>
                     <th>ผลการทดสอบ</th>
-                    <th>รายละเอียดการขอแก้ไข</th>
+{#                    <th>รายละเอียดการขอแก้ไข</th>#}
                     <th>ผู้ออก</th>
                     <th>สถานะ</th>
                     <th></th>
@@ -140,16 +140,15 @@
                         }
                     },
                     { data: 'files' },
-                    {
-                        data: 'note',
-                        render: function (data) {
-                            if (data !== null) {
-                                return data;
-                            } else {
-                                return ''
-                            }
-                        }
-                    },
+                    {#{#}
+                    {#    data: 'note',#}
+                    {#    render: function (data) {#}
+                    {#        if (data !== null) {#}
+                    {#            return data;#}
+                    {#        } else {#}
+                    {#            return ''#}
+                    {#        }#}
+                    {#    }#}
                     {data: 'creator' },
                     {
                         data: 'admin_status',
@@ -157,7 +156,7 @@
                             if (data !== null) {
                                 return `<span class="tag ${data.color}">${data.status}</span>`;
                             } else {
-                                return `<span class="tag is-info">ยังไม่ออกผลการทดสอบ</span>`;
+                                return `<span class="tag is-info">ยังไม่ออกผล</span>`;
                             }
                         }
                     },
@@ -166,7 +165,8 @@
                         render: function (data, type, row) {
                             var menu ='{{ menu }}'
                             var tab = '{{ tab }}';
-                            if (row.approved_at) {
+                            console.log(row.download_all_final_files)
+                            if (row.approved_at && row.download_all_final_files == null) {
                                 var final_result_url = '/service_admin/result/final/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
                                 return '<div class="field has-addons">' +
                                     '<div class="control">' +
@@ -195,17 +195,7 @@
                             } else if (row.req_edit_at != null && row.is_edited == null) {
                                 return row.edit_file;
                             } else {
-                                var draft_result_url = '/service_admin/result/draft/edit/' + data + '?request_id=' + row.request_id + '&menu=' + menu + '&tab=' + tab;
-                                return '<div class="field has-addons">' +
-                                    '<div class="control">' +
-                                    '<a class="button is-small is-primary is-rounded" ' + 'href=' + draft_result_url + '>' +
-                                    '<span class="icon">' +
-                                    '<i class="fas fa-file-alt"></i>' +
-                                    '</span>' +
-                                    '<span>อัปโหลดใบรายงานผล (ฉบับร่าง)</span>' +
-                                    '</a>' +
-                                    '</div>' +
-                                    '</div>'
+                                return ''
                             }
                         }
                     }

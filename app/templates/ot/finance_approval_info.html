@@ -205,7 +205,12 @@
                         <a @click="confirmApproved({{ round.id }})" class="button is-primary">รับรอง</a>
                     </div>
                     <div class="control">
-                        <a href="{{ url_for('ot.approved_list_from_org_head') }}" class="button is-info">กลับ</a>
+                        <a class="button is-info is-light" href="{{ url_for('ot.approved_list_from_org_head') }}">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
                     </div>
                 </div>
                 {% else %}
@@ -253,6 +258,5 @@
     });
 </script>
 {% endblock %}
-
 
 

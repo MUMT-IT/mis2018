@@ -2,28 +2,34 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">ประกาศคณะเทคนิคการแพทย์</p>
+            <p class="modal-card-title">ประกาศสำหรับ {{ org.display_name }}</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-        <table class="table is-fullwidth">
-            <thead>
-            <th>เรื่อง</th>
-            <th>เริ่มใช้วันที่</th>
-            </thead>
-            <tbody>
-                {% for an in announcements %}
+            {% if announcements %}
+                <table class="table is-fullwidth">
+                    <thead>
                     <tr>
-                        <td>
-                            <a href="{{ url_for('ot.add_ot_schedule', announcement_id=an.id) }}">
-                                {{ an.topic }}
-                            </a>
-                        </td>
-                        <td>{{ an.start_datetime|localdatetime }}</td>
+                        <th>เรื่อง</th>
+                        <th>เริ่มใช้วันที่</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    </thead>
+                    <tbody>
+                        {% for an in announcements %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('ot.add_ot_schedule', announcement_id=an.id, org_id=org.id) }}">
+                                        {{ an.topic }}
+                                    </a>
+                                </td>
+                                <td>{{ an.start_datetime|localdatetime if an.start_datetime else '-' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="has-text-grey">ไม่พบประกาศสำหรับหน่วยงานนี้</p>
+            {% endif %}
         </section>
         <footer class="modal-card-foot">
             <button class="button" id="cancel-btn">Cancel</button>

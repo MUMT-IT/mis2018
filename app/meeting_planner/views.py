@@ -14,8 +14,7 @@ from app.staff.models import StaffPersonalInfo
 from app.main import mail
 from flask_mail import Message
 from sqlalchemy import select, update
-from linebot.exceptions import LineBotApiError
-from linebot.models import TextSendMessage
+from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.auth.views import line_bot_api
 
 localtz = pytz.timezone('Asia/Bangkok')

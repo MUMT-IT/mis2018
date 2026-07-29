@@ -146,6 +146,9 @@ translations = {
         'currency_thb': 'THB',
         'event_type_course': 'Course',
         'event_type_webinar': 'Webinar',
+        'online_meeting': 'Online meeting',
+        'join_meeting': 'Join meeting',
+        'meeting_password': 'Meeting password',
 
         # Member portal messages
         'message_payments_locked': 'Payment is approved. Editing proof is locked.',
@@ -166,6 +169,7 @@ translations = {
         'button_view_invoice': 'View Invoice',
         'button_view_receipt': 'View Receipt',
         'button_pay_online': 'Pay Online',
+        'button_start_satisfaction_survey': 'Start satisfaction survey',
         'button_start': 'Start',
         'button_complete': 'Complete',
         'button_view_certificate': 'View Certificate',
@@ -379,6 +383,9 @@ translations = {
         'currency_thb': 'บาท',
         'event_type_course': 'หลักสูตร',
         'event_type_webinar': 'สัมมนาออนไลน์',
+        'online_meeting': 'การประชุมออนไลน์',
+        'join_meeting': 'เข้าร่วมประชุม',
+        'meeting_password': 'รหัสผ่านประชุม',
 
         # ข้อความสำหรับสมาชิก
         'message_payments_locked': 'การชำระเงินได้รับการอนุมัติแล้ว ไม่สามารถแก้ไขหลักฐานได้',
@@ -399,6 +406,7 @@ translations = {
         'button_view_invoice': 'ดูใบแจ้งหนี้',
         'button_view_receipt': 'ดูใบเสร็จ',
         'button_pay_online': 'ชำระเงินออนไลน์',
+        'button_start_satisfaction_survey': 'เริ่มทำแบบประเมินความพึงพอใจ',
         'button_start': 'เริ่มต้น',
         'button_complete': 'เสร็จสิ้น',
         'button_view_certificate': 'ดูใบประกาศ',

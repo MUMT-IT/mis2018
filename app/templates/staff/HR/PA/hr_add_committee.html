@@ -45,8 +45,8 @@
                                 {{ form.org( style="width:100%" ) }}
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.subordinate.label }}</label>
-                            {{ form.subordinate() }}
+                            <label class="label">{{ form.subordinate.label }} (เพิ่มได้หลายท่าน)</label>
+                            {{ form.subordinate(style="width:100%", multiple='multiple') }}
                         </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">

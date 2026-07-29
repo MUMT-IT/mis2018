@@ -50,6 +50,7 @@
                                     {{ form.active_substance.label }}
                                     เช่น Formaldyhyde 37% w/w, Ethyl Alcohol 50% w/w
                                     <span class="has-text-danger">*</span>
+                                    <span class="help is-danger">หมายเหตุ : ข้อมูลจะแสดงในใบรายงานผลและจะไม่สามารถแก้ไขได้หลังทำการทดสอบ</span>
                                 </label>
                                 <div class="control">
                                     {{ form.active_substance(class='textarea',
@@ -155,7 +156,7 @@
                                         </label>
                                         <div class="select is-fullwidth">
                                             {{ form.product_storage(
-                                                    **{'hx-get': url_for("academic_services.get_product_storage",
+                                                    **{'hx-get': url_for("academic_services.get_product_storage_other",
                                                         request_id=request_id),
                                                         'hx-target': '#product-storage-other-container',
                                                         'hx-swap': 'innerHTML',
@@ -271,12 +272,14 @@
                                                                                             <th style="border: none">
                                                                                         {% endif %}
                                                                                             {{ _field.label.text }}
-                                                                                            {% if _field.label.text != 'อัตราส่วนเจือจางผลิตภัณฑ์' and _field.label.text != 'ต่อน้ำ' %}
+                                                                                            {% if _field.name.endswith('ratio') or _field.name.endswith('per_water') %}
+                                                                                                <span class="has-text-danger dilution-required-asterisk" style="display:none">*</span>
+                                                                                            {% else %}
                                                                                                 <span class="has-text-danger">*</span>
                                                                                             {% endif %}
                                                                                         </th>
-                                                                                        {% endif %}
-                                                                                    {% endfor %}
+                                                                                    {% endif %}
+                                                                                {% endfor %}
                                                                                 {% endif %}
                                                                             {% endfor %}
                                                                         </thead>
@@ -519,51 +522,76 @@
     </script>
     <script>
         function validateProductType() {
-            const product_type = document.getElementById('product_type');
-            const subforms = document.querySelector('.subform-card');
-            if (subforms == null) {
-                product_type.required = true;
-                product_type.oninvalid = function () {
+            const productType = document.getElementById('product_type');
+            const hasSubform = document.querySelector('.subform-card') !== null;
+
+            if (!productType) return;
+
+            if (!hasSubform) {
+                productType.required = true;
+                productType.oninvalid = function () {
                     this.setCustomValidity('กรุณาเลือกประเภทผลิตภัณฑ์');
                 };
-                product_type.oninput = function () {
+                productType.oninput = function () {
                     this.setCustomValidity('');
                 };
             } else {
-                product_type.required = false;
-                product_type.setCustomValidity('');
-                product_type.oninvalid = null;
-                product_type.oninput = null;
+                productType.required = false;
+                productType.setCustomValidity('');
+                productType.oninvalid = null;
+                productType.oninput = null;
             }
         }
 
-        validateProductType();
-        document.addEventListener('change', validateProductType);
-    </script>
-    <script>
-        document.addEventListener('click', function (e) {
+        function clearProductType() {
             const productType = document.getElementById('product_type');
-            if (productType) {
-                productType.selectedIndex = 0;
-            }
+            if (!productType) return;
+
+            productType.value = '';
+            productType.selectedIndex = 0;
+            productType.setCustomValidity('');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            clearProductType();
+            validateProductType();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            clearProductType();
+            validateProductType();
+        });
+
+        document.getElementById('product_type')?.addEventListener('change', function () {
+            validateProductType();
         });
     </script>
     <script>
         function toggleTable(subform) {
             const table = subform.find('table');
 
+            function requiresDilutionRatio() {
+                const preparation = subform.find('input[type="radio"][name$="product_preparation"]:checked').val() || '';
+                return preparation.includes('เจือจาง') || preparation.includes('ละลาย');
+            }
+
             function validateInput() {
+                const dilutionRequired = requiresDilutionRatio();
+                subform.find('.dilution-required-asterisk').toggle(dilutionRequired);
+
                 table.find('tbody tr').each(function () {
                     const textInputs = $(this).find('input[type="text"]');
 
                     textInputs.each(function () {
                         const name = $(this).attr('name');
-                        const isOptional = name.endsWith('ratio');
+                        const isDilutionField = name.endsWith('ratio') || name.endsWith('per_water');
+                        const required = !isDilutionField || dilutionRequired;
 
-                        if (!isOptional) {
+                        if (required) {
+                            const message = isDilutionField ? 'กรุณากรอกอัตราส่วนเจือจางผลิตภัณฑ์' : 'กรุณากรอกข้อมูล';
                             $(this)
                                 .prop('required', true)
-                                .attr('oninvalid', "this.setCustomValidity('กรุณากรอกข้อมูล')")
+                                .attr('oninvalid', `this.setCustomValidity('${message}')`)
                                 .attr('oninput', "this.setCustomValidity('')");
                         } else {
                             $(this).prop('required', false);
@@ -573,6 +601,8 @@
                 });
             }
             validateInput();
+
+            subform.on('change', 'input[type=\"radio\"][name$=\"product_preparation\"]', validateInput);
         }
         function addRequiredField(subform) {
             const testMethodInput = subform.find('input[name$="test_method"]');
@@ -663,21 +693,31 @@
             }
         }
 
-        $('.subform-card').each(function () {
-            const subform = $(this);
-            toggleTable(subform);
-            addRequiredField(subform);
-            toggleSurfaceTypeInput(subform);
-            showSurfaceTypeOtherInput(subform);
-
-            subform.find('input[type="radio"][name$="test_method"]').change(function () {
+        function initSubforms() {
+            $('.subform-card').each(function () {
+                const subform = $(this);
+                toggleTable(subform);
+                addRequiredField(subform);
                 toggleSurfaceTypeInput(subform);
                 showSurfaceTypeOtherInput(subform);
-            });
 
-            subform.find('input[type="radio"][name$="surface_type"]').change(function () {
-                showSurfaceTypeOtherInput(subform);
+                subform.find('input[type="radio"][name$="test_method"]').change(function () {
+                    toggleSurfaceTypeInput(subform);
+                    showSurfaceTypeOtherInput(subform);
+                });
+
+                subform.find('input[type="radio"][name$="surface_type"]').change(function () {
+                    showSurfaceTypeOtherInput(subform);
+                });
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initSubforms();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            initSubforms();
         });
     </script>
 {% endblock %}

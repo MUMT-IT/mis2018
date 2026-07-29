@@ -1,12 +1,14 @@
 from sqlalchemy import or_
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import TextAreaField, DateField, SelectField
+from wtforms import TextAreaField, DateField, SelectField, BooleanField, HiddenField
 from flask_login import current_user
 from wtforms.validators import DataRequired, InputRequired
 
 from app.software_request.models import *
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
+
+from app.staff.models import Role
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -17,6 +19,25 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
+def get_staff_account(role=None):
+    role = Role.query.filter_by(role_need=role).first()
+    return role.staff_account if role and role.staff_account else None
+
+
+class QuerySelectFieldRequired(QuerySelectField):
+    def iter_choices(self):
+        for value, label, selected in super().iter_choices():
+            if value == '__None':
+                yield '', label, selected
+            else:
+                yield value, label, selected
+
+    def process_formdata(self, valuelist):
+        if valuelist and valuelist[0] == '':
+            valuelist = ['__None']
+        return super().process_formdata(valuelist)
+
+
 def create_request_form(detail_id):
     class SoftwareRequestDetailForm(ModelForm):
         class Meta:
@@ -25,8 +46,11 @@ def create_request_form(detail_id):
         if detail_id:
             room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
                                 allow_blank=True, blank_text='กรุณาเลือกห้อง')
-            staffs = QuerySelectMultipleField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(),
+            staffs = QuerySelectMultipleField('ผู้รับผิดชอบ', query_factory=lambda: get_staff_account('software_request'),
                                               get_label='fullname')
+            created_by = QuerySelectFieldRequired('ผู้ส่งคำขอ', query_factory=lambda: StaffAccount.get_active_accounts(),
+                                                  allow_blank=True, blank_text='กรุณาเลือกผู้ส่งคำขอ', get_label='fullname',
+                                                  render_kw={'required': True})
         else:
             file_upload = FileField('File Upload')
             system = QuerySelectField('ระบบที่ต้องการปรับปรุง', query_factory=lambda: SoftwareRequestSystem.query.all(), allow_blank=True,
@@ -52,7 +76,7 @@ def create_timeline_form(detail_id):
                              validators=[DataRequired()])
         issue = QuerySelectField('Requirement', query_factory=lambda: SoftwareIssues.query.filter_by(software_request_detail_id=detail_id).all(), allow_blank=True,
                                  blank_text='', get_label='issue')
-        admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), get_label='fullname')
+        admin = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: get_staff_account(role='software_request'), get_label='fullname')
     return SoftwareRequestTimelineForm
 
 
@@ -97,39 +121,46 @@ class SoftwareRequestIssueForm(ModelForm):
 
     status_ = SelectField('Status',
                           default='Draft',
-                          choices=[(c,c) for c in ('Draft', 'Working', 'Cancelled', 'Closed')])
+                          choices=[(c,c) for c in ('Draft', 'Working', 'Testing', 'Cancelled', 'Closed')])
     phase = QuerySelectFieldAppendable('Phase', query_factory=lambda: SoftwareRequestPhase.query.all(),
                                        allow_blank=True,
                                        blank_text='กรุณาเลือก Phase',
                                        get_label='phase',
                                        render_kw={'required': True})
-    staff = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: StaffAccount.get_it_unit(), get_label='fullname')
-
-
-class QuerySelectFieldRequired(QuerySelectField):
-    def iter_choices(self):
-        for value, label, selected in super().iter_choices():
-            if value == '__None':
-                yield '', label, selected
-            else:
-                yield value, label, selected
-
-    def process_formdata(self, valuelist):
-        if valuelist and valuelist[0] == '':
-            valuelist = ['__None']
-        return super().process_formdata(valuelist)
+    staff = QuerySelectField('ผู้รับผิดชอบ', query_factory=lambda: get_staff_account(role='software_request'),
+                             get_label='fullname')
 
 
 def create_test_result_form(detail_id, has_note=False):
     class SoftwareRequestTestResultForm(ModelForm):
         class Meta:
             model = SoftwareRequestTestResult
+
         if not has_note:
-            issue = QuerySelectFieldRequired('Requirement',
-                                             query_factory=lambda: SoftwareIssues.query.filter(SoftwareIssues.accepted_at != None,
-                                                                                               SoftwareIssues.software_request_detail_id==detail_id).all(),
-                                             allow_blank=True,
-                                             blank_text='กรุณาเลือก Requirement',
-                                             get_label='issue',
-                                             render_kw={'required': True})
+            issue = QuerySelectFieldRequired(
+                'Requirement',
+                query_factory=lambda: SoftwareIssues.query.filter(
+                    SoftwareIssues.tested_at != None,
+                    SoftwareIssues.software_request_detail_id == detail_id
+                ).all(),
+                allow_blank=True,
+                blank_text='กรุณาเลือก Requirement',
+                get_label='issue',
+                render_kw={'required': True}
+            )
+
     return SoftwareRequestTestResultForm
+
+
+def create_bdd_feature_form():
+    class BDDFeatureForm(ModelForm):
+        class Meta:
+            model = BDDFeature
+            only = ['feature_title', 'gherkin_text', 'reviewed_by_human']
+
+        requirement = TextAreaField('Requirement', validators=[DataRequired()])
+        feature_id = HiddenField()
+        issue_id = HiddenField()
+        reviewed_by_human = BooleanField('ตรวจสอบโดยมนุษย์แล้ว')
+
+    return BDDFeatureForm

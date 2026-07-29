@@ -51,6 +51,8 @@ class VehicleResource(db.Model):
 
 class VehicleBooking(db.Model):
     __tablename__ = 'scheduler_vehicle_bookings'
+    # TODO: clean up legacy Google calendar/event columns in the migration history
+    # once all environments are confirmed to be past the old schema.
     id = db.Column('id', db.Integer(), primary_key=True,
                    autoincrement=True)
     vehicle_id = db.Column('vehicle_id',

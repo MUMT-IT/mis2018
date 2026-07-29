@@ -155,20 +155,35 @@
                                 อนุมัติ</a>
                         </div>
                         <div class="control">
-                            <a href="{{ url_for('ot.round_request_approval_requests_pending') }}" class="button is-danger">ย้อนกลับ</a>
+                            <a class="button is-info is-light" href="{{ url_for('ot.round_request_approval_requests_pending') }}">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>กลับ</span>
+                            </a>
                         </div>
                     </div>
                     {% else %}
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a href="{{ url_for('ot.round_request_approval_requests_pending') }}" class="button is-info">กลับ</a>
+                            <a class="button is-info is-light" href="{{ url_for('ot.round_request_approval_requests_pending') }}">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>กลับ</span>
+                            </a>
                         </div>
                     </div>
                     {% endif %}
                 {% else %}
                 <div class="field is-grouped is-grouped-centered">
                     <div class="control">
-                        <a href="{{ url_for('ot.round_request_status') }}" class="button is-info is-light">ย้อนกลับ</a>
+                        <a class="button is-info is-light" href="{{ url_for('ot.round_request_status') }}">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
                     </div>
                 </div>
                 {% endif %}
@@ -207,6 +222,5 @@
     });
 </script>
 {% endblock %}
-
 
 

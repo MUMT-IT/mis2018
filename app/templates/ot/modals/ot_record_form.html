@@ -1,12 +1,21 @@
 <div class="columns">
     <div class="column">
-        <h1 class="title is-size-5">ช่วงเวลา {{ shift or timeslot }} {{ shift.datetime }}</h1>
+        {% include "messages.html" %}
+        <h1 class="title is-size-5">ช่วงเวลา {{ timeslot }}</h1>
         <form hx-post="{{ target_url }}" hx-swap="innerHTML" hx-target="#shift-table" hx-indicator="#submit-btn">
             {{ form.hidden_tag() }}
             <div class="field">
                 <label class="label">{{ form.compensation.label }}</label>
                 <div class="select">
-                    {{ form.compensation() }}
+                    <select name="{{ form.compensation.name }}" id="{{ form.compensation.id }}">
+                        <option value="">เลือกหน้าที่และอัตรา</option>
+                        {% for compensation in compensation_rates %}
+                            <option value="{{ compensation.id }}"
+                                    {% if form.compensation.data and compensation.id == form.compensation.data.id %}selected{% endif %}>
+                                {{ compensation.dropdown_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
             <div class="field">
@@ -34,7 +43,7 @@
             <th></th>
             </thead>
             <tbody>
-            {% for record in shift.records %}
+            {% for record in records %}
                 <tr>
                     <td>{{ record.staff.fullname }}</td>
                     <td>{{ record.compensation }}</td>

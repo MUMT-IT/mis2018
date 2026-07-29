@@ -36,11 +36,15 @@
                         <td>
                             <div class="tags">
                             {% for approver in account.wfh_requesters %}
-                            <a {% if approver.is_active %}class="tag is-medium is-success"
-                               {% else %}class="tag is-medium is-light" {% endif %}
-                               href="{{ url_for('staff.wfh_manage_approver', approver_id=approver.account.id) }}">
-                                    {{ approver.account.personal_info.fullname }}
-                            </a>
+                                {% if approver.approver_account_id %}
+                                <a {% if approver.is_active %}class="tag is-medium is-success"
+                                   {% else %}class="tag is-medium is-light" {% endif %}
+                                   href="{{ url_for('staff.wfh_manage_approver', approver_id=approver.approver_account_id) }}">
+                                        {% if approver.account and approver.account.personal_info %}
+                                            {{ approver.account.personal_info.fullname }}
+                                        {% endif %}
+                                </a>
+                                {% endif %}
                             {% endfor %}
                             </div>
                         </td>

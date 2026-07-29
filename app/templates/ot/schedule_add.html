@@ -42,8 +42,22 @@
                     <span class="help is-info">วางเมาส์บนช่วงเวลาเพื่อแก้ไขข้อมูล</span>
                 </div>
                 <div class="column is-two-thirds">
-                    <div class="field" id="slot-selector"></div>
+                    <div class="field"
+                         id="slot-selector"
+                         hx-get="{{ url_for('ot.reset_slot_selector', announcement_id=announcement_id, org_id=work_at_org_id) }}"
+                         hx-trigger="load">
+                    </div>
                     <div class="box" id="shift-table"></div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
+                        <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                        <span>กลับ</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -69,7 +83,7 @@
             view: 'listDay',
             // locale: 'th-TH',
             datesSet: function (info) {
-                htmx.ajax('GET', '/ot/announcements/{{ announcement_id }}/reset-slot-selector',
+                htmx.ajax('GET', '{{ url_for("ot.reset_slot_selector", announcement_id=announcement_id, org_id=work_at_org_id) }}',
                     { swap: 'innerHTML', target: '#slot-selector'})
                 $('input[name="date-picker"]').data('daterangepicker').setStartDate(moment(info.start).format('DD/MM/YYYY'))
                 console.log(getStartDate())
@@ -101,6 +115,3 @@
         });
     </script>
 {% endblock %}
-
-
-

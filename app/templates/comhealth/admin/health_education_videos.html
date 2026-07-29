@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block page_content %}
+{% include 'comhealth/nav.html' %}
+<section class="section">
+  <div class="container is-fluid">
+    <div class="level">
+      <div class="level-left">
+        <div>
+          <h1 class="title">Health Education Videos</h1>
+          <p class="subtitle">Curated YouTube videos for health check-up report recommendations</p>
+        </div>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-5">
+          {% for category, message in messages %}
+            <div class="notification is-{{ 'danger' if category == 'danger' else category }}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="columns">
+      <div class="column is-4">
+        <div class="box">
+          <h2 class="title is-5">Add New Video</h2>
+          {% include 'comhealth/admin/_health_education_video_form.html' %}
+        </div>
+      </div>
+      <div class="column is-8">
+        <div class="box">
+          <form method="get" class="mb-4">
+            <div class="columns is-multiline">
+              <div class="column is-3">
+                <input class="input" type="text" name="topic" placeholder="Topic" value="{{ filters.topic }}">
+              </div>
+              <div class="column is-3">
+                <input class="input" type="text" name="keyword" placeholder="Keyword" value="{{ filters.keyword }}">
+              </div>
+              <div class="column is-3">
+                <input class="input" type="text" name="language" placeholder="Language" value="{{ filters.language }}">
+              </div>
+              <div class="column is-2">
+                <div class="select is-fullwidth">
+                  <select name="is_active">
+                    <option value="" {% if not filters.is_active %}selected{% endif %}>All</option>
+                    <option value="true" {% if filters.is_active == 'true' %}selected{% endif %}>Active</option>
+                    <option value="false" {% if filters.is_active == 'false' %}selected{% endif %}>Inactive</option>
+                  </select>
+                </div>
+              </div>
+              <div class="column is-1">
+                <button class="button is-info is-fullwidth" type="submit">Go</button>
+              </div>
+            </div>
+          </form>
+
+          {% if videos %}
+            <div class="table-container">
+              <table class="table is-fullwidth is-striped is-hoverable">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Source</th>
+                    <th>Topics</th>
+                    <th>Language</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Updated</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for video in videos %}
+                    <tr>
+                      <td>
+                        <strong>{{ video.title }}</strong>
+                        <div class="is-size-7 has-text-grey">{{ video.youtube_video_id }}</div>
+                      </td>
+                      <td>
+                        <div>{{ video.source_name or '-' }}</div>
+                        <div class="is-size-7 has-text-grey">{{ video.source_channel or '-' }}</div>
+                      </td>
+                      <td>{{ (video.health_topics or []) | join(', ') }}</td>
+                      <td>{{ video.language or '-' }}</td>
+                      <td>
+                        {% if video.is_active %}
+                          <span class="tag is-success">Active</span>
+                        {% else %}
+                          <span class="tag is-light">Inactive</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ video.created_at.strftime('%Y-%m-%d %H:%M') if video.created_at else '-' }}</td>
+                      <td>{{ video.updated_at.strftime('%Y-%m-%d %H:%M') if video.updated_at else '-' }}</td>
+                      <td class="has-text-right">
+                        <a class="button is-small is-link" href="{{ url_for('comhealth.edit_health_education_video', video_id=video.id) }}">Edit</a>
+                        <form method="post" action="{{ url_for('comhealth.toggle_health_education_video_status', video_id=video.id) }}" style="display:inline;">
+                          {{ csrf_token() }}
+                          {% if video.is_active %}
+                            <button class="button is-small is-warning" type="submit">Deactivate</button>
+                          {% else %}
+                            <button class="button is-small is-success" type="submit">Activate</button>
+                          {% endif %}
+                        </form>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p>No health education videos yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

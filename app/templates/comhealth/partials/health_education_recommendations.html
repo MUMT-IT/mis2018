@@ -1,0 +1,41 @@
+{% set recommended_videos = recommended_videos|default([]) %}
+{% set more_videos_url = more_videos_url|default('#') %}
+{% set selected_concern_label = selected_concern_label|default('') %}
+<section class="mb-5 section-shell" id="health-education-videos-section">
+    <div class="is-flex is-justify-content-space-between is-align-items-flex-end is-flex-wrap-wrap mb-3" style="gap: 1rem;">
+    <div>
+      <h2 class="title is-4 mb-1">{{ ui.related_videos_title|default('Recommended Health Education Videos') }}</h2>
+      {% if selected_concern_label %}
+        <p class="is-size-7 has-text-grey">Based on {{ selected_concern_label }}</p>
+      {% endif %}
+    </div>
+    <a class="button is-link is-light is-rounded is-small" href="{{ more_videos_url }}">
+      <span>more..</span>
+    </a>
+  </div>
+
+  {% if recommended_videos %}
+    <div class="content">
+      <ul style="list-style:none; margin-left:0; display:grid; gap:0.75rem;">
+        {% for video in recommended_videos %}
+          <li>
+            <a class="button is-link is-light is-rounded is-fullwidth is-justify-content-flex-start" href="{{ video.youtube_url }}" target="_blank" rel="noopener noreferrer">
+              <span class="icon is-small"><i class="fa-solid fa-play"></i></span>
+              <span>{{ video.title }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% else %}
+    <div class="box has-background-light">
+      <div class="is-flex is-align-items-flex-start" style="gap: 0.75rem;">
+        <span class="icon has-text-info mt-1"><i class="fa-solid fa-video"></i></span>
+        <div>
+          <p class="has-text-weight-semibold mb-1">{{ ui.no_related_videos }}</p>
+          <p class="is-size-7 has-text-grey">{{ ui.no_related_videos_help }}</p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</section>

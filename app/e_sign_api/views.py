@@ -31,7 +31,9 @@ def test_file():
             with open(f'{current_user.email}_sig.png', 'wb') as imgfile:
                 imgfile.write(current_user.digital_cert_file.image)
 
-        w = IncrementalPdfFileWriter(form.doc.data)
+        # Some PDFs produced by office tools use hybrid xref sections.
+        # pyHanko rejects them in strict mode, so allow relaxed parsing here.
+        w = IncrementalPdfFileWriter(form.doc.data, strict=False)
         append_signature_field(w, SigFieldSpec(sig_field_name='Signature', on_page=0, box=(20, 100, 400, 200)))
         meta = signers.PdfSignatureMetadata(field_name='Signature')
         signer = signers.SimpleSigner.load_pkcs12(pfx_file=f'{current_user.email}_cert.pfx',
@@ -75,7 +77,9 @@ def e_sign(doc, passphrase, x1=100, y1=100, x2=100, y2=100, include_image=True, 
         with open(f'{current_user.email}_sig.png', 'wb') as imgfile:
             imgfile.write(current_user.digital_cert_file.image)
 
-    w = IncrementalPdfFileWriter(doc)
+    # Some PDFs produced by office tools use hybrid xref sections.
+    # pyHanko rejects them in strict mode, so allow relaxed parsing here.
+    w = IncrementalPdfFileWriter(doc, strict=False)
     append_signature_field(w, SigFieldSpec(sig_field_name=sig_field_name, on_page=0, box=(x1, y1, x2, y2)))
     meta = signers.PdfSignatureMetadata(field_name=sig_field_name)
     signer = signers.SimpleSigner.load_pkcs12(pfx_file=f'{current_user.email}_cert.pfx',

@@ -1,0 +1,95 @@
+<div class="modal is-active animate__animated" id="bdd-feature-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card" style="width: 90%;">
+        <header class="modal-card-head">
+            <p class="modal-card-title" align="center">
+                {% if feature_exists %}
+                    แก้ไข BDD Feature
+                {% else %}
+                    สร้าง BDD Feature
+                {% endif %}
+            </p>
+            <button type="button" id="cancelBddFeatureButton" class="delete" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <form hx-post="{{ url_for('software_request.create_bdd_feature', issue_id=issue.id) }}"
+                  hx-target="#bdd_feature_form"
+                  hx-swap="innerHTML">
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                {{ form.feature_id() }}
+                {{ form.issue_id() }}
+                <div class="field">
+                    <label class="label">Requirement</label>
+                    <div class="control">
+                        {{ form.requirement(class='textarea', rows='4', required=true) }}
+                    </div>
+                </div>
+                {% if generation_error %}
+                    <div class="notification is-danger">
+                        <p>{{ generation_error }}</p>
+                    </div>
+                {% endif %}
+                {% if feature %}
+                    <div class="field">
+                        <label class="label">
+                            {{ form.feature_title.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.feature_title(class='input', required=true) }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">
+                            {{ form.gherkin_text.label }}
+                            <span class="has-text-danger">*</span>
+                        </label>
+                        <div class="control">
+                            {{ form.gherkin_text(class='textarea', rows='18', required=true) }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="checkbox">
+                            {{ form.reviewed_by_human() }}
+                            {{ form.reviewed_by_human.label.text }}
+                        </label>
+                    </div>
+                    <div class="field">
+                        <p class="help">
+                            AI generated: {{ 'Yes' if feature.generated_by_ai else 'No' }}
+                            {% if feature.version %}
+                                | Version: {{ feature.version }}
+                            {% endif %}
+                            {% if feature_exists %}
+                                | Existing feature will be updated, not duplicated.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+                <div class="field is-grouped is-grouped-centered">
+                    <div class="control">
+                        <button type="button"
+                                class="button is-info is-light"
+                                hx-post="{{ url_for('software_request.regenerate_bdd_feature', issue_id=issue.id) }}"
+                                hx-include="closest form"
+                                hx-target="#bdd_feature_form"
+                                hx-swap="innerHTML">
+                            Regenerate
+                        </button>
+                    </div>
+                    {% if feature %}
+                        <div class="control">
+                            <input type="submit" id="submit-form" class="button is-success" value="บันทึก">
+                        </div>
+                    {% endif %}
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelBddFeatureButton").addEventListener("click", function () {
+        htmx.addClass(htmx.find('#bdd-feature-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#bdd-feature-modal'), "is-active", 500)
+    })
+</script>

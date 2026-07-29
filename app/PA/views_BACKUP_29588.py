@@ -1106,14 +1106,6 @@ def all_approved_pa():
             is_already_approved = False
             if pa.committees:
                 is_committee = True
-<<<<<<< HEAD
-                # committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
-                #     PACommittee.staff != current_user).all()
-                # if not committee:
-                #     committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
-                #         PACommittee.staff != current_user).all()
-=======
->>>>>>> upstream/master
                 for c in pa.committees:
                     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa.id, committee_id=c.id).first()
                     is_confirm = True if scoresheet else False

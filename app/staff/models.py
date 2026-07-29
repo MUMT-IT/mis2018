@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import os
 import boto3
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from ..main import db, ma
 from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
@@ -103,6 +103,7 @@ class StaffAccount(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     personal_id = db.Column('personal_id', db.ForeignKey('staff_personal_info.id'))
     email = db.Column('email', db.String(), unique=True)
+    external_email = db.Column('external_email', db.String(), unique=True, index=True, nullable=True)
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
@@ -118,12 +119,16 @@ class StaffAccount(db.Model):
 
     @classmethod
     def get_active_accounts(cls):
-        return [account for account in cls.query.all() if account.is_active]
+        return [account for account in cls.query.all() if account.is_active and not account.is_retired]
 
     @classmethod
     def get_it_unit(cls):
-        return [account for account in cls.query.all() if (not account.personal_info.retired and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
+        return [account for account in cls.query.all() if (account.is_active and not account.is_retired and account.personal_info.org.name == 'หน่วยข้อมูลและสารสนเทศ')
                 or account.email == 'likit.pre']
+
+    @classmethod
+    def get_account_by_external_email(cls, email):
+        return cls.query.filter_by(external_email=(email or '').strip().lower()).first()
 
     @property
     def fullname(self):
@@ -183,6 +188,13 @@ class StaffAccount(db.Model):
     @property
     def pending_invitations(self):
         return self.invitations.filter_by(response='ไม่แน่ใจ').all()
+
+    @classmethod
+    def get_role(cls, role):
+        return cls.query.join(cls.roles).join(cls.personal_info).filter(or_(StaffPersonalInfo.retired == False,
+                                                                            StaffPersonalInfo.retired == None),
+                                                                        Role.role_need == role)
+
 
 
 class StaffPersonalInfo(db.Model):
@@ -603,6 +615,8 @@ class StaffLeaveApprover(db.Model):
                               backref=db.backref('leave_approvers'),
                               foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
+    is_lower_level = db.Column('is_lower_level', db.Boolean(), default=False)
+    is_middle_level = db.Column('is_middle_level', db.Boolean(), default=False)
 
     @property
     def approver_name(self):
@@ -965,7 +979,9 @@ class StaffWorkLogin(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     date_id = db.Column('date_id', db.String())
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship('StaffAccount', backref=db.backref('work_logins', lazy='dynamic'))
+    staff = db.relationship('StaffAccount',
+                            foreign_keys=[staff_id],
+                            backref=db.backref('work_logins', lazy='dynamic'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
     checkin_mins = db.Column('checkin_mins', db.Integer())
@@ -976,6 +992,8 @@ class StaffWorkLogin(db.Model):
     lat = db.Column('lat', db.Numeric())
     long = db.Column('long', db.Numeric())
     note = db.Column('note', db.Text())
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship('StaffAccount', foreign_keys=[creator_id])
 
     @staticmethod
     def generate_date_id(date):
@@ -1024,6 +1042,19 @@ class StaffShiftRole(db.Model):
 
     def __str__(self):
         return self.role
+
+
+class StaffCostCenterAuthority(db.Model):
+    __tablename__ = 'staff_cost_center_authorities'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    cost_center = db.Column('cost_center', db.String(), nullable=False)
+    secretary_id = db.Column('secretary_id', db.ForeignKey('staff_account.id'))
+    secretary = db.relationship(StaffAccount, foreign_keys=[secretary_id])
+    head_id = db.Column('head_id', db.ForeignKey('staff_account.id'))
+    head = db.relationship(StaffAccount, foreign_keys=[head_id])
+
+    def __str__(self):
+        return self.cost_center
 
 
 class KPIStaffAssociation(db.Model):

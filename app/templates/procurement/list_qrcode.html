@@ -7,10 +7,44 @@
 {% endblock %}
 {% block page_content %}
     <section class="section">
+        <style>
+            .qrcode-action-btn {
+                font-weight: 700;
+                letter-spacing: 0.2px;
+                min-width: 170px;
+                box-shadow: 0 10px 22px rgba(0, 0, 0, 0.15);
+                border-width: 2px;
+            }
+            .qrcode-action-btn .icon {
+                margin-right: 0.35rem;
+            }
+            .qrcode-action-btn:hover {
+                transform: translateY(-1px);
+            }
+            #select_all_btn.qrcode-action-btn {
+                background: #136f63;
+                border-color: #136f63;
+                color: #fff;
+            }
+            #select_all_btn.qrcode-action-btn:hover {
+                background: #0f5a50;
+                border-color: #0f5a50;
+                color: #fff;
+            }
+            #remove_all_btn.qrcode-action-btn {
+                background: #b42318;
+                border-color: #b42318;
+                color: #fff;
+            }
+            #remove_all_btn.qrcode-action-btn:hover {
+                background: #8f1c13;
+                border-color: #8f1c13;
+                color: #fff;
+            }
+        </style>
         {% include "messages.html" %}
         <div class="container">
-            <form hx-post="{{ url_for('procurement.select_items_for_printing_qrcode') }}"
-                  hx-target="#selected_items" hx-swap="beforeend">
+            <form>
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
                     <div class="column has-text-centered">
@@ -20,15 +54,12 @@
                 <div class="columns">
                     <div class="column">
                         <div class="column has-text-left">
-                            <button class="button is-info">
+                            <button class="button qrcode-action-btn" id="select_all_btn" type="button">
                                 <span class="icon">
-                                    <i class="fas fa-print"></i>
+                                    <i class="fas fa-check-double"></i>
                                 </span>
-                                <span>เลือก</span>
+                                <span>Select All</span>
                             </button>
-                             <input class="is-checkradio"
-                                   id="check_all" type="checkbox" name="check_all" value="checked"/>
-                            <label for="check_all">All</label>
                         </div>
                         <table class="table is-fullwidth is-striped" id="QTable">
                             <thead>
@@ -49,11 +80,17 @@
             </form>
             <div class="columns">
                 <div class="column">
-                    <form method="post" action="{{ url_for('procurement.list_qrcode') }}">
+                    <form id="print_qrcode_form" method="post" action="{{ url_for('procurement.list_qrcode') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <h1 class="title">Selected Items</h1>
                         <table class="table is-fullwidth" id="selected_items">
                         </table>
+                        <button class="button qrcode-action-btn" id="remove_all_btn" type="button">
+                            <span class="icon">
+                                <i class="fas fa-trash-alt"></i>
+                            </span>
+                            <span>Remove All</span>
+                        </button>
                         <input type="submit" value="Print" class="button is-success"></input>
                     </form>
                 </div>
@@ -75,7 +112,24 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#QTable').DataTable({
+            const appendSelectedRows = function (html) {
+                if (!html) {
+                    return;
+                }
+                const $tmp = $('<tbody>').html(html);
+                $tmp.find('tr').each(function () {
+                    const rowId = this.id;
+                    if (!rowId || $('#' + rowId).length === 0) {
+                        $('#selected_items').append(this);
+                    }
+                });
+            };
+
+            $.get('{{ url_for("procurement.list_selected_items_for_printing_qrcode") }}', function (html) {
+                appendSelectedRows(html);
+            });
+
+            const table = $('#QTable').DataTable({
                 searchDelay: 350,
                 ajax: '{{ url_for("procurement.get_procurement_data_qrcode_list") }}',
                 serverSide: true,
@@ -90,16 +144,82 @@
                     {data: 'print'}
                 ],
             });
-            $("#check_all").on('click', function() {
-                if (this.checked) {
-                    $(':checkbox').each(function() {
-                        this.checked = true;
-                    });
-                } else {
-                    $(':checkbox').each(function() {
-                        this.checked = false;
+            $("#select_all_btn").on('click', function() {
+                const $checkboxes = $('#QTable tbody input[name="selected_items"]');
+                const ids = [];
+                $checkboxes.each(function () {
+                    this.checked = true;
+                    ids.push(this.value);
+                });
+                if (ids.length > 0) {
+                    $.ajax({
+                        url: '{{ url_for("procurement.select_items_for_printing_qrcode") }}',
+                        method: 'POST',
+                        traditional: true,
+                        data: {
+                            csrf_token: '{{ csrf_token() }}',
+                            selected_items: ids
+                        },
+                        success: function (html) {
+                            appendSelectedRows(html);
+                        }
                     });
                 }
+            });
+
+            $("#remove_all_btn").on('click', function () {
+                $.post('{{ url_for("procurement.clear_selected_items_for_printing_qrcode") }}', {
+                    csrf_token: '{{ csrf_token() }}'
+                }, function () {
+                    $('#selected_items').empty();
+                    $('#QTable input[name="selected_items"]').prop('checked', false);
+                    table.ajax.reload(null, false);
+                });
+            });
+
+            $('#QTable tbody').on('change', 'input[name="selected_items"]', function () {
+                const itemId = this.value;
+                if (this.checked) {
+                    $.post('{{ url_for("procurement.select_items_for_printing_qrcode") }}', {
+                        csrf_token: '{{ csrf_token() }}',
+                        selected_items: itemId
+                    }, function (html) {
+                        appendSelectedRows(html);
+                    });
+                } else {
+                    $.post('{{ url_for("procurement.remove_selected_items_for_printing_qrcode") }}', {
+                        csrf_token: '{{ csrf_token() }}',
+                        selected_items: itemId
+                    }, function () {
+                        $('#selected_row_' + itemId).remove();
+                    });
+                }
+            });
+
+            $('#selected_items').on('click', '.delete-selected-item', function (e) {
+                e.preventDefault();
+                const itemId = $(this).data('item-id').toString();
+                $.post('{{ url_for("procurement.remove_selected_items_for_printing_qrcode") }}', {
+                    csrf_token: '{{ csrf_token() }}',
+                    selected_items: itemId
+                }, function () {
+                    $('#selected_row_' + itemId).remove();
+                    $('#QTable tbody input[name="selected_items"][value="' + itemId + '"]').prop('checked', false);
+                });
+            });
+
+            $('#print_qrcode_form').on('submit', function () {
+                const form = this;
+                $(form).find('input.dynamic-selected-item').remove();
+                $('#selected_items tr[data-item-id]').each(function () {
+                    const itemId = $(this).data('item-id');
+                    $('<input>')
+                        .attr('type', 'hidden')
+                        .attr('name', 'selected_items')
+                        .attr('value', itemId)
+                        .addClass('dynamic-selected-item')
+                        .appendTo(form);
+                });
             });
         });
     </script>

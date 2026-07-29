@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="75">
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                   data-target="navbarBasicExample">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                    <span class="navbar-item">
+                    <a class="button is-outlined" href="{{ url_for('procurement.first_page') }}">
+                        <span>Home</span>
+                    </a>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h4 class="title is-4">ค้นหา Inventory Number/ ERP</h4>
+            </div>
+        </div>
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    <table id="data" class="table is-striped">
+                        <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>ดูข้อมูล</th>
+                            <th>รายการ</th>
+                            <th>เลขครุภัณฑ์</th>
+                            <th>Inventory Number/ERP</th>
+                            <th>ปีงบประมาณ</th>
+                            <th>วันที่ได้รับ</th>
+                            <th>สถานะ</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('procurement.user_scan_or_search') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            var table = $('#data').DataTable({
+                serverSide: true,
+                searchDelay: 1000,
+                ajax: '{{ url_for("procurement.get_procurement_search_data") }}',
+                columns: [
+                    {data: 'thumbnail', orderable: false, searchable: false},
+                    {data: 'view', orderable: false, searchable: false},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'received_date'},
+                    {data: 'available'}
+                ]
+            });
+        });
+    </script>
+{% endblock %}

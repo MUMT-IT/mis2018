@@ -12,7 +12,7 @@
         {% include "messages.html" %}
         <div class="table-container">
             <h4 class="subtitle has-text-centered">รายการที่ต้องการเบิก OT ของ
-                {{ current_user.personal_info.org.name }} สำหรับอนุมัติ {{ document.title }}
+                {{ current_user.personal_info.org.display_name if current_user.personal_info.org else 'ไม่มีสังกัด' }} สำหรับอนุมัติ {{ document.title }}
             </h4>
         </div>
         <table id="otTable" class="table is-striped is-fullwidth">
@@ -205,5 +205,3 @@
     });
 </script>
 {% endblock %}
-
-

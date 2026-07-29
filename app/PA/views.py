@@ -17,7 +17,8 @@ from app.main import mail, StaffEmployment, StaffLeaveUsedQuota, StaffSeminarAtt
 
 tz = pytz.timezone('Asia/Bangkok')
 
-from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, send_from_directory, Markup
+from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify, send_from_directory
+from markupsafe import Markup
 from flask_login import login_required, current_user
 from flask_mail import Message
 from dateutil.relativedelta import relativedelta
@@ -77,7 +78,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
             supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
             if supervisor:
                 if supervisor == current_user:
-                    flash('ไม่พบประธานกรรมการประเมิน PA กรุณาติดต่อ HR', 'danger')
+                    flash('ไม่พบประธานกรรมการประเมิน PA กรุณาติดต่อ HR (Only supervisor role was found)', 'danger')
                     return redirect(url_for('pa.user_performance'))
                 else:
                     pa = PAAgreement(round_id=round_id,
@@ -87,7 +88,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                     db.session.add(pa)
                     db.session.commit()
             else:
-                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR (Only Head individual role assigned)', 'danger')
                 return redirect(url_for('pa.user_performance'))
         elif head_committee:
             supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
@@ -103,10 +104,10 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                     db.session.add(pa)
                     db.session.commit()
             else:
-                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR', 'danger')
+                flash('ไม่พบประธานกรรมการประเมิน PA กรุณาแจ้ง HR (Only Head committee role assigned)', 'danger')
                 return redirect(url_for('pa.user_performance'))
         else:
-            flash('ไม่พบประธานกรรมการประเมิน PA กรุณาดำเนินการติดต่อ HR', 'danger')
+            flash('ไม่พบประธานกรรมการประเมิน PA กรุณาดำเนินการติดต่อ HR (No role assigned)', 'danger')
             return redirect(url_for('pa.user_performance'))
 
         if not pa.updated_at and pa_round.is_closed != True:
@@ -162,18 +163,26 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
     else:
         pa_item = None
         form = PAItemForm()
+    selected_kpi_item_ids = {item.id for item in pa_item.kpi_items} if pa_item else set()
     for kpi in pa.kpis:
         items = []
-        default = None
+        default = ''
+        default_kpi_item = None
+        if len(kpi.pa_kpi_items) > 1:
+            default_kpi_item = kpi.pa_kpi_items[1]
+        elif kpi.pa_kpi_items:
+            default_kpi_item = kpi.pa_kpi_items[0]
         for item in kpi.pa_kpi_items:
             items.append((item.id, textwrap.shorten(item.goal, width=100, placeholder='...')))
-            if pa_item:
-                if item in pa_item.kpi_items:
-                    default = item.id
+            if item.id in selected_kpi_item_ids:
+                default = item.id
         field_ = form.kpi_items_.append_entry(default)
-        field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
+        field_.choices = items
         field_.label = kpi.detail
         field_.obj_id = kpi.id
+        field_.default_kpi_item_id = default_kpi_item.id if default_kpi_item else ''
+        field_.default_kpi_item_goal = textwrap.shorten(default_kpi_item.goal, width=100, placeholder='...') \
+            if default_kpi_item else ''
 
     is_send_request = True if PARequest.query.filter_by(pa=pa, for_='ขอรับรอง', status='อนุมัติ').first() else False
     is_self_scoresheet = True if PAScoreSheet.query.filter_by(pa=pa, staff=current_user).first() else False
@@ -293,18 +302,26 @@ def add_pa_item_kpi_form(round_id, item_id, pa_id):
     pa = PAAgreement.query.get(pa_id)
     pa_item = PAItem.query.get(item_id)
     form = PAItemForm(obj=pa_item)
+    selected_kpi_item_ids = {item.id for item in pa_item.kpi_items} if pa_item else set()
     for kpi in pa.kpis:
         items = []
-        default = None
+        default = ''
+        default_kpi_item = None
+        if len(kpi.pa_kpi_items) > 1:
+            default_kpi_item = kpi.pa_kpi_items[1]
+        elif kpi.pa_kpi_items:
+            default_kpi_item = kpi.pa_kpi_items[0]
         for item in kpi.pa_kpi_items:
             items.append((item.id, textwrap.shorten(item.goal, width=100, placeholder='...')))
-            if pa_item:
-                if item in pa_item.kpi_items:
-                    default = item.id
+            if item.id in selected_kpi_item_ids:
+                default = item.id
         field_ = form.kpi_items_.append_entry(default)
-        field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
+        field_.choices = items
         field_.label = kpi.detail
         field_.obj_id = kpi.id
+        field_.default_kpi_item_id = default_kpi_item.id if default_kpi_item else ''
+        field_.default_kpi_item_goal = textwrap.shorten(default_kpi_item.goal, width=100, placeholder='...') \
+            if default_kpi_item else ''
     return render_template('PA/modals/pa_item_kpis_form_modal.html',
                            form=form, round_id=round_id, item_id=item_id, pa_id=pa_id, pa=pa, pa_item=pa_item)
 
@@ -454,6 +471,7 @@ def add_kpi(pa_id):
         for head_item in PAKPIJobPosition.query.filter(PAKPIJobPosition.job_position is None).all():
             all_current_job_kpi.append(head_item)
     form = PAKPIForm()
+    pa_levels = PALevel.query.order_by(PALevel.id.asc()).all()
     if form.validate_on_submit():
         new_kpi = PAKPI()
         form.populate_obj(new_kpi)
@@ -466,7 +484,7 @@ def add_kpi(pa_id):
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id,
-                           all_current_job_kpi=all_current_job_kpi)
+                           all_current_job_kpi=all_current_job_kpi, pa_levels=pa_levels)
 
 
 @pa.route('/api/job-kpi-details/<int:pa_id>', methods=['POST'])
@@ -542,6 +560,7 @@ def edit_kpi(pa_id, kpi_id, job_kpi_id=None):
     kpi = PAKPI.query.get(kpi_id)
     pa = PAAgreement.query.get(pa_id)
     form = PAKPIForm(obj=kpi)
+    pa_levels = PALevel.query.order_by(PALevel.id.asc()).all()
     if form.validate_on_submit():
         form.populate_obj(kpi)
         db.session.add(kpi)
@@ -551,7 +570,8 @@ def edit_kpi(pa_id, kpi_id, job_kpi_id=None):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id, job_kpi_id=job_kpi_id)
+    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id,
+                           job_kpi_id=job_kpi_id, pa_levels=pa_levels)
 
 
 @pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])
@@ -654,35 +674,35 @@ def edit_active_round(round_id):
 def add_committee():
     form = PACommitteeForm()
     if form.validate_on_submit():
+        subordinates = form.subordinate.data
+        added_count = 0
+        skipped_count = 0
         for round in form.round.data:
             for staff in form.staff.data:
-                if form.subordinate.data:
-                    is_subordinate = PACommittee.query.filter_by(staff=staff, org=form.org.data,
-                                                                 round=round,
-                                                                 subordinate=form.subordinate.data).first()
-                    if is_subordinate:
-                        flash('มีรายชื่อ{}ประเมิน {}แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{} ก่อนบันทึกอีกครั้ง'.format(staff.personal_info,
-                                                                    form.subordinate.data, staff.personal_info), 'warning')
-                        return render_template('staff/HR/PA/hr_add_committee.html', form=form)
-                    else:
-                        committee = PACommittee(
-                            subordinate=form.subordinate.data,
-                            staff_account_id=staff.id,
-                            org=form.org.data,
-                            round=round,
-                            role=form.role.data
-                        )
-                        db.session.add(committee)
-                        db.session.commit()
-                        flash('เพิ่ม{}สำหรับทีมบริหารและหัวหน้า {} ใหม่เรียบร้อยแล้ว'.format(
-                                                                staff.personal_info, form.subordinate.data), 'success')
+                if subordinates:
+                    for subordinate in subordinates:
+                        is_subordinate = PACommittee.query.filter_by(staff=staff, org=form.org.data,
+                                                                     round=round,
+                                                                     subordinate=subordinate).first()
+                        if is_subordinate:
+                            skipped_count += 1
+                            continue
+                        else:
+                            committee = PACommittee(
+                                subordinate=subordinate,
+                                staff_account_id=staff.id,
+                                org=form.org.data,
+                                round=round,
+                                role=form.role.data
+                            )
+                            db.session.add(committee)
+                            added_count += 1
                 else:
                     is_committee = PACommittee.query.filter_by(staff=staff, org=form.org.data,
                                                                round=round).first()
                     if is_committee:
-                        flash('มีรายชื่อ{}ประเมิน ร่วมกับหน่วยงานนี้แล้ว หากเพิ่มกรรมการหลายท่านกรุณาลบ{}ก่อนบันทึกอีกครั้ง'.format(
-                                                                staff.personal_info, staff.personal_info), 'warning')
-                        return render_template('staff/HR/PA/hr_add_committee.html', form=form)
+                        skipped_count += 1
+                        continue
                     else:
                         committee = PACommittee(
                             staff=staff,
@@ -691,8 +711,12 @@ def add_committee():
                             role=form.role.data
                         )
                         db.session.add(committee)
-                        db.session.commit()
-                        flash('เพิ่ม{}เป็นผู้ประเมินใหม่ {} เรียบร้อยแล้ว'.format(staff.personal_info, round.desc), 'success')
+                        added_count += 1
+        if added_count:
+            db.session.commit()
+            flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว {} รายการ'.format(added_count), 'success')
+        if skipped_count:
+            flash('ข้ามรายการที่มีอยู่แล้ว {} รายการ'.format(skipped_count), 'warning')
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -708,7 +732,9 @@ def show_committee():
     if org_id is None:
         committee_list = PACommittee.query.all()
     else:
-        committee_list = PACommittee.query.filter_by(org_id=org_id).all()
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        committee_list = PACommittee.query.filter(PACommittee.org_id.in_(org_ids)).all()
     return render_template('staff/HR/PA/hr_show_committee.html',
                            sel_dept=org_id,
                            committee_list=committee_list,
@@ -808,16 +834,25 @@ def consensus_scoresheets_for_hr():
         rounds = PARound.query.order_by(PARound.id.desc()).all()
         employment_id = request.args.get('empid', type=int)
         round_id = request.args.get('roundid', type=int)
+        org_id = request.args.get('deptid', type=int)
         employments = StaffEmployment.query.all()
-        if employment_id is None:
-            scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)
-        else:
-            employment_scoresheets = []
-            scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
-            for scoresheet in scoresheet_list:
-                if scoresheet.pa.staff.personal_info.employment_id == employment_id:
-                    employment_scoresheets.append(scoresheet)
-            scoresheet_list = employment_scoresheets
+        departments = Org.query.order_by(Org.id.asc()).all()
+        scoresheet_list = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
+
+        if employment_id is not None:
+            scoresheet_list = [
+                scoresheet for scoresheet in scoresheet_list
+                if scoresheet.pa.staff.personal_info.employment_id == employment_id
+            ]
+
+        if org_id is not None:
+            selected_org = Org.query.get(org_id)
+            org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+            scoresheet_list = [
+                scoresheet for scoresheet in scoresheet_list
+                if scoresheet.pa.staff.personal_info.org_id in org_ids
+            ]
+
         if round_id:
             scoresheets = []
             for scoresheet in scoresheet_list:
@@ -829,7 +864,9 @@ def consensus_scoresheets_for_hr():
 
         return render_template('staff/HR/PA/hr_all_consensus_scores.html', all_rounds=all_rounds,
                                sel_emp=employment_id,
+                               sel_dept=org_id,
                                scoresheet_list=scoresheet_list,
+                               departments=[{'id': d.id, 'name': d.name} for d in departments],
                                employments=[{'id': e.id, 'title': e.title} for e in employments],
                                round=round_id,
                                rounds=[{'id': r.id,
@@ -862,7 +899,7 @@ def create_request(pa_id):
     elif head_committee:
         supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
     else:
-        flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR', 'warning')
+        flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR (Head committee and Head individual not found)', 'warning')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
     if form.validate_on_submit():
         new_request = PARequest()
@@ -1698,6 +1735,7 @@ def rate_performance(scoresheet_id):
         return redirect(url_for('pa.all_performance', scoresheet_id=scoresheet_id))
     head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee=committee, is_consolidated=False).first()
     self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
+    categories = PAItemCategory.query.all()
     core_competency_items = PACoreCompetencyItem.query.all()
     if for_self == 'true':
         next_url = url_for('pa.add_pa_item', round_id=pa.round_id)
@@ -1731,6 +1769,7 @@ def rate_performance(scoresheet_id):
                            head_scoresheet=head_scoresheet,
                            self_scoresheet=self_scoresheet,
                            next_url=next_url,
+                           categories=categories,
                            core_competency_items=core_competency_items,
                            for_self=for_self)
 
@@ -2125,10 +2164,32 @@ def pa_detail(round_id, pa_id):
         items = []
         for item in kpi.pa_kpi_items:
             items.append((item.id, item.goal))
+    relate_idp = []
+    for idp in IDP.query.filter_by(staff_account_id=pa.staff_account_id).join(PAFunctionalCompetencyRound).all():
+        if idp.round.start.year >= pa.round.start.year and idp.round.start.year <= pa.round.start.year+1:
+            relate_idp.append(idp)
     return render_template('staff/HR/PA/pa_detail.html',
                            pa_round=pa_round,
                            pa=pa,
-                           categories=categories)
+                           categories=categories, relate_idp=relate_idp)
+
+
+@pa.route('/rounds/<int:round_id>/<int:pa_id>/<int:idp_id>/change-head-idp')
+@login_required
+def change_head_idp(round_id,pa_id,idp_id):
+    pa = PAAgreement.query.get(pa_id)
+    idp = IDP.query.get(idp_id)
+    if pa and idp:
+        idp.approver = pa.head_committee_staff_account
+        db.session.add(idp)
+        db.session.commit()
+        flash('เปลี่ยนผู้ประเมิน idp รอบ {}({}) เรียบร้อยแล้ว'.format(idp.round.desc,idp.round), 'success')
+    else:
+        if pa:
+            flash('ไม่พบ idp ที่ค้นหา', 'danger')
+        else:
+            flash('ไม่พบรอบ pa กรุณาติดต่อ it', 'danger')
+    return redirect(url_for('pa.pa_detail', round_id=round_id, pa_id=pa_id))
 
 
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/head-committee', methods=['GET', 'POST'])
@@ -2142,7 +2203,11 @@ def pa_change_head_committee(round_id, pa_id):
             pa.head_committee_staff_account = form.head_committee_staff_account.data
             db.session.add(pa)
             db.session.commit()
-            flash('เปลี่ยนประธานกรรมการเป็น {} เรียบร้อยแล้ว'.format(form.head_committee_staff_account.data), 'success')
+            flash('บันทึกผลเรียบร้อยแล้ว', 'success')
+            if request.headers.get('HX-Request'):
+                resp = make_response()
+                resp.headers['HX-Refresh'] = 'true'
+                return resp
             return redirect(url_for('pa.pa_detail', pa_id=pa_id, round_id=round_id))
     else:
         for er in form.errors:
@@ -2615,8 +2680,28 @@ def close_fc_round(round_id):
 @login_required
 @hr_permission.require()
 def fc_evaluator():
-    fc_evaluator = PAFunctionalCompetencyEvaluation.query.all()
-    return render_template('staff/HR/PA/fc_evaluator.html', fc_evaluator=fc_evaluator)
+    rounds = PAFunctionalCompetencyRound.query.all()
+    org_id = request.args.get('deptid', type=int)
+    round_id = request.args.get('roundid', type=int)
+    departments = Org.query.order_by(Org.id.asc()).all()
+    query = PAFunctionalCompetencyEvaluation.query.join(StaffAccount, PAFunctionalCompetencyEvaluation.staff_account_id == StaffAccount.id).join(
+        StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id
+    )
+    if org_id is not None:
+        org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(org) if org else [org_id]
+        query = query.filter(StaffPersonalInfo.org_id.in_(org_ids))
+    if round_id is not None:
+        query = query.filter(PAFunctionalCompetencyEvaluation.round_id == round_id)
+    fc_evaluator = query.all()
+    return render_template(
+        'staff/HR/PA/fc_evaluator.html',
+        fc_evaluator=fc_evaluator,
+        sel_dep=org_id,
+        round=round_id,
+        departments=[{'id': d.id, 'name': d.name} for d in departments],
+        rounds=[{'id': r.id, 'round': r.desc + ': ' + r.start.strftime('%d/%m/%Y') + '-' + r.end.strftime('%d/%m/%Y')} for r in rounds]
+    )
 
 
 @pa.route('/hr/fc/evaluator/<int:evaluation_id>')
@@ -3132,6 +3217,10 @@ def hr_all_idp():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
     departments = Org.query.order_by(Org.id.asc()).all()
+    org_ids = None
+    if org_id is not None:
+        org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(org) if org else [org_id]
     if org_id is None:
         if round_id:
             idps = IDP.query.filter_by(round_id=round_id).all()
@@ -3143,14 +3232,14 @@ def hr_all_idp():
             org_round_idp = []
             round_idp = IDP.query.filter_by(round_id=round_id).all()
             for idp in round_idp:
-                if idp.staff.personal_info.org_id == org_id:
+                if idp.staff.personal_info.org_id in org_ids:
                     org_round_idp.append(idp)
                 idps = org_round_idp
         else:
             org_round_idp = []
             all_idp = IDP.query.all()
             for idp in all_idp:
-                if idp.staff.personal_info.org_id == org_id:
+                if idp.staff.personal_info.org_id in org_ids:
                     org_round_idp.append(idp)
                 idps = org_round_idp
     if request.method == 'POST':
@@ -3198,18 +3287,14 @@ def hr_idp_improvement():
     org_id = request.args.get('deptid', type=int)
     round_id = request.args.get('roundid', type=int)
     departments = Org.query.order_by(Org.id.asc()).all()
-    if org_id is None:
-        if round_id:
-            all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()
-        else:
-            round = PAFunctionalCompetencyRound.query.order_by(PAFunctionalCompetencyRound.id.desc()).first()
-            all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round.id).all()
-    else:
+    if org_id:
+        org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(org) if org else [org_id]
         if round_id:
             org_round_idp = []
             round_idp = IDP.query.filter_by(round_id=round_id).all()
             for idp in round_idp:
-                if idp.staff.personal_info.org_id == org_id:
+                if idp.staff.personal_info.org_id in org_ids:
                     for item in idp.idp_item:
                         org_round_idp.append(item)
                 all_idp_item = org_round_idp
@@ -3217,10 +3302,17 @@ def hr_idp_improvement():
             org_round_idp = []
             all_idp = IDP.query.all()
             for idp in all_idp:
-                if idp.staff.personal_info.org_id == org_id:
+                if idp.staff.personal_info.org_id in org_ids:
                     for item in idp.idp_item:
                         org_round_idp.append(item)
                 all_idp_item = org_round_idp
+    else:
+        if round_id:
+            all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()
+        else:
+            round = PAFunctionalCompetencyRound.query.order_by(PAFunctionalCompetencyRound.id.desc()).first()
+            all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round.id).all()
+
     if request.method == 'POST':
         round_id = request.form.get('round_id')
         all_idp_item = IDPItem.query.join(IDP).filter(IDP.round_id == round_id).all()

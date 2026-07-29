@@ -135,9 +135,20 @@
                     <div class="field">
                         <label class="label">ช่องทางรับเรื่อง</label>
                         <div class="control">
-                            {{ record.channel_receive }}
+                            {{ record.channel_receive or 'ไม่ระบุ' }}
                         </div>
                     </div>
+                    {% if record.participants %}
+                        <div class="field">
+                            <label class="label">ผู้เกี่ยวข้อง</label>
+                            <div class="control">
+                                {% for participant in record.participants %}
+                                    <span class="tag is-rounded is-info is-light">
+                                        {{ participant.fullname }}
+                                    </span>{% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
                     <div class="field">
                         <label class="label">ข้อมูลติดต่อผู้ส่ง</label>
                     </div>
@@ -191,7 +202,6 @@
                         <div class="control">
                             {% for t in record.tags %}
                                 <span class="tag is-link">{{ t.tag }}</span>
-
                             {% endfor %}
                         </div>
                     </div>
@@ -204,9 +214,27 @@
                     <div class="field">
                         <label class="label">สถานะ</label>
                         <div class="control">
-                            {{ record.status }}
+                            {% if record.status %}
+                                <span class="tag {{ record.status.color }}">
+                                    <span class="icon">{{ record.status.icon|safe }}</span>
+                                    <span>{{ record.status }}</span>
+                                </span>
+                            {% else %}
+                                <span class="tag is-danger">
+                                    <span class="icon"><i class="fas fa-times"></i></span>
+                                    <span>ยังไม่ดำเนินการ</span>
+                                </span>
+                            {% endif %}
                         </div>
                     </div>
+                    {% if record.topic.code == 'runied' %}
+                        <div class="field">
+                            <label class="label">รูปแบบการซ่อม</label>
+                            <div class="control">
+                                {{ record.repair_method or 'ไม่ระบุ' }}
+                            </div>
+                        </div>
+                    {% endif %}
                     <div class="field">
                         <label class="label">รายชื่อผู้รับผิดชอบ</label>
                         <div class="control">

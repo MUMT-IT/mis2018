@@ -1,8 +1,44 @@
 {% extends 'continueing_edu/admin/base.html' %}
 {% block content %}
-<div class="container">
+<div class="container is-fluid">
   <h1 class="title">Manage Events</h1>
   <a href="{{ url_for('continuing_edu_admin.create_event') }}" class="button is-primary mb-4">Create New Event</a>
+
+  <!-- Search / Filters -->
+  <form method="get" class="mb-4">
+    <div class="field is-grouped">
+      <p class="control">
+        <input class="input" type="text" name="q" placeholder="Search title..."
+          value="{{ q or request.args.get('q','') }}">
+      </p>
+      <p class="control">
+      <div class="select">
+        <select name="type">
+          <option value="" {% if not filter_type %}selected{% endif %}>All types</option>
+          <option value="course" {% if filter_type=='course' %}selected{% endif %}>Course</option>
+          <option value="webinar" {% if filter_type=='webinar' %}selected{% endif %}>Webinar</option>
+        </select>
+      </div>
+      </p>
+      <p class="control">
+      <div class="select">
+        <select name="status">
+          <option value="" {% if not filter_status %}selected{% endif %}>All statuses</option>
+          <option value="published" {% if filter_status=='published' %}selected{% endif %}>Published</option>
+          <option value="draft" {% if filter_status=='draft' %}selected{% endif %}>Draft</option>
+          <option value="registration_open" {% if filter_status=='registration_open' %}selected{% endif %}>Registration
+            Open</option>
+        </select>
+      </div>
+      </p>
+      <p class="control">
+        <button class="button is-info" type="submit">Filter</button>
+      </p>
+      <p class="control">
+        <a class="button" href="{{ url_for('continuing_edu_admin.manage_events') }}">Reset</a>
+      </p>
+    </div>
+  </form>
 
   {% if events %}
   <table class="table is-fullwidth is-striped">
@@ -12,6 +48,12 @@
         <th>Title</th>
         <th>Type</th>
         <th>Created</th>
+        <th>Registration (Open - Close)</th>
+        <th>Event Starts</th>
+        <th>Early Bird (Start - End)</th>
+        <th>Seats (Reg)</th>
+        <th>Creator</th>
+        <th>Status</th>
         <th></th>
       </tr>
     </thead>
@@ -23,7 +65,52 @@
         <td>{{ e.event_type }}</td>
         <td>{{ e.created_at }}</td>
         <td>
-          <a class="button is-small is-link" href="{{ url_for('continuing_edu_admin.edit_event', event_id=e.id) }}">Edit</a>
+          {% if e.registration_open_at or e.registration_close_at %}
+          {% if e.registration_open_at %}{{ e.registration_open_at.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %}
+          &nbsp;&ndash;&nbsp;
+          {% if e.registration_close_at %}{{ e.registration_close_at.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %}
+          {% else %}
+          -
+          {% endif %}
+        </td>
+        <td>
+          {% if event_starts.get(e.id) %}
+          {{ event_starts.get(e.id).strftime('%Y-%m-%d %H:%M') }}
+          {% else %}
+          -
+          {% endif %}
+        </td>
+        <td>
+          {% if e.early_bird_start or e.early_bird_end %}
+          {% if e.early_bird_start %}{{ e.early_bird_start.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %}
+          &nbsp;&ndash;&nbsp;
+          {% if e.early_bird_end %}{{ e.early_bird_end.strftime('%Y-%m-%d %H:%M') }}{% else %}-{% endif %}
+          {% else %}
+          -
+          {% endif %}
+        </td>
+        <td>
+          {% set regc = reg_counts.get(e.id, 0) %}
+          {% set tot = total_seats_map.get(e.id) %}
+          {{ regc }} / {{ tot if tot is not none else '-' }}
+        </td>
+        <td>{{ creators.get(e.id) or '-' }}</td>
+        <td>
+          {% if e.is_published %}
+          <span class="tag is-success">เผยแพร่</span>
+          {% else %}
+          <span class="tag is-light">ฉบับร่าง</span>
+          {% endif %}
+          {% if e.registration_open %}
+          <span class="tag is-info">เปิดรับสมัคร</span>
+          {% endif %}
+          {% if e.is_registration_active() %}
+          <span class="tag is-primary">ลงทะเบียนได้</span>
+          {% endif %}
+        </td>
+        <td>
+          <a class="button is-small is-link"
+            href="{{ url_for('continuing_edu_admin.edit_event', event_id=e.id) }}">Edit</a>
         </td>
       </tr>
       {% endfor %}

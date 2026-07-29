@@ -97,12 +97,16 @@
                                         <div class="label">Total</div>
                               </div>
                               <div class="stat-box">
-                                        <div class="number">{{ stats.pending }}</div>
-                                        <div class="label">Pending</div>
+                                        <div class="number">{{ stats.registered }}</div>
+                                        <div class="label">Registered</div>
                               </div>
                               <div class="stat-box">
-                                        <div class="number">{{ stats.confirmed }}</div>
-                                        <div class="label">Confirmed</div>
+                                        <div class="number">{{ stats.in_progress }}</div>
+                                        <div class="label">In Progress</div>
+                              </div>
+                              <div class="stat-box">
+                                        <div class="number">{{ stats.completed }}</div>
+                                        <div class="label">Completed</div>
                               </div>
                               <div class="stat-box">
                                         <div class="number">{{ stats.cancelled }}</div>
@@ -150,9 +154,9 @@
                                                             reg.registration_date else '-' }}</td>
                                                   <td>
                                                             {% if reg.status_ref %}
-                                                            {% set status_lower = reg.status_ref.name_en.lower() %}
+                                                            {% set status_code = (reg.status_ref.registration_status_code or reg.status_ref.name_en or '')|lower %}
                                                             <span
-                                                                      class="tag {% if status_lower == 'confirmed' %}is-success{% elif status_lower == 'pending' %}is-warning{% elif status_lower == 'cancelled' %}is-danger{% else %}is-light{% endif %}">
+                                                                      class="tag {% if status_code == 'completed' %}is-success{% elif status_code == 'in_progress' %}is-info{% elif status_code == 'registered' %}is-warning{% elif status_code in ['cancelled', 'canceled'] %}is-danger{% else %}is-light{% endif %}">
                                                                       {{ reg.status_ref.name_en }}
                                                             </span>
                                                             {% else %}

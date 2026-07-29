@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% include "kpi/dashboard/nav.html" %}
+{% block title %}IT System Users Evaluation Results{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns is-vcentered">
+            <div class="column">
+                <p class="title is-3">ผลประเมินความพึงพอใจระบบสารสนเทศ</p>
+                <p class="subtitle is-6">สรุปผลแบบประเมินสำหรับผู้ใช้งานระบบสารสนเทศ</p>
+            </div>
+        </div>
+
+        <div class="box">
+            <form method="get" action="{{ url_for('kpi_blueprint.it_system_users_evaluation_results') }}">
+                <div class="columns is-vcentered is-multiline">
+                    <div class="column is-6">
+                        <label class="label" for="date-range-picker">ช่วงวันที่</label>
+                        <div class="field has-addons">
+                            <div class="control is-expanded has-icons-left">
+                                <input class="input" type="text" id="date-range-picker" value="{{ date_range_value }}" placeholder="Select date range" autocomplete="off">
+                                <input type="hidden" id="start-date" name="start_date" value="{{ start_date or '' }}">
+                                <input type="hidden" id="end-date" name="end_date" value="{{ end_date or '' }}">
+                                <span class="icon is-small is-left">
+                                    <i class="far fa-calendar-alt"></i>
+                                </span>
+                            </div>
+                            <div class="control">
+                                <button class="button is-link" type="submit">กรองผล</button>
+                            </div>
+                            {% if start_date or end_date %}
+                            <div class="control">
+                                <a class="button is-light" href="{{ url_for('kpi_blueprint.it_system_users_evaluation_results') }}">ล้างตัวกรอง</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="columns is-multiline">
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">จำนวนแบบประเมิน</p>
+                    <p class="title is-2">{{ total_records }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">คะแนนเฉลี่ยรวม</p>
+                    <p class="title is-2">{{ '%.2f'|format(average_score) }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">จำนวนผู้ประเมินไม่ซ้ำ</p>
+                    <p class="title is-2">{{ total_evaluators }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">แบบประเมินล่าสุด</p>
+                    <p class="title is-5">
+                        {% if latest_record %}
+                            {{ latest_record.created_at|localdatetime }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="box">
+            <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
+                <p class="title is-5 mb-0">สรุปความคิดเห็นช่วงเวลาที่เลือก</p>
+                <span class="tag is-warning is-light">AI-generated summary</span>
+            </div>
+            <p class="is-size-7 has-text-grey mb-3">
+                ระบบที่สรุป: {{ summary_systems|join(', ') if summary_systems else '-' }}
+            </p>
+            <div id="comment-summary" data-summary-url="{{ url_for('kpi_blueprint.it_system_users_evaluation_results_summary', start_date=start_date, end_date=end_date) }}">
+                <p class="has-text-grey is-size-7">กำลังโหลดสรุป AI...</p>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-4">
+                <div class="box">
+                    <p class="title is-5">สัดส่วนคะแนน</p>
+                    {% for score in range(5, 0, -1) %}
+                        <div class="mb-4">
+                            <div class="is-flex is-justify-content-space-between is-size-7 mb-1">
+                                <span>{{ score }} คะแนน</span>
+                                <span>{{ score_distribution.get(score, 0) }}</span>
+                            </div>
+                            <progress class="progress is-info is-small"
+                                      value="{{ score_distribution.get(score, 0) }}"
+                                      max="{{ total_records if total_records > 0 else 1 }}">
+                            </progress>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="column is-8">
+                <div class="box">
+                    <div class="is-flex is-justify-content-space-between is-align-items-center mb-4">
+                        <p class="title is-5 mb-0">รายการประเมินล่าสุด 10 รายการ</p>
+                        <span class="tag is-light">{{ latest_records|length }} รายการ</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-striped is-hoverable">
+                            <thead>
+                            <tr>
+                                <th>วันที่</th>
+                                <th>ระบบ</th>
+                                <th>คะแนน</th>
+                                <th>ความคิดเห็น</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for record in latest_records %}
+                                <tr>
+                                    <td>{{ record.created_at|localdatetime }}</td>
+                                    <td>{{ record.blueprint.replace('_', ' ')|title if record.blueprint else '-' }}</td>
+                                    <td>
+                                        <span class="tag {% if record.score >= 4 %}is-success{% elif record.score == 3 %}is-warning{% else %}is-danger{% endif %}">
+                                            {{ record.score }}
+                                        </span>
+                                    </td>
+                                    <td>{{ record.comment or '-' }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="has-text-centered has-text-grey">
+                                        ไม่พบข้อมูลผลประเมิน
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="box mt-5">
+            <div class="is-flex is-justify-content-space-between is-align-items-center mb-4">
+                <div>
+                    <p class="title is-5 mb-1">สรุปคะแนนเฉลี่ยแยกตามระบบ</p>
+                    <p class="subtitle is-6 mb-0">แสดงทั้งคะแนนเฉลี่ยและจำนวนผู้ประเมินของแต่ละระบบ</p>
+                </div>
+                <span class="tag is-light">{{ system_averages|length }} ระบบ</span>
+            </div>
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>ระบบ</th>
+                        <th>Blueprint</th>
+                        <th>จำนวนแบบประเมิน</th>
+                        <th>จำนวนผู้ประเมิน</th>
+                        <th>จำนวนความคิดเห็น</th>
+                        <th>คะแนนเฉลี่ย</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for system in system_averages %}
+                        <tr class="js-system-comment-row"
+                            role="button"
+                            tabindex="0"
+                            data-blueprint="{{ system.blueprint }}"
+                            data-system-label="{{ system.label }}">
+                            <td>{{ system.label }}</td>
+                            <td><code>{{ system.blueprint }}</code></td>
+                            <td>{{ system.total_records }}</td>
+                            <td>{{ system.total_evaluators }}</td>
+                            <td>{{ system.comment_count }}</td>
+                            <td>{{ '%.2f'|format(system.average_score) }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="has-text-centered has-text-grey">
+                                ไม่พบข้อมูลผลประเมิน
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="system-comment-modal-container"></div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $(function () {
+        var $picker = $('#date-range-picker');
+        var $start = $('#start-date');
+        var $end = $('#end-date');
+
+        $picker.daterangepicker({
+            autoUpdateInput: false,
+            locale: {
+                cancelLabel: 'Clear',
+                format: 'YYYY-MM-DD'
+            }
+        });
+
+        if ($start.val() && $end.val()) {
+            $picker.data('daterangepicker').setStartDate(moment($start.val(), 'YYYY-MM-DD'));
+            $picker.data('daterangepicker').setEndDate(moment($end.val(), 'YYYY-MM-DD'));
+            $picker.val($start.val() + ' - ' + $end.val());
+        } else if ($start.val()) {
+            $picker.data('daterangepicker').setStartDate(moment($start.val(), 'YYYY-MM-DD'));
+            $picker.data('daterangepicker').setEndDate(moment($start.val(), 'YYYY-MM-DD'));
+            $picker.val($start.val());
+        } else if ($end.val()) {
+            $picker.data('daterangepicker').setStartDate(moment($end.val(), 'YYYY-MM-DD'));
+            $picker.data('daterangepicker').setEndDate(moment($end.val(), 'YYYY-MM-DD'));
+            $picker.val($end.val());
+        }
+
+        $picker.on('apply.daterangepicker', function (ev, picker) {
+            var start = picker.startDate.format('YYYY-MM-DD');
+            var end = picker.endDate.format('YYYY-MM-DD');
+            $picker.val(start + ' - ' + end);
+            $start.val(start);
+            $end.val(end);
+        });
+
+        $picker.on('cancel.daterangepicker', function () {
+            $picker.val('');
+            $start.val('');
+            $end.val('');
+        });
+
+        var summaryContainer = document.getElementById('comment-summary');
+        if (summaryContainer) {
+            var summaryUrl = summaryContainer.dataset.summaryUrl;
+            fetch(summaryUrl, { credentials: 'same-origin' })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Summary request failed');
+                    }
+                    return response.json();
+                })
+                .then(function (data) {
+                    summaryContainer.innerHTML = '';
+                    var summaryText = document.createElement('p');
+                    summaryText.className = 'content';
+                    summaryText.textContent = data.summary || 'ยังไม่มีความคิดเห็นในช่วงเวลาที่เลือก';
+                    summaryContainer.appendChild(summaryText);
+                })
+                .catch(function () {
+                    summaryContainer.innerHTML = '';
+                    var errorText = document.createElement('p');
+                    errorText.className = 'content has-text-grey';
+                    errorText.textContent = 'ไม่สามารถโหลดสรุป AI ได้';
+                    summaryContainer.appendChild(errorText);
+                });
+        }
+
+        var commentModalContainer = document.getElementById('system-comment-modal-container');
+
+        function bindSystemCommentModalCloseHandlers() {
+            var modal = document.getElementById('system-comment-modal');
+            if (!modal) {
+                return;
+            }
+            var closeButtons = modal.querySelectorAll('[data-system-comment-modal-close]');
+            var background = modal.querySelector('.modal-background');
+            closeButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    modal.classList.remove('is-active');
+                });
+            });
+            if (background) {
+                background.addEventListener('click', function () {
+                    modal.classList.remove('is-active');
+                });
+            }
+        }
+
+        function openSystemCommentModal(url, systemLabel) {
+            if (!commentModalContainer) {
+                return;
+            }
+            commentModalContainer.innerHTML = '' +
+                '<div class="modal is-active" id="system-comment-modal">' +
+                '  <div class="modal-background"></div>' +
+                '  <div class="modal-card" style="width: 90vw; max-width: 900px;">' +
+                '    <header class="modal-card-head">' +
+                '      <p class="modal-card-title">ความคิดเห็น: ' + systemLabel + '</p>' +
+                '      <button type="button" class="delete" aria-label="close" data-system-comment-modal-close></button>' +
+                '    </header>' +
+                '    <section class="modal-card-body">' +
+                '      <p class="has-text-grey">กำลังโหลดความคิดเห็น...</p>' +
+                '    </section>' +
+                '  </div>' +
+                '</div>';
+            fetch(url, { credentials: 'same-origin' })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Comment request failed');
+                    }
+                    return response.text();
+                })
+                .then(function (html) {
+                    commentModalContainer.innerHTML = html;
+                    bindSystemCommentModalCloseHandlers();
+                })
+                .catch(function () {
+                    commentModalContainer.innerHTML = '' +
+                        '<div class="modal is-active" id="system-comment-modal">' +
+                        '  <div class="modal-background"></div>' +
+                        '  <div class="modal-card" style="width: 90vw; max-width: 900px;">' +
+                        '    <header class="modal-card-head">' +
+                        '      <p class="modal-card-title">ความคิดเห็น: ' + systemLabel + '</p>' +
+                        '      <button type="button" class="delete" aria-label="close" data-system-comment-modal-close></button>' +
+                        '    </header>' +
+                        '    <section class="modal-card-body">' +
+                        '      <p class="has-text-grey">ไม่สามารถโหลดรายการความคิดเห็นได้</p>' +
+                        '    </section>' +
+                        '  </div>' +
+                        '</div>';
+                    bindSystemCommentModalCloseHandlers();
+                });
+        }
+
+        document.querySelectorAll('.js-system-comment-row').forEach(function (row) {
+            row.addEventListener('click', function () {
+                var blueprint = row.dataset.blueprint;
+                var systemLabel = row.dataset.systemLabel || '-';
+                var params = new URLSearchParams(window.location.search);
+                var summaryUrl = new URL("{{ url_for('kpi_blueprint.it_system_users_evaluation_results_comments') }}", window.location.origin);
+                summaryUrl.searchParams.set('blueprint', blueprint);
+                if (params.get('start_date')) {
+                    summaryUrl.searchParams.set('start_date', params.get('start_date'));
+                }
+                if (params.get('end_date')) {
+                    summaryUrl.searchParams.set('end_date', params.get('end_date'));
+                }
+                openSystemCommentModal(summaryUrl.toString(), systemLabel);
+            });
+            row.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    row.click();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

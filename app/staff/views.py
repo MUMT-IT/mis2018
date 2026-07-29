@@ -1,27 +1,28 @@
 # -*- coding:utf-8 -*-
 from io import BytesIO
+from functools import wraps
 
 import arrow
 import pandas as pd
 from dateutil import parser
 from flask_login import login_required, current_user
-from linebot.exceptions import LineBotApiError
+from app.linebot_compat import LineBotApiError
 from pandas import read_excel, isna, DataFrame
 
 from app.eduqa.models import EduQAInstructor
 from . import staffbp as staff
 from app.main import get_weekdays, mail, app, csrf
 from app.models import Holidays
-from flask import (jsonify, render_template, render_template_string, request,
+from flask import (abort, jsonify, render_template, render_template_string, request,
                    redirect, url_for, flash, session, send_from_directory,
                    make_response, current_app, send_file)
 from datetime import date, timedelta, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc, cast, Date, or_, extract
+from sqlalchemy import and_, desc, cast, Date, or_, extract, func
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
-from linebot.models import TextSendMessage
+from app.linebot_compat import TextSendMessage, FlexSendMessage, BubbleContainer, BoxComponent, TextComponent
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 import requests
@@ -34,16 +35,31 @@ import qrcode
 from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm
 from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission, event_staff_permission
 from app.staff.models import *
+from app.url_utils import external_url
+from app.auth.views import _normalize_staff_email
+from app.google_credential_utils import load_google_credentials_json
 
 from app.comhealth.views import allowed_file
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'}
 
+EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
+    'staff.geo_checkin',
+    'staff.show_qrcode',
+    'staff.create_qrcode',
+    'staff.show_time_report',
+    'staff.send_time_report_data',
+    'staff.send_holidays_data',
+}
+
 gauth = GoogleAuth()
-keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+keyfile_dict = load_google_credentials_json()
 scopes = ['https://www.googleapis.com/auth/drive']
-gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
-drive = GoogleDrive(gauth)
+if keyfile_dict:
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
+    drive = GoogleDrive(gauth)
+else:
+    drive = None
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -51,6 +67,24 @@ tz = pytz.timezone('Asia/Bangkok')
 LEAVE_ANNUAL_QUOTA = 10
 
 manager_or_secretary_permission = manager_permission.union(secretary_permission)
+
+
+def _is_external_account():
+    if not current_user.is_authenticated:
+        return False
+    personal_info = getattr(current_user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    return bool(org and org.is_external)
+
+
+@staff.before_request
+def block_external_staff_routes():
+    if not _is_external_account():
+        return
+    endpoint = request.endpoint or ''
+    if endpoint in EXTERNAL_STAFF_ALLOWED_ENDPOINTS:
+        return
+    abort(403)
 
 
 def allowed_file(filename):
@@ -62,6 +96,239 @@ def generate_file_url(file_url):
                                     Params={'Bucket': S3_BUCKET_NAME, 'Key': file_url},
                                     ExpiresIn=3600)
     return url
+
+
+def _create_work_login_record(staff_account, now, lat, lon, *, qrcode_exp_datetime=None, note=None):
+    date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
+    num_scans = StaffWorkLogin.query.filter_by(date_id=date_id, staff=staff_account).count() + 1
+    record = StaffWorkLogin(
+        date_id=date_id,
+        staff=staff_account,
+        lat=float(lat),
+        long=float(lon),
+        start_datetime=now,
+        num_scans=num_scans,
+        note=note,
+    )
+    if qrcode_exp_datetime:
+        record.qrcode_in_exp_datetime = qrcode_exp_datetime.astimezone(pytz.utc)
+    db.session.add(record)
+    db.session.commit()
+    activity = 'checked in' if num_scans == 1 else 'checked out'
+    return record, activity, num_scans
+
+
+def _to_bangkok(dt):
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=pytz.utc)
+    return dt.astimezone(tz)
+
+
+def _daily_work_login_rows(records):
+    grouped = defaultdict(list)
+    for rec in records:
+        if not rec.start_datetime:
+            continue
+        grouped[(rec.staff_id, _to_bangkok(rec.start_datetime).date())].append(rec)
+
+    rows = []
+    fallback_dt = datetime.min.replace(tzinfo=pytz.utc)
+    for (staff_id, local_day), day_records in grouped.items():
+        day_records.sort(key=lambda rec: (_to_bangkok(rec.start_datetime) or fallback_dt, rec.id))
+        first = day_records[0]
+        last = day_records[-1]
+        start_dt = _to_bangkok(first.start_datetime) if first.start_datetime else None
+        end_dt = None
+        if last.end_datetime:
+            end_dt = _to_bangkok(last.end_datetime)
+        elif len(day_records) > 1 and last.start_datetime:
+            end_dt = _to_bangkok(last.start_datetime)
+
+        start_expired = None
+        if first.start_datetime and first.qrcode_in_exp_datetime:
+            start_expired = _to_bangkok(first.start_datetime) > _to_bangkok(first.qrcode_in_exp_datetime)
+
+        end_reference = last.end_datetime or (last.start_datetime if len(day_records) > 1 else None)
+        end_expired = None
+        end_qrcode_exp = last.qrcode_out_exp_datetime or last.qrcode_in_exp_datetime
+        if end_reference and end_qrcode_exp:
+            end_expired = _to_bangkok(end_reference) > _to_bangkok(end_qrcode_exp)
+
+        lat = float(first.lat) if first.lat is not None else ''
+        lon = float(first.long) if first.long is not None else ''
+        rows.append({
+            'staff_id': staff_id,
+            'date': local_day,
+            'staff_name': first.staff.fullname,
+            'start': start_dt.isoformat() if start_dt else None,
+            'end': end_dt.isoformat() if end_dt else None,
+            'lat': lat,
+            'lon': lon,
+            'start_expired': start_expired,
+            'end_expired': end_expired,
+            'location': '<a href="https://maps.google.com/?q={},{}">Click</a>'.format(lat, lon)
+            if lat != '' and lon != '' else '',
+        })
+
+    rows.sort(key=lambda row: (row['date'], row['staff_name']))
+    return rows
+
+
+def _parse_login_summary_date(value, *, default=None):
+    if not value:
+        return default
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    return datetime.strptime(value.strip(), '%d/%m/%Y').date()
+
+
+def _build_login_summary_dashboard(start_date, end_date, dept_id):
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    office_end_time = datetime.strptime('16:30', '%H:%M').time()
+
+    employee_query = StaffPersonalInfo.query.filter_by(org_id=dept_id)
+    employees = employee_query.all()
+    employees_by_id = {
+        employee.staff_account.id: employee
+        for employee in employees
+        if getattr(employee, 'staff_account', None) is not None
+    }
+
+    if not employees_by_id:
+        return {
+            'date_range': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat(),
+            },
+            'totals': {
+                'employees': 0,
+                'employees_with_records': 0,
+                'complete_days': 0,
+                'late_checkins': 0,
+                'early_checkouts': 0,
+                'total_hours': 0.0,
+                'average_hours_per_day': 0.0,
+            },
+            'employees': [],
+        }
+
+    start_datetime_column = getattr(StaffWorkLogin, 'start_datetime', None)
+    staff_id_column = getattr(StaffWorkLogin, 'staff_id', None)
+    staff_ids = list(employees_by_id)
+    if start_datetime_column is not None:
+        records_query = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', start_datetime_column), Date).between(start_date, end_date)
+        )
+        if staff_id_column is not None:
+            records_query = records_query.filter(staff_id_column.in_(staff_ids))
+        records = records_query.all()
+    else:
+        records = StaffWorkLogin.query.all()
+    daily_rows = _daily_work_login_rows(records)
+
+    rows_by_staff = defaultdict(list)
+    for row in daily_rows:
+        if row['staff_id'] in employees_by_id:
+            rows_by_staff[row['staff_id']].append(row)
+
+    total_complete_days = 0
+    total_late_checkins = 0
+    total_early_checkouts = 0
+    total_hours = 0.0
+    employees_payload = []
+
+    for staff_id, employee in employees_by_id.items():
+        employee_rows = sorted(rows_by_staff.get(staff_id, []), key=lambda row: (row['date'], row['staff_name']))
+        complete_days = 0
+        late_checkins = 0
+        early_checkouts = 0
+        worked_hours_total = 0.0
+
+        for row in employee_rows:
+            start_dt = parser.isoparse(row['start']) if row['start'] else None
+            end_dt = parser.isoparse(row['end']) if row['end'] else None
+            worked_hours = _calculate_work_hours(start_dt, end_dt)
+            if worked_hours is not None:
+                worked_hours_total += worked_hours
+            if start_dt and end_dt:
+                complete_days += 1
+            if start_dt and start_dt.time() > office_start_time:
+                late_checkins += 1
+            if end_dt and end_dt.time() < office_end_time:
+                early_checkouts += 1
+
+        average_hours_per_day = round(worked_hours_total / complete_days, 1) if complete_days else 0.0
+        completion_rate = round((complete_days / len(employee_rows)) * 100, 1) if employee_rows else 0.0
+        latest_row = employee_rows[-1] if employee_rows else None
+
+        total_complete_days += complete_days
+        total_late_checkins += late_checkins
+        total_early_checkouts += early_checkouts
+        total_hours += worked_hours_total
+
+        employees_payload.append({
+            'staff_id': staff_id,
+            'name': employee.fullname,
+            'org_name': employee.org.name if employee.org else '',
+            'position': employee.position or (employee.job_position.th_title if employee.job_position else ''),
+            'academic_staff': bool(employee.academic_staff),
+            'complete_days': complete_days,
+            'late_checkins': late_checkins,
+            'early_checkouts': early_checkouts,
+            'average_hours_per_day': average_hours_per_day,
+            'completion_rate': completion_rate,
+            'days_with_records': len(employee_rows),
+        })
+
+    employees_payload.sort(key=lambda item: (-item['complete_days'], item['name']))
+    total_employees_with_records = sum(1 for item in employees_payload if item['days_with_records'])
+    average_hours_per_day = round(total_hours / total_complete_days, 1) if total_complete_days else 0.0
+
+    return {
+        'date_range': {
+            'start': start_date.isoformat(),
+            'end': end_date.isoformat(),
+        },
+        'totals': {
+            'employees': len(employees_payload),
+            'employees_with_records': total_employees_with_records,
+            'complete_days': total_complete_days,
+            'late_checkins': total_late_checkins,
+            'early_checkouts': total_early_checkouts,
+            'total_hours': round(total_hours, 1),
+            'average_hours_per_day': average_hours_per_day,
+        },
+        'employees': employees_payload,
+    }
+
+
+def _calculate_work_hours(start_dt, end_dt):
+    if not start_dt or not end_dt:
+        return None
+
+    workday_start = start_dt.replace(hour=8, minute=0, second=0, microsecond=0)
+    effective_start = max(start_dt, workday_start)
+    worked_seconds = max(0, (end_dt - effective_start).total_seconds())
+    worked_hours = worked_seconds / 3600.0
+    return min(8.0, worked_hours)
+
+
+def _work_login_event_style(is_late, hours_is_negative, has_checkout):
+    class_names = []
+    if is_late:
+        class_names.append('is-late-login')
+        return '#8b1e1e', '#f8caca', '#e59b9b', class_names
+    if hours_is_negative:
+        class_names.append('is-short-hours')
+        return '#10264c', '#fff3bf', '#e6cf73', class_names
+    if has_checkout:
+        class_names.append('is-complete-hours')
+        return '#245b38', '#e4f3e9', '#b8ddc4', class_names
+    return '#ffffff', '#7d9df0', '#f56956', class_names
 
 
 def get_fiscal_date(date):
@@ -116,29 +383,24 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
                     print(date_time.date(), END_FISCAL_DATE.date(), current_end_fiscal_date.date())
                     if last_year_quota:
                         last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
-                        print('last year')
                     else:
                         last_year_quota = max_cum_quota
                     before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
-                    print('quota limitt', max_cum_quota, before_cut_max_quota)
                 else:
                     quota_limit = this_year_quota.quota_days
-                    print('quota limitt this year', this_year_quota.quota_days)
             else:
                 if last_year_quota:
                     last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
-                    print('quota last year')
                 else:
                     last_year_quota = max_cum_quota
                 before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
-                print('quota limit last', max_cum_quota, before_cut_max_quota)
         else:
             quota_limit = quota.max_per_year
     else:
         if delta.months > 5:
-            if datetime.today().month in [10, 11, 12]:
+            if date_time.month in [10, 11, 12]:
                 if max_cum_quota:
                     if this_year_quota:
                         quota_limit = this_year_quota.quota_days
@@ -279,19 +541,26 @@ def show_leave_info():
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
     pending_days = defaultdict(float)
-    for req in current_user.leave_requests:
-        used_quota = current_user.personal_info.get_total_leaves(req.quota.id,
-                                                                 tz.localize(START_FISCAL_DATE),
-                                                                 tz.localize(END_FISCAL_DATE))
-        leave_type = str(req.quota.leave_type)
-        cum_days[leave_type] = used_quota
-        pending_day = current_user.personal_info.get_total_pending_leaves_request \
-            (req.quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
-        pending_days[leave_type] = pending_day
     for quota in current_user.personal_info.employment.quota:
-        quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
+        this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year,
+                                                              leave_type_id=quota.leave_type_id).first()
+        if this_year_quota:
+            quota_limit = this_year_quota.quota_days
+            used_quota = this_year_quota.used_days
+            pending_day = this_year_quota.pending_days
+        else:
+            quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
+            used_quota = current_user.personal_info.get_total_leaves(quota.id,
+                                                                     tz.localize(START_FISCAL_DATE),
+                                                                     tz.localize(END_FISCAL_DATE))
+            pending_day = current_user.personal_info.get_total_pending_leaves_request \
+                (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
         can_request = quota.leave_type.requester_self_added
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit, can_request)
+
+        leave_type = str(quota.leave_type)
+        cum_days[leave_type] = used_quota
+        pending_days[leave_type] = pending_day
 
     is_approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     approvers = StaffLeaveApprover.query.filter_by(requester=current_user, is_active=True).all()
@@ -492,9 +761,12 @@ def request_for_leave(quota_id=None):
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
         this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year,
-                                                              leave_type_id=quota_id).first()
+                                                              leave_type_id=quota.leave_type_id).first()
 
-        quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
+        if this_year_quota:
+            quota_limit = this_year_quota.quota_days
+        else:
+            quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
 
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(
@@ -635,9 +907,12 @@ def request_for_leave_period(quota_id=None):
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
 
-        this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, leave_type_id=quota_id,
+        this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, leave_type_id=quota.leave_type_id,
                                                               fiscal_year=END_FISCAL_DATE.year).first()
-        quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
+        if this_year_quota:
+            quota_limit = this_year_quota.quota_days
+        else:
+            quota_limit = calculate_leave_quota_limit(current_user.id, quota.id, datetime.today())
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(
                                                                      END_FISCAL_DATE)) if not this_year_quota else this_year_quota.used_days
@@ -1362,8 +1637,36 @@ def record_each_request_leave_request(request_id):
     all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
     for hr in all_hr.staffs:
         is_hr = True if hr.id == current_user.id else False
+    if req.staff.personal_info.org.parent:
+        org_name = req.staff.personal_info.org.parent.name
+    else:
+        org_name = req.staff.personal_info.org.name
+    lower_approver = ''
+    lower_approver_position = ''
+    middle_approver = ''
+    middle_approver_position = ''
+
+    lower_approver_obj = StaffLeaveApprover.query.filter_by(staff_account_id=req.staff_account_id,
+                                                            is_active=True, is_lower_level=True).first()
+    if lower_approver_obj:
+        lower_approver = lower_approver_obj.account.personal_info.fullname
+        lower_head_position = StaffHeadPosition.query.filter_by(
+                                                        staff_account_id=lower_approver_obj.approver_account_id).first()
+        lower_approver_position = lower_head_position.position if lower_head_position else ''
+
+    middle_approver_obj = StaffLeaveApprover.query.filter_by(staff_account_id=req.staff_account_id,
+                                                             is_active=True, is_middle_level=True).first()
+    if middle_approver_obj:
+        middle_approver = middle_approver_obj.account.personal_info.fullname
+        middle_head_position = StaffHeadPosition.query.filter_by(
+                                                    staff_account_id=middle_approver_obj.approver_account_id).first()
+        middle_approver_position = middle_head_position.position if middle_head_position else ''
+
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers,
-                           upload_file_url=upload_file_url, is_hr=is_hr)
+                           org_name=org_name,
+                           upload_file_url=upload_file_url, is_hr=is_hr, lower_approver=lower_approver,
+                           lower_approver_position=lower_approver_position, middle_approver=middle_approver,
+                           middle_approver_position=middle_approver_position)
 
 
 @staff.route('/leave/requests/search')
@@ -1414,19 +1717,21 @@ def wfh_request_info():
         else:
             requests = StaffWorkFromHomeRequest.query.all()
     else:
+        query = StaffWorkFromHomeRequest.query
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        all_wfh = query.join(StaffWorkFromHomeRequest.staff).join(StaffAccount.personal_info) \
+            .join(StaffPersonalInfo.org).filter(StaffPersonalInfo.org_id.in_(org_ids))
         if round_year:
             wfh = []
             requests = []
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(round_year)
-            all_wfh = StaffWorkFromHomeRequest.query.join(StaffAccount).filter(
-                StaffAccount.personal_info.has(org_id=org_id))
             for req in all_wfh:
                 if req.start_datetime.date() >= start_fiscal_date and req.start_datetime.date() <= end_fiscal_date:
                     wfh.append(req)
                     requests = wfh
         else:
-            requests = StaffWorkFromHomeRequest.query.join(StaffAccount).filter(
-                StaffAccount.personal_info.has(org_id=org_id))
+            requests = all_wfh
     return render_template('staff/wfh_list.html', requests=requests, sel_dep=org_id,
                            departments=[{'id': d.id, 'name': d.name} for d in departments],
                            rounds=[{'value': r} for r in rounds],
@@ -1465,7 +1770,9 @@ def leave_request_result_by_person():
     if org_id is None:
         account_query = StaffAccount.query.all()
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)) \
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(StaffPersonalInfo.org_id.in_(org_ids))) \
             .filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None)))
     for account in account_query:
@@ -1958,7 +2265,9 @@ def show_wfh_approvers():
     if org_id is None:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)) \
+        selected_org = Org.query.get(org_id)
+        org_ids = get_org_and_children_ids(selected_org) if selected_org else [org_id]
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(StaffPersonalInfo.org_id.in_(org_ids))) \
             .filter(or_(StaffAccount.personal_info.has(retired=False),
                         StaffAccount.personal_info.has(retired=None)))
 
@@ -2059,6 +2368,94 @@ def get_hr_login_summary_report_data():
     return data_table.ToJSon(columns_order=('date', 'heads'))
 
 
+def _parse_hr_login_report_datetime(value, default):
+    if not value:
+        return default
+    parsed = parser.isoparse(value)
+    if parsed.tzinfo is None:
+        return tz.localize(parsed)
+    return parsed.astimezone(tz)
+
+
+@staff.route('/api/for-hr/login-report/summary')
+@hr_permission.require()
+@login_required
+def get_hr_login_summary_report_summary():
+    now = datetime.now(tz)
+    default_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start_datetime = _parse_hr_login_report_datetime(request.args.get('start'), default_start)
+    end_datetime = _parse_hr_login_report_datetime(request.args.get('end'), now)
+    if start_datetime > end_datetime:
+        start_datetime, end_datetime = end_datetime, start_datetime
+
+    employees = StaffPersonalInfo.query.filter(
+        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired == None)
+    ).all()
+    employees_by_id = {
+        employee.staff_account.id: employee
+        for employee in employees
+        if employee.staff_account is not None
+    }
+    staff_ids = list(employees_by_id)
+
+    records = []
+    if staff_ids:
+        records = StaffWorkLogin.query.filter(
+            StaffWorkLogin.staff_id.in_(staff_ids),
+            or_(
+                StaffWorkLogin.start_datetime.between(start_datetime, end_datetime),
+                StaffWorkLogin.end_datetime.between(start_datetime, end_datetime),
+            )
+        ).all()
+
+    checkin_staff_ids = {
+        record.staff_id for record in records
+        if record.start_datetime is not None
+    }
+
+    academic_total = sum(1 for employee in employees_by_id.values() if employee.academic_staff)
+    non_academic_total = len(employees_by_id) - academic_total
+    academic_missed = sum(
+        1 for staff_id, employee in employees_by_id.items()
+        if employee.academic_staff and staff_id not in checkin_staff_ids
+    )
+    non_academic_missed = sum(
+        1 for staff_id, employee in employees_by_id.items()
+        if not employee.academic_staff and staff_id not in checkin_staff_ids
+    )
+
+    daily_rows = _daily_work_login_rows(records)
+    incomplete_checkouts = sum(1 for row in daily_rows if row['start'] and not row['end'])
+    incomplete_checkins = sum(1 for record in records if record.start_datetime is None)
+    manual_records = sum(1 for record in records if record.creator_id is not None)
+
+    def percentage(value, total):
+        return round((value / total) * 100, 1) if total else 0.0
+
+    return jsonify({
+        'date_range': {
+            'start': start_datetime.isoformat(),
+            'end': end_datetime.isoformat(),
+        },
+        'employees': {
+            'total': len(employees_by_id),
+            'academic': {
+                'total': academic_total,
+                'missed_checkin': academic_missed,
+                'missed_percentage': percentage(academic_missed, academic_total),
+            },
+            'non_academic': {
+                'total': non_academic_total,
+                'missed_checkin': non_academic_missed,
+                'missed_percentage': percentage(non_academic_missed, non_academic_total),
+            },
+        },
+        'incomplete_checkins': incomplete_checkins,
+        'incomplete_checkouts': incomplete_checkouts,
+        'manual_records': manual_records,
+    })
+
+
 @staff.route('/api/for-hr/wfh-report')
 @hr_permission.require()
 @login_required
@@ -2112,17 +2509,31 @@ def get_hr_leave_summary_report_data():
 @login_required
 def get_hr_login_time_data():
     description = {'timeofday': ("timeofday", "Time"), 'heads': ("number", "heads")}
-    data = defaultdict(int)
-    for rec in StaffWorkLogin.query.all():
-        start_datetime = rec.start_datetime.astimezone(tz)
-        data[(start_datetime.hour, start_datetime.minute, 0)] += 1
-
-    count_data = []
-    for tod, heads in data.items():
-        count_data.append({
-            'timeofday': list(tod),
-            'heads': heads
-        })
+    local_start = func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
+    grouped_rows = (
+        db.session.query(
+            extract('hour', local_start).label('hour'),
+            extract('minute', local_start).label('minute'),
+            func.count(StaffWorkLogin.id).label('heads'),
+        )
+        .filter(StaffWorkLogin.start_datetime.isnot(None))
+        .group_by(
+            extract('hour', local_start),
+            extract('minute', local_start),
+        )
+        .order_by(
+            extract('hour', local_start),
+            extract('minute', local_start),
+        )
+        .all()
+    )
+    count_data = [
+        {
+            'timeofday': [int(row.hour), int(row.minute), 0],
+            'heads': int(row.heads),
+        }
+        for row in grouped_rows
+    ]
 
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
@@ -2133,14 +2544,190 @@ def get_hr_login_time_data():
 @hr_permission.require()
 @login_required
 def hr_login_summary_report():
-    return render_template('staff/hr_login_summary_report.html')
+    now = datetime.now(tz)
+    report_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return render_template(
+        'staff/hr_login_summary_report.html',
+        report_start=report_start,
+        report_end=now,
+    )
 
 
-@staff.route('/login-scan', methods=['GET', 'POST'])
-@csrf.exempt
-@admin_permission.require()
+@staff.route('/api/for-hr/login-report/manual-check-in/calendar')
+@hr_permission.require()
 @login_required
-def login_scan():
+def hr_manual_checkin_calendar_data():
+    staff_id = request.args.get('staff_id', type=int)
+    month_value = (request.args.get('month') or '').strip()
+    if not staff_id or not month_value:
+        return jsonify({'events': [], 'count': 0, 'staff_name': '', 'month': month_value})
+
+    staff_person = StaffPersonalInfo.query.get(staff_id)
+    if not staff_person or not getattr(staff_person, 'staff_account', None):
+        return jsonify({'events': [], 'count': 0, 'staff_name': '', 'month': month_value})
+
+    try:
+        month_start = tz.localize(datetime.strptime(month_value + '-01', '%Y-%m-%d'))
+    except ValueError:
+        month_start = tz.localize(datetime.now(tz).replace(day=1, hour=0, minute=0, second=0, microsecond=0))
+        month_value = month_start.strftime('%Y-%m')
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1)
+
+    records = (
+        StaffWorkLogin.query.filter_by(staff=staff_person.staff_account)
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= month_start)
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) < next_month_start)
+        .order_by(StaffWorkLogin.start_datetime.asc(), StaffWorkLogin.id.asc())
+        .all()
+    )
+    daily_rows = _daily_work_login_rows(records)
+    events = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    for row in daily_rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        if not start_dt:
+            continue
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
+        worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+        is_late = bool(start_dt and start_dt.time() > office_start_time)
+        text_color, background_color, border_color, class_names = _work_login_event_style(
+            is_late, hours_is_negative, bool(end_dt)
+        )
+        checkin_display = start_dt.strftime('%H:%M') if start_dt else ''
+        checkout_display = end_dt.strftime('%H:%M') if end_dt else ''
+        if checkin_display and checkout_display:
+            note = f'{checkin_display} • {checkout_display}'
+        elif checkin_display:
+            note = checkin_display
+        else:
+            note = ''
+        staff_first_name = (
+            getattr(staff_person, 'th_firstname', None)
+            or getattr(staff_person, 'en_firstname', None)
+            or (row['staff_name'] or '').split()[0]
+        )
+        events.append({
+            'id': f"{row['staff_id']}-{row['date'].isoformat()}",
+            'start': row['start'],
+            'end': row['end'],
+            'status': 'Done' if end_dt else 'Not done',
+            'title': staff_first_name,
+            'first_name': staff_first_name,
+            'note': note,
+            'worked_hours_display': worked_hours_display,
+            'worked_hours': worked_hours,
+            'is_late': is_late,
+            'backgroundColor': background_color,
+            'borderColor': border_color,
+            'textColor': text_color,
+            'hours_is_negative': hours_is_negative,
+            'className': class_names,
+            'type': 'login'
+        })
+
+    return jsonify({
+        'events': events,
+        'count': len(events),
+        'staff_name': staff_person.fullname,
+        'month': month_value,
+    })
+
+
+@staff.route('/for-hr/login-report/manual-check-in', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def hr_manual_checkin():
+    def _render_page(*, selected_staff=None, checkin_value=None, note_value='', selected_month=None):
+        selected_staff_id = selected_staff.id if selected_staff else ''
+        selected_staff_name = selected_staff.fullname if selected_staff else ''
+        checkin_value = checkin_value or datetime.now(tz).strftime('%Y-%m-%dT%H:%M')
+        selected_month = selected_month or checkin_value[:7]
+        return render_template(
+            'staff/hr_manual_checkin.html',
+            selected_staff=selected_staff,
+            selected_staff_id=selected_staff_id,
+            selected_staff_name=selected_staff_name,
+            default_checkin_datetime=checkin_value,
+            selected_month=selected_month,
+            note_value=note_value,
+        )
+
+    staff_id = request.args.get('staff_id', type=int)
+    checkin_arg = (request.args.get('checkin_datetime') or '').strip()
+    month_arg = (request.args.get('month') or '').strip()
+    selected_staff = StaffPersonalInfo.query.get(staff_id) if staff_id else None
+    if checkin_arg and not month_arg and len(checkin_arg) >= 7:
+        month_arg = checkin_arg[:7]
+
+    if request.method == 'POST':
+        form = request.form
+        staff_id = form.get('staffname', type=int)
+        staff_person = StaffPersonalInfo.query.get(staff_id) if staff_id else None
+        checkin_raw = (form.get('checkin_datetime') or '').strip()
+        note = (form.get('note') or '').strip()
+
+        if not staff_person:
+            flash('ไม่พบข้อมูลบุคลากรที่เลือก', 'warning')
+            return _render_page(checkin_value=checkin_raw, note_value=note, selected_month=month_arg)
+
+        if not checkin_raw:
+            flash('กรุณาระบุวันและเวลาที่ต้องการบันทึก', 'warning')
+            return _render_page(selected_staff=staff_person, note_value=note, selected_month=month_arg or None)
+
+        try:
+            checkin_dt = tz.localize(datetime.strptime(checkin_raw, '%Y-%m-%dT%H:%M'))
+        except ValueError:
+            flash('รูปแบบวันและเวลาไม่ถูกต้อง', 'warning')
+            return _render_page(
+                selected_staff=staff_person,
+                checkin_value=checkin_raw,
+                note_value=note,
+                selected_month=month_arg or None,
+            )
+
+        staff_account = staff_person.staff_account
+        if not staff_account:
+            flash('บุคลากรที่เลือกยังไม่มีบัญชีผู้ใช้งาน', 'warning')
+            return _render_page(
+                selected_staff=staff_person,
+                checkin_value=checkin_raw,
+                note_value=note,
+                selected_month=month_arg or None,
+            )
+
+        date_id = StaffWorkLogin.generate_date_id(checkin_dt)
+        num_scans = StaffWorkLogin.query.filter_by(date_id=date_id, staff=staff_account).count() + 1
+        record = StaffWorkLogin(
+            date_id=date_id,
+            staff=staff_account,
+            start_datetime=checkin_dt,
+            lat=0.0,
+            long=0.0,
+            num_scans=num_scans,
+            note=note or 'บันทึกโดย HR',
+            creator_id=current_user.id,
+        )
+        db.session.add(record)
+        db.session.commit()
+        flash('บันทึกการเข้างานเรียบร้อยแล้ว', 'success')
+        return redirect(url_for(
+            'staff.hr_manual_checkin',
+            staff_id=staff_person.id,
+            checkin_datetime=checkin_dt.strftime('%Y-%m-%dT%H:%M'),
+            month=checkin_dt.strftime('%Y-%m'),
+        ))
+
+    if not month_arg:
+        month_arg = checkin_arg[:7] if checkin_arg else datetime.now(tz).strftime('%Y-%m')
+    return _render_page(selected_staff=selected_staff, checkin_value=checkin_arg or None, selected_month=month_arg)
+
+
+def _handle_login_scan_request(template_name, *, note):
     DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
 
     if request.method == 'POST':
@@ -2168,37 +2755,14 @@ def login_scan():
 
         if person:
             now = datetime.now(pytz.utc)
-            date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
-            record = StaffWorkLogin.query \
-                .filter_by(date_id=date_id, staff=person.staff_account).first()
-            # office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
-            # office_startdt = office_startdt.replace(tzinfo=pytz.utc)
-            # office_enddt = datetime.strptime(u'{} {}'.format(now.date(), office_endtime), DATETIME_FORMAT)
-            # office_enddt = office_enddt.replace(tzinfo=pytz.utc)
-
-            # use the first login of the day as the checkin time.
-            # use the last login of the day as the checkout time.
-            if not record:
-                num_scans = 1
-                record = StaffWorkLogin(
-                    date_id=date_id,
-                    staff=person.staff_account,
-                    lat=float(lat),
-                    long=float(long),
-                    start_datetime=now,
-                    num_scans=num_scans,
-                    qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
-                )
-                activity = 'checked in'
-            else:
-                # status = "Late" if morning > 0 else "On time"
-                num_scans = record.num_scans + 1 if record.num_scans else 1
-                record.qrcode_out_exp_datetime = qrcode_exp_datetime.astimezone(pytz.utc)
-                record.end_datetime = now
-                record.num_scans = num_scans
-                activity = 'checked out'
-            db.session.add(record)
-            db.session.commit()
+            record, activity, num_scans = _create_work_login_record(
+                person.staff_account,
+                now,
+                lat,
+                long,
+                qrcode_exp_datetime=qrcode_exp_datetime,
+                note=note,
+            )
             try:
                 if activity == 'checked in':
                     msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
@@ -2213,7 +2777,15 @@ def login_scan():
         else:
             return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
 
-    return render_template('staff/login_scan.html')
+    return render_template(template_name)
+
+
+@staff.route('/login-scan', methods=['GET', 'POST'])
+@csrf.exempt
+@admin_permission.require()
+@login_required
+def login_scan():
+    return _handle_login_scan_request('staff/login_scan.html', note='qrcode')
 
 
 @staff.route('/clockin-clockout/request/', methods=['GET', 'POST'])
@@ -2358,106 +2930,229 @@ def approved_for_clockin_clockout(request_id):
 @admin_permission.require()
 @login_required
 def login_scan_gj():
-    DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
-
-    if request.method == 'POST':
-        req_data = request.get_json()
-        lat = req_data['data'].get('lat', '0.0')
-        long = req_data['data'].get('long', '0.0')
-        th_name = req_data['data'].get('thName')
-        en_name = req_data['data'].get('enName')
-        qrcode_exp_datetime = datetime.strptime(req_data['data'].get('qrCodeExpDateTime'), DATETIME_FORMAT)
-        qrcode_exp_datetime = qrcode_exp_datetime.replace(tzinfo=tz)
-        if th_name:
-            name = th_name.split(' ')
-            # some lastnames contain spaces
-            fname, lname = name[0], ' '.join(name[1:])
-            lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(th_firstname=fname, th_lastname=lname).first()
-        elif en_name:
-            fname, lname = en_name.split(' ')
-            lname = lname.lstrip()
-            person = StaffPersonalInfo.query \
-                .filter_by(en_firstname=fname, en_lastname=lname).first()
-        else:
-            return jsonify({'message': 'The QR Code is not valid.'}), 400
-
-        if person:
-            now = datetime.now(pytz.utc)
-            date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
-            record = StaffWorkLogin(
-                date_id=date_id,
-                staff=person.staff_account,
-                lat=float(lat),
-                long=float(long),
-                start_datetime=now,
-                num_scans=1,
-                qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
-            )
-            try:
-                msg = f'ท่านได้ทำสแกนเข้า/ออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
-                line_bot_api.push_message(to=person.staff_account.line_id,
-                                          messages=TextSendMessage(text=msg))
-            except LineBotApiError:
-                pass
-            db.session.add(record)
-            db.session.commit()
-            return jsonify({'message': 'success',
-                            'activity': 'checked in',
-                            'name': person.fullname,
-                            'time': now.isoformat(),
-                            'numScans': 1}
-                           )
-        else:
-            return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
-
-    return render_template('staff/login_scan_gj.html')
+    return _handle_login_scan_request('staff/login_scan_gj.html', note='gj')
 
 
 @staff.route('/api/login-records')
 @login_required
 def get_login_records():
     date = request.args.get('date')
-    dept_id = request.args.get('dept_id', int)
+    dept_id = request.args.get('dept_id', type=int) or current_user.personal_info.org_id
     if not date:
         date = datetime.today()
     else:
         date = datetime.strptime(date, '%d/%m/%Y')
+    rows = _daily_work_login_rows(
+        StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date) == date
+        ).all()
+    )
     events = []
-    staff_list = {}
-    for rec in StaffWorkLogin.query.filter(
-            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date) == date):
-        if rec.staff_id not in staff_list:
-            s = StaffAccount.query.get(rec.staff_id)
-            if s.personal_info.org_id != int(dept_id):
+    staff_cache = {}
+    for row in rows:
+        staff_id = row['staff_id']
+        if staff_id not in staff_cache:
+            staff = StaffAccount.query.get(staff_id)
+            if not staff or not staff.personal_info or staff.personal_info.org_id != dept_id:
+                staff_cache[staff_id] = None
                 continue
-            staff_list[rec.staff_id] = s.fullname
-            name = s.fullname
-        else:
-            name = staff_list[rec.staff_id]
-
-        if rec.start_datetime and rec.qrcode_in_exp_datetime:
-            start_expired = rec.start_datetime > rec.qrcode_in_exp_datetime
-        else:
-            start_expired = None
-        if rec.end_datetime and rec.qrcode_out_exp_datetime:
-            end_expired = rec.end_datetime > rec.qrcode_out_exp_datetime
-        else:
-            end_expired = None
-        lat = float(rec.lat) if rec.lat else ''
-        lon = float(rec.long) if rec.long else ''
+            staff_cache[staff_id] = staff.fullname
+        if staff_cache[staff_id] is None:
+            continue
         events.append({
-            'staff_name': name,
-            'start': rec.start_datetime.astimezone(tz).isoformat() if rec.start_datetime else None,
-            'end': rec.end_datetime.astimezone(tz).isoformat() if rec.end_datetime else None,
-            'lat': lat,
-            'lon': lon,
-            'start_expired': start_expired,
-            'end_expired': end_expired,
-            'location': '<a href="https://maps.google.com/?q={},{}">Click</a>'.format(lat, lon) if lat and lon else '',
+            'staff_name': staff_cache[staff_id],
+            'start': row['start'],
+            'end': row['end'],
+            'lat': row['lat'],
+            'lon': row['lon'],
+            'start_expired': row['start_expired'],
+            'end_expired': row['end_expired'],
+            'location': row['location'],
         })
     return jsonify({'data': events})
+
+
+def _parse_checkin_reminder_date(date_value):
+    return datetime.now(tz).date() if not date_value else datetime.strptime(date_value, '%d/%m/%Y').date()
+
+
+def _build_missing_checkin_recipients(target_date, records=None, staff_email=None):
+    target_date_id = target_date.strftime('%Y%m%d')
+    if records is None:
+        records = StaffWorkLogin.query.filter_by(date_id=target_date_id).all()
+    eligible_records = [
+        rec for rec in records
+        if rec.staff_id and getattr(rec, 'date_id', None) == target_date_id
+    ]
+    checked_in_staff_ids = {rec.staff_id for rec in eligible_records}
+
+    recipients = []
+    for staff_account in StaffAccount.get_active_accounts():
+        if not getattr(staff_account, 'line_id', None):
+            continue
+        if getattr(staff_account.personal_info, 'academic_staff', None) is True:
+            continue
+        if staff_email and (staff_account.email or '').strip().lower() != staff_email:
+            continue
+        if staff_account.id in checked_in_staff_ids:
+            continue
+        recipients.append(staff_account)
+    return recipients
+
+
+def _build_missing_checkin_reminder_message(staff_account, target_date):
+    reminder_date = target_date.strftime('%d/%m/%Y')
+    return (
+        f'สวัสดี {staff_account.fullname} วันนี้ยังไม่พบการสแกนเข้างาน '
+        f'({reminder_date}) ถ้าเริ่มปฏิบัติงานแล้ว รบกวนสแกนเข้างานในระบบด้วยนะครับ'
+    )
+
+
+def _build_missing_checkin_reminder_flex(cutoff_dt):
+    cutoff_date = cutoff_dt.astimezone(tz).strftime('%d/%m/%Y')
+    return FlexSendMessage(
+        alt_text='Check In Reminder',
+        contents=BubbleContainer(
+            body=BoxComponent(
+                layout='vertical',
+                contents=[
+                    TextComponent(
+                        text='Check In Reminder',
+                        weight='bold',
+                        size='xl',
+                    ),
+                    BoxComponent(
+                        layout='vertical',
+                        margin='lg',
+                        spacing='sm',
+                        contents=[
+                            BoxComponent(
+                                layout='baseline',
+                                spacing='sm',
+                                contents=[
+                                    TextComponent(
+                                        text='ท่านยังไม่ได้ลงชื่อเข้างานในวันนี้ กรุณาเช็คอินเข้างานหากท่านมาถึงคณะแล้ว',
+                                        wrap=True,
+                                        color='#666666',
+                                        size='sm',
+                                        flex=5,
+                                    )
+                                ],
+                            ),
+                            BoxComponent(
+                                layout='baseline',
+                                spacing='sm',
+                                contents=[
+                                    TextComponent(
+                                        text=cutoff_date,
+                                        color='#aaaaaa',
+                                        size='sm',
+                                        flex=1,
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ),
+    )
+
+
+def _get_holiday_for_date(target_date):
+    return Holidays.query.filter(cast(Holidays.holiday_date, Date) == target_date).first()
+
+
+def _is_valid_checkin_scheduler_request():
+    configured_token = os.environ.get('JOB_TOKEN')
+    if not configured_token:
+        return True
+    request_token = request.values.get('job_token')
+    return bool(request_token and request_token == configured_token)
+
+
+def send_missing_checkin_reminders(target_date, staff_email=None, recipients=None):
+    holiday = _get_holiday_for_date(target_date)
+    if holiday:
+        return {
+            'date': target_date.isoformat(),
+            'holiday_name': holiday.holiday_name,
+            'recipient_count': 0,
+            'sent_count': 0,
+            'failed_count': 0,
+        }
+
+    if recipients is None:
+        recipients = _build_missing_checkin_recipients(target_date, staff_email=staff_email)
+    sent_count = 0
+    failed_count = 0
+    for staff_account in recipients:
+        try:
+            line_bot_api.push_message(
+                to=staff_account.line_id,
+                messages=_build_missing_checkin_reminder_flex(tz.localize(datetime.combine(target_date, datetime.min.time()))),
+            )
+            sent_count += 1
+        except LineBotApiError:
+            failed_count += 1
+    return {
+        'date': target_date.isoformat(),
+        'recipient_count': len(recipients),
+        'sent_count': sent_count,
+        'failed_count': failed_count,
+    }
+
+
+def _line_remind_missing_checkin_impl():
+    scheduler_request = _is_valid_checkin_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not admin_permission.can():
+            abort(403)
+
+    staff_email = (_normalize_staff_email(request.values.get('email')) or '').lower()
+    target_date = _parse_checkin_reminder_date(request.values.get('date'))
+    holiday = _get_holiday_for_date(target_date)
+    if holiday:
+        payload = {
+            'date': target_date.isoformat(),
+            'holiday_name': holiday.holiday_name,
+            'message': 'preview' if request.method == 'GET' else 'success',
+            'recipient_count': 0,
+            'recipients': [],
+            'sent_count': 0,
+            'failed_count': 0,
+        }
+        return jsonify(payload)
+
+    recipients = _build_missing_checkin_recipients(target_date, staff_email=staff_email or None)
+    preview = [
+        {'staff_id': staff_account.id, 'staff_name': staff_account.fullname}
+        for staff_account in recipients
+    ]
+
+    if request.method == 'GET':
+        return jsonify({
+            'message': 'preview',
+            'date': target_date.isoformat(),
+            'recipient_count': len(preview),
+            'recipients': preview,
+            'staff_email': staff_email or None,
+        })
+
+    summary = send_missing_checkin_reminders(target_date, staff_email=staff_email or None, recipients=recipients)
+    summary['message'] = 'success'
+    if staff_email:
+        summary['staff_email'] = staff_email
+    return jsonify(summary)
+
+
+@csrf.exempt
+@staff.route('/admin/line-remind-missing-checkin', methods=['GET', 'POST'])
+@wraps(_line_remind_missing_checkin_impl)
+def line_remind_missing_checkin():
+    return _line_remind_missing_checkin_impl()
 
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
@@ -2632,25 +3327,39 @@ def send_summary_data():
     cal_end = request.args.get('end')
     curr_dept_id = request.args.get('curr_dept_id', type=int)
     tab = request.args.get('tab')
+    approved_only = request.args.get('approved_only', type=int) == 1
     if cal_start:
         cal_start = parser.isoparse(cal_start)
     if cal_end:
         cal_end = parser.isoparse(cal_end)
-    employees = StaffPersonalInfo.query.filter_by(org_id=curr_dept_id)
+    selected_org = Org.query.get(curr_dept_id) if curr_dept_id else None
+    org_ids = get_org_and_children_ids(selected_org) if selected_org else [curr_dept_id]
+    employees = StaffPersonalInfo.query.filter(StaffPersonalInfo.org_id.in_(org_ids))
+    staff_id = request.args.get('staff_id', type=int)
+    if staff_id:
+        employees = employees.filter(StaffPersonalInfo.staff_account.has(StaffAccount.id == staff_id))
     leaves = []
     wfhs = []
     seminars = []
     logins = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
     for emp in employees:
         if tab in ['login', 'all']:
-            # TODO: recheck staff login model
-            for rec in StaffWorkLogin.query.filter_by(staff=emp.staff_account) \
-                    .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
-                                    .between(cal_start, cal_end)):
-                end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
-                border_color = '#ffffff' if end else '#f56956'
-                text_color = '#ffffff'
-                bg_color = '#7d9df0'
+            for row in _daily_work_login_rows(
+                StaffWorkLogin.query.filter_by(staff=emp.staff_account)
+                .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))
+                .all()
+            ):
+                end = row['end']
+                start_dt = parser.isoparse(row['start']) if row['start'] else None
+                end_dt = parser.isoparse(end) if end else None
+                worked_hours = _calculate_work_hours(start_dt, end_dt)
+                hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
+                worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+                is_late = bool(start_dt and start_dt.time() > office_start_time)
+                text_color, bg_color, border_color, class_names = _work_login_event_style(
+                    is_late, hours_is_negative, bool(end)
+                )
                 '''
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
@@ -2668,14 +3377,19 @@ def send_summary_data():
                     bg_color = '#ffff66'
                 '''
                 logins.append({
-                    'id': rec.id,
-                    'start': rec.start_datetime.astimezone(tz).isoformat() if rec.start_datetime else None,
-                    'end': end.isoformat() if end else None,
+                    'id': f"{row['staff_id']}-{row['date'].isoformat()}",
+                    'start': row['start'],
+                    'end': end,
                     'status': 'Done' if end else 'Not done',
                     'title': u'{}'.format(emp.th_firstname),
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,
+                    'hours_is_negative': hours_is_negative,
+                    'worked_hours_display': worked_hours_display,
+                    'worked_hours': worked_hours,
+                    'is_late': is_late,
+                    'className': class_names,
                     'type': 'login'
                 })
 
@@ -2683,7 +3397,7 @@ def send_summary_data():
             for leave_req in StaffLeaveRequest.query.filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffLeaveRequest.start_datetime)
                                     .between(cal_start, cal_end)):
-                if not leave_req.cancelled_at:
+                if not leave_req.cancelled_at and (not approved_only or leave_req.get_approved):
                     if leave_req.get_approved:
                         text_color = '#ffffff'
                         bg_color = '#2b8c36'
@@ -2694,13 +3408,14 @@ def send_summary_data():
                         bg_color = '#d1e0e0'
                         border_color = '#ffffff'
                         leave_status = 'Pending'
+                    leave_type = getattr(getattr(leave_req.quota, 'leave_type', None), 'type_', 'Leave')
                     leaves.append({
-                        'id': leave_req.id,
-                        'start': leave_req.start_datetime.astimezone(tz).isoformat() \
+                        'id': 'leave-{}'.format(leave_req.id),
+                        'start': _to_bangkok(leave_req.start_datetime).isoformat() \
                             if leave_req.start_datetime else None,
-                        'end': leave_req.end_datetime.astimezone(tz).isoformat() \
+                        'end': _to_bangkok(leave_req.end_datetime).isoformat() \
                             if leave_req.end_datetime else None,
-                        'title': u'{} {}'.format(emp.th_firstname, leave_req.quota.leave_type),
+                        'title': u'{} {}'.format(emp.th_firstname, leave_type),
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
@@ -2713,7 +3428,8 @@ def send_summary_data():
                     .filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.start_datetime)
                                     .between(cal_start, cal_end)):
-                if not wfh_req.cancelled_at and not wfh_req.get_unapproved:
+                if not wfh_req.cancelled_at and not wfh_req.get_unapproved \
+                        and (not approved_only or wfh_req.get_approved):
                     if wfh_req.get_approved:
                         text_color = '#989898'
                         bg_color = '#C5ECFB'
@@ -2725,10 +3441,10 @@ def send_summary_data():
                         border_color = '#ffffff'
                         wfh_status = 'Pending'
                     wfhs.append({
-                        'id': wfh_req.id,
-                        'start': wfh_req.start_datetime.astimezone(tz).isoformat() \
+                        'id': 'wfh-{}'.format(wfh_req.id),
+                        'start': _to_bangkok(wfh_req.start_datetime).isoformat() \
                             if wfh_req.start_datetime else None,
-                        'end': wfh_req.end_datetime.astimezone(tz).isoformat() \
+                        'end': _to_bangkok(wfh_req.end_datetime).isoformat() \
                             if wfh_req.end_datetime else None,
                         'title': emp.th_firstname + " WFH",
                         'backgroundColor': bg_color,
@@ -2778,9 +3494,28 @@ def summary_index():
 @manager_or_secretary_permission.require()
 @login_required
 def login_summary():
+    today = datetime.today().date()
+    start_date = date(today.year, today.month, 1)
+    end_date = today
     return render_template('staff/login_summary.html',
                            tab='login',
-                           curr_dept_id=current_user.personal_info.org.id)
+                           curr_dept_id=current_user.personal_info.org.id,
+                           summary_start_date=start_date.strftime('%d/%m/%Y'),
+                           summary_end_date=end_date.strftime('%d/%m/%Y'))
+
+
+@staff.route('/api/login-summary')
+@manager_or_secretary_permission.require()
+@login_required
+def get_login_summary_data():
+    dept_id = request.args.get('dept_id', type=int) or current_user.personal_info.org.id
+    today = datetime.today().date()
+    default_start = date(today.year, today.month, 1)
+    start_date = _parse_login_summary_date(request.args.get('start'), default=default_start)
+    end_date = _parse_login_summary_date(request.args.get('end'), default=today)
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    return jsonify(_build_login_summary_dashboard(start_date, end_date, dept_id))
 
 
 @staff.route('/summary/logins/export', methods=['POST'])
@@ -2795,27 +3530,19 @@ def export_login_summary():
     query = query.join(StaffAccount, aliased=True) \
         .filter(StaffAccount.personal_info.has(org_id=current_user.personal_info.org_id))
     records = []
-    for rec in query:
-        if rec.start_datetime and rec.qrcode_in_exp_datetime:
-            start_expired = rec.start_datetime > rec.qrcode_in_exp_datetime
-        else:
-            start_expired = None
-        if rec.end_datetime and rec.qrcode_out_exp_datetime:
-            end_expired = rec.end_datetime > rec.qrcode_out_exp_datetime
-        else:
-            end_expired = None
-        lat = float(rec.lat) if rec.lat else ''
-        lon = float(rec.long) if rec.long else ''
+    for row in _daily_work_login_rows(query.all()):
+        start = row['start']
+        end = row['end']
         records.append({
-            'staff_name': rec.staff.fullname,
-            'startdate': rec.start_datetime.astimezone(tz).strftime('%Y-%m-%d') if rec.start_datetime else '',
-            'starttime': rec.start_datetime.astimezone(tz).strftime('%H:%M:%S') if rec.start_datetime else '',
-            'enddate': rec.end_datetime.astimezone(tz).strftime('%Y-%m-%d') if rec.end_datetime else '',
-            'endtime': rec.end_datetime.astimezone(tz).strftime('%H:%M:%S') if rec.end_datetime else '',
-            'lat': lat,
-            'lon': lon,
-            'start_expired': start_expired,
-            'end_expired': end_expired,
+            'staff_name': row['staff_name'],
+            'startdate': datetime.fromisoformat(start).strftime('%Y-%m-%d') if start else '',
+            'starttime': datetime.fromisoformat(start).strftime('%H:%M:%S') if start else '',
+            'enddate': datetime.fromisoformat(end).strftime('%Y-%m-%d') if end else '',
+            'endtime': datetime.fromisoformat(end).strftime('%H:%M:%S') if end else '',
+            'lat': row['lat'],
+            'lon': row['lon'],
+            'start_expired': row['start_expired'],
+            'end_expired': row['end_expired'],
         })
     columns = [
         'staff_name', 'startdate', 'starttime', 'start_expired', 'enddate',
@@ -2838,8 +3565,15 @@ def export_login_summary():
 @staff.route('/api/staffids')
 @login_required
 def get_staffid():
+    only_active = request.args.get('active', type=int) == 1
+    if only_active:
+        staffs = StaffAccount.get_active_accounts()
+        staff_infos = [account.personal_info for account in staffs if account.personal_info]
+    else:
+        staff_infos = StaffPersonalInfo.query.all()
+
     staff = []
-    for sid in StaffPersonalInfo.query.all():
+    for sid in staff_infos:
         staff.append({
             'id': sid.id,
             'fullname': sid.fullname,
@@ -3255,7 +3989,7 @@ def create_seminar():
                 flash('Upload File เรียบร้อยแล้ว', 'success')
             else:
                 upload_file_url = None
-                flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
+                # flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
             seminar.upload_file_url = upload_file_url
             timedelta = form.end_datetime.data - form.start_datetime.data
             if timedelta.days < 0 and timedelta.seconds == 0:
@@ -3879,7 +4613,7 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
             flash('Upload File เรียบร้อยแล้ว', 'success')
         else:
             upload_file_url = None
-            flash('Upload File ไม่สำเร็จ', 'warning')
+            # flash('Upload File ไม่สำเร็จ', 'warning')
         this_proposal.upload_file_url = upload_file_url
         db.session.add(this_proposal)
         db.session.commit()
@@ -4148,8 +4882,11 @@ def seminar_attends_each_person():
 def seminar_attends_each_person_details(staff_account_id):
     account = StaffAccount.query.filter_by(id=staff_account_id).first()
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
-        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).join(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminar.cancelled_at == None,
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime, StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
         func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
     ).all()
     current_fee = 0
@@ -4184,8 +4921,11 @@ def seminar_attends_each_person_details(staff_account_id):
 @login_required
 def current_seminar_attends(staff_account_id):
     START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).filter(
-        func.date(StaffSeminarAttend.end_datetime) >= START_FISCAL_DATE.date(),
+    attends = StaffSeminarAttend.query.filter_by(staff_account_id=staff_account_id).join(
+        StaffSeminar, StaffSeminarAttend.seminar_id == StaffSeminar.id
+    ).filter(
+        StaffSeminar.cancelled_at == None,
+        func.date(func.coalesce(StaffSeminarAttend.end_datetime, StaffSeminarAttend.start_datetime)) >= START_FISCAL_DATE.date(),
         func.date(StaffSeminarAttend.start_datetime) <= END_FISCAL_DATE.date()
     ).all()
     total_fee = 0
@@ -4281,23 +5021,41 @@ def send_time_report_data():
         cal_start = parser.isoparse(cal_start)
     if cal_end:
         cal_end = parser.isoparse(cal_end)
+    rows = _daily_work_login_rows(
+        StaffWorkLogin.query
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))
+        .filter_by(staff=current_user)
+        .all()
+    )
     records = []
-    for rec in StaffWorkLogin.query \
-            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end)) \
-            .filter_by(staff=current_user):
-        # The event object is a dict object with a 'summary' key.
-        text_color = '#ffffff'
-        bg_color = '#4da6ff'
-        border_color = '#ffffff'
-        end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    for row in rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        hours_is_negative = False
+        worked_hours_display = None
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        if worked_hours is not None:
+            hours_is_negative = worked_hours < 8.0
+            worked_hours_display = '{:.1f} hrs.'.format(worked_hours)
+
+        is_late = bool(start_dt and start_dt.time() > office_start_time)
+        text_color, bg_color, border_color, class_names = _work_login_event_style(
+            is_late, hours_is_negative, bool(row['end'])
+        )
         records.append({
-            'id': rec.id,
-            'start': rec.start_datetime.astimezone(tz).isoformat(),
-            'end': end.isoformat() if end else None,
-            'title': u'{}'.format(rec.staff.personal_info.th_firstname),
+            'id': f"{row['staff_id']}-{row['date'].isoformat()}",
+            'start': row['start'],
+            'end': row['end'],
+            'title': u'{}'.format(current_user.personal_info.th_firstname),
             'backgroundColor': bg_color,
             'borderColor': border_color,
             'textColor': text_color,
+            'worked_hours_display': worked_hours_display,
+            'worked_hours': worked_hours,
+            'hours_is_negative': hours_is_negative,
+            'is_late': is_late,
+            'className': class_names,
             'type': 'login'
         })
     return jsonify(records)
@@ -4323,6 +5081,9 @@ def staff_index():
 def staff_create_info():
     if request.method == 'POST':
         form = request.form
+        org_id = form.get('org_id', type=int)
+        selected_org = Org.query.get(org_id) if org_id else None
+        is_external_account = bool(selected_org and selected_org.is_external)
         getemail = form.get('email')
         for staff in StaffAccount.query.all():
             if staff.email == getemail:
@@ -4332,7 +5093,7 @@ def staff_create_info():
                 return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
 
         start_d = form.get('employed_date')
-        start_date = datetime.strptime(start_d, '%d/%m/%Y')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y').date()
         createstaff = StaffPersonalInfo(
             en_firstname=form.get('en_firstname'),
             en_lastname=form.get('en_lastname'),
@@ -4340,8 +5101,7 @@ def staff_create_info():
             th_title=form.get('th_title'),
             th_lastname=form.get('th_lastname'),
             position=form.get('position'),
-            # TODO: try removing localize
-            employed_date=tz.localize(start_date),
+            employed_date=start_date,
             finger_scan_id=form.get('finger_scan_id'),
             sap_id=form.get('sap_id'),
             employment_id=form.get('employment_id'),
@@ -4353,19 +5113,27 @@ def staff_create_info():
 
         db.session.add(createstaff)
         db.session.commit()
-
+        # create_email = StaffAccount(
+        #     personal_id=createstaff.id,
+        #     email=form.get('email'),
+        #     password=form.get('password')
+        # )
         create_email = StaffAccount(
             personal_id=createstaff.id,
             email=form.get('email'),
-            password=form.get('password')
+            external_email=((form.get('external_email') or '').strip().lower() or None)
         )
         db.session.add(create_email)
         db.session.commit()
 
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+        missing_quota_types = []
         for type in StaffLeaveType.query.all():
             quota = StaffLeaveQuota.query.filter_by(employment_id=createstaff.employment_id,
                                                     leave_type_id=type.id).first()
+            if not quota:
+                missing_quota_types.append(type.type_)
+                continue
             new_used_quota = StaffLeaveUsedQuota(
                 leave_type_id=type.id,
                 staff_account_id=create_email.id,
@@ -4377,7 +5145,17 @@ def staff_create_info():
             db.session.add(new_used_quota)
             db.session.commit()
 
-        flash('เพิ่มบุคลากรเรียบร้อย และเพิ่มข้อมูล quota การลาให้กับพนักงานใหม่เรียบร้อย', 'success')
+        if missing_quota_types:
+            flash(
+                'เพิ่มบุคลากรเรียบร้อย แต่ไม่พบ quota การลาสำหรับประเภท: {}'.format(', '.join(missing_quota_types)),
+                'warning'
+            )
+        else:
+            flash('เพิ่มบุคลากรเรียบร้อย และเพิ่มข้อมูล quota การลาให้กับพนักงานใหม่เรียบร้อย', 'success')
+
+        if is_external_account:
+            return redirect(url_for('staff.staff_edit_pwd', staff_id=create_email.id))
+
         staff = StaffPersonalInfo.query.get(createstaff.id)
         return render_template('staff/staff_show_info.html', staff=staff)
     departments = Org.query.order_by(Org.id.asc()).all()
@@ -4417,38 +5195,16 @@ def staff_edit_info(staff_id):
         staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
         if staff_account:
             staff_account.email = form.get('email')
+            staff_account.external_email = ((form.get('external_email') or '').strip().lower() or None)
             db.session.add(staff_account)
         else:
             createstaff = StaffAccount(
                 personal_id=staff_id,
-                email=form.get('email')
+                email=form.get('email'),
+                external_email=((form.get('external_email') or '').strip().lower() or None)
             )
             db.session.add(createstaff)
 
-        start_d = form.get('employed_date')
-        start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
-        resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y') \
-            if form.get('resignation_date') else None
-        retired_date = datetime.strptime(form.get('retirement_date'), '%d/%m/%Y') \
-            if form.get('retirement_date') else None
-        staff.th_title = form.get('th_title') if form.get('th_title') != 'None' else ''
-        staff.en_title = form.get('en_title') if form.get('th_title') != 'None' else ''
-        staff.en_firstname = form.get('en_firstname')
-        staff.en_lastname = form.get('en_lastname')
-        staff.th_firstname = form.get('th_firstname')
-        staff.th_lastname = form.get('th_lastname')
-        staff.sap_id = form.get('sap_id')
-        staff.position = form.get('position')
-        staff.employed_date = tz.localize(start_date) if start_date else None
-        staff.resignation_date = tz.localize(resign_date) if resign_date else None
-        staff.retirement_date = tz.localize(retired_date) if retired_date else None
-        if form.get('finger_scan_id'):
-            staff.finger_scan_id = form.get('finger_scan_id')
-        staff.employment_id = form.get('employment_id')
-        staff.job_position_id = form.get('job_id')
-        staff.org_id = form.get('org_id')
-        academic_staff = True if form.getlist("academic_staff") else False
-        staff.academic_staff = academic_staff
         retired = True if form.getlist("retired") else False
         if form.getlist("rejoined"):
             create_resign = StaffResignation(
@@ -4459,6 +5215,31 @@ def staff_edit_info(staff_id):
             db.session.add(create_resign)
             db.session.commit()
             retired = False
+
+        start_d = form.get('employed_date')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y').date() if start_d else None
+        resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y').date() \
+            if form.get('resignation_date') else None
+        retired_date = datetime.strptime(form.get('retirement_date'), '%d/%m/%Y').date() \
+            if form.get('retirement_date') else None
+        staff.th_title = form.get('th_title') if form.get('th_title') != 'None' else ''
+        staff.en_title = form.get('en_title') if form.get('th_title') != 'None' else ''
+        staff.en_firstname = form.get('en_firstname')
+        staff.en_lastname = form.get('en_lastname')
+        staff.th_firstname = form.get('th_firstname')
+        staff.th_lastname = form.get('th_lastname')
+        staff.sap_id = form.get('sap_id')
+        staff.position = form.get('position')
+        staff.employed_date = start_date
+        staff.resignation_date = resign_date
+        staff.retirement_date = retired_date
+        if form.get('finger_scan_id'):
+            staff.finger_scan_id = form.get('finger_scan_id')
+        staff.employment_id = form.get('employment_id')
+        staff.job_position_id = form.get('job_id')
+        staff.org_id = form.get('org_id')
+        academic_staff = True if form.getlist("academic_staff") else False
+        staff.academic_staff = academic_staff
         staff.retired = retired
         if not staff.retired:
             if staff.resignation_date:
@@ -4550,7 +5331,13 @@ def staff_add_academic_position():
 def staff_search_to_change_pwd():
     if request.method == 'POST':
         staff_id = request.form.get('staffname')
+        if not staff_id:
+            flash('กรุณาเลือกชื่อบุคลากร')
+            return render_template('staff/staff_search_to_change_pwd.html')
         account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        if not account:
+            flash('ไม่พบบัญชีของบุคลากรที่เลือก')
+            return render_template('staff/staff_search_to_change_pwd.html')
         return render_template('staff/staff_edit_pwd.html', account=account)
     return render_template('staff/staff_search_to_change_pwd.html')
 
@@ -4560,14 +5347,65 @@ def staff_search_to_change_pwd():
 @login_required
 def staff_edit_pwd(staff_id):
     if request.method == 'POST':
-        form = request.form
         staff_email = StaffAccount.query.filter_by(id=staff_id).first()
-        staff_email.password = form.get('pwd')
+        if not staff_email:
+            abort(404)
+
+        new_password = (request.form.get('pwd') or '').strip()
+        if not new_password:
+            flash('กรุณากรอกรหัสผ่านใหม่')
+            return render_template('staff/staff_edit_pwd.html', account=staff_email)
+
+        staff_email.password = new_password
         db.session.add(staff_email)
         db.session.commit()
         flash('แก้ไขรหัสผ่านเรียบร้อย')
-        return render_template('staff/staff_index.html')
-    return render_template('staff/staff_search_to_change_pwd.html')
+        return redirect(url_for('staff.staff_search_to_change_pwd'))
+    staff_email = StaffAccount.query.filter_by(id=staff_id).first()
+    if not staff_email:
+        abort(404)
+    return render_template('staff/staff_edit_pwd.html', account=staff_email)
+
+
+@staff.route('/for-hr/staff-info/search-account/send-reset-pwd/<int:staff_id>', methods=['POST'])
+@hr_permission.require()
+@login_required
+def staff_send_reset_pwd_email(staff_id):
+    account = StaffAccount.query.filter_by(id=staff_id).first()
+    if not account:
+        abort(404)
+
+    email = (request.form.get('email') or '').strip()
+    if not email:
+        flash('กรุณากรอกอีเมล')
+        return redirect(url_for('staff.staff_edit_pwd', staff_id=staff_id))
+
+    email = _normalize_staff_email(email)
+    if not email:
+        flash('กรุณากรอกอีเมล')
+        return redirect(url_for('staff.staff_edit_pwd', staff_id=staff_id))
+
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    token = serializer.dumps({'email': email})
+    url = external_url('auth.reset_password', token=token, email=email)
+    message = (
+        u'Click the link below to reset the password.'
+        u' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'
+    ).format(url)
+
+    try:
+        mail.send(Message(
+            subject='MUMT-MIS: Password Reset. ตั้งรหัสผ่านใหม่สำหรับระบบ MUMT-MIS',
+            body=message,
+            recipients=[f'{email}@mahidol.ac.th']
+        ))
+    except:
+        flash(u'Failed to send an email to {}. ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'.format(email), 'danger')
+    else:
+        flash(u'Please check your mahidol.ac.th email for the link to reset the password within 20 minutes.'
+              u' โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 20 นาที', 'success')
+
+    return redirect(url_for('staff.staff_edit_pwd', staff_id=staff_id))
 
 
 @staff.route('/for-hr/staff-info/approvers',
@@ -4622,6 +5460,44 @@ def staff_approver_change_active_status(approver_id, requester_id):
     db.session.add(approver)
     db.session.commit()
     flash('แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-lower-level-status')
+@hr_permission.require()
+@login_required
+def staff_approver_change_lower_level_status(approver_id, requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    if not approver:
+        flash('ไม่พบข้อมูลผู้อนุมัติ', 'warning')
+        return redirect(request.referrer)
+    if approver.is_lower_level:
+        approver.is_lower_level = False
+    else:
+        approver.is_lower_level = True
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะหัวหน้างานเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-middle-level-status')
+@hr_permission.require()
+@login_required
+def staff_approver_change_middle_level_status(approver_id, requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id,
+                                                  staff_account_id=requester_id).first()
+    if not approver:
+        flash('ไม่พบข้อมูลผู้อนุมัติ', 'warning')
+        return redirect(request.referrer)
+    if approver.is_middle_level:
+        approver.is_middle_level = False
+    else:
+        approver.is_middle_level = True
+    db.session.add(approver)
+    db.session.commit()
+    flash('แก้ไขสถานะผู้บังคับบัญชาเรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
 
@@ -4955,10 +5831,18 @@ def add_holiday():
     return render_template('staff/add_Holiday.html', holiday=holiday)
 
 
-@staff.route('/for-hr/organizations')
+@staff.route('/for-hr/organizations', methods=['GET', 'POST'])
 @hr_permission.require()
 @login_required
 def edit_organizations():
+    if request.method == 'POST':
+        org = Org.query.get(request.form.get('org_id', type=int))
+        if org:
+            org.is_external = bool(request.form.get('is_external'))
+            db.session.add(org)
+            db.session.commit()
+            flash('บันทึกสถานะหน่วยงานเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.edit_organizations'))
     orgs = Org.query.all()
     return render_template('staff/organizations.html', orgs=orgs)
 
@@ -5044,6 +5928,13 @@ def create_qrcode(account_id):
     latitude = request.args.get('lat', '')
     longitude = request.args.get('long', '')
     account = StaffAccount.query.get(account_id)
+    if not account or not account.personal_info:
+        abort(404)
+    if account_id != current_user.id:
+        abort(403)
+    org = account.personal_info.org if account and account.personal_info else None
+    org_th_name = org.display_name if org else u'ไม่มีสังกัด'
+    org_en_name = org.en_name or org.name if org else 'NO ORG'
     qr = qrcode.QRCode(version=1, box_size=20)
     current_time = datetime.now(pytz.utc)
     expired_time = current_time + timedelta(minutes=10)
@@ -5059,8 +5950,8 @@ def create_qrcode(account_id):
         "",
         account.personal_info.en_title or '',
         account.personal_info.en_firstname + ' ' + account.personal_info.en_lastname,
-        u"คณะเทคนิคการแพทย์",
-        "FACULTY OF MEDICAL TECHNOLOGY",
+        org_th_name,
+        org_en_name,
     ])
     qr.add_data(qr_data)
     qr.make(fit=True)
@@ -5088,42 +5979,13 @@ def geo_checkin():
         lat = req_data['data'].get('lat', '0.0')
         lon = req_data['data'].get('lon', '0.0')
         now = datetime.now(pytz.utc)
-        date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
-
-        if place == 'gj':
-            num_scans = 1
-            record = StaffWorkLogin(
-                date_id=date_id,
-                staff=current_user,
-                lat=float(lat),
-                long=float(lon),
-                start_datetime=now,
-                num_scans=num_scans,
-            )
-            activity = ''
-        else:
-            # use the first login of the day as the checkin time.
-            # use the last login of the day as the checkout time.
-            record = StaffWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
-
-            if not record:
-                num_scans = 1
-                record = StaffWorkLogin(
-                    date_id=date_id,
-                    staff=current_user,
-                    lat=float(lat),
-                    long=float(lon),
-                    start_datetime=now,
-                    num_scans=num_scans,
-                )
-                activity = 'checked in'
-            else:
-                num_scans = record.num_scans + 1 if record.num_scans else 1
-                record.end_datetime = now
-                record.num_scans = num_scans
-                activity = 'checked out'
-        db.session.add(record)
-        db.session.commit()
+        record, activity, num_scans = _create_work_login_record(
+            current_user,
+            now,
+            lat,
+            lon,
+            note=place,
+        )
         try:
             if activity == 'checked in':
                 msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {now.astimezone(tz).strftime("%d/%m/%Y %H:%M:%S")}'

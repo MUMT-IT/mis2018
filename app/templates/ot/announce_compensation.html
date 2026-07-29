@@ -15,6 +15,18 @@
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">อัตราค่าตอบแทน</h1>
+                <a class="button is-info" href="{{ url_for('ot.admin_timeslots') }}">
+                    <span class="icon">
+                        <i class="fas fa-clock"></i>
+                    </span>
+                    <span>จัดการช่วงเวลา</span>
+                </a>
+                <a class="button is-link" href="{{ url_for('ot.announcement_job_roles') }}">
+                    <span class="icon">
+                        <i class="fas fa-user-tag"></i>
+                    </span>
+                    <span>จัดการตำแหน่งงาน</span>
+                </a>
             </div>
         </div>
         <div class="columns">
@@ -29,7 +41,7 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="select">
-                                        {{ form.announcement(**{'v-model': 'announcement_id'}) }}
+                                        {{ form.announcement(id='announcementSelect', **{'v-model': 'announcement_id'}) }}
                                     </div>
                                 </div>
                                 <a class="button" :href="url">Document</a>
@@ -37,60 +49,36 @@
                         </div>
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">
-                                <label class="label">ปฏิบัติงาน ณ</label>
+                                <label class="label">{{ form.work_at_org.label }}</label>
                             </div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="select">
-                                        {{ form.work_at_org() }}
+                                        {{ form.work_at_org(id='workAtOrgSelect') }}
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">
-                                <label class="label">ปฏิบัติงานให้แก่</label>
+                                <label class="label">{{ form.ot_job_role.label }}</label>
                             </div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="select">
-                                        {{ form.work_for_org() }}
+                                        {{ form.ot_job_role(id='jobRoleSelect') }}
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">
-                                <label class="label">{{ form.role.label }}</label>
+                                <label class="label">{{ form.time_slot.label }}</label>
                             </div>
                             <div class="field-body">
                                 <div class="field">
-                                    <div class="control">
-                                        {{ form.role(class="input") }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">{{ form.start_time.label }}</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.start_time(class="input", type="text") }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">{{ form.end_time.label }}</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control">
-                                        {{ form.end_time(class="input", type="text") }}
+                                    <div class="select">
+                                        {{ form.time_slot(id='timeSlotSelect') }}
                                     </div>
                                 </div>
                             </div>
@@ -144,49 +132,53 @@
                             </div>
                         </div>
                         <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">{{ form.is_faculty_emp.label }}</label>
-                            </div>
+                            <div class="field-label"></div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.is_faculty_emp }}
+                                        <label class="checkbox">
+                                            {{ form.is_faculty_emp() }}
+                                            {{ form.is_faculty_emp.label.text }}
+                                        </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">{{ form.is_workday.label }}</label>
-                            </div>
+                            <div class="field-label"></div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.is_workday }}
+                                        <label class="checkbox">
+                                            {{ form.is_workday() }}
+                                            {{ form.is_workday.label.text }}
+                                        </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">{{ form.double_payment.label }}</label>
-                            </div>
+                            <div class="field-label"></div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.double_payment }}
+                                        <label class="checkbox">
+                                            {{ form.double_payment() }}
+                                            {{ form.double_payment.label.text }}
+                                        </label>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">{{ form.is_role_required.label }}</label>
-                            </div>
+                            <div class="field-label"></div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.is_role_required }}
+                                        <label class="checkbox">
+                                            {{ form.is_role_required() }}
+                                            {{ form.is_role_required.label.text }}
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -196,7 +188,12 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('ot.announcement') }}" class="button is-danger">Cancel</a>
+                                <a class="button is-info is-light" href="{{ url_for('ot.announcement') }}">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                                    <span>กลับ</span>
+                                </a>
                             </div>
                         </div>
                     </form>
@@ -208,7 +205,94 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const announcementSelect = document.getElementById('announcementSelect');
+        const workAtOrgSelect = document.getElementById('workAtOrgSelect');
+        const jobRoleSelect = document.getElementById('jobRoleSelect');
+        const timeSlotSelect = document.getElementById('timeSlotSelect');
+        const initialJobRoleId = {{ form.ot_job_role.data.id if form.ot_job_role.data else 'null' }};
+        const initialTimeSlotId = {{ form.time_slot.data.id if form.time_slot.data else 'null' }};
+
+        if (!announcementSelect || !workAtOrgSelect || !jobRoleSelect || !timeSlotSelect) {
+            return;
+        }
+
+        const loadTimeSlots = async (announcementId, workAtOrgId) => {
+            timeSlotSelect.innerHTML = '';
+            if (!announcementId) {
+                timeSlotSelect.disabled = true;
+                const placeholder = new Option('เลือกประกาศก่อน', '', true, true);
+                placeholder.disabled = true;
+                timeSlotSelect.add(placeholder);
+                return;
+            }
+
+            timeSlotSelect.disabled = false;
+            const response = await axios.get(`/ot/api/announcements/${announcementId}/timeslots`, {
+                params: { work_for_org_id: workAtOrgId }
+            });
+            const slots = response.data || [];
+
+            if (!slots.length) {
+                const placeholder = new Option('ไม่มีช่วงเวลาสำหรับหน่วยงานนี้', '', true, true);
+                placeholder.disabled = true;
+                timeSlotSelect.add(placeholder);
+                timeSlotSelect.disabled = true;
+                return;
+            }
+
+            slots.forEach((slot) => {
+                const option = new Option(slot.label, slot.id);
+                if (initialTimeSlotId && String(slot.id) === String(initialTimeSlotId)) {
+                    option.selected = true;
+                }
+                timeSlotSelect.add(option);
+            });
+        };
+
+        const loadJobRoles = async (announcementId, workAtOrgId) => {
+            jobRoleSelect.innerHTML = '';
+            jobRoleSelect.disabled = false;
+
+            if (!announcementId || !workAtOrgId) {
+                const placeholder = new Option('เลือกประกาศและปฏิบัติงานที่ก่อน', '', true, true);
+                placeholder.disabled = true;
+                jobRoleSelect.add(placeholder);
+                return;
+            }
+
+            const response = await axios.get(`/ot/api/announcements/${announcementId}/job-roles`, {
+                params: { work_for_org_id: workAtOrgId }
+            });
+            const roles = response.data || [];
+
+            if (!roles.length) {
+                const placeholder = new Option('ไม่มีตำแหน่งงานสำหรับประกาศนี้', '', true, true);
+                placeholder.disabled = true;
+                jobRoleSelect.add(placeholder);
+                jobRoleSelect.disabled = true;
+                return;
+            }
+
+            jobRoleSelect.disabled = false;
+            roles.forEach((role) => {
+                const option = new Option(role.label, role.id);
+                if (initialJobRoleId && String(role.id) === String(initialJobRoleId)) {
+                    option.selected = true;
+                }
+                jobRoleSelect.add(option);
+            });
+        };
+
+        announcementSelect.addEventListener('change', () => loadTimeSlots(announcementSelect.value, workAtOrgSelect.value));
+        announcementSelect.addEventListener('change', () => loadJobRoles(announcementSelect.value, workAtOrgSelect.value));
+        workAtOrgSelect.addEventListener('change', () => loadTimeSlots(announcementSelect.value, workAtOrgSelect.value));
+        workAtOrgSelect.addEventListener('change', () => loadJobRoles(announcementSelect.value, workAtOrgSelect.value));
+        loadTimeSlots(announcementSelect.value, workAtOrgSelect.value);
+        loadJobRoles(announcementSelect.value, workAtOrgSelect.value);
+    });
+</script>
     {% if compensation %}
 <script>
     new Vue({
@@ -234,20 +318,7 @@
             }
         }
     })
-    $(document).ready(()=>{
-        $('input[name="start_time"]').timepicker({
-            timeFormat: "HH:mm",
-            dropdown: true,
-        });
-        $('input[name="end_time"]').timepicker({
-            timeFormat: "HH:mm",
-            dropdown: true,
-        });
-    })
 
 </script>
     {% endif %}
 {% endblock %}
-
-
-

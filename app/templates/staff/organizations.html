@@ -9,15 +9,27 @@
                 <nav class="panel is-warning">
                     <p class="panel-heading">Menu</p>
                     {% for org in orgs %}
-                    <a class="panel-block"
-                       href="{{ url_for('staff.list_org_staff', org_id=org.id) }}">
-                        <span class="panel-icon">
-                            <i class="fas fa-chevron-right"></i>
-                        </span>
-                        <span class="is-size-5">
-                            {{ org.name }} <span class="tag is-light is-link">{{ org.active_staff|length }}</span>
-                        </span>
-                    </a>
+                    <div class="panel-block is-block">
+                        <div class="is-flex is-align-items-center is-justify-content-space-between">
+                            <a href="{{ url_for('staff.list_org_staff', org_id=org.id) }}">
+                                <span class="is-size-5">
+                                    {{ org.display_name }}
+                                    <span class="tag is-light is-link">{{ org.active_staff|length }}</span>
+                                </span>
+                            </a>
+                            <span class="tag {% if org.is_external %}is-warning{% else %}is-light{% endif %}">
+                                {% if org.is_external %}external{% else %}internal{% endif %}
+                            </span>
+                        </div>
+                        <form method="post" class="mt-2">
+                            <input type="hidden" name="org_id" value="{{ org.id }}">
+                            <label class="checkbox">
+                                <input type="checkbox" name="is_external" {% if org.is_external %}checked{% endif %}>
+                                หน่วยงานภายนอก
+                            </label>
+                            <button type="submit" class="button is-small is-info is-light ml-2">บันทึก</button>
+                        </form>
+                    </div>
                     {% endfor %}
                 </nav>
             </div>

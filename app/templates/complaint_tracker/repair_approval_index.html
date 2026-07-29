@@ -1,33 +1,65 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <style>
+        #repair_approvals {
+            width: 100%;
+            table-layout: auto;
+        }
 
+        #repair_approvals th,
+        #repair_approvals td {
+            font-size: 14px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
 {% include "complaint_tracker/index_nav.html" %}
 <section class="section">
     <div class="container">
         {% include 'messages.html' %}
-        <div class="columns">
+        <div class="columns is-centered">
             <div class="column">
                 <h1 class="title has-text-centered">รายการคำขออนุมัติหลักการซ่อม</h1>
                 <div class="tabs is-boxed">
                     <ul>
-                        <li {% if tab == 'new' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='new') }}">
-                                <span class="icon is-small"><i class="fas fa-times"></i></span>
-                                <span>ยังไม่ดำเนินการ</span>
+                        <li {% if tab == 'waiting_process' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='waiting_process', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass"></i></span>
+                                <span>รอดำเนินการ</span>
                                 {% if new_record_count > 0 %}
                                     <span class="tag is-danger is-rounded is-size-7 ml-1">{{ new_record_count }}</span>
                                 {% endif %}
                             </a>
                         </li>
+                        <li {% if tab == 'waiting_approval' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='waiting_approval', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-pen-fancy"></i></span>
+                                <span>รออนุมัติ</span>
+                                {% if waiting_record_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ waiting_record_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
                         <li {% if tab == 'completed' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='completed') }}">
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='completed', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-check"></i></span>
                                 <span>ดำเนินการเสร็จสิ้น</span>
                             </a>
                         </li>
+                        <li {% if tab == 'cancelled' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='cancelled', menu=menu) }}">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>ยกเลิก</span>
+                            </a>
+                        </li>
                         <li {% if tab == 'all' %}class="is-active"{% endif %}>
-                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='all') }}">
+                            <a href="{{ url_for('comp_tracker.repair_approval_index', tab='all', menu=menu) }}">
                                 <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
                                 <span>ทั้งหมด</span>
                             </a>
@@ -36,15 +68,16 @@
                 </div>
                 <table id="repair_approvals" class="table is-fullwidth">
                     <thead>
-                        <th>วันที่ออก</th>
+                        <th style="width: 2em">วันที่ออก</th>
                         <th>รายการ/ครุภัณฑ์</th>
                         <th>ประเภท</th>
-                        <th>ประเภทการเบิกจ่าย</th>
-                        <th>วงเงิน</th>
-                        <th>ปีงบประมาณ</th>
-                        <th>เหตุผล</th>
-                        <th>สถานะ</th>
-                        <th>ใบอนุมัติ</th>
+                        <th>ประเภทการเบิกจ่าย/ปีงบประมาณ</th>
+                        <th style="width: 3em">วงเงิน</th>
+                        <th style="width: 6em">เหตุผล</th>
+                        <th>สถานะใบอนุมัติ</th>
+                        <th>สถานะการซ่อม</th>
+                        <th>ใบอนุมัติ/ใบเสนอราคา</th>
+                        <th></th>
                     </thead>
                     <tbody>
                         {% for repair_approval in repair_approvals %}
@@ -56,7 +89,7 @@
                                 <td>
                                     {% if repair_approval.principle_approval_type %}
                                         <span class="tag is-success is-rounded">
-                                            {{ repair_approval.principle_approval_type }} - {{  repair_approval.repair_type }}
+                                            {{  repair_approval.repair_type }} - {{ repair_approval.principle_approval_type }}
                                         </span>
                                     {% else %}
                                         <span class="tag is-danger is-rounded">
@@ -64,36 +97,95 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td>{{ repair_approval.purchase_type }}</td>
+                                <td>{{ repair_approval.purchase_type }} ({{ repair_approval.budget_year }})</td>
                                 <td>
-                                    {{ "{:,.2f}".format(repair_approval.price) }}
+                                    {% if repair_approval.price %}
+                                        {{ "{:,.2f}".format(repair_approval.price) }}
+                                    {% else %}
+                                        {{ '' }}
+                                    {% endif %}
                                 </td>
-                                <td>{{ repair_approval.budget_year }}</td>
                                 <td>{{ repair_approval.reason }}</td>
                                 <td>
-                                    {% if repair_approval.is_print %}
-                                        <span class="tag is-success">
-                                             <span class="icon"><i class="fas fa-check"></i></span>
-                                            <span>ดำเนินการเสร็จสิ้น</span>
+                                    <span class="tag {{ repair_approval.status_color }}">
+                                        <span class="icon">{{ repair_approval.status_icon|safe }}</span>
+                                        <span>{{ repair_approval.status }}</span>
+                                    </span>
+                                    {% if repair_approval.cancelled_at %}
+                                        <br>ยกเลิกเมื่อ {{ repair_approval.cancelled_at|localdatetime }}
+                                    {% elif repair_approval.reviewed_at %}
+                                        <br>ดูเมื่อ {{ repair_approval.reviewed_at|localdatetime }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if repair_approval.record.status %}
+                                        <span class="tag {{ repair_approval.record.status.color }}">
+                                            <span class="icon">{{ repair_approval.record.status.icon|safe }}</span>
+                                            <span>{{ repair_approval.record.status.status }}</span>
                                         </span>
                                     {% else %}
-                                        <span class="tag is-warning">
-                                             <span class="icon"><i class="fas fa-hourglass-half"></i></span>
-                                            <span>รอดำเนินการ</span>
+                                        <span class="tag is-danger">
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>ยังไม่ดำเนินการ</span>
                                         </span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div class="field has-addons">
-                                        <div class="control">
+                                    <div class="field">
+                                        <div class="control mb-2">
                                             <a class="button is-small is-info is-outlined is-rounded"
-                                                @click="printRepairApproval({{ repair_approval.id }})"
+                                               {% if repair_approval.has_data_complete %}
+                                                    @click="printRepairApproval({{ repair_approval.id }})"
+                                               {% else %}
+                                                    @click="warnAlert({{ repair_approval.id }})"
+                                               {% endif %}
                                             >
-                                                <span class="icon"><i class="fas fa-file-pdf"></i></span>
+                                                <span class="icon"><i class="fas fa-file-invoice"></i></span>
                                                 <span>ใบอนุมัติหลักการซ่อม</span>
                                             </a>
+                                            {% for repair_company in repair_approval.record.repair_companies %}
+                                                {% if repair_company.quotation_file %}
+                                                    <div class="mt-1">
+                                                        <a class="button is-small is-outlined is-info is-rounded "
+                                                           href="{{ url_for('comp_tracker.download_file',
+                                                           key=repair_company.quotation_file,
+                                                           download_filename=repair_company.quotation_file) }}">
+                                                            <span class="icon is-small"><i class="fas fa-file-invoice-dollar"></i></span>
+                                                            <span>ใบเสนอราคา</span>
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
                                         </div>
                                     </div>
+                                </td>
+                                <td>
+                                    <div id="note-form"></div>
+                                    {% if not repair_approval.cancelled_at and ((not repair_approval.record.status)
+                                          or (repair_approval.record.status and repair_approval.record.status.code != 'completed')
+                                          and (repair_approval.record.status and repair_approval.record.status.code != 'cancelled')) %}
+                                        <div class="field has-addons">
+                                            <div class="control mb-2">
+                                                <a class="button is-warning is-rounded is-small"
+                                                   href="{{ url_for('comp_tracker.edit_repair_approval',
+                                                   repair_approval_id=repair_approval.id, temp='index', menu=menu,
+                                                   tab=tab)}}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-pen"></i></span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-danger is-rounded is-small"
+                                                   hx-swap="innerHTML"
+                                                   hx-target="#note-form"
+                                                   hx-get="{{ url_for('comp_tracker.create_note',
+                                                   repair_approval_id=repair_approval.id)}}"
+                                                >
+                                                    <span class="icon"><i class="fas fa-trash"></i></span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
@@ -107,14 +199,40 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.0.943/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script type="text/javascript">
         var vm = new Vue({
             el: "#repair_approvals",
             delimiters: ['<%', '%>'],
             methods: {
+                warnAlert: function (repair_approval_id) {
+                    Swal.fire({
+                        title: 'กรุณากรอกข้อมูลเพิ่มเติม',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: "#3085d6",
+                        cancelButtonColor: "#d33",
+                        cancelButtonText: "ยกเลิก",
+                        confirmButtonText: "กรอกข้อมูล",
+                        text: 'กรุณาดำเนินการกรอกข้อมูลให้ครบถ้วนก่อนดำเนินการพิมพ์ใบอนุมัติหลักการซ่อม'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            var tab = '{{ tab }}';
+                            var menu = '{{ menu }}';
+                            window.location.href = '/complaint-tracker/repair-approval/edit/' + repair_approval_id +
+                                '?tab=' + tab + '&menu=' + menu + '&temp=index';
+                        }
+                    })
+                },
                 printRepairApproval: function (repair_approval_id) {
                     var url = "/complaint-tracker/admin/repair-approval/pdf/" + repair_approval_id ;
-                    printJS(url);
+                    printJS({
+                        printable: url,
+                        type: 'pdf',
+                        onPrintDialogClose: () => {
+                            window.location.reload();
+                        }
+                    });
                 }
             },
         });
@@ -123,7 +241,8 @@
         $(document).ready(function () {
             $.fn.dataTable.moment('%d/%m/%Y %X');
             $('#repair_approvals').DataTable({
-                order: [[0, 'desc']]
+                order: [[0, 'desc']],
+                autoWidth: false
             });
         });
     </script>

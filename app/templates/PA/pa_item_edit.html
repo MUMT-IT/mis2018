@@ -10,7 +10,98 @@
             opacity: 0;
             transition: opacity 1s ease-out;
         }
-        span { cursor: pointer; }
+        .action-inline {
+            cursor: pointer;
+        }
+        .table-wrap {
+            overflow-x: auto;
+        }
+        .sticky-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 20;
+            background: #fff;
+            border-top: 1px solid #dbdbdb;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            box-shadow: 0 -6px 18px rgba(10, 10, 10, 0.06);
+        }
+        .section-card {
+            margin-top: 1rem;
+        }
+        .status-table td:first-child {
+            white-space: nowrap;
+            width: 14rem;
+        }
+        .spacer-md {
+            margin-top: 1rem;
+        }
+        .col-10 {
+            width: 10%;
+        }
+        .col-25 {
+            width: 25%;
+        }
+        .col-30 {
+            width: 30%;
+        }
+        .col-40 {
+            width: 40%;
+        }
+        .kpi-header {
+            display: flex;
+            align-items: center;
+        }
+        .kpi-header .title {
+            margin-right: 10px;
+            margin-bottom: 0;
+        }
+        .notice-danger {
+            color: #f14668;
+        }
+        .page-title {
+            margin-bottom: 0.35rem;
+        }
+        .page-subtitle {
+            margin-bottom: 1rem;
+        }
+        .steps {
+            margin-bottom: 1.25rem;
+        }
+        .table th {
+            white-space: nowrap;
+            font-size: 0.85rem;
+            letter-spacing: 0.01em;
+        }
+        .table td {
+            vertical-align: top;
+        }
+        .compact-table td,
+        .compact-table th {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        .action-inline {
+            margin-top: 0.35rem;
+            margin-right: 0.35rem;
+        }
+        .kpi-list {
+            margin-top: 0;
+            margin-left: 0.75rem;
+        }
+        .kpi-list li {
+            margin-bottom: 0.4rem;
+        }
+        .section-heading {
+            margin-top: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+        .status-panel {
+            margin-bottom: 1rem;
+        }
+        .btn-primary-action {
+            min-width: 10rem;
+        }
     </style>
     <style>
         #myBtn {
@@ -21,7 +112,7 @@
             z-index: 99; /* Make sure it does not overlap */
             border: none; /* Remove borders */
             outline: none; /* Remove outline */
-            background-color: red; /* Set a background color */
+            background-color: #3273dc; /* Set a background color */
             color: white; /* Text color */
             cursor: pointer; /* Add a mouse pointer on hover */
             padding: 10px; /* Some padding */
@@ -30,7 +121,7 @@
         }
 
         #myBtn:hover {
-            background-color: #555; /* Add a dark-grey background on hover */
+            background-color: #2759a5; /* Add a dark-blue background on hover */
         }
     </style>
 {% endblock %}
@@ -46,8 +137,8 @@
             {% include 'messages.html' %}
             <div class="columns">
                 <div class="column">
-                    <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }} ({{ pa_round.desc }})</h1>
-                    <h1 class="subtitle has-text-centered">ประเภท
+                    <h1 class="subtitle has-text-centered page-title">รอบการประเมิน {{ pa_round }} ({{ pa_round.desc }})</h1>
+                    <h1 class="subtitle has-text-centered page-subtitle">ประเภท
                         {% for e in pa_round.employments %}
                             {{ e.title }}
                         {% endfor %}
@@ -95,13 +186,14 @@
                                 <p class="card-header-title">กระบวนการทำงานที่รับผิดชอบ</p>
                             </div>
                             <div class="card-content">
-                                <table class="table is-fullwidth">
+                                <div class="table-wrap">
+                                <table class="table is-fullwidth compact-table">
                                     <thead>
-                                    <th>ชื่อกระบวนการ</th>
-                                    <th>กระบวนการหลัก</th>
-                                    <th>กระบวนการย่อย</th>
-                                    <th>ตัวชี้วัด</th>
-                                    <th>เพิ่มลง PA</th>
+                                    <th scope="col">ชื่อกระบวนการ</th>
+                                    <th scope="col">กระบวนการหลัก</th>
+                                    <th scope="col">กระบวนการย่อย</th>
+                                    <th scope="col">ตัวชี้วัด</th>
+                                    <th scope="col">เพิ่มลง PA</th>
                                     </thead>
                                     {% for proc in current_user.processes %}
                                         {% if not proc.is_expired %}
@@ -150,12 +242,13 @@
                                         {% endif %}
                                     {% endfor %}
                                 </table>
+                                </div>
                             </div>
                         </div>
                     {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
-                        <br>
+                        <div class="spacer-md"></div>
                         <div class="card">
                             <div class="card-header">
                                 <p class="card-header-title">ส่วนที่ 2 ข้อตกลงการปฏิบัติงาน(Performance Agreement:
@@ -169,34 +262,37 @@
                                     ส่วนงานและหรือหน่วยงาน</p>
                                 <p class="subtitle is-6">2.ให้ผู้รับการประเมินกรอกภาระงาน ค่าน้ำหนัก ตัวชี้วัด เป้าหมาย
                                     เกณฑ์การประเมิน เป็นลายลักษณ์อักษร
-                                    พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย<br>2.1 ภาระงานและตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
+                                    พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย</p>
+                                <p class="subtitle is-6">2.1 ภาระงานและตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
                                 <a id="pa_table"></a>
-                                <table class="table is-fullwidth is-bordered">
+                                <div class="table-wrap">
+                                <table class="table is-fullwidth is-bordered compact-table">
                                     <thead>
-                                    <th>หมวด</th>
-                                    <th>ภาระงาน
+                                    <th scope="col">หมวด</th>
+                                    <th scope="col">ภาระงาน
                                     </th>
                                     </thead>
                                     <tbody>
                                     {% for cat in categories|sort(attribute='id') %}
                                         <tr>
-                                            <td style="width: 10%">
+                                            <td class="col-10">
                                                 {{ cat }}
                                             </td>
                                             <td>
                                                 {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
-                                                    <table class="table is-fullwidth">
+                                                    <div class="table-wrap">
+                                                    <table class="table is-fullwidth compact-table">
                                                         <thead>
 {#                                                        <th>ลำดับ</th>#}
                                                         {% if cat.code == 'STRATEGY' %}
-                                                            <th>โครงการที่เกี่ยวข้อง</th>
+                                                            <th scope="col">โครงการที่เกี่ยวข้อง</th>
                                                         {% else %}
-                                                            <th>กระบวนการทำงานที่เกี่ยวข้อง</th>
+                                                            <th scope="col">กระบวนการทำงานที่เกี่ยวข้อง</th>
                                                         {% endif %}
-                                                        <th>งานที่รับผิดชอบ</th>
-                                                        <th>%</th>
-                                                        <th>ตัวชี้วัด</th>
-                                                        <th colspan="2">ผลการดำเนินการ</th>
+                                                        <th scope="col">งานที่รับผิดชอบ</th>
+                                                        <th scope="col">%</th>
+                                                        <th scope="col">ตัวชี้วัด</th>
+                                                        <th scope="col" colspan="2">ผลการดำเนินการ</th>
                                                         </thead>
                                                         <tbody>
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id)|sort(attribute='id') %}
@@ -206,50 +302,54 @@
 {#                                                                    {{ pa_item.number }}#}
 {#                                                                </td>#}
                                                                 {% if cat.code == 'STRATEGY' %}
-                                                                    <td style="width: 10%">{{ pa_item.strategy_activity }}</td>
+                                                                    <td class="col-10">{{ pa_item.strategy_activity }}</td>
                                                                 {% else %}
-                                                                    <td style="width: 10%">
+                                                                    <td class="col-10">
                                                                     {% if pa_item.process %}
                                                                         {{ pa_item.process }}
                                                                     {% endif %}
                                                                     </td>
                                                                 {% endif %}
-                                                                <td style="width: 25%">{{ pa_item.task|safe }}
+                                                                <td class="col-25">{{ pa_item.task|safe }}
                                                                     {% if pa.editable %}
-                                                                        <span hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                        <button type="button"
+                                                                                hx-get="{{ url_for('pa.add_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
-                                                                                hx-swap="innerHTML" class="tag is-medium">
+                                                                                hx-swap="innerHTML"
+                                                                                class="tag is-medium action-inline">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid  fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>แก้ไข</span>
-                                                                        </span>
+                                                                        </button>
                                                                     {% endif %}
                                                                 </td>
-                                                                <td style="width: 10%">{{ pa_item.percentage }}</td>
-                                                                <td style="width: 30%">
-                                                                    <ul>
+                                                                <td class="col-10">{{ pa_item.percentage }}</td>
+                                                                <td class="col-30">
+                                                                    <ul class="kpi-list">
                                                                         {% for kpi_item in pa_item.kpi_items %}
-                                                                            <li><span class="icon"><i
-                                                                                    class="fa-solid fa-star has-text-warning"></i></span>
-                                                                                <small>{{ kpi_item }}</small><li><small>(เก็บข้อมูลจาก: {{ kpi_item.kpi.source }})</small></li>
+                                                                            <li>
+                                                                                <span class="icon"><i class="fa-solid fa-star has-text-warning"></i></span>
+                                                                                <small>{{ kpi_item }}</small>
+                                                                                <small>(เก็บข้อมูลจาก: {{ kpi_item.kpi.source }})</small>
                                                                             </li>
                                                                         {% endfor %}
                                                                     </ul>
                                                                     {% if pa.editable %}
-                                                                        <span hx-get="{{ url_for('pa.add_pa_item_kpi_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                        <button type="button"
+                                                                                hx-get="{{ url_for('pa.add_pa_item_kpi_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML"
-                                                                                class="tag is-medium">
+                                                                                class="tag is-medium action-inline">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid   fa-cogs {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>เพิ่ม/เลือก ตัวชี้วัด</span>
-                                                                        </span>
+                                                                        </button>
                                                                     {% endif %}
                                                                 </td>
-                                                                <td style="width: 25%;">
-                                                                    {{ pa_item.report|safe }}<br>
+                                                                <td class="col-25">
+                                                                    {{ pa_item.report|safe }}
                                                                     {% if pa_item.related_url %}
                                                                         <a class="button is-info is-outlined is-small" href="{{ pa_item.related_url }}" target="_blank">
                                                                             <span class="icon is-small">
@@ -259,15 +359,16 @@
                                                                         </a>
                                                                     {% endif %}
                                                                     {% if pa.approved_at and not pa.submitted_at %}
-                                                                        <span hx-get="{{ url_for('pa.add_report_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                        <button type="button"
+                                                                                hx-get="{{ url_for('pa.add_report_pa_item_form', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                 hx-target="#pa-edit-form-container"
                                                                                 hx-swap="innerHTML"
-                                                                                class="tag is-medium">
+                                                                                class="tag is-medium action-inline">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                             <span>เพิ่ม/แก้ไข</span>
-                                                                        </span>
+                                                                        </button>
                                                                     {% endif %}
                                                                 </td>
                                                                 <td colspan="2">
@@ -289,6 +390,7 @@
                                                         {% endfor %}
                                                         </tbody>
                                                     </table>
+                                                    </div>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -299,6 +401,7 @@
                                     </tr>
                                     </tbody>
                                 </table>
+                                </div>
                                 <a id="edit_form"></a>
                                 <div id="pa-edit-form-container"></div>
                                 {% if pa.editable %}
@@ -326,8 +429,8 @@
 {#                                </div>#}
 {#                                {% endif %}#}
                                 {% if pa.kpis %}
-                                    <div style="display: flex; align-items: center;">
-                                        <h1 class="title is-size-4" style="margin-right: 10px;">รายการตัวชี้วัด</h1>
+                                    <div class="kpi-header">
+                                        <h1 class="title is-size-4">รายการตัวชี้วัด</h1>
                                         {% if not pa.approved_at %}
                                            <a class="button is-info is-medium is-light is-outlined"
                                                href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
@@ -338,10 +441,11 @@
                                             </a>
                                         {% endif %}
                                     </div>
-                                    <table class="table is-fullwidth is-striped">
+                                    <div class="table-wrap">
+                                    <table class="table is-fullwidth is-striped compact-table">
                                         {% for item_form in form.kpi_items_ %}
                                             <tr>
-                                                <td style="width: 40%">
+                                                <td class="col-40">
                                                     <div class="field">
                                                         <label class="label">
                                                             {{ loop.index }}) {{ item_form.label }}
@@ -374,6 +478,7 @@
                                             </tr>
                                         {% endfor %}
                                     </table>
+                                    </div>
                                 {% else %}
                                     <p class="notification is-warning is-light">
                                         <button class="delete"></button>
@@ -384,19 +489,21 @@
                         </div>
                     </form>
                     {% include 'messages.html' %}
-                    <div class="buttons is-centered">
-                        <span hx-get="{{ url_for('pa.create_request', pa_id=pa.id) }}"
+                    <div class="sticky-actions">
+                    <div class="buttons is-centered mb-0">
+                        <button type="button"
+                              hx-get="{{ url_for('pa.create_request', pa_id=pa.id) }}"
                               hx-target="#pa-edit-form-container" hx-swap="innerHTML"
-                              class="button is-info is-outlined is-medium">
+                              class="button is-info is-medium btn-primary-action">
                             <span class="icon">
                                 <i class="fa-sharp fa-solid fa-paper-plane"></i>
                             </span>
                             <span>ส่งคำขอ</span>
-                        </span>
+                        </button>
                         {% if pa.approved_at %}
                             <a onclick="return confirm('เมื่อประเมินตนเองแล้ว จะไม่สามารถแก้ไขตัวชี้วัดและภาระงานได้อีก หากแน่ใจแล้วคลิก OK เพื่อดำเนินการประเมินตนเอง')"
                                href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}"
-                               class="button is-warning is-outlined is-medium">
+                               class="button is-warning is-outlined is-medium btn-primary-action">
                             <span class="icon">
                                 <i class="fa-solid fa-star"></i>
                             </span>
@@ -404,17 +511,19 @@
                             </a>
                         {% endif %}
                     </div>
+                    </div>
                     {% if not pa.editable %}
                         <div class="has-text-centered">
-                            <p style="color:red">หากต้องการปรับแก้ไขภาระงาน/ตัวชี้วัด ให้ส่งคำขอแก้ไข</p>
+                            <p class="notice-danger">หากต้องการปรับแก้ไขภาระงาน/ตัวชี้วัด ให้ส่งคำขอแก้ไข</p>
                         </div>
                     {% endif %}
                 </div>
             </div>
-            <h1 class="title">สถานะแบบประเมิน</h1>
+            <h1 class="title section-heading">สถานะแบบประเมิน</h1>
             <div class="columns has-text-centered">
-                <div class="column">
-                    <table class="table">
+                <div class="column status-panel">
+                    <div class="table-wrap">
+                    <table class="table status-table compact-table">
                         <tr>
                             <td>แก้ไขล่าสุด</td>
                             <td>
@@ -496,22 +605,24 @@
                             </td>
                         </tr>
                     </table>
+                    </div>
                 </div>
             </div>
             <div class="columns">
                 <div class="column">
-                    <h1 class="title">สถานะการประเมินภาระงาน</h1>
-                    <table class="table is-fullwidth">
+                    <h1 class="title section-heading">สถานะการประเมินภาระงาน</h1>
+                    <div class="table-wrap">
+                    <table class="table is-fullwidth compact-table">
                         <thead>
-                        <th>สร้างเมื่อ</th>
-                        <th>เพื่อ</th>
-                        <th>รายละเอียด</th>
-                        <th>สถานะ</th>
-                        <th>ส่งเมื่อ</th>
-                        <th>ตอบกลับเมื่อ</th>
-                        <th>comment</th>
-                        <th>หัวหน้าส่วนงาน</th>
-                        <th>ยกเลิก</th>
+                        <th scope="col">สร้างเมื่อ</th>
+                        <th scope="col">เพื่อ</th>
+                        <th scope="col">รายละเอียด</th>
+                        <th scope="col">สถานะ</th>
+                        <th scope="col">ส่งเมื่อ</th>
+                        <th scope="col">ตอบกลับเมื่อ</th>
+                        <th scope="col">comment</th>
+                        <th scope="col">หัวหน้าส่วนงาน</th>
+                        <th scope="col">ยกเลิก</th>
                         </thead>
                         <tbody>
                         {% for req in pa.requests|sort(attribute='created_at') %}
@@ -570,6 +681,7 @@
                         {% endfor %}
                         </tbody>
                     </table>
+                    </div>
                     <button onclick="topFunction()" id="myBtn" title="Go to top">
                         <span class="icon"><i class="fas fa-arrow-up"></i></span><span>กลับขึ้นบน</span>
                     </button>
@@ -617,7 +729,7 @@
             htmx.trigger('#category', 'change')
             $('#percent-warning').hide()
             {% if not pa_item_id %}
-                $('#percentage').on('keyup', function () {
+                $('#percentage').on('input', function () {
                     if ($(this).val() > 100 - parseFloat({{ pa.total_percentage|tojson|safe }})) {
                         $(this).addClass('is-danger')
                         $('#percent-warning').show()
@@ -627,7 +739,7 @@
                     }
                 })
             {% else %}
-                $('#percentage').on('keyup', function () {
+                $('#percentage').on('input', function () {
                     if ($(this).val() > 100 + parseFloat({{ form.percentage.data|tojson|safe }}) - parseFloat({{ pa.total_percentage|tojson|safe }})) {
                         $(this).addClass('is-danger')
                         $('#percent-warning').show()
@@ -638,7 +750,7 @@
                 })
             {% endif %}
             $('#zero-warning').hide()
-            $('#percentage').on('keyup', function () {
+            $('#percentage').on('input', function () {
                 if ($(this).val() == 0) {
                     $(this).addClass('is-danger')
                     $('#zero-warning').show()

@@ -6,7 +6,7 @@
 <section class="section">
     <div class="container">
         {% include 'messages.html' %}
-        <div class="columns">
+        <div class="columns is-centered">
             <div class="column">
                 <h1 class="title has-text-centered">รายการแจ้งปัญหาหรือข้อร้องเรียน</h1>
                 {% from "user_eval/user_evaluate.html" import user_evaluate with context %}
@@ -52,10 +52,14 @@
                                 <td>
                                     {% if record.status %}
                                         <span class="tag {{ record.status.color }}">
-                                            {{ record.status }}
+                                            <span class="icon">{{ record.status.icon|safe }}</span>
+                                            <span>{{ record.status }}</span>
                                         </span>
                                     {% else %}
-                                        <span class="tag is-danger">ยังไม่ดำเนินการ</span>
+                                        <span class="tag is-danger">
+                                            <span class="icon"><i class="fas fa-times"></i></span>
+                                            <span>ยังไม่ดำเนินการ</span>
+                                        </span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -94,21 +98,12 @@
                                 <td>
                                     <div class="field has-addons">
                                         <div class="control">
-                                            {% if record.status %}
-                                                <a class="button is-small is-static is-rounded" disabled>
-                                                    <span class="icon">
-                                                        <i class="fas fa-times"></i>
-                                                    </span>
-                                                    <span>
-                                                        ไม่สามารถยกเลิกได้
-                                                    </span>
-                                                </a>
-                                            {% else %}
+                                            {% if not record.status %}
                                                 <a class="button is-small is-light is-rounded is-danger"
-                                                   hx-delete="{{ url_for('comp_tracker.delete_complaint',
+                                                   hx-post="{{ url_for('comp_tracker.cancel_complaint',
                                                    record_id=record.id) }}"
                                                    hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
-                                                   hx-confirm="ท่านต้องการลบรายการแจ้งปัญหานี้หรือไม่">
+                                                   hx-confirm="ท่านต้องการยกเลิกรายการแจ้งปัญหานี้หรือไม่">
                                                     <span class="icon">
                                                         <i class="fas fa-trash"></i>
                                                     </span>

@@ -106,7 +106,12 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('ot.document_approval_records') }}" class="button is-danger">Cancel</a>
+                                <a class="button is-info is-light" href="{{ url_for('ot.document_approval_records') }}">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                                    <span>กลับ</span>
+                                </a>
                             </div>
                         </div>
                     </form>

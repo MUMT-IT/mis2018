@@ -3,6 +3,39 @@
 {% block page_content %}
     {% include "procurement/nav_for_main.html" %}
     <section class="section">
+        <style>
+            .thumbnail-wrapper {
+                position: relative;
+                display: inline-block;
+                width: 56px;
+                height: 56px;
+            }
+            .thumbnail-loader {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.85);
+            }
+            .thumbnail-loader::after {
+                content: "";
+                width: 16px;
+                height: 16px;
+                border: 2px solid #d9d9d9;
+                border-top-color: #3273dc;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+            .thumbnail-loader.is-hidden {
+                display: none;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
         <nav class="breadcrumb" aria-label="breadcrumbs">
             <ul>
                 <li>
@@ -32,8 +65,9 @@
             </ul>
         </nav>
         <h1 class="title">รายการครุภัณฑ์</h1>
-        <table id='procurements' class="table">
+        <table id='procurements' class="table is-striped is-fullwidth">
             <thead>
+                <th>Image</th>
                 <th>Inventory Number/ERP</th>
                 <th>Procurement No</th>
                 <th>Name</th>
@@ -41,26 +75,7 @@
                 <th>Available</th>
                 <th>Edit</th>
             </thead>
-            <tbody>
-                {% for procurement in procurements %}
-                    <tr>
-                        <td>{{ procurement.erp_code }}</td>
-                        <td>{{ procurement.procurement_no }}</td>
-                        <td>{{ procurement.name }}</td>
-                        <td>{{ procurement.received_date }}</td>
-                        <td>{{ procurement.available }}</td>
-                        <td>
-                            <a class="button is-rounded is-link is-light is-small"
-                                href="{{ url_for('procurement.edit_location_procurement', procurement_id=procurement.id) }}">
-                                <span class="icon">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </span>
-                                <span>แก้ไขสถานที่</span>
-                            </a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
+            <tbody></tbody>
         </table>
     </section>
 {% endblock page_content %}
@@ -68,7 +83,49 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#procurements').DataTable({})
+            const initialErpCode = {{ (erp_code or '')|tojson|safe }};
+            const bindThumbnailLoaders = function () {
+                document.querySelectorAll('.thumbnail-wrapper').forEach(function (wrapper) {
+                    const img = wrapper.querySelector('.thumbnail-image');
+                    const loader = wrapper.querySelector('.thumbnail-loader');
+                    if (!img || !loader) {
+                        return;
+                    }
+                    const hideLoader = function () {
+                        loader.classList.add('is-hidden');
+                    };
+                    if (img.complete) {
+                        hideLoader();
+                    } else {
+                        img.addEventListener('load', hideLoader, {once: true});
+                        img.addEventListener('error', hideLoader, {once: true});
+                    }
+                });
+            };
+
+            const table = $('#procurements').DataTable({
+                processing: true,
+                serverSide: true,
+                searchDelay: 400,
+                deferRender: true,
+                ajax: {
+                    url: '{{ url_for("procurement.procurement_item_data") }}',
+                    data: function (d) {
+                        d.erp_code = initialErpCode;
+                    }
+                },
+                columns: [
+                    {data: 'thumbnail', orderable: false, searchable: false},
+                    {data: 'erp_code'},
+                    {data: 'procurement_no'},
+                    {data: 'name'},
+                    {data: 'received_date'},
+                    {data: 'available'},
+                    {data: 'edit', orderable: false, searchable: false}
+                ],
+                order: [[4, 'desc']]
+            });
+            table.on('draw', bindThumbnailLoaders);
         });
     </script>
 {% endblock %}

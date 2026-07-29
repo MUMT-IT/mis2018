@@ -51,7 +51,7 @@
             {% for type, quota in quota_days.items()|sort %}
                 {% set approved = cum_days[type] or 0 %}
                 {% set pending = pending_days[type] or 0 %}
-                {% set remaining = quota.limit - approved - pending %}
+                {% set remaining = quota.limit - approved %}
                 <article class="leave-card">
                     <div class="leave-card-top">
                         <div>

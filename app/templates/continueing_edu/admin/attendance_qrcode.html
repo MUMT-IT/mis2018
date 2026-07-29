@@ -1,0 +1,345 @@
+{% extends "continueing_edu/admin/base.html" %}
+
+{% block title %}QR Code Check-in - Admin{% endblock %}
+
+{% block head %}
+<style>
+  .panel-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .scanner-wrap {
+    position: relative;
+    background: #111827;
+    border-radius: 8px;
+    overflow: hidden;
+    min-height: 300px;
+  }
+
+  #scannerVideo {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .scanner-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scanner-box {
+    width: min(70%, 320px);
+    aspect-ratio: 1 / 1;
+    border: 3px solid rgba(34, 197, 94, 0.9);
+    border-radius: 10px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.25);
+  }
+
+  .result-log {
+    max-height: 280px;
+    overflow: auto;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container is-fluid">
+  <div class="level mb-4">
+    <div class="level-left">
+      <div class="level-item">
+        <div>
+          <h1 class="title">QR Code Check-in</h1>
+          <p class="subtitle is-6">สแกน QR ของผู้ลงทะเบียนเพื่อเช็กชื่อหน้างาน</p>
+        </div>
+      </div>
+    </div>
+    <div class="level-right">
+      <a class="button is-light" href="{{ url_for('continuing_edu_admin.attendance_management', event_id=event_id) }}">
+        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+        <span>Attendance List</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="panel-card">
+    <form method="GET" action="{{ url_for('continuing_edu_admin.attendance_qrcode') }}">
+      <div class="columns is-vcentered">
+        <div class="column is-6">
+          <label class="label">เลือก Course / Webinar</label>
+          <div class="select is-fullwidth">
+            <select name="event_id" id="eventFilter">
+              <option value="">All events</option>
+              {% for event in events %}
+                <option value="{{ event.id }}" {% if event_id == event.id %}selected{% endif %}>
+                  #{{ event.id }} - {{ event.title_th or event.title_en or ('Event ' ~ event.id) }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="column is-6 has-text-right">
+          <button class="button is-primary mt-5" type="submit">
+            <span class="icon"><i class="fas fa-filter"></i></span>
+            <span>Apply Filter</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="columns">
+    <div class="column is-7">
+      <div class="panel-card">
+        <div class="level mb-3">
+          <div class="level-left">
+            <div class="level-item">
+              <strong>Live Scanner</strong>
+            </div>
+          </div>
+          <div class="level-right">
+            <button id="startScannerBtn" class="button is-success is-small" type="button">
+              <span class="icon"><i class="fas fa-play"></i></span>
+              <span>Start</span>
+            </button>
+            <button id="stopScannerBtn" class="button is-light is-small ml-2" type="button">
+              <span class="icon"><i class="fas fa-stop"></i></span>
+              <span>Stop</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="scanner-wrap">
+          <video id="scannerVideo" playsinline muted></video>
+          <div class="scanner-overlay"><div class="scanner-box"></div></div>
+        </div>
+
+        <p class="help mt-2" id="scannerStatus">กด Start เพื่อเริ่มกล้องและสแกน QR code</p>
+      </div>
+
+      <div class="panel-card">
+        <h2 class="title is-6">Manual Check-in</h2>
+        <form id="manualCheckinForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" id="csrfToken">
+          <div class="field">
+            <label class="label">QR Payload หรือ Registration ID</label>
+            <div class="control">
+              <input class="input" type="text" id="manualPayload" placeholder="เช่น CECHECKIN:... หรือ 1234">
+            </div>
+          </div>
+          <div class="field is-grouped">
+            <button type="submit" class="button is-link">
+              <span class="icon"><i class="fas fa-user-check"></i></span>
+              <span>Check-in</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="column is-5">
+      <div class="panel-card">
+        <h2 class="title is-6">Result</h2>
+        <div id="checkinResult" class="notification is-light">ยังไม่มีการเช็กอินล่าสุด</div>
+      </div>
+
+      <div class="panel-card">
+        <h2 class="title is-6">Recent Check-ins</h2>
+        <div class="result-log">
+          <table class="table is-fullwidth is-size-7">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Member</th>
+                <th>Event</th>
+              </tr>
+            </thead>
+            <tbody id="recentCheckinTable">
+              {% for reg in recent_checkins %}
+                <tr>
+                  <td>{{ reg.started_at.strftime('%Y-%m-%d %H:%M') if reg.started_at else '-' }}</td>
+                  <td>{{ reg.member.full_name_th or reg.member.full_name_en or reg.member.username }}</td>
+                  <td>{{ reg.event_entity.title_th or reg.event_entity.title_en or ('Event ' ~ reg.event_entity_id) }}</td>
+                </tr>
+              {% else %}
+                <tr><td colspan="3" class="has-text-grey has-text-centered">No recent check-ins</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const videoEl = document.getElementById('scannerVideo');
+  const statusEl = document.getElementById('scannerStatus');
+  const resultEl = document.getElementById('checkinResult');
+  const csrfToken = document.getElementById('csrfToken').value;
+  const eventFilterEl = document.getElementById('eventFilter');
+  const checkinEndpoint = {{ url_for('continuing_edu_admin.attendance_checkin') | tojson }};
+
+  let mediaStream = null;
+  let scanTimer = null;
+  let detector = null;
+  let scanLocked = false;
+  let lastScannedPayload = '';
+  let lastScannedAt = 0;
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  function renderResult(success, text) {
+    resultEl.className = 'notification ' + (success ? 'is-success' : 'is-danger');
+    resultEl.textContent = text;
+  }
+
+  function prependRecentCheckin(data) {
+    if (!data || !data.success) return;
+    const tbody = document.getElementById('recentCheckinTable');
+    const emptyRow = tbody.querySelector('td[colspan="3"]');
+    if (emptyRow) emptyRow.parentElement.remove();
+
+    const row = document.createElement('tr');
+    const dt = new Date(data.checked_in_at || Date.now());
+    const when = dt.toISOString().slice(0, 16).replace('T', ' ');
+
+    row.innerHTML = `
+      <td>${when}</td>
+      <td>${data.member_name || '-'}</td>
+      <td>${data.event_title || '-'}</td>
+    `;
+    tbody.prepend(row);
+
+    while (tbody.children.length > 20) {
+      tbody.removeChild(tbody.lastChild);
+    }
+  }
+
+  async function submitCheckin(payloadText) {
+    const now = Date.now();
+    if (payloadText === lastScannedPayload && now - lastScannedAt < 2500) {
+      return;
+    }
+
+    const body = new URLSearchParams();
+    body.set('csrf_token', csrfToken);
+    body.set('response_format', 'json');
+
+    const eventId = eventFilterEl.value;
+    if (eventId) body.set('event_id', eventId);
+
+    if (/^\d+$/.test(payloadText.trim())) {
+      body.set('registration_id', payloadText.trim());
+    } else {
+      body.set('qr_data', payloadText.trim());
+    }
+
+    scanLocked = true;
+    setStatus('กำลังบันทึก check-in...');
+
+    try {
+      const response = await fetch(checkinEndpoint, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        },
+        body
+      });
+      const data = await response.json();
+      renderResult(!!data.success, data.message || 'Unknown response');
+      if (data.success) {
+        prependRecentCheckin(data);
+        lastScannedPayload = payloadText;
+        lastScannedAt = now;
+      }
+    } catch (err) {
+      renderResult(false, 'Network error while check-in');
+    } finally {
+      scanLocked = false;
+      setStatus('พร้อมสแกนรายการถัดไป');
+    }
+  }
+
+  async function scanFrame() {
+    if (!detector || !videoEl || videoEl.readyState < 2 || scanLocked) return;
+    try {
+      const codes = await detector.detect(videoEl);
+      if (codes && codes.length > 0) {
+        const payload = (codes[0].rawValue || '').trim();
+        if (payload) {
+          await submitCheckin(payload);
+        }
+      }
+    } catch (err) {
+      // ignore intermittent detection errors
+    }
+  }
+
+  async function startScanner() {
+    if (!('BarcodeDetector' in window)) {
+      setStatus('Browser นี้ไม่รองรับ QR scanner อัตโนมัติ กรุณากรอก Manual Check-in');
+      renderResult(false, 'BarcodeDetector is not supported in this browser');
+      return;
+    }
+
+    try {
+      detector = new BarcodeDetector({ formats: ['qr_code'] });
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+      videoEl.srcObject = mediaStream;
+      await videoEl.play();
+
+      if (scanTimer) clearInterval(scanTimer);
+      scanTimer = setInterval(scanFrame, 600);
+      setStatus('กำลังสแกน...');
+    } catch (err) {
+      setStatus('ไม่สามารถเปิดกล้องได้');
+      renderResult(false, 'Cannot access camera. Please check browser permission.');
+    }
+  }
+
+  function stopScanner() {
+    if (scanTimer) {
+      clearInterval(scanTimer);
+      scanTimer = null;
+    }
+    if (mediaStream) {
+      mediaStream.getTracks().forEach((track) => track.stop());
+      mediaStream = null;
+    }
+    videoEl.srcObject = null;
+    setStatus('หยุดการสแกนแล้ว');
+  }
+
+  document.getElementById('startScannerBtn').addEventListener('click', startScanner);
+  document.getElementById('stopScannerBtn').addEventListener('click', stopScanner);
+
+  document.getElementById('manualCheckinForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payloadText = document.getElementById('manualPayload').value.trim();
+    if (!payloadText) {
+      renderResult(false, 'กรุณากรอกข้อมูล QR payload หรือ Registration ID');
+      return;
+    }
+    await submitCheckin(payloadText);
+  });
+
+  window.addEventListener('beforeunload', stopScanner);
+</script>
+{% endblock %}

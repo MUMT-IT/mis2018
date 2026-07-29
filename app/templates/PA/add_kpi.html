@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block title %}MUMT MIS: Performance Agreement {% endblock %}
 {% include "PA/nav.html" %}
@@ -24,11 +25,12 @@
                                 <div class="card-content">
                                     <div class="columns">
                                         <div class="column">
-                                            <div class="select">
+                                            <div>
                                                 <select hx-post="{{ url_for('pa.get_job_kpi_detail', pa_id=pa_id) }}"
                                                         hx-target="#job-kpi-detail-table"
                                                         hx-swap="innerHTML"
-                                                        name="job_kpi" id="job_kpi">
+                                                        name="job_kpi" id="job_kpi"
+                                                        style="width:100%">
                                                     {% for job_kpi in all_current_job_kpi %}
                                                         <option value="{{ job_kpi.id }}">{{ job_kpi.detail }}</option>
                                                     {% endfor %}
@@ -58,39 +60,75 @@
                                 <p class="card-header-title">ตัวชี้วัดกำหนดเอง</p>
                             </div>
                             <div class="card-content">
+
+                                                    <div class="field">
+                                                        <label class="label">รายละเอียดตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>
+                                                        <div class="control">
+                                                            {{ form.detail(class="textarea is-danger", required=True) }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="field">
+                                                        <label class="label">การเก็บข้อมูล (แหล่งที่มา)</label>
+                                                        <div class="control">
+                                                            {{ form.source(class="textarea is-danger", required=True) }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="field">
+                                                        <label class="label">ประเภทตัวชี้วัด</label>
+                                                        <div class="select">
+                                                            {{ form.type() }}
+                                                        </div>
+                                                    </div>
+                            </div>
+                            <div class="card-content">
                                 <div id="pa_kpi_items">
-                                    <div class="field">
-                                        <label class="label">รายละเอียดตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>
-                                        <div class="control">
-                                            {{ form.detail(class="textarea is-danger", required=True) }}
-                                        </div>
+                                    <div class="table-container">
+                                        <table class="table is-bordered is-fullwidth">
+                                            <thead>
+                                            <tr>
+                                                <th colspan="{{ pa_levels|length if pa_levels else 0 }}" class="has-text-centered">
+                                                    เกณฑ์การประเมิน
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                {% for level in pa_levels %}
+                                                    <th class="has-text-centered">
+                                                        {% if loop.index == 1 %}
+                                                            สูงกว่าเป้าหมายมาก<br>({{ level.level }} คะแนน)
+                                                        {% elif loop.index == 2 %}
+                                                            ตามเป้าหมาย<br>({{ level.level }} คะแนน)
+                                                        {% elif loop.index == 3 %}
+                                                            ใกล้เคียงเป้าหมาย<br>({{ level.level }} คะแนน)
+                                                        {% elif loop.index == 4 %}
+                                                            ต่ำกว่าเป้าหมาย<br>({{ level.level }} คะแนน)
+                                                        {% elif loop.index == 5 %}
+                                                            ต่ำกว่าเป้าหมายมาก<br>({{ level.level|replace('0-2', '1-2') }} คะแนน)
+                                                        {% else %}
+                                                            {{ level.level }}
+                                                        {% endif %}
+                                                    </th>
+                                                {% endfor %}
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr>
+                                                {% for item_form in form.pa_kpi_items %}
+                                                    {% if pa_levels and loop.index0 < pa_levels|length %}
+                                                        {% set locked_level = pa_levels[loop.index0] %}
+                                                        <td>
+                                                            <input type="hidden" name="{{ item_form.level.name }}" value="{{ locked_level.id }}">
+                                                            <div class="field">
+                                                                <div>
+                                                                    {{ item_form.goal(class="textarea", placeholder="ระบุเป้าหมายของระดับนี้", style="width: 100%; min-height: 180px;") }}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <div class="field">
-                                        <label class="label">การเก็บข้อมูล(แหล่งที่มาของตัวชี้วัด)</label>
-                                        <div class="control">
-                                            {{ form.source(class="textarea is-danger", required=True) }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">ประเภท</label>
-                                        <div class="select">
-                                            {{ form.type() }}
-                                        </div>
-                                    </div>
-                                    {% for item_form in form.pa_kpi_items %}
-                                        <div class="field">
-                                            <label class="label">เกณฑ์การประเมิน</label>
-                                            <div class="select">
-                                                {{ item_form.level(class='pa-kpi-item') }}
-                                            </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">เป้าหมาย</label>
-                                            <div>
-                                                {{ item_form.goal(class="textarea") }}
-                                            </div>
-                                        </div>
-                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
@@ -111,15 +149,17 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    {% if not kpi_id or job_kpi_id %}
-        <script>
-            $(document).ready(function () {
-                let n = 1
-                $('.pa-kpi-item').each(function (index) {
-                    $(this)[0].selectedIndex = n
-                    n++
-                })
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        const jobKpiSelect = $('#job_kpi')
+        if (jobKpiSelect.length) {
+            jobKpiSelect.select2({
+                width: '100%',
+                placeholder: 'ค้นหาตัวชี้วัดตามตำแหน่งงาน'
             })
-        </script>
-    {% endif %}
+            jobKpiSelect.on('select2:select', function () {
+                htmx.trigger('#job_kpi', 'change')
+            })
+        }
+    </script>
 {% endblock %}

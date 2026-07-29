@@ -15,7 +15,7 @@
         </div>
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
-                {% for cat in categories %}
+                {% for cat in categories|sort(attribute="no") %}
                     <nav class="panel is-info">
                         {% if cat.category != 'อื่นๆ' %}
                             <p class="panel-heading">{{ cat }}</p>

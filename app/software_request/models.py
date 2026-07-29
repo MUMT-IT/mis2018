@@ -117,7 +117,7 @@ class SoftwareRequestDetail(db.Model):
 
     @property
     def num_timelines(self):
-        return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' or timeline.status != 'เสร็จสิ้น'])
+        return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' and timeline.status != 'เสร็จสิ้น'])
 
     @property
     def status_color(self):
@@ -134,19 +134,107 @@ class SoftwareRequestDetail(db.Model):
         else:
             return 'is-dark'
 
-    def to_dict(self):
+    @property
+    def status_icon(self):
+        if self.status == 'ส่งคำขอแล้ว':
+            return '<i class="fas fa-hourglass-half"></i>'
+        elif self.status == 'อยู่ระหว่างพิจารณา':
+            return '<i class="fas fa-history"></i>'
+        elif self.status == 'อนุมัติ':
+            return '<i class="fas fa-pen-fancy"></i>'
+        elif self.status == 'เสร็จสิ้น':
+            return '<i class="fas fa-check"></i>'
+        elif self.status == 'ไม่อนุมัติ':
+            return '<i class="fas fa-times"></i>'
+        else:
+            return '<i class="fas fa-ban"></i>'
+
+    @property
+    def workflow_status(self):
+        draft = all(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues) if self.issues else False
+        working = any(issue.accepted_at for issue in self.issues) if self.issues else False
+        testing = any(issue.tested_at for issue in self.issues) if self.issues else False
+
+        if self.status == 'อนุมัติ':
+            if not self.issues or draft:
+                return 'ยังไม่ดำเนินการ'
+            elif working:
+                return 'กำลังพัฒนา'
+            elif testing:
+                return 'รอทดสอบ'
+            else:
+                return 'รอปิดโครงการ'
+        else:
+            if self.status == 'ส่งคำขอแล้ว':
+                return 'รอดำเนินการ'
+            else:
+                return self.status
+
+    @property
+    def workflow_status_color(self):
+        draft = all(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues) if self.issues else False
+        working = any(issue.accepted_at for issue in self.issues) if self.issues else False
+        testing = any(issue.tested_at for issue in self.issues) if self.issues else False
+
+        if self.status == 'อนุมัติ':
+            if not self.issues or draft:
+                return 'is-danger'
+            elif working:
+                return 'is-warning'
+            elif testing:
+                return 'is-primary'
+            else:
+                return 'is-info'
+        else:
+            return self.status_color
+
+    @property
+    def workflow_status_icon(self):
+        draft = all(not issue.tested_at
+                    and not issue.closed_at
+                    and not issue.accepted_at
+                    for issue in self.issues) if self.issues else False
+        working = any(issue.accepted_at for issue in self.issues) if self.issues else False
+        testing = any(issue.tested_at for issue in self.issues) if self.issues else False
+
+        if self.status == 'อนุมัติ':
+            if not self.issues or draft:
+                return '<i class="fas fa-ban"></i>'
+            elif working:
+                return '<i class="fas fa-hourglass-start"></i>'
+            elif testing:
+                return '<i class="fas fa-history"></i>'
+            else:
+                return '<i class="far fa-clock"></i>'
+        else:
+            return self.status_icon
+
+    def to_dict(self, open_issues=None, num_timelines=None, has_timeline=None):
+        # Allow precomputed counts from the admin listing query to avoid per-row lazy loads.
+        open_issues = self.num_open_issues if open_issues is None else open_issues
+        num_timelines = self.num_timelines if num_timelines is None else num_timelines
+        has_timeline = bool(self.timelines) if has_timeline is None else has_timeline
         return {
             'id': self.id,
             'title': self.title,
             'type': self.type,
             'description': self.description,
-            'has_timeline': True if self.timelines else False,
+            'has_timeline': has_timeline,
             'created_by': self.created_by.fullname if self.created_by else None,
             'org': self.created_by.personal_info.org.name if self.created_by else None,
             'created_date': self.created_date,
             'status': self.status,
-            'open_issues': self.num_open_issues,
-            'num_timelines': self.num_timelines
+            'workflow_status': self.workflow_status,
+            'workflow_status_color': self.workflow_status_color,
+            'workflow_status_icon': self.workflow_status_icon,
+            'open_issues': open_issues,
+            'num_timelines': num_timelines
         }
 
 
@@ -171,7 +259,7 @@ class SoftwareRequestTimeline(db.Model):
     issue = db.relationship('SoftwareIssues', backref=db.backref('timelines', lazy='dynamic'))
 
     def __str__(self):
-        return f'{self.phase}: {self.task}'
+        return self.task
 
     @property
     def status_color(self):
@@ -204,10 +292,14 @@ class SoftwareIssues(db.Model):
     updater = db.relationship(StaffAccount, foreign_keys=[updated_by])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    tested_at = db.Column('tested_at', db.DateTime(timezone=True))
     closed_at = db.Column('closed_at', db.DateTime(timezone=True))
     accepted_at = db.Column('accepted_at', db.DateTime(timezone=True))
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('software_request_issues'), foreign_keys=[staff_id])
+
+    def __str__(self):
+        return self.issue
 
     @property
     def status(self):
@@ -217,6 +309,8 @@ class SoftwareIssues(db.Model):
             return 'Closed'
         elif self.accepted_at:
             return 'Working'
+        elif self.tested_at:
+            return 'Testing'
         else:
             return 'Draft'
 
@@ -228,6 +322,8 @@ class SoftwareIssues(db.Model):
             return 'is-dark'
         elif self.accepted_at:
             return 'is-success'
+        elif self.tested_at:
+            return 'is-warning'
         else:
             return 'is-info'
 
@@ -252,7 +348,7 @@ class SoftwareRequestTestResult(db.Model):
     request = db.relationship(SoftwareRequestDetail, backref=db.backref('test_results'))
 
     def __str__(self):
-        return self.detail
+        return self.issue.issue if self.issue else ''
 
     @property
     def status_color(self):
@@ -260,3 +356,68 @@ class SoftwareRequestTestResult(db.Model):
             return 'is-success'
         else:
             return 'is-danger'
+
+
+# BDD traceability objects are kept separate from SoftwareRequestDetail so the
+# legacy request workflow stays unchanged while we add AI-assisted feature
+# generation and test execution history.
+class BDDFeature(db.Model):
+    __tablename__ = 'bdd_features'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    software_request_id = db.Column(
+        'software_request_id',
+        db.ForeignKey('software_request_details.id'),
+        index=True,
+        nullable=False,
+    )
+    software_issue_id = db.Column(
+        'software_issue_id',
+        db.ForeignKey('software_issues.id'),
+        index=True,
+        nullable=True,
+    )
+    software_request = db.relationship(
+        SoftwareRequestDetail,
+        backref=db.backref('bdd_features', cascade='all, delete-orphan'),
+    )
+    software_issue = db.relationship(
+        SoftwareIssues,
+        backref=db.backref('bdd_features', cascade='all, delete-orphan'),
+    )
+    feature_title = db.Column('feature_title', db.String(), nullable=False)
+    gherkin_text = db.Column('gherkin_text', db.Text(), nullable=False)
+    feature_file_path = db.Column('feature_file_path', db.String(), nullable=True)
+    generated_by_ai = db.Column('generated_by_ai', db.Boolean(), nullable=False, default=False)
+    reviewed_by_human = db.Column('reviewed_by_human', db.Boolean(), nullable=False, default=False)
+    version = db.Column('version', db.Integer(), nullable=False, default=1)
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+
+    def __repr__(self):
+        return f'<BDDFeature id={self.id} issue_id={self.software_issue_id} title={self.feature_title!r}>'
+
+
+class BDDTestRun(db.Model):
+    __tablename__ = 'bdd_test_runs'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    bdd_feature_id = db.Column(
+        'bdd_feature_id',
+        db.ForeignKey('bdd_features.id'),
+        index=True,
+        nullable=False,
+    )
+    bdd_feature = db.relationship(
+        BDDFeature,
+        backref=db.backref('bdd_test_runs', cascade='all, delete-orphan'),
+    )
+    status = db.Column('status', db.String(), nullable=False, index=True)
+    scenario_count = db.Column('scenario_count', db.Integer(), nullable=False, default=0)
+    passed_count = db.Column('passed_count', db.Integer(), nullable=False, default=0)
+    failed_count = db.Column('failed_count', db.Integer(), nullable=False, default=0)
+    undefined_count = db.Column('undefined_count', db.Integer(), nullable=False, default=0)
+    executed_by = db.Column('executed_by', db.String(), nullable=False)
+    report_path = db.Column('report_path', db.String(), nullable=True)
+    executed_at = db.Column('executed_at', db.DateTime(timezone=True), index=True)
+
+    def __repr__(self):
+        return f'<BDDTestRun id={self.id} status={self.status!r}>'

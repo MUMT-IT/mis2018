@@ -13,18 +13,58 @@
             </div>
             <div id="navbarMenu" class="navbar-menu">
                 <div class="navbar-end">
-                    <span class="navbar-item">
-                    <a class="button is-outlined" href="{{ url_for('procurement.first_page') }}">
-                        <span>Home</span>
+                    <a class="navbar-item" href="{{ url_for('procurement.first_page') }}">
+                        <span>Close</span>
+                        <span class="icon">
+                            <i class="far fa-times-circle"></i>
+                        </span>
                     </a>
-                    </span>
                 </div>
             </div>
         </div>
     </nav>
     <section class="section">
-        <h1 class="title has-text-centered">Welcome, K.{{ name.personal_info.en_firstname }}</h1>
         {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-6">
+                <div class="box">
+                    <p class="heading has-text-centered">สัดส่วนงานตรวจสอบครุภัณฑ์</p>
+                    <div id="committee-dashboard-pie" style="width: 100%; height: 320px;"></div>
+                </div>
+            </div>
+            <div class="column is-6">
+                <div class="box">
+                    <p class="heading has-text-centered">สถิติตรวจสอบรายปี</p>
+                    <div id="committee-dashboard-yearly-bars" style="width: 100%; height: 320px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="columns is-multiline">
+            <div class="column is-3">
+                <div class="box has-text-centered">
+                    <p class="heading">ตรวจสอบทั้งหมด</p>
+                    <p class="title is-4">{{ stats.total_approvals }}</p>
+                </div>
+            </div>
+            <div class="column is-3">
+                <div class="box has-text-centered">
+                    <p class="heading">ตรวจสอบวันนี้</p>
+                    <p class="title is-4">{{ stats.approvals_today }}</p>
+                </div>
+            </div>
+            <div class="column is-3">
+                <div class="box has-text-centered">
+                    <p class="heading">รอตรวจสอบ</p>
+                    <p class="title is-4">{{ stats.pending_records }}</p>
+                </div>
+            </div>
+            <div class="column is-3">
+                <div class="box has-text-centered">
+                    <p class="heading">เสื่อมสภาพ/หมดจำเป็น</p>
+                    <p class="title is-4">{{ stats.flagged_assets }}</p>
+                </div>
+            </div>
+        </div>
         <div class="columns">
             <div class="column is-half is-offset-3">
                 <nav class="panel is-success">
@@ -48,4 +88,67 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        const yearlyStats = {{ yearly_stats|tojson }};
+        google.charts.load('current', {'packages': ['corechart']});
+        google.charts.setOnLoadCallback(drawCommitteeDashboardCharts);
+
+        function drawCommitteeDashboardCharts() {
+            drawCommitteeDashboardPie();
+            drawCommitteeDashboardYearlyBars();
+        }
+
+        function drawCommitteeDashboardPie() {
+            const pieData = google.visualization.arrayToDataTable([
+                ['Category', 'Count'],
+                ['ตรวจสอบแล้ว', {{ stats.total_approvals }}],
+                ['รอตรวจสอบ', {{ stats.pending_records }}],
+                ['เสื่อมสภาพ/หมดจำเป็น', {{ stats.flagged_assets }}]
+            ]);
+
+            const pieOptions = {
+                legend: {position: 'right'},
+                pieHole: 0.35,
+                chartArea: {left: 20, top: 20, width: '90%', height: '85%'},
+                colors: ['#23d160', '#3273dc', '#ff3860']
+            };
+
+            const chartContainer = document.getElementById('committee-dashboard-pie');
+            if (!chartContainer) {
+                return;
+            }
+            const pieChart = new google.visualization.PieChart(chartContainer);
+            pieChart.draw(pieData, pieOptions);
+        }
+
+        function drawCommitteeDashboardYearlyBars() {
+            const barRows = [['Year', 'Approved', 'Flagged']];
+            yearlyStats.forEach(function (row) {
+                barRows.push([String(row.year), row.approved, row.flagged]);
+            });
+
+            const barData = google.visualization.arrayToDataTable(barRows);
+            const barOptions = {
+                legend: {position: 'top'},
+                chartArea: {left: 50, top: 30, width: '80%', height: '75%'},
+                bar: {groupWidth: '60%'},
+                colors: ['#3273dc', '#ff3860'],
+                hAxis: {title: 'Year'},
+                vAxis: {title: 'Count', minValue: 0}
+            };
+
+            const barContainer = document.getElementById('committee-dashboard-yearly-bars');
+            if (!barContainer) {
+                return;
+            }
+            const barChart = new google.visualization.ColumnChart(barContainer);
+            barChart.draw(barData, barOptions);
+        }
+
+        window.addEventListener('resize', drawCommitteeDashboardCharts);
+    </script>
 {% endblock %}

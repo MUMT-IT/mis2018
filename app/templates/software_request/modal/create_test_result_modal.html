@@ -9,7 +9,7 @@
                         แก้ไขผลการทดสอบ
                     {% endif %}
                 </p>
-                <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+                <button type="button" id="cancelTestResultButton" class="delete" aria-label="close"></button>
             </header>
             <section class="modal-card-body">
                 <form
@@ -43,7 +43,7 @@
         </div>
 </div>
 <script>
-    window.document.getElementById("cancelButton").addEventListener("click", function() {
+    window.document.getElementById("cancelTestResultButton").addEventListener("click", function() {
         htmx.addClass(htmx.find('#test-result-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#test-result-modal'), "is-active", 500)
     })

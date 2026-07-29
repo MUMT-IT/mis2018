@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แก้ไขประกาศ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เรื่อง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.topic(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">รายชื่อผู้ลงนาม</label>
+                            <div id="signatories-container">
+                                {% for signatory in form.signatories %}
+                                <div class="box signatory-row" data-index="{{ loop.index0 }}">
+                                    <div class="columns is-multiline is-vcentered">
+                                        <div class="column is-3">
+                                            <label class="label">{{ signatory.form.report_creator_staff.label }}</label>
+                                            <div class="select is-fullwidth">
+                                                {{ signatory.form.report_creator_staff() }}
+                                            </div>
+                                        </div>
+                                        <div class="column is-2">
+                                            <label class="label">{{ signatory.form.report_creator_position.label }}</label>
+                                            {{ signatory.form.report_creator_position(class="input") }}
+                                        </div>
+                                        <div class="column is-3">
+                                            <label class="label">{{ signatory.form.signer_staff.label }}</label>
+                                            <div class="select is-fullwidth">
+                                                {{ signatory.form.signer_staff() }}
+                                            </div>
+                                        </div>
+                                        <div class="column is-2">
+                                            <label class="label">{{ signatory.form.signer_position.label }}</label>
+                                            {{ signatory.form.signer_position(class="input") }}
+                                        </div>
+                                        <div class="column is-1 has-text-right">
+                                            <button type="button" class="button is-danger is-light remove-signatory">
+                                                <span class="icon"><i class="fas fa-trash"></i></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="control">
+                                <button type="button" class="button is-link is-light" id="add-signatory">
+                                    <span class="icon"><i class="fas fa-plus"></i></span>
+                                    <span>เพิ่มผู้ลงนาม</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">หน่วยงาน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="select is-fullwidth">
+                                        {{ form.org() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ประกาศเมื่อ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.announce_at(class="input", type="text") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เริ่มใช้ตั้งแต่</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.start_datetime(class="input", type="text") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">File Upload</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.upload(class="input", type="file") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-primary"/>
+                            </div>
+                            <div class="control">
+                                <a class="button is-info is-light" href="{{ url_for('ot.announcement') }}">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                                    <span>กลับ</span>
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    function initializeDatePicker(selector) {
+        const $input = $(selector);
+        const currentValue = $input.val();
+        const options = {
+            singleDatePicker: true,
+            timePicker: false,
+            autoUpdateInput: false,
+            locale: {
+                cancelLabel: 'Clear',
+                format: 'YYYY-MM-DD'
+            }
+        };
+
+        if (currentValue) {
+            const parsedValue = moment(currentValue, ['YYYY-MM-DD HH:mm:ss', moment.ISO_8601], true);
+            if (parsedValue.isValid()) {
+                options.startDate = parsedValue;
+                $input.val(parsedValue.format('YYYY-MM-DD HH:mm:ss'));
+            }
+        }
+
+        $input.daterangepicker(options);
+        $input.on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+        });
+        $input.on('cancel.daterangepicker', function() {
+            $(this).val('');
+        });
+    }
+
+    $(document).ready(function() {
+        initializeDatePicker('input[name="announce_at"]');
+        initializeDatePicker('input[name="start_datetime"]');
+    });
+
+    function reindexSignatories() {
+        $('#signatories-container .signatory-row').each(function(index) {
+            $(this).attr('data-index', index);
+            $(this).find('input, select, textarea').each(function() {
+                const element = $(this);
+                const name = element.attr('name');
+                if (name) {
+                    element.attr('name', name.replace(/signatories-\d+-/, `signatories-${index}-`));
+                }
+                const id = element.attr('id');
+                if (id) {
+                    element.attr('id', id.replace(/signatories-\d+-/, `signatories-${index}-`));
+                }
+            });
+            $(this).find('label').each(function() {
+                const element = $(this);
+                const forAttr = element.attr('for');
+                if (forAttr) {
+                    element.attr('for', forAttr.replace(/signatories-\d+-/, `signatories-${index}-`));
+                }
+            });
+        });
+    }
+
+    $('#add-signatory').on('click', function() {
+        const $rows = $('#signatories-container .signatory-row');
+        const $template = $rows.last().clone();
+        const nextIndex = $rows.length;
+        $template.attr('data-index', nextIndex);
+        $template.find('input, select, textarea').each(function() {
+            const element = $(this);
+            const name = element.attr('name');
+            if (name) {
+                element.attr('name', name.replace(/signatories-\d+-/, `signatories-${nextIndex}-`));
+            }
+            const id = element.attr('id');
+            if (id) {
+                element.attr('id', id.replace(/signatories-\d+-/, `signatories-${nextIndex}-`));
+            }
+            if (element.is('select')) {
+                element.val('');
+            } else {
+                element.val('');
+            }
+        });
+        $template.find('label').each(function() {
+            const element = $(this);
+            const forAttr = element.attr('for');
+            if (forAttr) {
+                element.attr('for', forAttr.replace(/signatories-\d+-/, `signatories-${nextIndex}-`));
+            }
+        });
+        $('#signatories-container').append($template);
+        reindexSignatories();
+    });
+
+    $(document).on('click', '.remove-signatory', function() {
+        const $rows = $('#signatories-container .signatory-row');
+        if ($rows.length <= 1) {
+            return;
+        }
+        $(this).closest('.signatory-row').remove();
+        reindexSignatories();
+    });
+</script>
+{% endblock %}

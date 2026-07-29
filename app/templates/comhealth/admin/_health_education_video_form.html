@@ -1,0 +1,158 @@
+<form method="post">
+  {{ form.hidden_tag() }}
+
+  <div class="columns is-multiline">
+    <div class="column is-12">
+      <div class="field">
+        {{ form.title.label(class_="label") }}
+        <div class="control">
+          {{ form.title(class_="input", placeholder="Exercise for diabetes prevention") }}
+        </div>
+        {% for error in form.title.errors %}
+          <p class="help is-danger">{{ error }}</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="column is-12">
+      <div class="field">
+        {{ form.youtube_url.label(class_="label") }}
+        <div class="control">
+          {{ form.youtube_url(class_="input", placeholder="https://www.youtube.com/watch?v=...") }}
+        </div>
+        {% for error in form.youtube_url.errors %}
+          <p class="help is-danger">{{ error }}</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="column is-6">
+      <div class="field">
+        {{ form.source_name.label(class_="label") }}
+        <div class="control">
+          {{ form.source_name(class_="input") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-6">
+      <div class="field">
+        {{ form.source_channel.label(class_="label") }}
+        <div class="control">
+          {{ form.source_channel(class_="input", placeholder="Mahidol University") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-6">
+      <div class="field">
+        {{ form.language.label(class_="label") }}
+        <div class="control">
+          {{ form.language(class_="input", placeholder="th") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-6">
+      <div class="field">
+        {{ form.audience_level.label(class_="label") }}
+        <div class="control">
+          {{ form.audience_level(class_="input", placeholder="general") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-12">
+      <label class="checkbox">
+        {{ form.is_embeddable() }}
+        <span class="ml-2">{{ form.is_embeddable.label.text }}</span>
+      </label>
+      <p class="help">Disable this if YouTube blocks embedding for the video or channel.</p>
+    </div>
+
+    <div class="column is-12">
+      <div class="field">
+        {{ form.thumbnail_url.label(class_="label") }}
+        <div class="control">
+          {{ form.thumbnail_url(class_="input", placeholder="Optional card thumbnail URL") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-6">
+      <div class="field">
+        {{ form.duration_seconds.label(class_="label") }}
+        <div class="control">
+          {{ form.duration_seconds(class_="input", placeholder="360") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-6">
+      <div class="field">
+        {{ form.display_order.label(class_="label") }}
+        <div class="control">
+          {{ form.display_order(class_="input", placeholder="1") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-12">
+      <div class="field">
+        {{ form.health_topics.label(class_="label") }}
+        <div class="control">
+          {{ form.health_topics(class_="input", placeholder="obesity, diabetes risk, exercise") }}
+        </div>
+        <p class="help">Use comma-separated topics for now.</p>
+        {% for error in form.health_topics.errors %}
+          <p class="help is-danger">{{ error }}</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="column is-12">
+      <div class="field">
+        {{ form.keywords.label(class_="label") }}
+        <div class="control">
+          {{ form.keywords(class_="input", placeholder="blood sugar, diet, walking") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-12">
+      <div class="field">
+        {{ form.summary.label(class_="label") }}
+        <div class="control">
+          {{ form.summary(class_="textarea", rows="4", placeholder="Brief description of the video...") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-12">
+      <div class="field">
+        {{ form.notes_internal.label(class_="label") }}
+        <div class="control">
+          {{ form.notes_internal(class_="textarea", rows="3", placeholder="Admin-only notes") }}
+        </div>
+      </div>
+    </div>
+
+    <div class="column is-12">
+      <label class="checkbox">
+        {{ form.is_active() }}
+        <span class="ml-2">{{ form.is_active.label.text }}</span>
+      </label>
+    </div>
+
+    <div class="column is-12">
+      <div class="field is-grouped">
+        <div class="control">
+          {{ form.submit(class_="button is-link") }}
+        </div>
+        <div class="control">
+          <a class="button is-light" href="{{ url_for('comhealth.health_education_videos') }}">Back</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>

@@ -3,168 +3,88 @@
 {% block head %}
     {{ super() }}
     <style>
-        :root {
-            --brandColor: hsl(166, 67%, 51%);
-            --background: rgb(247, 247, 247);
-            --textDark: hsla(0, 0%, 0%, 0.66);
-            --textLight: hsla(0, 0%, 0%, 0.33);
+        .panel-block {
+            padding-top: 0.95rem;
+            padding-bottom: 0.95rem;
         }
 
-        body {
-            background: var(--background);
-            height: 100vh;
-            color: var(--textDark);
+        .role-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.7rem;
+            width: 100%;
+            color: inherit;
+            font-size: 1.05rem;
         }
 
-        .field:not(:last-child) {
-            margin-bottom: 1rem;
-        }
-
-        .register {
-            margin-top: 10rem;
-            background: white;
-            border-radius: 10px;
-        }
-
-        .left,
-        .right {
-            padding: 4.5rem;
-        }
-
-        .left {
-            border-right: 5px solid var(--background);
-        }
-
-        .left .title {
-            font-weight: 800;
-            letter-spacing: -2px;
-        }
-
-        .left .colored {
-            color: var(--brandColor);
-            font-weight: 500;
-            margin-top: 1rem !important;
-            letter-spacing: -1px;
-        }
-
-        .left p {
-            color: var(--textLight);
-            font-size: 1.15rem;
-        }
-
-        .right .title {
-            font-weight: 800;
-            letter-spacing: -1px;
-        }
-
-        .right .description {
+        .support-note {
             margin-top: 1rem;
-            margin-bottom: 1rem !important;
-            color: var(--textLight);
-            font-size: 1.15rem;
+            color: #6b7280;
+            font-size: 0.92rem;
         }
 
-        .right small {
-            color: var(--textLight);
+        .login-section {
+            min-height: calc(100vh - 72px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-
-        input {
-            font-size: 1rem;
-        }
-
-        input:focus {
-            border-color: var(--brandColor) !important;
-            box-shadow: 0 0 0 1px var(--brandColor) !important;
-        }
-
-        .fab,
-        .fas {
-            color: var(--textLight);
-            margin-right: 1rem;
-        }
-
     </style>
 {% endblock %}
 {% block page_content %}
-    <!DOCTYPE html>
-    <section class="container">
-        <div class="columns is-multiline">
-            <div class="column is-8 is-offset-2 register">
-                <div class="columns">
-                    <div class="column left">
-                        <img src="{{ url_for('static', filename='img/vender_managment.jpg') }}" width="750"/>
-                        <h2 class="title is-2">Procurement</h2>
-                        <h2 class="subtitle colored is-4">ระบบครุภัณฑ์และซ่อมบำรุง</h2>
-                    </div>
-                    <div class="column">
-                        <nav class="panel is-success">
-                            <p class="panel-heading">You are..</p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-users"></i>
-                                    <a href="{{ url_for('procurement.user_first') }}">
-                                        เจ้าหน้าที่ MUMT
-                                    </a>
-                                </span>
-                            </p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-user-cog"></i>
-                                    <a href="{{ url_for('procurement.landing') }}">
-                                        เจ้าหน้าที่พัสดุ
-                                    </a>
-                                </span>
-                            </p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-user-check"></i>
-                                    <a href="{{ url_for('procurement.committee_first') }}">
-                                        คณะกรรมการตรวจครุภัณฑ์
-                                    </a>
-                                </span>
-                            </p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-user-tie"></i>
-                                    <a href="{{ url_for('procurement.view_all_procurement_to_check_instruments') }}">
-                                        &nbsp;อาจารย์ประจำเครื่องมือวิจัย
-                                    </a>
-                                </span>
-                            </p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-user-tie"></i>
-                                    <a href="{{ url_for('procurement.view_all_procurement_for_audio_visual_equipment') }}">
-                                        &nbsp;หน่วยโสตทัศนศึกษา
-                                    </a>
-                                </span>
-                            </p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-cogs"></i>
-                                    <a href="{{ url_for('procurement.information_technology_first_page') }}">
-                                        IT & หน่วยซ่อมบำรุง
-                                    </a>
-                                </span>
-                            </p>
-                            <div class="buttons is-right">
-                                <a href="{{ url_for('procurement.main_procurement_page') }}" class="button is-light">หน้าหลัก</a>
-                            </div>
-                        </nav>
-                    </div>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="75">
+            </div>
+            <div class="navbar-menu is-active">
+                <div class="navbar-end">
+                    <a class="navbar-item" href="{{ url_for('auth.account') }}">
+                        <span class="icon"><i class="fas fa-user-circle"></i></span>
+                        <span>{{ current_user.personal_info.fullname }}</span>
+                    </a>
+                    <a class="navbar-item" href="{{ url_for('procurement.main_procurement_page') }}">
+                        <span>Close</span>
+                        <span class="icon"><i class="far fa-times-circle"></i></span>
+                    </a>
                 </div>
             </div>
-            <div class="column is-8 is-offset-2">
-                <br>
-                <nav class="level">
-                    <div class="level-left">
-                    </div>
-                    <div class="level-right">
-                        <small class="level-item" style="color: var(--textLight)">
-                            <i class="fas fa-cogs"></i>หากพบปัญหาด้านระบบสามารถติดต่อ IT (yada.boo@mahidol.ac.th)
-                        </small>
-                    </div>
-                </nav>
+        </div>
+    </nav>
+    <section class="section login-section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-half">
+                    <nav class="panel is-success">
+                        <p class="panel-heading">ระบบครุภัณฑ์และซ่อมบำรุง</p>
+
+                        <a class="panel-block" href="{{ url_for('procurement.user_first') }}">
+                            <span class="role-link"><i class="fas fa-users"></i>เจ้าหน้าที่ MUMT</span>
+                        </a>
+
+                        <a class="panel-block" href="{{ url_for('procurement.landing') }}">
+                            <span class="role-link"><i class="fas fa-user-cog"></i>เจ้าหน้าที่พัสดุ</span>
+                        </a>
+
+                        <a class="panel-block" href="{{ url_for('procurement.committee_first') }}">
+                            <span class="role-link"><i class="fas fa-user-check"></i>คณะกรรมการตรวจครุภัณฑ์</span>
+                        </a>
+
+                        <a class="panel-block" href="{{ url_for('procurement.view_all_procurement_to_check_instruments') }}">
+                            <span class="role-link"><i class="fas fa-user-tie"></i>อาจารย์ประจำเครื่องมือวิจัย</span>
+                        </a>
+
+                        <a class="panel-block" href="{{ url_for('procurement.view_all_procurement_for_audio_visual_equipment') }}">
+                            <span class="role-link"><i class="fas fa-photo-video"></i>หน่วยโสตทัศนศึกษา</span>
+                        </a>
+
+                        <a class="panel-block" href="{{ url_for('procurement.information_technology_first_page') }}">
+                            <span class="role-link"><i class="fas fa-cogs"></i>IT & หน่วยซ่อมบำรุง</span>
+                        </a>
+                    </nav>
+
+                    <p class="support-note"><i class="fas fa-life-ring"></i> พบปัญหา: yada.boo@mahidol.ac.th</p>
+                </div>
             </div>
         </div>
     </section>

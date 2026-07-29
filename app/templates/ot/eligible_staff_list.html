@@ -29,7 +29,7 @@
                         {% for s in announcement.eligible_staff %}
                             <tr>
                                 <td>{{ s.fullname }}</td>
-                                <td>{{ s.personal_info.org }}</td>
+                                <td>{{ s.personal_info.org.display_name if s.personal_info.org else 'ไม่มีสังกัด' }}</td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -47,6 +47,5 @@
         });
     </script>
 {% endblock %}
-
 
 

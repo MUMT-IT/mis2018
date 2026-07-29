@@ -27,7 +27,8 @@ from pydrive.drive import GoogleDrive
 from flask_mail import Message
 
 from ..academic_services.models import ServiceResult
-from ..main import mail
+from ..main import mail, s3, S3_BUCKET_NAME
+from app.google_credential_utils import load_google_credentials_json
 from sqlalchemy import cast, Date, and_
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
@@ -43,10 +44,49 @@ ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 
 FOLDER_ID = "1k_k0fAKnEEZaO3fhKwTLhv2_ONLam0-c"
 
-json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+json_keyfile = load_google_credentials_json()
 
 
 ALLOWED_EXTENSION = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
+
+def _parse_s3_url(pdf_url):
+    if not pdf_url:
+        return None, None
+    if pdf_url.startswith("s3://"):
+        without_scheme = pdf_url[5:]
+        bucket, _, key = without_scheme.partition("/")
+        return bucket or None, key or None
+    return None, None
+
+
+def get_receipt_pdf_bytes(receipt):
+    if receipt.pdf_url:
+        bucket, key = _parse_s3_url(receipt.pdf_url)
+        if bucket and key:
+            try:
+                obj = s3.get_object(Bucket=bucket, Key=key)
+                return obj["Body"].read()
+            except Exception:
+                current_app.logger.exception(
+                    "Failed to download receipt PDF from S3 for receipt id=%s, fallback to pdf_file.",
+                    receipt.id
+                )
+    return receipt.pdf_file
+
+
+def upload_receipt_pdf_to_s3(receipt, pdf_bytes, tag="signed"):
+    number = (receipt.number or f"id-{receipt.id}").strip().replace("/", "-")
+    key = f"receipt-printing/pdfs/{receipt.id}_{number}_{tag}.pdf"
+    s3.put_object(
+        Bucket=S3_BUCKET_NAME,
+        Key=key,
+        Body=pdf_bytes,
+        ContentType="application/pdf",
+    )
+    receipt.pdf_url = f"s3://{S3_BUCKET_NAME}/{key}"
+    # Keep legacy field empty for new writes.
+    receipt.pdf_file = None
 
 
 @receipt_printing.route('/landing')
@@ -326,6 +366,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     total = 0
     for n, item in enumerate(receipt.items, start=1):
         order = re.sub(r'<i>(.*?)</i>', r"<font name='SarabunItalic'>\1</font>", item.item)
+        order = re.sub(r'(\r\n|\r|\n)+', '<br/>', order)
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                        Paragraph('<font size=12>{}</font>'.format(order), style=style_sheet['ThaiStyle']),
                        Paragraph('<font size=12>{:,.2f}</font>'.format(item.price),
@@ -452,21 +493,24 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
 def export_receipt_pdf(receipt_id):
     if request.method == 'GET':
         receipt = ElectronicReceiptDetail.query.get(receipt_id)
-        if receipt.pdf_file:
-            return send_file(BytesIO(receipt.pdf_file), download_name=f'{receipt.number}.pdf', as_attachment=True)
+        pdf_bytes = get_receipt_pdf_bytes(receipt)
+        if pdf_bytes:
+            return send_file(BytesIO(pdf_bytes), download_name=f'{receipt.number}.pdf', as_attachment=True)
         buffer = generate_receipt_pdf(receipt)
         return send_file(buffer, download_name=f'{receipt.number}.pdf', as_attachment=True)
     elif request.method == 'POST':
         password = request.form.get('password')
         receipt = ElectronicReceiptDetail.query.get(receipt_id)
-        if receipt.pdf_file is None:
+        existing_pdf = get_receipt_pdf_bytes(receipt)
+        if existing_pdf is None:
             buffer = generate_receipt_pdf(receipt, sign=True)
             try:
                 sign_pdf = e_sign(buffer, password, include_image=False)
             except (ValueError, AttributeError):
                 flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger" )
             else:
-                receipt.pdf_file = sign_pdf.read()
+                signed_pdf_bytes = sign_pdf.read()
+                upload_receipt_pdf_to_s3(receipt, signed_pdf_bytes, tag="signed")
                 sign_pdf.seek(0)
                 db.session.add(receipt)
                 db.session.commit()
@@ -490,13 +534,19 @@ def cancel_receipt(receipt_id):
         receipt.cancelled = True
         receipt.cancel_comment = form.cancel_comment.data
         receipt.invoice_id = None
+        existing_pdf = get_receipt_pdf_bytes(receipt)
+        if existing_pdf is None:
+            flash("ไม่พบไฟล์ใบเสร็จสำหรับลงนามยกเลิก", "danger")
+            return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt,
+                                   callback=request.referrer, form=form)
         try:
-            sign_pdf = e_sign(BytesIO(receipt.pdf_file), form.password.data, 400, 700, 550, 750, include_image=False,
+            sign_pdf = e_sign(BytesIO(existing_pdf), form.password.data, 400, 700, 550, 750, include_image=False,
                               sig_field_name='cancel', message=f'ยกเลิก {receipt.number}')
         except (ValueError, AttributeError):
             flash("ไม่สามารถลงนามดิจิทัลได้ โปรดตรวจสอบรหัสผ่าน", "danger")
         else:
-            receipt.pdf_file = sign_pdf.read()
+            cancelled_pdf_bytes = sign_pdf.read()
+            upload_receipt_pdf_to_s3(receipt, cancelled_pdf_bytes, tag="cancelled")
             sign_pdf.seek(0)
             db.session.add(receipt)
             db.session.commit()
@@ -703,6 +753,8 @@ def require_new_receipt(receipt_id):
 
 
 def initialize_gdrive():
+    if not json_keyfile:
+        return None
     gauth = GoogleAuth()
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
@@ -996,7 +1048,11 @@ def send_email_to_customer(receipt_id):
     message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                u'หากมีข้อสงสัยโปรดติดต่อกลับเจ้าหน้าที่ผู้และโครงการฯ ติดต่องานการเงิน mumtfinance@gmail.com, ติดต่อโครงการประเมินคุณภาพ eqamtmu@gmail.com'
     message += u'\nThis email was sent by an automated system. Please do not reply. If you have any questions, please contact the financial unit: mumtfinance@gmail.com, contact the quality assessment project: eqamtmu@gmail.com at Faculty of Medical Technology Mahidol University.'
-    send_mail([form.email.data], title, message, receipt_detail.pdf_file, f'{receipt_detail.number}.pdf')
+    pdf_bytes = get_receipt_pdf_bytes(receipt_detail)
+    if not pdf_bytes:
+        flash(u'ไม่พบไฟล์ใบเสร็จสำหรับแนบอีเมล', 'danger')
+        return redirect(url_for('receipt_printing.show_receipt_detail', receipt_id=receipt_id, form=form))
+    send_mail([form.email.data], title, message, pdf_bytes, f'{receipt_detail.number}.pdf')
     print(form.email.data, "email")
     flash(u'ส่งข้อมูลสำเร็จ.', 'success')
     return redirect(url_for('receipt_printing.show_receipt_detail', receipt_id=receipt_id, form=form))

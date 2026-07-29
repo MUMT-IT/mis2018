@@ -47,7 +47,7 @@
                         <span>ยกเลิกใบเสร็จนี้</span>
                     </a>
                     <div id="password_modal"></div>
-                {% if not receipt.pdf_file %}
+                {% if not receipt.has_pdf %}
                     <button class="button is-info"
                             hx-swap="innerHTML"
                             hx-target="#password_modal"

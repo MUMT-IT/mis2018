@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}เครื่องมือสำหรับอาจารย์{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .teacher-tools-shell {
+            padding: 1.5rem 0 2.5rem;
+        }
+
+        .teacher-tools-hero {
+            margin-bottom: 1.25rem;
+        }
+
+        .teacher-tools-nav {
+            margin-bottom: 1rem;
+        }
+
+        .teacher-tools-nav .navbar {
+            background: #fff;
+            border: 1px solid rgba(18, 39, 84, 0.12);
+            border-radius: 14px;
+            box-shadow: 0 8px 18px rgba(18, 39, 84, 0.08);
+            min-height: auto;
+            padding: 0.2rem 0.3rem;
+        }
+
+        .teacher-tools-nav .navbar-item {
+            border-radius: 10px;
+            color: #1b2b53;
+            font-weight: 600;
+        }
+
+        .teacher-tools-nav .navbar-item.is-current {
+            background: rgba(19, 41, 90, 0.08);
+            color: #13295a;
+            cursor: default;
+        }
+
+        .teacher-tools-nav .navbar-end .button {
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .teacher-tools-grid {
+            margin-top: 0.5rem;
+        }
+
+        .teacher-tool-card {
+            background: #fff;
+            border: 1px solid rgba(18, 39, 84, 0.12);
+            border-radius: 18px;
+            box-shadow: 0 12px 24px rgba(18, 39, 84, 0.08);
+            color: inherit;
+            display: block;
+            height: 100%;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .teacher-tool-card:hover {
+            border-color: rgba(202, 168, 74, 0.5);
+            box-shadow: 0 16px 30px rgba(18, 39, 84, 0.14);
+            transform: translateY(-3px);
+        }
+
+        .teacher-tool-preview {
+            background: linear-gradient(135deg, #f4f7ff, #edf6ff);
+            display: block;
+            height: 170px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+        }
+
+        .teacher-tool-preview-frame {
+            display: block;
+            border: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        .teacher-tool-body {
+            padding: 1rem 1.05rem 1.1rem;
+        }
+
+        .teacher-tool-title {
+            align-items: center;
+            color: #13295a;
+            display: flex;
+            font-size: 1.05rem;
+            font-weight: 700;
+            gap: 0.55rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .teacher-tool-desc {
+            color: #4a5568;
+            line-height: 1.55;
+            margin: 0;
+        }
+
+        .teacher-tool-help {
+            color: #6b7280;
+            font-size: 0.86rem;
+            margin-top: 0.55rem;
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    <section class="section teacher-tools-shell">
+        <div class="container is-max-desktop">
+            <div class="teacher-tools-nav">
+                <nav class="navbar" role="navigation" aria-label="Teacher tools navigation">
+                    <div class="navbar-menu is-active">
+                        <div class="navbar-start">
+                            <a class="navbar-item" href="{{ url_for('index') }}">
+                                <span class="icon"><i class="fa-solid fa-house"></i></span>
+                                <span>หน้าแรก</span>
+                            </a>
+                            <span class="navbar-item is-current">
+                                <span class="icon"><i class="fa-solid fa-chalkboard-teacher"></i></span>
+                                <span>เครื่องมือสำหรับอาจารย์</span>
+                            </span>
+                        </div>
+                        <div class="navbar-end">
+                            <div class="navbar-item">
+                                <a class="button is-light" href="{{ url_for('index') }}">
+                                    <span class="icon"><i class="fa-solid fa-xmark"></i></span>
+                                    <span>ปิด</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+
+            <div class="teacher-tools-hero">
+                <h1 class="title is-3 mb-2">เครื่องมือสำหรับอาจารย์</h1>
+                <p class="subtitle is-6 has-text-grey mb-0">เลือกใช้งานระบบที่ช่วยงานสอน การออกแบบผลลัพธ์การเรียนรู้ และการประเมินผลนักศึกษา</p>
+            </div>
+
+            <div class="columns is-variable is-5 teacher-tools-grid">
+                <div class="column is-4-desktop is-6-tablet">
+                    <a class="teacher-tool-card" href="https://scorenotify-951542281353.us-west1.run.app" target="_blank" rel="noopener noreferrer">
+                        <div class="teacher-tool-preview">
+                            <iframe class="teacher-tool-preview-frame" src="https://scorenotify-951542281353.us-west1.run.app" loading="lazy" title="ScoreNotify preview"></iframe>
+                        </div>
+                        <div class="teacher-tool-body">
+                            <h2 class="teacher-tool-title"><span class="icon"><i class="fa-solid fa-bell"></i></span><span>ScoreNotify</span></h2>
+                            <p class="teacher-tool-desc">แจ้งเตือนคะแนนและสรุปผลการประเมินเพื่อสื่อสารกับผู้เรียนได้รวดเร็วขึ้น</p>
+                            <p class="teacher-tool-help">พัฒนาโดย อาจารย์ ดร. อนุชา ชัยชนะ ภาควิชารังสีเทคนิค</p>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="column is-4-desktop is-6-tablet">
+                    <a class="teacher-tool-card" href="https://obe.rtfriend.net" target="_blank" rel="noopener noreferrer">
+                        <div class="teacher-tool-preview">
+                            <iframe class="teacher-tool-preview-frame" src="https://obe.rtfriend.net" loading="lazy" title="OBE preview"></iframe>
+                        </div>
+                        <div class="teacher-tool-body">
+                            <h2 class="teacher-tool-title"><span class="icon"><i class="fa-solid fa-graduation-cap"></i></span><span>OBE Platform</span></h2>
+                            <p class="teacher-tool-desc">จัดการรายวิชา CLO/PLO และวางแผนผลลัพธ์การเรียนรู้ตามแนวทาง OBE</p>
+                            <p class="teacher-tool-help">พัฒนาโดย อาจารย์ ดร. อนุชา ชัยชนะ ภาควิชารังสีเทคนิค</p>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="column is-4-desktop is-6-tablet">
+                    <a class="teacher-tool-card" href="https://grading-assistant-951542281353.us-west1.run.app" target="_blank" rel="noopener noreferrer">
+                        <div class="teacher-tool-preview">
+                            <iframe class="teacher-tool-preview-frame" src="https://grading-assistant-951542281353.us-west1.run.app" loading="lazy" title="Grading Assistant preview"></iframe>
+                        </div>
+                        <div class="teacher-tool-body">
+                            <h2 class="teacher-tool-title"><span class="icon"><i class="fa-solid fa-list-check"></i></span><span>Grading Assistant</span></h2>
+                            <p class="teacher-tool-desc">ช่วยตรวจและจัดการงานให้คะแนนอย่างเป็นระบบ ลดเวลาทำงานซ้ำในการให้เกรด</p>
+                            <p class="teacher-tool-help">พัฒนาโดย อาจารย์ ดร. อนุชา ชัยชนะ ภาควิชารังสีเทคนิค</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

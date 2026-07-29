@@ -9,7 +9,7 @@
                     Edit Requirement
                 {% endif %}
             </p>
-            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+            <button type="button" id="cancelIssueButton" class="delete" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
             <form
@@ -18,7 +18,7 @@
                     {% else %}
                         hx-post="{{ url_for('software_request.create_issue', detail_id=detail_id, tab=tab) }}"
                     {% endif %}
-                        hx-target="#issues"
+                        hx-target="#requirements"
                         hx-indicator="#submit-form"
                         hx-swap="beforeend"
             >
@@ -69,7 +69,6 @@
                     <div class="field" style="margin-top:0.5em">
                         <label class="label">
                             {{ form.deadline.label }}
-                            <span class="has-text-danger">*</span>
                         </label>
                         <div class="control">
                             {{ form.deadline(class='input', type='text', autocomplete="off") }}
@@ -95,7 +94,7 @@
     </div>
 </div>
 <script>
-    window.document.getElementById("cancelButton").addEventListener("click", function () {
+    window.document.getElementById("cancelIssueButton").addEventListener("click", function () {
         htmx.addClass(htmx.find('#issue-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
     })
@@ -103,32 +102,30 @@
         htmx.addClass(htmx.find('#issue-modal'), 'animate__fadeOut')
         htmx.removeClass(htmx.find('#issue-modal'), "is-active", 500)
     })
-    $(document).ready(() => {
-        moment.locale('th');
-        $('[id$="staff"]').select2({
-            width: '100%'
-        });
-        $('[id$="phase"]').select2({
-            width: '100%',
-            tags: true
-        });
-        $('input[name="deadline"]').daterangepicker({
-            singleDatePicker: true,
-            showDropdowns: true,
-            autoUpdateInput: false,
-            {% if form.deadline.data %}
-                startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
-            {% endif %}
-            locale: {
-                format: 'YYYY-MM-DD',
-                cancelLabel: 'Clear'
-            },
-        });
-        $('input[name="deadline"]').on('apply.daterangepicker', function (ev, picker) {
-            $(this).val(picker.startDate.format('YYYY-MM-DD'));
-        });
-        $('input[name="deadline"]').on('cancel.daterangepicker', function () {
-            $(this).val('');
-        });
+    moment.locale('th');
+    $('#issue-modal [id$="staff"]').select2({
+        width: '100%'
+    });
+    $('#issue-modal [id$="phase"]').select2({
+        width: '100%',
+        tags: true
+    });
+    $('#issue-modal input[name="deadline"]').daterangepicker({
+        singleDatePicker: true,
+        showDropdowns: true,
+        autoUpdateInput: false,
+        {% if form.deadline.data %}
+            startDate: {{ form.deadline.data.isoformat()|tojson|safe }},
+        {% endif %}
+        locale: {
+            format: 'YYYY-MM-DD',
+            cancelLabel: 'Clear'
+        },
+    });
+    $('#issue-modal input[name="deadline"]').on('apply.daterangepicker', function (ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD'));
+    });
+    $('#issue-modal input[name="deadline"]').on('cancel.daterangepicker', function () {
+        $(this).val('');
     });
 </script>

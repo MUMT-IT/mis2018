@@ -7,6 +7,10 @@ import json
 import os
 import re
 import secrets
+import tempfile
+import time
+import zipfile
+from functools import lru_cache
 from collections import OrderedDict, defaultdict
 from io import BytesIO
 from urllib.parse import urljoin
@@ -43,10 +47,23 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
 from app.main import mail
+from app.roles import admin_permission
+from .concern_engine import build_health_risk_report
+from .health_risk_copy import get_health_risk_copy
+from .health_risk_summary import build_health_risk_summary
 from .apis import *
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm, PasswordOfSignDigitalForm, SendMailToCustomerForm,
                     CustomerInfoForm)
+from .forms import HealthEducationVideoForm
+from .video_admin import (
+    build_health_education_video_attributes,
+    filter_health_education_videos,
+    get_top_related_health_education_videos,
+    order_health_education_videos,
+    persist_health_education_video,
+    visible_health_risk_issues,
+)
 from .models import *
 from ..e_sign_api import e_sign
 
@@ -95,6 +112,315 @@ def _require_online_results_access():
         'warning'
     )
     return redirect(url_for('comhealth.landing'))
+
+
+@comhealth.context_processor
+def _inject_comhealth_admin_flags():
+    return {
+        'comhealth_admin_tools_visible': current_user.is_authenticated and admin_permission.can(),
+    }
+
+
+def _health_education_video_lookup(youtube_video_id):
+    return ComHealthEducationVideo.query.filter_by(youtube_video_id=youtube_video_id).first()
+
+
+def _health_education_video_form_defaults(video=None):
+    form = HealthEducationVideoForm(obj=video)
+    if video is not None:
+        form.health_topics.data = ', '.join(video.health_topics or [])
+        form.keywords.data = ', '.join(video.keywords or [])
+        form.is_active.data = bool(video.is_active)
+        form.is_embeddable.data = bool(getattr(video, 'is_embeddable', True))
+        form.thumbnail_url.data = getattr(video, 'thumbnail_url', None)
+        form.duration_seconds.data = getattr(video, 'duration_seconds', None)
+        form.display_order.data = getattr(video, 'display_order', None)
+        form.notes_internal.data = getattr(video, 'notes_internal', None)
+    return form
+
+
+def _render_health_education_video_page(template_name, *, form, videos=None, filters=None, editing_video=None):
+    return render_template(
+        template_name,
+        form=form,
+        videos=videos or [],
+        filters=filters or {},
+        editing_video=editing_video,
+    )
+
+
+def _health_risk_video_concern_keys(report):
+    return [issue.get('key') for issue in report.get('top_issues', []) if issue.get('key')]
+
+
+def _recommended_health_education_videos(concern_keys, *, limit=3):
+    videos = ComHealthEducationVideo.query.filter_by(is_active=True).all()
+    return get_top_related_health_education_videos(videos, concern_keys=concern_keys, limit=limit)
+
+
+def _related_health_education_videos_by_issue(issue_keys, *, limit=3):
+    videos = ComHealthEducationVideo.query.filter_by(is_active=True).all()
+    return {
+        issue_key: get_top_related_health_education_videos(videos, concern_keys=[issue_key], limit=limit)
+        for issue_key in issue_keys
+        if issue_key
+    }
+
+
+def _health_education_videos_page_url(*, lang, report_url='', concern_key=''):
+    params = {'lang': lang}
+    if report_url:
+        params['report_url'] = report_url
+    if concern_key:
+        params['concern'] = concern_key
+    return url_for('comhealth.health_education_videos_page', **params)
+
+
+def _all_health_education_videos(*, concern_keys=None):
+    videos = ComHealthEducationVideo.query.all()
+    return order_health_education_videos(videos, concern_keys=concern_keys)
+
+
+@comhealth.route('/admin/health-education-videos', methods=['GET', 'POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def health_education_videos():
+    form = HealthEducationVideoForm()
+
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            attrs = build_health_education_video_attributes(request.form)
+            persist_health_education_video(
+                db.session,
+                ComHealthEducationVideo,
+                attrs,
+                duplicate_lookup=_health_education_video_lookup,
+            )
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+        else:
+            flash('Health education video created successfully.', 'success')
+            return redirect(url_for('comhealth.health_education_videos'))
+
+    filters = {
+        'topic': request.args.get('topic', ''),
+        'keyword': request.args.get('keyword', ''),
+        'language': request.args.get('language', ''),
+        'is_active': request.args.get('is_active', ''),
+    }
+    videos = ComHealthEducationVideo.query.order_by(
+        ComHealthEducationVideo.updated_at.desc(),
+        ComHealthEducationVideo.created_at.desc(),
+    ).all()
+    videos = filter_health_education_videos(videos, **filters)
+
+    return _render_health_education_video_page(
+        'comhealth/admin/health_education_videos.html',
+        form=form,
+        videos=videos,
+        filters=filters,
+    )
+
+
+@comhealth.route('/health-education-videos')
+def health_education_videos_page():
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    concern_key = (request.args.get('concern') or '').strip()
+    concern_keys = [concern_key] if concern_key else []
+    selected_concern_label = ui['issue_name'].get(concern_key, '') if concern_key else ''
+
+    recommended_videos = _recommended_health_education_videos(concern_keys, limit=3) if concern_keys else []
+
+    return render_template(
+        'comhealth/health_education_videos.html',
+        current_lang=current_lang,
+        ui=ui,
+        concern_key=concern_key,
+        selected_concern_label=selected_concern_label,
+        recommended_videos=recommended_videos,
+        report_url=request.args.get('report_url', ''),
+    )
+
+
+@comhealth.route('/admin/health-education-videos/<int:video_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def edit_health_education_video(video_id):
+    video = ComHealthEducationVideo.query.get_or_404(video_id)
+    form = HealthEducationVideoForm() if request.method == 'POST' else _health_education_video_form_defaults(video)
+
+    if request.method == 'POST' and form.validate_on_submit():
+        try:
+            attrs = build_health_education_video_attributes(request.form)
+            persist_health_education_video(
+                db.session,
+                ComHealthEducationVideo,
+                attrs,
+                existing_video=video,
+                duplicate_lookup=_health_education_video_lookup,
+            )
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+        else:
+            flash('Health education video updated successfully.', 'success')
+            return redirect(url_for('comhealth.health_education_videos'))
+
+    return _render_health_education_video_page(
+        'comhealth/admin/health_education_video_edit.html',
+        form=form,
+        editing_video=video,
+    )
+
+
+@comhealth.route('/admin/health-education-videos/<int:video_id>/toggle-active', methods=['POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def toggle_health_education_video_status(video_id):
+    video = ComHealthEducationVideo.query.get_or_404(video_id)
+    video.is_active = not bool(video.is_active)
+    db.session.add(video)
+    db.session.commit()
+    flash(
+        f'Health education video {"activated" if video.is_active else "deactivated"} successfully.',
+        'success',
+    )
+    return redirect(url_for('comhealth.health_education_videos'))
+
+
+ONLINE_RESULTS_API_TOKEN_CACHE = {
+    'access_token': None,
+    'expires_at': 0,
+}
+
+
+def _online_results_api_base_url():
+    return os.getenv('COMHEALTH_ONLINE_RESULTS_API_BASE_URL', 'https://webmt.mahidol.ac.th/api').rstrip('/')
+
+
+def _online_results_api_key():
+    for env_name in (
+        'COMHEALTH_ONLINE_RESULTS_API_KEY',
+        'COMHEALTH_RESULTS_API_KEY',
+        'WEBMT_API_KEY',
+    ):
+        api_key = os.getenv(env_name)
+        if api_key:
+            return api_key
+    return None
+
+
+def _online_results_api_url(path):
+    return f'{_online_results_api_base_url()}/{path.lstrip("/")}'
+
+
+def _extract_online_results_token(payload):
+    if isinstance(payload, str):
+        return payload
+
+    if not isinstance(payload, dict):
+        return None
+
+    for key in ('access_token', 'accessToken', 'token', 'bearerToken', 'bearer_token'):
+        token = payload.get(key)
+        if token:
+            return token
+
+    for nested_key in ('data', 'result'):
+        token = _extract_online_results_token(payload.get(nested_key))
+        if token:
+            return token
+
+    return None
+
+
+def _extract_online_results_token_ttl(payload):
+    if not isinstance(payload, dict):
+        return 3300
+
+    for key in ('expires_in', 'expiresIn', 'expires_seconds', 'expiresSeconds'):
+        ttl = payload.get(key)
+        if ttl:
+            try:
+                return int(ttl)
+            except (TypeError, ValueError):
+                return 3300
+
+    for nested_key in ('data', 'result'):
+        ttl = _extract_online_results_token_ttl(payload.get(nested_key))
+        if ttl:
+            return ttl
+
+    return 3300
+
+
+def _get_online_results_bearer_token():
+    if (
+        ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] and
+        ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] > time.time() + 30
+    ):
+        return ONLINE_RESULTS_API_TOKEN_CACHE['access_token']
+
+    api_key = _online_results_api_key()
+    if not api_key:
+        current_app.logger.warning('COMHEALTH_ONLINE_RESULTS_API_KEY is not configured.')
+        return None
+
+    response = requests.post(
+        _online_results_api_url('/apiclients/token'),
+        json={'apiKey': api_key},
+        timeout=10,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    token = _extract_online_results_token(payload)
+    if not token:
+        raise RuntimeError('Online results API token response did not include a bearer token.')
+
+    ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] = token
+    ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] = time.time() + _extract_online_results_token_ttl(payload)
+    return token
+
+
+def _online_results_api_request(method, path, **kwargs):
+    headers = kwargs.pop('headers', {})
+    timeout = kwargs.pop('timeout', 10)
+    token = _get_online_results_bearer_token()
+
+    if token:
+        headers = {
+            **headers,
+            'Authorization': f'Bearer {token}',
+        }
+
+    response = requests.request(
+        method,
+        _online_results_api_url(path),
+        headers=headers,
+        timeout=timeout,
+        **kwargs,
+    )
+
+    if response.status_code == 401 and token:
+        ONLINE_RESULTS_API_TOKEN_CACHE['access_token'] = None
+        ONLINE_RESULTS_API_TOKEN_CACHE['expires_at'] = 0
+        retry_token = _get_online_results_bearer_token()
+        if not retry_token:
+            return response
+        retry_headers = {
+            **headers,
+            'Authorization': f'Bearer {retry_token}',
+        }
+        response = requests.request(
+            method,
+            _online_results_api_url(path),
+            headers=retry_headers,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    return response
 
 
 @comhealth.route('/api/v1/lineids/<lineid>')
@@ -586,15 +912,250 @@ def download_receipts_all_summary(service_id,summary_type,schedule_date_thaiform
     output.seek(0)
     return send_file(output,download_name='recepits_all.xlsx')
 
+
+def _money(value):
+    return float(value or 0)
+
+
+def _parse_schedule_date_to_iso(schedule_date):
+    if not schedule_date:
+        return ''
+    schedule_date = schedule_date.strip()
+    for date_format in ('%d/%m/%Y', '%Y-%m-%d'):
+        try:
+            return dt_module.datetime.strptime(schedule_date, date_format).strftime('%Y-%m-%d')
+        except ValueError:
+            continue
+    return ''
+
+
+def _checkin_datetime_for_record(record):
+    if not record.checkin_datetime:
+        return ''
+    return record.checkin_datetime.astimezone(bangkok).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _customer_citizen_id(customer):
+    if not customer or not customer.info or not customer.info.data:
+        return ''
+    for key in ('citizen_id', 'id_card', 'national_id', 'personal_id', 'บัตรประชาชน', 'เลขบัตรประชาชน'):
+        value = customer.info.data.get(key)
+        if value:
+            return value
+    return ''
+
+
+def _test_column_name(test_item):
+    if not test_item or not test_item.test:
+        return ''
+    return test_item.test.name or test_item.test.code or ''
+
+
+def _receipt_codes_for_record(record):
+    receipts = sorted(
+        [receipt for receipt in record.receipts if receipt.code and not receipt.cancelled],
+        key=lambda receipt: receipt.created_datetime or receipt.id
+    )
+    return ', '.join([receipt.code for receipt in receipts])
+
+
+def _paid_amount_for_record(record):
+    return sum([
+        _money(receipt.paid_amount)
+        for receipt in record.receipts
+        if receipt.paid and not receipt.cancelled
+    ])
+
+
+def _comhealth_export_records_query(service_id):
+    return (
+        ComHealthRecord.query
+        .execution_options(stream_results=True)
+        .options(
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.dept),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.division),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.emptype),
+            joinedload(ComHealthRecord.customer).joinedload(ComHealthCustomer.info),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.test),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.profile),
+            selectinload(ComHealthRecord.ordered_tests).joinedload(ComHealthTestItem.group),
+            selectinload(ComHealthRecord.receipts),
+        )
+        .filter(
+            ComHealthRecord.service_id == service_id,
+            ComHealthRecord.labno.isnot(None),
+            ComHealthRecord.labno != ''
+        )
+        .order_by(ComHealthRecord.labno.asc(), ComHealthRecord.id.asc())
+    )
+
+
+def _split_ordered_tests_for_export(record):
+    profile_items = sorted(
+        [item for item in record.ordered_tests if item.profile],
+        key=lambda item: (item.profile.name if item.profile else '', item.test.name if item.test else '')
+    )
+    other_items = sorted(
+        [item for item in record.ordered_tests if not item.profile],
+        key=lambda item: (item.group.name if item.group else '', item.test.name if item.test else '')
+    )
+    return profile_items, other_items
+
+
+def _detail_rows_from_record(record, location):
+    customer = record.customer
+    patient_name = '{} {} {}'.format(
+        customer.title or '',
+        customer.firstname or '',
+        customer.lastname or ''
+    ).strip() if customer else ''
+    hn = customer.hn if customer and customer.hn else ''
+    checkin_datetime = _checkin_datetime_for_record(record)
+    profile_items, other_items = _split_ordered_tests_for_export(record)
+    rows = []
+    for item in profile_items + other_items:
+        test_type = 'Profile' if item.profile else 'Other'
+        profile_or_group = item.profile.name if item.profile else (item.group.name if item.group else '')
+        rows.append({
+            'Location': location,
+            'Checkin date': checkin_datetime,
+            'Lab Number': record.labno,
+            'HN': hn,
+            'Patient': patient_name,
+            'Test Type': test_type,
+            'Profile/Group Name': profile_or_group,
+            'Description': item.test.desc if item.test else '',
+            'Test Code': item.test.code if item.test else '',
+            'Test Name': item.test.name if item.test else '',
+            'Unit Price': _money(item.price),
+        })
+    return rows
+
+
+def _non_reimbursable_row_from_record(record, test_columns, row_number):
+    customer = record.customer
+    profile_items, other_items = _split_ordered_tests_for_export(record)
+    profile_names = sorted({item.profile.name for item in profile_items if item.profile})
+    non_reimbursable_items = [
+        item for item in other_items
+        if item.test and not item.test.reimbursable
+    ]
+    row = {
+        'ลำดับ': row_number,
+        'LabNo': record.labno,
+        'คำนำหน้า': customer.title if customer and customer.title else '',
+        'ชื่อ': customer.firstname if customer and customer.firstname else '',
+        'นามสกุล': customer.lastname if customer and customer.lastname else '',
+        'อายุ': customer.age_years if customer and customer.age_years is not None else '',
+        'บัตรประชาชน': _customer_citizen_id(customer),
+        'รหัสพนักงาน': customer.emp_id if customer and customer.emp_id else '',
+        'ฝ่าย': customer.dept.name if customer and customer.dept else '',
+        'กอง': customer.division.name if customer and customer.division else '',
+        'แผนก': customer.unit if customer and customer.unit else '',
+        'ประเภทพนักงาน': customer.emptype.name if customer and customer.emptype else '',
+        'Profile Names': ', '.join(profile_names),
+        'Sum Other Test': sum([_money(item.price) for item in non_reimbursable_items]),
+        'เลขที่ใบเสร็จ': _receipt_codes_for_record(record),
+        'เงินที่ได้': _paid_amount_for_record(record),
+        'note': record.note or '',
+    }
+    for column_name in test_columns:
+        row[column_name] = ''
+    for item in non_reimbursable_items:
+        column_name = _test_column_name(item)
+        if column_name in test_columns:
+            current_value = row.get(column_name, '')
+            if current_value in ('', None):
+                current_value = 0
+            row[column_name] = current_value + _money(item.price)
+    return row
+
+
+def _collect_non_reimbursable_test_columns(service_id):
+    test_columns = OrderedDict()
+    for record in _comhealth_export_records_query(service_id).yield_per(200):
+        if not record.ordered_tests:
+            continue
+        _, other_items = _split_ordered_tests_for_export(record)
+        for item in other_items:
+            if item.test and not item.test.reimbursable:
+                column_name = _test_column_name(item)
+                if column_name:
+                    test_columns[column_name] = None
+    return list(test_columns.keys())
+
+
+def _write_csv_file(file_path, fieldnames, row_iterable):
+    with open(file_path, 'w', encoding='utf-8-sig', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames, extrasaction='ignore')
+        writer.writeheader()
+        for row in row_iterable:
+            writer.writerow(row)
+
+
+@comhealth.route('/services/<int:service_id>/finance/export_tests/<schedule_date_thaiform>')
+@login_required
+def export_finance_test_items(service_id, schedule_date_thaiform):
+    service = ComHealthService.query.get_or_404(service_id)
+    detail_columns = [
+        'Location', 'Checkin date', 'Lab Number', 'HN', 'Patient',
+        'Test Type', 'Profile/Group Name', 'Description', 'Test Code',
+        'Test Name', 'Unit Price'
+    ]
+    non_reimbursable_columns = [
+        'ลำดับ', 'LabNo', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 'อายุ',
+        'บัตรประชาชน', 'รหัสพนักงาน', 'ฝ่าย', 'กอง', 'แผนก', 'ประเภทพนักงาน',
+        'Profile Names'
+    ]
+    non_reimbursable_test_columns = _collect_non_reimbursable_test_columns(service_id)
+    non_reimbursable_columns.extend(non_reimbursable_test_columns)
+    non_reimbursable_columns.extend(['Sum Other Test', 'เลขที่ใบเสร็จ', 'เงินที่ได้', 'note'])
+
+    def detail_rows_csv():
+        for record in _comhealth_export_records_query(service_id).yield_per(200):
+            if not record.ordered_tests:
+                continue
+            for row in _detail_rows_from_record(record, service.location):
+                yield row
+
+    def non_reimbursable_rows_csv():
+        row_number = 0
+        for record in _comhealth_export_records_query(service_id).yield_per(200):
+            if not record.ordered_tests:
+                continue
+            row_number += 1
+            yield _non_reimbursable_row_from_record(record, non_reimbursable_test_columns, row_number)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        detail_path = os.path.join(temp_dir, 'Test_Detail.csv')
+        non_reimbursable_path = os.path.join(temp_dir, 'เบิกไม่ได้.csv')
+
+        _write_csv_file(detail_path, detail_columns, detail_rows_csv())
+        _write_csv_file(non_reimbursable_path, non_reimbursable_columns, non_reimbursable_rows_csv())
+
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.write(detail_path, arcname='Test_Detail.csv')
+            zip_file.write(non_reimbursable_path, arcname='เบิกไม่ได้.csv')
+
+    output.seek(0)
+    filename = 'comhealth_test_items_{}_{}.zip'.format(service_id, schedule_date_thaiform)
+    return send_file(output, download_name=filename, as_attachment=True, mimetype='application/zip')
+
+
+@comhealth.route('/services/<int:service_id>/finance/export_tests', methods=['POST'])
+@login_required
+def export_finance_test_items_from_form(service_id):
+    return export_finance_test_items(service_id, 'all')
+
 @comhealth.route('/services/<int:service_id>/finance/summary',methods=('GET', 'POST'))
 @login_required
 def finance_summary(service_id):
     schedule_date_thaiform = ''
+    scheduledate_value = ''
     if request.method == 'POST':
-        schedule_date = request.form.get('scheduledate')
-        if schedule_date:
-            schedule_date_string = schedule_date.split('/')
-            schedule_date_thaiform = schedule_date_string[2] + '-' + f'{int(schedule_date_string[1]):02n}' + '-' + f'{int(schedule_date_string[0]):02n}'
+        scheduledate_value = request.form.get('scheduledate', '')
+        schedule_date_thaiform = _parse_schedule_date_to_iso(scheduledate_value)
 
     service = ComHealthService.query.get(service_id)
     totals_paid_cash = 0
@@ -604,6 +1165,8 @@ def finance_summary(service_id):
     count_receipts = 0
     for rec in service.records:
         for receipt in rec.receipts:
+            if not receipt.created_datetime:
+                continue
             created_date_string = receipt.created_datetime.astimezone(bangkok).strftime("%Y-%m-%d")
             if receipt.paid and receipt.cancelled == False and created_date_string == schedule_date_thaiform:
                 totals_paid_amount += receipt.paid_amount
@@ -616,7 +1179,8 @@ def finance_summary(service_id):
                     totals_paid_card += receipt.paid_amount
     return render_template('comhealth/finance_summary.html', service=service,totals_paid_amount=totals_paid_amount,
                            totals_paid_cash=totals_paid_cash,totals_paid_QR=totals_paid_QR,totals_paid_card=totals_paid_card,
-                           count_receipts=count_receipts,schedule_date_thaiform=schedule_date_thaiform)
+                           count_receipts=count_receipts,schedule_date_thaiform=schedule_date_thaiform,
+                           scheduledate_value=scheduledate_value)
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
@@ -3057,6 +3621,11 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 
+def _profile_consolidated_is_reimbursable(receipt):
+    profile_invoices = [t for t in receipt.invoices if t.billed and t.test_item.profile]
+    return bool(profile_invoices) and all(t.reimbursable for t in profile_invoices)
+
+
 def generate_receipt_pdf(receipt, sign=False, cancel=False):
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
@@ -3172,6 +3741,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     number_test = 0
     total_profile_price = 0
     total_special_price = 0
+    consolidated_profile_is_reimbursable = _profile_consolidated_is_reimbursable(receipt)
     if receipt.print_profile_note:
         profile_tests = [t for t in receipt.record.ordered_tests if t.profile]
         if profile_tests:
@@ -3188,8 +3758,13 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                             Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
+                    if consolidated_profile_is_reimbursable:
+                        item[2], item[3] = item[3], item[2]
                     items.append(item)
                     total_special_price += profile_price
+                    if consolidated_profile_is_reimbursable:
+                        total_profile_price += profile_price
+                        total_special_price -= profile_price
                     total += profile_price
                 else:
                     for t in receipt.record.ordered_tests:
@@ -3206,7 +3781,12 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
                             Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price),
                                       style=style_sheet['ThaiStyleNumber']),
                             ]
+                    if consolidated_profile_is_reimbursable:
+                        item[2], item[3] = item[3], item[2]
                     items.append(item)
+                    if consolidated_profile_is_reimbursable:
+                        total_profile_price += total_special_price
+                        total_special_price = 0
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
@@ -3720,8 +4300,7 @@ def cmslis_email(email):
         if email.strip().lower() != session_email:
             return '<tr><td colspan="2" class="has-text-centered">Unauthorized</td></tr>', 403
 
-    api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
-    response_employee = requests.get(api_employee_url)
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
 
     if response_employee.status_code != 200:
         return '<tr><td colspan="2" class="has-text-centered">ไม่พบข้อมูล</td></tr>'
@@ -3736,8 +4315,7 @@ def cmslis_email(email):
 
 
     # service วันที่ตรวจ
-    api_services_url = f"http://webmt.mahidol.ac.th/api/Employees/{cmscode}/services"
-    response_services = requests.get(api_services_url)
+    response_services = _online_results_api_request('GET', f'/Employees/{cmscode}/services')
     services = response_services.json()
 
     html = ""
@@ -3755,22 +4333,24 @@ def cmslis_email(email):
         serviceno = row.get("serviceNo")
 
         #อายุตามวันที่ตรวจ
-        if not employee_dob:
-            age = "No birth date"
-        else:
-            birth_date = datetime.strptime(employee_dob, "%Y-%m-%dT%H:%M:%S").date()
+        birth_date = parse_cmslis_birth_date(employee_dob)
+        if birth_date:
             service_date = datetime.strptime(servicedate, "%Y-%m-%dT%H:%M:%S").date()
             age = service_date.year - birth_date.year - (
                     (service_date.month, service_date.day) < (birth_date.month, birth_date.day)
             )
+        else:
+            age = None
 
-        result_url = url_for(
-            'comhealth.customer_result',
-            serviceNo=serviceno,
-            email=email,
-            servicedate=servicedate,
-            age=age
-        )
+        result_params = {
+            'serviceNo': serviceno,
+            'email': email,
+            'servicedate': servicedate,
+        }
+        if age is not None:
+            result_params['age'] = age
+
+        result_url = url_for('comhealth.customer_result', **result_params)
 
         html += f"""
         <tr>
@@ -3796,8 +4376,7 @@ def load_all_interpret():
     if INTERPRET_CACHE:
         return INTERPRET_CACHE  # ถ้าโหลดแล้ว ไม่ต้องโหลดซ้ำ
 
-    url = "https://webmt.mahidol.ac.th/api/ConditionInterprets"
-    response = requests.get(url, timeout=10)
+    response = _online_results_api_request('GET', '/ConditionInterprets')
     data = response.json()["data"]
 
     INTERPRET_CACHE = {
@@ -3814,8 +4393,7 @@ def load_all_conditions():
     if CONDITION_CACHE:
         return CONDITION_CACHE  # โหลดแล้วไม่ต้องโหลดซ้ำ
 
-    url = "https://webmt.mahidol.ac.th/api/Conditions"
-    response = requests.get(url, timeout=10)
+    response = _online_results_api_request('GET', '/Conditions')
     data = response.json()
 
     grouped = defaultdict(list)
@@ -3832,6 +4410,17 @@ mapping_color_inp = {
         "AbH": ("has-text-danger")
     }
 
+
+def parse_cmslis_birth_date(birth_date):
+    if not birth_date or birth_date == "No birth date":
+        return None
+
+    try:
+        return datetime.strptime(birth_date, "%Y-%m-%dT%H:%M:%S").date()
+    except (TypeError, ValueError):
+        return None
+
+
 @comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>')
 @comhealth.route('/result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>')
 def customer_result(serviceNo, email, servicedate, age=None):
@@ -3847,21 +4436,278 @@ def customer_result(serviceNo, email, servicedate, age=None):
                 'danger'
             )
             return redirect(url_for('comhealth.customers_result_list'))
-    api_employee_url = f"https://webmt.mahidol.ac.th/api/Employees/email/{email}"
-    response_employee = requests.get(api_employee_url)
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
     employee = response_employee.json()
 
     dt = datetime.fromisoformat(servicedate)
     servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
 
     load_all_interpret()
+    age_for_api = age if age and str(age).isdigit() else 0
+    age_display = age if age and str(age).isdigit() else '-'
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age_display, current_lang)
+    concern_keys = _health_risk_video_concern_keys(bundle['report'])
+    recommended_videos = _recommended_health_education_videos(concern_keys, limit=3)
+    selected_concern_label = bundle['report']['top_issues'][0]['issue_name'] if bundle['report']['top_issues'] else ''
 
     return render_template(
         'comhealth/result.html',
         employee=employee,
+        employee_email=email,
         servicedate_thai=servicedate_thai,
+        servicedate_iso=servicedate,
         service_no=serviceNo,
-        age=age
+        age=age_display,
+        age_for_api=age_for_api,
+        current_lang=current_lang,
+        ui=ui,
+        top_issues=bundle["report"]["top_issues"],
+        health_summary=bundle["health_summary"],
+        recommended_videos=recommended_videos,
+        selected_concern_label=selected_concern_label,
+        health_risk_url=url_for(
+            'comhealth.health_risk_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang=current_lang
+        ),
+        switch_url_th=url_for(
+            'comhealth.customer_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang='th',
+        ),
+        switch_url_en=url_for(
+            'comhealth.customer_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang='en',
+        ),
+        more_videos_url=url_for(
+            'comhealth.health_education_videos_page',
+            concern=concern_keys[0] if concern_keys else '',
+            lang=current_lang,
+            report_url=url_for(
+                'comhealth.customer_result',
+                serviceNo=serviceNo,
+                email=email,
+                servicedate=servicedate,
+                age=age_display,
+                lang=current_lang,
+            ),
+        ),
+    )
+
+
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>')
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>')
+def health_risk_result(serviceNo, email, servicedate, age=None):
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
+
+    if not current_user.is_authenticated:
+        session_email = session.get('comhealth_online_results_email', '').strip().lower()
+        if email.strip().lower() != session_email:
+            flash(
+                'Unauthorized online result access. / ไม่มีสิทธิ์เข้าถึงผลตรวจนี้',
+                'danger'
+            )
+            return redirect(url_for('comhealth.customers_result_list'))
+
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
+    employee = response_employee.json()
+
+    dt = datetime.fromisoformat(servicedate)
+    servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
+
+    age_for_api = age if age and str(age).isdigit() else 0
+    age_display = age if age and str(age).isdigit() else '-'
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age_display, current_lang)
+    top_issues = bundle['report']['top_issues']
+    issue_video_map = _related_health_education_videos_by_issue(
+        [issue.get('key') for issue in top_issues if issue.get('key')],
+        limit=3,
+    )
+    issue_videos_page_urls = {
+        issue.get('key'): _health_education_videos_page_url(
+            lang=current_lang,
+            report_url=request.url,
+            concern_key=issue.get('key', ''),
+        )
+        for issue in top_issues
+        if issue.get('key')
+    }
+
+    return render_template(
+        'comhealth/health_risk_result.html',
+        employee=employee,
+        employee_email=email,
+        servicedate_thai=servicedate_thai,
+        servicedate_iso=servicedate,
+        service_no=serviceNo,
+        age=age_display,
+        age_for_api=age_for_api,
+        current_lang=current_lang,
+        ui=ui,
+        top_issues=top_issues,
+        health_summary=bundle["health_summary"],
+        issue_video_map=issue_video_map,
+        issue_videos_page_urls=issue_videos_page_urls,
+        switch_url_th=url_for(
+            'comhealth.health_risk_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang='th',
+        ),
+        switch_url_en=url_for(
+            'comhealth.health_risk_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang='en',
+        ),
+        legacy_report_url=url_for(
+            'comhealth.customer_result',
+            serviceNo=serviceNo,
+            email=email,
+            servicedate=servicedate,
+            age=age_display,
+            lang=current_lang,
+        ),
+    )
+
+
+@lru_cache(maxsize=128)
+def _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang):
+    response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
+    employee = response_employee.json()
+
+    age_for_api = age if age and str(age).isdigit() else 0
+
+    try:
+        response_lab = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
+        lab_payload = response_lab.json()
+    except Exception:
+        lab_payload = {"data": []}
+
+    try:
+        response_physical = _online_results_api_request('GET', f'/PhysicalExams/{serviceNo}')
+        physical = response_physical.json()
+    except Exception:
+        physical = {}
+
+    try:
+        response_waist = _online_results_api_request('GET', f'/Questionares/waistline/{serviceNo}')
+        waistline_payload = response_waist.json()
+    except Exception:
+        waistline_payload = {}
+
+    physical = {
+        **physical,
+        "waistline": waistline_payload.get("waistline", ""),
+    }
+
+    report = build_health_risk_report(
+        rows=lab_payload.get("data", []),
+        physical=physical,
+        question=waistline_payload,
+        age=age_for_api,
+        gender=employee.get("sex"),
+        lang=current_lang,
+    )
+    health_summary = build_health_risk_summary(report, lang=current_lang)
+    dt = datetime.fromisoformat(servicedate)
+    servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
+
+    return {
+        "employee": employee,
+        "servicedate_thai": servicedate_thai,
+        "age_display": age if age and str(age).isdigit() else '-',
+        "age_for_api": age_for_api,
+        "report": report,
+        "health_summary": health_summary,
+    }
+
+
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/partials/top-concerns')
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>/partials/top-concerns')
+def health_risk_top_concerns_partial(serviceNo, email, servicedate, age=None):
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang)
+    return render_template(
+        'comhealth/partials/health_risk_top_concerns.html',
+        ui=ui,
+        top_issues=bundle["report"]["top_issues"],
+    )
+
+
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/partials/ai-summary')
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>/partials/ai-summary')
+def health_risk_ai_summary_partial(serviceNo, email, servicedate, age=None):
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang)
+    return render_template(
+        'comhealth/partials/health_risk_ai_summary.html',
+        ui=ui,
+        health_summary=bundle["health_summary"],
+    )
+
+
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/partials/issues')
+@comhealth.route('/health-risk-result/<int:serviceNo>/<string:email>/<string:servicedate>/<string:age>/partials/issues')
+def health_risk_issues_partial(serviceNo, email, servicedate, age=None):
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    current_lang = 'en' if current_lang.startswith('en') else 'th'
+    ui = get_health_risk_copy(current_lang)
+    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang)
+    issues = visible_health_risk_issues(bundle["report"]["issues"], request.args.get('min_score', 0))
+    issue_video_map = _related_health_education_videos_by_issue(
+        [issue.get('key') for issue in issues if issue.get('key')],
+        limit=3,
+    )
+    report_url = url_for(
+        'comhealth.customer_result',
+        serviceNo=serviceNo,
+        email=email,
+        servicedate=servicedate,
+        lang=current_lang,
+        **({'age': age} if age and str(age).isdigit() else {}),
+    )
+    issue_videos_page_urls = {
+        issue.get('key'): _health_education_videos_page_url(
+            lang=current_lang,
+            report_url=report_url,
+            concern_key=issue.get('key', ''),
+        )
+        for issue in issues
+        if issue.get('key')
+    }
+    return render_template(
+        'comhealth/partials/health_risk_issues.html',
+        ui=ui,
+        issues=issues,
+        issue_video_map=issue_video_map,
+        issue_videos_page_urls=issue_videos_page_urls,
     )
 
 @comhealth.route('/api/physical/<int:serviceNo>')
@@ -3870,16 +4716,14 @@ def employee_physical(serviceNo):
     if access_response:
         return access_response
     'phyical น้ำหนัก ส่วนสูง'
-    api_physical_url = f"http://webmt.mahidol.ac.th/api/PhysicalExams/{serviceNo}"
     try:
-        reponse_physical = requests.get(api_physical_url)
+        reponse_physical = _online_results_api_request('GET', f'/PhysicalExams/{serviceNo}')
         physical = reponse_physical.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
 
-    api_waist_url = f"https://webmt.mahidol.ac.th/api/Questionares/waistline/{serviceNo}"
     try:
-        reponse_waist = requests.get(api_waist_url)
+        reponse_waist = _online_results_api_request('GET', f'/Questionares/waistline/{serviceNo}')
         question = reponse_waist.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -3955,9 +4799,8 @@ def employee_lab(serviceNo, age, gender):
     if access_response:
         return access_response
 
-    api_lab_url = f"https://webmt.mahidol.ac.th/api/Labs/service/testsummary/{serviceNo}"
     try:
-        response = requests.get(api_lab_url)
+        response = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
         lab = response.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -4342,9 +5185,8 @@ def testspecial(serviceNo, gender, age):
     access_response = _require_online_results_access()
     if access_response:
         return access_response
-    api_lab_url = f"https://webmt.mahidol.ac.th/api/Labs/service/testsummary/{serviceNo}"
     try:
-        response = requests.get(api_lab_url)
+        response = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
         lab = response.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -4387,8 +5229,7 @@ def xray_result(serviceNo):
     access_response = _require_online_results_access()
     if access_response:
         return access_response
-    api_url = f"https://webmt.mahidol.ac.th/api/XRays/{serviceNo}"
-    reponse_xray = requests.get(api_url)
+    reponse_xray = _online_results_api_request('GET', f'/XRays/{serviceNo}')
     xray =  reponse_xray.json()
     status = xray.get("status")
     chest = xray.get("chest")
@@ -4422,8 +5263,7 @@ def api_interpert(condiinterpret_id):
 
 
 def api_condition(tcode):
-    condi_url = f"https://webmt.mahidol.ac.th/api/Conditions/subject/{tcode}"
-    return requests.get(condi_url).json()["data"]
+    return _online_results_api_request('GET', f'/Conditions/subject/{tcode}').json()["data"]
 
 
 def match_condition(test_result, age, sex, conditions):

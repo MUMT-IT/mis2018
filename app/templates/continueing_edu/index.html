@@ -1148,9 +1148,30 @@
             </button>
         </div>
 
+        <!-- Status Filter -->
+        <!-- <div class="has-text-right mb-4" data-aos="fade-up">
+            {% set status_filter = request.args.get('status','')|lower %}
+            <div class="buttons is-right">
+                <a class="button is-small {% if not status_filter %}is-link{% endif %}"
+                    href="{{ url_for('continuing_edu.index', lang=current_lang) }}">ทั้งหมด</a>
+                <a class="button is-small {% if status_filter=='published' %}is-link{% endif %}"
+                    href="{{ url_for('continuing_edu.index', lang=current_lang, status='published') }}">เผยแพร่</a>
+                <a class="button is-small {% if status_filter=='draft' %}is-link{% endif %}"
+                    href="{{ url_for('continuing_edu.index', lang=current_lang, status='draft') }}">ฉบับร่าง</a>
+                <a class="button is-small {% if status_filter=='registration_open' %}is-link{% endif %}"
+                    href="{{ url_for('continuing_edu.index', lang=current_lang, status='registration_open') }}">เปิดรับสมัคร</a>
+                <a class="button is-small {% if status_filter=='registration_active' %}is-link{% endif %}"
+                    href="{{ url_for('continuing_edu.index', lang=current_lang, status='registration_active') }}">ลงทะเบียนได้</a>
+            </div>
+        </div> -->
+
         <!-- Grid View (Default) -->
         <div class="columns is-multiline" id="gridView">
-            {% for course in events %}
+            {% set _s = request.args.get('status','')|lower %}
+            {% for course in events if ((_s=='' and (course.is_published or course.registration_open or
+            course.is_registration_active())) or (_s!='' and ((_s=='published' and course.is_published) or (_s=='draft'
+            and not course.is_published) or (_s=='registration_open' and course.registration_open) or
+            (_s=='registration_active' and course.is_registration_active())))) %}
             <div class="column is-one-third-desktop is-half-tablet is-full-mobile" data-aos="fade-up"
                 data-aos-delay="{{ loop.index * 100 }}">
                 <div class="card has-background-white rounded-lg shadow-lg border border-gray-200"
@@ -1318,12 +1339,19 @@
                     </div>
                 </div>
             </div>
+            {% else %}
+            <div class="column">
+                <div class="box has-text-centered">ไม่มีรายการที่ตรงกับเงื่อนไข</div>
+            </div>
             {% endfor %}
         </div>
 
         <!-- List View (Hidden by Default) -->
         <div class="course-list-view" id="listView" style="display: none;">
-            {% for course in events %}
+            {% for course in events if ((_s=='' and (course.is_published or course.registration_open or
+            course.is_registration_active())) or (_s!='' and ((_s=='published' and course.is_published) or (_s=='draft'
+            and not course.is_published) or (_s=='registration_open' and course.registration_open) or
+            (_s=='registration_active' and course.is_registration_active())))) %}
             <div class="course-list-item" data-aos="fade-up" data-aos-delay="{{ loop.index * 100 }}">
                 <!-- Course Image with Date Badge Overlay -->
                 <div class="course-list-image">
@@ -1452,7 +1480,10 @@
         <h2 class="title is-2 has-text-centered mb-12 has-text-gray-800 rounded-md" data-aos="fade-up">{{
             texts.upcoming_webinars_title }}</h2>
         <div class="columns is-multiline">
-            {% for webinar in events %}
+            {% for webinar in events if ((_s=='' and (webinar.is_published or webinar.registration_open or
+            webinar.is_registration_active())) or (_s!='' and ((_s=='published' and webinar.is_published) or
+            (_s=='draft' and not webinar.is_published) or (_s=='registration_open' and webinar.registration_open) or
+            (_s=='registration_active' and webinar.is_registration_active())))) %}
             <div class="column is-half-desktop is-full-mobile" data-aos="fade-up"
                 data-aos-delay="{{ loop.index * 100 }}">
                 <div class="card has-background-white p-6 rounded-lg shadow-md border border-gray-200">
