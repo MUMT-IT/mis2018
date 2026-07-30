@@ -20,6 +20,7 @@
                         <div class="content mb-5">
                             <p><strong>ชื่อเอกสาร:</strong> {{ document_title }}</p>
                             <p><strong>ชื่อไฟล์:</strong> {{ filename }}</p>
+                            <p><strong>วิธีสกัดข้อความ:</strong> {% if ocr_used %}Typhoon OCR (เอกสารสแกน){% else %}ข้อความใน PDF{% endif %}</p>
                             <p><strong>สถานะ:</strong> {{ {'success': 'สำเร็จ', 'warning': 'มีคำเตือน', 'error': 'ผิดพลาด'}.get(extraction_status, extraction_status) }}</p>
                             <p><strong>วิธีแบ่งส่วน:</strong> {{ chunking_method }}</p>
                             <p><strong>จำนวนอักขระที่สกัดได้:</strong> {{ extracted_char_count }}</p>
