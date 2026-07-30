@@ -503,6 +503,24 @@ def _get_search_statistics():
     }
 
 
+def _get_document_statistics():
+    documents = DocsQueryDocument.query.all()
+    type_counts = {}
+    for document in documents:
+        document_type = (document.document_type or '').strip() or 'ไม่ระบุประเภท'
+        type_counts[document_type] = type_counts.get(document_type, 0) + 1
+    return {
+        'total_documents': len(documents),
+        'processed_documents': sum(document.status == 'processed' for document in documents),
+        'active_documents': sum(not document.is_expired for document in documents),
+        'expired_documents': sum(document.is_expired for document in documents),
+        'document_types': sorted(
+            type_counts.items(),
+            key=lambda item: (-item[1], item[0]),
+        ),
+    }
+
+
 @docs_query.route('/click/<int:search_id>/<file_id>')
 @login_required
 def track_document_click(search_id, file_id):
@@ -519,10 +537,28 @@ def track_document_click(search_id, file_id):
     return redirect('https://drive.google.com/file/d/{}/view'.format(file_id))
 
 
-def _build_related_documents(search_results, limit=8):
+def _build_related_documents(search_results, limit=5):
+    semantic_results = [
+        result for result in search_results
+        if result.get('similarity') is not None
+    ]
+    if semantic_results:
+        top_similarity = max(result['similarity'] for result in semantic_results)
+        relative_cutoff = max(
+            _semantic_min_similarity(),
+            top_similarity - 0.12,
+            top_similarity * 0.85,
+        )
+        candidate_results = [
+            result for result in semantic_results
+            if result['similarity'] >= relative_cutoff
+        ]
+    else:
+        candidate_results = search_results
+
     related_documents = []
     seen_document_ids = set()
-    for result in search_results:
+    for result in candidate_results:
         document = result['document']
         if document.id in seen_document_ids:
             continue
@@ -1012,6 +1048,13 @@ def index():
             try:
                 search_results, search_method = search_chunks(query, return_metadata=True)
                 related_documents = _build_related_documents(search_results)
+                related_document_ids = {
+                    related['document'].id for related in related_documents
+                }
+                summary_results = [
+                    result for result in search_results
+                    if result['document'].id in related_document_ids
+                ]
                 search = _record_search(
                     query,
                     len(search_results),
@@ -1029,8 +1072,8 @@ def index():
                         )
                 if not search_results:
                     flash('ไม่พบเอกสารที่ตรงกับคำค้น', 'info')
-                else:
-                    answer = _call_typhoon_document_answer(query, search_results)
+                elif summary_results:
+                    answer = _call_typhoon_document_answer(query, summary_results)
                 _update_search_response_time(
                     search,
                     round((time.perf_counter() - started_at) * 1000),
@@ -1046,6 +1089,18 @@ def index():
         statistics = {
             'popular_queries': [],
             'popular_documents': [],
+        }
+    try:
+        document_statistics = _get_document_statistics()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Could not load docs query document statistics.')
+        document_statistics = {
+            'total_documents': 0,
+            'processed_documents': 0,
+            'active_documents': 0,
+            'expired_documents': 0,
+            'document_types': [],
         }
     if request.headers.get('HX-Request') == 'true':
         return render_template(
@@ -1063,6 +1118,7 @@ def index():
         answer=answer,
         search_id=search_id,
         statistics=statistics,
+        document_statistics=document_statistics,
         can_manage_documents=admin_permission.can(),
     )
 
