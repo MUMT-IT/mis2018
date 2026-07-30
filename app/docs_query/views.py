@@ -3,7 +3,7 @@ import tempfile
 import json
 import re
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import fitz
 import requests
@@ -29,6 +29,28 @@ EMBEDDING_MODEL = os.getenv('DOCS_QUERY_EMBEDDING_MODEL', 'cohere-embed-multilin
 EMBEDDING_DIMENSIONS = 1024
 EMBEDDING_MAX_BYTES = 2048
 OCR_TRIGGER_CHAR_COUNT = 50
+
+
+def _semantic_min_similarity():
+    try:
+        return float(os.getenv('DOCS_QUERY_MIN_SIMILARITY', '0.35'))
+    except ValueError:
+        return 0.35
+
+THAI_MONTHS = {
+    'มกราคม': 1, 'ม.ค.': 1,
+    'กุมภาพันธ์': 2, 'ก.พ.': 2,
+    'มีนาคม': 3, 'มี.ค.': 3,
+    'เมษายน': 4, 'เม.ย.': 4,
+    'พฤษภาคม': 5, 'พ.ค.': 5,
+    'มิถุนายน': 6, 'มิ.ย.': 6,
+    'กรกฎาคม': 7, 'ก.ค.': 7,
+    'สิงหาคม': 8, 'ส.ค.': 8,
+    'กันยายน': 9, 'ก.ย.': 9,
+    'ตุลาคม': 10, 'ต.ค.': 10,
+    'พฤศจิกายน': 11, 'พ.ย.': 11,
+    'ธันวาคม': 12, 'ธ.ค.': 12,
+}
 
 
 def _embedding_configured():
@@ -138,6 +160,13 @@ def _build_document_metadata(form_data):
         normalized_tag = tag.strip()
         if normalized_tag and normalized_tag not in tags:
             tags.append(normalized_tag)
+    issue_date = None
+    raw_issue_date = (form_data.get('issue_date') or '').strip()
+    if raw_issue_date:
+        try:
+            issue_date = date.fromisoformat(raw_issue_date)
+        except ValueError:
+            raise ValueError('วันที่ออกเอกสารไม่ถูกต้อง')
     return {
         'document_title': (form_data.get('document_title') or '').strip(),
         'document_type': (form_data.get('document_type') or '').strip(),
@@ -145,6 +174,7 @@ def _build_document_metadata(form_data):
         'tags': tags,
         'note': (form_data.get('note') or '').strip(),
         'is_expired': form_data.get('is_expired') == 'on',
+        'issue_date': issue_date,
     }
 
 
@@ -322,16 +352,23 @@ def _semantic_search_chunks(query, limit=50):
 
     query_embedding = _embed_texts([query], 'search_query')[0]
     vector = _vector_literal(query_embedding)
+    min_similarity = _semantic_min_similarity()
     rows = db.session.execute(
         sqlalchemy_text(
             'SELECT c.id, 1 - (c.embedding <=> CAST(:embedding AS vector)) AS similarity '
             'FROM docs_query_chunks c '
             'JOIN docs_query_documents d ON d.id = c.document_id '
             'WHERE d.status = :status AND c.embedding IS NOT NULL '
+            'AND 1 - (c.embedding <=> CAST(:embedding AS vector)) >= :min_similarity '
             'ORDER BY c.embedding <=> CAST(:embedding AS vector) '
             'LIMIT :limit'
         ),
-        {'embedding': vector, 'status': 'processed', 'limit': limit},
+        {
+            'embedding': vector,
+            'status': 'processed',
+            'min_similarity': min_similarity,
+            'limit': limit,
+        },
     ).mappings().all()
     if not rows:
         return []
@@ -495,10 +532,25 @@ def _build_related_documents(search_results, limit=8):
             'url': 'https://drive.google.com/file/d/{}/view'.format(document.drive_file_id),
             'chunk_index': result['chunk_index'],
             'chunk_text': result['text'],
+            'issue_date_label': (
+                '{:02d}/{:02d}/{}'.format(
+                    document.issue_date.day,
+                    document.issue_date.month,
+                    document.issue_date.year + 543,
+                )
+                if document.issue_date else 'ไม่พบวันที่ออกเอกสาร'
+            ),
         })
         if len(related_documents) >= limit:
             break
-    return related_documents
+    return sorted(
+        related_documents,
+        key=lambda related: (
+            related['document'].issue_date is None,
+            -(related['document'].issue_date.toordinal()
+              if related['document'].issue_date else 0),
+        ),
+    )
 
 
 def _build_typhoon_document_prompt(query, search_results):
@@ -713,6 +765,109 @@ def _normalize_text(text):
     text = re.sub(r'[ \t]+', ' ', text)
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
+
+
+def _normalize_thai_digits(value):
+    thai_digits = str.maketrans('๐๑๒๓๔๕๖๗๘๙', '0123456789')
+    return (value or '').translate(thai_digits)
+
+
+def _parse_issue_date(day, month, year, raw):
+    try:
+        day = int(_normalize_thai_digits(day))
+        year = int(_normalize_thai_digits(year))
+        if year < 100:
+            year += 2000
+        if year >= 2400:
+            year -= 543
+        return date(year, int(month), day), raw.strip()
+    except (TypeError, ValueError):
+        return None, None
+
+
+def extract_issue_date(text):
+    """Extract a likely issue date, preferring dates beside issue-date labels."""
+    text = _normalize_thai_digits(text)
+    month_pattern = '|'.join(
+        re.escape(month) for month in sorted(THAI_MONTHS, key=len, reverse=True)
+    )
+    date_patterns = [
+        re.compile(
+            r'(?P<day>\d{{1,2}})\s+(?P<month>{})\s+(?P<year>\d{{2,4}})'.format(month_pattern),
+            re.IGNORECASE,
+        ),
+        re.compile(r'(?P<day>\d{1,2})\s*[/\-.]\s*(?P<month>\d{1,2})\s*[/\-.]\s*(?P<year>\d{2,4})'),
+    ]
+    label_pattern = re.compile(
+        r'(?:ลงวันที่|วันที่ออก|วันที่ประกาศ|ประกาศ\s*ณ\s*วันที่)'
+        r'[^\n]{0,80}',
+        re.IGNORECASE,
+    )
+
+    def find_date(value):
+        for pattern in date_patterns:
+            match = pattern.search(value)
+            if not match:
+                continue
+            month = match.group('month')
+            month_number = THAI_MONTHS.get(month) if not month.isdigit() else int(month)
+            parsed_date, raw = _parse_issue_date(
+                match.group('day'),
+                month_number,
+                match.group('year'),
+                match.group(0),
+            )
+            if parsed_date:
+                return parsed_date, raw
+        return None, None
+
+    for label_match in label_pattern.finditer(text):
+        parsed_date, raw = find_date(label_match.group(0))
+        if parsed_date:
+            return {
+                'issue_date': parsed_date,
+                'issue_date_raw': raw,
+                'date_extraction_method': 'label_regex',
+            }
+
+    parsed_date, raw = find_date(text)
+    if parsed_date:
+        return {
+            'issue_date': parsed_date,
+            'issue_date_raw': raw,
+            'date_extraction_method': 'regex',
+        }
+    return {
+        'issue_date': None,
+        'issue_date_raw': None,
+        'date_extraction_method': 'not_found',
+    }
+
+
+def _save_issue_date(document, extracted_text):
+    result = extract_issue_date(extracted_text)
+    document.issue_date = result['issue_date']
+    document.issue_date_raw = result['issue_date_raw']
+    document.date_extraction_method = result['date_extraction_method']
+    document.date_extracted_at = datetime.now(timezone.utc)
+    return result
+
+
+def extract_date_for_document(file_id):
+    """Extract date metadata from already stored chunks without reprocessing embeddings."""
+    document = DocsQueryDocument.query.filter_by(drive_file_id=file_id).first()
+    if not document:
+        raise RuntimeError('Document has not been processed yet.')
+
+    chunks = DocsQueryChunk.query.filter_by(document_id=document.id).order_by(
+        DocsQueryChunk.chunk_index,
+    ).all()
+    if not chunks:
+        raise RuntimeError('Document has no stored extracted text chunks.')
+
+    result = _save_issue_date(document, '\n\n'.join(chunk.text for chunk in chunks))
+    db.session.commit()
+    return result
 
 
 def chunk_text(text, max_chars=1200, overlap_chars=200):
@@ -1046,6 +1201,12 @@ def edit_metadata(file_id):
             'is_expired': _parse_bool(properties.get('is_expired')),
             'description': file_item.get('description') or '',
         }
+        existing_document = DocsQueryDocument.query.filter_by(drive_file_id=file_id).first()
+        existing_metadata['issue_date'] = (
+            existing_document.issue_date.isoformat()
+            if existing_document and existing_document.issue_date
+            else ''
+        )
 
         if request.method == 'POST':
             metadata = _build_document_metadata(request.form)
@@ -1074,6 +1235,10 @@ def edit_metadata(file_id):
             document.tags = metadata['tags']
             document.note = metadata['note'] or None
             document.is_expired = metadata['is_expired']
+            document.issue_date = metadata['issue_date']
+            document.issue_date_raw = metadata['issue_date'].isoformat() if metadata['issue_date'] else None
+            document.date_extraction_method = 'manual' if metadata['issue_date'] else 'not_found'
+            document.date_extracted_at = datetime.now(timezone.utc)
             db.session.commit()
             flash('บันทึกข้อมูลกำกับเอกสารเรียบร้อยแล้ว', 'success')
             return redirect(url_for('docs_query.admin'))
@@ -1147,6 +1312,7 @@ def process_document(file_id):
         document.tags = _parse_tags(properties.get('tags'))
         document.note = properties.get('note') or None
         document.is_expired = _parse_bool(properties.get('is_expired'))
+        date_result = _save_issue_date(document, extracted_text)
         document.status = 'processing'
         document.error_message = None
         db.session.commit()
@@ -1215,6 +1381,8 @@ def process_document(file_id):
             'document_title': document_title,
             'filename': filename,
             'ocr_used': ocr_used,
+            'issue_date': date_result['issue_date'],
+            'issue_date_raw': date_result['issue_date_raw'],
             'extraction_status': extraction_status,
             'chunking_method': chunking_method,
             'extracted_char_count': extracted_char_count,

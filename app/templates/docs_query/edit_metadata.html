@@ -27,6 +27,11 @@
                         <div class="control"><input class="input" id="document_type" name="document_type" type="text" value="{{ metadata.document_type }}"></div>
                     </div>
                     <div class="field">
+                        <label class="label" for="issue_date">วันที่ออกเอกสาร</label>
+                        <div class="control"><input class="input" id="issue_date" name="issue_date" type="date" value="{{ metadata.issue_date or '' }}"></div>
+                        <p class="help">ใช้สำหรับจัดเรียงเอกสารตามลำดับเวลา หากไม่ทราบวันที่สามารถเว้นว่างได้</p>
+                    </div>
+                    <div class="field">
                         <label class="label" for="tags">แท็ก</label>
                         <div class="control"><input class="input" id="tags" name="tags" type="text" value="{{ metadata.tags|join(', ') }}"></div>
                         <p class="help">คั่นแท็กหลายรายการด้วยเครื่องหมายจุลภาค</p>
