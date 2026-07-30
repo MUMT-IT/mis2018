@@ -143,6 +143,7 @@ def create_app():
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
+    app.config['TEST_SERVER'] = _env_flag('TEST_SERVER', False)
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['LINE_CLIENT_ID'] = os.environ.get('LINE_CLIENT_ID')
     app.config['LINE_CLIENT_SECRET'] = os.environ.get('LINE_CLIENT_SECRET')
@@ -1693,6 +1694,9 @@ app.register_blueprint(software_request_blueprint)
 from app.docs_query import docs_query as docs_query_blueprint
 
 app.register_blueprint(docs_query_blueprint)
+from app.docs_query.commands import register_commands as register_docs_query_commands
+
+register_docs_query_commands(app)
 
 from app.software_request.models import *
 
