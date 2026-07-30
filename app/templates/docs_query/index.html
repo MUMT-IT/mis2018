@@ -1,24 +1,23 @@
 {% extends "base.html" %}
+{% include "docs_query/nav.html" %}
 {% block title %}MUMT-MIS: ค้นหาเอกสาร{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
             <div class="columns is-centered">
-                <div class="column is-10-tablet is-8-desktop is-7-widescreen">
+                <div class="column is-10-tablet is-8-desktop is-7-widescreen docs-query-page-column">
                     {% include "messages.html" %}
                     <div class="box docs-query-shell">
                         <div class="has-text-centered mb-6">
                             <h1 class="title is-2">ค้นหาเอกสาร</h1>
                             <p class="subtitle is-5 has-text-grey">ค้นหาเอกสารภายในและค้นหาแนวปฏิบัติ ประกาศ หรือคำแนะนำที่เกี่ยวข้อง</p>
-                            {% if can_manage_documents %}
-                                <a class="button is-light" href="{{ url_for('docs_query.admin') }}">
-                                    <span class="icon"><i class="fas fa-cog"></i></span>
-                                    <span>จัดการเอกสาร</span>
-                                </a>
-                            {% endif %}
+                            <img id="docs-query-search-robot" class="docs-query-search-robot" src="{{ url_for('static', filename='img/search.png') }}" alt="กำลังค้นหา">
                         </div>
 
-                        <form method="post" action="{{ url_for('docs_query.index') }}">
+                        <form id="docs-query-search-form" method="post" action="{{ url_for('docs_query.index') }}"
+                              hx-post="{{ url_for('docs_query.index') }}"
+                              hx-target="#docs-query-results"
+                              hx-swap="innerHTML">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="field">
                                 <label class="label" for="query">คำถามหรือคำค้น</label>
@@ -34,11 +33,54 @@
                                 </div>
                             </div>
                             <div class="field has-text-centered mt-5">
-                                <button class="button is-info is-medium" type="submit">ค้นหา</button>
+                                <button id="docs-query-search-button" class="button is-info is-medium" type="submit">ค้นหา</button>
                             </div>
                         </form>
 
+                    </div>
+
+                    {% if not query %}
+                    <div class="box docs-query-discovery-card">
+                        <div class="columns is-variable is-5 mt-6 docs-query-discovery">
+                            <div class="column">
+                                <h2 class="title is-5 mb-3">คำค้นหรือคำถามยอดนิยม</h2>
+                                {% if statistics.popular_queries %}
+                                    <ol class="docs-query-popular-list">
+                                        {% for popular_query in statistics.popular_queries[:5] %}
+                                            <li>
+                                                <span class="docs-query-popular-label" title="{{ popular_query.query_text }}">{{ popular_query.query_text }}</span>
+                                                <span class="tag is-info is-light">{{ popular_query.search_count }} ครั้ง</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                {% else %}
+                                    <p class="has-text-grey is-size-7">ยังไม่มีข้อมูลการค้นหา</p>
+                                {% endif %}
+                            </div>
+                            <div class="column">
+                                <h2 class="title is-5 mb-3">เอกสารที่ถูกเปิดบ่อย</h2>
+                                {% if statistics.popular_documents %}
+                                    <ol class="docs-query-popular-list">
+                                        {% for document, click_count in statistics.popular_documents[:5] %}
+                                            <li>
+                                                <a class="docs-query-popular-label" href="https://drive.google.com/file/d/{{ document.drive_file_id }}/view" target="_blank" rel="noopener noreferrer" title="{{ document.document_title or document.filename }}">
+                                                    {{ document.document_title or document.filename }}
+                                                </a>
+                                                <span class="tag is-info is-light">{{ click_count }} ครั้ง</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                {% else %}
+                                    <p class="has-text-grey is-size-7">ยังไม่มีข้อมูลการเปิดเอกสาร</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                        <div id="docs-query-results">
                         {% if query %}
+                        <div class="box docs-query-results-card">
                             <div class="mt-5">
                                 <div class="level is-mobile mb-3">
                                     <div>
@@ -117,9 +159,16 @@
                                     </div>
                                 {% endif %}
                             </div>
+                        </div>
                         {% endif %}
+                        </div>
 
-                    </div>
+                        <div class="has-text-centered mt-5 docs-query-documents-link">
+                            <a class="button is-info is-medium docs-query-documents-cta" href="{{ url_for('docs_query.documents') }}">
+                                <span class="icon"><i class="fas fa-list"></i></span>
+                                <span>ดูเอกสารทั้งหมด</span>
+                            </a>
+                        </div>
                 </div>
             </div>
         </div>
@@ -130,6 +179,62 @@
             border-radius: 28px;
             margin: 3rem auto;
             padding: 2.75rem;
+        }
+
+        .docs-query-page-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .docs-query-shell { order: 0; }
+        #docs-query-results { order: 1; }
+        .docs-query-discovery-card { order: 2; }
+        .docs-query-documents-link { order: 3; }
+
+        .docs-query-documents-cta {
+            background: linear-gradient(135deg, var(--theme-navy), var(--theme-navy-deep));
+            border: 0;
+            border-radius: 999px;
+            box-shadow: 0 12px 24px rgba(18, 39, 84, 0.2);
+            font-weight: 700;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .docs-query-documents-cta:hover,
+        .docs-query-documents-cta:focus {
+            background: linear-gradient(135deg, #244a90, #16335e);
+            box-shadow: 0 16px 30px rgba(18, 39, 84, 0.28);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .docs-query-search-robot {
+            display: block;
+            height: auto;
+            margin: 0 auto 1rem;
+            max-width: 120px;
+        }
+
+        .docs-query-search-robot.is-searching {
+            animation: docs-query-robot-sway .9s ease-in-out infinite;
+            transform-origin: 50% 80%;
+        }
+
+        @keyframes docs-query-robot-sway {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-14px); }
+            50% { transform: translateX(0); }
+            75% { transform: translateX(14px); }
+            100% { transform: translateX(0); }
+        }
+
+        .docs-query-discovery-card,
+        .docs-query-results-card {
+            border-radius: 28px;
+            margin: 1.5rem auto 3rem;
+            padding: 1.25rem 2.75rem;
         }
 
         .docs-query-result {
@@ -181,19 +286,75 @@
             line-height: 1.75;
             white-space: pre-line;
         }
+
+        .docs-query-discovery {
+            border-top: 1px solid rgba(18, 39, 84, 0.1);
+            padding-top: 1.5rem;
+        }
+
+        .docs-query-popular-list {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        .docs-query-popular-list li {
+            align-items: center;
+            display: grid;
+            gap: .5rem;
+            grid-template-columns: minmax(0, 1fr) auto;
+            margin-bottom: .65rem;
+            min-width: 0;
+        }
+
+        .docs-query-popular-label {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     </style>
     <script>
-        document.querySelectorAll('.docs-query-reference-trigger').forEach(function (trigger) {
-            trigger.addEventListener('click', function () {
-                var modal = document.getElementById(trigger.dataset.target);
-                if (modal) modal.classList.add('is-active');
-            });
+        var searchForm = document.getElementById('docs-query-search-form');
+        var searchButton = document.getElementById('docs-query-search-button');
+        var searchRobot = document.getElementById('docs-query-search-robot');
+
+        function setSearchLoading(isLoading) {
+            searchButton.classList.toggle('is-loading', isLoading);
+            searchButton.disabled = isLoading;
+            searchRobot.classList.toggle('is-searching', isLoading);
+        }
+
+        searchForm.addEventListener('submit', function () {
+            setSearchLoading(true);
         });
-        document.querySelectorAll('.docs-query-modal-close, .docs-query-reference-modal .modal-background').forEach(function (closeButton) {
-            closeButton.addEventListener('click', function () {
-                var modal = closeButton.closest('.modal');
-                if (modal) modal.classList.remove('is-active');
+
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.elt === searchForm) {
+                setSearchLoading(false);
+            }
+        });
+
+        function bindReferenceModals() {
+            document.querySelectorAll('.docs-query-reference-trigger').forEach(function (trigger) {
+                trigger.addEventListener('click', function () {
+                    var modal = document.getElementById(trigger.dataset.target);
+                    if (modal) modal.classList.add('is-active');
+                });
             });
+            document.querySelectorAll('.docs-query-modal-close, .docs-query-reference-modal .modal-background').forEach(function (closeButton) {
+                closeButton.addEventListener('click', function () {
+                    var modal = closeButton.closest('.modal');
+                    if (modal) modal.classList.remove('is-active');
+                });
+            });
+        }
+
+        bindReferenceModals();
+        document.body.addEventListener('htmx:afterSwap', function (event) {
+            if (event.detail.target.id === 'docs-query-results') {
+                bindReferenceModals();
+            }
         });
     </script>
 {% endblock %}

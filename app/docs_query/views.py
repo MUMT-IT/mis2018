@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 import fitz
 import requests
-from flask import abort, current_app, flash, redirect, render_template, request, url_for
+from flask import abort, current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
@@ -765,9 +765,11 @@ def index():
     related_documents = []
     answer = None
     search_id = None
+    search_error = None
     if request.method == 'POST':
         query = (request.form.get('query') or '').strip()
         if not query:
+            search_error = 'กรุณาระบุคำค้นหรือคำถาม'
             flash('กรุณาระบุคำค้นหรือคำถาม', 'warning')
         else:
             started_at = time.perf_counter()
@@ -798,7 +800,25 @@ def index():
                     round((time.perf_counter() - started_at) * 1000),
                 )
             except Exception as exc:
+                search_error = 'การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc)
                 flash('การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc), 'danger')
+    try:
+        statistics = _get_search_statistics()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Could not load public docs query statistics.')
+        statistics = {
+            'popular_queries': [],
+            'popular_documents': [],
+        }
+    if request.headers.get('HX-Request') == 'true':
+        return render_template(
+            'docs_query/search_results.html',
+            query=query,
+            related_documents=related_documents,
+            answer=answer,
+            search_error=search_error,
+        )
     return render_template(
         'docs_query/index.html',
         query=query,
@@ -806,6 +826,7 @@ def index():
         related_documents=related_documents,
         answer=answer,
         search_id=search_id,
+        statistics=statistics,
         can_manage_documents=admin_permission.can(),
     )
 
@@ -837,6 +858,95 @@ def admin():
         pdf_files=pdf_files,
         statistics=statistics,
     )
+
+
+@docs_query.route('/documents')
+@login_required
+def documents():
+    return render_template(
+        'docs_query/documents.html',
+        can_manage_documents=admin_permission.can(),
+    )
+
+
+@docs_query.route('/documents/data')
+@login_required
+def documents_data():
+    try:
+        draw = int(request.args.get('draw', 0))
+    except (TypeError, ValueError):
+        draw = 0
+    try:
+        start = max(int(request.args.get('start', 0)), 0)
+    except (TypeError, ValueError):
+        start = 0
+    try:
+        length = int(request.args.get('length', 10))
+    except (TypeError, ValueError):
+        length = 10
+    length = min(max(length, 1), 100)
+
+    base_query = DocsQueryDocument.query
+    records_total = base_query.count()
+    search_value = (request.args.get('search[value]') or '').strip()
+    filtered_query = base_query
+    if search_value:
+        pattern = '%{}%'.format(
+            search_value.replace('\\', '\\\\')
+            .replace('%', '\\%')
+            .replace('_', '\\_')
+        )
+        filtered_query = filtered_query.filter(
+            or_(
+                DocsQueryDocument.document_title.ilike(pattern, escape='\\'),
+                DocsQueryDocument.filename.ilike(pattern, escape='\\'),
+                DocsQueryDocument.status.ilike(pattern, escape='\\'),
+                DocsQueryDocument.document_type.ilike(pattern, escape='\\'),
+                cast(DocsQueryDocument.tags, db.Text).ilike(pattern, escape='\\'),
+                DocsQueryDocument.note.ilike(pattern, escape='\\'),
+            )
+        )
+
+    records_filtered = filtered_query.count()
+    order_columns = {
+        '0': DocsQueryDocument.document_title,
+        '1': DocsQueryDocument.status,
+        '2': DocsQueryDocument.updated_at,
+    }
+    order_column = order_columns.get(request.args.get('order[0][column]', '0'), DocsQueryDocument.document_title)
+    order_direction = request.args.get('order[0][dir]', 'asc').lower()
+    filtered_query = filtered_query.order_by(
+        order_column.desc() if order_direction == 'desc' else order_column.asc()
+    )
+
+    status_labels = {
+        'pending': ('รอประมวลผล', 'is-light'),
+        'processing': ('กำลังประมวลผล', 'is-info is-light'),
+        'processed': ('ประมวลผลแล้ว', 'is-success is-light'),
+        'failed': ('ประมวลผลล้มเหลว', 'is-danger is-light'),
+    }
+    rows = []
+    for document in filtered_query.offset(start).limit(length).all():
+        status_label, status_class = status_labels.get(
+            document.status,
+            (document.status or 'ไม่ทราบสถานะ', 'is-light'),
+        )
+        if document.is_expired:
+            status_label = '{} / หมดอายุ'.format(status_label)
+            status_class = 'is-danger is-light'
+        rows.append({
+            'title': document.document_title or document.filename or 'ไม่ทราบชื่อเอกสาร',
+            'url': 'https://drive.google.com/file/d/{}/view'.format(document.drive_file_id),
+            'status': status_label,
+            'status_class': status_class,
+        })
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': rows,
+    })
 
 
 @docs_query.route('/admin/edit/<file_id>', methods=['GET', 'POST'])

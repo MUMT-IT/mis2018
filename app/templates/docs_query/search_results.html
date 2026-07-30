@@ -1,0 +1,80 @@
+{% if search_error %}
+    <div class="notification is-danger is-light">{{ search_error }}</div>
+{% elif query %}
+    <div class="box docs-query-results-card">
+        <div class="mt-5">
+            <div class="level is-mobile mb-3">
+                <div>
+                    <h2 class="title is-4 mb-1">ผลการค้นหา</h2>
+                    <p class="has-text-grey is-size-7">ผลลัพธ์สำหรับ “{{ query }}”</p>
+                </div>
+                {% if related_documents %}
+                    <span class="tag is-info is-light">พบเอกสารที่อาจเกี่ยวข้อง {{ related_documents|length }} รายการ</span>
+                {% endif %}
+            </div>
+            {% if answer %}
+                <article class="message is-primary is-light docs-query-answer">
+                    <div class="message-header">
+                        <p><i class="fas fa-sparkles" aria-hidden="true"></i> ภาพรวมเอกสารที่เกี่ยวข้อง</p>
+                        <span class="tag is-warning is-light is-small">AI-generated content</span>
+                    </div>
+                    <div class="message-body">{{ answer }}</div>
+                </article>
+            {% endif %}
+            {% if related_documents %}
+                <div class="mb-3">
+                    <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
+                    <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
+                </div>
+                <div class="columns is-multiline">
+                    {% for related in related_documents %}
+                        <div class="column is-half">
+                            <div class="box docs-query-related-document">
+                                <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
+                                    <div class="is-flex is-justify-content-space-between is-align-items-start">
+                                        <div>
+                                            <p class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</p>
+                                            <p class="is-size-7 has-text-grey">{{ related.document.document_type or 'เอกสาร' }}</p>
+                                        </div>
+                                        <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
+                                    </div>
+                                </a>
+                                {% if related.document.is_expired %}
+                                    <span class="tag is-danger is-light mt-3">หมดอายุ</span>
+                                {% endif %}
+                                {% if related.document.tags %}
+                                    <div class="tags mt-3 mb-0">
+                                        {% for tag in related.document.tags %}<span class="tag is-info is-light">{{ tag }}</span>{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <button class="button is-small is-light mt-4 docs-query-reference-trigger" type="button" data-target="docs-query-reference-{{ loop.index }}">
+                                    <span class="icon"><i class="fas fa-quote-left" aria-hidden="true"></i></span>
+                                    <span>ดูข้อความอ้างอิง</span>
+                                </button>
+                            </div>
+                            <div id="docs-query-reference-{{ loop.index }}" class="modal docs-query-reference-modal">
+                                <div class="modal-background"></div>
+                                <div class="modal-card">
+                                    <header class="modal-card-head">
+                                        <p class="modal-card-title is-size-5">{{ related.document.document_title or related.document.filename }}</p>
+                                        <button class="delete docs-query-modal-close" type="button" aria-label="ปิด"></button>
+                                    </header>
+                                    <section class="modal-card-body">
+                                        <p class="is-size-7 has-text-grey mb-3">ข้อความอ้างอิงจากส่วนที่ {{ related.chunk_index + 1 }}</p>
+                                        <div class="docs-query-reference-text">{{ related.chunk_text }}</div>
+                                    </section>
+                                    <footer class="modal-card-foot">
+                                        <a class="button is-info is-light" href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">เปิดเอกสารต้นฉบับ</a>
+                                        <button class="button docs-query-modal-close" type="button">ปิด</button>
+                                    </footer>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="notification is-light">ไม่พบเอกสาร</div>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
