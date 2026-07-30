@@ -110,9 +110,10 @@
                                         <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
                                         <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
                                     </div>
-                                    <div class="columns is-multiline">
+                                    <div class="docs-query-timeline">
                                         {% for related in related_documents %}
-                                            <div class="column is-half">
+                                            <div class="docs-query-timeline-item {% if loop.index is even %}is-left{% else %}is-right{% endif %}">
+                                                <div class="docs-query-timeline-date">{{ related.issue_date_label }}</div>
                                                 <div class="box docs-query-related-document">
                                                     <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
                                                         <div class="is-flex is-justify-content-space-between is-align-items-start">
@@ -281,6 +282,123 @@
         .docs-query-related-document:hover {
             box-shadow: 0 0.5rem 1.5rem rgba(18, 39, 84, 0.1);
             transform: translateY(-2px);
+        }
+
+        .docs-query-timeline {
+            margin: 2rem auto 1rem;
+            max-width: 960px;
+            position: relative;
+        }
+
+        .docs-query-timeline::before {
+            background: linear-gradient(to bottom, transparent, #69758a 4%, #69758a 96%, transparent);
+            bottom: 0;
+            content: "";
+            left: 50%;
+            position: absolute;
+            top: 0;
+            transform: translateX(-50%);
+            width: 3px;
+        }
+
+        .docs-query-timeline-item {
+            padding: 0 3.5rem 2.25rem 0;
+            position: relative;
+            width: 50%;
+        }
+
+        .docs-query-timeline-item.is-left {
+            padding-left: 3.5rem;
+            padding-right: 0;
+            text-align: left;
+        }
+
+        .docs-query-timeline-item.is-right {
+            margin-left: 50%;
+            text-align: left;
+        }
+
+        .docs-query-timeline-item::before {
+            background: #fff;
+            border: 4px solid #ff5360;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(255, 83, 96, 0.14);
+            content: "";
+            height: 1.1rem;
+            position: absolute;
+            top: 1.15rem;
+            width: 1.1rem;
+            z-index: 2;
+        }
+
+        .docs-query-timeline-item.is-left::before {
+            right: -0.55rem;
+        }
+
+        .docs-query-timeline-item.is-right::before {
+            left: -0.55rem;
+        }
+
+        .docs-query-timeline-date {
+            color: #ff5360;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin: 0 0 0.4rem;
+        }
+
+        .docs-query-timeline-item.is-left .docs-query-timeline-date {
+            text-align: right;
+        }
+
+        .docs-query-timeline-item.is-left .docs-query-related-document {
+            margin-right: 1rem;
+        }
+
+        .docs-query-timeline-item.is-right .docs-query-related-document {
+            margin-left: 1rem;
+        }
+
+        @media screen and (max-width: 600px) {
+            .docs-query-timeline::before {
+                left: 0.35rem;
+                transform: none;
+            }
+
+            .docs-query-timeline-item {
+                margin-left: 0;
+                padding: 0 0 1.5rem 1.75rem;
+                text-align: left;
+                width: 100%;
+            }
+
+            .docs-query-timeline-item.is-left,
+            .docs-query-timeline-item.is-right {
+                margin-left: 0;
+                padding-left: 1.75rem;
+                padding-right: 0;
+                text-align: left;
+            }
+
+            .docs-query-timeline-item.is-left .docs-query-related-document,
+            .docs-query-timeline-item.is-right .docs-query-related-document {
+                margin-left: 0;
+                margin-right: 0;
+            }
+
+            .docs-query-timeline-date {
+                text-align: left;
+            }
+
+            .docs-query-timeline-item.is-left .docs-query-timeline-date {
+                text-align: left;
+            }
+
+            .docs-query-timeline-item.is-left::before,
+            .docs-query-timeline-item.is-right::before {
+                left: -0.2rem;
+                right: auto;
+                top: 0.15rem;
+            }
         }
 
         .docs-query-reference-modal .modal-card {

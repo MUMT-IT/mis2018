@@ -26,9 +26,10 @@
                     <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
                     <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
                 </div>
-                <div class="columns is-multiline">
+                <div class="docs-query-timeline">
                     {% for related in related_documents %}
-                        <div class="column is-half">
+                        <div class="docs-query-timeline-item {% if loop.index is even %}is-left{% else %}is-right{% endif %}">
+                            <div class="docs-query-timeline-date">{{ related.issue_date_label }}</div>
                             <div class="box docs-query-related-document">
                                 <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
                                     <div class="is-flex is-justify-content-space-between is-align-items-start">
