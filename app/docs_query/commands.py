@@ -5,7 +5,7 @@ from flask.cli import with_appcontext
 from app.main import db
 
 from .models import DocsQueryDocument
-from .views import list_pdf_files, process_document
+from .views import extract_date_for_document, list_pdf_files, process_document
 
 
 def register_commands(app):
@@ -22,8 +22,10 @@ def register_commands(app):
                   help='Process only the specified Google Drive file ID; repeatable.')
     @click.option('--dry-run', is_flag=True,
                   help='Show which documents would be processed without changing the database.')
+    @click.option('--date-only', is_flag=True,
+                  help='Extract issue dates from existing text without rebuilding chunks or embeddings.')
     @with_appcontext
-    def backfill(limit, retry_failed, file_ids, dry_run):
+    def backfill(limit, retry_failed, file_ids, dry_run, date_only):
         """Process new or unprocessed PDFs from the configured Drive folder."""
         pdf_files = list_pdf_files()
         requested_ids = set(file_ids)
@@ -35,6 +37,15 @@ def register_commands(app):
         for pdf in pdf_files:
             file_id = pdf.get('id')
             document = DocsQueryDocument.query.filter_by(drive_file_id=file_id).first()
+            if date_only:
+                if not document or document.status != 'processed':
+                    skipped += 1
+                    continue
+                if document.issue_date is not None and document.date_extraction_method != 'not_found':
+                    skipped += 1
+                    continue
+                candidates.append(pdf)
+                continue
             if document and document.status == 'processed':
                 skipped += 1
                 continue
@@ -59,16 +70,24 @@ def register_commands(app):
         for index, pdf in enumerate(candidates, start=1):
             file_id = pdf.get('id')
             title = pdf.get('name') or file_id
-            click.echo('[{}/{}] Processing {}'.format(index, len(candidates), title))
+            action = 'Extracting dates from' if date_only else 'Processing'
+            click.echo('[{}/{}] {} {}'.format(index, len(candidates), action, title))
             try:
-                result = process_document(file_id)
-                processed_count += 1
-                click.echo(
-                    '  Processed: {} chunks, {} characters'.format(
-                        result['total_chunk_count'],
-                        result['extracted_char_count'],
-                    )
+                result = (
+                    extract_date_for_document(file_id)
+                    if date_only
+                    else process_document(file_id)
                 )
+                processed_count += 1
+                if date_only:
+                    click.echo('  Issue date: {}'.format(result['issue_date'] or 'not found'))
+                else:
+                    click.echo(
+                        '  Processed: {} chunks, {} characters'.format(
+                            result['total_chunk_count'],
+                            result['extracted_char_count'],
+                        )
+                    )
             except Exception as exc:
                 db.session.rollback()
                 failed.append((file_id, title, str(exc)))
