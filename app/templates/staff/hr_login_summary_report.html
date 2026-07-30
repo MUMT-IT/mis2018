@@ -77,8 +77,115 @@
         margin: 0;
     }
 
-    .hr-login-report-chart {
+    .hr-login-report-filters {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
         margin-top: 1rem;
+    }
+
+    .hr-login-report-filter {
+        flex: 1 1 14rem;
+    }
+
+    .hr-login-report-filter label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+
+    .hr-login-report-filter input {
+        border: 1px solid rgba(18, 39, 84, 0.14);
+        border-radius: 10px;
+        color: var(--theme-navy-deep);
+        font: inherit;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.65rem;
+        width: 100%;
+    }
+
+    .hr-login-report-load-button {
+        background: var(--theme-navy-deep);
+        border: 0;
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .hr-login-report-load-button:disabled {
+        cursor: wait;
+        opacity: 0.6;
+    }
+
+    .hr-login-report-download-button {
+        background: rgba(202, 168, 74, 0.18);
+        border: 1px solid rgba(202, 168, 74, 0.3);
+        border-radius: 10px;
+        color: var(--theme-navy-deep);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .hr-login-report-download-button:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    .hr-login-report-range-note {
+        color: var(--theme-muted);
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+    }
+
+    .hr-login-report-stats {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 1rem;
+    }
+
+    .hr-login-report-stat {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 18px;
+        padding: 1rem;
+    }
+
+    .hr-login-report-stat-label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .hr-login-report-stat-value {
+        color: var(--theme-navy-deep);
+        font-size: 1.55rem;
+        font-weight: 800;
+        margin-top: 0.35rem;
+    }
+
+    .hr-login-report-stat-note {
+        color: var(--theme-muted);
+        font-size: 0.78rem;
+        margin-top: 0.25rem;
+    }
+
+    .hr-login-report-status {
+        color: var(--theme-muted);
+        font-size: 0.85rem;
+        margin-top: 0.9rem;
     }
 
     @media screen and (max-width: 768px) {
@@ -88,6 +195,10 @@
 
         .hr-login-report-card-inner {
             padding: 1rem;
+        }
+
+        .hr-login-report-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 </style>
@@ -101,6 +212,12 @@
                     <aside class="hr-login-report-sidebar">
                         <nav class="panel is-info">
                             <p class="panel-heading">Quick Actions</p>
+                            <div class="panel-block">
+                                <span>
+                                    <span class="icon"><i class="fas fa-chart-column" aria-hidden="true"></i></span>
+                                    <span class="is-size-6">Dashboard</span>
+                                </span>
+                            </div>
                             <a class="panel-block" href="{{ url_for('staff.hr_manual_checkin') }}">
                                 <span>
                                     <span class="icon"><i class="fas fa-map-marker-alt" aria-hidden="true"></i></span>
@@ -108,12 +225,11 @@
                                 </span>
                                 <span class="icon"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                             </a>
-                            <a class="panel-block" href="{{ url_for('staff.index') }}">
+                            <a class="panel-block" href="{{ url_for('staff.for_hr') }}">
                                 <span>
                                     <span class="icon"><i class="fas fa-house" aria-hidden="true"></i></span>
-                                    <span class="is-size-6">Dashboard</span>
+                                    <span class="is-size-6">Back</span>
                                 </span>
-                                <span class="icon"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                             </a>
                         </nav>
                     </aside>
@@ -122,10 +238,32 @@
                     <div class="hr-login-report-card">
                         <div class="hr-login-report-card-inner">
                             <h1 class="hr-login-report-title">สรุปรายงานการเข้าออกงานประจำวัน</h1>
-                            <p class="hr-login-report-subtitle">สรุปภาพรวมการเข้าออกงาน, work from home และการลาในมุมมองรายวัน</p>
-                            <div class="hr-login-report-chart" id="calendar_checkin"></div>
-                            <div class="hr-login-report-chart" id="calendar_wfh"></div>
-                            <div class="hr-login-report-chart" id="calendar_leave"></div>
+                            <p class="hr-login-report-subtitle">สรุปสถิติการลงเวลาในช่วงวันที่และเวลาที่เลือก</p>
+                            <div class="hr-login-report-filters">
+                                <div class="hr-login-report-filter">
+                                    <label for="reportStart">เริ่มต้น</label>
+                                    <input id="reportStart" type="datetime-local">
+                                </div>
+                                <div class="hr-login-report-filter">
+                                    <label for="reportEnd">สิ้นสุด</label>
+                                    <input id="reportEnd" type="datetime-local">
+                                </div>
+                                <button type="button" class="hr-login-report-load-button" id="loadReportButton">
+                                    <i class="fas fa-chart-column" aria-hidden="true"></i>
+                                    โหลดรายงาน
+                                </button>
+                                <button type="button" class="hr-login-report-download-button" id="downloadReportButton" disabled>
+                                    <i class="fas fa-download" aria-hidden="true"></i>
+                                    ดาวน์โหลด CSV
+                                </button>
+                            </div>
+                            <div class="hr-login-report-range-note" id="reportRangeNote">
+                                {{ report_start|localdatetime }} - {{ report_end|localdatetime }}
+                            </div>
+                            <div class="hr-login-report-stats" id="reportStats">
+                                <div class="hr-login-report-stat"><span class="hr-login-report-stat-label">กำลังโหลด...</span><div class="hr-login-report-stat-value">—</div></div>
+                            </div>
+                            <div class="hr-login-report-status" id="reportStatus" role="status" aria-live="polite"></div>
                         </div>
                     </div>
                 </div>
@@ -135,71 +273,154 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
-      google.charts.load("current", {packages:["calendar"]});
-      google.charts.setOnLoadCallback(drawChart);
+    <script>
+        const hrLoginReportSummaryApiUrl = {{ url_for('staff.get_hr_login_summary_report_summary')|tojson|safe }};
+        let latestReportData = null;
 
-   function drawChart() {
-       var jsonData = $.ajax({
-          url: "{{ url_for('staff.get_hr_login_summary_report_data') }}",
-          dataType: "json",
-          async: false
-          }).responseText;
-       var dataTable = new google.visualization.DataTable(jsonData);
-
-       var chart = new google.visualization.Calendar(document.getElementById('calendar_checkin'));
-
-       var options = {
-         title: "สแกนเข้างาน",
-         height: 450, calendar: { cellSize: 20 }
-       };
-
-       chart.draw(dataTable, options);
-   }
-    </script>
-    <script type="text/javascript">
-        google.charts.load("current", {packages:["calendar"]});
-        google.charts.setOnLoadCallback(drawChart);
-
-        function drawChart() {
-            var jsonData = $.ajax({
-                url: "{{ url_for('staff.get_hr_wfh_summary_report_data') }}",
-                dataType: "json",
-                async: false
-            }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
-
-            var chart = new google.visualization.Calendar(document.getElementById('calendar_wfh'));
-
-            var options = {
-                title: "Work From Home",
-                height: 450, calendar: { cellSize: 20 }
-            };
-
-            chart.draw(dataTable, options);
+        function toInputDateTime(value) {
+            const date = value ? new Date(value) : new Date();
+            const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+            return localDate.toISOString().slice(0, 16);
         }
-    </script>
-    <script type="text/javascript">
-        google.charts.load("current", {packages:["calendar"]});
-        google.charts.setOnLoadCallback(drawChart);
 
-        function drawChart() {
-            var jsonData = $.ajax({
-                url: "{{ url_for('staff.get_hr_leave_summary_report_data') }}",
-                dataType: "json",
-                async: false
-            }).responseText;
-            var dataTable = new google.visualization.DataTable(jsonData);
-
-            var chart = new google.visualization.Calendar(document.getElementById('calendar_leave'));
-
-            var options = {
-                title: "ลา",
-                height: 450, calendar: { cellSize: 20 }
-            };
-
-            chart.draw(dataTable, options);
+        function formatNumber(value) {
+            return Number(value || 0).toLocaleString();
         }
+
+        function formatPercentage(value) {
+            return Number(value || 0).toFixed(1) + '%';
+        }
+
+        function formatLocalDateTime(value) {
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value || '';
+            return date.toLocaleString('th-TH', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+        }
+
+        function escapeHtml(value) {
+            return $('<span/>').text(value == null ? '' : String(value)).html();
+        }
+
+        function renderReport(data) {
+            const employees = data.employees || {};
+            const academic = employees.academic || {};
+            const nonAcademic = employees.non_academic || {};
+            const stats = [
+                {
+                    label: 'สายวิชาการที่ไม่ลงเวลา',
+                    value: formatPercentage(academic.missed_percentage),
+                    note: formatNumber(academic.missed_checkin) + ' / ' + formatNumber(academic.total) + ' คน'
+                },
+                {
+                    label: 'สายสนับสนุนที่ไม่ลงเวลา',
+                    value: formatPercentage(nonAcademic.missed_percentage),
+                    note: formatNumber(nonAcademic.missed_checkin) + ' / ' + formatNumber(nonAcademic.total) + ' คน'
+                },
+                {
+                    label: 'ลงเวลาไม่ครบ (ขาเข้า)',
+                    value: formatNumber(data.incomplete_checkins),
+                    note: 'รายการที่ไม่มีเวลาเข้างาน'
+                },
+                {
+                    label: 'ลงเวลาไม่ครบ (ขาออก)',
+                    value: formatNumber(data.incomplete_checkouts),
+                    note: 'วันที่ไม่มีเวลาออกงาน'
+                },
+                {
+                    label: 'รายการเพิ่มโดยผู้ดูแล',
+                    value: formatNumber(data.manual_records),
+                    note: 'ตรวจจาก creator_id'
+                },
+                {
+                    label: 'บุคลากรทั้งหมด',
+                    value: formatNumber(employees.total),
+                    note: 'บุคลากรที่ยังปฏิบัติงาน'
+                }
+            ];
+            $('#reportStats').html(stats.map(function(stat) {
+                return '<div class="hr-login-report-stat">' +
+                    '<span class="hr-login-report-stat-label">' + escapeHtml(stat.label) + '</span>' +
+                    '<div class="hr-login-report-stat-value">' + escapeHtml(stat.value) + '</div>' +
+                    '<div class="hr-login-report-stat-note">' + escapeHtml(stat.note) + '</div>' +
+                    '</div>';
+            }).join(''));
+            $('#reportRangeNote').text(
+                formatLocalDateTime(data.date_range.start) + ' - ' + formatLocalDateTime(data.date_range.end)
+            );
+        }
+
+        function loadReport() {
+            const start = $('#reportStart').val();
+            const end = $('#reportEnd').val();
+            if (!start || !end) {
+                $('#reportStatus').text('กรุณาเลือกช่วงวันเวลา');
+                return;
+            }
+            $('#loadReportButton').prop('disabled', true);
+            $('#reportStatus').html('<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> กำลังโหลดข้อมูล...');
+            $.getJSON(hrLoginReportSummaryApiUrl, {start: start, end: end})
+                .done(function(data) {
+                    latestReportData = data;
+                    renderReport(data);
+                    $('#downloadReportButton').prop('disabled', false);
+                    $('#reportStatus').text('โหลดข้อมูลเรียบร้อยแล้ว');
+                })
+                .fail(function() {
+                    $('#reportStatus').text('ไม่สามารถโหลดข้อมูลรายงานได้');
+                })
+                .always(function() {
+                    $('#loadReportButton').prop('disabled', false);
+                });
+        }
+
+        function downloadReport() {
+            if (!latestReportData) return;
+            const data = latestReportData;
+            const academic = data.employees.academic || {};
+            const nonAcademic = data.employees.non_academic || {};
+            const rows = [
+                ['รายการ', 'ค่า', 'รายละเอียด'],
+                ['ช่วงเวลาเริ่มต้น', data.date_range.start, ''],
+                ['ช่วงเวลาสิ้นสุด', data.date_range.end, ''],
+                ['บุคลากรทั้งหมด', data.employees.total, ''],
+                ['สายวิชาการที่ไม่ลงเวลา (%)', academic.missed_percentage, academic.missed_checkin + ' / ' + academic.total + ' คน'],
+                ['สายสนับสนุนที่ไม่ลงเวลา (%)', nonAcademic.missed_percentage, nonAcademic.missed_checkin + ' / ' + nonAcademic.total + ' คน'],
+                ['ลงเวลาไม่ครบ (ขาเข้า)', data.incomplete_checkins, ''],
+                ['ลงเวลาไม่ครบ (ขาออก)', data.incomplete_checkouts, ''],
+                ['รายการเพิ่มโดยผู้ดูแล', data.manual_records, '']
+            ];
+            const csv = '\ufeff' + rows.map(function(row) {
+                return row.map(function(value) {
+                    return '"' + String(value == null ? '' : value).replace(/"/g, '""') + '"';
+                }).join(',');
+            }).join('\r\n');
+            const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'hr-login-summary-' + $('#reportStart').val().slice(0, 10) + '.csv';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        $(function() {
+            const now = new Date();
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            $('#reportStart').val(toInputDateTime(monthStart));
+            $('#reportEnd').val(toInputDateTime(now));
+            $('#loadReportButton').on('click', loadReport);
+            $('#downloadReportButton').on('click', downloadReport);
+            loadReport();
+        });
     </script>
 {% endblock %}

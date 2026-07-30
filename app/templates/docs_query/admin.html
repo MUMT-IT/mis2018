@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: จัดการเอกสาร{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="level mb-5">
+                <div>
+                    <p class="is-size-7 has-text-weight-semibold has-text-info">สำหรับผู้ดูแลระบบ</p>
+                    <h1 class="title is-2 mb-2">จัดการเอกสาร</h1>
+                    <p class="subtitle is-5 has-text-grey">อัปโหลด จัดระเบียบ และปรับปรุงเอกสารที่เปิดให้ค้นหา</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('docs_query.index') }}">
+                    <span class="icon"><i class="fas fa-search"></i></span>
+                    <span>ค้นหาเอกสาร</span>
+                </a>
+            </div>
+
+            <div class="columns is-variable is-6">
+                <div class="column is-4">
+                    <div class="box docs-query-admin-card">
+                        <h2 class="title is-4">เพิ่มเอกสาร</h2>
+                        <p class="has-text-grey mb-5">ข้อมูลกำกับจะถูกบันทึกพร้อมไฟล์ PDF เพื่อใช้จัดระเบียบผลการค้นหา</p>
+                        <form method="post" action="{{ url_for('docs_query.upload') }}" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label" for="document_title">ชื่อเอกสาร</label>
+                                <div class="control"><input class="input" id="document_title" name="document_title" type="text" required></div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="description">คำอธิบาย</label>
+                                <div class="control"><textarea class="textarea" id="description" name="description" rows="2"></textarea></div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="document_type">ประเภทเอกสาร</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select id="document_type" name="document_type">
+                                            <option value="">เลือกประเภทเอกสาร</option>
+                                            <option value="ข้อบังคับ">ข้อบังคับ</option>
+                                            <option value="ประกาศ">ประกาศ</option>
+                                            <option value="อื่นๆ">อื่นๆ</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="tags">แท็ก</label>
+                                <div class="control"><input class="input" id="tags" name="tags" type="text" placeholder="นโยบาย, บุคคล, วิชาการ"></div>
+                                <p class="help">คั่นแท็กหลายรายการด้วยเครื่องหมายจุลภาค</p>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="note">หมายเหตุ</label>
+                                <div class="control"><textarea class="textarea" id="note" name="note" rows="2"></textarea></div>
+                            </div>
+                            <div class="field mb-5">
+                                <label class="checkbox" for="is_expired">
+                                    <input id="is_expired" name="is_expired" type="checkbox">
+                                    เอกสารนี้หมดอายุหรือไม่อยู่ในสถานะที่ใช้งานได้แล้ว
+                                </label>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="file">ไฟล์ PDF</label>
+                                <div class="control"><input class="input" id="file" name="file" type="file" accept="application/pdf,.pdf"></div>
+                                <p class="help">รองรับเฉพาะไฟล์ PDF</p>
+                            </div>
+                            <button class="button is-success is-fullwidth mt-4" type="submit">
+                                <span class="icon"><i class="fas fa-upload"></i></span>
+                                <span>อัปโหลด PDF</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="column is-8">
+                    <div class="box docs-query-admin-card">
+                        <div class="level is-mobile mb-4">
+                            <div>
+                                <h2 class="title is-4 mb-1">เอกสารที่จัดการ</h2>
+                                <p class="has-text-grey is-size-7">ไฟล์ PDF ใน Google Drive {{ pdf_files|length }} รายการ</p>
+                            </div>
+                        </div>
+                        {% if pdf_files %}
+                            <div class="table-container">
+                                <table class="table is-fullwidth is-hoverable is-size-7">
+                                    <thead>
+                                    <tr>
+                                        <th>เอกสาร</th>
+                                        <th>แท็ก</th>
+                                        <th>สถานะการใช้งาน</th>
+                                        <th>สถานะ</th>
+                                        <th>การดำเนินการ</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for pdf in pdf_files %}
+                                        <tr>
+                                            <td>
+                                                <p class="has-text-weight-semibold">{{ pdf.document_title }}</p>
+                                                <p class="has-text-grey">{{ pdf.name }}</p>
+                                                {% if pdf.note %}<p class="has-text-grey">{{ pdf.note }}</p>{% endif %}
+                                            </td>
+                                            <td>
+                                                {% if pdf.tags %}
+                                                    {% for tag in pdf.tags %}<span class="tag is-info is-light">{{ tag }}</span>{% endfor %}
+                                                {% else %}-{% endif %}
+                                            </td>
+                                            <td>
+                                                {% if pdf.is_expired %}<span class="tag is-danger is-light">หมดอายุ</span>
+                                                {% else %}<span class="tag is-success is-light">ใช้งานได้</span>{% endif %}
+                                            </td>
+                                            <td>
+                                                {% if pdf.is_processed %}<span class="tag is-success is-light">ประมวลผลแล้ว</span>
+                                                {% else %}<span class="tag is-light">ยังไม่ประมวลผล</span>{% endif %}
+                                            </td>
+                                            <td>
+                                                {% if pdf.web_view_link %}<a href="{{ pdf.web_view_link }}" target="_blank" rel="noopener noreferrer">เปิด</a>{% endif %}
+                                                <a class="button is-small is-warning is-light" href="{{ url_for('docs_query.edit_metadata', file_id=pdf.id) }}">
+                                                    <span class="icon"><i class="fas fa-edit"></i></span>
+                                                    <span>แก้ไข</span>
+                                                </a>
+                                                <form method="post" action="{{ url_for('docs_query.extract', file_id=pdf.id) }}" class="mt-2">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button class="button is-small is-info is-light" type="submit">สกัดข้อความ</button>
+                                                    {% if pdf.is_processed %}<a class="button is-small is-success is-light" href="{{ url_for('docs_query.view_processed', file_id=pdf.id) }}">ดูข้อมูล JSON</a>{% endif %}
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="has-text-grey">ไม่พบไฟล์ PDF ในโฟลเดอร์ Google Drive ที่กำหนด</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="box docs-query-admin-card mt-5">
+                <div class="level is-mobile mb-4">
+                    <div>
+                        <h2 class="title is-4 mb-1">สถิติการค้นหา</h2>
+                        <p class="has-text-grey is-size-7">สถิติจากการใช้งานระบบค้นหาเอกสาร</p>
+                    </div>
+                </div>
+                <div class="columns is-mobile is-multiline mb-4">
+                    <div class="column is-one-third">
+                        <p class="heading">การค้นหาทั้งหมด</p>
+                        <p class="title is-4">{{ statistics.total_searches }}</p>
+                    </div>
+                    <div class="column is-one-third">
+                        <p class="heading">ค้นหาไม่พบผลลัพธ์</p>
+                        <p class="title is-4">{{ statistics.searches_with_no_results }}</p>
+                    </div>
+                    <div class="column is-one-third">
+                        <p class="heading">การเปิดเอกสาร</p>
+                        <p class="title is-4">{{ statistics.total_document_clicks }}</p>
+                    </div>
+                </div>
+                <div class="columns is-variable is-5">
+                    <div class="column">
+                        <h3 class="title is-6">คำค้นยอดนิยม</h3>
+                        {% if statistics.popular_queries %}
+                            <ol class="docs-query-stat-list">
+                                {% for query in statistics.popular_queries %}
+                                    <li><span>{{ query.query_text }}</span><span class="tag is-light">{{ query.search_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                    <div class="column">
+                        <h3 class="title is-6">คำค้นที่ไม่พบผลลัพธ์</h3>
+                        {% if statistics.no_result_queries %}
+                            <ol class="docs-query-stat-list">
+                                {% for query in statistics.no_result_queries %}
+                                    <li><span>{{ query.query_text }}</span><span class="tag is-warning is-light">{{ query.search_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                    <div class="column">
+                        <h3 class="title is-6">เอกสารที่ถูกเปิดบ่อย</h3>
+                        {% if statistics.popular_documents %}
+                            <ol class="docs-query-stat-list">
+                                {% for document, click_count in statistics.popular_documents %}
+                                    <li><span>{{ document.document_title or document.filename }}</span><span class="tag is-info is-light">{{ click_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <style>
+        .docs-query-admin-card { border-radius: 20px; height: 100%; }
+        .docs-query-admin-card .table td { vertical-align: middle; }
+        .docs-query-stat-list { margin: 0; padding-left: 1.25rem; }
+        .docs-query-admin-card .columns > .column { min-width: 0; }
+        .docs-query-stat-list li { align-items: center; display: grid; gap: .5rem; grid-template-columns: minmax(0, 1fr) auto; margin-bottom: .6rem; min-width: 0; }
+        .docs-query-stat-list li span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .docs-query-stat-list li .tag { min-width: max-content; }
+    </style>
+{% endblock %}

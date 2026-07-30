@@ -979,7 +979,9 @@ class StaffWorkLogin(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     date_id = db.Column('date_id', db.String())
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship('StaffAccount', backref=db.backref('work_logins', lazy='dynamic'))
+    staff = db.relationship('StaffAccount',
+                            foreign_keys=[staff_id],
+                            backref=db.backref('work_logins', lazy='dynamic'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
     checkin_mins = db.Column('checkin_mins', db.Integer())
@@ -990,6 +992,8 @@ class StaffWorkLogin(db.Model):
     lat = db.Column('lat', db.Numeric())
     long = db.Column('long', db.Numeric())
     note = db.Column('note', db.Text())
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship('StaffAccount', foreign_keys=[creator_id])
 
     @staticmethod
     def generate_date_id(date):
