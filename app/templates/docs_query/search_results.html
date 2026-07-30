@@ -26,52 +26,41 @@
                     <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
                     <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
                 </div>
-                <div class="docs-query-timeline">
+                <div class="table-container docs-query-related-table-container">
+                    <table class="table is-fullwidth is-hoverable docs-query-related-table">
+                        <thead>
+                            <tr>
+                                <th>วันที่ออก</th>
+                                <th>เอกสาร</th>
+                                <th>ประเภทและแท็ก</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                     {% for related in related_documents %}
-                        <div class="docs-query-timeline-item {% if loop.index is even %}is-left{% else %}is-right{% endif %}">
-                            <div class="docs-query-timeline-date">{{ related.issue_date_label }}</div>
-                            <div class="box docs-query-related-document">
+                        <tr>
+                            <td class="docs-query-related-date">{{ related.issue_date_label }}</td>
+                            <td class="docs-query-related-title">
                                 <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
-                                    <div class="is-flex is-justify-content-space-between is-align-items-start">
-                                        <div>
-                                            <p class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</p>
-                                            <p class="is-size-7 has-text-grey">{{ related.document.document_type or 'เอกสาร' }}</p>
-                                        </div>
-                                        <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
-                                    </div>
+                                    <span class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</span>
+                                    <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
                                 </a>
-                                {% if related.document.is_expired %}
-                                    <span class="tag is-danger is-light mt-3">หมดอายุ</span>
-                                {% endif %}
+                            </td>
+                            <td>
+                                <span>{{ related.document.document_type or 'เอกสาร' }}</span>
                                 {% if related.document.tags %}
-                                    <div class="tags mt-3 mb-0">
+                                    <div class="tags mt-2 mb-0">
                                         {% for tag in related.document.tags %}<span class="tag is-info is-light">{{ tag }}</span>{% endfor %}
                                     </div>
                                 {% endif %}
-                                <button class="button is-small is-light mt-4 docs-query-reference-trigger" type="button" data-target="docs-query-reference-{{ loop.index }}">
-                                    <span class="icon"><i class="fas fa-quote-left" aria-hidden="true"></i></span>
-                                    <span>ดูข้อความอ้างอิง</span>
-                                </button>
-                            </div>
-                            <div id="docs-query-reference-{{ loop.index }}" class="modal docs-query-reference-modal">
-                                <div class="modal-background"></div>
-                                <div class="modal-card">
-                                    <header class="modal-card-head">
-                                        <p class="modal-card-title is-size-5">{{ related.document.document_title or related.document.filename }}</p>
-                                        <button class="delete docs-query-modal-close" type="button" aria-label="ปิด"></button>
-                                    </header>
-                                    <section class="modal-card-body">
-                                        <p class="is-size-7 has-text-grey mb-3">ข้อความอ้างอิงจากส่วนที่ {{ related.chunk_index + 1 }}</p>
-                                        <div class="docs-query-reference-text">{{ related.chunk_text }}</div>
-                                    </section>
-                                    <footer class="modal-card-foot">
-                                        <a class="button is-info is-light" href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">เปิดเอกสารต้นฉบับ</a>
-                                        <button class="button docs-query-modal-close" type="button">ปิด</button>
-                                    </footer>
-                                </div>
-                            </div>
-                        </div>
+                            </td>
+                            <td>
+                                {% if related.document.is_expired %}<span class="tag is-danger is-light">หมดอายุ</span>{% else %}<span class="tag is-success is-light">ใช้งานได้</span>{% endif %}
+                            </td>
+                        </tr>
                     {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             {% else %}
                 <div class="notification is-light">ไม่พบเอกสาร</div>

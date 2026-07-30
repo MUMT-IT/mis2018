@@ -9,8 +9,45 @@
                      alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
                      decoding="async">
             </div>
+            <section class="box docs-query-dashboard-card">
+                <div class="docs-query-dashboard-heading">
+                    <div>
+                        <h2 class="title is-5 mb-1">ภาพรวมเอกสาร</h2>
+                        <p class="has-text-grey is-size-7">สถิติเอกสารในระบบค้นหา</p>
+                    </div>
+                    <span class="icon is-medium has-text-info"><i class="fas fa-chart-pie" aria-hidden="true"></i></span>
+                </div>
+                <div class="docs-query-dashboard-stats">
+                    <div class="docs-query-dashboard-stat">
+                        <span class="docs-query-dashboard-label">เอกสารทั้งหมด</span>
+                        <strong>{{ document_statistics.total_documents }}</strong>
+                    </div>
+                    <div class="docs-query-dashboard-stat">
+                        <span class="docs-query-dashboard-label">ประมวลผลแล้ว</span>
+                        <strong>{{ document_statistics.processed_documents }}</strong>
+                    </div>
+                    <div class="docs-query-dashboard-stat">
+                        <span class="docs-query-dashboard-label">ใช้งานได้</span>
+                        <strong>{{ document_statistics.active_documents }}</strong>
+                    </div>
+                    <div class="docs-query-dashboard-stat is-warning">
+                        <span class="docs-query-dashboard-label">ยกเลิกแล้ว</span>
+                        <strong>{{ document_statistics.expired_documents }}</strong>
+                    </div>
+                </div>
+                {% if document_statistics.document_types %}
+                    <div class="docs-query-dashboard-types">
+                        <span class="docs-query-dashboard-label">แยกตามประเภทเอกสาร</span>
+                        <div class="tags mt-2 mb-0">
+                            {% for document_type, count in document_statistics.document_types %}
+                                <span class="tag is-info is-light">{{ document_type }} <strong class="ml-1">{{ count }}</strong></span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </section>
             <div class="columns is-centered">
-                <div class="column is-10-tablet is-8-desktop is-7-widescreen docs-query-page-column">
+                <div class="column is-10-tablet is-9-desktop is-8-widescreen docs-query-page-column">
                     {% include "messages.html" %}
                     <div class="box docs-query-shell">
                         <div class="has-text-centered mb-6">
@@ -53,7 +90,7 @@
                                     <ol class="docs-query-popular-list">
                                         {% for popular_query in statistics.popular_queries[:5] %}
                                             <li>
-                                                <span class="docs-query-popular-label" title="{{ popular_query.query_text }}">{{ popular_query.query_text }}</span>
+                                                <button class="docs-query-popular-label docs-query-popular-query" type="button" title="ค้นหา {{ popular_query.query_text }}" data-query="{{ popular_query.query_text }}">{{ popular_query.query_text }}</button>
                                                 <span class="tag is-info is-light">{{ popular_query.search_count }} ครั้ง</span>
                                             </li>
                                         {% endfor %}
@@ -110,54 +147,43 @@
                                         <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
                                         <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
                                     </div>
-                                    <div class="docs-query-timeline">
+                                    <div class="table-container docs-query-related-table-container">
+                                        <table class="table is-fullwidth is-hoverable docs-query-related-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>วันที่ออก</th>
+                                                    <th>เอกสาร</th>
+                                                    <th>ประเภทและแท็ก</th>
+                                                    <th>สถานะ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
                                         {% for related in related_documents %}
-                                            <div class="docs-query-timeline-item {% if loop.index is even %}is-left{% else %}is-right{% endif %}">
-                                                <div class="docs-query-timeline-date">{{ related.issue_date_label }}</div>
-                                                <div class="box docs-query-related-document">
-                                                    <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
-                                                        <div class="is-flex is-justify-content-space-between is-align-items-start">
-                                                            <div>
-                                                                <p class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</p>
-                                                                <p class="is-size-7 has-text-grey">{{ related.document.document_type or 'เอกสาร' }}</p>
-                                                            </div>
+                                                <tr>
+                                                    <td class="docs-query-related-date">{{ related.issue_date_label }}</td>
+                                                    <td class="docs-query-related-title">
+                                                        <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
+                                                            <span class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</span>
                                                             <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
-                                                        </div>
-                                                    </a>
-                                                    {% if related.document.is_expired %}
-                                                        <span class="tag is-danger is-light mt-3">หมดอายุ</span>
-                                                    {% endif %}
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <span>{{ related.document.document_type or 'เอกสาร' }}</span>
                                                     {% if related.document.tags %}
-                                                        <div class="tags mt-3 mb-0">
+                                                        <div class="tags mt-2 mb-0">
                                                             {% for tag in related.document.tags %}
                                                                 <span class="tag is-info is-light">{{ tag }}</span>
                                                             {% endfor %}
                                                         </div>
                                                     {% endif %}
-                                                    <button class="button is-small is-light mt-4 docs-query-reference-trigger" type="button" data-target="docs-query-reference-{{ loop.index }}">
-                                                        <span class="icon"><i class="fas fa-quote-left" aria-hidden="true"></i></span>
-                                                        <span>ดูข้อความอ้างอิง</span>
-                                                    </button>
-                                                </div>
-                                                <div id="docs-query-reference-{{ loop.index }}" class="modal docs-query-reference-modal">
-                                                    <div class="modal-background"></div>
-                                                    <div class="modal-card">
-                                                        <header class="modal-card-head">
-                                                            <p class="modal-card-title is-size-5">{{ related.document.document_title or related.document.filename }}</p>
-                                                            <button class="delete docs-query-modal-close" type="button" aria-label="ปิด"></button>
-                                                        </header>
-                                                        <section class="modal-card-body">
-                                                            <p class="is-size-7 has-text-grey mb-3">ข้อความอ้างอิงจากส่วนที่ {{ related.chunk_index + 1 }}</p>
-                                                            <div class="docs-query-reference-text">{{ related.chunk_text }}</div>
-                                                        </section>
-                                                        <footer class="modal-card-foot">
-                                                            <a class="button is-info is-light" href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">เปิดเอกสารต้นฉบับ</a>
-                                                            <button class="button docs-query-modal-close" type="button">ปิด</button>
-                                                        </footer>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                    </td>
+                                                    <td>
+                                                        {% if related.document.is_expired %}<span class="tag is-danger is-light">หมดอายุ</span>{% else %}<span class="tag is-success is-light">ใช้งานได้</span>{% endif %}
+                                                    </td>
+                                                </tr>
                                         {% endfor %}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 {% else %}
                                     <div class="notification is-light">
@@ -201,6 +227,61 @@
             display: block;
             height: auto;
             width: 100%;
+        }
+
+        .docs-query-dashboard-card {
+            margin: 0 auto 1.5rem;
+            max-width: 1100px;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .docs-query-dashboard-heading {
+            align-items: flex-start;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .docs-query-dashboard-stats {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .docs-query-dashboard-stat {
+            background: rgba(50, 115, 220, 0.06);
+            border-radius: 14px;
+            padding: 0.8rem 1rem;
+        }
+
+        .docs-query-dashboard-stat.is-warning {
+            background: rgba(255, 193, 7, 0.12);
+        }
+
+        .docs-query-dashboard-stat strong {
+            color: var(--theme-navy-deep);
+            display: block;
+            font-size: 1.45rem;
+            line-height: 1.2;
+        }
+
+        .docs-query-dashboard-label {
+            color: var(--theme-muted);
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .docs-query-dashboard-types {
+            border-top: 1px solid rgba(18, 39, 84, 0.08);
+            margin-top: 1rem;
+            padding-top: 0.85rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .docs-query-dashboard-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
 
         .docs-query-page-column {
@@ -284,121 +365,50 @@
             transform: translateY(-2px);
         }
 
-        .docs-query-timeline {
-            margin: 2rem auto 1rem;
-            max-width: 960px;
-            position: relative;
+        .docs-query-related-table-container {
+            margin-top: 1.25rem;
         }
 
-        .docs-query-timeline::before {
-            background: linear-gradient(to bottom, transparent, #69758a 4%, #69758a 96%, transparent);
-            bottom: 0;
-            content: "";
-            left: 50%;
-            position: absolute;
-            top: 0;
-            transform: translateX(-50%);
-            width: 3px;
+        .docs-query-related-table {
+            min-width: 760px;
         }
 
-        .docs-query-timeline-item {
-            padding: 0 3.5rem 2.25rem 0;
-            position: relative;
-            width: 50%;
-        }
-
-        .docs-query-timeline-item.is-left {
-            padding-left: 3.5rem;
-            padding-right: 0;
-            text-align: left;
-        }
-
-        .docs-query-timeline-item.is-right {
-            margin-left: 50%;
-            text-align: left;
-        }
-
-        .docs-query-timeline-item::before {
-            background: #fff;
-            border: 4px solid #ff5360;
-            border-radius: 50%;
-            box-shadow: 0 0 0 2px rgba(255, 83, 96, 0.14);
-            content: "";
-            height: 1.1rem;
-            position: absolute;
-            top: 1.15rem;
-            width: 1.1rem;
-            z-index: 2;
-        }
-
-        .docs-query-timeline-item.is-left::before {
-            right: -0.55rem;
-        }
-
-        .docs-query-timeline-item.is-right::before {
-            left: -0.55rem;
-        }
-
-        .docs-query-timeline-date {
-            color: #ff5360;
+        .docs-query-related-table th {
+            background: rgba(18, 39, 84, 0.04);
+            color: var(--theme-navy-deep);
             font-size: 0.78rem;
+            white-space: nowrap;
+        }
+
+        .docs-query-related-table td {
+            vertical-align: middle;
+        }
+
+        .docs-query-related-date {
+            color: #3273dc;
+            font-size: 0.82rem;
             font-weight: 700;
-            margin: 0 0 0.4rem;
+            white-space: nowrap;
         }
 
-        .docs-query-timeline-item.is-left .docs-query-timeline-date {
-            text-align: right;
+        .docs-query-related-title {
+            min-width: 18rem;
         }
 
-        .docs-query-timeline-item.is-left .docs-query-related-document {
-            margin-right: 1rem;
+        .docs-query-related-title a {
+            align-items: flex-start;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            gap: 0.35rem;
+            line-height: 1.4;
         }
 
-        .docs-query-timeline-item.is-right .docs-query-related-document {
-            margin-left: 1rem;
+        .docs-query-related-title a:hover {
+            color: #3273dc;
         }
 
-        @media screen and (max-width: 600px) {
-            .docs-query-timeline::before {
-                left: 0.35rem;
-                transform: none;
-            }
-
-            .docs-query-timeline-item {
-                margin-left: 0;
-                padding: 0 0 1.5rem 1.75rem;
-                text-align: left;
-                width: 100%;
-            }
-
-            .docs-query-timeline-item.is-left,
-            .docs-query-timeline-item.is-right {
-                margin-left: 0;
-                padding-left: 1.75rem;
-                padding-right: 0;
-                text-align: left;
-            }
-
-            .docs-query-timeline-item.is-left .docs-query-related-document,
-            .docs-query-timeline-item.is-right .docs-query-related-document {
-                margin-left: 0;
-                margin-right: 0;
-            }
-
-            .docs-query-timeline-date {
-                text-align: left;
-            }
-
-            .docs-query-timeline-item.is-left .docs-query-timeline-date {
-                text-align: left;
-            }
-
-            .docs-query-timeline-item.is-left::before,
-            .docs-query-timeline-item.is-right::before {
-                left: -0.2rem;
-                right: auto;
-                top: 0.15rem;
-            }
+        .docs-query-related-table .button {
+            white-space: nowrap;
         }
 
         .docs-query-reference-modal .modal-card {
@@ -446,11 +456,27 @@
         }
 
         .docs-query-popular-label {
+            background: transparent;
+            border: 0;
+            color: inherit;
             display: block;
+            font: inherit;
             min-width: 0;
             overflow: hidden;
+            padding: 0;
+            text-align: left;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .docs-query-popular-query {
+            cursor: pointer;
+        }
+
+        .docs-query-popular-query:hover,
+        .docs-query-popular-query:focus {
+            color: #3273dc;
+            text-decoration: underline;
         }
 
         @media screen and (max-width: 768px) {
@@ -461,6 +487,7 @@
     </style>
     <script>
         var searchForm = document.getElementById('docs-query-search-form');
+        var searchInput = document.getElementById('query');
         var searchButton = document.getElementById('docs-query-search-button');
         var searchRobot = document.getElementById('docs-query-search-robot');
 
@@ -472,6 +499,13 @@
 
         searchForm.addEventListener('submit', function () {
             setSearchLoading(true);
+        });
+
+        document.querySelectorAll('.docs-query-popular-query').forEach(function (queryButton) {
+            queryButton.addEventListener('click', function () {
+                searchInput.value = queryButton.dataset.query;
+                searchForm.requestSubmit();
+            });
         });
 
         document.body.addEventListener('htmx:afterRequest', function (event) {
