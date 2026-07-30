@@ -28,6 +28,7 @@ TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 EMBEDDING_MODEL = os.getenv('DOCS_QUERY_EMBEDDING_MODEL', 'cohere-embed-multilingual')
 EMBEDDING_DIMENSIONS = 1024
 EMBEDDING_MAX_BYTES = 2048
+OCR_TRIGGER_CHAR_COUNT = 50
 
 
 def _embedding_configured():
@@ -627,6 +628,86 @@ def extract_pdf_text(pdf_path):
     return '\n'.join(fallback_chunks).strip()
 
 
+def _ocr_configured():
+    return bool(
+        os.environ.get('TYPHOON_OCR_API_KEY')
+        or os.environ.get('SCB_TYPHOON_API_KEY')
+    )
+
+
+def ocr_pdf_text(pdf_path):
+    """OCR scanned PDF pages without requiring Poppler on the application host."""
+    try:
+        from openai import OpenAI
+        from typhoon_ocr.ocr_utils import prepare_ocr_messages
+    except ImportError as exc:
+        raise RuntimeError(
+            'typhoon-ocr is not installed; install the application requirements'
+        ) from exc
+
+    api_key = (
+        os.environ.get('TYPHOON_OCR_API_KEY')
+        or os.environ.get('SCB_TYPHOON_API_KEY')
+    )
+    if not api_key:
+        raise RuntimeError('TYPHOON_OCR_API_KEY is not configured.')
+
+    base_url = os.environ.get(
+        'TYPHOON_BASE_URL',
+        'https://api.opentyphoon.ai/v1',
+    )
+    client = OpenAI(base_url=base_url, api_key=api_key)
+
+    text_chunks = []
+    document = fitz.open(pdf_path)
+    try:
+        for page_number, page in enumerate(document, start=1):
+            pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+            image_path = None
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as image_file:
+                    image_path = image_file.name
+                pixmap.save(image_path)
+                current_app.logger.info(
+                    'docs_query_ocr page=%s/%s model=typhoon-ocr',
+                    page_number,
+                    len(document),
+                )
+                messages = prepare_ocr_messages(
+                    pdf_or_image_path=image_path,
+                    task_type='v1.5',
+                    target_image_dim=1800,
+                    target_text_length=8000,
+                    page_num=1,
+                )
+                response = client.chat.completions.create(
+                    model='typhoon-ocr',
+                    messages=messages,
+                    max_tokens=16384,
+                    extra_body={
+                        'repetition_penalty': 1.2,
+                        'temperature': 0.1,
+                        'top_p': 0.6,
+                    },
+                )
+                markdown = response.choices[0].message.content
+                if markdown and markdown.strip():
+                    text_chunks.append(markdown.strip())
+                else:
+                    raise RuntimeError(
+                        'Typhoon OCR returned an empty response for page {}'.format(
+                            page_number,
+                        )
+                    )
+            finally:
+                if image_path and os.path.exists(image_path):
+                    os.remove(image_path)
+    finally:
+        document.close()
+
+    return '\n\n'.join(text_chunks).strip()
+
+
 def _normalize_text(text):
     text = re.sub(r'\r\n?', '\n', text or '')
     text = re.sub(r'[ \t]+', ' ', text)
@@ -1044,25 +1125,25 @@ def upload():
     return redirect(url_for('docs_query.admin'))
 
 
-@docs_query.route('/extract/<file_id>', methods=['POST'])
-@login_required
-@admin_permission.require(http_exception=403)
-def extract(file_id):
+def process_document(file_id):
     pdf_path = None
     document = None
     extraction_status = 'success'
     warning_message = None
+    ocr_used = False
     try:
         file_item, pdf_path = download_google_drive_file(file_id)
         extracted_text = extract_pdf_text(pdf_path)
+        if len(extracted_text.strip()) < OCR_TRIGGER_CHAR_COUNT and _ocr_configured():
+            extracted_text = ocr_pdf_text(pdf_path)
+            ocr_used = bool(extracted_text.strip())
         document_title = file_item.get('title') or 'Untitled document'
         filename = file_item.get('originalFilename') or file_item.get('title') or '{}.pdf'.format(file_id)
         properties = _read_drive_properties(file_item) if file_item else {}
-        document_type = properties.get('document_type') or ''
         document = _get_or_create_document(file_id)
         document.document_title = document_title
         document.filename = filename
-        document.document_type = document_type
+        document.document_type = properties.get('document_type') or ''
         document.tags = _parse_tags(properties.get('tags'))
         document.note = properties.get('note') or None
         document.is_expired = _parse_bool(properties.get('is_expired'))
@@ -1079,6 +1160,8 @@ def extract(file_id):
         if not chunks and extracted_text:
             chunks = chunk_text(extracted_text)
             chunking_method = 'character_fallback'
+        if ocr_used:
+            chunking_method = 'typhoon_ocr_{}'.format(chunking_method)
 
         if not extracted_text.strip():
             extraction_status = 'warning'
@@ -1087,14 +1170,6 @@ def extract(file_id):
             extraction_status = 'warning'
             warning_message = 'ข้อความที่สกัดได้มีปริมาณน้อยมาก ไฟล์ PDF อาจเป็นเอกสารสแกนหรือประกอบด้วยรูปภาพ'
 
-        chunk_payload = [
-            {
-                'chunk_number': index + 1,
-                'character_count': len(chunk),
-                'text': chunk,
-            }
-            for index, chunk in enumerate(chunks)
-        ]
         embeddings = (
             _embed_texts(chunks, 'search_document')
             if db.engine.dialect.name == 'postgresql'
@@ -1136,17 +1211,24 @@ def extract(file_id):
         document.error_message = None
         db.session.commit()
 
-        return render_template(
-            'docs_query/extract_preview.html',
-            document_title=document_title,
-            filename=filename,
-            extraction_status=extraction_status,
-            chunking_method=chunking_method,
-            extracted_char_count=extracted_char_count,
-            total_chunk_count=len(chunks),
-            chunk_previews=chunk_payload[:5],
-            warning_message=warning_message,
-        )
+        return {
+            'document_title': document_title,
+            'filename': filename,
+            'ocr_used': ocr_used,
+            'extraction_status': extraction_status,
+            'chunking_method': chunking_method,
+            'extracted_char_count': extracted_char_count,
+            'total_chunk_count': len(chunks),
+            'chunk_previews': [
+                {
+                    'chunk_number': index + 1,
+                    'character_count': len(chunk),
+                    'text': chunk,
+                }
+                for index, chunk in enumerate(chunks[:5])
+            ],
+            'warning_message': warning_message,
+        }
     except Exception as exc:
         db.session.rollback()
         if document:
@@ -1154,11 +1236,29 @@ def extract(file_id):
             document.error_message = str(exc)
             db.session.add(document)
             db.session.commit()
+        raise
+    finally:
+        if pdf_path and os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+
+@docs_query.route('/extract/<file_id>', methods=['POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def extract(file_id):
+    try:
+        result = process_document(file_id)
+        return render_template(
+            'docs_query/extract_preview.html',
+            **result,
+        )
+    except Exception as exc:
         flash('ไม่สามารถสกัดข้อความจาก PDF ได้: {}'.format(exc), 'danger')
         return render_template(
             'docs_query/extract_preview.html',
             document_title='Unknown document',
             filename='-',
+            ocr_used=False,
             extraction_status='error',
             chunking_method='failed',
             extracted_char_count=0,
@@ -1166,9 +1266,6 @@ def extract(file_id):
             chunk_previews=[],
             warning_message='การสกัดข้อความล้มเหลว: {}'.format(exc),
         ), 500
-    finally:
-        if pdf_path and os.path.exists(pdf_path):
-            os.remove(pdf_path)
 
 
 @docs_query.route('/processed/<file_id>')
