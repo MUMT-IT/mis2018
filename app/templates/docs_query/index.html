@@ -4,6 +4,11 @@
 {% block page_content %}
     <section class="section">
         <div class="container">
+            <div class="docs-query-page-banner">
+                <img src="{{ url_for('static', filename='img/docsIQ_banner.png') }}"
+                     alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
+                     decoding="async">
+            </div>
             <div class="columns is-centered">
                 <div class="column is-10-tablet is-8-desktop is-7-widescreen docs-query-page-column">
                     {% include "messages.html" %}
@@ -181,6 +186,22 @@
             padding: 2.75rem;
         }
 
+        .docs-query-page-banner {
+            border-radius: 22px;
+            box-shadow: 0 12px 28px rgba(18, 39, 84, 0.12);
+            display: block;
+            margin: 0 auto 1.5rem;
+            overflow: hidden;
+            transition: box-shadow 180ms ease, transform 180ms ease;
+            width: 80%;
+        }
+
+        .docs-query-page-banner img {
+            display: block;
+            height: auto;
+            width: 100%;
+        }
+
         .docs-query-page-column {
             display: flex;
             flex-direction: column;
@@ -312,6 +333,12 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        @media screen and (max-width: 768px) {
+            .docs-query-page-banner {
+                width: 100%;
+            }
         }
     </style>
     <script>

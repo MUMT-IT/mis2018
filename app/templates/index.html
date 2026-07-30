@@ -29,6 +29,37 @@
             width: 16rem;
         }
 
+        .docs-query-home-banner {
+            border-radius: 22px;
+            box-shadow: var(--theme-shadow);
+            display: block;
+            margin: 1.25rem auto 1.5rem;
+            overflow: hidden;
+            transition: box-shadow 180ms ease, transform 180ms ease;
+            width: 80%;
+        }
+
+        .docs-query-home-card {
+            margin: 1.5rem 0;
+            padding: 1.2rem;
+        }
+
+        .docs-query-home-card .home-panel-header {
+            margin-bottom: 0.9rem;
+        }
+
+        .docs-query-home-banner:hover,
+        .docs-query-home-banner:focus-visible {
+            box-shadow: 0 16px 34px rgba(18, 39, 84, 0.16);
+            transform: translateY(-2px);
+        }
+
+        .docs-query-home-banner img {
+            display: block;
+            height: auto;
+            width: 100%;
+        }
+
         .home-kicker {
             color: var(--theme-gold);
             font-size: 0.78rem;
@@ -1043,6 +1074,10 @@
         }
 
         @media screen and (max-width: 768px) {
+            .docs-query-home-banner {
+                width: 100%;
+            }
+
             .home-brand {
                 align-items: flex-start;
                 flex-direction: column;
@@ -1256,6 +1291,21 @@
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <section class="home-panel docs-query-home-card">
+                <div class="home-panel-header">
+                    <div>
+                        <p class="home-panel-title">แนะนำระบบใหม่</p>
+                    </div>
+                </div>
+                <a class="docs-query-home-banner"
+                   href="{{ url_for('docs_query.index') }}"
+                   aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
+                    <img src="{{ url_for('static', filename='img/docsIQ_banner.png') }}"
+                         alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
+                         decoding="async">
+                </a>
             </section>
 
             {% if current_user.is_authenticated %}
