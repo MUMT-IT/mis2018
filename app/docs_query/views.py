@@ -3,6 +3,7 @@ import tempfile
 import json
 import re
 import time
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 
 import fitz
@@ -62,10 +63,96 @@ def _embedding_endpoint():
 
 
 def _limit_embedding_input(text):
-    encoded_text = (text or '').encode('utf-8')
+    normalized_text = unicodedata.normalize('NFKC', text or '')
+    normalized_text = ''.join(
+        character for character in normalized_text
+        if character in '\n\t' or not unicodedata.category(character).startswith('C')
+    ).strip()
+    encoded_text = normalized_text.encode('utf-8', errors='ignore')
     if len(encoded_text) <= EMBEDDING_MAX_BYTES:
-        return text or ''
+        return normalized_text
     return encoded_text[:EMBEDDING_MAX_BYTES].decode('utf-8', errors='ignore')
+
+
+def _simplify_embedding_input(text):
+    simplified = re.sub(r'<[^>]+>', ' ', text or '')
+    simplified = re.sub(r'[`*_#>|~-]+', ' ', simplified)
+    simplified = re.sub(r'\s+', ' ', simplified).strip()
+    return _limit_embedding_input(simplified)
+
+
+def _embed_batch(batch, input_type, allow_simplify=True):
+    response = requests.post(
+        _embedding_endpoint(),
+        headers={
+            'Authorization': 'Bearer {}'.format(os.environ['EMBEDDING_KEY']),
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': EMBEDDING_MODEL,
+            'input': batch,
+            'input_type': input_type,
+            'encoding_format': 'raw',
+        },
+        timeout=60,
+    )
+    if not response.ok:
+        if response.status_code == 400 and len(batch) > 1:
+            midpoint = max(len(batch) // 2, 1)
+            current_app.logger.warning(
+                'Embedding API rejected a batch of %s inputs; retrying as %s and %s',
+                len(batch),
+                midpoint,
+                len(batch) - midpoint,
+            )
+            return (
+                _embed_batch(batch[:midpoint], input_type)
+                + _embed_batch(batch[midpoint:], input_type)
+            )
+        if response.status_code == 400 and len(batch) == 1:
+            input_text = batch[0] or ''
+            if allow_simplify:
+                simplified_text = _simplify_embedding_input(input_text)
+                if simplified_text and simplified_text != input_text:
+                    current_app.logger.warning(
+                        'Embedding API rejected a single input; retrying without OCR layout markup'
+                    )
+                    return _embed_batch(
+                        [simplified_text],
+                        input_type,
+                        allow_simplify=False,
+                    )
+            control_count = sum(
+                unicodedata.category(character).startswith('C')
+                and character not in '\n\t'
+                for character in input_text
+            )
+            raise RuntimeError(
+                'Embedding API rejected a single input: {} bytes, {} characters, '
+                '{} control characters, input_type={}'.format(
+                    len(input_text.encode('utf-8', errors='ignore')),
+                    len(input_text),
+                    control_count,
+                    input_type,
+                )
+            )
+        try:
+            error_details = response.json()
+        except ValueError:
+            error_details = response.text[:500]
+        raise RuntimeError(
+            'Embedding API returned HTTP {}: {}'.format(
+                response.status_code,
+                error_details,
+            )
+        )
+
+    payload = response.json()
+    data = sorted(payload.get('data') or [], key=lambda item: item.get('index', 0))
+    batch_embeddings = [item.get('embedding') for item in data]
+    if len(batch_embeddings) != len(batch):
+        raise ValueError('Embedding service returned an unexpected number of vectors.')
+    return batch_embeddings
 
 
 def _embed_texts(texts, input_type):
@@ -80,36 +167,7 @@ def _embed_texts(texts, input_type):
             _limit_embedding_input(text)
             for text in texts[offset:offset + 96]
         ]
-        response = requests.post(
-            _embedding_endpoint(),
-            headers={
-                'Authorization': 'Bearer {}'.format(os.environ['EMBEDDING_KEY']),
-                'Content-Type': 'application/json',
-            },
-            json={
-                'model': EMBEDDING_MODEL,
-                'input': batch,
-                'input_type': input_type,
-                'encoding_format': 'raw',
-            },
-            timeout=60,
-        )
-        if not response.ok:
-            try:
-                error_details = response.json()
-            except ValueError:
-                error_details = response.text[:500]
-            raise RuntimeError(
-                'Embedding API returned HTTP {}: {}'.format(
-                    response.status_code,
-                    error_details,
-                )
-            )
-        payload = response.json()
-        data = sorted(payload.get('data') or [], key=lambda item: item.get('index', 0))
-        batch_embeddings = [item.get('embedding') for item in data]
-        if len(batch_embeddings) != len(batch):
-            raise ValueError('Embedding service returned an unexpected number of vectors.')
+        batch_embeddings = _embed_batch(batch, input_type)
         if any(len(vector or []) != EMBEDDING_DIMENSIONS for vector in batch_embeddings):
             raise ValueError('Embedding service returned an unexpected vector dimension.')
         embeddings.extend(batch_embeddings)
