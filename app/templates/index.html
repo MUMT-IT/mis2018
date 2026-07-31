@@ -1299,13 +1299,16 @@
                         <p class="home-panel-title">แนะนำระบบใหม่</p>
                     </div>
                 </div>
-                <a class="docs-query-home-banner"
-                   href="{{ url_for('docs_query.index') }}"
-                   aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
+            <a class="docs-query-home-banner"
+               href="{{ url_for('docs_query.index') }}"
+               aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
+                <picture>
+                    <source srcset="{{ url_for('static', filename='img/docsIQ_banner.webp') }}" type="image/webp">
                     <img src="{{ url_for('static', filename='img/docsIQ_banner.png') }}"
                          alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
                          decoding="async">
-                </a>
+                </picture>
+            </a>
             </section>
 
             {% if current_user.is_authenticated %}
