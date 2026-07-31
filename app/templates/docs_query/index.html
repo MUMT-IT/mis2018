@@ -5,9 +5,12 @@
     <section class="section">
         <div class="container">
             <div class="docs-query-page-banner">
-                <img src="{{ url_for('static', filename='img/docsIQ_banner.png') }}"
-                     alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
-                     decoding="async">
+                <picture>
+                    <source srcset="{{ url_for('static', filename='img/docsIQ_banner.webp') }}" type="image/webp">
+                    <img src="{{ url_for('static', filename='img/docsIQ_banner.png') }}"
+                         alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
+                         decoding="async">
+                </picture>
             </div>
             <section class="box docs-query-dashboard-card">
                 <div class="docs-query-dashboard-heading">
