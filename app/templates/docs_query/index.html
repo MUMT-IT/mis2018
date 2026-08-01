@@ -295,11 +295,30 @@
         }
 
         .docs-query-search-video {
+            background: transparent;
+            border: 0;
+            border-radius: 18px;
+            box-shadow: 0 16px 34px rgba(18, 39, 84, 0.24);
             display: block;
             height: auto;
-            margin: 0 auto 1rem;
+            margin: 0;
             max-width: 360px;
-            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+            position: fixed;
+            right: 1.5rem;
+            top: 5.5rem;
+            transform: translateY(-8px) scale(0.98);
+            transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+            visibility: hidden;
+            width: min(36vw, 360px);
+            z-index: 30;
+        }
+
+        .docs-query-search-video.is-searching {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            visibility: visible;
         }
 
         .docs-query-discovery-card,
@@ -462,6 +481,12 @@
             .docs-query-page-banner {
                 width: 100%;
             }
+
+            .docs-query-search-video {
+                right: 0.75rem;
+                top: 4.75rem;
+                width: min(44vw, 240px);
+            }
         }
     </style>
     <script>
@@ -469,6 +494,7 @@
         var searchInput = document.getElementById('query');
         var searchButton = document.getElementById('docs-query-search-button');
         var searchVideo = document.getElementById('docs-query-search-video');
+        var searchInProgress = false;
 
         searchVideo.addEventListener('loadedmetadata', function () {
             searchVideo.currentTime = 0;
@@ -476,18 +502,33 @@
         });
 
         searchVideo.addEventListener('ended', function () {
-            searchVideo.pause();
+            if (searchInProgress) {
+                searchVideo.currentTime = 0;
+                searchVideo.play().catch(function () {});
+            } else {
+                stopSearchVideo();
+            }
         });
+
+        function stopSearchVideo() {
+            searchVideo.pause();
+            searchVideo.currentTime = 0;
+            searchVideo.classList.remove('is-searching');
+        }
 
         function setSearchLoading(isLoading) {
             searchButton.classList.toggle('is-loading', isLoading);
             searchButton.disabled = isLoading;
             if (isLoading) {
-                searchVideo.loop = true;
+                searchInProgress = true;
+                searchVideo.classList.add('is-searching');
                 searchVideo.currentTime = 0;
                 searchVideo.play().catch(function () {});
             } else {
-                searchVideo.loop = false;
+                searchInProgress = false;
+                if (searchVideo.ended) {
+                    stopSearchVideo();
+                }
             }
         }
 
