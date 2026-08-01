@@ -13,14 +13,14 @@ from flask_login import login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from sqlalchemy import cast, desc, func, or_, text as sqlalchemy_text
+from sqlalchemy import desc, func, or_, text as sqlalchemy_text
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 from app.main import db
 from app.roles import admin_permission
 
 from . import docs_query
-from .models import DocsQueryChunk, DocsQueryClick, DocsQueryDocument, DocsQuerySearch
+from .models import DocsQueryChunk, DocsQueryClick, DocsQueryDocument, DocsQuerySearch, DocsQueryTag
 
 FOLDER_ID = '1PI7ZN5V1W_NxUGRteg8cXvnJMzF2nHOd'
 ALLOWED_EXTENSIONS = {'pdf'}
@@ -236,6 +236,30 @@ def _build_document_metadata(form_data):
     }
 
 
+def _set_document_tags(document, tag_names):
+    normalized_names = []
+    for tag_name in tag_names or []:
+        normalized_name = str(tag_name).strip()
+        if normalized_name and normalized_name not in normalized_names:
+            normalized_names.append(normalized_name)
+
+    existing_tags = DocsQueryTag.query.filter(
+        DocsQueryTag.name.in_(normalized_names)
+    ).all() if normalized_names else []
+    tags_by_name = {tag.name: tag for tag in existing_tags}
+    document.tags = []
+    for name in normalized_names:
+        tag = tags_by_name.get(name)
+        if tag is None:
+            tag = DocsQueryTag(name=name)
+            db.session.add(tag)
+        document.tags.append(tag)
+
+
+def _document_tag_names(document):
+    return [tag.name for tag in document.tags]
+
+
 def _to_drive_properties(metadata):
     properties = []
     value = metadata.get('document_type')
@@ -317,8 +341,13 @@ def load_processed_artifact(file_id):
         'filename': document.filename,
         'department': '',
         'document_type': document.document_type or '',
-        'tags': document.tags or [],
+        'tags': _document_tag_names(document),
         'note': document.note or '',
+        'summary': document.summary or '',
+        'summary_generated_at': (
+            document.summary_generated_at.isoformat()
+            if document.summary_generated_at else None
+        ),
         'is_expired': document.is_expired,
         'processing': {
             'extracted_at': extracted_at,
@@ -394,7 +423,7 @@ def _keyword_search_chunks(query, limit=50):
                 DocsQueryDocument.document_title.ilike(pattern, escape='\\'),
                 DocsQueryDocument.document_type.ilike(pattern, escape='\\'),
                 DocsQueryDocument.note.ilike(pattern, escape='\\'),
-                cast(DocsQueryDocument.tags, db.Text).ilike(pattern, escape='\\'),
+                DocsQueryDocument.tags.any(DocsQueryTag.name.ilike(pattern, escape='\\')),
             ),
         )
         .order_by(DocsQueryDocument.document_title, DocsQueryChunk.chunk_index)
@@ -564,9 +593,14 @@ def _get_search_statistics():
 def _get_document_statistics():
     documents = DocsQueryDocument.query.all()
     type_counts = {}
+    tag_counts = {}
     for document in documents:
         document_type = (document.document_type or '').strip() or 'ไม่ระบุประเภท'
         type_counts[document_type] = type_counts.get(document_type, 0) + 1
+        for tag in document.tags:
+            normalized_tag = tag.name.strip()
+            if normalized_tag:
+                tag_counts[normalized_tag] = tag_counts.get(normalized_tag, 0) + 1
     return {
         'total_documents': len(documents),
         'processed_documents': sum(document.status == 'processed' for document in documents),
@@ -574,6 +608,10 @@ def _get_document_statistics():
         'expired_documents': sum(document.is_expired for document in documents),
         'document_types': sorted(
             type_counts.items(),
+            key=lambda item: (-item[1], item[0]),
+        ),
+        'tags': sorted(
+            tag_counts.items(),
             key=lambda item: (-item[1], item[0]),
         ),
     }
@@ -713,6 +751,76 @@ def _call_typhoon_document_answer(query, search_results):
     if not content or not content.strip():
         raise ValueError('Empty Typhoon document answer.')
     return content.strip()
+
+
+def _call_typhoon_document_summary(document_title, chunks):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    context = '\n\n'.join(chunks[:10])[:16000]
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': 'Bearer {}'.format(api_key),
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.1,
+            'max_tokens': 350,
+            'messages': [
+                {
+                    'role': 'system',
+                    'content': (
+                        'คุณเป็นผู้ช่วยจัดทำข้อมูลกำกับเอกสารภายในองค์กร '
+                        'สรุปภาพรวมของเอกสารเป็นภาษาไทย 2-4 ประโยคอย่างกระชับ '
+                        'ระบุหัวข้อหรือวัตถุประสงค์หลักของเอกสารเท่าที่มีหลักฐานในเนื้อหา '
+                        'ห้ามแต่งข้อมูล ห้ามใช้ Markdown และห้ามกล่าวถึงกระบวนการสรุป'
+                    ),
+                },
+                {
+                    'role': 'user',
+                    'content': 'ชื่อเอกสาร: {}\n\nเนื้อหาเอกสาร:\n{}'.format(
+                        document_title or 'ไม่ทราบชื่อเอกสาร',
+                        context,
+                    ),
+                },
+            ],
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload.get('choices', [{}])[0].get('message', {}).get('content')
+    if not content or not content.strip():
+        raise ValueError('Empty Typhoon document summary.')
+    return content.strip()
+
+
+def generate_document_summary(file_id):
+    document = DocsQueryDocument.query.filter_by(drive_file_id=file_id).first()
+    if not document:
+        raise ValueError('Document has not been processed.')
+    chunks = [
+        chunk.text
+        for chunk in DocsQueryChunk.query.filter_by(document_id=document.id)
+        .order_by(DocsQueryChunk.chunk_index)
+        .all()
+    ]
+    if not chunks:
+        raise ValueError('Document has no extracted chunks.')
+    try:
+        summary = _call_typhoon_document_summary(document.document_title, chunks)
+    except Exception as exc:
+        document.summary_error = str(exc)
+        db.session.commit()
+        raise
+    document.summary = summary
+    document.summary_generated_at = datetime.now(timezone.utc)
+    document.summary_error = None
+    db.session.commit()
+    return summary
 
 
 def upload_pdf_file(upload_file, metadata):
@@ -1055,10 +1163,11 @@ def list_pdf_files():
     query = "'{}' in parents and trashed=false".format(FOLDER_ID)
     files = drive.ListFile({'q': query}).GetList()
     file_ids = [file_item.get('id') for file_item in files if file_item.get('id')]
-    processed_ids = set()
+    processed_documents = {}
     if file_ids:
-        processed_ids = {
+        processed_documents = {
             document.drive_file_id
+            : document
             for document in DocsQueryDocument.query.filter(
                 DocsQueryDocument.drive_file_id.in_(file_ids),
                 DocsQueryDocument.status == 'processed',
@@ -1071,6 +1180,7 @@ def list_pdf_files():
         properties = _read_drive_properties(file_item)
         if mime_type != 'application/pdf' and not (filename and filename.lower().endswith('.pdf')):
             continue
+        processed_document = processed_documents.get(file_item.get('id'))
         pdf_files.append({
             'id': file_item.get('id'),
             'name': filename,
@@ -1082,7 +1192,8 @@ def list_pdf_files():
             'mime_type': mime_type,
             'modified_time': file_item.get('modifiedDate'),
             'web_view_link': file_item.get('webViewLink') or file_item.get('alternateLink'),
-            'is_processed': file_item.get('id') in processed_ids,
+            'is_processed': processed_document is not None,
+            'summary': processed_document.summary if processed_document else '',
         })
     return sorted(pdf_files, key=lambda item: item.get('modified_time') or '', reverse=True)
 
@@ -1139,6 +1250,15 @@ def index():
             except Exception as exc:
                 search_error = 'การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc)
                 flash('การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc), 'danger')
+    if request.headers.get('HX-Request') == 'true':
+        return render_template(
+            'docs_query/search_results.html',
+            query=query,
+            related_documents=related_documents,
+            answer=answer,
+            search_error=search_error,
+        )
+
     try:
         statistics = _get_search_statistics()
     except Exception:
@@ -1148,6 +1268,21 @@ def index():
             'popular_queries': [],
             'popular_documents': [],
         }
+    return render_template(
+        'docs_query/index.html',
+        query=query,
+        search_results=search_results,
+        related_documents=related_documents,
+        answer=answer,
+        search_id=search_id,
+        statistics=statistics,
+        can_manage_documents=admin_permission.can(),
+    )
+
+
+@docs_query.route('/dashboard')
+@login_required
+def dashboard():
     try:
         document_statistics = _get_document_statistics()
     except Exception:
@@ -1159,25 +1294,11 @@ def index():
             'active_documents': 0,
             'expired_documents': 0,
             'document_types': [],
+            'tags': [],
         }
-    if request.headers.get('HX-Request') == 'true':
-        return render_template(
-            'docs_query/search_results.html',
-            query=query,
-            related_documents=related_documents,
-            answer=answer,
-            search_error=search_error,
-        )
     return render_template(
-        'docs_query/index.html',
-        query=query,
-        search_results=search_results,
-        related_documents=related_documents,
-        answer=answer,
-        search_id=search_id,
-        statistics=statistics,
+        'docs_query/dashboard.html',
         document_statistics=document_statistics,
-        can_manage_documents=admin_permission.can(),
     )
 
 
@@ -1185,11 +1306,6 @@ def index():
 @login_required
 @admin_permission.require(http_exception=403)
 def admin():
-    try:
-        pdf_files = list_pdf_files()
-    except Exception:
-        flash('ไม่สามารถโหลดไฟล์ PDF จาก Google Drive ได้', 'danger')
-        pdf_files = []
     try:
         statistics = _get_search_statistics()
     except Exception:
@@ -1205,9 +1321,94 @@ def admin():
         }
     return render_template(
         'docs_query/admin.html',
-        pdf_files=pdf_files,
         statistics=statistics,
     )
+
+
+@docs_query.route('/admin/data')
+@login_required
+@admin_permission.require(http_exception=403)
+def admin_data():
+    try:
+        draw = int(request.args.get('draw', 0))
+    except (TypeError, ValueError):
+        draw = 0
+    try:
+        start = max(int(request.args.get('start', 0)), 0)
+    except (TypeError, ValueError):
+        start = 0
+    try:
+        length = int(request.args.get('length', 10))
+    except (TypeError, ValueError):
+        length = 10
+    length = min(max(length, 1), 100)
+
+    try:
+        pdf_files = list_pdf_files()
+    except Exception as exc:
+        current_app.logger.exception('Could not load admin document data.')
+        return jsonify({
+            'draw': draw,
+            'recordsTotal': 0,
+            'recordsFiltered': 0,
+            'data': [],
+            'error': 'ไม่สามารถโหลดรายการเอกสารได้: {}'.format(exc),
+        }), 500
+
+    records_total = len(pdf_files)
+    search_value = (request.args.get('search[value]') or '').strip().lower()
+    if search_value:
+        pdf_files = [
+            pdf for pdf in pdf_files
+            if search_value in ' '.join([
+                pdf.get('document_title') or '',
+                pdf.get('name') or '',
+                pdf.get('document_type') or '',
+                ' '.join(pdf.get('tags') or []),
+                pdf.get('note') or '',
+            ]).lower()
+        ]
+    records_filtered = len(pdf_files)
+
+    order_column = request.args.get('order[0][column]', '0')
+    order_map = {
+        '0': lambda pdf: (pdf.get('document_title') or '').lower(),
+        '1': lambda pdf: (pdf.get('document_type') or '').lower(),
+        '2': lambda pdf: ', '.join(pdf.get('tags') or []).lower(),
+        '3': lambda pdf: (pdf.get('note') or '').lower(),
+        '4': lambda pdf: bool(pdf.get('is_expired')),
+        '5': lambda pdf: bool(pdf.get('is_processed')),
+    }
+    sort_key = order_map.get(order_column, order_map['0'])
+    pdf_files.sort(key=sort_key, reverse=request.args.get('order[0][dir]') == 'desc')
+    page_files = pdf_files[start:start + length]
+
+    rows = []
+    for pdf in page_files:
+        rows.append({
+            'title': pdf.get('document_title') or pdf.get('name') or 'ไม่ทราบชื่อเอกสาร',
+            'filename': pdf.get('name') or '',
+            'document_type': pdf.get('document_type') or '-',
+            'tags': pdf.get('tags') or [],
+            'note': pdf.get('note') or '',
+            'summary': pdf.get('summary') or '',
+            'is_expired': bool(pdf.get('is_expired')),
+            'is_processed': bool(pdf.get('is_processed')),
+            'web_view_link': pdf.get('web_view_link') or '',
+            'edit_url': url_for('docs_query.edit_metadata', file_id=pdf.get('id')),
+            'extract_url': url_for('docs_query.extract', file_id=pdf.get('id')),
+            'processed_url': (
+                url_for('docs_query.view_processed', file_id=pdf.get('id'))
+                if pdf.get('is_processed') else ''
+            ),
+        })
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': rows,
+    })
 
 
 @docs_query.route('/documents')
@@ -1215,6 +1416,16 @@ def admin():
 def documents():
     return render_template(
         'docs_query/documents.html',
+        can_manage_documents=admin_permission.can(),
+    )
+
+
+@docs_query.route('/documents/tag/<path:tag>')
+@login_required
+def tag_documents(tag):
+    return render_template(
+        'docs_query/tag_documents.html',
+        selected_tag=tag.strip(),
         can_manage_documents=admin_permission.can(),
     )
 
@@ -1252,16 +1463,23 @@ def documents_data():
                 DocsQueryDocument.filename.ilike(pattern, escape='\\'),
                 DocsQueryDocument.status.ilike(pattern, escape='\\'),
                 DocsQueryDocument.document_type.ilike(pattern, escape='\\'),
-                cast(DocsQueryDocument.tags, db.Text).ilike(pattern, escape='\\'),
+                DocsQueryDocument.tags.any(DocsQueryTag.name.ilike(pattern, escape='\\')),
                 DocsQueryDocument.note.ilike(pattern, escape='\\'),
             )
+        )
+
+    selected_tag = (request.args.get('tag') or '').strip()
+    if selected_tag:
+        filtered_query = filtered_query.filter(
+            DocsQueryDocument.tags.any(DocsQueryTag.name == selected_tag)
         )
 
     records_filtered = filtered_query.count()
     order_columns = {
         '0': DocsQueryDocument.document_title,
-        '1': DocsQueryDocument.status,
-        '2': DocsQueryDocument.updated_at,
+        '1': DocsQueryDocument.document_type,
+        '2': DocsQueryDocument.note,
+        '3': DocsQueryDocument.status,
     }
     order_column = order_columns.get(request.args.get('order[0][column]', '0'), DocsQueryDocument.document_title)
     order_direction = request.args.get('order[0][dir]', 'asc').lower()
@@ -1286,6 +1504,9 @@ def documents_data():
             status_class = 'is-danger is-light'
         rows.append({
             'title': document.document_title or document.filename or 'ไม่ทราบชื่อเอกสาร',
+            'summary': document.summary or '',
+            'document_type': document.document_type or 'ไม่ระบุประเภท',
+            'note': document.note or '',
             'url': 'https://drive.google.com/file/d/{}/view'.format(document.drive_file_id),
             'status': status_label,
             'status_class': status_class,
@@ -1346,7 +1567,7 @@ def edit_metadata(file_id):
                 or '{}.pdf'.format(file_id)
             )
             document.document_type = metadata['document_type'] or None
-            document.tags = metadata['tags']
+            _set_document_tags(document, metadata['tags'])
             document.note = metadata['note'] or None
             document.is_expired = metadata['is_expired']
             document.issue_date = metadata['issue_date']
@@ -1423,7 +1644,7 @@ def process_document(file_id):
         document.document_title = document_title
         document.filename = filename
         document.document_type = properties.get('document_type') or ''
-        document.tags = _parse_tags(properties.get('tags'))
+        _set_document_tags(document, _parse_tags(properties.get('tags')))
         document.note = properties.get('note') or None
         document.is_expired = _parse_bool(properties.get('is_expired'))
         date_result = _save_issue_date(document, extracted_text)
@@ -1449,6 +1670,24 @@ def process_document(file_id):
         elif extracted_char_count < 300 and not warning_message:
             extraction_status = 'warning'
             warning_message = 'ข้อความที่สกัดได้มีปริมาณน้อยมาก ไฟล์ PDF อาจเป็นเอกสารสแกนหรือประกอบด้วยรูปภาพ'
+
+        summary = None
+        summary_warning = None
+        try:
+            summary = _call_typhoon_document_summary(document_title, chunks)
+            document.summary = summary
+            document.summary_generated_at = datetime.now(timezone.utc)
+            document.summary_error = None
+        except Exception as exc:
+            summary_warning = str(exc)
+            document.summary = None
+            document.summary_generated_at = None
+            document.summary_error = str(exc)
+            current_app.logger.warning(
+                'Could not generate Typhoon summary for %s: %s',
+                file_id,
+                exc,
+            )
 
         embeddings = (
             _embed_texts(chunks, 'search_document')
@@ -1501,6 +1740,8 @@ def process_document(file_id):
             'chunking_method': chunking_method,
             'extracted_char_count': extracted_char_count,
             'total_chunk_count': len(chunks),
+            'summary': summary,
+            'summary_warning': summary_warning,
             'chunk_previews': [
                 {
                     'chunk_number': index + 1,

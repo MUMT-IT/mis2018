@@ -16,8 +16,34 @@
                 </a>
             </div>
 
-            <div class="columns is-variable is-6">
-                <div class="column is-4">
+            <div class="columns is-variable is-6 is-multiline">
+                <div class="column is-12">
+                    <div class="box docs-query-admin-card docs-query-admin-table-card">
+                        <div class="level is-mobile mb-4">
+                            <div>
+                                <h2 class="title is-4 mb-1">เอกสารที่จัดการ</h2>
+                                <p class="has-text-grey is-size-7">รายการไฟล์ PDF จาก Google Drive แบ่งหน้าอัตโนมัติ</p>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table id="docs-query-admin-table" class="table is-fullwidth is-size-7">
+                                <thead>
+                                <tr>
+                                    <th>เอกสาร</th>
+                                    <th>ประเภทเอกสาร</th>
+                                    <th>แท็ก</th>
+                                    <th>หมายเหตุ</th>
+                                    <th>สถานะการใช้งาน</th>
+                                    <th>สถานะ</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-12">
                     <div class="box docs-query-admin-card">
                         <h2 class="title is-4">เพิ่มเอกสาร</h2>
                         <p class="has-text-grey mb-5">ข้อมูลกำกับจะถูกบันทึกพร้อมไฟล์ PDF เพื่อใช้จัดระเบียบผลการค้นหา</p>
@@ -69,70 +95,6 @@
                                 <span>อัปโหลด PDF</span>
                             </button>
                         </form>
-                    </div>
-                </div>
-
-                <div class="column is-8">
-                    <div class="box docs-query-admin-card">
-                        <div class="level is-mobile mb-4">
-                            <div>
-                                <h2 class="title is-4 mb-1">เอกสารที่จัดการ</h2>
-                                <p class="has-text-grey is-size-7">ไฟล์ PDF ใน Google Drive {{ pdf_files|length }} รายการ</p>
-                            </div>
-                        </div>
-                        {% if pdf_files %}
-                            <div class="table-container">
-                                <table class="table is-fullwidth is-hoverable is-size-7">
-                                    <thead>
-                                    <tr>
-                                        <th>เอกสาร</th>
-                                        <th>แท็ก</th>
-                                        <th>สถานะการใช้งาน</th>
-                                        <th>สถานะ</th>
-                                        <th>การดำเนินการ</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {% for pdf in pdf_files %}
-                                        <tr>
-                                            <td>
-                                                <p class="has-text-weight-semibold">{{ pdf.document_title }}</p>
-                                                <p class="has-text-grey">{{ pdf.name }}</p>
-                                                {% if pdf.note %}<p class="has-text-grey">{{ pdf.note }}</p>{% endif %}
-                                            </td>
-                                            <td>
-                                                {% if pdf.tags %}
-                                                    {% for tag in pdf.tags %}<span class="tag is-info is-light">{{ tag }}</span>{% endfor %}
-                                                {% else %}-{% endif %}
-                                            </td>
-                                            <td>
-                                                {% if pdf.is_expired %}<span class="tag is-danger is-light">หมดอายุ</span>
-                                                {% else %}<span class="tag is-success is-light">ใช้งานได้</span>{% endif %}
-                                            </td>
-                                            <td>
-                                                {% if pdf.is_processed %}<span class="tag is-success is-light">ประมวลผลแล้ว</span>
-                                                {% else %}<span class="tag is-light">ยังไม่ประมวลผล</span>{% endif %}
-                                            </td>
-                                            <td>
-                                                {% if pdf.web_view_link %}<a href="{{ pdf.web_view_link }}" target="_blank" rel="noopener noreferrer">เปิด</a>{% endif %}
-                                                <a class="button is-small is-warning is-light" href="{{ url_for('docs_query.edit_metadata', file_id=pdf.id) }}">
-                                                    <span class="icon"><i class="fas fa-edit"></i></span>
-                                                    <span>แก้ไข</span>
-                                                </a>
-                                                <form method="post" action="{{ url_for('docs_query.extract', file_id=pdf.id) }}" class="mt-2">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                    <button class="button is-small is-info is-light" type="submit">สกัดข้อความ</button>
-                                                    {% if pdf.is_processed %}<a class="button is-small is-success is-light" href="{{ url_for('docs_query.view_processed', file_id=pdf.id) }}">ดูข้อมูล JSON</a>{% endif %}
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        {% else %}
-                            <p class="has-text-grey">ไม่พบไฟล์ PDF ในโฟลเดอร์ Google Drive ที่กำหนด</p>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -195,11 +157,174 @@
     </section>
     <style>
         .docs-query-admin-card { border-radius: 20px; height: 100%; }
+        .docs-query-admin-table-card { border-radius: 20px; }
         .docs-query-admin-card .table td { vertical-align: middle; }
+        .docs-query-table-subtitle {
+            color: var(--theme-muted);
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 400;
+            line-height: 1.45;
+            margin-top: 0.25rem;
+            max-width: 32rem;
+        }
+        .docs-query-admin-card #docs-query-admin-table { border-radius: 0; }
+        .docs-query-admin-table-card .table-container {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: visible;
+        }
+        .docs-query-admin-actions {
+            align-items: center;
+            background: rgba(18, 39, 84, 0.05);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 999px;
+            display: flex;
+            gap: .15rem;
+            justify-content: center;
+            margin: 0 auto;
+            min-width: max-content;
+            padding: .2rem;
+        }
+        .docs-query-admin-action-form { display: contents; }
+        .docs-query-admin-icon-action {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            color: var(--theme-navy);
+            cursor: pointer;
+            display: inline-flex;
+            font: inherit;
+            justify-content: center;
+            border-radius: 50%;
+            height: 2rem;
+            padding: 0.25rem;
+            transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+            width: 2rem;
+        }
+        .docs-query-admin-icon-action:hover,
+        .docs-query-admin-icon-action:focus {
+            background: #fff;
+            box-shadow: 0 3px 8px rgba(18, 39, 84, 0.14);
+            color: #3273dc;
+        }
         .docs-query-stat-list { margin: 0; padding-left: 1.25rem; }
         .docs-query-admin-card .columns > .column { min-width: 0; }
         .docs-query-stat-list li { align-items: center; display: grid; gap: .5rem; grid-template-columns: minmax(0, 1fr) auto; margin-bottom: .6rem; min-width: 0; }
         .docs-query-stat-list li span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .docs-query-stat-list li .tag { min-width: max-content; }
     </style>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(function () {
+            function escapeHtml(value) {
+                return $('<div>').text(value || '').html();
+            }
+
+            var csrfToken = {{ csrf_token()|tojson }};
+
+            $('#docs-query-admin-table').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50], [10, 25, 50]],
+                ajax: {
+                    url: '{{ url_for("docs_query.admin_data") }}',
+                    type: 'GET'
+                },
+                order: [[0, 'asc']],
+                columns: [
+                    {
+                        data: 'title',
+                        render: function (data, type, row) {
+                            if (type !== 'display') return data;
+                            var title = row.web_view_link
+                                ? '<a href="' + escapeHtml(row.web_view_link) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(data) + '</a>'
+                                : escapeHtml(data);
+                            var summary = row.summary
+                                ? '<span class="docs-query-table-subtitle">' + escapeHtml(row.summary) + '</span>'
+                                : '';
+                            return '<div><p class="has-text-weight-semibold">' + title + '</p>' + summary + '</div>';
+                        }
+                    },
+                    {
+                        data: 'document_type',
+                        render: function (data, type) {
+                            return type === 'display' ? escapeHtml(data) : data;
+                        }
+                    },
+                    {
+                        data: 'tags',
+                        render: function (data, type) {
+                            if (type !== 'display') return (data || []).join(', ');
+                            if (!data || !data.length) return '-';
+                            return data.map(function (tag) {
+                                return '<span class="tag is-info is-rounded">' + escapeHtml(tag) + '</span>';
+                            }).join(' ');
+                        }
+                    },
+                    {
+                        data: 'note',
+                        render: function (data, type) {
+                            if (type !== 'display') return data || '';
+                            return data ? escapeHtml(data) : '-';
+                        }
+                    },
+                    {
+                        data: 'is_expired',
+                        render: function (data, type) {
+                            if (type !== 'display') return data ? 1 : 0;
+                            return data
+                                ? '<span class="tag is-danger is-light">ยกเลิกแล้ว</span>'
+                                : '<span class="tag is-success is-light">ใช้งานได้</span>';
+                        }
+                    },
+                    {
+                        data: 'is_processed',
+                        render: function (data, type) {
+                            if (type !== 'display') return data ? 1 : 0;
+                            return data
+                                ? '<span class="tag is-success is-light">ประมวลผลแล้ว</span>'
+                                : '<span class="tag is-light">ยังไม่ประมวลผล</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        render: function (data, type, row) {
+                            if (type !== 'display') return '';
+                            var actions = row.web_view_link
+                                ? '<a class="icon docs-query-admin-icon-action" href="' + escapeHtml(row.web_view_link) + '" target="_blank" rel="noopener noreferrer" title="เปิดเอกสาร" aria-label="เปิดเอกสาร"><i class="fas fa-external-link-alt"></i></a>'
+                                : '';
+                            actions += '<a class="icon docs-query-admin-icon-action" href="' + escapeHtml(row.edit_url) + '" title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"><i class="fas fa-edit"></i></a>';
+                            actions += '<form method="post" action="' + escapeHtml(row.extract_url) + '" class="docs-query-admin-action-form">' +
+                                '<input type="hidden" name="csrf_token" value="' + escapeHtml(csrfToken) + '">' +
+                                '<button class="icon docs-query-admin-icon-action" type="submit" title="สกัดข้อความ" aria-label="สกัดข้อความ"><i class="fas fa-file-import"></i></button>' +
+                                (row.is_processed ? '<a class="icon docs-query-admin-icon-action" href="' + escapeHtml(row.processed_url) + '" title="ดูข้อมูล JSON" aria-label="ดูข้อมูล JSON"><i class="fas fa-file-code"></i></a>' : '') +
+                                '</form>';
+                            return '<div class="docs-query-admin-actions">' + actions + '</div>';
+                        }
+                    }
+                ],
+                language: {
+                    processing: 'กำลังโหลดข้อมูล...',
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีรายการเอกสาร',
+                    zeroRecords: 'ไม่พบเอกสารที่ตรงกับการค้นหา',
+                    paginate: {
+                        first: 'หน้าแรก',
+                        last: 'หน้าสุดท้าย',
+                        next: 'ถัดไป',
+                        previous: 'ก่อนหน้า'
+                    }
+                }
+            });
+        });
+    </script>
 {% endblock %}

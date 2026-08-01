@@ -21,6 +21,7 @@
                             <p><strong>ชื่อเอกสาร:</strong> {{ artifact.document_title }}</p>
                             <p><strong>ชื่อไฟล์:</strong> {{ artifact.filename }}</p>
                             <p><strong>ประเภทเอกสาร:</strong> {{ artifact.document_type or '-' }}</p>
+                            <p><strong>สรุปย่อ:</strong> {{ artifact.summary or 'ยังไม่มีสรุปย่อ' }}</p>
                             <p><strong>จำนวนอักขระทั้งหมด:</strong> {{ artifact.statistics.total_characters }}</p>
                             <p><strong>จำนวนส่วนทั้งหมด:</strong> {{ artifact.statistics.total_chunks }}</p>
                         </div>

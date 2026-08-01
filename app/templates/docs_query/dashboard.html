@@ -1,0 +1,49 @@
+<section class="box docs-query-dashboard-card">
+    <div class="docs-query-dashboard-heading">
+        <div>
+            <h2 class="title is-5 mb-1">ภาพรวมเอกสาร</h2>
+            <p class="has-text-grey is-size-7">สถิติเอกสารในระบบค้นหา</p>
+        </div>
+        <span class="icon is-medium has-text-info"><i class="fas fa-chart-pie" aria-hidden="true"></i></span>
+    </div>
+    <div class="docs-query-dashboard-stats">
+        <div class="docs-query-dashboard-stat">
+            <span class="docs-query-dashboard-label">เอกสารทั้งหมด</span>
+            <strong>{{ document_statistics.total_documents }}</strong>
+        </div>
+        <div class="docs-query-dashboard-stat">
+            <span class="docs-query-dashboard-label">ประมวลผลแล้ว</span>
+            <strong>{{ document_statistics.processed_documents }}</strong>
+        </div>
+        <div class="docs-query-dashboard-stat">
+            <span class="docs-query-dashboard-label">ใช้งานได้</span>
+            <strong>{{ document_statistics.active_documents }}</strong>
+        </div>
+        <div class="docs-query-dashboard-stat is-warning">
+            <span class="docs-query-dashboard-label">ยกเลิกแล้ว</span>
+            <strong>{{ document_statistics.expired_documents }}</strong>
+        </div>
+    </div>
+    {% if document_statistics.document_types %}
+        <div class="docs-query-dashboard-types">
+            <span class="docs-query-dashboard-label">แยกตามประเภทเอกสาร</span>
+            <div class="tags mt-2 mb-0">
+                {% for document_type, count in document_statistics.document_types %}
+                    <span class="tag is-info is-light">{{ document_type }} <strong class="ml-1">{{ count }}</strong></span>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+    {% if document_statistics.tags %}
+        <div class="docs-query-dashboard-types">
+                <span class="docs-query-dashboard-label">แยกตามแท็ก</span>
+            <div class="tags mt-2 mb-0">
+                {% for tag, count in document_statistics.tags %}
+                    <a class="tag is-info is-light" href="{{ url_for('docs_query.tag_documents', tag=tag) }}" title="ดูเอกสารที่มีแท็ก {{ tag }}">
+                        {{ tag }} <strong class="ml-1">{{ count }}</strong>
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</section>

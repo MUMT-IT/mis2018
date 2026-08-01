@@ -12,43 +12,17 @@
                          decoding="async">
                 </picture>
             </div>
-            <section class="box docs-query-dashboard-card">
-                <div class="docs-query-dashboard-heading">
-                    <div>
-                        <h2 class="title is-5 mb-1">ภาพรวมเอกสาร</h2>
-                        <p class="has-text-grey is-size-7">สถิติเอกสารในระบบค้นหา</p>
+            <div id="docs-query-dashboard"
+                 hx-get="{{ url_for('docs_query.dashboard') }}"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <section class="box docs-query-dashboard-card" aria-busy="true">
+                    <div class="has-text-centered has-text-grey py-4">
+                        <span class="icon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></span>
+                        <span>กำลังโหลดภาพรวมเอกสาร...</span>
                     </div>
-                    <span class="icon is-medium has-text-info"><i class="fas fa-chart-pie" aria-hidden="true"></i></span>
-                </div>
-                <div class="docs-query-dashboard-stats">
-                    <div class="docs-query-dashboard-stat">
-                        <span class="docs-query-dashboard-label">เอกสารทั้งหมด</span>
-                        <strong>{{ document_statistics.total_documents }}</strong>
-                    </div>
-                    <div class="docs-query-dashboard-stat">
-                        <span class="docs-query-dashboard-label">ประมวลผลแล้ว</span>
-                        <strong>{{ document_statistics.processed_documents }}</strong>
-                    </div>
-                    <div class="docs-query-dashboard-stat">
-                        <span class="docs-query-dashboard-label">ใช้งานได้</span>
-                        <strong>{{ document_statistics.active_documents }}</strong>
-                    </div>
-                    <div class="docs-query-dashboard-stat is-warning">
-                        <span class="docs-query-dashboard-label">ยกเลิกแล้ว</span>
-                        <strong>{{ document_statistics.expired_documents }}</strong>
-                    </div>
-                </div>
-                {% if document_statistics.document_types %}
-                    <div class="docs-query-dashboard-types">
-                        <span class="docs-query-dashboard-label">แยกตามประเภทเอกสาร</span>
-                        <div class="tags mt-2 mb-0">
-                            {% for document_type, count in document_statistics.document_types %}
-                                <span class="tag is-info is-light">{{ document_type }} <strong class="ml-1">{{ count }}</strong></span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endif %}
-            </section>
+                </section>
+            </div>
             <div class="columns is-centered">
                 <div class="column is-10-tablet is-9-desktop is-8-widescreen docs-query-page-column">
                     {% include "messages.html" %}
@@ -67,14 +41,13 @@
                             <div class="field">
                                 <label class="label" for="query">คำถามหรือคำค้น</label>
                                 <div class="control">
-                                    <input
-                                        class="input is-large"
+                                    <textarea
+                                        class="textarea is-large"
                                         id="query"
                                         name="query"
-                                        type="text"
+                                        rows="4"
                                         placeholder="ค้นหาเอกสารหรือพิมพ์คำถาม..."
-                                        value="{{ query or '' }}"
-                                    >
+                                    >{{ query or '' }}</textarea>
                                 </div>
                             </div>
                             <div class="field has-text-centered mt-5">
@@ -169,13 +142,16 @@
                                                             <span class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</span>
                                                             <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
                                                         </a>
+                                                        {% if related.document.summary %}
+                                                            <span class="docs-query-table-subtitle">{{ related.document.summary }}</span>
+                                                        {% endif %}
                                                     </td>
                                                     <td>
                                                         <span>{{ related.document.document_type or 'เอกสาร' }}</span>
                                                     {% if related.document.tags %}
                                                         <div class="tags mt-2 mb-0">
                                                             {% for tag in related.document.tags %}
-                                                                <span class="tag is-info is-light">{{ tag }}</span>
+                                                                <span class="tag is-info is-light">{{ tag.name }}</span>
                                                             {% endfor %}
                                                         </div>
                                                     {% endif %}
@@ -373,7 +349,7 @@
         }
 
         .docs-query-related-table {
-            min-width: 760px;
+            min-width: 980px;
         }
 
         .docs-query-related-table th {
@@ -408,6 +384,16 @@
 
         .docs-query-related-title a:hover {
             color: #3273dc;
+        }
+
+        .docs-query-table-subtitle {
+            color: var(--theme-muted);
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 400;
+            line-height: 1.45;
+            margin-top: 0.25rem;
+            max-width: 32rem;
         }
 
         .docs-query-related-table .button {

@@ -45,12 +45,15 @@
                                     <span class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</span>
                                     <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
                                 </a>
+                                {% if related.document.summary %}
+                                    <span class="docs-query-table-subtitle">{{ related.document.summary }}</span>
+                                {% endif %}
                             </td>
                             <td>
                                 <span>{{ related.document.document_type or 'เอกสาร' }}</span>
                                 {% if related.document.tags %}
                                     <div class="tags mt-2 mb-0">
-                                        {% for tag in related.document.tags %}<span class="tag is-info is-light">{{ tag }}</span>{% endfor %}
+                                    {% for tag in related.document.tags %}<span class="tag is-info is-light">{{ tag.name }}</span>{% endfor %}
                                     </div>
                                 {% endif %}
                             </td>
