@@ -1,6 +1,27 @@
 {% extends "base.html" %}
+{% include "management/s3_storage_nav.html" %}
 
 {% block title %}S3 Storage Management{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .s3-management-table {
+            border-radius: 0;
+        }
+
+        .s3-management-table td {
+            vertical-align: middle;
+        }
+
+        .s3-management-table-container {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: visible;
+        }
+    </style>
+{% endblock %}
 
 {% block page_content %}
 <section class="section">
@@ -13,17 +34,9 @@
         </nav>
 
         <div class="box">
-            <div class="level is-mobile">
-                <div>
-                    <h1 class="title is-4">S3 Storage Management</h1>
-                    <p class="subtitle is-6">Admin area for S3 storage operations and monitoring.</p>
-                </div>
-                <div class="level-right">
-                    <a class="button is-info" href="{{ url_for('files_services.index') }}">
-                        <span class="icon"><i class="fas fa-upload" aria-hidden="true"></i></span>
-                        <span>Upload file</span>
-                    </a>
-                </div>
+            <div>
+                <h1 class="title is-4">S3 Storage Management</h1>
+                <p class="subtitle is-6">Admin area for S3 storage operations and monitoring.</p>
             </div>
 
             {% if connection_status == 'Connected' %}
@@ -82,7 +95,7 @@
                 <div class="column is-3">
                     <div class="box has-background-light">
                         <p class="heading">Total Objects</p>
-                        <p class="title is-6">{{ object_count }}</p>
+                        <p class="title is-6" id="s3-total-object-count">{{ object_count }}</p>
                     </div>
                 </div>
             </div>
@@ -90,15 +103,27 @@
             <div class="box">
                 <p class="heading mb-3">Storage Capacity Gauge</p>
                 <div id="storage-gauge" style="width: 100%; min-height: 200px;"></div>
-                <p class="is-size-7 has-text-grey mt-2">
+                <p class="is-size-7 has-text-grey mt-2" id="s3-storage-usage-label">
                     Used {{ '%.2f'|format(used_storage_gb) }} GB of {{ '%.2f'|format(storage_capacity_gb) }} GB
                     ({{ storage_usage_percent }}%)
                 </p>
             </div>
 
-            <p class="has-text-grey is-size-7 mb-2">Showing the 20 most recently modified objects.</p>
-            <div class="table-container">
-                <table class="table is-fullwidth is-striped is-hoverable">
+            <div class="box">
+                <div class="level is-mobile mb-3">
+                    <div>
+                        <p class="heading mb-1">S3 Folders</p>
+                        <p class="has-text-grey is-size-7">Browse files within a folder.</p>
+                    </div>
+                </div>
+                <div id="s3-folder-list" class="buttons">
+                    <span class="has-text-grey is-size-7">Loading folders...</span>
+                </div>
+            </div>
+
+            <p class="has-text-grey is-size-7 mb-2">10 most recently modified objects, loaded on demand.</p>
+            <div class="table-container s3-management-table-container">
+                <table id="s3-recent-objects-table" class="table is-fullwidth is-size-7 s3-management-table">
                     <thead>
                     <tr>
                         <th>#</th>
@@ -107,22 +132,6 @@
                         <th>Last Modified</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    {% for obj in objects %}
-                        <tr>
-                            <td>{{ loop.index }}</td>
-                            <td>{{ obj.key }}</td>
-                            <td>{{ obj.size }}</td>
-                            <td>{{ obj.last_modified }}</td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="4" class="has-text-centered has-text-grey">
-                                No objects found or unable to read object list.
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
                 </table>
             </div>
         </div>
@@ -134,32 +143,95 @@
     {{ super() }}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script>
+        var storageGaugeReady = false;
+        var storageGaugeValue = Number({{ storage_usage_percent|tojson }});
+
         google.charts.load('current', {'packages': ['gauge']});
         google.charts.setOnLoadCallback(drawStorageGauge);
 
         function drawStorageGauge() {
-            var usagePercent = Number({{ storage_usage_percent|tojson }});
+            storageGaugeReady = true;
+            drawStorageGaugeValue(storageGaugeValue);
+        }
+
+        function loadStorageSummary() {
+            return fetch('{{ url_for("s3_storage_summary_api") }}')
+                .then(function (response) { return response.json(); })
+                .then(function (summary) {
+                    if (summary.error) throw new Error(summary.error);
+                    document.getElementById('s3-total-object-count').textContent = summary.object_count;
+                    document.getElementById('s3-storage-usage-label').textContent =
+                        'Used ' + summary.used_storage_gb.toFixed(2) + ' GB of {{ storage_capacity_gb }} GB (' + summary.storage_usage_percent + '%)';
+                    storageGaugeValue = summary.storage_usage_percent;
+                    if (storageGaugeReady) drawStorageGaugeValue(storageGaugeValue);
+                });
+        }
+
+        function drawStorageGaugeValue(usagePercent) {
             var data = google.visualization.arrayToDataTable([
                 ['Label', 'Value'],
-                ['Storage %', usagePercent]
+                ['Storage %', Number(usagePercent)]
             ]);
-
-            var options = {
-                width: '100%',
-                height: 220,
-                min: 0,
-                max: 100,
-                greenFrom: 0,
-                greenTo: 70,
-                yellowFrom: 70,
-                yellowTo: 90,
-                redFrom: 90,
-                redTo: 100,
-                minorTicks: 5
-            };
-
             var chart = new google.visualization.Gauge(document.getElementById('storage-gauge'));
-            chart.draw(data, options);
+            chart.draw(data, {
+                width: '100%', height: 220, min: 0, max: 100,
+                greenFrom: 0, greenTo: 70, yellowFrom: 70, yellowTo: 90,
+                redFrom: 90, redTo: 100, minorTicks: 5
+            });
         }
+
+        function loadS3Folders() {
+            fetch('{{ url_for("s3_storage_folders_api") }}')
+                .then(function (response) { return response.json(); })
+                .then(function (payload) {
+                    var container = document.getElementById('s3-folder-list');
+                    container.innerHTML = '';
+                    if (!payload.folders || !payload.folders.length) {
+                        container.innerHTML = '<span class="has-text-grey is-size-7">No folders found.</span>';
+                        return;
+                    }
+                    payload.folders.forEach(function (folder) {
+                        var link = document.createElement('a');
+                        link.className = 'button is-light is-small';
+                        link.href = folder.url;
+                        link.innerHTML = '<span class="icon"><i class="fas fa-folder"></i></span><span></span>';
+                        link.querySelector('span:last-child').textContent = folder.name;
+                        container.appendChild(link);
+                    });
+                })
+                .catch(function () {
+                    document.getElementById('s3-folder-list').innerHTML = '<span class="has-text-danger is-size-7">Could not load folders.</span>';
+                });
+        }
+
+        function initializeRecentObjectsTable() {
+            $('#s3-recent-objects-table').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 10,
+                paging: false,
+                searching: false,
+                info: false,
+                order: [[3, 'desc']],
+                ajax: '{{ url_for("s3_storage_recent_objects_api") }}',
+                columns: [
+                    { data: null, searchable: false, orderable: false, render: function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }},
+                    { data: 'key', render: function (data, type, row) {
+                        var link = $('<a>', { href: row.url, target: '_blank', rel: 'noopener noreferrer' }).text(data);
+                        return link.prop('outerHTML');
+                    }},
+                    { data: 'size' },
+                    { data: 'last_modified' }
+                ]
+            });
+        }
+
+        $(function () {
+            initializeRecentObjectsTable();
+            loadStorageSummary().catch(function () {});
+            loadS3Folders();
+        });
     </script>
 {% endblock %}

@@ -13,7 +13,8 @@
                             </span>
                             <h1 class="title is-3 mb-2">Upload file to S3</h1>
                             <p class="subtitle is-6 has-text-grey mb-0">
-                                Select a file to upload it to the connected storage bucket.
+                                Select a file to upload it to
+                                <code>{{ prefix or 'ui-assets/' }}</code>.
                             </p>
                         </div>
 
@@ -33,6 +34,7 @@
 
                         <form action="{{ url_for('files_services.upload_file') }}" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="prefix" value="{{ prefix }}">
                             <div class="field">
                                 <label class="label" for="file">Choose a file</label>
                                 <div class="control">

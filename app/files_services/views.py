@@ -141,7 +141,10 @@ def get_procurement_image_data():
 @files_services.route('/')
 @login_required
 def index():
-    return render_template('files_services/upload.html')
+    prefix = (request.args.get('prefix') or '').strip().lstrip('/')
+    if prefix and not prefix.endswith('/'):
+        prefix += '/'
+    return render_template('files_services/upload.html', prefix=prefix)
 #
 # # Route for direct file upload by the user
 @files_services.route('/upload_file', methods=['GET', 'POST'])
@@ -159,7 +162,13 @@ def upload_file():
 
         mime_type = file.mimetype or 'application/octet-stream'
         safe_name = secure_filename(file.filename)
-        file_name = f'ui-assets/{safe_name}'
+        if not safe_name:
+            return jsonify({"status": "error", "message": "Invalid file name"}), 400
+
+        prefix = (request.form.get('prefix') or 'ui-assets/').strip().lstrip('/')
+        if prefix and not prefix.endswith('/'):
+            prefix += '/'
+        file_name = f'{prefix}{safe_name}'
         file_data = file.stream.read()
 
         if not file_data:
@@ -188,6 +197,7 @@ def upload_file():
             success=1,
             file_url=file_url,
             file_key=file_name,
+            prefix=prefix,
         ))
     else:
         return jsonify({"status": "error", "message": "File type not allowed"}), 400

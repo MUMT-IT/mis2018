@@ -12,7 +12,7 @@ from sqlalchemy.orm import joinedload
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
-from flask import Flask, g, render_template, redirect, url_for, request, abort, session
+from flask import Flask, g, render_template, redirect, url_for, request, abort, session, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -998,31 +998,6 @@ def s3_storage_management_index():
             location_resp = s3_client.get_bucket_location(Bucket=bucket_name)
             # AWS may return None for us-east-1.
             bucket_region = location_resp.get('LocationConstraint') or 'us-east-1'
-
-            paginator = s3_client.get_paginator('list_objects_v2')
-            recent_objects = []
-            object_count = 0
-            for page in paginator.paginate(Bucket=bucket_name):
-                page_objects = page.get('Contents', [])
-                object_count += len(page_objects)
-                recent_objects.extend(page_objects)
-                recent_objects.sort(
-                    key=lambda obj: str(obj.get('LastModified') or ''),
-                    reverse=True,
-                )
-                del recent_objects[20:]
-                for obj in page_objects:
-                    total_size_bytes += obj.get('Size', 0) or 0
-
-            for obj in recent_objects:
-                last_modified = obj.get('LastModified')
-                if last_modified:
-                    last_modified = last_modified.strftime('%Y-%m-%d %H:%M:%S')
-                objects.append({
-                    'key': obj.get('Key', '-'),
-                    'size': obj.get('Size', 0),
-                    'last_modified': last_modified or '-',
-                })
     except (NoCredentialsError, ClientError, Exception) as err:
         connection_status = 'Unavailable'
         error_message = str(err)
@@ -1046,6 +1021,188 @@ def s3_storage_management_index():
         storage_capacity_gb=storage_capacity_gb,
         storage_usage_percent=storage_usage_percent,
     )
+
+
+def _s3_management_client():
+    region = (
+        os.environ.get('BUCKETEER_AWS_REGION')
+        or os.environ.get('AWS_DEFAULT_REGION')
+        or os.environ.get('AWS_REGION')
+        or None
+    )
+    bucket_name = os.environ.get('BUCKETEER_BUCKET_NAME')
+    client = boto3.client(
+        's3',
+        endpoint_url=os.environ.get('AWS_S3_ENDPOINT_URL') or None,
+        region_name=region,
+        aws_access_key_id=os.environ.get('BUCKETEER_AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.environ.get('BUCKETEER_AWS_SECRET_ACCESS_KEY'),
+        aws_session_token=os.environ.get('BUCKETEER_AWS_SESSION_TOKEN'),
+    )
+    return client, bucket_name
+
+
+def _s3_admin_required():
+    if not current_user.is_authenticated or not admin_permission.can():
+        abort(403)
+
+
+def _format_s3_datetime(value):
+    return value.strftime('%Y-%m-%d %H:%M:%S') if value else '-'
+
+
+@app.get('/management/s3-storage/api/summary')
+@login_required
+def s3_storage_summary_api():
+    _s3_admin_required()
+    client, bucket_name = _s3_management_client()
+    if not bucket_name:
+        return jsonify({'error': 'BUCKETEER_BUCKET_NAME is not configured.'}), 503
+
+    object_count = 0
+    total_size_bytes = 0
+    try:
+        for page in client.get_paginator('list_objects_v2').paginate(Bucket=bucket_name):
+            page_objects = page.get('Contents', [])
+            object_count += len(page_objects)
+            total_size_bytes += sum(obj.get('Size', 0) or 0 for obj in page_objects)
+    except Exception as error:
+        return jsonify({'error': str(error)}), 502
+
+    try:
+        capacity_gb = float(os.environ.get('S3_STORAGE_CAPACITY_GB', '15') or 15)
+    except (TypeError, ValueError):
+        capacity_gb = 15.0
+    if capacity_gb <= 0:
+        capacity_gb = 15.0
+    capacity_bytes = capacity_gb * (1024 ** 3)
+    usage_percent = round((total_size_bytes / capacity_bytes) * 100, 2) if capacity_bytes else 0
+    return jsonify({
+        'object_count': object_count,
+        'total_size_bytes': total_size_bytes,
+        'used_storage_gb': total_size_bytes / (1024 ** 3),
+        'storage_usage_percent': usage_percent,
+    })
+
+
+def _s3_object_response(obj, bucket_name, client):
+    key = obj.get('Key', '')
+    folder = key.rsplit('/', 1)[0] + '/' if '/' in key else ''
+    url = client.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket_name, 'Key': key},
+        ExpiresIn=3600,
+    )
+    return {
+        'key': key,
+        'size': obj.get('Size', 0) or 0,
+        'last_modified': _format_s3_datetime(obj.get('LastModified')),
+        'url': url,
+        'folder': folder,
+        'folder_url': url_for('s3_storage_folder', prefix=folder) if folder else '',
+    }
+
+
+@app.get('/management/s3-storage/api/recent-objects')
+@login_required
+def s3_storage_recent_objects_api():
+    _s3_admin_required()
+    client, bucket_name = _s3_management_client()
+    if not bucket_name:
+        return jsonify({'error': 'BUCKETEER_BUCKET_NAME is not configured.'}), 503
+
+    objects = []
+    try:
+        for page in client.get_paginator('list_objects_v2').paginate(Bucket=bucket_name):
+            page_objects = page.get('Contents', [])
+            objects.extend(page_objects)
+        objects.sort(key=lambda obj: obj.get('LastModified') or '', reverse=True)
+        data = [_s3_object_response(obj, bucket_name, client) for obj in objects[:10]]
+    except Exception as error:
+        return jsonify({'draw': request.args.get('draw', 0, type=int), 'recordsTotal': 0, 'recordsFiltered': 0, 'data': [], 'error': str(error)}), 502
+
+    return jsonify({
+        'draw': request.args.get('draw', 0, type=int),
+        'recordsTotal': min(len(objects), 10),
+        'recordsFiltered': min(len(objects), 10),
+        'data': data,
+    })
+
+
+@app.get('/management/s3-storage/api/folders')
+@login_required
+def s3_storage_folders_api():
+    _s3_admin_required()
+    client, bucket_name = _s3_management_client()
+    if not bucket_name:
+        return jsonify({'error': 'BUCKETEER_BUCKET_NAME is not configured.'}), 503
+    folders = set()
+    try:
+        for page in client.get_paginator('list_objects_v2').paginate(Bucket=bucket_name, Delimiter='/'):
+            folders.update(prefix.get('Prefix', '') for prefix in page.get('CommonPrefixes', []))
+    except Exception as error:
+        return jsonify({'error': str(error)}), 502
+    return jsonify({
+        'folders': [
+            {'prefix': prefix, 'name': prefix.rstrip('/').split('/')[-1], 'url': url_for('s3_storage_folder', prefix=prefix)}
+            for prefix in sorted(folders)
+        ]
+    })
+
+
+@app.route('/management/s3-storage/folder')
+@login_required
+def s3_storage_folder():
+    _s3_admin_required()
+    prefix = (request.args.get('prefix') or '').strip()
+    if prefix and not prefix.endswith('/'):
+        prefix += '/'
+    return render_template(
+        'management/s3_storage_folder.html',
+        prefix=prefix,
+        folder_name=prefix.rstrip('/').split('/')[-1] if prefix else 'Root',
+    )
+
+
+@app.get('/management/s3-storage/api/folder-objects')
+@login_required
+def s3_storage_folder_objects_api():
+    _s3_admin_required()
+    client, bucket_name = _s3_management_client()
+    if not bucket_name:
+        return jsonify({'error': 'BUCKETEER_BUCKET_NAME is not configured.'}), 503
+
+    prefix = (request.args.get('prefix') or '').strip()
+    if prefix and not prefix.endswith('/'):
+        prefix += '/'
+    draw = request.args.get('draw', 0, type=int)
+    start = max(request.args.get('start', 0, type=int), 0)
+    length = min(max(request.args.get('length', 10, type=int), 1), 100)
+    search_value = (request.args.get('search[value]', '') or '').strip().lower()
+    order_column = request.args.get('order[0][column]', '2', type=int)
+    order_desc = request.args.get('order[0][dir]', 'desc') == 'desc'
+    objects = []
+    try:
+        for page in client.get_paginator('list_objects_v2').paginate(Bucket=bucket_name, Prefix=prefix):
+            for obj in page.get('Contents', []):
+                if not search_value or search_value in obj.get('Key', '').lower():
+                    objects.append(obj)
+        sort_keys = {
+            0: lambda obj: obj.get('Key', ''),
+            1: lambda obj: obj.get('Size', 0) or 0,
+            2: lambda obj: obj.get('LastModified') or '',
+        }
+        objects.sort(key=sort_keys.get(order_column, sort_keys[2]), reverse=order_desc)
+        data = [_s3_object_response(obj, bucket_name, client) for obj in objects[start:start + length]]
+    except Exception as error:
+        return jsonify({'draw': draw, 'recordsTotal': 0, 'recordsFiltered': 0, 'data': [], 'error': str(error)}), 502
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': len(objects),
+        'recordsFiltered': len(objects),
+        'data': data,
+    })
 
 
 from app.kpi import kpibp as kpi_blueprint
