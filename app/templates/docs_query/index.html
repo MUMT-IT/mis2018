@@ -5,12 +5,14 @@
     <section class="section">
         <div class="container">
             <div class="docs-query-page-banner">
-                <picture>
-                    <source srcset="{{ url_for('static', filename='img/docsIQ_banner.webp') }}" type="image/webp">
-                    <img src="{{ url_for('static', filename='img/docsIQ_banner.png') }}"
-                         alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
-                         decoding="async">
-                </picture>
+                {% if docs_query_banner_url %}
+                    <picture>
+                        <source srcset="{{ docs_query_banner_url }}" type="image/webp">
+                        <img src="{{ docs_query_banner_url }}"
+                             alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
+                             decoding="async">
+                    </picture>
+                {% endif %}
             </div>
             <div id="docs-query-dashboard"
                  hx-get="{{ url_for('docs_query.dashboard') }}"
@@ -30,9 +32,11 @@
                         <div class="has-text-centered mb-6">
                             <h1 class="title is-2">ค้นหาเอกสาร</h1>
                             <p class="subtitle is-5 has-text-grey">ค้นหาเอกสารภายในและค้นหาแนวปฏิบัติ ประกาศ หรือคำแนะนำที่เกี่ยวข้อง</p>
-                            <video id="docs-query-search-video" class="docs-query-search-video" muted playsinline preload="metadata" aria-label="กำลังค้นหาเอกสาร">
-                                <source src="{{ url_for('static', filename='img/docsIQ_video.mp4') }}" type="video/mp4">
-                            </video>
+                            {% if docs_query_search_video_url %}
+                                <video id="docs-query-search-video" class="docs-query-search-video" muted playsinline preload="metadata" aria-label="กำลังค้นหาเอกสาร">
+                                    <source src="{{ docs_query_search_video_url }}" type="video/mp4">
+                                </video>
+                            {% endif %}
                         </div>
 
                         <form id="docs-query-search-form" method="post" action="{{ url_for('docs_query.index') }}"
@@ -496,21 +500,24 @@
         var searchVideo = document.getElementById('docs-query-search-video');
         var searchInProgress = false;
 
-        searchVideo.addEventListener('loadedmetadata', function () {
-            searchVideo.currentTime = 0;
-            searchVideo.pause();
-        });
-
-        searchVideo.addEventListener('ended', function () {
-            if (searchInProgress) {
+        if (searchVideo) {
+            searchVideo.addEventListener('loadedmetadata', function () {
                 searchVideo.currentTime = 0;
-                searchVideo.play().catch(function () {});
-            } else {
-                stopSearchVideo();
-            }
-        });
+                searchVideo.pause();
+            });
+
+            searchVideo.addEventListener('ended', function () {
+                if (searchInProgress) {
+                    searchVideo.currentTime = 0;
+                    searchVideo.play().catch(function () {});
+                } else {
+                    stopSearchVideo();
+                }
+            });
+        }
 
         function stopSearchVideo() {
+            if (!searchVideo) return;
             searchVideo.pause();
             searchVideo.currentTime = 0;
             searchVideo.classList.remove('is-searching');
@@ -519,14 +526,14 @@
         function setSearchLoading(isLoading) {
             searchButton.classList.toggle('is-loading', isLoading);
             searchButton.disabled = isLoading;
-            if (isLoading) {
+            if (isLoading && searchVideo) {
                 searchInProgress = true;
                 searchVideo.classList.add('is-searching');
                 searchVideo.currentTime = 0;
                 searchVideo.play().catch(function () {});
             } else {
                 searchInProgress = false;
-                if (searchVideo.ended) {
+                if (searchVideo && searchVideo.ended) {
                     stopSearchVideo();
                 }
             }

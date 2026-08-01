@@ -1,0 +1,15 @@
+{% from "components/module_nav.html" import render_module_nav %}
+
+{{ render_module_nav(
+    title='S3 Storage',
+    subtitle='ระบบจัดการไฟล์บน S3',
+    brand_href=url_for('s3_storage_management_index'),
+    start_links=[
+        {'href': url_for('s3_storage_management_index'), 'label': 'ไฟล์', 'icon': 'fas fa-folder-open', 'primary': True}
+    ],
+    user_display=current_user.email,
+    account_href=url_for('auth.account'),
+    logout_href=url_for('auth.logout'),
+    close_href=url_for('index'),
+    menu_id='s3StorageNavbarMenu'
+) }}
