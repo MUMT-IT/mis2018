@@ -496,9 +496,11 @@
                                 </span>
                             </p>
                         </div>
-                        <video class="room-search-video" id="roomSearchVideo" muted playsinline preload="metadata" aria-label="กำลังค้นหาห้อง">
-                            <source src="{{ url_for('static', filename='img/room_search_robot.mp4') }}" type="video/mp4">
-                        </video>
+                        {% if room_search_video_url %}
+                            <video class="room-search-video" id="roomSearchVideo" muted playsinline preload="metadata" aria-label="กำลังค้นหาห้อง">
+                                <source src="{{ room_search_video_url }}" type="video/mp4">
+                            </video>
+                        {% endif %}
                         <p class="room-search-hint">ผลการค้นหาจะปรากฏด้านล่างโดยไม่ต้องรีเฟรชหน้า</p>
                     </form>
                     <div class="room-results" id="roomTable">

@@ -13,8 +13,18 @@
         </nav>
 
         <div class="box">
-            <h1 class="title is-4">S3 Storage Management</h1>
-            <p class="subtitle is-6">Admin area for S3 storage operations and monitoring.</p>
+            <div class="level is-mobile">
+                <div>
+                    <h1 class="title is-4">S3 Storage Management</h1>
+                    <p class="subtitle is-6">Admin area for S3 storage operations and monitoring.</p>
+                </div>
+                <div class="level-right">
+                    <a class="button is-info" href="{{ url_for('files_services.index') }}">
+                        <span class="icon"><i class="fas fa-upload" aria-hidden="true"></i></span>
+                        <span>Upload file</span>
+                    </a>
+                </div>
+            </div>
 
             {% if connection_status == 'Connected' %}
                 <div class="notification is-success is-light">
@@ -71,7 +81,7 @@
                 </div>
                 <div class="column is-3">
                     <div class="box has-background-light">
-                        <p class="heading">Sample Objects</p>
+                        <p class="heading">Total Objects</p>
                         <p class="title is-6">{{ object_count }}</p>
                     </div>
                 </div>
@@ -86,6 +96,7 @@
                 </p>
             </div>
 
+            <p class="has-text-grey is-size-7 mb-2">Showing the 20 most recently modified objects.</p>
             <div class="table-container">
                 <table class="table is-fullwidth is-striped is-hoverable">
                     <thead>

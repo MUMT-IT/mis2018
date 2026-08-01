@@ -849,6 +849,10 @@ def index():
         now=now,
         today_calendar=today_calendar,
         today_checkin_status=today_checkin_status,
+        docs_query_banner_url=generate_s3_asset_url(
+            'ui-assets/docsIQ_banner.webp',
+            'img/docsIQ_banner.webp',
+        ),
     )
 
 
@@ -996,13 +1000,21 @@ def s3_storage_management_index():
             bucket_region = location_resp.get('LocationConstraint') or 'us-east-1'
 
             paginator = s3_client.get_paginator('list_objects_v2')
+            recent_objects = []
+            object_count = 0
             for page in paginator.paginate(Bucket=bucket_name):
-                for obj in page.get('Contents', []):
+                page_objects = page.get('Contents', [])
+                object_count += len(page_objects)
+                recent_objects.extend(page_objects)
+                recent_objects.sort(
+                    key=lambda obj: str(obj.get('LastModified') or ''),
+                    reverse=True,
+                )
+                del recent_objects[20:]
+                for obj in page_objects:
                     total_size_bytes += obj.get('Size', 0) or 0
 
-            list_resp = s3_client.list_objects_v2(Bucket=bucket_name, MaxKeys=20)
-            object_count = list_resp.get('KeyCount', 0)
-            for obj in list_resp.get('Contents', []):
+            for obj in recent_objects:
                 last_modified = obj.get('LastModified')
                 if last_modified:
                     last_modified = last_modified.strftime('%Y-%m-%d %H:%M:%S')
@@ -2787,6 +2799,19 @@ s3 = boto3.client(
     aws_access_key_id=AWS_ACCESS_KEY_ID,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
+
+
+def generate_s3_asset_url(key, fallback_filename):
+    if S3_BUCKET_NAME:
+        try:
+            return s3.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': S3_BUCKET_NAME, 'Key': key},
+                ExpiresIn=3600,
+            )
+        except Exception:
+            app.logger.exception('Could not generate S3 asset URL for %s.', key)
+    return None
 
 # Allowed file extensions for upload
 

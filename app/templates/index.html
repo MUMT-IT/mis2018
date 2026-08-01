@@ -1302,12 +1302,14 @@
             <a class="docs-query-home-banner"
                href="{{ url_for('docs_query.index') }}"
                aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
-                <picture>
-                    <source srcset="{{ url_for('static', filename='img/docsIQ_banner.webp') }}" type="image/webp">
-                    <img src="{{ url_for('static', filename='img/docsIQ_banner.png') }}"
-                         alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
-                         decoding="async">
-                </picture>
+                {% if docs_query_banner_url %}
+                    <picture>
+                        <source srcset="{{ docs_query_banner_url }}" type="image/webp">
+                        <img src="{{ docs_query_banner_url }}"
+                             alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
+                             decoding="async">
+                    </picture>
+                {% endif %}
             </a>
             </section>
 
