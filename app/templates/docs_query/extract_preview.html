@@ -35,6 +35,19 @@
                             </article>
                         {% endif %}
 
+                        {% if summary_warning %}
+                            <article class="message is-warning is-light">
+                                <div class="message-body">
+                                    ไม่สามารถสร้างสรุปย่อได้ในขั้นตอนนี้: {{ summary_warning }}
+                                </div>
+                            </article>
+                        {% elif summary %}
+                            <article class="message is-info is-light">
+                                <div class="message-header"><p>สรุปย่อโดย AI</p></div>
+                                <div class="message-body">{{ summary }}</div>
+                            </article>
+                        {% endif %}
+
                         <div class="content">
                             <h2 class="title is-5">ตัวอย่างข้อความแต่ละส่วน</h2>
                             {% if chunk_previews %}

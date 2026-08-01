@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% include "docs_query/nav.html" %}
-{% block title %}MUMT-MIS: เอกสารทั้งหมด{% endblock %}
+{% block title %}MUMT-MIS: เอกสารตามแท็ก{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -8,8 +8,11 @@
                 <div class="level mb-5">
                     <div>
                         <p class="is-size-7 has-text-weight-semibold has-text-info">ระบบค้นหาเอกสาร</p>
-                        <h1 class="title is-2 mb-2">เอกสารทั้งหมด</h1>
-                        <p class="subtitle is-6 has-text-grey">ดูชื่อเอกสารและสถานะการประมวลผล</p>
+                        <h1 class="title is-2 mb-2">เอกสารตามแท็ก</h1>
+                        <p class="subtitle is-6 has-text-grey">
+                            เอกสารที่มีแท็ก
+                            <span class="tag is-info is-light is-rounded">{{ selected_tag }}</span>
+                        </p>
                     </div>
                     <a class="button is-light" href="{{ url_for('docs_query.index') }}">
                         <span class="icon"><i class="fas fa-search"></i></span>
@@ -18,7 +21,7 @@
                 </div>
 
                 <div class="table-container">
-                    <table id="docs-query-documents-table" class="table is-fullwidth">
+                    <table id="docs-query-tag-documents-table" class="table is-fullwidth">
                         <thead>
                         <tr>
                             <th>ชื่อเอกสาร</th>
@@ -60,7 +63,7 @@
             overflow: visible;
         }
 
-        .docs-query-documents-shell #docs-query-documents-table {
+        .docs-query-documents-shell #docs-query-tag-documents-table {
             border-radius: 0;
         }
     </style>
@@ -73,14 +76,15 @@
                 return $('<div>').text(value || '').html();
             }
 
-            $('#docs-query-documents-table').DataTable({
+            $('#docs-query-tag-documents-table').DataTable({
                 processing: true,
                 serverSide: true,
                 pageLength: 10,
                 lengthMenu: [[10, 25, 50], [10, 25, 50]],
                 ajax: {
                     url: '{{ url_for("docs_query.documents_data") }}',
-                    type: 'GET'
+                    type: 'GET',
+                    data: { tag: {{ selected_tag|tojson }} }
                 },
                 order: [[0, 'asc']],
                 columns: [
@@ -121,7 +125,7 @@
                     lengthMenu: 'แสดง _MENU_ รายการ',
                     info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
                     infoEmpty: 'ไม่มีรายการเอกสาร',
-                    zeroRecords: 'ไม่พบเอกสารที่ตรงกับการค้นหา',
+                    zeroRecords: 'ไม่พบเอกสารที่มีแท็กนี้',
                     paginate: {
                         first: 'หน้าแรก',
                         last: 'หน้าสุดท้าย',

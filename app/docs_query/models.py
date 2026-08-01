@@ -28,6 +28,35 @@ class VectorType(TypeDecorator):
         return dialect.type_descriptor(db.Text())
 
 
+docs_query_document_tags = db.Table(
+    'docs_query_document_tags',
+    db.Column(
+        'document_id',
+        db.Integer,
+        db.ForeignKey('docs_query_documents.id', ondelete='CASCADE'),
+        primary_key=True,
+    ),
+    db.Column(
+        'tag_id',
+        db.Integer,
+        db.ForeignKey('docs_query_tags.id', ondelete='CASCADE'),
+        primary_key=True,
+    ),
+)
+
+
+class DocsQueryTag(db.Model):
+    __tablename__ = 'docs_query_tags'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    documents = db.relationship(
+        'DocsQueryDocument',
+        secondary=docs_query_document_tags,
+        back_populates='tags',
+    )
+
+
 class DocsQueryDocument(db.Model):
     __tablename__ = 'docs_query_documents'
 
@@ -36,7 +65,12 @@ class DocsQueryDocument(db.Model):
     document_title = db.Column(db.String(512))
     filename = db.Column(db.String(512))
     document_type = db.Column(db.String(255))
-    tags = db.Column(db.JSON, nullable=False, default=list)
+    tags = db.relationship(
+        DocsQueryTag,
+        secondary=docs_query_document_tags,
+        back_populates='documents',
+        order_by=DocsQueryTag.name,
+    )
     note = db.Column(db.Text)
     is_expired = db.Column(db.Boolean, nullable=False, default=False, index=True)
     status = db.Column(db.String(32), nullable=False, default='pending', index=True)
@@ -52,6 +86,9 @@ class DocsQueryDocument(db.Model):
     total_chunks = db.Column(db.Integer)
     chunking_method = db.Column(db.String(64))
     error_message = db.Column(db.Text)
+    summary = db.Column(db.Text)
+    summary_generated_at = db.Column(db.DateTime(timezone=True))
+    summary_error = db.Column(db.Text)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False,
                             default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False,
