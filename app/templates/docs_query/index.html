@@ -30,7 +30,9 @@
                         <div class="has-text-centered mb-6">
                             <h1 class="title is-2">ค้นหาเอกสาร</h1>
                             <p class="subtitle is-5 has-text-grey">ค้นหาเอกสารภายในและค้นหาแนวปฏิบัติ ประกาศ หรือคำแนะนำที่เกี่ยวข้อง</p>
-                            <img id="docs-query-search-robot" class="docs-query-search-robot" src="{{ url_for('static', filename='img/search.png') }}" alt="กำลังค้นหา">
+                            <video id="docs-query-search-video" class="docs-query-search-video" muted playsinline preload="metadata" aria-label="กำลังค้นหาเอกสาร">
+                                <source src="{{ url_for('static', filename='img/docsIQ_video.webm') }}" type="video/webm">
+                            </video>
                         </div>
 
                         <form id="docs-query-search-form" method="post" action="{{ url_for('docs_query.index') }}"
@@ -292,24 +294,12 @@
             transform: translateY(-2px);
         }
 
-        .docs-query-search-robot {
+        .docs-query-search-video {
             display: block;
             height: auto;
             margin: 0 auto 1rem;
-            max-width: 120px;
-        }
-
-        .docs-query-search-robot.is-searching {
-            animation: docs-query-robot-sway .9s ease-in-out infinite;
-            transform-origin: 50% 80%;
-        }
-
-        @keyframes docs-query-robot-sway {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-14px); }
-            50% { transform: translateX(0); }
-            75% { transform: translateX(14px); }
-            100% { transform: translateX(0); }
+            max-width: 280px;
+            width: 100%;
         }
 
         .docs-query-discovery-card,
@@ -478,12 +468,27 @@
         var searchForm = document.getElementById('docs-query-search-form');
         var searchInput = document.getElementById('query');
         var searchButton = document.getElementById('docs-query-search-button');
-        var searchRobot = document.getElementById('docs-query-search-robot');
+        var searchVideo = document.getElementById('docs-query-search-video');
+
+        searchVideo.addEventListener('loadedmetadata', function () {
+            searchVideo.currentTime = 0;
+            searchVideo.pause();
+        });
+
+        searchVideo.addEventListener('ended', function () {
+            searchVideo.pause();
+        });
 
         function setSearchLoading(isLoading) {
             searchButton.classList.toggle('is-loading', isLoading);
             searchButton.disabled = isLoading;
-            searchRobot.classList.toggle('is-searching', isLoading);
+            if (isLoading) {
+                searchVideo.loop = true;
+                searchVideo.currentTime = 0;
+                searchVideo.play().catch(function () {});
+            } else {
+                searchVideo.loop = false;
+            }
         }
 
         searchForm.addEventListener('submit', function () {
@@ -493,7 +498,13 @@
         document.querySelectorAll('.docs-query-popular-query').forEach(function (queryButton) {
             queryButton.addEventListener('click', function () {
                 searchInput.value = queryButton.dataset.query;
-                searchForm.requestSubmit();
+                searchForm.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+                window.setTimeout(function () {
+                    searchForm.requestSubmit();
+                }, 550);
             });
         });
 
@@ -518,10 +529,31 @@
             });
         }
 
+        function scrollToSearchResults(targetY, duration) {
+            var startY = window.scrollY;
+            var distance = targetY - startY;
+            var startTime = null;
+
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                var progress = Math.min((timestamp - startTime) / duration, 1);
+                var easedProgress = progress < 0.5
+                    ? 2 * progress * progress
+                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                window.scrollTo(0, startY + distance * easedProgress);
+                if (progress < 1) window.requestAnimationFrame(step);
+            }
+
+            window.requestAnimationFrame(step);
+        }
+
         bindReferenceModals();
         document.body.addEventListener('htmx:afterSwap', function (event) {
             if (event.detail.target.id === 'docs-query-results') {
                 bindReferenceModals();
+                var results = event.detail.target;
+                var scrollTop = results.getBoundingClientRect().top + window.scrollY - 80;
+                scrollToSearchResults(Math.max(scrollTop, 0), 1000);
             }
         });
     </script>
