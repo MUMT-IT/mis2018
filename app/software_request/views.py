@@ -277,16 +277,114 @@ def _build_fallback_software_request_summary(snapshot):
 
 
 def _build_software_request_summary_email_body(snapshot, ai_summary):
+    pending_samples = ', '.join(item['title'] for item in snapshot['pending_samples'][:3]) or 'ไม่มีรายการ'
+    consider_samples = ', '.join(item['title'] for item in snapshot['consider_samples'][:3]) or 'ไม่มีรายการ'
+    approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
+    completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
     return (
         f"สรุปเรื่องคงค้างระบบขอรับบริการพัฒนา software ณ {snapshot['generated_at']}\n\n"
         f"รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน\n\n"
-        f"สถานะปัจจุบัน\n"
+        f"ขอบเขตการสรุป: งานที่มีสถานะ รอดำเนินการ, อยู่ระหว่างพิจารณา, อนุมัติ และงานที่ปิดแล้วในช่วง 7 วันที่ผ่านมา\n\n"
+        f"{ai_summary}\n\n"
+        f"ตัวเลขประกอบการติดตาม\n"
+        f"- งานคงค้างทั้งหมด: {snapshot['total_open_records']} รายการ\n"
         f"- รอดำเนินการ: {snapshot['pending_count']} รายการ\n"
         f"- อยู่ระหว่างพิจารณา: {snapshot['consider_count']} รายการ\n"
         f"- อนุมัติ: {snapshot['approve_count']} รายการ\n"
         f"- ปิดงานแล้วในช่วง 7 วันที่ผ่านมา: {snapshot['completed_last_7_days']} รายการ\n\n"
-        f"{ai_summary}\n"
+        f"ตัวอย่างงานที่พบในแต่ละสถานะ\n"
+        f"- รอดำเนินการ: {pending_samples}\n"
+        f"- อยู่ระหว่างพิจารณา: {consider_samples}\n"
+        f"- อนุมัติ: {approve_samples}\n"
+        f"- ปิดงานล่าสุด: {completed_samples}\n"
     )
+
+
+def _get_software_request_chart_values(snapshot):
+    return [
+        ('คงค้างทั้งหมด', snapshot['total_open_records'], '#0f766e'),
+        ('รอดำเนินการ', snapshot['pending_count'], '#f59e0b'),
+        ('อยู่ระหว่างพิจารณา', snapshot['consider_count'], '#3b82f6'),
+        ('อนุมัติ', snapshot['approve_count'], '#22c55e'),
+        # ('ปิดงานใน 7 วัน', snapshot['completed_last_7_days'], '#8b5cf6'),
+    ]
+
+
+def _render_software_request_email_chart_html(snapshot):
+    values = _get_software_request_chart_values(snapshot)
+    max_value = max([value for _, value, _ in values] + [1])
+    chart_width = 320
+    rows = []
+    for label, value, color in values:
+        bar_width = max(int((value / max_value) * chart_width), 0) if max_value else 0
+        if value > 0 and bar_width == 0:
+            bar_width = 12
+        remainder_width = max(chart_width - bar_width, 0)
+        rows.append(f'''
+        <tr>
+          <td style="padding:6px 12px 6px 0;font-size:13px;color:#334155;white-space:nowrap;">{escape(label)} ({value})</td>
+          <td style="padding:6px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="{chart_width}" style="width:{chart_width}px;border-collapse:collapse;">
+              <tr>
+                <td width="{bar_width}" bgcolor="{color}" style="width:{bar_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
+                <td width="{remainder_width}" bgcolor="#e2e8f0" style="width:{remainder_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ''')
+    return f'''
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+      {''.join(rows)}
+    </table>
+    '''
+
+
+def _render_software_request_summary_email_html(package):
+    snapshot = package['snapshot']
+    chart_html = _render_software_request_email_chart_html(snapshot)
+    message_html = escape(package['message']).replace('\n', '<br>')
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escape(package['subject'])}</title>
+</head>
+<body style="margin:0;padding:24px;background:#f8fafc;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:900px;margin:0 auto;">
+    <div style="margin-bottom:20px;">
+      <h1 style="margin:0 0 8px;font-size:28px;">สรุปรายงานเรื่องคงค้าง/คำขอ</h1>
+      <div style="margin-top:14px;background:#ecfeff;color:#115e59;border:1px solid #99f6e4;border-radius:14px;padding:14px 16px;line-height:1.6;">
+        รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน
+      </div>
+    </div>
+    <section style="background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06);">
+      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
+        <h3 style="margin:0 0 10px;font-size:16px;">ตัวเลขสำคัญ</h3>
+        <div style="font-size:14px;color:#64748b;line-height:1.9;">
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['total_open_records']}</strong>งานคงค้าง</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['pending_count']}</strong>รอดำเนินการ</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['consider_count']}</strong>อยู่ระหว่างพิจารณา</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['approve_count']}</strong>อนุมัติ</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['completed_last_7_days']}</strong>ปิดใน 7 วัน</span>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <h3 style="margin:0 0 12px;font-size:16px;">ภาพรวมงานคงค้าง</h3>
+        {chart_html}
+      </div>
+      <div style="margin:16px 0;font-size:14px;">
+        <p style="margin:0 0 8px;"><strong>Subject:</strong> {escape(package['subject'])}</p>
+      </div>
+      <div>
+        <h3 style="margin:0 0 12px;font-size:16px;">รายงานสรุป</h3>
+        <div style="background:#f8fafc;color:#0f172a;border:1px solid #dbe4ee;border-radius:14px;padding:16px;line-height:1.65;font-size:14px;white-space:pre-wrap;">{message_html}</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>'''
 
 
 def _build_software_request_line_reminder_message(snapshot):
@@ -991,7 +1089,7 @@ def email_unfinished_summary():
         for recipient in recipients:
             dry_run_packages.append({
                 'recipient': recipient,
-                'subject': f"สรุปเรื่องคงค้างระบบขอรับบริการพัฒนา software ณ {snapshot['generated_at']}",
+                'subject': f"สรุปภาพรวมเรื่องคงค้างระบบขอรับบริการพัฒนา software ณ {snapshot['generated_at']}",
                 'message': _build_software_request_summary_email_body(snapshot, ai_summary),
             })
         return _render_software_request_summary_dry_run_html(dry_run_packages, should_send, snapshot)
@@ -1022,15 +1120,16 @@ def email_unfinished_summary():
     else:
         ai_summary = _build_fallback_software_request_summary(snapshot)
 
-    subject = f"สรุปเรื่องคงค้างระบบขอรับบริการพัฒนา software ณ {snapshot['generated_at']}"
+    subject = f"สรุปภาพรวมเรื่องคงค้าง/คำขอพัฒนา Software ณ {snapshot['generated_at']}"
     body = _build_software_request_summary_email_body(snapshot, ai_summary)
-    html_body = (
-        '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#0f172a;line-height:1.7">'
-        f'<h2 style="margin:0 0 12px;">{escape(subject)}</h2>'
-        f'<div style="white-space:pre-wrap;background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:16px;">'
-        f'{escape(body)}'
-        '</div></div>'
-    )
+    package = {
+        'recipient': {'email': ', '.join(recipient['email'] for recipient in recipients)},
+        'subject': subject,
+        'message': body,
+        'snapshot': snapshot,
+        'scope_label': 'สรุปภาพรวมงานคงค้าง',
+    }
+    html_body = _render_software_request_summary_email_html(package)
 
     recipient_emails = [recipient['email'] for recipient in recipients]
     try:
@@ -1046,7 +1145,7 @@ def email_unfinished_summary():
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
-        return response
+        return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
 
     flash(success_message, 'success' if success_message.startswith('ส่งอีเมลสรุปเรื่องคงค้างแล้ว') else 'danger')
     if request.headers.get('HX-Request'):
