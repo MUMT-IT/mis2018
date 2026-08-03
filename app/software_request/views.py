@@ -302,9 +302,9 @@ def _build_software_request_summary_email_body(snapshot, ai_summary):
 
 def _get_software_request_chart_values(snapshot):
     return [
-        ('คงค้างทั้งหมด', snapshot['total_open_records'], '#0f766e'),
-        ('รอดำเนินการ', snapshot['pending_count'], '#f59e0b'),
-        ('อยู่ระหว่างพิจารณา', snapshot['consider_count'], '#3b82f6'),
+        ('คงค้างทั้งหมด', snapshot['total_open_records'], '#334155'),
+        ('รอดำเนินการ', snapshot['pending_count'], '#2563eb'),
+        ('อยู่ระหว่างพิจารณา', snapshot['consider_count'], '#f59e0b'),
         ('อนุมัติ', snapshot['approve_count'], '#22c55e'),
         # ('ปิดงานใน 7 วัน', snapshot['completed_last_7_days'], '#8b5cf6'),
     ]
@@ -322,7 +322,7 @@ def _render_software_request_email_chart_html(snapshot):
         remainder_width = max(chart_width - bar_width, 0)
         rows.append(f'''
         <tr>
-          <td style="padding:6px 12px 6px 0;font-size:13px;color:#334155;white-space:nowrap;">{escape(label)} ({value})</td>
+          <td style="padding:6px 12px 6px 0;font-size:13px;color:#334155;white-space:nowrap;font-weight:600;">{escape(label)} ({value})</td>
           <td style="padding:6px 0;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="{chart_width}" style="width:{chart_width}px;border-collapse:collapse;">
               <tr>
