@@ -431,7 +431,7 @@ def _build_software_request_line_reminder_message(snapshot):
         return None
     return (
         f"แจ้งเตือนรายการคงค้าง/คำขอพัฒนา Software วันที่ {snapshot['generated_at']}\n"
-        f"มีทั้งหมด {snapshot['total_open_records']} เรื่อง\n"
+        f"มีทั้งหมด {snapshot['total_open_records']} เรื่อง"
     )
 
 
