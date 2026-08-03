@@ -1032,26 +1032,23 @@ def email_unfinished_summary():
         '</div></div>'
     )
 
-    sent_count = 0
-    failed_count = 0
-    for recipient in recipients:
-        try:
-            send_mail([recipient['email']], subject, body, html=html_body)
-            sent_count += 1
-        except Exception:
-            failed_count += 1
-            current_app.logger.exception('Failed to send software request summary email to %s', recipient['email'])
-
-    success_message = f'ส่งอีเมลสรุปเรื่องคงค้างแล้ว {sent_count} ราย'
-    if failed_count:
-        success_message += f' และส่งไม่สำเร็จ {failed_count} ราย'
+    recipient_emails = [recipient['email'] for recipient in recipients]
+    try:
+        send_mail(recipient_emails, subject, body, html=html_body)
+        success_message = f'ส่งอีเมลสรุปเรื่องคงค้างแล้ว 1 ฉบับถึง {len(recipient_emails)} ราย'
+    except Exception:
+        current_app.logger.exception(
+            'Failed to send software request summary email to recipients=%s',
+            recipient_emails,
+        )
+        success_message = 'ส่งอีเมลสรุปเรื่องคงค้างไม่สำเร็จ'
 
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
         return response
 
-    flash(success_message, 'success' if failed_count == 0 else 'warning')
+    flash(success_message, 'success' if success_message.startswith('ส่งอีเมลสรุปเรื่องคงค้างแล้ว') else 'danger')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
