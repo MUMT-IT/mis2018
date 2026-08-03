@@ -264,15 +264,15 @@ def _build_fallback_software_request_summary(snapshot):
     approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
     completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
     return (
-        f"ภาพรวม\nขณะนี้มีงานที่ยังคงค้างรวม {snapshot['total_open_records']} รายการ "
-        f"โดยแบ่งเป็นรอดำเนินการ {snapshot['pending_count']} รายการ อยู่ระหว่างพิจารณา {snapshot['consider_count']} รายการ "
-        f"และอนุมัติแล้ว {snapshot['approve_count']} รายการ ขณะเดียวกันมีงานที่ปิดแล้วในช่วง 7 วันที่ผ่านมา {snapshot['completed_last_7_days']} รายการ\n\n"
-        f"- รอดำเนินการ: {pending_samples}\n"
-        f"- อยู่ระหว่างพิจารณา: {consider_samples}\n"
-        f"- อนุมัติ: {approve_samples}\n"
-        f"- ปิดงานใน 7 วันที่ผ่านมา: {completed_samples}\n\n"
-        f"ควรเร่งติดตามงานที่ยังอยู่ในสถานะรอดำเนินการและอยู่ระหว่างพิจารณาก่อน เพื่อไม่ให้ backlog สะสมมากขึ้น "
-        f"พร้อมทั้งรักษาโมเมนตัมของงานที่ปิดเสร็จแล้วในช่วงสัปดาห์ล่าสุดให้ต่อเนื่อง"
+        f"ภาพรวม\n"
+        f"ขณะนี้มีเรื่องที่ยังไม่แล้วเสร็จทั้งหมด {snapshot['total_open_records']} เรื่อง โดยแบ่งเป็นรอดำเนินการ {snapshot['pending_count']} เรื่อง "
+        f"อยู่ระหว่างพิจารณา {snapshot['consider_count']} เรื่อง และอนุมัติแล้ว {snapshot['approve_count']} เรื่อง "
+        f"ขณะเดียวกันมีเรื่องที่ปิดแล้วในช่วง 7 วันที่ผ่านมา {snapshot['completed_last_7_days']} เรื่อง ซึ่งส่วนใหญ่เป็น "
+        f"{completed_samples}\n\n"
+        f"ประเด็นที่ควรติดตาม\n"
+        f"- เร่งติดตามเรื่องที่ยังอยู่ในสถานะรอดำเนินการและอยู่ระหว่างพิจารณา เพื่อไม่ให้ backlog สะสมมากขึ้น\n"
+        f"- รักษาโมเมนตัมของเรื่องที่ปิดเสร็จแล้วในช่วง 7 วันที่ผ่านมาให้ต่อเนื่อง\n"
+        f"- ทบทวนเรื่องที่อนุมัติแล้วแต่ยังไม่เริ่มดำเนินการ เพื่อให้ปิดงานได้ตามแผน"
     )
 
 
