@@ -18,6 +18,26 @@
     <section class="section">
         <div class="container">
             <h1 class="title">รายการขอรับบริการพัฒนา Software (สำหรับหน่วย IT)</h1>
+            <div class="buttons is-centered">
+                <a href="{{ url_for('software_request.line_remind_software_request_admins', dry_run='true') }}" class="button is-info">
+                    <span class="icon">
+                        <i class="fas fa-vial"></i>
+                    </span>
+                    <span class="is-size-5">ทดสอบ line reminder</span>
+                </a>
+                <a href="{{ url_for('software_request.line_remind_software_request_admins', send='true') }}" class="button is-warning">
+                    <span class="icon">
+                        <i class="fas fa-bullhorn"></i>
+                    </span>
+                    <span class="is-size-5">ส่ง line reminder ให้ผู้ดูแล</span>
+                </a>
+                <a href="{{ url_for('software_request.email_unfinished_summary', send='true') }}" class="button is-primary">
+                    <span class="icon">
+                        <i class="fas fa-envelope"></i>
+                    </span>
+                    <span class="is-size-5">ส่งสรุปเรื่องคงค้าง</span>
+                </a>
+            </div>
             <div class="columns">
                 <div class="column">
                     <hr>
