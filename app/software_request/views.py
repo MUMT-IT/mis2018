@@ -206,6 +206,24 @@ def _build_software_request_summary_snapshot():
     }
 
 
+def _get_software_request_dominant_status(snapshot):
+    candidates = [
+        ('รอดำเนินการ', snapshot['pending_count'], 'ยังไม่ดำเนินการ'),
+        ('อยู่ระหว่างพิจารณา', snapshot['consider_count'], 'อยู่ระหว่างพิจารณา'),
+        ('อนุมัติ', snapshot['approve_count'], 'อนุมัติแล้ว'),
+        ('ปิดงานแล้วในช่วง 7 วันที่ผ่านมา', snapshot['completed_last_7_days'], 'ปิดงานแล้ว'),
+    ]
+    label, count, display = max(
+        enumerate(candidates),
+        key=lambda item: (item[1][1], -item[0]),
+    )[1]
+    return {
+        'label': label,
+        'count': count,
+        'display': display,
+    }
+
+
 def _build_software_request_summary_prompt(snapshot):
     return [
         {
@@ -259,16 +277,22 @@ def _call_typhoon_software_request_summary(snapshot):
 
 
 def _build_fallback_software_request_summary(snapshot):
-    pending_samples = ', '.join(item['title'] for item in snapshot['pending_samples'][:3]) or 'ไม่มีรายการ'
-    consider_samples = ', '.join(item['title'] for item in snapshot['consider_samples'][:3]) or 'ไม่มีรายการ'
-    approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
-    completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
+    # pending_samples = ', '.join(item['title'] for item in snapshot['pending_samples'][:3]) or 'ไม่มีรายการ'
+    # consider_samples = ', '.join(item['title'] for item in snapshot['consider_samples'][:3]) or 'ไม่มีรายการ'
+    # approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
+    # completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
+    dominant_status = _get_software_request_dominant_status(snapshot)
+    dominant_sentence = (
+        f"โดยส่วนใหญ่เป็น {dominant_status['display']}"
+        if dominant_status['count'] > 0
+        else "โดยภาพรวมยังไม่พบรายการที่เด่นชัด"
+    )
     return (
         f"ภาพรวม\n"
         f"ขณะนี้มีเรื่องที่ยังไม่แล้วเสร็จทั้งหมด {snapshot['total_open_records']} เรื่อง โดยแบ่งเป็นรอดำเนินการ {snapshot['pending_count']} เรื่อง "
         f"อยู่ระหว่างพิจารณา {snapshot['consider_count']} เรื่อง และอนุมัติแล้ว {snapshot['approve_count']} เรื่อง "
         f"ขณะเดียวกันมีเรื่องที่ปิดแล้วในช่วง 7 วันที่ผ่านมา {snapshot['completed_last_7_days']} เรื่อง ซึ่งส่วนใหญ่เป็น "
-        f"{completed_samples}\n\n"
+        f"{dominant_sentence}\n"
         f"ประเด็นที่ควรติดตาม\n"
         f"- เร่งติดตามเรื่องที่ยังอยู่ในสถานะรอดำเนินการและอยู่ระหว่างพิจารณา เพื่อไม่ให้ backlog สะสมมากขึ้น\n"
         f"- รักษาโมเมนตัมของเรื่องที่ปิดเสร็จแล้วในช่วง 7 วันที่ผ่านมาให้ต่อเนื่อง\n"
@@ -281,6 +305,12 @@ def _build_software_request_summary_email_body(snapshot, ai_summary):
     consider_samples = ', '.join(item['title'] for item in snapshot['consider_samples'][:3]) or 'ไม่มีรายการ'
     approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
     completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
+    dominant_status = _get_software_request_dominant_status(snapshot)
+    dominant_sentence = (
+        f"โดยสถานะที่พบมากที่สุดคือ {dominant_status['display']} {dominant_status['count']} เรื่อง"
+        if dominant_status['count'] > 0
+        else "โดยภาพรวมยังไม่พบสถานะที่เด่นชัด"
+    )
     return (
         f"สรุปภาพรวมเรื่องคงค้าง/คำขอพัฒนา Software ณ {snapshot['generated_at']}\n\n"
         f"รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน\n\n"
@@ -296,6 +326,7 @@ def _build_software_request_summary_email_body(snapshot, ai_summary):
         f"- อยู่ระหว่างพิจารณา: {consider_samples}\n"
         f"- อนุมัติ: {approve_samples}\n"
         f"- ปิดงานล่าสุด: {completed_samples}\n"
+        f"{dominant_sentence}\n"
     )
 
 
