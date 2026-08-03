@@ -296,10 +296,6 @@ def _call_typhoon_software_request_summary(snapshot):
 
 
 def _build_fallback_software_request_summary(snapshot):
-    # pending_samples = ', '.join(item['title'] for item in snapshot['pending_samples'][:3]) or 'ไม่มีรายการ'
-    # consider_samples = ', '.join(item['title'] for item in snapshot['consider_samples'][:3]) or 'ไม่มีรายการ'
-    # approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
-    # completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
     dominant_status = _get_software_request_dominant_status(snapshot)
     dominant_sentence = (
         f"โดยกลุ่มสถานะที่พบมากคือ {dominant_status['display']} {dominant_status['count']} เรื่อง"
@@ -338,8 +334,6 @@ def _build_software_request_summary_email_body(snapshot, ai_summary):
         f"- อยู่ระหว่างพิจารณา: {snapshot['consider_count']} รายการ\n"
         f"- อนุมัติ: {snapshot['approve_count']} รายการ\n"
         f"- ปิดงานแล้วในช่วง 7 วันที่ผ่านมา: {snapshot['completed_last_7_days']} รายการ\n\n"
-        f"สถานะปัจจุบัน\n"
-        f"{status_lines}\n\n"
         f"กลุ่มเรื่องที่ปิดแล้วใน 7 วันล่าสุด\n"
         f"{completed_group_lines}\n"
     )
@@ -433,23 +427,11 @@ def _render_software_request_summary_email_html(package):
 
 
 def _build_software_request_line_reminder_message(snapshot):
-    if snapshot['total_open_records'] == 0 and snapshot['completed_last_7_days'] == 0:
+    if snapshot['total_open_records'] == 0:
         return None
-    pending_samples = ', '.join(item['title'] for item in snapshot['pending_samples'][:3]) or 'ไม่มีรายการ'
-    consider_samples = ', '.join(item['title'] for item in snapshot['consider_samples'][:3]) or 'ไม่มีรายการ'
-    approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
-    completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
     return (
-        f"แจ้งเตือนเรื่องคงค้างระบบขอรับบริการพัฒนา software ณ {snapshot['generated_at']}\n"
-        f"- รอดำเนินการ: {snapshot['pending_count']} รายการ\n"
-        f"- อยู่ระหว่างพิจารณา: {snapshot['consider_count']} รายการ\n"
-        f"- อนุมัติ: {snapshot['approve_count']} รายการ\n"
-        f"- ปิดงานใน 7 วันที่ผ่านมา: {snapshot['completed_last_7_days']} รายการ\n\n"
-        f"ตัวอย่างงานที่ควรติดตาม\n"
-        f"- รอดำเนินการ: {pending_samples}\n"
-        f"- อยู่ระหว่างพิจารณา: {consider_samples}\n"
-        f"- อนุมัติ: {approve_samples}\n"
-        f"- ปิดงานล่าสุด: {completed_samples}"
+        f"แจ้งเตือนรายการคงค้าง/คำขอพัฒนา Software วันที่ {snapshot['generated_at']}\n"
+        f"มีทั้งหมด {snapshot['total_open_records']} เรื่อง\n"
     )
 
 
@@ -1076,10 +1058,10 @@ def line_remind_software_request_admins():
         message_text = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
         if request.method == 'POST':
             flash(message_text, 'warning')
-            return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+            return redirect(url_for('software_request.admin_index', tab='all'))
         response = make_response(message_text + '\n', 404)
         response.mimetype = 'text/plain'
-        return response
+        return redirect(url_for('software_request.admin_index', tab='all'))
 
     sent_count = 0
     failed_count = 0
@@ -1104,14 +1086,14 @@ def line_remind_software_request_admins():
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
-        return response
+        return redirect(url_for('software_request.admin_index', tab='all'))
 
     flash(success_message, 'success' if failed_count == 0 else 'warning')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+    return redirect(url_for('software_request.admin_index', tab='all'))
 
 
 @software_request.route('/admin/email-unfinished-summary', methods=['GET', 'POST'])
