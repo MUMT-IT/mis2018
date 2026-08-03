@@ -264,7 +264,7 @@ def _build_fallback_software_request_summary(snapshot):
     approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
     completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
     return (
-        f"ภาพรวมของงานขอรับบริการพัฒนา software ในรอบนี้ยังมีงานคงค้างรวม {snapshot['total_open_records']} รายการ "
+        f"ภาพรวม\nขณะนี้มีงานที่ยังคงค้างรวม {snapshot['total_open_records']} รายการ "
         f"โดยแบ่งเป็นรอดำเนินการ {snapshot['pending_count']} รายการ อยู่ระหว่างพิจารณา {snapshot['consider_count']} รายการ "
         f"และอนุมัติแล้ว {snapshot['approve_count']} รายการ ขณะเดียวกันมีงานที่ปิดแล้วในช่วง 7 วันที่ผ่านมา {snapshot['completed_last_7_days']} รายการ\n\n"
         f"- รอดำเนินการ: {pending_samples}\n"
@@ -282,9 +282,8 @@ def _build_software_request_summary_email_body(snapshot, ai_summary):
     approve_samples = ', '.join(item['title'] for item in snapshot['approve_samples'][:3]) or 'ไม่มีรายการ'
     completed_samples = ', '.join(item['title'] for item in snapshot['completed_samples'][:3]) or 'ไม่มีรายการ'
     return (
-        f"สรุปเรื่องคงค้างระบบขอรับบริการพัฒนา software ณ {snapshot['generated_at']}\n\n"
+        f"สรุปภาพรวมเรื่องคงค้าง/คำขอพัฒนา Software ณ {snapshot['generated_at']}\n\n"
         f"รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน\n\n"
-        f"ขอบเขตการสรุป: งานที่มีสถานะ รอดำเนินการ, อยู่ระหว่างพิจารณา, อนุมัติ และงานที่ปิดแล้วในช่วง 7 วันที่ผ่านมา\n\n"
         f"{ai_summary}\n\n"
         f"ตัวเลขประกอบการติดตาม\n"
         f"- งานคงค้างทั้งหมด: {snapshot['total_open_records']} รายการ\n"
