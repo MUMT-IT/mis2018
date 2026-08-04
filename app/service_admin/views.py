@@ -548,17 +548,19 @@ def _build_fallback_service_admin_summary(snapshot):
         f"ข้อเสนอแนะสำหรับเดือนถัดไป\n"
         f"ควรติดตามสถานะงานและยอดคงค้างอย่างต่อเนื่อง เพื่อป้องกันการสะสมของงานค้างและสนับสนุนการดำเนินงานให้เป็นไปตามแผน"
     )
+
+
 def _render_service_admin_overview_chart_html(snapshot):
     rows = [
-        ('ค้างชำระเกิน 60 วัน', snapshot['overdue_60_count']),
-        ('ค้างชำระเกิน 90 วัน', snapshot['overdue_90_count']),
-        ('ใกล้ครบกำหนด', snapshot['due_soon_count']),
-        ('ยังไม่ออกรายงานผล', snapshot['pending_result_count']),
+        ('ค้างชำระเกิน 60 วัน', snapshot['overdue_60_count'], '#f59e0b'),
+        ('ค้างชำระเกิน 90 วัน', snapshot['overdue_90_count'], '#ef4444'),
+        ('ใกล้ครบกำหนด', snapshot['due_soon_count'], '#facc15'),
+        ('ยังไม่ออกรายงานผล', snapshot['pending_result_count'], '#2563eb'),
     ]
-    max_value = max([value for _, value in rows] + [1])
+    max_value = max([value for _, value, _ in rows] + [1])
     bar_width = 320
     rendered_rows = []
-    for label, value in rows:
+    for label, value, fill_color in rows:
         fill_width = max(int((value / max_value) * bar_width), 0) if max_value else 0
         if value > 0 and fill_width == 0:
             fill_width = 10
@@ -570,8 +572,8 @@ def _render_service_admin_overview_chart_html(snapshot):
               <td style="padding:7px 0;">
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="{bar_width}" style="width:{bar_width}px;border-collapse:collapse;">
                   <tr>
-                    <td width="{fill_width}" style="width:{fill_width}px;height:16px;line-height:16px;font-size:0;background:#cbd5e1;">&nbsp;</td>
-                    <td width="{gap_width}" style="width:{gap_width}px;height:16px;line-height:16px;font-size:0;background:#e2e8f0;">&nbsp;</td>
+                    <td width="{fill_width}" bgcolor="{fill_color}" style="width:{fill_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
+                    <td width="{gap_width}" bgcolor="#e2e8f0" style="width:{gap_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
                   </tr>
                 </table>
               </td>
