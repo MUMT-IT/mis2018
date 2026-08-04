@@ -1127,7 +1127,7 @@ def email_unfinished_summary():
             400
         )
         response.mimetype = 'text/plain'
-        return response
+        return redirect(url_for('software_request.admin_index', tab='all'))
 
     if not recipients:
         message_text = 'ไม่พบอีเมลของผู้รับที่มี role software_request สำหรับส่งสรุป'
@@ -1172,14 +1172,14 @@ def email_unfinished_summary():
     if request.method == 'GET':
         response = make_response(success_message + '\n')
         response.mimetype = 'text/plain'
-        return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+        return redirect(url_for('software_request.admin_index', tab='all'))
 
     flash(success_message, 'success' if success_message.startswith('ส่งอีเมลสรุปเรื่องคงค้างแล้ว') else 'danger')
     if request.headers.get('HX-Request'):
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
         return resp
-    return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+    return redirect(url_for('software_request.admin_index', tab='all'))
 
 
 @software_request.route('/api/timelines/<tab>')
