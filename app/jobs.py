@@ -294,8 +294,8 @@ def send_service_admin_monthly_overdue_summary():
     _run_job(job_name, _job)
 
 
-def send_academic_services_weekly_overdue_invoice_reminder():
-    job_name = 'send_academic_services_weekly_overdue_invoice_reminder'
+def send_service_admin_weekly_overdue_invoice_reminder():
+    job_name = 'send_service_admin_weekly_overdue_invoice_reminder'
 
     def _job():
         params = {'send': 'true'}
@@ -304,7 +304,7 @@ def send_academic_services_weekly_overdue_invoice_reminder():
         _request_or_raise(
             job_name,
             'GET',
-            f'{BASE_URL}/academic_services/admin/weekly-overdue-invoice-reminder',
+            f'{BASE_URL}/service_admin/admin/weekly-overdue-invoice-reminder',
             params=params,
             timeout=90,
         )
@@ -367,7 +367,7 @@ scheduler.add_job(send_service_admin_monthly_overdue_summary,
                   hour='9',
                   minute='00',
                   timezone='Asia/Bangkok')
-scheduler.add_job(send_academic_services_weekly_overdue_invoice_reminder,
+scheduler.add_job(send_service_admin_weekly_overdue_invoice_reminder,
                   'cron', day_of_week='mon',
                   hour='9',
                   minute='00',
