@@ -294,6 +294,24 @@ def send_service_admin_monthly_overdue_summary():
     _run_job(job_name, _job)
 
 
+def send_service_admin_line_reminder_pending():
+    job_name = 'send_service_admin_line_reminder_pending'
+
+    def _job():
+        params = {'send': 'true'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/service_admin/admin/line-remind-pending',
+            params=params,
+            timeout=90,
+        )
+
+    _run_job(job_name, _job)
+
+
 def send_service_admin_weekly_overdue_invoice_reminder():
     job_name = 'send_service_admin_weekly_overdue_invoice_reminder'
 
@@ -363,6 +381,11 @@ scheduler.add_job(send_line_reminder_no_status_today,
                   minute='00',
                   timezone='Asia/Bangkok')
 scheduler.add_job(send_service_admin_monthly_overdue_summary,
+                  'cron', day='1',
+                  hour='9',
+                  minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_service_admin_line_reminder_pending,
                   'cron', day='1',
                   hour='9',
                   minute='00',
