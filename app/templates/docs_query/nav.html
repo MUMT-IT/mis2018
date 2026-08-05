@@ -1,0 +1,22 @@
+{% from "components/module_nav.html" import render_module_nav %}
+
+{% set docs_query_links = [
+    {'href': url_for('docs_query.index'), 'label': 'ค้นหาเอกสาร', 'icon': 'fas fa-search', 'primary': True}
+] %}
+{% if can_manage_documents %}
+    {% set docs_query_links = docs_query_links + [
+        {'href': url_for('docs_query.admin'), 'label': 'จัดการเอกสาร', 'icon': 'fas fa-folder-open'}
+    ] %}
+{% endif %}
+
+{{ render_module_nav(
+    title='Docs Query',
+    subtitle='ระบบค้นหาเอกสารด้วย AI',
+    brand_href=url_for('docs_query.index'),
+    start_links=docs_query_links,
+    user_display=current_user.email,
+    account_href=url_for('auth.account'),
+    logout_href=url_for('auth.logout'),
+    close_href='/',
+    menu_id='docsQueryNavbarMenu'
+) }}

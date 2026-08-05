@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: ตัวอย่างข้อความที่สกัด{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-10-tablet is-9-desktop is-8-widescreen">
+                    {% include "messages.html" %}
+                    <div class="box docs-query-shell">
+                        <div class="level is-mobile mb-5">
+                            <div>
+                                <h1 class="title is-3">ตัวอย่างข้อความที่สกัด</h1>
+                                <p class="subtitle is-6 has-text-grey">ตรวจสอบคุณภาพข้อความก่อนแบ่งส่วนและจัดทำดัชนี</p>
+                            </div>
+                            <div>
+                                <a class="button is-light" href="{{ url_for('docs_query.admin') }}">ย้อนกลับ</a>
+                            </div>
+                        </div>
+
+                        <div class="content mb-5">
+                            <p><strong>ชื่อเอกสาร:</strong> {{ document_title }}</p>
+                            <p><strong>ชื่อไฟล์:</strong> {{ filename }}</p>
+                            <p><strong>วิธีสกัดข้อความ:</strong> {% if ocr_used %}Typhoon OCR (เอกสารสแกน){% else %}ข้อความใน PDF{% endif %}</p>
+                            <p><strong>สถานะ:</strong> {{ {'success': 'สำเร็จ', 'warning': 'มีคำเตือน', 'error': 'ผิดพลาด'}.get(extraction_status, extraction_status) }}</p>
+                            <p><strong>วิธีแบ่งส่วน:</strong> {{ chunking_method }}</p>
+                            <p><strong>จำนวนอักขระที่สกัดได้:</strong> {{ extracted_char_count }}</p>
+                            <p><strong>จำนวนส่วนทั้งหมด:</strong> {{ total_chunk_count }}</p>
+                        </div>
+
+                        {% if warning_message %}
+                            <article class="message {% if extraction_status == 'error' %}is-danger{% else %}is-warning{% endif %} is-light">
+                                <div class="message-body">
+                                    {{ warning_message }}
+                                </div>
+                            </article>
+                        {% endif %}
+
+                        {% if summary_warning %}
+                            <article class="message is-warning is-light">
+                                <div class="message-body">
+                                    ไม่สามารถสร้างสรุปย่อได้ในขั้นตอนนี้: {{ summary_warning }}
+                                </div>
+                            </article>
+                        {% elif summary %}
+                            <article class="message is-info is-light">
+                                <div class="message-header"><p>สรุปย่อโดย AI</p></div>
+                                <div class="message-body">{{ summary }}</div>
+                            </article>
+                        {% endif %}
+
+                        <div class="content">
+                            <h2 class="title is-5">ตัวอย่างข้อความแต่ละส่วน</h2>
+                            {% if chunk_previews %}
+                                {% for chunk in chunk_previews %}
+                                    <article class="message is-light">
+                                        <div class="message-header">
+                                            <p>ส่วนที่ {{ chunk.chunk_number }}</p>
+                                            <p>{{ chunk.character_count }} อักขระ</p>
+                                        </div>
+                                        <div class="message-body">
+                                            <pre class="extract-preview">{{ chunk.text }}</pre>
+                                        </div>
+                                    </article>
+                                {% endfor %}
+                            {% else %}
+                                <p class="has-text-grey">ไม่สามารถสร้างส่วนข้อความจากไฟล์ PDF นี้ได้</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .docs-query-shell {
+            border-radius: 28px;
+            margin: 3rem auto;
+            padding: 2.75rem;
+        }
+
+        .extract-preview {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 16px;
+            max-height: 36rem;
+            overflow: auto;
+            padding: 1rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+{% endblock %}

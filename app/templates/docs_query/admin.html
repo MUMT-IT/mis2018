@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: จัดการเอกสาร{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="level mb-5">
+                <div>
+                    <p class="is-size-7 has-text-weight-semibold has-text-info">สำหรับผู้ดูแลระบบ</p>
+                    <h1 class="title is-2 mb-2">จัดการเอกสาร</h1>
+                    <p class="subtitle is-5 has-text-grey">อัปโหลด จัดระเบียบ และปรับปรุงเอกสารที่เปิดให้ค้นหา</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('docs_query.index') }}">
+                    <span class="icon"><i class="fas fa-search"></i></span>
+                    <span>ค้นหาเอกสาร</span>
+                </a>
+            </div>
+
+            <div class="columns is-variable is-6 is-multiline">
+                <div class="column is-12">
+                    <div class="box docs-query-admin-card docs-query-admin-table-card">
+                        <div class="level is-mobile mb-4">
+                            <div>
+                                <h2 class="title is-4 mb-1">เอกสารที่จัดการ</h2>
+                                <p class="has-text-grey is-size-7">รายการไฟล์ PDF จาก Google Drive แบ่งหน้าอัตโนมัติ</p>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table id="docs-query-admin-table" class="table is-fullwidth is-size-7">
+                                <thead>
+                                <tr>
+                                    <th>เอกสาร</th>
+                                    <th>ประเภทเอกสาร</th>
+                                    <th>แท็ก</th>
+                                    <th>หมายเหตุ</th>
+                                    <th>สถานะการใช้งาน</th>
+                                    <th>สถานะ</th>
+                                    <th>การดำเนินการ</th>
+                                </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-12">
+                    <div class="box docs-query-admin-card">
+                        <h2 class="title is-4">เพิ่มเอกสาร</h2>
+                        <p class="has-text-grey mb-5">ข้อมูลกำกับจะถูกบันทึกพร้อมไฟล์ PDF เพื่อใช้จัดระเบียบผลการค้นหา</p>
+                        <form method="post" action="{{ url_for('docs_query.upload') }}" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label" for="document_title">ชื่อเอกสาร</label>
+                                <div class="control"><input class="input" id="document_title" name="document_title" type="text" required></div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="description">คำอธิบาย</label>
+                                <div class="control"><textarea class="textarea" id="description" name="description" rows="2"></textarea></div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="document_type">ประเภทเอกสาร</label>
+                                <div class="control">
+                                    <div class="select is-fullwidth">
+                                        <select id="document_type" name="document_type">
+                                            <option value="">เลือกประเภทเอกสาร</option>
+                                            <option value="ข้อบังคับ">ข้อบังคับ</option>
+                                            <option value="ประกาศ">ประกาศ</option>
+                                            <option value="อื่นๆ">อื่นๆ</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="tags">แท็ก</label>
+                                <div class="control"><input class="input" id="tags" name="tags" type="text" placeholder="นโยบาย, บุคคล, วิชาการ"></div>
+                                <p class="help">คั่นแท็กหลายรายการด้วยเครื่องหมายจุลภาค</p>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="note">หมายเหตุ</label>
+                                <div class="control"><textarea class="textarea" id="note" name="note" rows="2"></textarea></div>
+                            </div>
+                            <div class="field mb-5">
+                                <label class="checkbox" for="is_expired">
+                                    <input id="is_expired" name="is_expired" type="checkbox">
+                                    เอกสารนี้หมดอายุหรือไม่อยู่ในสถานะที่ใช้งานได้แล้ว
+                                </label>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="file">ไฟล์ PDF</label>
+                                <div class="control"><input class="input" id="file" name="file" type="file" accept="application/pdf,.pdf"></div>
+                                <p class="help">รองรับเฉพาะไฟล์ PDF</p>
+                            </div>
+                            <button class="button is-success is-fullwidth mt-4" type="submit">
+                                <span class="icon"><i class="fas fa-upload"></i></span>
+                                <span>อัปโหลด PDF</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box docs-query-admin-card mt-5">
+                <div class="level is-mobile mb-4">
+                    <div>
+                        <h2 class="title is-4 mb-1">สถิติการค้นหา</h2>
+                        <p class="has-text-grey is-size-7">สถิติจากการใช้งานระบบค้นหาเอกสาร</p>
+                    </div>
+                </div>
+                <div class="columns is-mobile is-multiline mb-4">
+                    <div class="column is-one-third">
+                        <p class="heading">การค้นหาทั้งหมด</p>
+                        <p class="title is-4">{{ statistics.total_searches }}</p>
+                    </div>
+                    <div class="column is-one-third">
+                        <p class="heading">ค้นหาไม่พบผลลัพธ์</p>
+                        <p class="title is-4">{{ statistics.searches_with_no_results }}</p>
+                    </div>
+                    <div class="column is-one-third">
+                        <p class="heading">การเปิดเอกสาร</p>
+                        <p class="title is-4">{{ statistics.total_document_clicks }}</p>
+                    </div>
+                </div>
+                <div class="columns is-variable is-5">
+                    <div class="column">
+                        <h3 class="title is-6">คำค้นยอดนิยม</h3>
+                        {% if statistics.popular_queries %}
+                            <ol class="docs-query-stat-list">
+                                {% for query in statistics.popular_queries %}
+                                    <li><span>{{ query.query_text }}</span><span class="tag is-light">{{ query.search_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                    <div class="column">
+                        <h3 class="title is-6">คำค้นที่ไม่พบผลลัพธ์</h3>
+                        {% if statistics.no_result_queries %}
+                            <ol class="docs-query-stat-list">
+                                {% for query in statistics.no_result_queries %}
+                                    <li><span>{{ query.query_text }}</span><span class="tag is-warning is-light">{{ query.search_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                    <div class="column">
+                        <h3 class="title is-6">เอกสารที่ถูกเปิดบ่อย</h3>
+                        {% if statistics.popular_documents %}
+                            <ol class="docs-query-stat-list">
+                                {% for document, click_count in statistics.popular_documents %}
+                                    <li><span>{{ document.document_title or document.filename }}</span><span class="tag is-info is-light">{{ click_count }} ครั้ง</span></li>
+                                {% endfor %}
+                            </ol>
+                        {% else %}<p class="has-text-grey is-size-7">ยังไม่มีข้อมูล</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <style>
+        .docs-query-admin-card { border-radius: 20px; height: 100%; }
+        .docs-query-admin-table-card { border-radius: 20px; }
+        .docs-query-admin-card .table td { vertical-align: middle; }
+        .docs-query-table-subtitle {
+            color: var(--theme-muted);
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 400;
+            line-height: 1.45;
+            margin-top: 0.25rem;
+            max-width: 32rem;
+        }
+        .docs-query-admin-card #docs-query-admin-table { border-radius: 0; }
+        .docs-query-admin-table-card .table-container {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: visible;
+        }
+        .docs-query-admin-actions {
+            align-items: center;
+            background: rgba(18, 39, 84, 0.05);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 999px;
+            display: flex;
+            gap: .15rem;
+            justify-content: center;
+            margin: 0 auto;
+            min-width: max-content;
+            padding: .2rem;
+        }
+        .docs-query-admin-action-form { display: contents; }
+        .docs-query-admin-icon-action {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            color: var(--theme-navy);
+            cursor: pointer;
+            display: inline-flex;
+            font: inherit;
+            justify-content: center;
+            border-radius: 50%;
+            height: 2rem;
+            padding: 0.25rem;
+            transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+            width: 2rem;
+        }
+        .docs-query-admin-icon-action:hover,
+        .docs-query-admin-icon-action:focus {
+            background: #fff;
+            box-shadow: 0 3px 8px rgba(18, 39, 84, 0.14);
+            color: #3273dc;
+        }
+        .docs-query-stat-list { margin: 0; padding-left: 1.25rem; }
+        .docs-query-admin-card .columns > .column { min-width: 0; }
+        .docs-query-stat-list li { align-items: center; display: grid; gap: .5rem; grid-template-columns: minmax(0, 1fr) auto; margin-bottom: .6rem; min-width: 0; }
+        .docs-query-stat-list li span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .docs-query-stat-list li .tag { min-width: max-content; }
+    </style>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(function () {
+            function escapeHtml(value) {
+                return $('<div>').text(value || '').html();
+            }
+
+            var csrfToken = {{ csrf_token()|tojson }};
+
+            $('#docs-query-admin-table').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50], [10, 25, 50]],
+                ajax: {
+                    url: '{{ url_for("docs_query.admin_data") }}',
+                    type: 'GET'
+                },
+                order: [[0, 'asc']],
+                columns: [
+                    {
+                        data: 'title',
+                        render: function (data, type, row) {
+                            if (type !== 'display') return data;
+                            var title = row.web_view_link
+                                ? '<a href="' + escapeHtml(row.web_view_link) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(data) + '</a>'
+                                : escapeHtml(data);
+                            var summary = row.summary
+                                ? '<span class="docs-query-table-subtitle">' + escapeHtml(row.summary) + '</span>'
+                                : '';
+                            return '<div><p class="has-text-weight-semibold">' + title + '</p>' + summary + '</div>';
+                        }
+                    },
+                    {
+                        data: 'document_type',
+                        render: function (data, type) {
+                            return type === 'display' ? escapeHtml(data) : data;
+                        }
+                    },
+                    {
+                        data: 'tags',
+                        render: function (data, type) {
+                            if (type !== 'display') return (data || []).join(', ');
+                            if (!data || !data.length) return '-';
+                            return data.map(function (tag) {
+                                return '<span class="tag is-info is-rounded">' + escapeHtml(tag) + '</span>';
+                            }).join(' ');
+                        }
+                    },
+                    {
+                        data: 'note',
+                        render: function (data, type) {
+                            if (type !== 'display') return data || '';
+                            return data ? escapeHtml(data) : '-';
+                        }
+                    },
+                    {
+                        data: 'is_expired',
+                        render: function (data, type) {
+                            if (type !== 'display') return data ? 1 : 0;
+                            return data
+                                ? '<span class="tag is-danger is-light">ยกเลิกแล้ว</span>'
+                                : '<span class="tag is-success is-light">ใช้งานได้</span>';
+                        }
+                    },
+                    {
+                        data: 'is_processed',
+                        render: function (data, type) {
+                            if (type !== 'display') return data ? 1 : 0;
+                            return data
+                                ? '<span class="tag is-success is-light">ประมวลผลแล้ว</span>'
+                                : '<span class="tag is-light">ยังไม่ประมวลผล</span>';
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        render: function (data, type, row) {
+                            if (type !== 'display') return '';
+                            var actions = row.web_view_link
+                                ? '<a class="icon docs-query-admin-icon-action" href="' + escapeHtml(row.web_view_link) + '" target="_blank" rel="noopener noreferrer" title="เปิดเอกสาร" aria-label="เปิดเอกสาร"><i class="fas fa-external-link-alt"></i></a>'
+                                : '';
+                            actions += '<a class="icon docs-query-admin-icon-action" href="' + escapeHtml(row.edit_url) + '" title="แก้ไขข้อมูล" aria-label="แก้ไขข้อมูล"><i class="fas fa-edit"></i></a>';
+                            actions += '<form method="post" action="' + escapeHtml(row.extract_url) + '" class="docs-query-admin-action-form">' +
+                                '<input type="hidden" name="csrf_token" value="' + escapeHtml(csrfToken) + '">' +
+                                '<button class="icon docs-query-admin-icon-action" type="submit" title="สกัดข้อความ" aria-label="สกัดข้อความ"><i class="fas fa-file-import"></i></button>' +
+                                (row.is_processed ? '<a class="icon docs-query-admin-icon-action" href="' + escapeHtml(row.processed_url) + '" title="ดูข้อมูล JSON" aria-label="ดูข้อมูล JSON"><i class="fas fa-file-code"></i></a>' : '') +
+                                '</form>';
+                            return '<div class="docs-query-admin-actions">' + actions + '</div>';
+                        }
+                    }
+                ],
+                language: {
+                    processing: 'กำลังโหลดข้อมูล...',
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีรายการเอกสาร',
+                    zeroRecords: 'ไม่พบเอกสารที่ตรงกับการค้นหา',
+                    paginate: {
+                        first: 'หน้าแรก',
+                        last: 'หน้าสุดท้าย',
+                        next: 'ถัดไป',
+                        previous: 'ก่อนหน้า'
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

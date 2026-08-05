@@ -1,116 +1,350 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 
+{% block title %}งานทรัพยากรบุคคล{% endblock %}
+
 {% block page_content %}
-<section class="section">
-    <h1 class="title">สำหรับเจ้าหน้าที่หน่วยพัฒนาบุคลากร</h1>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('staff.staff_index') }}">
-                    <span class="icon is-large"><i class="fas fa-user-edit fa-4x"></i></span><br><br>
-                    <span class="is-size-4">ข้อมูลบุคลากร</span>
+<style>
+    .hr-home {
+        --hr-ink: var(--theme-navy-deep);
+        --hr-blue: var(--theme-navy);
+        --hr-muted: var(--theme-muted);
+        padding: 2.5rem 0 4.5rem;
+    }
+
+    .hr-home-hero {
+        background:
+            radial-gradient(circle at 90% 0%, rgba(202, 168, 74, 0.22), transparent 32%),
+            linear-gradient(135deg, #10264c 0%, #1a3d7c 100%);
+        border-radius: 28px;
+        box-shadow: 0 24px 54px rgba(16, 38, 76, 0.2);
+        color: #fff;
+        overflow: hidden;
+        padding: 2.7rem 3rem;
+        position: relative;
+    }
+
+    .hr-home-hero::after {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 50%;
+        content: '';
+        height: 18rem;
+        position: absolute;
+        right: -5rem;
+        top: -9rem;
+        width: 18rem;
+    }
+
+    .hr-home-hero-content {
+        max-width: 42rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hr-home-eyebrow {
+        align-items: center;
+        color: #e9d693;
+        display: flex;
+        font-size: 0.72rem;
+        font-weight: 800;
+        gap: 0.5rem;
+        letter-spacing: 0.14em;
+        margin-bottom: 0.8rem;
+        text-transform: uppercase;
+    }
+
+    .hr-home-eyebrow::before {
+        background: #e9d693;
+        content: '';
+        height: 2px;
+        width: 1.75rem;
+    }
+
+    .hr-home-title {
+        color: #fff;
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        margin: 0;
+    }
+
+    .hr-home-description {
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 1rem;
+        line-height: 1.7;
+        margin: 1rem 0 0;
+        max-width: 38rem;
+    }
+
+    .hr-home-hero-meta {
+        align-items: center;
+        color: rgba(255, 255, 255, 0.72);
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.82rem;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .hr-home-hero-meta span {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.45rem;
+    }
+
+    .hr-home-section {
+        margin-top: 2.75rem;
+    }
+
+    .hr-home-section-heading {
+        align-items: end;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1.1rem;
+    }
+
+    .hr-home-section-title {
+        color: var(--hr-ink);
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .hr-home-section-description {
+        color: var(--hr-muted);
+        font-size: 0.82rem;
+        margin: 0.25rem 0 0;
+    }
+
+    .hr-home-section-count {
+        background: var(--theme-navy-soft);
+        border-radius: 999px;
+        color: var(--hr-blue);
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 0.35rem 0.7rem;
+    }
+
+    .hr-home-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .hr-module-card {
+        background: var(--theme-surface-strong);
+        border: 1px solid var(--theme-border);
+        border-radius: 20px;
+        box-shadow: 0 12px 32px rgba(18, 39, 84, 0.06);
+        color: var(--theme-text);
+        display: flex;
+        flex-direction: column;
+        min-height: 12.5rem;
+        padding: 1.35rem;
+        position: relative;
+        text-decoration: none !important;
+        transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    .hr-module-card:hover,
+    .hr-module-card:focus-visible {
+        border-color: rgba(26, 61, 124, 0.35);
+        box-shadow: 0 18px 38px rgba(18, 39, 84, 0.13);
+        color: var(--theme-text);
+        outline: none;
+        transform: translateY(-3px);
+    }
+
+    .hr-module-card.is-featured {
+        background: linear-gradient(145deg, #fff 0%, #f2f6ff 100%);
+        border-color: rgba(26, 61, 124, 0.22);
+    }
+
+    .hr-module-icon {
+        align-items: center;
+        background: var(--theme-navy-soft);
+        border-radius: 14px;
+        color: var(--hr-blue);
+        display: inline-flex;
+        font-size: 1.2rem;
+        height: 2.8rem;
+        justify-content: center;
+        margin-bottom: 1.2rem;
+        width: 2.8rem;
+    }
+
+    .hr-module-card.is-featured .hr-module-icon {
+        background: var(--hr-blue);
+        color: #fff;
+    }
+
+    .hr-module-title {
+        color: var(--hr-ink);
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.35;
+        margin: 0;
+    }
+
+    .hr-module-description {
+        color: var(--hr-muted);
+        font-size: 0.8rem;
+        line-height: 1.55;
+        margin: 0.45rem 0 1.25rem;
+    }
+
+    .hr-module-footer {
+        align-items: center;
+        color: var(--hr-blue);
+        display: flex;
+        font-size: 0.75rem;
+        font-weight: 800;
+        gap: 0.4rem;
+        margin-top: auto;
+    }
+
+    .hr-module-footer i {
+        font-size: 0.7rem;
+        transition: transform 160ms ease;
+    }
+
+    .hr-module-card:hover .hr-module-footer i,
+    .hr-module-card:focus-visible .hr-module-footer i {
+        transform: translateX(3px);
+    }
+
+    @media screen and (max-width: 1023px) {
+        .hr-home-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media screen and (max-width: 600px) {
+        .hr-home {
+            padding-top: 1.25rem;
+        }
+
+        .hr-home-hero {
+            border-radius: 22px;
+            padding: 2rem 1.4rem;
+        }
+
+        .hr-home-section-heading {
+            align-items: start;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .hr-home-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .hr-module-card {
+            min-height: 0;
+        }
+    }
+</style>
+
+<section class="section hr-home">
+    <div class="container">
+        <header class="hr-home-hero">
+            <div class="hr-home-hero-content">
+                <div class="hr-home-eyebrow">Human Resources Workspace</div>
+                <h1 class="hr-home-title">ศูนย์จัดการงานทรัพยากรบุคคล</h1>
+                <p class="hr-home-description">
+                    รวมเครื่องมือสำคัญสำหรับดูแลข้อมูลบุคลากร การลา การลงเวลา และการพัฒนาศักยภาพไว้ในที่เดียว
+                </p>
+                <div class="hr-home-hero-meta">
+                    <span><i class="fas fa-layer-group" aria-hidden="true"></i> 10 ระบบงาน</span>
+                    <span><i class="fas fa-shield-halved" aria-hidden="true"></i> สำหรับเจ้าหน้าที่ HR</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="hr-home-section" aria-labelledby="hr-operations-title">
+            <div class="hr-home-section-heading">
+                <div>
+                    <h2 class="hr-home-section-title" id="hr-operations-title">งานบุคลากรและการปฏิบัติงาน</h2>
+                    <p class="hr-home-section-description">เครื่องมือสำหรับงาน HR ประจำวันและการจัดการข้อมูลหลัก</p>
+                </div>
+                <span class="hr-home-section-count">7 รายการ</span>
+            </div>
+            <div class="hr-home-grid">
+                <a class="hr-module-card is-featured" href="{{ url_for('staff.staff_index') }}">
+                    <span class="hr-module-icon"><i class="fas fa-users" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">ข้อมูลบุคลากร</h3>
+                    <p class="hr-module-description">ค้นหาและจัดการข้อมูลบุคลากรในหน่วยงาน</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('staff.leave_request_result_by_date') }}">
-                            <span class="icon is-large"><i class="fas fa-calendar fa-4x"></i></span><br><br>
-                            <span class="is-size-4">ข้อมูลวันลา</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('staff.hr_login_summary_report') }}">
-                    <span class="icon is-large"><i class="far fa-clock fa-4x"></i></span><br><br>
-                    <span class="is-size-4">ข้อมูลเวลาเข้า-ออกงาน</span>
+                <a class="hr-module-card" href="{{ url_for('staff.leave_request_result_by_date') }}">
+                    <span class="hr-module-icon"><i class="fas fa-calendar-days" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">ข้อมูลวันลา</h3>
+                    <p class="hr-module-description">ตรวจสอบและติดตามรายการลาของบุคลากร</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('staff.seminar') }}">
-                    <span class="icon is-large"><i class="fas fa-chalkboard-teacher fa-4x"></i></span><br><br>
-                    <span class="is-size-4">ข้อมูลอบรม</span>
+                <a class="hr-module-card is-featured" href="{{ url_for('staff.hr_login_summary_report') }}">
+                    <span class="hr-module-icon"><i class="fas fa-chart-column" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">ข้อมูลเวลาเข้า-ออกงาน</h3>
+                    <p class="hr-module-description">ดูสรุปการลงเวลาและสถิติการปฏิบัติงาน</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('staff.wfh_requests_list') }}">
-                    <span class="icon is-large"><i class="fas fa-home fa-4x"></i></span><br><br>
-                    <span class="is-size-4">ข้อมูลการทำงานที่บ้าน</span>
+                <a class="hr-module-card" href="{{ url_for('staff.seminar') }}">
+                    <span class="hr-module-icon"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">ข้อมูลอบรม</h3>
+                    <p class="hr-module-description">จัดการประวัติและรายการอบรมของบุคลากร</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('staff.edit_organizations') }}">
-                        <span class="icon is-large"><i class="fas fa-sitemap fa-4x"></i></span><br><br>
-                        <span class="is-size-4">หน่วยงาน</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('staff.add_holiday') }}">
-                    <span class="icon is-large"><i class="fa-solid fa-sun fa-4x"></i></span><br><br>
-                    <span class="is-size-4">ข้อมูลวันหยุด</span>
+                <a class="hr-module-card" href="{{ url_for('staff.wfh_requests_list') }}">
+                    <span class="hr-module-icon"><i class="fas fa-house-laptop" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">การทำงานที่บ้าน</h3>
+                    <p class="hr-module-description">ตรวจสอบคำขอและข้อมูลการทำงานที่บ้าน</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('pa.hr_index') }}">
-                        <span class="icon is-large" STYLE="font-size:30px">PA</span><br><br>
-                        <span class="is-size-4">ประเมินภาระงาน</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('pa.hr_fc_index') }}">
-                        <span class="icon is-large"><i class="fa-solid fa-user-shield fa-4x"></i></span><br><br>
-                        <span class="is-size-4">Functional Competency</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('pa.hr_idp_index') }}">
-                    <span class="icon is-large"><i class="fa-solid fa-indent fa-4x"></i></span><br><br>
-                    <span class="is-size-4">IDP</span>
+                <a class="hr-module-card" href="{{ url_for('staff.edit_organizations') }}">
+                    <span class="hr-module-icon"><i class="fas fa-sitemap" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">หน่วยงาน</h3>
+                    <p class="hr-module-description">จัดการโครงสร้างและหน่วยงานภายในองค์กร</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
-                </div>
+                <a class="hr-module-card" href="{{ url_for('staff.add_holiday') }}">
+                    <span class="hr-module-icon"><i class="fas fa-sun" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">ข้อมูลวันหยุด</h3>
+                    <p class="hr-module-description">กำหนดและดูแลข้อมูลวันหยุดประจำปี</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
             </div>
-        </div>
+        </section>
+
+        <section class="hr-home-section" aria-labelledby="hr-development-title">
+            <div class="hr-home-section-heading">
+                <div>
+                    <h2 class="hr-home-section-title" id="hr-development-title">การพัฒนาและประเมินศักยภาพ</h2>
+                    <p class="hr-home-section-description">เครื่องมือสำหรับติดตามสมรรถนะและการพัฒนารายบุคคล</p>
+                </div>
+                <span class="hr-home-section-count">3 รายการ</span>
+            </div>
+            <div class="hr-home-grid">
+                <a class="hr-module-card" href="{{ url_for('pa.hr_index') }}">
+                    <span class="hr-module-icon"><i class="fas fa-clipboard-check" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">ประเมินภาระงาน</h3>
+                    <p class="hr-module-description">จัดการการประเมินภาระงานของบุคลากร</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
+                <a class="hr-module-card" href="{{ url_for('pa.hr_fc_index') }}">
+                    <span class="hr-module-icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">Functional Competency</h3>
+                    <p class="hr-module-description">ติดตามสมรรถนะตามสายงานและหน้าที่</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
+                <a class="hr-module-card" href="{{ url_for('pa.hr_idp_index') }}">
+                    <span class="hr-module-icon"><i class="fas fa-route" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">IDP</h3>
+                    <p class="hr-module-description">วางแผนพัฒนาศักยภาพรายบุคคล</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
+            </div>
+        </section>
     </div>
 </section>
 {% endblock %}

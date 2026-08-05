@@ -32,6 +32,35 @@
             color: var(--theme-text);
         }
 
+        body.is-test-server {
+            padding-top: 2.5rem;
+        }
+
+        .test-server-banner {
+            align-items: center;
+            background: linear-gradient(90deg, #a83d16, #d96b1f);
+            box-shadow: 0 4px 14px rgba(125, 45, 12, 0.22);
+            color: #fff;
+            display: flex;
+            font-size: 0.9rem;
+            font-weight: 700;
+            gap: 0.65rem;
+            justify-content: center;
+            letter-spacing: 0.03em;
+            min-height: 2.5rem;
+            padding: 0.55rem 1rem;
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            text-align: center;
+            z-index: 2000;
+        }
+
+        .test-server-banner .icon {
+            color: #ffe08a;
+        }
+
         a {
             color: var(--theme-navy);
         }
@@ -631,7 +660,13 @@
         </style>
     {% endblock %}
 </head>
-<body>
+<body class="{% if config.get('TEST_SERVER') %}is-test-server{% endif %}">
+{% if config.get('TEST_SERVER') %}
+    <div class="test-server-banner" role="alert">
+        <span class="icon"><i class="fas fa-flask" aria-hidden="true"></i></span>
+        <span>TEST SERVER — ระบบทดสอบ</span>
+    </div>
+{% endif %}
 <script>
     function openForm() {
         document.getElementById("myForm").style.display = "block";

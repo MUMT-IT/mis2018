@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: แก้ไขข้อมูลกำกับเอกสาร{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container" style="max-width: 760px;">
+            {% include "messages.html" %}
+            <div class="level mb-5">
+                <div>
+                    <p class="is-size-7 has-text-weight-semibold has-text-info">สำหรับผู้ดูแลระบบ</p>
+                    <h1 class="title is-2 mb-2">แก้ไขข้อมูลกำกับเอกสาร</h1>
+                    <p class="subtitle is-6 has-text-grey">{{ file_item.get('title') or file_id }}</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('docs_query.admin') }}">กลับไปหน้าจัดการเอกสาร</a>
+            </div>
+
+            <div class="box docs-query-admin-card">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field">
+                        <label class="label" for="document_title">ชื่อเอกสาร</label>
+                        <div class="control">
+                            <input class="input" id="document_title" name="document_title" type="text" value="{{ metadata.document_title }}" required>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label" for="document_type">ประเภทเอกสาร</label>
+                        <div class="control"><input class="input" id="document_type" name="document_type" type="text" value="{{ metadata.document_type }}"></div>
+                    </div>
+                    <div class="field">
+                        <label class="label" for="issue_date">วันที่ออกเอกสาร</label>
+                        <div class="control"><input class="input" id="issue_date" name="issue_date" type="date" value="{{ metadata.issue_date or '' }}"></div>
+                        <p class="help">ใช้สำหรับจัดเรียงเอกสารตามลำดับเวลา หากไม่ทราบวันที่สามารถเว้นว่างได้</p>
+                    </div>
+                    <div class="field">
+                        <label class="label" for="tags">แท็ก</label>
+                        <div class="control"><input class="input" id="tags" name="tags" type="text" value="{{ metadata.tags|join(', ') }}"></div>
+                        <p class="help">คั่นแท็กหลายรายการด้วยเครื่องหมายจุลภาค</p>
+                    </div>
+                    <div class="field">
+                        <label class="label" for="note">หมายเหตุ</label>
+                        <div class="control"><textarea class="textarea" id="note" name="note" rows="4">{{ metadata.note }}</textarea></div>
+                    </div>
+                    <div class="field mb-5">
+                        <label class="checkbox" for="is_expired">
+                            <input id="is_expired" name="is_expired" type="checkbox"{% if metadata.is_expired %} checked{% endif %}>
+                            เอกสารนี้หมดอายุหรือไม่อยู่ในสถานะที่ใช้งานได้แล้ว
+                        </label>
+                    </div>
+                    <div class="buttons is-justify-content-flex-end">
+                        <a class="button is-light" href="{{ url_for('docs_query.admin') }}">ยกเลิก</a>
+                        <button class="button is-success" type="submit">
+                            <span class="icon"><i class="fas fa-save"></i></span>
+                            <span>บันทึกข้อมูล</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+    <style>
+        .docs-query-admin-card { border-radius: 20px; }
+    </style>
+{% endblock %}

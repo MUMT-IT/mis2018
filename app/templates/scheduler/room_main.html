@@ -136,24 +136,31 @@
             margin-bottom: 1rem;
         }
 
-        .room-search-illustration {
+        .room-search-video {
+            background: transparent;
+            border: 0;
+            border-radius: 18px;
+            box-shadow: 0 16px 34px rgba(18, 39, 84, 0.24);
             display: block;
             height: auto;
-            margin: 0 auto 0.85rem;
-            max-width: 120px;
+            margin: 0;
+            max-width: 320px;
+            opacity: 0;
+            pointer-events: none;
+            position: fixed;
+            right: 1.5rem;
+            top: 5.5rem;
+            transform: translateY(-8px) scale(0.98);
+            transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+            visibility: hidden;
+            width: min(34vw, 320px);
+            z-index: 30;
         }
 
-        .room-search-illustration.is-searching {
-            animation: robot-sway 0.9s ease-in-out infinite;
-            transform-origin: 50% 80%;
-        }
-
-        @keyframes robot-sway {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-14px); }
-            50% { transform: translateX(0); }
-            75% { transform: translateX(14px); }
-            100% { transform: translateX(0); }
+        .room-search-video.is-searching {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            visibility: visible;
         }
 
         .room-panel-header .title {
@@ -388,6 +395,12 @@
             .room-date-input {
                 max-width: none;
             }
+
+            .room-search-video {
+                right: 0.75rem;
+                top: 4.75rem;
+                width: min(44vw, 240px);
+            }
         }
     </style>
 {% endblock head %}
@@ -456,7 +469,6 @@
                 <div class="room-panel">
                     <div class="room-panel-header">
                         <div>
-                            <img class="room-search-illustration" src="{{ url_for('static', filename='img/search.png') }}" alt="Search">
                             <h2 class="title is-4 mb-5">ค้นหาห้องที่ต้องการจอง หรือพิมพ์รายละเอียดกิจกรรม วันที่ เวลา เพื่อให้น้อง AI ช่วยหาห้องว่าง</h2>
                             <p class="subtitle is-6">คลิกตัวอย่างด้านล่างเพื่อให้น้อง AI ช่วยค้นหาห้องที่เหมาะสม</p>
                         </div>
@@ -484,6 +496,11 @@
                                 </span>
                             </p>
                         </div>
+                        {% if room_search_video_url %}
+                            <video class="room-search-video" id="roomSearchVideo" muted playsinline preload="metadata" aria-label="กำลังค้นหาห้อง">
+                                <source src="{{ room_search_video_url }}" type="video/mp4">
+                            </video>
+                        {% endif %}
                         <p class="room-search-hint">ผลการค้นหาจะปรากฏด้านล่างโดยไม่ต้องรีเฟรชหน้า</p>
                     </form>
                     <div class="room-results" id="roomTable">
@@ -599,7 +616,9 @@
             const input = document.getElementById('roomSearchInput');
             const resultsContainer = document.getElementById('roomTable');
             const csrfInput = form.querySelector('input[name="csrf_token"]');
-            const robotImage = document.querySelector('.room-search-illustration');
+            const robotVideo = document.getElementById('roomSearchVideo');
+            let searchInProgress = false;
+            let searchRunId = 0;
             let searchTimer = null;
 
             function sanitizeQueryText(value) {
@@ -697,18 +716,44 @@
                 renderAiResults(data);
             }
 
+            function playSearchVideo() {
+                if (!robotVideo) return;
+                robotVideo.classList.add('is-searching');
+                robotVideo.currentTime = 0;
+                const playPromise = robotVideo.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(() => {});
+                }
+            }
+
+            function stopSearchVideo() {
+                if (!robotVideo) return;
+                robotVideo.pause();
+                robotVideo.currentTime = 0;
+                robotVideo.classList.remove('is-searching');
+            }
+
+            if (robotVideo) {
+                robotVideo.addEventListener('ended', () => {
+                    if (searchInProgress) {
+                        playSearchVideo();
+                    } else {
+                        stopSearchVideo();
+                    }
+                });
+            }
+
             async function runSearch() {
                 const query = sanitizeQueryText(input.value);
                 if (!query) {
                     return;
                 }
                 resultsContainer.innerHTML = '<div class="notification is-info is-light">กำลังค้นหา...</div>';
-                const shouldAnimateRobot = !isRoomNumberQuery(query);
+                const currentSearchRunId = ++searchRunId;
+                searchInProgress = true;
+                playSearchVideo();
                 try {
-                    if (shouldAnimateRobot && robotImage) {
-                        robotImage.classList.add('is-searching');
-                    }
-                    if (!shouldAnimateRobot) {
+                    if (isRoomNumberQuery(query)) {
                         await searchRoomNumber(query);
                     } else {
                         await searchWithAi(query);
@@ -716,8 +761,11 @@
                 } catch (error) {
                     resultsContainer.innerHTML = `<div class="notification is-danger is-light">${escapeHtml(error.message || 'ค้นหาไม่สำเร็จ')}</div>`;
                 } finally {
-                    if (robotImage) {
-                        robotImage.classList.remove('is-searching');
+                    if (currentSearchRunId === searchRunId) {
+                        searchInProgress = false;
+                        if (robotVideo && robotVideo.ended) {
+                            stopSearchVideo();
+                        }
                     }
                 }
             }
@@ -772,7 +820,7 @@
                     left: 'title',
                 },
                 events: '/room/api/events',
-                eventLimit: true,
+                eventLimit: false,
                 lazyFetching: true,
                 eventClick: function (calEvent, jsEvent, view) {
                     window.location = '/room/events/' + calEvent.id;

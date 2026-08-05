@@ -1,0 +1,73 @@
+{% if search_error %}
+    <div class="notification is-danger is-light">{{ search_error }}</div>
+{% elif query %}
+    <div class="box docs-query-results-card">
+        <div class="mt-5">
+            <div class="level is-mobile mb-3">
+                <div>
+                    <h2 class="title is-4 mb-1">ผลการค้นหา</h2>
+                    <p class="has-text-grey is-size-7">ผลลัพธ์สำหรับ “{{ query }}”</p>
+                </div>
+                {% if related_documents %}
+                    <span class="tag is-info is-light">พบเอกสารที่อาจเกี่ยวข้อง {{ related_documents|length }} รายการ</span>
+                {% endif %}
+            </div>
+            {% if answer %}
+                <article class="message is-primary is-light docs-query-answer">
+                    <div class="message-header">
+                        <p><i class="fas fa-sparkles" aria-hidden="true"></i> ภาพรวมเอกสารที่เกี่ยวข้อง</p>
+                        <span class="tag is-warning is-light is-small">AI-generated content</span>
+                    </div>
+                    <div class="message-body">{{ answer }}</div>
+                </article>
+            {% endif %}
+            {% if related_documents %}
+                <div class="mb-3">
+                    <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
+                    <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
+                </div>
+                <div class="table-container docs-query-related-table-container">
+                    <table class="table is-fullwidth is-hoverable docs-query-related-table">
+                        <thead>
+                            <tr>
+                                <th>วันที่ออก</th>
+                                <th>เอกสาร</th>
+                                <th>ประเภทและแท็ก</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                    {% for related in related_documents %}
+                        <tr>
+                            <td class="docs-query-related-date">{{ related.issue_date_label }}</td>
+                            <td class="docs-query-related-title">
+                                <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
+                                    <span class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</span>
+                                    <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
+                                </a>
+                                {% if related.document.summary %}
+                                    <span class="docs-query-table-subtitle">{{ related.document.summary }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span>{{ related.document.document_type or 'เอกสาร' }}</span>
+                                {% if related.document.tags %}
+                                    <div class="tags mt-2 mb-0">
+                                    {% for tag in related.document.tags %}<span class="tag is-info is-light">{{ tag.name }}</span>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if related.document.is_expired %}<span class="tag is-danger is-light">หมดอายุ</span>{% else %}<span class="tag is-success is-light">ใช้งานได้</span>{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="notification is-light">ไม่พบเอกสาร</div>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}

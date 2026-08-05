@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% include "management/s3_storage_nav.html" %}
+
+{% block title %}S3 Folder: {{ folder_name }}{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .s3-folder-card { border-radius: 20px; }
+        .s3-folder-card .table td { vertical-align: middle; }
+        .s3-folder-card #s3-folder-objects-table { border-radius: 0; }
+        .s3-folder-card .table-container {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: visible;
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('s3_storage_management_index') }}">S3 Storage Management</a></li>
+                <li class="is-active"><a aria-current="page">{{ folder_name }}</a></li>
+            </ul>
+        </nav>
+
+        <div class="box s3-folder-card">
+            <div class="level is-mobile">
+                <div>
+                    <h1 class="title is-4 mb-2"><span class="icon has-text-info"><i class="fas fa-folder-open"></i></span> {{ folder_name }}</h1>
+                    <p class="has-text-grey is-size-7">{{ prefix or 'Root' }}</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('s3_storage_management_index') }}">Back to storage</a>
+            </div>
+
+            <div class="table-container">
+                <table id="s3-folder-objects-table" class="table is-fullwidth is-size-7">
+                    <thead>
+                    <tr>
+                        <th>Object Key</th>
+                        <th>Size (bytes)</th>
+                        <th>Last Modified</th>
+                    </tr>
+                    </thead>
+                </table>
+            </div>
+            <div class="has-text-centered mt-5">
+                <a class="button is-info" href="{{ url_for('files_services.index', prefix=prefix) }}">
+                    <span class="icon"><i class="fas fa-upload" aria-hidden="true"></i></span>
+                    <span>Upload file to this folder</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(function () {
+            $('#s3-folder-objects-table').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 25,
+                order: [[2, 'desc']],
+                ajax: {
+                    url: '{{ url_for("s3_storage_folder_objects_api") }}',
+                    data: function (request) {
+                        request.prefix = {{ prefix|tojson }};
+                    }
+                },
+                columns: [
+                    { data: 'key', render: function (data, type, row) {
+                        var link = $('<a>', { href: row.url, target: '_blank', rel: 'noopener noreferrer' }).text(data);
+                        return link.prop('outerHTML');
+                    }},
+                    { data: 'size' },
+                    { data: 'last_modified' }
+                ]
+            });
+        });
+    </script>
+{% endblock %}
