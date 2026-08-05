@@ -30,7 +30,7 @@
                     {% include "messages.html" %}
                     <div class="box docs-query-shell">
                         <div class="has-text-centered mb-6">
-                            <h1 class="title is-2">ค้นหาเอกสาร</h1>
+                            <h1 class="title is-2">ค้นหาข้อมูลจากคลังเอกสาร</h1>
                             <p class="subtitle is-5 has-text-grey">ค้นหาเอกสารภายในและค้นหาแนวปฏิบัติ ประกาศ หรือคำแนะนำที่เกี่ยวข้อง</p>
                             {% if docs_query_search_video_url %}
                                 <video id="docs-query-search-video" class="docs-query-search-video" muted playsinline preload="metadata" aria-label="กำลังค้นหาเอกสาร">
@@ -122,6 +122,10 @@
                                             <span class="tag is-warning is-light is-small">AI-generated content</span>
                                         </div>
                                         <div class="message-body">{{ answer }}</div>
+                                        <p class="docs-query-ai-warning has-text-grey is-size-7 mt-3 mb-0">
+                                            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                                            ข้อสรุปนี้จัดทำโดย AI กรุณาตรวจสอบความถูกต้องจากเอกสารอ้างอิงทุกครั้ง
+                                        </p>
                                     </article>
                                 {% endif %}
                                 {% if related_documents %}
@@ -438,6 +442,22 @@
             white-space: pre-line;
         }
 
+        .docs-query-answer .message-body.is-typing::after {
+            animation: docs-query-caret 900ms step-end infinite;
+            background: currentColor;
+            content: '';
+            display: inline-block;
+            height: 1.1em;
+            margin-left: 0.18rem;
+            vertical-align: -0.15em;
+            width: 0.08em;
+        }
+
+        @keyframes docs-query-caret {
+            0%, 45% { opacity: 1; }
+            46%, 100% { opacity: 0; }
+        }
+
         .docs-query-discovery {
             border-top: 1px solid rgba(18, 39, 84, 0.1);
             padding-top: 1.5rem;
@@ -595,10 +615,54 @@
             window.requestAnimationFrame(step);
         }
 
+        function getAnswerGraphemes(text) {
+            if (window.Intl && Intl.Segmenter) {
+                var segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+                return Array.from(segmenter.segment(text), function (part) { return part.segment; });
+            }
+            return Array.from(text);
+        }
+
+        function typeAnswer(answerBody) {
+            if (!answerBody || answerBody.dataset.typingReady === 'true') return;
+
+            var answerText = answerBody.textContent;
+            if (!answerText || !answerText.trim()) return;
+
+            answerBody.dataset.typingReady = 'true';
+            answerBody.textContent = '';
+            answerBody.classList.add('is-typing');
+
+            var graphemes = getAnswerGraphemes(answerText);
+            var index = 0;
+
+            function typeNext() {
+                if (index >= graphemes.length) {
+                    answerBody.classList.remove('is-typing');
+                    return;
+                }
+
+                answerBody.appendChild(document.createTextNode(graphemes[index]));
+                index += 1;
+                var previous = graphemes[index - 1];
+                var delay = /[.!?。！？]/.test(previous) ? 110 : (previous === ' ' ? 10 : 18);
+                window.setTimeout(typeNext, delay);
+            }
+
+            typeNext();
+        }
+
+        function startAnswerTyping(root) {
+            var scope = root || document;
+            scope.querySelectorAll('.docs-query-answer .message-body').forEach(typeAnswer);
+        }
+
         bindReferenceModals();
+        startAnswerTyping();
         document.body.addEventListener('htmx:afterSwap', function (event) {
             if (event.detail.target.id === 'docs-query-results') {
                 bindReferenceModals();
+                startAnswerTyping(event.detail.target);
                 var results = event.detail.target;
                 var scrollTop = results.getBoundingClientRect().top + window.scrollY - 80;
                 scrollToSearchResults(Math.max(scrollTop, 0), 1000);

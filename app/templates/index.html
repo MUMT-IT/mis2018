@@ -701,6 +701,26 @@
             color: var(--theme-navy-deep);
         }
 
+        .home-mini-calendar-toggle {
+            background: linear-gradient(135deg, var(--theme-navy), var(--theme-navy-deep));
+            border-color: transparent;
+            box-shadow: 0 6px 14px rgba(18, 39, 84, 0.18);
+            color: #fff;
+            font-size: 0.76rem;
+            height: 2rem;
+            padding: 0 0.7rem;
+            transition: box-shadow 160ms ease, transform 160ms ease;
+        }
+
+        .home-mini-calendar-toggle:hover,
+        .home-mini-calendar-toggle:focus {
+            background: linear-gradient(135deg, #244a90, #16335e);
+            border-color: transparent;
+            box-shadow: 0 8px 17px rgba(18, 39, 84, 0.24);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
         .home-mini-calendar-body.is-hidden {
             display: none;
         }
@@ -1438,6 +1458,14 @@
         var isHidden = panel.classList.toggle('is-hidden');
         toggleButton.setAttribute('aria-expanded', String(!isHidden));
         toggleButton.textContent = isHidden ? 'แสดงปฏิทินกิจกรรม' : 'ซ่อนปฏิทินกิจกรรม';
+        if (!isHidden) {
+            window.setTimeout(function () {
+                panel.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 0);
+        }
     });
 
     document.addEventListener('keydown', function (event) {

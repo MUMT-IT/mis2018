@@ -382,6 +382,8 @@
             .room-hero,
             .room-panel {
                 border-radius: 22px;
+                height: auto;
+                overflow: hidden;
             }
 
             .room-hero {
@@ -401,9 +403,74 @@
                 top: 4.75rem;
                 width: min(44vw, 240px);
             }
+
+            #roomTable .table-container {
+                border: 0;
+                box-shadow: none;
+                overflow: visible;
+                padding: 0;
+            }
+
+            #roomTable .table {
+                display: block;
+                min-width: 0;
+                width: 100%;
+            }
+
+            #roomTable .table thead {
+                display: none;
+            }
+
+            #roomTable .table tbody,
+            #roomTable .table tbody tr,
+            #roomTable .table tbody td {
+                display: block;
+                width: 100%;
+            }
+
+            #roomTable .table tbody tr {
+                background: rgba(238, 243, 255, 0.42);
+                border: 1px solid rgba(18, 39, 84, 0.1);
+                border-radius: 14px;
+                margin-bottom: 0.75rem;
+                padding: 0.55rem 0.7rem;
+            }
+
+            #roomTable .table tbody td {
+                align-items: flex-start;
+                border: 0;
+                display: flex;
+                gap: 0.6rem;
+                overflow-wrap: anywhere;
+                padding: 0.42rem 0;
+                white-space: normal;
+            }
+
+            #roomTable .table tbody td::before {
+                color: var(--theme-muted);
+                flex: 0 0 4.5rem;
+                font-size: 0.72rem;
+                font-weight: 700;
+            }
+
+            #roomTable .table tbody td:nth-child(1)::before { content: 'ห้อง'; }
+            #roomTable .table tbody td:nth-child(2)::before { content: 'วิทยาเขต'; }
+            #roomTable .table tbody td:nth-child(3)::before { content: 'ประเภท'; }
+            #roomTable .table tbody td:nth-child(4)::before { content: 'รองรับ'; }
+            #roomTable .table tbody td:nth-child(5)::before { content: 'รายละเอียด'; }
+            #roomTable .table tbody td:nth-child(6)::before { content: ''; }
+
+            #roomTable .table tbody td:last-child {
+                padding-top: 0.7rem;
+            }
+
+            #roomTable .table tbody td:last-child .button {
+                width: 100%;
+            }
         }
     </style>
 {% endblock head %}
+{% set hide_ai_room_search = true %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
     <section class="section room-shell">
