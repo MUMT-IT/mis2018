@@ -1,6 +1,6 @@
 import os
 import boto3
-from sqlalchemy import func, LargeBinary
+from sqlalchemy import func, LargeBinary, text
 import math
 from app.main import db
 from dateutil.utils import today
@@ -46,11 +46,18 @@ class ServiceNumberID(db.Model):
     @classmethod
     def get_number(cls, code, db, lab, date=today()):
         fiscal_year = convert_to_fiscal_year(date)
+        bind = db.session.get_bind()
+        lock_key = f'{cls.__tablename__}:{code}:{lab}:{fiscal_year + 543}'
+        if bind and bind.dialect.name == 'postgresql':
+            db.session.execute(
+                text('SELECT pg_advisory_xact_lock(hashtext(:lock_key))'),
+                {'lock_key': lock_key}
+            )
         number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543, lab=lab).first()
         if not number:
             number = cls(buddhist_year=fiscal_year + 543, code=code, lab=lab, count=0)
             db.session.add(number)
-            db.session.commit()
+            db.session.flush()
         return number
 
     @property

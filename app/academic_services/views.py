@@ -4,7 +4,7 @@ import qrcode
 from bahttext import bahttext
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from sqlalchemy import or_, update, and_, exists
+from sqlalchemy import or_, update, and_, exists, func, case
 from datetime import date, datetime
 import arrow
 import pandas
@@ -92,6 +92,16 @@ def get_status(s_id):
     statuses = ServiceStatus.query.filter_by(status_id=s_id).first()
     status_id = statuses.id
     return status_id
+
+
+def get_customer_service_request_or_404(request_id):
+    if not current_user.is_authenticated:
+        abort(404)
+    return (
+        ServiceRequest.query
+        .filter_by(id=request_id, customer_id=current_user.id)
+        .first_or_404()
+    )
 
 
 @academic_services.route('/aws-s3/download/<key>', methods=['GET'])
@@ -740,6 +750,53 @@ request_data_paths = {'bacteria_disinfection': bacteria_disinfection_request_dat
                       }
 
 
+# @academic_services.context_processor
+# def menu():
+#     request_count = None
+#     quotation_count = None
+#     sample_count = None
+#     invoice_count = None
+#     report_count = None
+#
+#     if current_user.is_authenticated:
+#         request_count = (ServiceRequest.query
+#         .join(ServiceRequest.status)
+#         .filter(
+#             ServiceStatus.status_id.in_([1]),
+#             ServiceRequest.customer_id == current_user.id
+#         )).count()
+#         quotation_count = (
+#             ServiceRequest.query
+#             .join(ServiceRequest.status)
+#             .filter(
+#                 ServiceStatus.status_id.in_([7]),
+#                 ServiceRequest.customer_id == current_user.id
+#             )
+#         ).count()
+#         sample_count = (
+#             ServiceRequest.query
+#             .join(ServiceRequest.status)
+#             .filter(
+#                 ServiceStatus.status_id.in_([8, 10, 12]),
+#                 ServiceRequest.customer_id == current_user.id
+#             )
+#         ).count()
+#         invoice_count = (
+#             ServiceRequest.query
+#             .join(ServiceRequest.status)
+#             .filter(
+#                 ServiceStatus.status_id.in_([22, 23]),
+#                 ServiceRequest.customer_id == current_user.id
+#             )
+#         ).count()
+#         report_count = ServiceResult.query.join(ServiceResult.request).filter(
+#             ServiceRequest.customer_id == current_user.id, ServiceResult.sent_at != None,
+#             ServiceResult.approved_at == None
+#         ).count()
+#     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
+#                 invoice_count=invoice_count, report_count=report_count)
+
+
 @academic_services.context_processor
 def menu():
     request_count = None
@@ -749,40 +806,34 @@ def menu():
     report_count = None
 
     if current_user.is_authenticated:
-        request_count = (ServiceRequest.query
-        .join(ServiceRequest.status)
-        .filter(
-            ServiceStatus.status_id.in_([1]),
-            ServiceRequest.customer_id == current_user.id
-        )).count()
-        quotation_count = (
-            ServiceRequest.query
-            .join(ServiceRequest.status)
-            .filter(
-                ServiceStatus.status_id.in_([7]),
-                ServiceRequest.customer_id == current_user.id
+        counts_row = (
+            db.session.query(
+                func.coalesce(func.sum(case((ServiceStatus.status_id == 1, 1), else_=0)), 0).label('request_count'),
+                func.coalesce(func.sum(case((ServiceStatus.status_id == 7, 1), else_=0)), 0).label('quotation_count'),
+                func.coalesce(func.sum(case((ServiceStatus.status_id.in_([8, 10, 12]), 1), else_=0)), 0).label('sample_count'),
+                func.coalesce(func.sum(case((ServiceStatus.status_id.in_([22, 23]), 1), else_=0)), 0).label('invoice_count')
             )
-        ).count()
-        sample_count = (
-            ServiceRequest.query
+            .select_from(ServiceRequest)
             .join(ServiceRequest.status)
+            .filter(ServiceRequest.customer_id == current_user.id)
+            .first()
+        )
+
+        report_count = (
+            db.session.query(func.count(ServiceResult.id))
+            .join(ServiceResult.request)
             .filter(
-                ServiceStatus.status_id.in_([8, 10, 12]),
-                ServiceRequest.customer_id == current_user.id
+                ServiceRequest.customer_id == current_user.id,
+                ServiceResult.sent_at != None,
+                ServiceResult.approved_at == None
             )
-        ).count()
-        invoice_count = (
-            ServiceRequest.query
-            .join(ServiceRequest.status)
-            .filter(
-                ServiceStatus.status_id.in_([22, 23]),
-                ServiceRequest.customer_id == current_user.id
-            )
-        ).count()
-        report_count = ServiceResult.query.join(ServiceResult.request).filter(
-            ServiceRequest.customer_id == current_user.id, ServiceResult.sent_at != None,
-            ServiceResult.approved_at == None
-        ).count()
+            .scalar()
+        ) or 0
+
+        request_count = counts_row.request_count or 0
+        quotation_count = counts_row.quotation_count or 0
+        sample_count = counts_row.sample_count or 0
+        invoice_count = counts_row.invoice_count or 0
     return dict(request_count=request_count, quotation_count=quotation_count, sample_count=sample_count,
                 invoice_count=invoice_count, report_count=report_count)
 
@@ -1343,7 +1394,7 @@ def create_service_request():
 @academic_services.route('/submit-request/edit/<int:request_id>', methods=['GET', 'POST'])
 def submit_request(request_id=None):
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         sub_lab = ServiceSubLab.query.filter_by(code=service_request.sub_lab.code).first()
     else:
         code = request.args.get('code')
@@ -1374,7 +1425,7 @@ def submit_request(request_id=None):
             elif 'test_sample_of_heavy' in values:
                 products.append(values['test_sample_of_heavy'])
     if request_id:
-        req = ServiceRequest.query.get(request_id)
+        req = get_customer_service_request_or_404(request_id)
         req.data = format_data(form.data)
         req.modified_at = arrow.now('Asia/Bangkok').datetime
         req.product = products
@@ -1390,6 +1441,7 @@ def submit_request(request_id=None):
 
 
 @academic_services.route('/portal/request')
+@login_required
 def create_request():
     menu = request.args.get('menu')
     code = request.args.get('code')
@@ -1413,12 +1465,13 @@ def create_request():
 
 @academic_services.route('/request/bacteria_disinfection/add', methods=['GET', 'POST'])
 @academic_services.route('/request/bacteria_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_bacteria_disinfection_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = BacteriaDisinfectionRequestForm(data=data)
     else:
@@ -1447,6 +1500,7 @@ def create_bacteria_disinfection_request(request_id=None):
 
 
 @academic_services.route('/request/bacteria_disinfection/condition', methods=['GET', 'POST'])
+@login_required
 def get_bacteria_disinfection_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -1461,6 +1515,7 @@ def get_bacteria_disinfection_condition_form():
 
 
 @academic_services.route('/request/bacteria_liquid_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_liquid_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1476,6 +1531,7 @@ def remove_bacteria_liquid_condition_form():
 
 
 @academic_services.route('/request/bacteria_spray_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_spray_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1490,6 +1546,7 @@ def remove_bacteria_spray_condition_form():
     return ""
 
 @academic_services.route('/request/bacteria_sheet_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_sheet_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1505,6 +1562,7 @@ def remove_bacteria_sheet_condition_form():
 
 
 @academic_services.route('/request/bacteria_after_wash_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_after_wash_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1520,6 +1578,7 @@ def remove_bacteria_after_wash_condition_form():
 
 
 @academic_services.route('/request/bacteria_in_wash_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_in_wash_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1535,6 +1594,7 @@ def remove_bacteria_in_wash_condition_form():
 
 
 @academic_services.route('/request/bacteria_alcohol_based_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_alcohol_based_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1550,6 +1610,7 @@ def remove_bacteria_alcohol_based_condition_form():
 
 
 @academic_services.route('/request/bacteria_soap_reduction_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_soap_reduction_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1565,6 +1626,7 @@ def remove_bacteria_soap_reduction_condition_form():
 
 
 @academic_services.route('/request/bacteria_soap_inhibition_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_soap_inhibition_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1580,6 +1642,7 @@ def remove_bacteria_soap_inhibition_condition_form():
 
 
 @academic_services.route('/request/bacteria_antibacterial_treated_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_antibacterial_treated_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1595,6 +1658,7 @@ def remove_bacteria_antibacterial_treated_condition_form():
 
 
 @academic_services.route('/request/bacteria_dish_wash_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_dish_wash_condition_form():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1610,6 +1674,7 @@ def remove_bacteria_dish_wash_condition_form():
 
 
 @academic_services.route('/request/bacteria_liquid_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_liquid_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -1651,6 +1716,7 @@ def add_bacteria_liquid_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_liquid_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_liquid_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1666,6 +1732,7 @@ def remove_bacteria_liquid_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_spray_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_spray_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -1715,6 +1782,7 @@ def add_bacteria_spray_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_spray_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_spray_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1730,6 +1798,7 @@ def remove_bacteria_spray_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_sheet_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_sheet_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -1767,6 +1836,7 @@ def add_bacteria_sheet_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_sheet_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_sheet_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1782,6 +1852,7 @@ def remove_bacteria_sheet_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_after_wash_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_after_wash_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -1823,6 +1894,7 @@ def add_bacteria_after_wash_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_after_wash_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_after_wash_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1838,6 +1910,7 @@ def remove_bacteria_after_wash_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_in_wash_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_in_wash_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -1879,6 +1952,7 @@ def add_bacteria_in_wash_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_in_wash_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_in_wash_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1894,6 +1968,7 @@ def remove_bacteria_in_wash_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_alcohol_based_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_alcohol_based_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -1931,6 +2006,7 @@ def add_bacteria_alcohol_based_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_alcohol_based_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_alcohol_based_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -1946,6 +2022,7 @@ def remove_bacteria_alcohol_based_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_soap_reduction_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_soap_reduction_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -1987,6 +2064,7 @@ def add_bacteria_soap_reduction_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_soap_reduction_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_soap_reduction_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2002,6 +2080,7 @@ def remove_bacteria_soap_reduction_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_soap_inhibition_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_soap_inhibition_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -2035,6 +2114,7 @@ def add_bacteria_soap_inhibition_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_soap_inhibition_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_soap_inhibition_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2050,6 +2130,7 @@ def remove_bacteria_soap_inhibition_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_antibacterial_treated_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_antibacterial_treated_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -2087,6 +2168,7 @@ def add_bacteria_antibacterial_treated_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_antibacterial_treated_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_antibacterial_treated_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2102,6 +2184,7 @@ def remove_bacteria_antibacterial_treated_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_dish_wash_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_dish_wash_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -2143,6 +2226,7 @@ def add_bacteria_dish_wash_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_dish_wash_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_dish_wash_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaDisinfectionRequestForm()
@@ -2159,12 +2243,13 @@ def remove_bacteria_dish_wash_organism_form_entry():
 
 @academic_services.route('/request/bacteria_sterility_test/add', methods=['GET', 'POST'])
 @academic_services.route('/request/bacteria_sterility_test/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_bacteria_sterility_test_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = BacteriaSterilityTestRequestForm(data=data)
     else:
@@ -2194,12 +2279,13 @@ def create_bacteria_sterility_test_request(request_id=None):
 
 @academic_services.route('/request/bacteria_antimicrobial_activity/add', methods=['GET', 'POST'])
 @academic_services.route('/request/bacteria_antimicrobial_activity/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_bacteria_antimicrobial_activity_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = BacteriaAntimicrobialActivityRequestForm(data=data)
     else:
@@ -2228,6 +2314,7 @@ def create_bacteria_antimicrobial_activity_request(request_id=None):
 
 
 @academic_services.route('/request/bacteria_antimicrobial_activity/condition', methods=['GET', 'POST'])
+@login_required
 def get_bacteria_antimicrobial_activity_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -2242,6 +2329,7 @@ def get_bacteria_antimicrobial_activity_condition_form():
 
 
 @academic_services.route('/request/bacteria_antimicrobial_activity_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_antimicrobial_activity_condition_form():
     field_name = request.args.get('name')
     form = BacteriaAntimicrobialActivityRequestForm()
@@ -2257,6 +2345,7 @@ def remove_bacteria_antimicrobial_activity_condition_form():
 
 
 @academic_services.route('/request/bacteria_antimicrobial_activity_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_bacteria_antimicrobial_activity_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -2296,6 +2385,7 @@ def add_bacteria_antimicrobial_activity_organism_form_entry():
 
 
 @academic_services.route('/request/bacteria_antimicrobial_activity_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_bacteria_antimicrobial_activity_organism_form_entry():
     field_name = request.args.get('name')
     form = BacteriaAntimicrobialActivityRequestForm()
@@ -2312,12 +2402,13 @@ def remove_bacteria_antimicrobial_activity_organism_form_entry():
 
 @academic_services.route('/request/virus_disinfection/add', methods=['GET', 'POST'])
 @academic_services.route('/request/virus_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_virus_disinfection_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = VirusDisinfectionRequestForm(data=data)
     else:
@@ -2347,12 +2438,13 @@ def create_virus_disinfection_request(request_id=None):
 
 
 @academic_services.route("/request/product_appearance_other")
+@login_required
 def get_product_appearance_other():
     request_id = request.args.get("request_id")
     product_appearance = request.args.get("product_appearance")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             product_appearance_other = data.get('product_appearance_other', '')
@@ -2380,12 +2472,13 @@ def get_product_appearance_other():
 
 
 @academic_services.route("/request/product_storage_other")
+@login_required
 def get_product_storage_other():
     request_id = request.args.get("request_id")
     product_storage = request.args.get("product_storage")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             product_storage_other = data.get('product_storage_other', '')
@@ -2413,6 +2506,7 @@ def get_product_storage_other():
 
 
 @academic_services.route('/request/virus_disinfection/condition', methods=['GET', 'POST'])
+@login_required
 def get_virus_disinfection_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -2427,6 +2521,7 @@ def get_virus_disinfection_condition_form():
 
 
 @academic_services.route('/request/virus_liquid_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_virus_liquid_condition_form():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -2442,6 +2537,7 @@ def remove_virus_liquid_condition_form():
 
 
 @academic_services.route('/request/virus_spray_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_virus_spray_condition_form():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -2457,6 +2553,7 @@ def remove_virus_spray_condition_form():
 
 
 @academic_services.route('/request/virus_coat_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_virus_coat_condition_form():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -2472,6 +2569,7 @@ def remove_virus_coat_condition_form():
 
 
 @academic_services.route('/request/virus_liquid_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_virus_liquid_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -2511,6 +2609,7 @@ def add_virus_liquid_organism_form_entry():
 
 
 @academic_services.route('/request/virus_liquid_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_virus_liquid_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -2526,6 +2625,7 @@ def remove_virus_liquid_organism_form_entry():
 
 
 @academic_services.route('/request/virus_spray_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_virus_spray_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -2573,6 +2673,7 @@ def add_virus_spray_organism_form_entry():
 
 
 @academic_services.route('/request/virus_spray_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_virus_spray_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -2623,6 +2724,7 @@ def add_virus_coat_organism_form_entry():
 
 
 @academic_services.route('/request/virus_coat_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_virus_coat_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusDisinfectionRequestForm()
@@ -2639,12 +2741,13 @@ def remove_virus_coat_organism_form_entry():
 
 @academic_services.route('/request/virus_air_disinfection/add', methods=['GET', 'POST'])
 @academic_services.route('/request/virus_air_disinfection/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_virus_air_disinfection_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = VirusAirDisinfectionRequestForm(data=data)
     else:
@@ -2675,6 +2778,7 @@ def create_virus_air_disinfection_request(request_id=None):
 
 
 @academic_services.route('/request/virus_air_disinfection/condition', methods=['GET', 'POST'])
+@login_required
 def get_virus_air_disinfection_condition_form():
     product_type = request.values.get("product_type")
     if not product_type:
@@ -2690,6 +2794,7 @@ def get_virus_air_disinfection_condition_form():
 
 
 @academic_services.route('/request/virus_surface_disinfection_condition_form/remove', methods=['DELETE'])
+@login_required
 def remove_virus_surface_disinfection_condition_form():
     field_name = request.args.get('name')
     form = VirusAirDisinfectionRequestForm()
@@ -2705,6 +2810,7 @@ def remove_virus_surface_disinfection_condition_form():
 
 
 @academic_services.route('/request/virus_surface_disinfection_organism_form_entry/add', methods=['POST'])
+@login_required
 def add_virus_surface_disinfection_organism_form_entry():
     resp = ""
     field_name = request.args.get('name')
@@ -2742,6 +2848,7 @@ def add_virus_surface_disinfection_organism_form_entry():
 
 
 @academic_services.route('/request/virus_surface_disinfection_organism_form_entry/remove', methods=['DELETE'])
+@login_required
 def remove_virus_surface_disinfection_organism_form_entry():
     field_name = request.args.get('name')
     form = VirusAirDisinfectionRequestForm()
@@ -2757,9 +2864,10 @@ def remove_virus_surface_disinfection_organism_form_entry():
 
 
 @academic_services.route('/request/condition/remove', methods=['GET', 'POST'])
+@login_required
 def remove_condition_form():
     request_id = request.args.get('request_id')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     field = request.form.get("field")
     data = service_request.data or {}
     if field in data:
@@ -2775,12 +2883,13 @@ def remove_condition_form():
 
 @academic_services.route('/request/heavy_metal/add', methods=['GET', 'POST'])
 @academic_services.route('/request/heavy_metal/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_heavy_metal_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = HeavyMetalRequestForm(data=data)
     else:
@@ -2809,6 +2918,7 @@ def create_heavy_metal_request(request_id=None):
 
 
 @academic_services.route('/api/request/heavy_metal/item/add', methods=['POST'])
+@login_required
 def add_heavy_metal_condition_item():
     form = HeavyMetalRequestForm()
     form.heavy_metal_condition_field.append_entry()
@@ -2858,6 +2968,7 @@ def add_heavy_metal_condition_item():
 
 
 @academic_services.route('/api/request/heavy_metal/item/remove', methods=['DELETE'])
+@login_required
 def remove_heavy_metal_condition_item():
     form = HeavyMetalRequestForm()
     form.heavy_metal_condition_field.pop_entry()
@@ -2910,12 +3021,13 @@ def remove_heavy_metal_condition_item():
 
 @academic_services.route('/request/food_safety/add', methods=['GET', 'POST'])
 @academic_services.route('/request/food_safety/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_food_safety_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = FoodSafetyRequestForm(data=data)
     else:
@@ -2944,6 +3056,7 @@ def create_food_safety_request(request_id=None):
 
 
 @academic_services.route('/api/request/food_safety/item/add', methods=['POST'])
+@login_required
 def add_food_safety_condition_item():
     form = FoodSafetyRequestForm()
     form.food_safety_condition_field.append_entry()
@@ -2993,6 +3106,7 @@ def add_food_safety_condition_item():
 
 
 @academic_services.route('/api/request/food_safety/item/remove', methods=['DELETE'])
+@login_required
 def remove_food_safety_condition_item():
     form = FoodSafetyRequestForm()
     form.food_safety_condition_field.pop_entry()
@@ -3044,12 +3158,13 @@ def remove_food_safety_condition_item():
 
 
 @academic_services.route("/request/objective")
+@login_required
 def get_objective():
     request_id = request.args.get("request_id")
     objective = request.args.get("objective")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             objective_other = data.get('objective_other', '')
@@ -3077,12 +3192,13 @@ def get_objective():
 
 
 @academic_services.route("/request/standard_limitation")
+@login_required
 def get_standard_limitation():
     request_id = request.args.get("request_id")
     standard_limitation = request.args.get("standard_limitation")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             standard_limitation_other = data.get('standard_limitation_other', '')
@@ -3110,12 +3226,13 @@ def get_standard_limitation():
 
 
 @academic_services.route("/request/other_service")
+@login_required
 def get_other_service():
     request_id = request.args.get("request_id")
     other_service = request.args.get("other_service")
     label = 'ระบุ'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             other_service_note = data.get('other_service_note', '')
@@ -3144,12 +3261,13 @@ def get_other_service():
 
 @academic_services.route('/request/protein_identification/add', methods=['GET', 'POST'])
 @academic_services.route('/request/protein_identification/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_protein_identification_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = ProteinIdentificationRequestForm(data=data)
     else:
@@ -3179,6 +3297,7 @@ def create_protein_identification_request(request_id=None):
 
 
 @academic_services.route('/api/request/protein_identification/item/add', methods=['POST'])
+@login_required
 def add_protein_identification_condition_item():
     form = ProteinIdentificationRequestForm()
     form.protein_identification_condition_field.append_entry()
@@ -3222,6 +3341,7 @@ def add_protein_identification_condition_item():
 
 
 @academic_services.route('/api/request/protein_identification/item/remove', methods=['DELETE'])
+@login_required
 def remove_protein_identification_condition_item():
     form = ProteinIdentificationRequestForm()
     form.protein_identification_condition_field.pop_entry()
@@ -3268,12 +3388,13 @@ def remove_protein_identification_condition_item():
 
 @academic_services.route('/request/sds_page/add', methods=['GET', 'POST'])
 @academic_services.route('/request/sds_page/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_sds_page_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = SDSPageRequestForm(data=data)
     else:
@@ -3302,6 +3423,7 @@ def create_sds_page_request(request_id=None):
 
 
 @academic_services.route('/api/request/sds_page/item/add', methods=['POST'])
+@login_required
 def add_sds_page_condition_item():
     form = SDSPageRequestForm()
     form.sds_page_condition_field.append_entry()
@@ -3345,6 +3467,7 @@ def add_sds_page_condition_item():
 
 
 @academic_services.route('/api/request/sds_page/item/remove', methods=['DELETE'])
+@login_required
 def remove_sds_page_condition_item():
     form = SDSPageRequestForm()
     form.sds_page_condition_field.pop_entry()
@@ -3391,12 +3514,13 @@ def remove_sds_page_condition_item():
 
 @academic_services.route('/request/quantitative/add', methods=['GET', 'POST'])
 @academic_services.route('/request/quantitative/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_quantitative_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = QuantitativeRequestForm(data=data)
     else:
@@ -3425,6 +3549,7 @@ def create_quantitative_request(request_id=None):
 
 
 @academic_services.route('/api/request/quantitative/item/add', methods=['POST'])
+@login_required
 def add_quantitative_condition_item():
     form = QuantitativeRequestForm()
     form.quantitative_condition_field.append_entry()
@@ -3471,6 +3596,7 @@ def add_quantitative_condition_item():
 
 
 @academic_services.route('/api/request/quantitative/item/remove', methods=['DELETE'])
+@login_required
 def remove_quantitative_condition_item():
     form = QuantitativeRequestForm()
     form.quantitative_condition_field.pop_entry()
@@ -3520,12 +3646,13 @@ def remove_quantitative_condition_item():
 
 @academic_services.route('/request/metabolomic/add', methods=['GET', 'POST'])
 @academic_services.route('/request/metabolomic/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_metabolomic_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = MetabolomicRequestForm(data=data)
     else:
@@ -3554,6 +3681,7 @@ def create_metabolomic_request(request_id=None):
 
 
 @academic_services.route('/api/request/metabolomic/item/add', methods=['POST'])
+@login_required
 def add_metabolomic_condition_item():
     form = MetabolomicRequestForm()
     form.metabolomic_condition_field.append_entry()
@@ -3598,6 +3726,7 @@ def add_metabolomic_condition_item():
 
 
 @academic_services.route('/api/request/metabolomic/item/remove', methods=['DELETE'])
+@login_required
 def remove_metabolomic_condition_item():
     form = MetabolomicRequestForm()
     form.metabolomic_condition_field.pop_entry()
@@ -3644,12 +3773,13 @@ def remove_metabolomic_condition_item():
 
 
 @academic_services.route("/request/sample_species_other")
+@login_required
 def get_sample_species_other():
     request_id = request.args.get("request_id")
     sample_species = request.args.getlist("sample_species")
     label = 'Comment'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             sample_species_other = data.get('sample_species_other', '')
@@ -3677,12 +3807,13 @@ def get_sample_species_other():
 
 
 @academic_services.route("/request/gel_slices_other")
+@login_required
 def get_gel_slices_other():
     request_id = request.args.get("request_id")
     gel_slices = request.args.getlist("gel_slices")
     label = 'Comment'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             gel_slices_other = data.get('gel_slices_other', '')
@@ -3710,12 +3841,13 @@ def get_gel_slices_other():
 
 
 @academic_services.route("/request/sample_type_other")
+@login_required
 def get_sample_type_other():
     request_id = request.args.get("request_id")
     sample_type = request.args.getlist("sample_type")
     label = 'Comment'
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             sample_type_other = data.get('sample_type_other', '')
@@ -3744,12 +3876,13 @@ def get_sample_type_other():
 
 @academic_services.route('/request/endotoxin/add', methods=['GET', 'POST'])
 @academic_services.route('/request/endotoxin/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_endotoxin_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = EndotoxinRequestForm(data=data)
     else:
@@ -3781,6 +3914,7 @@ def create_endotoxin_request(request_id=None):
 
 
 @academic_services.route('/api/request/endotoxin/item/add', methods=['POST'])
+@login_required
 def add_endotoxin_condition_item():
     form = EndotoxinRequestForm()
     form.endotoxin_condition_field.append_entry()
@@ -3844,6 +3978,7 @@ def add_endotoxin_condition_item():
 
 
 @academic_services.route('/api/request/endotoxin/item/remove', methods=['DELETE'])
+@login_required
 def remove_endotoxin_condition_item():
     form = EndotoxinRequestForm()
     form.endotoxin_condition_field.pop_entry()
@@ -3908,12 +4043,13 @@ def remove_endotoxin_condition_item():
 
 @academic_services.route('/request/toxicology/add', methods=['GET', 'POST'])
 @academic_services.route('/request/toxicology/edit/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_toxicology_request(request_id=None):
     menu = request.args.get('menu')
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code).first()
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         data = service_request.data
         form = ToxicologyRequestForm(data=data)
     else:
@@ -3942,6 +4078,7 @@ def create_toxicology_request(request_id=None):
 
 
 @academic_services.route('/api/request/toxicology/item/add', methods=['POST'])
+@login_required
 def add_toxicology_condition_item():
     form = ToxicologyRequestForm()
     form.toxicology_condition_field.append_entry()
@@ -3990,6 +4127,7 @@ def add_toxicology_condition_item():
 
 
 @academic_services.route('/api/request/toxicology/item/remove', methods=['DELETE'])
+@login_required
 def remove_toxicology_condition_item():
     form = ToxicologyRequestForm()
     form.toxicology_condition_field.pop_entry()
@@ -4040,11 +4178,12 @@ def remove_toxicology_condition_item():
 
 
 @academic_services.route("/request/other")
+@login_required
 def get_other():
     request_id = request.args.get("request_id")
     sample_type = request.args.get("sample_type")
     if request_id:
-        service_request = ServiceRequest.query.get(request_id)
+        service_request = get_customer_service_request_or_404(request_id)
         if service_request and service_request.data:
             data = service_request.data
             volume = data.get('volume', '')
@@ -4091,10 +4230,11 @@ def get_other():
 
 
 @academic_services.route('/customer/report_language/add/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_report_language(request_id):
     menu = request.args.get('menu')
     code = request.args.get('code')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     report_languages = ServiceReportLanguage.query.filter_by(sub_lab_id=service_request.sub_lab_id)
     report_receive_channels = ServiceReportReceiveChannel.query.filter_by(sub_lab_id=service_request.sub_lab_id)
     req_report_language_id = [rl.report_language_id for rl in service_request.report_languages]
@@ -4124,11 +4264,12 @@ def create_report_language(request_id):
 
 
 @academic_services.route('/customer/detail/add/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def create_customer_detail(request_id):
     form = None
     menu = request.args.get('menu')
     code = request.args.get('code')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
     customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
     cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
@@ -4246,6 +4387,7 @@ def create_customer_detail(request_id):
 def request_index():
     menu = request.args.get('menu')
     ids = list(range(1, 25))
+    status_ids = [i for i in ids if i != 2 and i != 9]
 
     status_groups = {
         'all': {
@@ -4290,27 +4432,44 @@ def request_index():
         }
     }
 
+    counts_by_status = dict(
+        db.session.query(
+            ServiceStatus.status_id,
+            func.count(ServiceRequest.id)
+        )
+        .join(ServiceRequest.status)
+        .filter(
+            ServiceStatus.status_id.in_(status_ids),
+            ServiceRequest.customer_id == current_user.id,
+            or_(
+                ServiceRequest.is_downloaded == None,
+                ServiceRequest.is_downloaded == False
+            )
+        )
+        .group_by(ServiceStatus.status_id)
+        .all()
+    )
+
     for key, group in status_groups.items():
         group_ids = [i for i in group['id'] if i != 2 and i != 9]
-
-        query = (
-            ServiceRequest.query
-            .join(ServiceRequest.status)
-            .filter(
-                ServiceStatus.status_id.in_(group_ids),
-                ServiceRequest.customer_id == current_user.id,
-                or_(
-                    ServiceRequest.is_downloaded == None,
-                    ServiceRequest.is_downloaded == False
-                )
-            )
-        ).count()
-
-        status_groups[key]['count'] = query
+        # query = (
+        #     ServiceRequest.query
+        #     .join(ServiceRequest.status)
+        #     .filter(
+        #         ServiceStatus.status_id.in_(group_ids),
+        #         ServiceRequest.customer_id == current_user.id,
+        #         or_(
+        #             ServiceRequest.is_downloaded == None,
+        #             ServiceRequest.is_downloaded == False
+        #         )
+        #     )
+        # ).count()
+        status_groups[key]['count'] = sum(counts_by_status.get(status_id, 0) for status_id in group_ids)
     return render_template('academic_services/request_index.html', menu=menu, status_groups=status_groups)
 
 
 @academic_services.route('/api/request/index')
+@login_required
 def get_requests():
     query = ServiceRequest.query.filter_by(customer_id=current_user.id)
     records_total = query.count()
@@ -4381,7 +4540,7 @@ def get_requests():
 @login_required
 def view_request(request_id=None):
     menu = request.args.get('menu')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     request_data = request_data_paths[service_request.sub_lab.code]
     datas = request_data(service_request, type='form')
     return render_template('academic_services/view_request.html', service_request=service_request, menu=menu,
@@ -4886,8 +5045,9 @@ def generate_bacteria_request_pdf(service_request):
 
 
 @academic_services.route('/request/bacteria/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_bacteria_request_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_bacteria_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
@@ -5331,8 +5491,9 @@ def generate_bacteria_sterility_test_request_pdf(service_request):
 
 
 @academic_services.route('/request/bacteria/sterility_test/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_bacteria_sterility_test_request_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_bacteria_sterility_test_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
@@ -6003,8 +6164,9 @@ def generate_virus_request_pdf(service_request):
 
 
 @academic_services.route('/request/virus/pdf/<int:request_id>', methods=['GET'])
+@login_required
 def export_virus_request_pdf(request_id):
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     buffer = generate_virus_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
@@ -6026,10 +6188,11 @@ def get_quotation_addresses():
 
 
 @academic_services.route('/customer/request/quotation/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def request_quotation(request_id):
     menu = request.args.get('menu')
     status_id = get_status(3)
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     service_request.status_id = status_id
     db.session.add(service_request)
     db.session.commit()
@@ -6096,14 +6259,19 @@ def request_quotation(request_id):
     return redirect(url_for('academic_services.request_index', menu=menu))
 
 
-@academic_services.route('/request/copy/<int:request_id>')
+@academic_services.route('/request/copy/<int:request_id>', methods=['POST'])
 @login_required
 def copy_request(request_id):
-    old_service_request = ServiceRequest.query.get(request_id)
+    old_service_request = (
+        ServiceRequest.query
+        .filter_by(id=request_id, customer_id=current_user.id)
+        .first_or_404()
+    )
     request_no = ServiceNumberID.get_number('Request', db, lab=old_service_request.sub_lab.ref)
     new_service_request = ServiceRequest(customer_id=current_user.id, status_id=get_status(1),
                                          created_at=arrow.now('Asia/Bangkok').datetime, request_no=request_no.number,
                                          sub_lab=old_service_request.sub_lab, data=old_service_request.data)
+    request_no.count += 1
     db.session.add(new_service_request)
     db.session.commit()
     flash('คัดลอกข้อมูลสำเร็จ', 'success')
@@ -6117,11 +6285,18 @@ def quotation_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
+    # query = (
+    #     ServiceQuotation.query
+    #     .join(ServiceQuotation.request)
+    #     .filter(
+    #         ServiceRequest.customer_id == current_user.id,
+    #         ServiceQuotation.approved_at != None
+    #     )
+    # )
     query = (
         ServiceQuotation.query
-        .join(ServiceQuotation.request)
         .filter(
-            ServiceRequest.customer_id == current_user.id,
+            ServiceQuotation.request.has(ServiceRequest.customer_id == current_user.id),
             ServiceQuotation.approved_at != None
         )
     )
@@ -6394,6 +6569,7 @@ def generate_quotation_pdf(quotation, sign=False):
 
 
 @academic_services.route('/quotation/pdf/<int:quotation_id>', methods=['GET'])
+@login_required
 def export_quotation_pdf(quotation_id):
     quotation = ServiceQuotation.query.get(quotation_id)
     buffer = generate_quotation_pdf(quotation)
@@ -6401,6 +6577,7 @@ def export_quotation_pdf(quotation_id):
 
 
 @academic_services.route('/customer/quotation/confirm/<int:quotation_id>', methods=['GET', 'POST'])
+@login_required
 def confirm_quotation(quotation_id):
     menu = request.args.get('menu')
     status_id = get_status(8)
@@ -6446,12 +6623,14 @@ def confirm_quotation(quotation_id):
 
 
 @academic_services.route('/customer/quotation/confirm/page/<int:sample_id>', methods=['GET', 'POST'])
+@login_required
 def confirm_quotation_page(sample_id):
     menu = request.args.get('menu')
     return render_template('academic_services/confirm_quotation_page.html', sample_id=sample_id, menu=menu)
 
 
 @academic_services.route('/customer/quotation/reject/<int:quotation_id>', methods=['GET', 'POST'])
+@login_required
 def reject_quotation(quotation_id):
     menu = request.args.get('menu')
     quotation = ServiceQuotation.query.get(quotation_id)
@@ -6516,6 +6695,7 @@ def customer_contact_index():
 
 
 @academic_services.route('/api/contact/index')
+@login_required
 def get_customer_contacts():
     adder_id = request.args.get('adder_id')
     query = ServiceCustomerContact.query.filter_by(adder_id=adder_id)
@@ -6569,6 +6749,7 @@ def create_customer_contact(contact_id=None):
 
 
 @academic_services.route('/customer/contact/delete/<int:contact_id>', methods=['GET', 'DELETE'])
+@login_required
 def delete_customer_contact(contact_id):
     if contact_id:
         contact = ServiceCustomerContact.query.get(contact_id)
@@ -6635,6 +6816,7 @@ def create_address(address_id=None):
 
 
 @academic_services.route('/api/items', methods=['POST'])
+@login_required
 def get_items():
     trigger = request.headers.get('hx-trigger')
     form = ServiceCustomerAddressForm()
@@ -6660,6 +6842,7 @@ def get_items():
 
 
 @academic_services.route('/customer/address/delete/<int:address_id>', methods=['GET', 'DELETE'])
+@login_required
 def delete_address(address_id):
     address = ServiceCustomerAddress.query.get(address_id)
     db.session.delete(address)
@@ -6671,6 +6854,7 @@ def delete_address(address_id):
 
 
 @academic_services.route('/customer/address/submit/<int:address_id>', methods=['GET', 'POST'])
+@login_required
 def submit_same_address(address_id):
     if request.method == 'POST':
         address = ServiceCustomerAddress.query.get(address_id)
@@ -6700,11 +6884,17 @@ def submit_same_address(address_id):
 def sample_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    # query = (
+    #     ServiceSample.query
+    #     .join(ServiceSample.request)
+    #     .filter(
+    #         ServiceRequest.customer_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceSample.query
-        .join(ServiceSample.request)
         .filter(
-            ServiceRequest.customer_id == current_user.id
+            ServiceSample.request.has(ServiceRequest.customer_id == current_user.id)
         )
     )
 
@@ -6879,16 +7069,18 @@ def edit_sample_appointment(sample_id):
 
 
 @academic_services.route('/customer/sample-appointment/confirm/page/<int:request_id>', methods=['GET', 'POST'])
+@login_required
 def confirm_sample_appointment_page(request_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
     code = request.args.get('code')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     return render_template('academic_services/confirm_sample_appointment_page.html', request_id=request_id,
                            menu=menu, tab=tab, code=code, service_request=service_request)
 
 
 @academic_services.route('/customer/sample/reject/page/<int:sample_id>', methods=['GET', 'POST'])
+@login_required
 def reject_sample_appointment_page(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -6898,6 +7090,7 @@ def reject_sample_appointment_page(sample_id):
 
 
 @academic_services.route('/customer/sample/tracking_number/add/<int:sample_id>', methods=['GET', 'POST'])
+@login_required
 def add_tracking_number(sample_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -6948,13 +7141,22 @@ def invoice_index():
     menu = request.args.get('menu')
     api = request.args.get('api', 'false')
     today = arrow.now('Asia/Bangkok').date()
+    # query = (
+    #     ServiceInvoice.query
+    #     .join(ServiceInvoice.quotation)
+    #     .join(ServiceQuotation.request)
+    #     .filter(
+    #         ServiceInvoice.file_attached_at != None,
+    #         ServiceRequest.customer_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
         .filter(
             ServiceInvoice.file_attached_at != None,
-            ServiceRequest.customer_id == current_user.id
+            ServiceInvoice.quotation.has(
+                ServiceQuotation.request.has(ServiceRequest.customer_id == current_user.id)
+            )
         )
     )
     pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
@@ -7122,10 +7324,11 @@ def view_invoice(invoice_id):
 
 
 @academic_services.route('/customer/request/cancel/<int:request_id>', methods=['GET'])
+@login_required
 def cancel_request(request_id):
     menu = request.args.get('menu')
     status_id = get_status(2)
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     service_request.status_id = status_id
     db.session.add(service_request)
     db.session.commit()
@@ -7136,7 +7339,7 @@ def cancel_request(request_id):
 @academic_services.route('/edit/academic-service-form', methods=['GET'])
 def edit_request_form():
     request_id = request.args.get('request_id')
-    service_request = ServiceRequest.query.get(request_id)
+    service_request = get_customer_service_request_or_404(request_id)
     sheetid = '1EHp31acE3N1NP5gjKgY-9uBajL1FkQe7CCrAu-TKep4'
     print('Authorizing with Google..')
     gc = get_credential()
@@ -7156,6 +7359,7 @@ def edit_request_form():
 def edit_service_request(request_id):
     code = request.args.get('code')
     sub_lab = ServiceSubLab.query.filter_by(code=code)
+    get_customer_service_request_or_404(request_id)
     return render_template('academic_services/edit_request.html', request_id=request_id, sub_lab=sub_lab)
 
 
@@ -7176,13 +7380,20 @@ def receipt_index():
 
 @academic_services.route('/api/receipt/index')
 def get_receipts():
+    # query = (
+    #     ServiceInvoice.query
+    #     .join(ServiceInvoice.quotation)
+    #     .join(ServiceQuotation.request)
+    #     .join(ServiceInvoice.receipts)
+    #     .filter(
+    #         ServiceRequest.customer_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceInvoice.query
-        .join(ServiceInvoice.quotation)
-        .join(ServiceQuotation.request)
         .join(ServiceInvoice.receipts)
         .filter(
-            ServiceRequest.customer_id == current_user.id
+            ServiceInvoice.quotation.has(ServiceQuotation.request.has(ServiceRequest.customer_id == current_user.id))
         )
     )
     records_total = query.count()
@@ -7209,11 +7420,17 @@ def get_receipts():
 def result_index():
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    # query = (
+    #     ServiceResult.query
+    #     .join(ServiceResult.request)
+    #     .filter(
+    #         ServiceRequest.customer_id == current_user.id
+    #     )
+    # )
     query = (
         ServiceResult.query
-        .join(ServiceResult.request)
         .filter(
-            ServiceRequest.customer_id == current_user.id
+            ServiceResult.request.has(ServiceRequest.customer_id == current_user.id)
         )
     )
 
@@ -7270,6 +7487,7 @@ def view_final_result_item(result_id, result_item_id):
 
 
 @academic_services.route('/customer/result_item/edit/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
 def edit_result_item(result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -7349,6 +7567,7 @@ def edit_result_item(result_item_id):
 
 
 @academic_services.route('/customer/result_item/final/edit/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
 def edit_final_result_item(result_item_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
@@ -7418,6 +7637,7 @@ def edit_final_result_item(result_item_id):
 
 
 @academic_services.route('/customer/result_item/confirm/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
 def confirm_result_item(result_item_id):
     menu = request.args.get('menu')
     result_item = ServiceResultItem.query.get(result_item_id)
@@ -7492,6 +7712,7 @@ def confirm_result_item(result_item_id):
 
 
 @academic_services.route('/customer/result_item/final/confirm/<int:result_item_id>', methods=['GET', 'POST'])
+@login_required
 def confirm_final_result_item(result_item_id):
     menu = request.args.get('menu')
     result_item = ServiceResultItem.query.get(result_item_id)
@@ -7531,6 +7752,7 @@ def confirm_final_result_item(result_item_id):
 
 
 @academic_services.route('/customer/result/create/<int:result_id>', methods=['GET', 'POST'])
+@login_required
 def create_copy_result(result_id):
     admin_id = None
     supervisor_id = None

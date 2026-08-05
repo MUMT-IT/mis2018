@@ -1,3 +1,5 @@
+from collections import defaultdict
+from html import escape
 import json
 import os
 import re
@@ -12,11 +14,14 @@ from sqlalchemy import or_, func, case, and_
 from sqlalchemy.orm import joinedload
 from flask import render_template, redirect, flash, url_for, jsonify, request, make_response, current_app
 from flask_login import login_required, current_user
+from app.auth.views import line_bot_api
+from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.roles import it_permission, software_request_permission
 from app.software_request import software_request
 from app.software_request.forms import create_request_form, create_timeline_form, SoftwareRequestIssueForm, \
     create_test_result_form, create_bdd_feature_form
 from app.software_request.models import *
+from app.staff.models import Role
 from app.google_credential_utils import load_google_credentials_json
 from werkzeug.utils import secure_filename
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -42,8 +47,8 @@ json_keyfile = load_google_credentials_json()
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'}
 
 
-def send_mail(recp, title, message):
-    message = Message(subject=title, body=message, recipients=recp)
+def send_mail(recp, title, message, html=None):
+    message = Message(subject=title, body=message, recipients=recp, html=html)
     mail.send(message)
 
 
@@ -61,6 +66,511 @@ def _request_flag(name, default=False):
     if raw_value is None:
         return default
     return str(raw_value).strip().lower() in {'1', 'true', 'yes', 'y', 'on'}
+
+
+def _normalize_internal_email(email_value):
+    if not email_value:
+        return None
+    email_value = email_value.strip()
+    if not email_value:
+        return None
+    if '@' not in email_value:
+        email_value = f'{email_value}@mahidol.ac.th'
+    return email_value
+
+
+def _mask_line_id(line_id):
+    if not line_id:
+        return None
+    if len(line_id) <= 6:
+        return '***'
+    return f'{line_id[:3]}***{line_id[-3:]}'
+
+
+def _is_valid_notification_scheduler_request():
+    configured_token = os.environ.get('JOB_TOKEN')
+    request_token = request.values.get('job_token')
+    return bool(configured_token and request_token and request_token == configured_token)
+
+
+def _get_software_request_role_accounts():
+    role = Role.query.filter_by(role_need='software_request', action_need=None, resource_id=None).first()
+    if not role:
+        return []
+    accounts = []
+    for account in role.staff_account.all():
+        if account and account.is_active and not account.is_retired:
+            accounts.append(account)
+    return accounts
+
+
+def _get_software_request_email_recipients():
+    recipients = {}
+    for account in _get_software_request_role_accounts():
+        email = _normalize_internal_email(account.email if account else None)
+        if not email:
+            continue
+        recipients[email] = {
+            'email': email,
+            'staff_name': account.fullname if account else email,
+        }
+    return sorted(recipients.values(), key=lambda item: item['email'])
+
+
+def _get_software_request_line_recipients():
+    recipients = {}
+    for account in _get_software_request_role_accounts():
+        line_id = account.line_id if account else None
+        if not line_id:
+            continue
+        if line_id not in recipients:
+            recipients[line_id] = {
+                'line_id': line_id,
+                'staff_name': account.fullname if account else line_id,
+            }
+    return sorted(recipients.values(), key=lambda item: item['staff_name'])
+
+
+def _serialize_software_request_item(detail):
+    return {
+        'id': detail.id,
+        'title': detail.title,
+        'status': detail.status,
+        'system': detail.system.system if detail.system else 'ไม่ระบุ',
+        'type': detail.type or 'ไม่ระบุ',
+        'priority': detail.priority or 'ไม่ระบุ',
+        'user_group': detail.user_group or 'ไม่ระบุ',
+        'created_by': detail.created_by.fullname if detail.created_by else None,
+        'created_date': detail.created_date.isoformat() if detail.created_date else None,
+        'updated_date': detail.updated_date.isoformat() if detail.updated_date else None,
+    }
+
+
+def _pick_software_request_group_label(detail):
+    if detail.system and detail.system.system:
+        return detail.system.system
+    if detail.type:
+        return detail.type
+    if detail.user_group:
+        return detail.user_group
+    return 'ไม่ระบุ'
+
+
+def _build_software_request_summary_snapshot():
+    now = arrow.now('Asia/Bangkok')
+    week_ago = now.shift(days=-7).datetime
+    pending_status = 'ส่งคำขอแล้ว'
+    consider_status = 'อยู่ระหว่างพิจารณา'
+    approve_status = 'อนุมัติ'
+    complete_status = 'เสร็จสิ้น'
+
+    pending_query = SoftwareRequestDetail.query.filter_by(status=pending_status)
+    consider_query = SoftwareRequestDetail.query.filter_by(status=consider_status)
+    approve_query = SoftwareRequestDetail.query.filter_by(status=approve_status)
+    completed_recent_query = SoftwareRequestDetail.query.filter(
+        SoftwareRequestDetail.status == complete_status,
+        SoftwareRequestDetail.updated_date.isnot(None),
+        SoftwareRequestDetail.updated_date >= week_ago,
+        SoftwareRequestDetail.updated_date <= now.datetime,
+    )
+
+    sample_options = (
+        joinedload(SoftwareRequestDetail.created_by).joinedload(StaffAccount.personal_info),
+        joinedload(SoftwareRequestDetail.system),
+    )
+    pending_samples = pending_query.options(*sample_options).order_by(
+        SoftwareRequestDetail.created_date.desc().nullslast()
+    ).limit(5).all()
+    consider_samples = consider_query.options(*sample_options).order_by(
+        SoftwareRequestDetail.created_date.desc().nullslast()
+    ).limit(5).all()
+    approve_samples = approve_query.options(*sample_options).order_by(
+        SoftwareRequestDetail.created_date.desc().nullslast()
+    ).limit(5).all()
+    completed_samples = completed_recent_query.options(*sample_options).order_by(
+        SoftwareRequestDetail.updated_date.desc().nullslast()
+    ).limit(5).all()
+
+    completed_group_counter = defaultdict(int)
+    for item in completed_recent_query.options(joinedload(SoftwareRequestDetail.system)).all():
+        completed_group_counter[_pick_software_request_group_label(item)] += 1
+    completed_top_groups = [
+        {'label': label, 'count': count}
+        for label, count in sorted(completed_group_counter.items(), key=lambda item: (-item[1], item[0]))[:3]
+    ]
+
+    pending_count = pending_query.count()
+    consider_count = consider_query.count()
+    approve_count = approve_query.count()
+    completed_last_7_days = completed_recent_query.count()
+
+    return {
+        'generated_at': now.to('Asia/Bangkok').format('DD/MM/YYYY HH:mm'),
+        'pending_count': pending_count,
+        'consider_count': consider_count,
+        'approve_count': approve_count,
+        'completed_last_7_days': completed_last_7_days,
+        'total_open_records': pending_count + consider_count + approve_count,
+        'status_counts': {
+            'รอดำเนินการ': pending_count,
+            'อยู่ระหว่างพิจารณา': consider_count,
+            'อนุมัติ': approve_count,
+            'ปิดงานใน 7 วันที่ผ่านมา': completed_last_7_days,
+        },
+        'pending_samples': [_serialize_software_request_item(item) for item in pending_samples],
+        'consider_samples': [_serialize_software_request_item(item) for item in consider_samples],
+        'approve_samples': [_serialize_software_request_item(item) for item in approve_samples],
+        'completed_samples': [_serialize_software_request_item(item) for item in completed_samples],
+        'completed_top_groups': completed_top_groups,
+    }
+
+
+def _get_software_request_dominant_status(snapshot):
+    candidates = [
+        ('รอดำเนินการ', snapshot['pending_count'], 'ยังไม่ดำเนินการ'),
+        ('อยู่ระหว่างพิจารณา', snapshot['consider_count'], 'อยู่ระหว่างพิจารณา'),
+        ('อนุมัติ', snapshot['approve_count'], 'อนุมัติแล้ว'),
+        ('ปิดงานแล้วในช่วง 7 วันที่ผ่านมา', snapshot['completed_last_7_days'], 'ปิดงานแล้ว'),
+    ]
+    label, count, display = max(
+        enumerate(candidates),
+        key=lambda item: (item[1][1], -item[0]),
+    )[1]
+    return {
+        'label': label,
+        'count': count,
+        'display': display,
+    }
+
+
+def _build_software_request_summary_prompt(snapshot):
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'You are writing a concise executive email summary in Thai for senior administrators. '
+                'Summarize the overall status of software request work using only the aggregated snapshot provided. '
+                'Do not mention request IDs, personal names, or raw descriptions. '
+                'Focus on volume, trends, blocking risks, recently closed momentum, and what leadership should watch next. '
+                'Use plain Thai and keep the message concise but useful. '
+                'Return plain text only. '
+                'Structure the answer as: one short overview paragraph, three bullet points of key issues, and one short closing paragraph. '
+                'Mention the four status buckets and the count of items closed in the last 7 days.'
+            )
+        },
+        {
+            'role': 'user',
+            'content': (
+                'สรุปข้อมูลต่อไปนี้เป็นภาษาไทยสำหรับผู้บริหาร โดยยึดตามตัวเลขและตัวอย่างงานที่ให้มาเท่านั้น:\n'
+                f'{json.dumps(snapshot, ensure_ascii=False, indent=2)}'
+            )
+        }
+    ]
+
+
+def _call_typhoon_software_request_summary(snapshot):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.2,
+            'max_tokens': 900,
+            'messages': _build_software_request_summary_prompt(snapshot),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    if not content or not content.strip():
+        raise ValueError('Empty Typhoon summary response.')
+    return content.strip()
+
+
+def _build_fallback_software_request_summary(snapshot):
+    dominant_status = _get_software_request_dominant_status(snapshot)
+    dominant_sentence = (
+        f"โดยกลุ่มสถานะที่พบมากคือ {dominant_status['display']} {dominant_status['count']} เรื่อง"
+        if dominant_status['count'] > 0
+        else "โดยภาพรวมยังไม่พบสถานะที่เด่นชัด"
+    )
+    return (
+        f"ภาพรวม\n"
+        f"ขณะนี้มีงานที่ยังไม่แล้วเสร็จทั้งหมด {snapshot['total_open_records']} เรื่อง โดยแบ่งเป็นรอดำเนินการ {snapshot['pending_count']} เรื่อง "
+        f"อยู่ระหว่างพิจารณา {snapshot['consider_count']} เรื่อง และอนุมัติแล้ว {snapshot['approve_count']} เรื่อง "
+        f"ขณะเดียวกันมีเงานที่ปิดแล้วในช่วง 7 วันที่ผ่านมา {snapshot['completed_last_7_days']} เรื่อง {dominant_sentence}\n\n"
+        f"ประเด็นที่ควรติดตาม\n"
+        f"- เร่งติดตามงานที่ยังอยู่ในสถานะรอดำเนินการและอยู่ระหว่างพิจารณา เพื่อลดปริมาณงานคงค้าง\n"
+        f"- ทบทวนและเร่งรัดงานที่อนุมัติแล้วแต่ยังไม่เริ่มดำเนินการ หรืออยู่ระหว่างดำเนินการ เพื่อให้สามารถปิดงานได้ตามแผน\n"
+        f"- เร่งติดตามงานที่ดำเนินการเสร็จแล้วแต่ยังอยู่ระหว่างรอการทดสอบ เพื่อให้สามารถปิดงานได้ตามแผน\n\n"
+        f"สิ่งที่ควรเฝ้าระวัง\n"
+        f"ควรติดตามงานที่อยู่ในสถานะรอดำเนินการ อยู่ระหว่างการพิจารณา หรือดำเนินการแล้วแต่ยังรอการทดสอบอย่างต่อเนื่อง "
+        f"โดยเฉพาะรายการที่ค้างอยู่เป็นเวลานาน เพื่อป้องกันการสะสมของงานคงค้างและลดความเสี่ยงที่การปิดงานจะล่าช้ากว่าแผนที่กำหนด"
+    )
+
+
+def _build_software_request_summary_email_body(snapshot, ai_summary):
+    status_lines = '\n'.join(
+        f"- {label}: {count} เรื่อง" for label, count in snapshot['status_counts'].items()
+    ) or '- ไม่มีข้อมูล'
+    completed_group_lines = '\n'.join(
+        f"- {item['label']}: {item['count']} เรื่อง" for item in snapshot['completed_top_groups']
+    ) or '- ไม่มีข้อมูล'
+    return (
+        f"สรุปภาพรวมเรื่องคงค้าง/คำขอพัฒนา Software ณ {snapshot['generated_at']}\n\n"
+        f"รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน\n\n"
+        f"{ai_summary}\n\n"
+        f"ตัวเลขประกอบการติดตาม\n"
+        f"- งานคงค้างทั้งหมด: {snapshot['total_open_records']} รายการ\n"
+        f"- รอดำเนินการ: {snapshot['pending_count']} รายการ\n"
+        f"- อยู่ระหว่างพิจารณา: {snapshot['consider_count']} รายการ\n"
+        f"- อนุมัติ: {snapshot['approve_count']} รายการ\n"
+        f"- ปิดงานแล้วในช่วง 7 วันที่ผ่านมา: {snapshot['completed_last_7_days']} รายการ\n\n"
+        f"กลุ่มเรื่องที่ปิดแล้วใน 7 วันล่าสุด\n"
+        f"{completed_group_lines}\n"
+    )
+
+
+def _get_software_request_chart_values(snapshot):
+    return [
+        ('คงค้างทั้งหมด', snapshot['total_open_records'], '#334155'),
+        ('รอดำเนินการ', snapshot['pending_count'], '#2563eb'),
+        ('อยู่ระหว่างพิจารณา', snapshot['consider_count'], '#f59e0b'),
+        ('อนุมัติ', snapshot['approve_count'], '#22c55e'),
+        # ('ปิดงานใน 7 วัน', snapshot['completed_last_7_days'], '#8b5cf6'),
+    ]
+
+
+def _render_software_request_email_chart_html(snapshot):
+    values = _get_software_request_chart_values(snapshot)
+    max_value = max([value for _, value, _ in values] + [1])
+    chart_width = 320
+    rows = []
+    for label, value, color in values:
+        bar_width = max(int((value / max_value) * chart_width), 0) if max_value else 0
+        if value > 0 and bar_width == 0:
+            bar_width = 12
+        remainder_width = max(chart_width - bar_width, 0)
+        rows.append(f'''
+        <tr>
+          <td style="padding:6px 12px 6px 0;font-size:13px;color:#334155;white-space:nowrap;font-weight:600;">{escape(label)} ({value})</td>
+          <td style="padding:6px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="{chart_width}" style="width:{chart_width}px;border-collapse:collapse;">
+              <tr>
+                <td width="{bar_width}" bgcolor="{color}" style="width:{bar_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
+                <td width="{remainder_width}" bgcolor="#e2e8f0" style="width:{remainder_width}px;height:16px;line-height:16px;font-size:0;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        ''')
+    return f'''
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+      {''.join(rows)}
+    </table>
+    '''
+
+
+def _render_software_request_summary_email_html(package):
+    snapshot = package['snapshot']
+    chart_html = _render_software_request_email_chart_html(snapshot)
+    message_html = escape(package['message']).replace('\n', '<br>')
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{escape(package['subject'])}</title>
+</head>
+<body style="margin:0;padding:24px;background:#f8fafc;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:900px;margin:0 auto;">
+    <div style="margin-bottom:20px;">
+      <h1 style="margin:0 0 8px;font-size:28px;">สรุปรายงานเรื่องคงค้าง/คำขอ</h1>
+      <div style="margin-top:14px;background:#ecfeff;color:#115e59;border:1px solid #99f6e4;border-radius:14px;padding:14px 16px;line-height:1.6;">
+        รายงานฉบับนี้จัดทำขึ้นโดยระบบอัตโนมัติร่วมกับ AI เพื่อช่วยสรุปภาพรวมสำหรับการติดตามงาน
+      </div>
+    </div>
+    <section style="background:#ffffff;border:1px solid #dbe4ee;border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(15,23,42,0.06);">
+      <div style="background:#f8fafc;border:1px solid #dbe4ee;border-radius:14px;padding:14px 16px;margin-bottom:18px;">
+        <h3 style="margin:0 0 10px;font-size:16px;">ตัวเลขสำคัญ</h3>
+        <div style="font-size:14px;color:#64748b;line-height:1.9;">
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['total_open_records']}</strong>งานคงค้าง</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['pending_count']}</strong>รอดำเนินการ</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['consider_count']}</strong>อยู่ระหว่างพิจารณา</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['approve_count']}</strong>อนุมัติ</span>
+          <span style="display:inline-block;margin-right:18px;"><strong style="color:#0f172a;font-size:20px;margin-right:4px;">{snapshot['completed_last_7_days']}</strong>ปิดใน 7 วัน</span>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <h3 style="margin:0 0 12px;font-size:16px;">ภาพรวมงานคงค้าง</h3>
+        {chart_html}
+      </div>
+      <div style="margin:16px 0;font-size:14px;">
+        <p style="margin:0 0 8px;"><strong>Subject:</strong> {escape(package['subject'])}</p>
+      </div>
+      <div>
+        <h3 style="margin:0 0 12px;font-size:16px;">รายงานสรุป</h3>
+        <div style="background:#f8fafc;color:#0f172a;border:1px solid #dbe4ee;border-radius:14px;padding:16px;line-height:1.65;font-size:14px;white-space:pre-wrap;">{message_html}</div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>'''
+
+
+def _build_software_request_line_reminder_message(snapshot):
+    if snapshot['total_open_records'] == 0:
+        return None
+    return (
+        f"แจ้งเตือนรายการคงค้าง/คำขอพัฒนา Software วันที่ {snapshot['generated_at']}\n"
+        f"มีทั้งหมด {snapshot['total_open_records']} เรื่อง"
+    )
+
+
+def _render_software_request_line_reminder_dry_run_html(packages, should_send, snapshot):
+    cards = []
+    for package in packages:
+        recipient = package['recipient']
+        message_html = escape(package['message'] or 'ไม่มีรายการที่ต้องส่ง').replace('\n', '<br>')
+        cards.append(f'''
+        <section class="card">
+            <div class="card-header">
+                <div class="pill">{escape(recipient['staff_name'])}</div>
+                <div class="meta">LINE: {escape(recipient['line_id'])}</div>
+            </div>
+            <div class="summary-card">
+                <h3>สรุปตัวเลข</h3>
+                <div class="summary-metrics">
+                    <span><strong>{snapshot['pending_count']}</strong> รอดำเนินการ</span>
+                    <span><strong>{snapshot['consider_count']}</strong> อยู่ระหว่างพิจารณา</span>
+                    <span><strong>{snapshot['approve_count']}</strong> อนุมัติ</span>
+                    <span><strong>{snapshot['completed_last_7_days']}</strong> ปิดงานใน 7 วัน</span>
+                </div>
+            </div>
+            <div class="message">
+                <h3>ข้อความที่จะส่ง</h3>
+                <div class="message-body">{message_html}</div>
+            </div>
+        </section>
+        ''')
+
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dry Run: Software Request Line Reminder</title>
+  <style>
+    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f8fafc; color:#0f172a; }}
+    .page {{ max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }}
+    .hero {{ margin-bottom: 24px; }}
+    .hero h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    .hero p {{ margin: 0; color: #64748b; }}
+    .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
+    .grid {{ display: grid; gap: 20px; }}
+    .card {{ background: #ffffff; border: 1px solid #dbe4ee; border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
+    .card-header {{ display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 16px; }}
+    .pill {{ background: #ecfeff; color: #0f766e; border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .summary-card {{ background: #f8fafc; border: 1px solid #dbe4ee; border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
+    .summary-card h3, .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
+    .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; }}
+    .summary-metrics span {{ color: #64748b; font-size: 14px; }}
+    .summary-metrics strong {{ color: #0f172a; font-size: 20px; margin-right: 4px; }}
+    .message-body {{ background: #f8fafc; border: 1px solid #dbe4ee; border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
+    .meta {{ color: #64748b; font-size: 13px; }}
+    @media (max-width: 800px) {{ .card-header {{ flex-direction: column; }} }}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>Dry Run: Software Request Line Reminder</h1>
+      <p>Send flag: {str(should_send)} | Recipient count: {len(packages)} | Open total: {snapshot['total_open_records']}</p>
+      <div class="notice">รายงานตัวอย่างนี้ใช้ตรวจสอบข้อความก่อนส่งจริง และสรุปจากสถานะในระบบขอรับบริการพัฒนา software โดยเฉพาะ</div>
+    </header>
+    <div class="grid">
+      {''.join(cards) if cards else '<section class="card"><p>No recipients found.</p></section>'}
+    </div>
+  </main>
+</body>
+</html>'''
+
+
+def _render_software_request_summary_dry_run_html(packages, should_send, snapshot):
+    cards = []
+    for package in packages:
+        recipient = package['recipient']
+        message_html = escape(package['message'] or 'ไม่มีข้อความสรุป').replace('\n', '<br>')
+        cards.append(f'''
+        <section class="card">
+            <div class="card-header">
+                <div class="pill">{escape(recipient['staff_name'])}</div>
+                <div class="meta">{escape(recipient['email'])}</div>
+            </div>
+            <div class="summary-card">
+                <h3>สรุปตัวเลข</h3>
+                <div class="summary-metrics">
+                    <span><strong>{snapshot['pending_count']}</strong> รอดำเนินการ</span>
+                    <span><strong>{snapshot['consider_count']}</strong> อยู่ระหว่างพิจารณา</span>
+                    <span><strong>{snapshot['approve_count']}</strong> อนุมัติ</span>
+                    <span><strong>{snapshot['completed_last_7_days']}</strong> ปิดงานใน 7 วัน</span>
+                </div>
+            </div>
+            <div class="message">
+                <h3>ข้อความที่จะส่ง</h3>
+                <div class="message-body">{message_html}</div>
+            </div>
+        </section>
+        ''')
+
+    return f'''<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dry Run: Software Request Summary</title>
+  <style>
+    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#f8fafc; color:#0f172a; }}
+    .page {{ max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }}
+    .hero {{ margin-bottom: 24px; }}
+    .hero h1 {{ margin: 0 0 8px; font-size: 28px; }}
+    .hero p {{ margin: 0; color: #64748b; }}
+    .notice {{ margin-top: 14px; background: #ecfeff; color: #115e59; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px; line-height: 1.6; }}
+    .grid {{ display: grid; gap: 20px; }}
+    .card {{ background: #ffffff; border: 1px solid #dbe4ee; border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }}
+    .card-header {{ display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 16px; }}
+    .pill {{ background: #ecfeff; color: #0f766e; border: 1px solid #99f6e4; border-radius: 999px; padding: 8px 12px; font-size: 13px; }}
+    .summary-card {{ background: #f8fafc; border: 1px solid #dbe4ee; border-radius: 14px; padding: 14px 16px; margin-bottom: 18px; }}
+    .summary-card h3, .message h3 {{ margin: 0 0 12px; font-size: 16px; }}
+    .summary-metrics {{ display: flex; flex-wrap: wrap; gap: 10px 18px; }}
+    .summary-metrics span {{ color: #64748b; font-size: 14px; }}
+    .summary-metrics strong {{ color: #0f172a; font-size: 20px; margin-right: 4px; }}
+    .message-body {{ background: #f8fafc; border: 1px solid #dbe4ee; border-radius: 14px; padding: 16px; line-height: 1.65; font-size: 14px; }}
+    .meta {{ color: #64748b; font-size: 13px; }}
+    @media (max-width: 800px) {{ .card-header {{ flex-direction: column; }} }}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <h1>Dry Run: Software Request Summary Email</h1>
+      <p>Send flag: {str(should_send)} | Recipient count: {len(packages)} | Open total: {snapshot['total_open_records']}</p>
+      <div class="notice">รายงานตัวอย่างนี้ใช้ตรวจสอบเนื้อหาก่อนส่งสรุปประจำสัปดาห์ให้ผู้บริหาร</div>
+    </header>
+    <div class="grid">
+      {''.join(cards) if cards else '<section class="card"><p>No recipients found.</p></section>'}
+    </div>
+  </main>
+</body>
+</html>'''
 
 
 def update_test_result(test_result, status, note):
@@ -505,7 +1015,171 @@ def admin_index():
     return render_template('software_request/admin_index.html', tab=tab, pending_count=pending_query.count(),
                            consider_count=consider_query.count(), approve_count=approve_query.count(),
                            complete_count=complete_query.count(), disapprove_count=disapprove_query.count(),
-                           cancel_count=cancel_query.count(), timelines=timelines)
+                           cancel_count=cancel_query.count(), timelines=timelines,
+                           notification_line_recipients=len(_get_software_request_line_recipients()),
+                           notification_email_recipients=len(_get_software_request_email_recipients()))
+
+
+@software_request.route('/admin/line-remind-admins', methods=['GET', 'POST'])
+def line_remind_software_request_admins():
+    scheduler_request = _is_valid_notification_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not software_request_permission.can():
+            return current_app.response_class('Forbidden', status=403)
+
+    snapshot = _build_software_request_summary_snapshot()
+    message = _build_software_request_line_reminder_message(snapshot)
+    recipients = _get_software_request_line_recipients()
+    packages = [
+        {
+            'recipient': recipient,
+            'message': message,
+        }
+        for recipient in recipients
+    ]
+    matched_packages = [package for package in packages if package['message']]
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+
+    if dry_run:
+        return _render_software_request_line_reminder_dry_run_html(packages, should_send, snapshot)
+
+    if not should_send:
+        response = make_response(
+            'Line reminder was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400
+        )
+        response.mimetype = 'text/plain'
+        return response
+
+    if not matched_packages:
+        message_text = 'ไม่พบผู้รับหรือไม่พบเรื่องที่เข้าเงื่อนไขสำหรับส่ง Line reminder'
+        if request.method == 'POST':
+            flash(message_text, 'warning')
+            return redirect(url_for('software_request.admin_index', tab='all'))
+        response = make_response(message_text + '\n', 404)
+        response.mimetype = 'text/plain'
+        return redirect(url_for('software_request.admin_index', tab='all'))
+
+    sent_count = 0
+    failed_count = 0
+    for package in matched_packages:
+        try:
+            line_bot_api.push_message(
+                to=package['recipient']['line_id'],
+                messages=TextSendMessage(text=package['message'])
+            )
+            sent_count += 1
+        except LineBotApiError:
+            failed_count += 1
+            current_app.logger.exception(
+                'Failed to send software request line reminder to line_id=%s',
+                _mask_line_id(package['recipient']['line_id'])
+            )
+
+    success_message = f'ส่ง Line reminder แล้ว {sent_count} ราย'
+    if failed_count:
+        success_message += f' และส่งไม่สำเร็จ {failed_count} ราย'
+
+    if request.method == 'GET':
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return redirect(url_for('software_request.admin_index', tab='all'))
+
+    flash(success_message, 'success' if failed_count == 0 else 'warning')
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(url_for('software_request.admin_index', tab='all'))
+
+
+@software_request.route('/admin/email-unfinished-summary', methods=['GET', 'POST'])
+def email_unfinished_summary():
+    scheduler_request = _is_valid_notification_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not software_request_permission.can():
+            return current_app.response_class('Forbidden', status=403)
+
+    snapshot = _build_software_request_summary_snapshot()
+    recipients = _get_software_request_email_recipients()
+    should_send = _request_flag('send')
+    dry_run = _request_flag('dry_run', default=(request.method == 'GET' and not should_send))
+
+    if dry_run:
+        dry_run_packages = []
+        ai_summary = _build_fallback_software_request_summary(snapshot)
+        for recipient in recipients:
+            dry_run_packages.append({
+                'recipient': recipient,
+                'subject': f"สรุปภาพรวมเรื่องคงค้างระบบขอรับบริการพัฒนา software ณ {snapshot['generated_at']}",
+                'message': _build_software_request_summary_email_body(snapshot, ai_summary),
+            })
+        return _render_software_request_summary_dry_run_html(dry_run_packages, should_send, snapshot)
+
+    if not should_send:
+        response = make_response(
+            'Email was not sent. Add send=true to trigger delivery, or dry_run=true to preview recipients.\n',
+            400
+        )
+        response.mimetype = 'text/plain'
+        return redirect(url_for('software_request.admin_index', tab='all'))
+
+    if not recipients:
+        message_text = 'ไม่พบอีเมลของผู้รับที่มี role software_request สำหรับส่งสรุป'
+        if request.method == 'POST':
+            flash(message_text, 'danger')
+            return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+        response = make_response(message_text + '\n', 404)
+        response.mimetype = 'text/plain'
+        return response
+
+    if snapshot['total_open_records'] > 0 or snapshot['completed_last_7_days'] > 0:
+        try:
+            ai_summary = _call_typhoon_software_request_summary(snapshot)
+        except Exception as exc:
+            current_app.logger.warning('Failed to generate software request summary with Typhoon AI: %s', exc)
+            ai_summary = _build_fallback_software_request_summary(snapshot)
+    else:
+        ai_summary = _build_fallback_software_request_summary(snapshot)
+
+    subject = f"สรุปภาพรวมเรื่องคงค้าง/คำขอพัฒนา Software ณ {snapshot['generated_at']}"
+    body = _build_software_request_summary_email_body(snapshot, ai_summary)
+    package = {
+        'recipient': {'email': ', '.join(recipient['email'] for recipient in recipients)},
+        'subject': subject,
+        'message': body,
+        'snapshot': snapshot,
+        'scope_label': 'สรุปภาพรวมงานคงค้าง',
+    }
+    html_body = _render_software_request_summary_email_html(package)
+
+    recipient_emails = [recipient['email'] for recipient in recipients]
+    try:
+        send_mail(recipient_emails, subject, body, html=html_body)
+        success_message = f'ส่งอีเมลสรุปเรื่องคงค้างแล้ว 1 ฉบับถึง {len(recipient_emails)} ราย'
+    except Exception:
+        current_app.logger.exception(
+            'Failed to send software request summary email to recipients=%s',
+            recipient_emails,
+        )
+        success_message = 'ส่งอีเมลสรุปเรื่องคงค้างไม่สำเร็จ'
+
+    if request.method == 'GET':
+        response = make_response(success_message + '\n')
+        response.mimetype = 'text/plain'
+        return redirect(url_for('software_request.admin_index', tab='all'))
+
+    flash(success_message, 'success' if success_message.startswith('ส่งอีเมลสรุปเรื่องคงค้างแล้ว') else 'danger')
+    if request.headers.get('HX-Request'):
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
+    return redirect(url_for('software_request.admin_index', tab='all'))
 
 
 @software_request.route('/api/timelines/<tab>')
