@@ -1,13 +1,19 @@
 {% from "components/module_nav.html" import render_module_nav %}
 
+{% set room_nav_links = [
+    {'href': url_for('index'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
+] %}
+{% if not hide_ai_room_search %}
+    {% set room_nav_links = room_nav_links + [
+        {'href': url_for('room.ai_room_search'), 'label': 'ค้นหาห้องด้วย AI', 'icon': 'fas fa-robot'}
+    ] %}
+{% endif %}
+
 {{ render_module_nav(
     title='Room Scheduler',
     subtitle='ระบบจองห้อง',
     brand_href=url_for('room.index'),
-    start_links=[
-        {'href': url_for('room.index'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True},
-        {'href': url_for('room.ai_room_search'), 'label': 'ค้นหาห้องด้วย AI', 'icon': 'fas fa-robot'}
-    ],
+    start_links=room_nav_links,
     user_display=current_user.email,
     account_href=url_for('auth.account'),
     logout_href=url_for('auth.logout'),
