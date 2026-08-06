@@ -120,6 +120,10 @@ class SoftwareRequestDetail(db.Model):
         return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' and timeline.status != 'เสร็จสิ้น'])
 
     @property
+    def is_requester_completed_testing(self):
+        return all(test_result.status for test_result in self.test_results)
+
+    @property
     def status_color(self):
         if self.status == 'ส่งคำขอแล้ว':
             return 'is-link'
