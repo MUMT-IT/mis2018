@@ -281,7 +281,7 @@
                                     <tbody>
                                         {% for test_result in detail.test_results %}
                                             <tr>
-                                                {% if detail.status == 'อนุมัติ' %}
+                                                {% if detail.status == 'อนุมัติ' and not test_result.status %}
                                                     <td>
                                                         <input class="is-checkradio"
                                                                id="pass_{{ test_result.id }}"
@@ -326,7 +326,7 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                {% if detail.test_results and detail.status == 'อนุมัติ' %}
+                                {% if detail.test_results and detail.status == 'อนุมัติ' and not detail.is_requester_completed_testing %}
                                     <div class="field mt-1">
                                         <input type="submit" value="บันทีก" class="button is-info is-rounded">
                                     </div>
