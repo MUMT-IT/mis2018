@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+
+{% block title %}Maintenance Dashboard{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .maintenance-page {
+            padding-top: 2rem;
+            padding-bottom: 3rem;
+        }
+
+        .maintenance-shell {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 18px 42px rgba(18, 39, 84, 0.08);
+            overflow: hidden;
+        }
+
+        .maintenance-head {
+            align-items: flex-start;
+            background: linear-gradient(180deg, rgba(247, 249, 255, 0.98), rgba(240, 244, 251, 0.92));
+            border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.3rem 1.5rem;
+        }
+
+        .maintenance-title {
+            color: #15284d;
+            font-size: 1.6rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin: 0;
+        }
+
+        .maintenance-updated {
+            color: #7a879d;
+            font-size: 0.95rem;
+            margin-top: 0.2rem;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .maintenance-table-wrap {
+            overflow-x: auto;
+        }
+
+        .maintenance-filter {
+            align-items: center;
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding: 1rem 1.5rem 0;
+        }
+
+        .maintenance-filter .input {
+            border-radius: 14px;
+            min-width: min(100%, 320px);
+        }
+
+        .maintenance-filter .button {
+            border-radius: 14px;
+        }
+
+        .maintenance-alerts {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            padding: 1.25rem 1.5rem 0;
+        }
+
+        .maintenance-alert-card {
+            border: 1px solid;
+            border-radius: 18px;
+            padding: 1rem 1.1rem;
+        }
+
+        .maintenance-alert-card.is-overdue {
+            background: #fff8ea;
+            border-color: #f0c36d;
+        }
+
+        .maintenance-alert-card.is-issue {
+            background: #fff1f3;
+            border-color: #f2a0ad;
+        }
+
+        .maintenance-alert-title {
+            align-items: center;
+            display: flex;
+            font-weight: 800;
+            gap: 0.5rem;
+        }
+
+        .maintenance-alert-card.is-overdue .maintenance-alert-title { color: #a66000; }
+        .maintenance-alert-card.is-issue .maintenance-alert-title { color: #bd2b47; }
+
+        .maintenance-alert-count {
+            color: #15284d;
+            font-size: 1.65rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 0.7rem 0;
+        }
+
+        .maintenance-alert-rooms {
+            color: #54647c;
+            font-size: 0.88rem;
+            line-height: 1.6;
+        }
+
+        .maintenance-alert-room {
+            display: inline-block;
+            margin-right: 0.7rem;
+        }
+
+        .maintenance-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 980px;
+            width: 100%;
+        }
+
+        .maintenance-table thead th {
+            background: #eef3fb;
+            border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+            color: #41506a;
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            padding: 1rem 0.9rem;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .maintenance-table thead th:first-child {
+            text-align: left;
+            width: 110px;
+        }
+
+        .maintenance-table tbody td {
+            border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+            padding: 1rem 0.9rem;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .maintenance-table tbody tr:nth-child(odd) {
+            background: rgba(250, 252, 255, 0.9);
+        }
+
+        .maintenance-table tbody tr:nth-child(even) {
+            background: rgba(243, 246, 251, 0.76);
+        }
+
+        .maintenance-room {
+            color: #15284d;
+            font-size: 1.05rem;
+            font-weight: 800;
+            text-align: left;
+        }
+
+        .maintenance-col-label {
+            align-items: center;
+            display: inline-flex;
+            gap: 0.45rem;
+            justify-content: center;
+        }
+
+        .maintenance-col-label .icon {
+            color: #7b8798;
+        }
+
+        .maintenance-status {
+            align-items: center;
+            border: 2px solid;
+            border-radius: 18px;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            justify-content: center;
+            min-height: 58px;
+            min-width: 126px;
+            padding: 0.55rem 0.9rem;
+            text-align: center;
+        }
+
+        .maintenance-status.is-good {
+            background: #eefcf4;
+            border-color: #11c27c;
+            color: #0f8d5a;
+        }
+
+        .maintenance-status.is-bad {
+            background: #fff0f4;
+            border-color: #ff5c7a;
+            color: #d62947;
+        }
+
+        .maintenance-status.is-neutral {
+            background: #f6f8fb;
+            border-color: rgba(18, 39, 84, 0.16);
+            color: #607086;
+        }
+
+        .maintenance-status.is-overdue {
+            background: #fff7e8;
+            border-color: #f0a22e;
+            color: #b96900;
+        }
+
+        .maintenance-status-date {
+            font-size: 1rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .maintenance-status-note {
+            font-size: 0.82rem;
+            line-height: 1.1;
+        }
+
+        .maintenance-view-btn {
+            align-items: center;
+            background: linear-gradient(180deg, #f1f3ff, #e7ecff);
+            border: 1px solid rgba(82, 95, 214, 0.18);
+            border-radius: 18px;
+            box-shadow: 0 8px 18px rgba(18, 39, 84, 0.06);
+            color: #4c42d4;
+            display: inline-flex;
+            flex-direction: column;
+            font-weight: 700;
+            gap: 0.2rem;
+            justify-content: center;
+            min-height: 58px;
+            min-width: 96px;
+            padding: 0.55rem 0.85rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .maintenance-view-btn:hover {
+            box-shadow: 0 12px 22px rgba(18, 39, 84, 0.1);
+            color: #352fbd;
+            transform: translateY(-1px);
+        }
+
+        .maintenance-view-btn .icon {
+            color: #4c42d4;
+        }
+
+        .maintenance-equipment-btn {
+            align-items: center;
+            background: linear-gradient(180deg, #fff4e8, #ffe8d1);
+            border: 1px solid rgba(212, 125, 42, 0.2);
+            border-radius: 18px;
+            box-shadow: 0 8px 18px rgba(18, 39, 84, 0.06);
+            color: #b05a12;
+            display: inline-flex;
+            justify-content: center;
+            min-height: 58px;
+            min-width: 96px;
+            padding: 0.55rem 0.85rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            text-decoration: none;
+        }
+
+        .maintenance-equipment-btn:hover {
+            box-shadow: 0 12px 22px rgba(18, 39, 84, 0.1);
+            color: #8f460d;
+            transform: translateY(-1px);
+        }
+
+        .maintenance-equipment-btn .icon {
+            color: #b05a12;
+        }
+
+        @media screen and (max-width: 768px) {
+            .maintenance-head {
+                flex-direction: column;
+            }
+
+            .maintenance-updated {
+                text-align: left;
+                white-space: normal;
+            }
+
+            .maintenance-alerts {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+{% include "maintenance/nav.html" %}
+{% macro render_status(status) %}
+    {% if status %}
+        <div class="maintenance-status {% if status.is_overdue %}is-overdue{% elif status.result == 'normal' %}is-good{% else %}is-bad{% endif %}">
+            <span class="maintenance-status-date">{{ status.checked_at }}</span>
+            <span class="maintenance-status-note">{% if status.is_overdue %}ผ่านไปแล้ว {{ status.days_since }} วัน{% elif status.result == 'normal' %}ปกติ{% else %}พบปัญหา{% endif %}</span>
+        </div>
+    {% else %}
+        <div class="maintenance-status is-neutral">
+            <span class="maintenance-status-date">-</span>
+            <span class="maintenance-status-note">ยังไม่มีข้อมูล</span>
+        </div>
+    {% endif %}
+{% endmacro %}
+    <section class="section maintenance-page">
+        <div class="container">
+            <div class="maintenance-shell">
+                <div class="maintenance-head">
+                    <div>
+                        <h1 class="maintenance-title">รายการตรวจสถานะจำแนกรายห้อง</h1>
+                    </div>
+                    <div class="maintenance-updated">
+                        อัปเดตอัตโนมัติตามวันที่อ้างอิงปัจจุบัน
+                        <br>
+                        แสดงหน้า {{ pagination.page }} จาก {{ pagination.pages }} | ทั้งหมด {{ pagination.total }} ห้อง
+                    </div>
+                </div>
+
+                <div class="maintenance-alerts">
+                    <article class="maintenance-alert-card is-overdue">
+                        <div class="maintenance-alert-title"><span class="icon"><i class="fa-solid fa-clock"></i></span><span>เกินกำหนดตรวจ 30 วัน</span></div>
+                        <div class="maintenance-alert-count">{{ overdue_room_summaries|sum(attribute='count') }} อุปกรณ์</div>
+                        <div class="maintenance-alert-rooms">
+                            {% for summary in overdue_room_summaries %}
+                                <span class="maintenance-alert-room">{{ summary.room }} ({{ summary.count }})</span>
+                            {% else %}
+                                ไม่มีรายการเกินกำหนดตรวจ
+                            {% endfor %}
+                        </div>
+                    </article>
+                    <article class="maintenance-alert-card is-issue">
+                        <div class="maintenance-alert-title"><span class="icon"><i class="fa-solid fa-triangle-exclamation"></i></span><span>อุปกรณ์ที่พบปัญหา</span></div>
+                        <div class="maintenance-alert-count">{{ issue_room_summaries|sum(attribute='count') }} อุปกรณ์</div>
+                        <div class="maintenance-alert-rooms">
+                            {% for summary in issue_room_summaries %}
+                                <span class="maintenance-alert-room">{{ summary.room }} ({{ summary.count }})</span>
+                            {% else %}
+                                ไม่มีรายการที่พบปัญหา
+                            {% endfor %}
+                        </div>
+                    </article>
+                </div>
+
+                <form class="maintenance-filter" method="get" action="{{ url_for('maintenance.maintenance_list_room') }}">
+                    <div class="field has-addons" style="margin-bottom: 0;">
+                        <div class="control">
+                            <input class="input" type="text" name="q" value="{{ q }}" placeholder="ค้นหาชื่อ หรือหมายเลขห้อง">
+                        </div>
+                        <div class="control">
+                            <button type="submit" class="button is-info">
+                                <span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                <span>ค้นหา</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% if q %}
+                        <div class="control">
+                            <a class="button is-light" href="{{ url_for('maintenance.maintenance_list_room') }}">
+                                ล้างคำค้น
+                            </a>
+                        </div>
+                    {% endif %}
+                </form>
+
+                <div class="maintenance-table-wrap">
+                    <table class="maintenance-table">
+                        <thead>
+                            <tr>
+                                <th>หมายเลขห้อง</th>
+                                <th>
+                                    <span class="maintenance-col-label">
+                                        <span class="icon"><i class="fa-solid fa-desktop"></i></span>
+                                        <span>COMPUTER</span>
+                                    </span>
+                                </th>
+                                <th>
+                                    <span class="maintenance-col-label">
+                                        <span class="icon"><i class="fa-solid fa-microphone-lines"></i></span>
+                                        <span>ไมโครโฟน</span>
+                                    </span>
+                                </th>
+                                <th>
+                                    <span class="maintenance-col-label">
+                                        <span class="icon"><i class="fa-solid fa-volume-high"></i></span>
+                                        <span>เครื่องเสียง</span>
+                                    </span>
+                                </th>
+                                <th>
+                                    <span class="maintenance-col-label">
+                                        <span class="icon"><i class="fa-solid fa-video"></i></span>
+                                        <span>แสดงภาพ</span>
+                                    </span>
+                                </th>
+                                <th>จัดการอุปกรณ์</th>
+                                <th>ดูข้อมูล</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for room in pagination.items %}
+                                <tr>
+                                    <td class="maintenance-room">{{ room.number }} {{ room.location }}</td>
+                                    <td>
+                                        {{ render_status(room_statuses.get(room.id, {}).get('computer')) }}
+                                    </td>
+                                    <td>
+                                        {{ render_status(room_statuses.get(room.id, {}).get('microphone')) }}
+                                    </td>
+                                    <td>
+                                        {{ render_status(room_statuses.get(room.id, {}).get('audio')) }}
+                                    </td>
+                                    <td>
+                                        {{ render_status(room_statuses.get(room.id, {}).get('display')) }}
+                                    </td>
+                                    <td>
+                                        <a class="maintenance-equipment-btn"
+                                           href="{{ url_for('maintenance.maintenance_list_item', room_id=room.id) }}"
+                                           aria-label="จัดการอุปกรณ์">
+                                            <span class="icon"><i class="fa-solid fa-pen-to-square"></i></span>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('maintenance.maintenance_items_check', room_id=room.id) }}" class="maintenance-view-btn">
+                                            <span class="icon"><i class="fa-regular fa-eye"></i></span>
+                                            <span>ดูข้อมูล</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="has-text-centered has-text-grey py-6">
+                                        ไม่พบข้อมูลห้อง
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if pagination.pages > 1 %}
+                    <div class="p-4">
+                        <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+                            <a class="pagination-previous"
+                               {% if pagination.has_prev %}
+                                   href="{{ url_for('maintenance.maintenance_list_room', page=pagination.prev_num, q=q) }}"
+                               {% else %}
+                                   disabled
+                               {% endif %}>
+                                Previous
+                            </a>
+                            <a class="pagination-next"
+                               {% if pagination.has_next %}
+                                   href="{{ url_for('maintenance.maintenance_list_room', page=pagination.next_num, q=q) }}"
+                               {% else %}
+                                   disabled
+                               {% endif %}>
+                                Next page
+                            </a>
+                            <ul class="pagination-list">
+                                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                    {% if page_num %}
+                                        <li>
+                                            <a class="pagination-link {% if page_num == pagination.page %}is-current{% endif %}"
+                                               href="{{ url_for('maintenance.maintenance_list_room', page=page_num, q=q) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li><span class="pagination-ellipsis">&hellip;</span></li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+{% endblock %}

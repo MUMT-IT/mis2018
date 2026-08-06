@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}ประวัติและตรวจเช็คอุปกรณ์ | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .inspection-page { padding: 2rem 0 3rem; }
+        .inspection-shell { background: #fff; border: 1px solid rgba(18,39,84,.1); border-radius: 24px; box-shadow: 0 18px 42px rgba(18,39,84,.08); overflow: hidden; }
+        .inspection-head { align-items: flex-start; background: radial-gradient(circle at 90% 15%, rgba(202,168,74,.24), transparent 28%), linear-gradient(135deg,#14294f,#294b88); color: #fff; display: flex; gap: 1rem; justify-content: space-between; padding: 1.45rem 1.5rem; }
+        .inspection-title { font-size: 1.65rem; font-weight: 800; margin: 0; }
+        .inspection-subtitle { color: rgba(255,255,255,.76); margin: .4rem 0 0; }
+        .inspection-room-chip { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.24); border-radius: 999px; display: inline-flex; font-size: .9rem; font-weight: 700; gap: .45rem; margin-top: .8rem; padding: .4rem .75rem; }
+        .inspection-back-btn { border-radius: 14px; font-weight: 700; white-space: nowrap; }
+        .inspection-content { padding: 1.5rem; }
+        .inspection-flash .notification { margin-bottom: 1rem; }
+        .inspection-overview { align-items: center; background: linear-gradient(135deg,#f7faff,#f0f5fc); border: 1px solid rgba(18,39,84,.09); border-radius: 18px; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1.25rem; padding: 1rem; }
+        .inspection-overview-title { color: #29406e; font-size: 1.05rem; font-weight: 800; margin: 0; }
+        .inspection-overview-note { color: #71809a; font-size: .9rem; margin: .2rem 0 0; }
+        .inspection-count { background: #fff; border: 1px solid rgba(63,87,214,.16); border-radius: 14px; color: #3f57d6; font-size: .9rem; font-weight: 800; padding: .55rem .75rem; text-align: center; white-space: nowrap; }
+        .inspection-count small { color: #71809a; display: block; font-size: .72rem; margin-bottom: .1rem; }
+        .inspection-list { display: grid; gap: 1rem; }
+        .inspection-card { background: #fff; border: 1px solid rgba(18,39,84,.11); border-radius: 18px; overflow: hidden; }
+        .inspection-card[open] { border-color: rgba(63,87,214,.35); box-shadow: 0 12px 24px rgba(18,39,84,.08); }
+        .inspection-card-summary { cursor: pointer; list-style: none; }
+        .inspection-card-summary::-webkit-details-marker { display: none; }
+        .inspection-card-main { align-items: flex-start; display: flex; gap: .85rem; padding: 1rem; }
+        .inspection-icon { align-items: center; background: #eaf0ff; border-radius: 14px; color: #3f57d6; display: inline-flex; flex: 0 0 44px; height: 44px; justify-content: center; width: 44px; }
+        .inspection-icon.microphone { background: #fff5e9; color: #c66a16; }
+        .inspection-icon.audio { background: #f4edff; color: #8050bd; }
+        .inspection-icon.display { background: #fff0f2; color: #c73f5a; }
+        .inspection-info { flex: 1; min-width: 0; }
+        .inspection-title-row { align-items: center; display: flex; flex-wrap: wrap; gap: .45rem; }
+        .inspection-item-name { color: #1c3158; font-size: 1rem; font-weight: 800; }
+        .inspection-type { background: #eef3fb; border-radius: 999px; color: #52617a; font-size: .72rem; font-weight: 800; padding: .18rem .55rem; }
+        .inspection-latest-status { border-radius: 999px; font-size: .72rem; font-weight: 800; padding: .18rem .55rem; }
+        .inspection-latest-status.normal { background: #eafaf1; color: #0f8d5a; }
+        .inspection-latest-status.issue { background: #fff0f2; color: #c7334b; }
+        .inspection-meta { color: #6d7b91; font-size: .86rem; margin: .3rem 0 0; }
+        .inspection-history { align-items: center; color: #7b8798; display: inline-flex; font-size: .78rem; gap: .35rem; margin-top: .35rem; }
+        .inspection-action { align-items: center; background: #f4f7ff; border-top: 1px solid rgba(18,39,84,.07); display: flex; justify-content: space-between; padding: .65rem 1rem; }
+        .inspection-action-note { color: #76849a; font-size: .78rem; font-weight: 700; }
+        .inspection-check-btn { align-items: center; border: 1px solid rgba(63,87,214,.2); border-radius: 11px; color: #3f57d6; display: inline-flex; font-size: .85rem; font-weight: 800; gap: .4rem; padding: .4rem .7rem; }
+        .inspection-card[open] .inspection-check-btn { background: #3f57d6; color: #fff; }
+        .inspection-check-body { background: #fbfcff; border-top: 1px solid rgba(18,39,84,.08); padding: 1rem; }
+        .inspection-ready-row { align-items: stretch; display: grid; gap: .65rem; grid-template-columns: 180px minmax(0,1fr); }
+        .inspection-ready-toggle, .inspection-radio-option { align-items: center; background: #fff; border: 1px solid rgba(18,39,84,.13); border-radius: 12px; color: #44546e; cursor: pointer; display: flex; font-size: .88rem; font-weight: 700; gap: .5rem; justify-content: center; min-height: 44px; padding: .55rem .7rem; }
+        .inspection-ready-toggle input, .inspection-radio-option input { accent-color: #3f57d6; }
+        .inspection-status-options { display: grid; gap: .65rem; grid-template-columns: 1fr 1fr; }
+        .inspection-status-options.is-disabled { opacity: .48; }
+        .inspection-radio-option.ok { color: #0f8d5a; }
+        .inspection-radio-option.issue { color: #c7334b; }
+        .inspection-note { margin-top: .65rem; }
+        .inspection-note.is-hidden { display: none; }
+        .inspection-note .textarea { border-radius: 12px; font-size: .9rem; min-height: 74px; resize: vertical; }
+        .inspection-empty { border: 1px dashed rgba(18,39,84,.2); border-radius: 18px; color: #71809a; padding: 2.5rem 1rem; text-align: center; }
+        .inspection-empty .icon { color: #a4b0c4; font-size: 2rem; margin-bottom: .65rem; }
+        .inspection-submit-wrap { border-top: 1px solid rgba(18,39,84,.08); margin-top: 1.4rem; padding-top: 1.25rem; text-align: right; }
+        .inspection-submit-btn { border-radius: 14px; box-shadow: 0 10px 20px rgba(20,41,79,.14); font-weight: 800; padding-left: 1.1rem; padding-right: 1.1rem; }
+        @media screen and (max-width: 768px) { .inspection-head, .inspection-overview { align-items: flex-start; flex-direction: column; } .inspection-ready-row { grid-template-columns: 1fr; } }
+        @media screen and (max-width: 420px) { .inspection-card-main { gap: .65rem; padding: .85rem; } .inspection-action { align-items: flex-start; flex-direction: column; } .inspection-status-options { grid-template-columns: 1fr; } }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section inspection-page">
+        <div class="container">
+            <div class="inspection-shell">
+                <header class="inspection-head">
+                    <div>
+                        <h1 class="inspection-title">ประวัติและตรวจเช็คอุปกรณ์</h1>
+                        <p class="inspection-subtitle">ตรวจสอบความพร้อมใช้งานของอุปกรณ์ประจำห้อง</p>
+                        <span class="inspection-room-chip"><span class="icon"><i class="fa-solid fa-door-open"></i></span><span>ห้อง {{ room_label }}</span></span>
+                    </div>
+                    <a class="button is-light inspection-back-btn" href="{{ url_for('maintenance.maintenance_list_room') }}"><span class="icon"><i class="fa-solid fa-arrow-left"></i></span><span>กลับหน้ารายการห้อง</span></a>
+                </header>
+
+                <div class="inspection-content">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            <div class="inspection-flash">
+                                {% for category, message in messages %}
+                                    <div class="notification is-{{ category }}">{{ message }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                    <div class="inspection-overview">
+                        <div><p class="inspection-overview-title">รายการตรวจเช็คประจำห้อง</p><p class="inspection-overview-note">เลือก “ตรวจเช็ค” เพื่อขยายรายละเอียดและระบุผลของแต่ละอุปกรณ์</p></div>
+                        <div class="inspection-count"><small>อุปกรณ์ที่พบในห้อง</small>{{ inspection_items|length }} รายการ</div>
+                    </div>
+
+                    <form method="post" action="{{ url_for('maintenance.maintenance_items_check', room_id=room.id if room else none) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="inspection-list">
+                        {% for item in inspection_items %}
+                            {% set item_type = item.equipment_type|lower %}
+                            {% if 'ไมโครโฟน' in item_type %}
+                                {% set icon_name = 'fa-microphone-lines' %}{% set icon_class = 'microphone' %}
+                            {% elif 'เสียง' in item_type %}
+                                {% set icon_name = 'fa-volume-high' %}{% set icon_class = 'audio' %}
+                            {% elif 'จอ' in item_type or 'monitor' in item_type or 'display' in item_type %}
+                                {% set icon_name = 'fa-display' %}{% set icon_class = 'display' %}
+                            {% else %}
+                                {% set icon_name = 'fa-desktop' %}{% set icon_class = 'computer' %}
+                            {% endif %}
+                            <details class="inspection-card">
+                                <summary class="inspection-card-summary">
+                                    <div class="inspection-card-main">
+                                        <span class="inspection-icon {{ icon_class }}"><i class="fa-solid {{ icon_name }}"></i></span>
+                                        <div class="inspection-info">
+                                            <div class="inspection-title-row">
+                                                <span class="inspection-item-name">{{ item.name }}</span>
+                                                <span class="inspection-type">{{ item.equipment_type }}</span>
+                                                {% if item.last_result == 'normal' %}
+                                                    <span class="inspection-latest-status normal">ปกติ</span>
+                                                {% elif item.last_result == 'issue' %}
+                                                    <span class="inspection-latest-status issue">พบปัญหา</span>
+                                                {% endif %}
+                                            </div>
+                                            <p class="inspection-meta">{% if item.erp_code %}ERP {{ item.erp_code }}{% endif %}{% if item.erp_code and item.serial_number %} | {% endif %}{% if item.serial_number %}Serial Number: {{ item.serial_number }}{% endif %}{% if not item.erp_code and not item.serial_number %}อุปกรณ์ทั่วไปประจำห้อง{% endif %}</p>
+                                            {% if item.last_checked_at %}
+                                                <span class="inspection-history"><i class="fa-regular fa-clock"></i>ตรวจล่าสุด {{ item.last_checked_at }}{% if item.last_inspector_name %} โดย {{ item.last_inspector_name }}{% endif %}</span>
+                                            {% else %}
+                                                <span class="inspection-history"><i class="fa-regular fa-clock"></i>ยังไม่มีประวัติการตรวจเช็ค</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="inspection-action"><span class="inspection-action-note">ผลล่าสุด: {% if item.last_result == 'normal' %}ปกติ{% elif item.last_result == 'issue' %}พบปัญหา{% if item.last_remark %} - {{ item.last_remark }}{% endif %}{% else %}ยังไม่มีข้อมูล{% endif %}</span><span class="inspection-check-btn"><i class="fa-solid fa-clipboard-check"></i>ตรวจเช็ค <i class="fa-solid fa-chevron-down"></i></span></div>
+                                </summary>
+                                <div class="inspection-check-body">
+                                    <div class="inspection-ready-row">
+                                        <label class="inspection-ready-toggle"><input class="inspection-ready-input" data-inspection-id="{{ loop.index }}" name="checked_items" value="{{ item.key }}" type="checkbox"> พร้อมตรวจ</label>
+                                        <div class="inspection-status-options is-disabled" data-status-options="{{ loop.index }}">
+                                            <label class="inspection-radio-option ok"><input class="inspection-status-input" data-inspection-id="{{ loop.index }}" type="radio" name="result-{{ item.key }}" value="normal" disabled> <i class="fa-regular fa-circle-check"></i> ปกติ</label>
+                                            <label class="inspection-radio-option issue"><input class="inspection-status-input" data-inspection-id="{{ loop.index }}" type="radio" name="result-{{ item.key }}" value="issue" disabled> <i class="fa-regular fa-circle-xmark"></i> พบปัญหา</label>
+                                        </div>
+                                    </div>
+                                    <div class="inspection-note is-hidden" data-inspection-note="{{ loop.index }}"><textarea class="textarea" name="remark-{{ item.key }}" disabled placeholder="หมายเหตุผลการตรวจเช็ค (ถ้ามี)"></textarea></div>
+                                </div>
+                            </details>
+                        {% else %}
+                            <div class="inspection-empty"><div class="icon"><i class="fa-solid fa-box-open"></i></div><div>ไม่พบข้อมูลอุปกรณ์สำหรับห้องนี้</div></div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="inspection-submit-wrap"><button class="button is-link inspection-submit-btn" type="submit"><span class="icon"><i class="fa-solid fa-paper-plane"></i></span><span>ส่งรายงานผลการตรวจเช็คทั้งหมด</span></button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.querySelectorAll('.inspection-ready-input').forEach(function (checkbox) {
+            const inspectionId = checkbox.dataset.inspectionId;
+            const statusOptions = document.querySelector('[data-status-options="' + inspectionId + '"]');
+            const statusInputs = statusOptions.querySelectorAll('.inspection-status-input');
+            const note = document.querySelector('[data-inspection-note="' + inspectionId + '"]');
+            const noteInput = note.querySelector('textarea');
+
+            checkbox.addEventListener('change', function () {
+                const isReady = checkbox.checked;
+                statusOptions.classList.toggle('is-disabled', !isReady);
+                statusInputs.forEach(function (input) {
+                    input.disabled = !isReady;
+                    if (!isReady) input.checked = false;
+                });
+                if (!isReady) {
+                    note.classList.add('is-hidden');
+                    noteInput.disabled = true;
+                    noteInput.value = '';
+                }
+            });
+
+            statusInputs.forEach(function (input) {
+                input.addEventListener('change', function () {
+                    const hasIssue = input.value === 'issue' && input.checked;
+                    note.classList.toggle('is-hidden', !hasIssue);
+                    noteInput.disabled = !hasIssue;
+                    if (!hasIssue) noteInput.value = '';
+                });
+            });
+        });
+    </script>
+{% endblock %}

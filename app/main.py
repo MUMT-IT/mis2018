@@ -758,6 +758,10 @@ from app.room_scheduler import roombp as room_blueprint
 app.register_blueprint(room_blueprint, url_prefix='/room')
 from app.room_scheduler.models import *
 
+from app.maintenance import maintenancebp as maintenance_blueprint
+
+app.register_blueprint(maintenance_blueprint, url_prefix='/maintenance')
+
 from app.vehicle_scheduler import vehiclebp as vehicle_blueprint
 
 app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
