@@ -876,7 +876,6 @@ def view_request(detail_id):
                 value = request.form.get(form)
                 update_test_result(test_result=test_result, status=test_result.status if test_result.status else '',
                                    note=value)
-        flash('บันทึกผลเรียบร้อยแล้ว', 'success')
         if detail.staffs and count > 0:
             scheme = 'http' if current_app.debug else 'https'
             link = url_for("software_request.update_request", detail_id=detail_id, tab='approve', _external=True, _scheme=scheme)
@@ -889,6 +888,8 @@ def view_request(detail_id):
             message += f'''ระบบขอรับบริการพัฒนา Software\n'''
             message += f'''คณะเทคนิคการแพทย์'''
             send_mail([staff.email + '@mahidol.ac.th' for staff in detail.staffs], title, message)
+        flash('บันทึกผลเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('software_request.index'))
     return render_template('software_request/view_request.html', detail=detail)
 
 
