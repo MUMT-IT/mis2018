@@ -991,8 +991,10 @@ def admin_index():
         sort_columns = {
             0: SoftwareRequestDetail.title,
             1: SoftwareRequestDetail.type,
-            2: SoftwareRequestDetail.description,
-            5: SoftwareRequestDetail.created_date,
+            2: SoftwareRequestDetail.priority,
+            3: SoftwareRequestDetail.urgency,
+            4: SoftwareRequestDetail.description,
+            7: SoftwareRequestDetail.created_date,
         }
         sort_column_index = request.args.get('order[0][column]', default=5, type=int)
         sort_direction = request.args.get('order[0][dir]', default='desc')

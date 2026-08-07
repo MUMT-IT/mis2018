@@ -130,6 +130,32 @@ class SoftwareRequestDetail(db.Model):
         return all(test_result.status for test_result in self.test_results)
 
     @property
+    def urgency_status_color(self):
+        if self.urgency:
+            if self.urgency == 'เร่งด่วน':
+                color = 'is-danger'
+            elif self.urgency == 'ค่อนข้างเร่งด่วน':
+                color = 'is-warning'
+            else:
+                color = 'is-success'
+        else:
+            color = ''
+        return color
+
+    @property
+    def priority_status_color(self):
+        if self.priority:
+            if self.priority == 'สูง':
+                 color = 'is-danger'
+            elif self.priority == 'กลาง':
+                color = 'is-warning'
+            else:
+                color = 'is-success'
+        else:
+            color = ''
+        return color
+
+    @property
     def status_color(self):
         if self.status == 'ส่งคำขอแล้ว':
             return 'is-link'
@@ -235,6 +261,10 @@ class SoftwareRequestDetail(db.Model):
             'title': self.title,
             'type': self.type,
             'description': self.description,
+            'priority': self.priority if self.priority else None,
+            'priority_status_color': self.priority_status_color if self.priority_status_color else None,
+            'urgency': self.urgency if self.urgency else None,
+            'urgency_status_color': self.urgency_status_color if self.urgency_status_color else None,
             'has_timeline': has_timeline,
             'created_by': self.created_by.fullname if self.created_by else None,
             'org': self.created_by.personal_info.org.name if self.created_by else None,
