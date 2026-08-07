@@ -73,10 +73,16 @@ class SoftwareRequestDetail(db.Model):
     activity_id = db.Column('activity_id', db.ForeignKey('strategy_activities.id'))
     activity = db.relationship(StrategyActivity, backref=db.backref('software_requests', cascade='all, delete-orphan'))
     priority = db.Column('priority', db.String(), info={'label': 'ระดับความสำคัญ',
-                                                        'choices': [('None', 'กรุณาเลือกระดับความสำคัญ'),
+                                                        'choices': [('', 'กรุณาเลือกระดับความสำคัญ'),
                                                                     ('สูง', 'สูง'),
                                                                     ('กลาง', 'กลาง'),
                                                                     ('ต่ำ', 'ต่ำ')
+                                                                    ]})
+    urgency = db.Column('urgency', db.String(), info={'label': 'ความเร่งด่วน',
+                                                        'choices': [('', 'กรุณาเลือกระดับความเร่งด่วน'),
+                                                                    ('ไม่เร่งด่วน', 'ไม่เร่งด่วน'),
+                                                                    ('ค่อนข้างเร่งด่วน', 'ค่อนข้างเร่งด่วน'),
+                                                                    ('เร่งด่วน', 'เร่งด่วน')
                                                                     ]})
     frequency = db.Column('frequency', db.String(), info={'label': 'ความถี่การใช้งาน',
                                                           'choices': [('None', 'กรุณาเลือกความถี่การใช้งาน'),
