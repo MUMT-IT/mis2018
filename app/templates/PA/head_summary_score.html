@@ -202,8 +202,10 @@
                                                                type="number"
                                                                 {% if consolidated_score_sheet.is_final %}
                                                                readonly {% endif %}
+                                                               {% if not consolidated_score_sheet.is_final %}
+                                                               required {% endif %}
                                                                name="pa-item-{{ pa_item.id }}-{{ kpi_item.id }}"
-                                                               value="{{ consolidated_score_sheet.get_score_sheet_item(pa_item.id, kpi_item.id).score or '' }}">
+                                                               value="{{ consolidated_score_sheet.get_score_sheet_item(pa_item.id, kpi_item.id).score if consolidated_score_sheet.get_score_sheet_item(pa_item.id, kpi_item.id).score is not none else '' }}">
                                                 </div>
                                             </div>
                                         {% endfor %}
@@ -256,7 +258,9 @@
                                             <input class="input" type="number" step="0.1" min="0" max="10"
                                                    name="core-{{ item.id }}"
                                                     {% if consolidated_score_sheet.is_final %} readonly {% endif %}
-                                                   value="{{ consolidated_score_sheet.get_core_competency_score_item(comp_item_id=item.id).score }}">
+                                                   {% if not consolidated_score_sheet.is_final %}
+                                                   required {% endif %}
+                                                   value="{{ consolidated_score_sheet.get_core_competency_score_item(comp_item_id=item.id).score if consolidated_score_sheet.get_core_competency_score_item(comp_item_id=item.id).score is not none else '' }}">
                                         </div>
                                         </td>
                                     </td>
