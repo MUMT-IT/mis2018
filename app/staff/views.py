@@ -2922,6 +2922,7 @@ def request_for_clockin_clockout():
         reason = request.form.get('reason')
         work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
         date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        work_datetime_display = tz.localize(work_datetime).strftime('%d/%m/%Y %H:%M')
         # TODO: check duplicate request
         # checkin_request = StaffRequestWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
         if work_datetime < today:
@@ -2946,20 +2947,26 @@ def request_for_clockin_clockout():
             db.session.add(checkin_request)
             db.session.commit()
 
+            login_summary_url = (
+                external_url('staff.login_summary')
+                if current_app.config.get('PUBLIC_BASE_URL')
+                else url_for('staff.login_summary', _external=True, _scheme='https')
+            )
+
             if request.form.get('clock') == 'checkin':
                 req_title = u'ทดสอบแจ้งการขอรับรองเวลาเข้างาน'
                 req_msg = u'{} ขออนุมัติรับรองการเข้างาน วันที่ {} เนื่องจาก {}\n' \
-                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-                    format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                          u'\n\nกรุณาตรวจสอบคำขอที่:\n{}\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                    format(current_user.personal_info.fullname, work_datetime_display,
                            checkin_request.reason,
-                           url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+                           login_summary_url)
             else:
                 req_title = u'ทดสอบแจ้งการขอรับรองเวลากลับ'
                 req_msg = u'{} ขออนุมัติรับรองการทำงาน ในเวลากลับ วันที่ {} เนื่องจาก {}\n' \
-                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-                    format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                          u'\n\nกรุณาตรวจสอบคำขอที่:\n{}\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                    format(current_user.personal_info.fullname, work_datetime_display,
                            checkin_request.reason,
-                           url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+                           login_summary_url)
 
             if wfh_approver:
                 if wfh_approver.is_active:
