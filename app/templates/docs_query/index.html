@@ -28,10 +28,12 @@
             <div class="columns is-centered">
                 <div class="column is-10-tablet is-9-desktop is-12-widescreen docs-query-page-column">
                     {% include "messages.html" %}
-                    <div class="box docs-query-shell">
+                    <div class="box docs-query-shell docs-query-ai-shell">
+                        <div class="docs-query-ai-kicker">
+                            <span><i class="fas fa-sparkles" aria-hidden="true"></i> Ask DocsIQ</span>
+                            <span class="docs-query-ai-ready"><i class="fas fa-circle" aria-hidden="true"></i> READY</span>
+                        </div>
                         <div class="has-text-centered mb-6">
-                            <h1 class="title is-2">ค้นหาข้อมูลจากคลังเอกสาร</h1>
-                            <p class="subtitle is-5 has-text-grey">ค้นหาเอกสารภายในและค้นหาแนวปฏิบัติ ประกาศ หรือคำแนะนำที่เกี่ยวข้อง</p>
                             {% if docs_query_search_video_url %}
                                 <video id="docs-query-search-video" class="docs-query-search-video" muted playsinline preload="metadata" aria-label="กำลังค้นหาเอกสาร">
                                     <source src="{{ docs_query_search_video_url }}" type="video/mp4">
@@ -45,19 +47,28 @@
                               hx-swap="innerHTML">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="field">
-                                <label class="label" for="query">คำถามหรือคำค้น</label>
-                                <div class="control">
+                                <div class="control docs-query-query-frame">
+                                    <span class="docs-query-query-icon"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i></span>
                                     <textarea
-                                        class="textarea is-large"
+                                        class="textarea is-large docs-query-ai-input"
                                         id="query"
                                         name="query"
                                         rows="4"
-                                        placeholder="ค้นหาเอกสารหรือพิมพ์คำถาม..."
+                                        role="combobox"
+                                        aria-autocomplete="list"
+                                        aria-controls="docs-query-suggestions"
+                                        aria-expanded="false"
+                                        placeholder="พิมพ์คำถามเกี่ยวกับประกาศ แนวปฏิบัติ หรือเอกสาร..."
                                     >{{ query or '' }}</textarea>
                                 </div>
+                                <div id="docs-query-suggestions" class="docs-query-suggestions" role="listbox" aria-label="คำค้นที่เคยใช้" hidden></div>
                             </div>
-                            <div class="field has-text-centered mt-5">
-                                <button id="docs-query-search-button" class="button is-info is-medium" type="submit">ค้นหา</button>
+                            <div class="docs-query-ai-actions">
+                                <p><i class="fas fa-shield-halved" aria-hidden="true"></i> คำตอบจะอ้างอิงจากเอกสารในคลัง</p>
+                                <button id="docs-query-search-button" class="button is-info is-medium docs-query-ai-button" type="submit">
+                                    <span class="icon"><i class="fas fa-arrow-up" aria-hidden="true"></i></span>
+                                    <span>ค้นหาคำตอบ</span>
+                                </button>
                             </div>
                         </form>
 
@@ -116,15 +127,15 @@
                                     {% endif %}
                                 </div>
                                 {% if answer %}
-                                    <article class="message is-primary is-light docs-query-answer">
-                                        <div class="message-header">
-                                            <p><i class="fas fa-sparkles" aria-hidden="true"></i> ภาพรวมเอกสารที่เกี่ยวข้อง</p>
-                                            <span class="tag is-warning is-light is-small">AI-generated content</span>
+                                    <article class="docs-query-answer">
+                                        <div class="docs-query-answer-heading">
+                                            <span><i class="fas fa-sparkles" aria-hidden="true"></i> ภาพรวมเอกสาร</span>
+                                            <span class="docs-query-answer-label">AI SUMMARY</span>
                                         </div>
-                                        <div class="message-body">{{ answer }}</div>
-                                        <p class="docs-query-ai-warning has-text-grey is-size-7 mt-3 mb-0">
-                                            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-                                            ข้อสรุปนี้จัดทำโดย AI กรุณาตรวจสอบความถูกต้องจากเอกสารอ้างอิงทุกครั้ง
+                                        <div class="docs-query-answer-body">{{ answer }}</div>
+                                        <p class="docs-query-ai-warning">
+                                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                                            กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
                                         </p>
                                     </article>
                                 {% endif %}
@@ -202,6 +213,138 @@
             padding: 2.75rem;
         }
 
+        .docs-query-ai-shell {
+            background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(240, 246, 255, .95));
+            border: 1px solid rgba(50, 115, 220, .18);
+            box-shadow: 0 24px 60px rgba(26, 61, 124, .13), inset 0 1px 0 rgba(255, 255, 255, .9);
+            overflow: hidden;
+            position: relative;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .docs-query-ai-shell::before {
+            display: none;
+        }
+
+        .docs-query-ai-kicker {
+            align-items: center;
+            color: var(--theme-navy);
+            display: flex;
+            font-size: .7rem;
+            font-weight: 800;
+            justify-content: space-between;
+            letter-spacing: .12em;
+            margin-bottom: 2.5rem;
+            text-transform: uppercase;
+        }
+
+        .docs-query-ai-kicker .icon,
+        .docs-query-ai-kicker i { color: #8c63ff; margin-right: .35rem; }
+        .docs-query-ai-ready { animation: docs-query-ready-blink 1.8s ease-in-out infinite; color: var(--theme-green); font-size: .65rem; }
+        .docs-query-ai-ready i { color: var(--theme-green); font-size: .5rem; }
+        @keyframes docs-query-ready-blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+        .docs-query-ai-label { color: var(--theme-navy-deep); display: block; font-size: .85rem; font-weight: 800; margin-bottom: .55rem; }
+
+        .docs-query-query-frame {
+            align-items: flex-start;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(50, 115, 220, .28);
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(26, 61, 124, .08);
+            display: flex;
+            overflow: hidden;
+            padding: .2rem .5rem .2rem 1rem;
+            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
+
+        .docs-query-query-frame:focus-within {
+            border-color: #8c63ff;
+            box-shadow: 0 0 0 4px rgba(140, 99, 255, .12), 0 12px 30px rgba(26, 61, 124, .12);
+            transform: translateY(-1px);
+        }
+
+        .docs-query-query-icon { color: #8c63ff; font-size: 1rem; padding-top: 1.2rem; }
+        .docs-query-ai-input { background: transparent; border: 0; box-shadow: none; color: var(--theme-text); min-height: 8rem; padding-left: .85rem; resize: vertical; }
+        .docs-query-ai-input:focus { border: 0; box-shadow: none; }
+        .docs-query-ai-input::placeholder { color: #8190aa; }
+        .docs-query-suggestions {
+            background: #fff;
+            border: 1px solid rgba(50, 115, 220, .16);
+            border-radius: 14px;
+            box-shadow: 0 14px 30px rgba(26, 61, 124, .12);
+            margin-top: .5rem;
+            max-height: 15rem;
+            overflow-y: auto;
+            padding: .35rem;
+            position: relative;
+            text-align: left;
+            z-index: 10;
+        }
+
+        .docs-query-suggestion-item {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            border-radius: 10px;
+            color: var(--theme-text);
+            cursor: pointer;
+            display: flex;
+            font-size: .82rem;
+            gap: .55rem;
+            padding: .65rem .75rem;
+            text-align: left;
+            width: 100%;
+        }
+
+        .docs-query-suggestion-item:hover,
+        .docs-query-suggestion-item:focus,
+        .docs-query-suggestion-item.is-active { background: rgba(50, 115, 220, .08); color: var(--theme-navy-deep); outline: none; }
+        .docs-query-suggestion-item i { color: #8c63ff; font-size: .75rem; }
+        .docs-query-ai-actions { align-items: center; display: flex; justify-content: space-between; margin-top: 1rem; }
+        .docs-query-ai-actions p { color: var(--theme-muted); font-size: .75rem; }
+        .docs-query-ai-actions p i { color: var(--theme-green); margin-right: .3rem; }
+        .docs-query-ai-button { background: linear-gradient(135deg, #3273dc, #6a5acd); border: 0; border-radius: 999px; box-shadow: 0 10px 20px rgba(50, 115, 220, .22); font-weight: 800; padding-left: 1.2rem; padding-right: 1.2rem; }
+        .docs-query-ai-button:hover, .docs-query-ai-button:focus { background: linear-gradient(135deg, #244a90, #5442b5); box-shadow: 0 14px 26px rgba(50, 115, 220, .28); transform: translateY(-1px); }
+
+        .docs-query-answer {
+            background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(240, 246, 255, .95));
+            border: 1px solid rgba(50, 115, 220, .18);
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(26, 61, 124, .08);
+            margin: 1rem 0 1.5rem;
+            padding: 1.25rem 1.4rem;
+            position: relative;
+        }
+
+        .docs-query-answer::before {
+            background: linear-gradient(180deg, #3273dc, #8c63ff);
+            border-radius: 18px 0 0 18px;
+            bottom: 0;
+            content: "";
+            left: 0;
+            position: absolute;
+            top: 0;
+            width: 4px;
+        }
+
+        .docs-query-answer-heading {
+            align-items: center;
+            color: var(--theme-navy-deep);
+            display: flex;
+            font-size: .82rem;
+            font-weight: 800;
+            justify-content: space-between;
+            letter-spacing: .02em;
+        }
+
+        .docs-query-answer-heading i { color: #8c63ff; margin-right: .35rem; }
+        .docs-query-answer-label { color: #8c63ff; font-size: .62rem; letter-spacing: .1em; }
+        .docs-query-answer-body { color: var(--theme-text); line-height: 1.75; margin-top: .75rem; }
+        .docs-query-ai-warning { color: var(--theme-muted); font-size: .72rem; margin: .9rem 0 0; }
+        .docs-query-ai-warning i { color: var(--theme-green); margin-right: .3rem; }
+
         .docs-query-page-banner {
             border-radius: 22px;
             box-shadow: 0 12px 28px rgba(18, 39, 84, 0.12);
@@ -219,9 +362,28 @@
         }
 
         .docs-query-dashboard-card {
+            border-radius: 28px;
             margin: 0 auto 1.5rem;
             max-width: 1100px;
             padding: 1.25rem 1.5rem;
+        }
+
+        .docs-query-ai-dashboard {
+            background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(240, 246, 255, .95));
+            border: 1px solid rgba(50, 115, 220, .18);
+            box-shadow: 0 16px 38px rgba(26, 61, 124, .09), inset 0 1px 0 rgba(255, 255, 255, .9);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .docs-query-ai-dashboard::before {
+            background: linear-gradient(90deg, #3273dc, #8c63ff, #3273dc);
+            content: "";
+            height: 3px;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
         }
 
         .docs-query-dashboard-heading {
@@ -231,6 +393,19 @@
             margin-bottom: 1rem;
         }
 
+        .docs-query-dashboard-kicker {
+            color: #8c63ff;
+            font-size: .62rem;
+            font-weight: 800;
+            letter-spacing: .1em;
+            margin-bottom: .45rem;
+            text-transform: uppercase;
+        }
+
+        .docs-query-dashboard-kicker i { margin-right: .3rem; }
+        .docs-query-dashboard-status { color: var(--theme-green); font-size: .65rem; font-weight: 800; letter-spacing: .08em; }
+        .docs-query-dashboard-status i { font-size: .45rem; margin-right: .25rem; }
+
         .docs-query-dashboard-stats {
             display: grid;
             gap: 0.75rem;
@@ -238,13 +413,15 @@
         }
 
         .docs-query-dashboard-stat {
-            background: rgba(50, 115, 220, 0.06);
+            background: rgba(255, 255, 255, .75);
+            border: 1px solid rgba(50, 115, 220, .12);
             border-radius: 14px;
             padding: 0.8rem 1rem;
         }
 
         .docs-query-dashboard-stat.is-warning {
-            background: rgba(255, 193, 7, 0.12);
+            background: rgba(140, 99, 255, .07);
+            border-color: rgba(140, 99, 255, .18);
         }
 
         .docs-query-dashboard-stat strong {
@@ -262,9 +439,16 @@
         }
 
         .docs-query-dashboard-types {
-            border-top: 1px solid rgba(18, 39, 84, 0.08);
+            border-top: 1px solid rgba(50, 115, 220, 0.12);
             margin-top: 1rem;
             padding-top: 0.85rem;
+        }
+
+        .docs-query-ai-dashboard .tag { background: rgba(50, 115, 220, .08); color: var(--theme-navy); }
+        .docs-query-ai-dashboard .tag:hover { background: rgba(140, 99, 255, .14); color: var(--theme-navy-deep); }
+
+        @media screen and (max-width: 1023px) {
+            .docs-query-ai-shell { margin-left: 0; margin-right: 0; width: 100%; }
         }
 
         @media screen and (max-width: 768px) {
@@ -284,22 +468,23 @@
         .docs-query-documents-link { order: 3; }
 
         .docs-query-documents-cta {
-            background: linear-gradient(135deg, var(--theme-navy), var(--theme-navy-deep));
-            border: 0;
+            background: rgba(18, 39, 84, .04);
+            border: 1px solid rgba(18, 39, 84, .16);
             border-radius: 999px;
-            box-shadow: 0 12px 24px rgba(18, 39, 84, 0.2);
-            font-weight: 700;
+            box-shadow: none;
+            color: var(--theme-muted);
+            font-size: .85rem;
+            font-weight: 600;
             padding-left: 1.5rem;
             padding-right: 1.5rem;
-            transition: transform .15s ease, box-shadow .15s ease;
+            transition: background .15s ease, border-color .15s ease, color .15s ease;
         }
 
         .docs-query-documents-cta:hover,
         .docs-query-documents-cta:focus {
-            background: linear-gradient(135deg, #244a90, #16335e);
-            box-shadow: 0 16px 30px rgba(18, 39, 84, 0.28);
-            color: #fff;
-            transform: translateY(-2px);
+            background: rgba(18, 39, 84, .08);
+            border-color: rgba(18, 39, 84, .28);
+            color: var(--theme-navy-deep);
         }
 
         .docs-query-search-video {
@@ -334,6 +519,39 @@
             border-radius: 28px;
             margin: 1.5rem auto 3rem;
             padding: 1.25rem 2.75rem;
+        }
+
+        .docs-query-discovery-card {
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            margin-bottom: 1.5rem;
+            padding: .75rem 0 0;
+        }
+
+        .docs-query-discovery-card .docs-query-discovery {
+            border-top-color: rgba(18, 39, 84, .08);
+            margin-top: 1rem !important;
+            padding-top: 1.15rem;
+        }
+
+        .docs-query-discovery-card .title {
+            color: var(--theme-muted);
+            font-size: .82rem;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .docs-query-discovery-card .docs-query-popular-list {
+            color: var(--theme-muted);
+            font-size: .78rem;
+        }
+
+        .docs-query-discovery-card .tag {
+            background: rgba(18, 39, 84, .05);
+            color: var(--theme-muted);
+            font-size: .65rem;
         }
 
         .docs-query-result {
@@ -437,20 +655,15 @@
             margin-bottom: 1.25rem;
         }
 
-        .docs-query-answer .message-body {
-            line-height: 1.75;
-            white-space: pre-line;
-        }
-
-        .docs-query-answer .message-body.is-typing::after {
+        .docs-query-answer-body.is-typing::after {
             animation: docs-query-caret 900ms step-end infinite;
-            background: currentColor;
+            background: #8c63ff;
             content: '';
             display: inline-block;
-            height: 1.1em;
-            margin-left: 0.18rem;
-            vertical-align: -0.15em;
-            width: 0.08em;
+            height: 1em;
+            margin-left: 0.22rem;
+            vertical-align: -0.12em;
+            width: 0.42em;
         }
 
         @keyframes docs-query-caret {
@@ -518,7 +731,100 @@
         var searchInput = document.getElementById('query');
         var searchButton = document.getElementById('docs-query-search-button');
         var searchVideo = document.getElementById('docs-query-search-video');
+        var suggestionsPanel = document.getElementById('docs-query-suggestions');
+        var existingQueries = [
+            {% for popular_query in statistics.popular_queries %}
+                {{ popular_query.query_text|tojson }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
         var searchInProgress = false;
+        var activeSuggestionIndex = -1;
+
+        function uniqueQueryMatches(value) {
+            var normalizedValue = value.trim().toLowerCase();
+            return existingQueries.filter(function (queryText, index, queries) {
+                var normalizedQuery = queryText.toLowerCase();
+                return (!normalizedValue || normalizedQuery.indexOf(normalizedValue) !== -1) && queries.indexOf(queryText) === index;
+            }).slice(0, 6);
+        }
+
+        function renderQuerySuggestions(showWhenEmpty) {
+            if (!searchInput || !suggestionsPanel) return;
+            var value = searchInput.value.trim();
+            if (!value && !showWhenEmpty) {
+                suggestionsPanel.hidden = true;
+                suggestionsPanel.innerHTML = '';
+                searchInput.setAttribute('aria-expanded', 'false');
+                return;
+            }
+
+            var matches = uniqueQueryMatches(value);
+            activeSuggestionIndex = -1;
+
+            suggestionsPanel.innerHTML = '';
+            matches.forEach(function (queryText, index) {
+                var option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'docs-query-suggestion-item';
+                option.setAttribute('role', 'option');
+                option.id = 'docs-query-suggestion-' + index;
+                option.innerHTML = '<i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span></span>';
+                option.querySelector('span').textContent = queryText;
+                option.addEventListener('mousedown', function (event) {
+                    event.preventDefault();
+                });
+                option.addEventListener('click', function () {
+                    searchInput.value = queryText;
+                    suggestionsPanel.hidden = true;
+                    suggestionsPanel.innerHTML = '';
+                    searchInput.setAttribute('aria-expanded', 'false');
+                    searchInput.removeAttribute('aria-activedescendant');
+                    searchInput.focus();
+                });
+                suggestionsPanel.appendChild(option);
+            });
+            suggestionsPanel.hidden = matches.length === 0;
+            searchInput.setAttribute('aria-expanded', matches.length > 0 ? 'true' : 'false');
+        }
+
+        function setActiveSuggestion(nextIndex) {
+            var options = suggestionsPanel ? suggestionsPanel.querySelectorAll('.docs-query-suggestion-item') : [];
+            if (!options.length) return;
+            activeSuggestionIndex = (nextIndex + options.length) % options.length;
+            options.forEach(function (option, index) {
+                option.classList.toggle('is-active', index === activeSuggestionIndex);
+            });
+            searchInput.setAttribute('aria-activedescendant', options[activeSuggestionIndex].id);
+            options[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('focus', function () { renderQuerySuggestions(true); });
+            searchInput.addEventListener('input', function () { renderQuerySuggestions(false); });
+            searchInput.addEventListener('keydown', function (event) {
+                var options = suggestionsPanel ? suggestionsPanel.querySelectorAll('.docs-query-suggestion-item') : [];
+                if (event.key === 'ArrowDown' && options.length) {
+                    event.preventDefault();
+                    setActiveSuggestion(activeSuggestionIndex + 1);
+                } else if (event.key === 'ArrowUp' && options.length) {
+                    event.preventDefault();
+                    setActiveSuggestion(activeSuggestionIndex - 1);
+                } else if (event.key === 'Enter' && activeSuggestionIndex >= 0 && options[activeSuggestionIndex]) {
+                    event.preventDefault();
+                    options[activeSuggestionIndex].click();
+                } else if (event.key === 'Escape') {
+                    suggestionsPanel.hidden = true;
+                    searchInput.setAttribute('aria-expanded', 'false');
+                    searchInput.removeAttribute('aria-activedescendant');
+                }
+            });
+        }
+        document.addEventListener('click', function (event) {
+            if (suggestionsPanel && !suggestionsPanel.contains(event.target) && event.target !== searchInput) {
+                suggestionsPanel.hidden = true;
+                if (searchInput) searchInput.setAttribute('aria-expanded', 'false');
+            }
+        });
 
         if (searchVideo) {
             searchVideo.addEventListener('loadedmetadata', function () {
@@ -654,7 +960,7 @@
 
         function startAnswerTyping(root) {
             var scope = root || document;
-            scope.querySelectorAll('.docs-query-answer .message-body').forEach(typeAnswer);
+            scope.querySelectorAll('.docs-query-answer .docs-query-answer-body').forEach(typeAnswer);
         }
 
         bindReferenceModals();

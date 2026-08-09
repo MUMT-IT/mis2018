@@ -1268,14 +1268,22 @@ def index():
             except Exception as exc:
                 search_error = 'การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc)
                 flash('การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc), 'danger')
-    if request.headers.get('HX-Request') == 'true':
-        return render_template(
-            'docs_query/search_results.html',
-            query=query,
-            related_documents=related_documents,
-            answer=answer,
-            search_error=search_error,
-        )
+        if request.headers.get('HX-Request') == 'true':
+            if request.form.get('samaritan') == '1':
+                return render_template(
+                    'docs_query/samaritan_results.html',
+                    query=query,
+                    related_documents=related_documents,
+                    answer=answer,
+                    search_error=search_error,
+                )
+            return render_template(
+                'docs_query/search_results.html',
+                query=query,
+                related_documents=related_documents,
+                answer=answer,
+                search_error=search_error,
+            )
 
     try:
         statistics = _get_search_statistics()
@@ -1297,6 +1305,26 @@ def index():
         can_manage_documents=admin_permission.can(),
         docs_query_search_video_url=_docs_query_search_video_url(),
         docs_query_banner_url=_docs_query_banner_url(),
+    )
+
+
+@docs_query.route('/samaritan')
+@login_required
+def samaritan():
+    """PR-facing search console with a Samaritan-inspired visual treatment."""
+    try:
+        statistics = _get_search_statistics()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Could not load Samaritan search statistics.')
+        statistics = {
+            'popular_queries': [],
+            'popular_documents': [],
+        }
+    return render_template(
+        'docs_query/samaritan.html',
+        statistics=statistics,
+        can_manage_documents=admin_permission.can(),
     )
 
 
