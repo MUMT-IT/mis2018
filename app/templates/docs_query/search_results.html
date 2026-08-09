@@ -13,15 +13,15 @@
                 {% endif %}
             </div>
             {% if answer %}
-                <article class="message is-primary is-light docs-query-answer">
-                    <div class="message-header">
-                        <p><i class="fas fa-sparkles" aria-hidden="true"></i> ภาพรวมเอกสารที่เกี่ยวข้อง</p>
-                        <span class="tag is-warning is-light is-small">AI-generated content</span>
+                <article class="docs-query-answer">
+                    <div class="docs-query-answer-heading">
+                        <span><i class="fas fa-sparkles" aria-hidden="true"></i> ภาพรวมเอกสาร</span>
+                        <span class="docs-query-answer-label">AI SUMMARY</span>
                     </div>
-                    <div class="message-body">{{ answer }}</div>
-                    <p class="docs-query-ai-warning has-text-grey is-size-7 mt-3 mb-0">
-                        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
-                        ข้อสรุปนี้จัดทำโดย AI กรุณาตรวจสอบความถูกต้องจากเอกสารอ้างอิงทุกครั้ง
+                    <div class="docs-query-answer-body">{{ answer }}</div>
+                    <p class="docs-query-ai-warning">
+                        <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                        กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
                     </p>
                 </article>
             {% endif %}

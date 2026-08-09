@@ -119,6 +119,7 @@ def handle_message(event):
                 event.reply_token,
                 FlexSendMessage(alt_text='Leaves Info', contents=CarouselContainer(contents=bubbles))
             )
+            return
     if event.message.text == 'events':
         today = datetime.today().date()
         this_week = []
@@ -206,6 +207,7 @@ def handle_message(event):
                 event.reply_token,
                 FlexSendMessage(alt_text='Events Info', contents=CarouselContainer(contents=bubbles))
             )
+            return
         else:
             line_bot_api.reply_message(
                 event.reply_token,
@@ -236,6 +238,24 @@ def handle_message(event):
                     )
                 ]))
             )
+            return
+
+    # Catch-all: use the document search assistant for messages that are not
+    # handled by one of the commands above.
+    query = (event.message.text or '').strip()
+    if not query:
+        return
+
+    try:
+        from app.docs_query.views import _call_typhoon_short_answer, search_chunks
+
+        search_results = search_chunks(query, limit=20)
+        answer = _call_typhoon_short_answer(query, search_results)
+    except Exception:
+        app.logger.exception('Could not answer LINE message with Docs Query.')
+        answer = 'ขออภัย ไม่สามารถค้นหาคำตอบได้ในขณะนี้'
+
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=answer))
 
 
 # External scheduler endpoint: called by background jobs and should not be

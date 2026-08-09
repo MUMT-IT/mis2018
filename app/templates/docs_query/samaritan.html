@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Samaritan Desk{% endblock %}
+{% block page_content %}
+<main class="samaritan-page">
+    <div class="samaritan-grid" aria-hidden="true"></div>
+    <section class="samaritan-console container">
+        <div class="samaritan-console-topline">
+            <span><i class="fas fa-circle samaritan-live-dot" aria-hidden="true"></i> SAMARITAN</span>
+            <span class="samaritan-console-id"><a href="{{ url_for('docs_query.index') }}">MUMT-MIS</a> // ONLINE</span>
+        </div>
+
+        <div class="samaritan-search-stage">
+            <div class="samaritan-mark" aria-hidden="true">D</div>
+            <p class="samaritan-kicker">FACULTY INFORMATION SEARCH</p>
+            <h1 class="samaritan-title">What are you looking for?</h1>
+            <form id="samaritan-search-form" method="post" action="{{ url_for('docs_query.index') }}"
+                  hx-post="{{ url_for('docs_query.index') }}" hx-target="#samaritan-results" hx-swap="innerHTML">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="samaritan" value="1">
+                <div class="samaritan-input-shell">
+                    <span class="samaritan-input-prefix">&gt;</span>
+                    <input class="samaritan-query-input" id="samaritan-query" name="query" type="text"
+                           placeholder="Enter a question or keyword" autocomplete="off" autofocus
+                           aria-label="คำถามหรือคำค้น">
+                    <button id="samaritan-search-button" class="samaritan-search-button" type="submit" aria-label="ค้นหา">
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </form>
+            <p class="samaritan-hint"><i class="fas fa-lock" aria-hidden="true"></i> SEARCHING APPROVED DOCUMENTS // VERIFY SOURCES BEFORE RESPONDING</p>
+        </div>
+
+        <div id="samaritan-results"></div>
+
+    </section>
+</main>
+{% endblock %}
+{% block footer %}{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        (function () {
+            var form = document.getElementById('samaritan-search-form');
+            var button = document.getElementById('samaritan-search-button');
+            if (!form || !button) return;
+            form.addEventListener('submit', function () {
+                button.classList.add('is-loading');
+                button.disabled = true;
+            });
+            document.body.addEventListener('htmx:afterRequest', function (event) {
+                if (event.detail.elt === form) {
+                    button.classList.remove('is-loading');
+                    button.disabled = false;
+                }
+            });
+        })();
+    </script>
+{% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+    .samaritan-page { background: #fff; color: #111; min-height: calc(100vh - 4.5rem); overflow: hidden; position: relative; }
+    .samaritan-grid { background-image: linear-gradient(rgba(198, 40, 40, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(198, 40, 40, .08) 1px, transparent 1px); background-size: 44px 44px; inset: 0; opacity: .5; pointer-events: none; position: absolute; }
+    .samaritan-console { max-width: 1240px; min-height: calc(100vh - 4.5rem); padding: 2rem 1.5rem 2rem; position: relative; }
+    .samaritan-console-topline, .samaritan-kicker, .samaritan-hint { font-family: "DejaVu Sans Mono", monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .samaritan-console-topline { border-bottom: 1px solid rgba(198, 40, 40, .3); color: #c62828; display: flex; font-size: .7rem; justify-content: space-between; padding-bottom: .9rem; }
+    .samaritan-live-dot { color: #c62828; font-size: .5rem; margin-right: .4rem; vertical-align: middle; }
+    .samaritan-console-id { color: #111; }
+    .samaritan-console-id a { color: inherit; text-decoration: none; }
+    .samaritan-console-id a:hover, .samaritan-console-id a:focus { color: #c62828; }
+    .samaritan-search-stage { margin: 18vh auto 0; max-width: 760px; text-align: center; }
+    .samaritan-mark { align-items: center; animation: samaritan-mark-pulse 2.2s ease-in-out infinite; border: 1px solid #c62828; border-radius: 50%; color: #c62828; display: flex; font-family: "DejaVu Sans Mono", monospace; font-size: 1.7rem; height: 4rem; justify-content: center; margin: 0 auto 2rem; position: relative; width: 4rem; }
+    .samaritan-mark::after { animation: samaritan-ring-pulse 2.2s ease-in-out infinite; border: 1px solid rgba(198, 40, 40, .35); border-radius: 50%; content: ""; inset: -.45rem; position: absolute; }
+    @keyframes samaritan-mark-pulse { 0%, 100% { box-shadow: 0 0 0 rgba(198, 40, 40, 0); } 50% { box-shadow: 0 0 18px rgba(198, 40, 40, .28); } }
+    @keyframes samaritan-ring-pulse { 0%, 100% { opacity: .35; transform: scale(1); } 50% { opacity: .9; transform: scale(1.08); } }
+    .samaritan-kicker { color: #c62828; font-size: .7rem; margin-bottom: 1rem; }
+    .samaritan-title { color: #111; font-family: "DejaVu Sans Mono", monospace; font-size: clamp(1.5rem, 3vw, 2.4rem); font-weight: 400; letter-spacing: -.06em; margin-bottom: 2.25rem; }
+    .samaritan-input-shell { align-items: center; background: rgba(255, 255, 255, .94); border: 1px solid #111; box-shadow: 0 0 28px rgba(17, 17, 17, .12); display: flex; min-height: 4.5rem; padding: .5rem .75rem .5rem 1.25rem; text-align: left; }
+    .samaritan-input-shell:focus-within { border-color: #c62828; box-shadow: 0 0 34px rgba(198, 40, 40, .15); }
+    .samaritan-input-prefix { color: #c62828; font-family: monospace; font-size: 1.4rem; margin-right: .8rem; }
+    .samaritan-query-input { background: transparent; border: 0; box-shadow: none; caret-color: #c62828; color: #111; flex: 1; font-family: "DejaVu Sans Mono", monospace; font-size: 1rem; min-width: 0; outline: 0; }
+    .samaritan-query-input::placeholder { color: #111; opacity: .55; }
+    .samaritan-search-button { align-items: center; background: #c62828; border: 0; color: #fff; cursor: pointer; display: flex; height: 3.25rem; justify-content: center; width: 3.25rem; }
+    .samaritan-search-button:hover, .samaritan-search-button:focus { background: #111; }
+    .samaritan-search-button { position: relative; }
+    .samaritan-search-button.is-loading i { visibility: hidden; }
+    .samaritan-search-button.is-loading::after { animation: samaritan-spin .8s linear infinite; border: 2px solid rgba(255, 255, 255, .35); border-radius: 50%; border-top-color: #fff; content: ""; height: 1.15rem; left: 50%; margin: -.575rem 0 0 -.575rem; position: absolute; top: 50%; width: 1.15rem; }
+    @keyframes samaritan-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .samaritan-hint { color: #111; font-size: .6rem; margin-top: 1.15rem; }
+    .samaritan-hint i { color: #c62828; margin-right: .35rem; }
+    .samaritan-page #samaritan-results { margin: 3rem auto 0; max-width: 1080px; }
+    .samaritan-page #samaritan-results .samaritan-results-card { background: rgba(255, 255, 255, .96); border: 1px solid rgba(198, 40, 40, .35); color: #111; padding: 1.5rem; }
+    .samaritan-results-label { color: #c62828; font-family: "DejaVu Sans Mono", monospace; font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; }
+    .samaritan-answer { border-left: 3px solid #c62828; font-size: 1.05rem; line-height: 1.8; margin: .75rem 0 2rem; min-height: 1.9rem; padding: .15rem 0 .15rem 1rem; white-space: pre-wrap; }
+    .samaritan-answer.is-typing::after { animation: samaritan-caret .75s step-end infinite; color: #c62828; content: "▋"; margin-left: .15rem; }
+    @keyframes samaritan-caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .samaritan-document-links { border-top: 1px solid rgba(17, 17, 17, .15); padding-top: 1rem; }
+    .samaritan-document-links a { color: #111; display: block; font-family: "DejaVu Sans Mono", monospace; font-size: .85rem; padding: .55rem 0; text-decoration: none; }
+    .samaritan-document-links a::before { color: #c62828; content: "↳ "; }
+    .samaritan-document-links a:hover, .samaritan-document-links a:focus { color: #c62828; }
+    @media screen and (max-width: 768px) { .samaritan-console-topline { gap: .5rem; flex-direction: column; } .samaritan-search-stage { margin-top: 14vh; } .samaritan-input-shell { min-height: 4rem; } }
+</style>
+{% endblock %}

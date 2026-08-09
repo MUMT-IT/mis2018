@@ -1,0 +1,40 @@
+{% if search_error %}
+    <div class="samaritan-results-card">{{ search_error }}</div>
+{% elif query %}
+    <section class="samaritan-results-card">
+        {% if answer %}
+            <div class="samaritan-results-label">SUMMARY</div>
+            <div id="samaritan-answer" class="samaritan-answer is-typing" aria-live="polite"></div>
+        {% endif %}
+
+        {% if related_documents %}
+            <div class="samaritan-document-links">
+                <div class="samaritan-results-label">RELATED DOCUMENTS</div>
+                {% for related in related_documents %}
+                    <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
+                        {{ related.document.document_title or related.document.filename }}
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </section>
+    {% if answer %}
+        <script>
+            (function () {
+                var target = document.getElementById('samaritan-answer');
+                var text = {{ answer|tojson }};
+                if (!target) return;
+                var index = 0;
+                function typeNext() {
+                    if (index >= text.length) {
+                        target.classList.remove('is-typing');
+                        return;
+                    }
+                    target.textContent += text.charAt(index++);
+                    window.setTimeout(typeNext, 16);
+                }
+                typeNext();
+            })();
+        </script>
+    {% endif %}
+{% endif %}
