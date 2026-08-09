@@ -2978,12 +2978,55 @@ def request_for_clockin_clockout():
                 flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
             else:
                 flash('ไม่สามารถส่งคำขอได้ เนื่องจากไม่พบผู้บังคับบัญชาชั้นต้น', 'danger')
-            return render_template('staff/checkin_request.html')
+            return redirect(url_for('staff.show_time_report'))
             # return render_template('staff/geo_checkin.html')
         else:
             flash('ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
             return render_template('staff/checkin_request.html')
     return render_template('staff/checkin_request.html')
+
+
+@staff.route('/clockin-clockout/request/<int:request_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_clockin_clockout_request(request_id):
+    clock_request = StaffRequestWorkLogin.query.filter_by(
+        id=request_id,
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).first_or_404()
+
+    if request.method == 'POST':
+        work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
+        if work_datetime >= datetime.today():
+            flash('ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
+            return render_template('staff/checkin_request.html', request_record=clock_request)
+
+        clock_request.work_datetime = work_datetime
+        clock_request.date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        clock_request.reason = request.form.get('reason')
+        clock_request.is_checkin = request.form.get('clock') == 'checkin'
+        clock_request.requested_at = datetime.now(pytz.utc)
+        db.session.commit()
+        flash('แก้ไขคำขอเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.show_time_report'))
+
+    return render_template('staff/checkin_request.html', request_record=clock_request)
+
+
+@staff.route('/clockin-clockout/request/<int:request_id>/cancel', methods=['POST'])
+@login_required
+def cancel_clockin_clockout_request(request_id):
+    clock_request = StaffRequestWorkLogin.query.filter_by(
+        id=request_id,
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).first_or_404()
+    clock_request.cancelled_at = datetime.now(pytz.utc)
+    db.session.commit()
+    flash('ยกเลิกคำขอเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('staff.show_time_report'))
 
 
 @staff.route('/clockin-clockout/request-list')
@@ -5241,8 +5284,18 @@ def get_hr_login_quota_summary(staff_id):
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():
+    pending_clockin_requests = StaffRequestWorkLogin.query.filter_by(
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).order_by(StaffRequestWorkLogin.work_datetime.asc()).all()
+    recent_clockin_requests = StaffRequestWorkLogin.query.filter_by(
+        staff_account_id=current_user.id,
+    ).order_by(StaffRequestWorkLogin.requested_at.desc()).limit(10).all()
     return render_template('staff/time_report.html',
-                           logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()))
+                           logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()),
+                           pending_clockin_requests=pending_clockin_requests,
+                           recent_clockin_requests=recent_clockin_requests)
 
 
 @staff.route('/for-hr/staff-info')

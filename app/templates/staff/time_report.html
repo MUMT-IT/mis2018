@@ -108,6 +108,167 @@
         width: 100%;
     }
 
+    .staff-login-pending-card {
+        background: rgba(255, 249, 230, 0.86);
+        border: 1px solid rgba(202, 168, 74, 0.35);
+        border-radius: 22px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+
+    .staff-login-pending-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .staff-login-pending-title {
+        color: var(--theme-navy-deep);
+        font-size: 1rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .staff-login-pending-note {
+        color: var(--theme-muted);
+        font-size: 0.8rem;
+        margin: 0;
+    }
+
+    .staff-login-pending-list {
+        display: grid;
+        gap: 0.65rem;
+    }
+
+    .staff-login-pending-item {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        padding: 0.75rem;
+    }
+
+    .staff-login-pending-detail {
+        color: var(--theme-navy-deep);
+        line-height: 1.45;
+    }
+
+    .staff-login-pending-detail small {
+        color: var(--theme-muted);
+        display: block;
+    }
+
+    .staff-login-pending-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .staff-login-pending-actions form {
+        margin: 0;
+    }
+
+    .staff-login-pending-actions .button {
+        align-items: center;
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 0.8rem;
+        justify-content: center;
+        min-height: 2.25rem;
+        min-width: 5.5rem;
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    .staff-login-history-card {
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 22px;
+        margin-top: 1rem;
+        padding: 1rem;
+    }
+
+    .staff-login-history-title {
+        color: var(--theme-navy-deep);
+        font-size: 1rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .staff-login-history-list {
+        display: grid;
+        gap: 0.6rem;
+        margin-top: 0.8rem;
+    }
+
+    .staff-login-history-item {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        justify-content: space-between;
+        padding: 0.7rem 0.8rem;
+    }
+
+    .staff-login-history-detail {
+        color: var(--theme-navy-deep);
+        line-height: 1.45;
+    }
+
+    .staff-login-history-detail small {
+        color: var(--theme-muted);
+        display: block;
+    }
+
+    .staff-login-history-status {
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        padding: 0.3rem 0.7rem;
+        white-space: nowrap;
+    }
+
+    .staff-login-history-status.is-pending {
+        background: rgba(202, 168, 74, 0.18);
+        color: #7a5b00;
+    }
+
+    .staff-login-history-status.is-approved {
+        background: rgba(79, 143, 103, 0.16);
+        color: #2f7048;
+    }
+
+    .staff-login-history-status.is-cancelled {
+        background: rgba(184, 63, 63, 0.14);
+        color: #9c3636;
+    }
+
+    @media screen and (max-width: 768px) {
+        .staff-login-pending-actions {
+            width: 100%;
+        }
+
+        .staff-login-pending-actions > a,
+        .staff-login-pending-actions > form {
+            flex: 1 1 0;
+        }
+
+        .staff-login-pending-actions .button {
+            width: 100%;
+        }
+    }
+
     .staff-login-quota-head {
         align-items: flex-start;
         display: flex;
@@ -233,7 +394,7 @@
     }
 
     .staff-login-quota-help {
-        font-size: 0.9rem;
+        font-size: 1rem;
         line-height: 1.6;
         margin: 0 0 1rem;
         padding: 0.9rem 1rem;
@@ -561,6 +722,7 @@
 {% block page_content %}
 <section class="section staff-login-shell" id="app">
     <div class="container">
+        {% include "messages.html" %}
         <div class="staff-login-hero">
             <div class="staff-login-hero-inner">
                 <div class="staff-login-header">
@@ -575,6 +737,44 @@
                     </span>
                 </div>
                 <div class="staff-login-calendar-shell">
+                    {% if pending_clockin_requests %}
+                    <div class="staff-login-pending-card">
+                        <div class="staff-login-pending-head">
+                            <div>
+                                <h2 class="staff-login-pending-title">คำขอรับรองเวลารออนุมัติ</h2>
+                                <p class="staff-login-pending-note">สามารถแก้ไขหรือยกเลิกคำขอก่อนผู้บังคับบัญชาพิจารณา</p>
+                            </div>
+                            <span class="staff-login-badge">
+                                <i class="fas fa-hourglass-half" aria-hidden="true"></i>
+                                {{ pending_clockin_requests|length }} รายการ
+                            </span>
+                        </div>
+                        <div class="staff-login-pending-list">
+                            {% for request_record in pending_clockin_requests %}
+                            <div class="staff-login-pending-item">
+                                <div class="staff-login-pending-detail">
+                                    <strong>{{ 'เวลาเข้า' if request_record.is_checkin else 'เวลากลับ' }}</strong>
+                                    · {{ request_record.work_datetime|localdatetime }}
+                                    <small>เหตุผล: {{ request_record.reason }}</small>
+                                </div>
+                                <div class="staff-login-pending-actions">
+                                    <a class="button is-small is-info is-light"
+                                       href="{{ url_for('staff.edit_clockin_clockout_request', request_id=request_record.id) }}">
+                                        <i class="fas fa-pen-to-square" aria-hidden="true"></i>&nbsp;แก้ไข
+                                    </a>
+                                    <form method="post" action="{{ url_for('staff.cancel_clockin_clockout_request', request_id=request_record.id) }}"
+                                          onsubmit="return confirm('ยืนยันการยกเลิกคำขอนี้หรือไม่?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="button is-small is-danger is-light">
+                                            <i class="fas fa-xmark" aria-hidden="true"></i>&nbsp;ยกเลิก
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="staff-login-quota-card" id="loginQuotaCard">
                         <div class="staff-login-quota-head">
                             <div>
@@ -615,6 +815,35 @@
                             กำลังโหลดปฏิทิน...
                         </div>
                     </div>
+                    {% if recent_clockin_requests %}
+                    <div class="staff-login-history-card">
+                        <h2 class="staff-login-history-title">คำขอรับรองเวลา 10 รายการล่าสุด</h2>
+                        <div class="staff-login-history-list">
+                            {% for request_record in recent_clockin_requests %}
+                            {% if request_record.approved_at %}
+                                {% set request_status = 'อนุมัติแล้ว' %}
+                                {% set request_status_class = 'is-approved' %}
+                            {% elif request_record.cancelled_at %}
+                                {% set request_status = 'ไม่อนุมัติ/ยกเลิก' %}
+                                {% set request_status_class = 'is-cancelled' %}
+                            {% else %}
+                                {% set request_status = 'รออนุมัติ' %}
+                                {% set request_status_class = 'is-pending' %}
+                            {% endif %}
+                            <div class="staff-login-history-item">
+                                <div class="staff-login-history-detail">
+                                    <strong>{{ 'เวลาเข้า' if request_record.is_checkin else 'เวลากลับ' }}</strong>
+                                    · {{ request_record.work_datetime|localdatetime }}
+                                    <small>ส่งคำขอเมื่อ {{ request_record.requested_at|localdatetime }}</small>
+                                </div>
+                                <span class="staff-login-history-status {{ request_status_class }}">
+                                    {{ request_status }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
