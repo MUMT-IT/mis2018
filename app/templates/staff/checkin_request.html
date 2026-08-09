@@ -26,48 +26,7 @@
                 <div class="box">
                     <form method="post" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">วัน-เวลา ที่ขอรับรอง</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="control has-icons-left">
-                                        <input name="workdatetime" id="workdatetime" class="input">
-                                        <span class="icon is-small is-left">
-                                            <i class="far fa-calendar-alt"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">ช่วงเวลา</label>
-                            </div>
-                            <div class="field-body">
-                                <label class="radio-inline">
-                                    <input type="radio" value="checkin" name="clock" checked>
-                                    เวลาเข้า
-                                </label>
-                                <label class="radio-inline">
-                                    <input type="radio" value="checkout" name="clock">
-                                    เวลากลับ
-                                </label>
-                            </div>
-                        </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">เหตุผล</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="control">
-                                    <div class="field">
-                                        <input class="input" name="reason" type="text">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        {% include "staff/_clockin_request_fields.html" %}
                         <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="" class="button is-light">ยกเลิก</a>

@@ -49,6 +49,7 @@ EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
     'staff.create_qrcode',
     'staff.show_time_report',
     'staff.send_time_report_data',
+    'staff.send_time_report_quota',
     'staff.send_holidays_data',
 }
 
@@ -107,6 +108,7 @@ def _create_work_login_record(staff_account, now, lat, lon, *, qrcode_exp_dateti
         lat=float(lat),
         long=float(lon),
         start_datetime=now,
+        record_source='scan',
         num_scans=num_scans,
         note=note,
     )
@@ -156,6 +158,12 @@ def _daily_work_login_rows(records):
         if end_reference and end_qrcode_exp:
             end_expired = _to_bangkok(end_reference) > _to_bangkok(end_qrcode_exp)
 
+        approved_correction_types = sorted({
+            rec.correction_type
+            for rec in day_records
+            if rec.record_source == 'approved_request' and rec.correction_type
+        })
+
         lat = float(first.lat) if first.lat is not None else ''
         lon = float(first.long) if first.long is not None else ''
         rows.append({
@@ -168,6 +176,9 @@ def _daily_work_login_rows(records):
             'lon': lon,
             'start_expired': start_expired,
             'end_expired': end_expired,
+            'approved_checkin': 'checkin' in approved_correction_types,
+            'approved_checkout': 'checkout' in approved_correction_types,
+            'has_approved_correction': bool(approved_correction_types),
             'location': '<a href="https://maps.google.com/?q={},{}">Click</a>'.format(lat, lon)
             if lat != '' and lon != '' else '',
         })
@@ -184,6 +195,63 @@ def _parse_login_summary_date(value, *, default=None):
     if isinstance(value, datetime):
         return value.date()
     return datetime.strptime(value.strip(), '%d/%m/%Y').date()
+
+
+def _current_login_quota_period(reference_date=None, staff_personal_info=None):
+    reference_date = reference_date or datetime.now(tz).date()
+    employment_title = getattr(getattr(staff_personal_info, 'employment', None), 'title', '')
+    if employment_title.strip() == 'พนักงานมหาวิทยาลัย':
+        quota_limit = 30
+        quota_start_year = reference_date.year if reference_date.month >= 7 else reference_date.year - 1
+        quota_start = date(quota_start_year, 7, 1)
+        quota_end = date(quota_start_year + 1, 6, 30)
+    elif reference_date.month >= 6:
+        quota_limit = 15
+        quota_start = date(reference_date.year, 6, 1)
+        quota_end = date(reference_date.year, 12, 31)
+    else:
+        quota_limit = 15
+        quota_start = date(reference_date.year, 1, 1)
+        quota_end = date(reference_date.year, 6, 30)
+    return quota_start, quota_end, quota_limit
+
+
+def _build_login_quota_summary(staff_personal_info):
+    quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
+        staff_personal_info=staff_personal_info
+    )
+    staff_account = getattr(staff_personal_info, 'staff_account', None)
+    records = []
+    if staff_account is not None:
+        records = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date)
+            .between(quota_start_date, quota_end_date),
+            StaffWorkLogin.staff_id == staff_account.id,
+        ).all()
+
+    rows = _daily_work_login_rows(records)
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    quota_flagged_dates = set()
+    for row in rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        is_late_day = bool(start_dt and start_dt.time() > office_start_time)
+        is_short_hours_day = bool(
+            start_dt and end_dt and worked_hours is not None and worked_hours < 8.0
+        )
+        if is_late_day or is_short_hours_day:
+            quota_flagged_dates.add(row['date'])
+
+    quota_dates = sorted(day.isoformat() for day in quota_flagged_dates)
+    return {
+        'quota_start': quota_start_date.isoformat(),
+        'quota_end': quota_end_date.isoformat(),
+        'quota_limit': quota_limit,
+        'quota_used': len(quota_dates),
+        'quota_dates': quota_dates,
+        'quota_remaining': max(quota_limit - len(quota_dates), 0),
+    }
 
 
 def _build_login_summary_dashboard(start_date, end_date, dept_id):
@@ -230,10 +298,32 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
         records = StaffWorkLogin.query.all()
     daily_rows = _daily_work_login_rows(records)
 
+    quota_periods = {
+        staff_id: _current_login_quota_period(staff_personal_info=employee)[:2]
+        for staff_id, employee in employees_by_id.items()
+    }
+    quota_limits = {
+        staff_id: _current_login_quota_period(staff_personal_info=employee)[2]
+        for staff_id, employee in employees_by_id.items()
+    }
+    quota_start_date = min(period[0] for period in quota_periods.values())
+    quota_end_date = max(period[1] for period in quota_periods.values())
+    quota_records_query = StaffWorkLogin.query.filter(
+        cast(func.timezone('Asia/Bangkok', start_datetime_column), Date)
+        .between(quota_start_date, quota_end_date)
+    )
+    if staff_id_column is not None:
+        quota_records_query = quota_records_query.filter(staff_id_column.in_(staff_ids))
+    quota_daily_rows = _daily_work_login_rows(quota_records_query.all())
+
     rows_by_staff = defaultdict(list)
     for row in daily_rows:
         if row['staff_id'] in employees_by_id:
             rows_by_staff[row['staff_id']].append(row)
+    quota_rows_by_staff = defaultdict(list)
+    for row in quota_daily_rows:
+        if row['staff_id'] in employees_by_id:
+            quota_rows_by_staff[row['staff_id']].append(row)
 
     total_complete_days = 0
     total_late_checkins = 0
@@ -246,6 +336,7 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
         complete_days = 0
         late_checkins = 0
         early_checkouts = 0
+        flagged_records = 0
         worked_hours_total = 0.0
 
         for row in employee_rows:
@@ -260,6 +351,22 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
                 late_checkins += 1
             if end_dt and end_dt.time() < office_end_time:
                 early_checkouts += 1
+            flagged_records += int(row['approved_checkin']) + int(row['approved_checkout'])
+
+        quota_flagged_dates = set()
+        quota_start_date, quota_end_date = quota_periods[staff_id]
+        for row in quota_rows_by_staff.get(staff_id, []):
+            if not quota_start_date <= row['date'] <= quota_end_date:
+                continue
+            quota_start_dt = parser.isoparse(row['start']) if row['start'] else None
+            quota_end_dt = parser.isoparse(row['end']) if row['end'] else None
+            quota_worked_hours = _calculate_work_hours(quota_start_dt, quota_end_dt)
+            is_late_quota_day = bool(quota_start_dt and quota_start_dt.time() > office_start_time)
+            is_short_hours_quota_day = bool(
+                quota_start_dt and quota_end_dt and quota_worked_hours is not None and quota_worked_hours < 8.0
+            )
+            if is_late_quota_day or is_short_hours_quota_day:
+                quota_flagged_dates.add(row['date'])
 
         average_hours_per_day = round(worked_hours_total / complete_days, 1) if complete_days else 0.0
         completion_rate = round((complete_days / len(employee_rows)) * 100, 1) if employee_rows else 0.0
@@ -279,6 +386,13 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             'complete_days': complete_days,
             'late_checkins': late_checkins,
             'early_checkouts': early_checkouts,
+            'flagged_records': flagged_records,
+            'quota_used': len(quota_flagged_dates),
+            'quota_remaining': max(quota_limits[staff_id] - len(quota_flagged_dates), 0),
+            'quota_dates': sorted(day.isoformat() for day in quota_flagged_dates),
+            'quota_limit': quota_limits[staff_id],
+            'quota_start': quota_start_date.isoformat(),
+            'quota_end': quota_end_date.isoformat(),
             'average_hours_per_day': average_hours_per_day,
             'completion_rate': completion_rate,
             'days_with_records': len(employee_rows),
@@ -2546,10 +2660,16 @@ def get_hr_login_time_data():
 def hr_login_summary_report():
     now = datetime.now(tz)
     report_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    active_staff = StaffPersonalInfo.query.filter(
+        StaffPersonalInfo.retirement_date == None,
+        StaffPersonalInfo.resignation_date == None,
+        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
+    ).order_by(StaffPersonalInfo.th_firstname, StaffPersonalInfo.en_firstname).all()
     return render_template(
         'staff/hr_login_summary_report.html',
         report_start=report_start,
         report_end=now,
+        quota_staff=active_staff,
     )
 
 
@@ -2622,6 +2742,9 @@ def hr_manual_checkin_calendar_data():
             'worked_hours_display': worked_hours_display,
             'worked_hours': worked_hours,
             'is_late': is_late,
+            'approved_checkin': row['approved_checkin'],
+            'approved_checkout': row['approved_checkout'],
+            'has_approved_correction': row['has_approved_correction'],
             'backgroundColor': background_color,
             'borderColor': border_color,
             'textColor': text_color,
@@ -2706,6 +2829,7 @@ def hr_manual_checkin():
             date_id=date_id,
             staff=staff_account,
             start_datetime=checkin_dt,
+            record_source='hr_manual',
             lat=0.0,
             long=0.0,
             num_scans=num_scans,
@@ -2869,31 +2993,34 @@ def list_for_clockin_clockout():
     return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
 
 
-@staff.route('/clockin-clockout/approved/<int:request_id>')
+@staff.route('/clockin-clockout/approved/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def approved_for_clockin_clockout(request_id):
     clock_request = StaffRequestWorkLogin.query.get(request_id)
-    approved = request.args.get("approved")
+    approved = request.form.get('approved') if request.method == 'POST' else request.args.get('approved')
     if approved:
         if approved == 'yes':
             clock_request.approved_at = datetime.now(pytz.utc)
 
             approval = StaffWorkLogin(
                 date_id=clock_request.date_id,
-                staff=clock_request.staff
+                staff=clock_request.staff,
+                start_datetime=clock_request.work_datetime,
+                record_source='approved_request',
+                correction_type='checkin' if clock_request.is_checkin else 'checkout',
             )
-            if clock_request.is_checkin:
-                approval.start_datetime = clock_request.work_datetime
-            else:
-                approval.end_datetime = clock_request.work_datetime
-                # TODO: added num_scans
             db.session.add(approval)
             db.session.commit()
         else:
             clock_request.cancelled_at = datetime.now(pytz.utc)
         db.session.add(clock_request)
         db.session.commit()
-        flash('บันทึกการขอรับรองการทำงานเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
+        flash_message = (
+            'อนุมัติคำขอรับรองการทำงานเรียบร้อยแล้ว'
+            if approved == 'yes'
+            else 'ไม่อนุมัติคำขอรับรองการทำงานเรียบร้อยแล้ว'
+        )
+        flash(flash_message, 'success' if approved == 'yes' else 'warning')
 
         title = u'เข้างาน' if clock_request.is_checkin else u'กลับบ้าน'
         if clock_request.approved_at:
@@ -2920,6 +3047,11 @@ def approved_for_clockin_clockout(request_id):
         approve_title = u'แจ้งสถานะรับรองการทำงาน'
         if not current_app.debug:
             send_mail([clock_request.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        if request.method == 'POST' and request.headers.get('HX-Request') == 'true':
+            response = make_response('', 204)
+            response.headers['HX-Refresh'] = 'true'
+            return response
+
         all_requests = StaffRequestWorkLogin.query.all()
         return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
     return render_template('staff/checkin_approval.html', clock_request=clock_request)
@@ -3270,6 +3402,7 @@ class LoginDataUploadView(BaseView):
                     staff=account.staff_account,
                     start_datetime=tz.localize(start_dt),
                     end_datetime=tz.localize(end_dt),
+                    record_source='hr_manual',
                     checkin_mins=morning,
                     checkout_mins=evening
                 )
@@ -3277,6 +3410,7 @@ class LoginDataUploadView(BaseView):
                 record = StaffWorkLogin(
                     staff=account.staff_account,
                     start_datetime=tz.localize(start_dt),
+                    record_source='hr_manual',
                     checkin_mins=morning,
                 )
             db.session.add(record)
@@ -3389,6 +3523,9 @@ def send_summary_data():
                     'worked_hours_display': worked_hours_display,
                     'worked_hours': worked_hours,
                     'is_late': is_late,
+                    'approved_checkin': row['approved_checkin'],
+                    'approved_checkout': row['approved_checkout'],
+                    'has_approved_correction': row['has_approved_correction'],
                     'className': class_names,
                     'type': 'login'
                 })
@@ -3497,11 +3634,17 @@ def login_summary():
     today = datetime.today().date()
     start_date = date(today.year, today.month, 1)
     end_date = today
+    pending_clockin_requests = StaffRequestWorkLogin.query.filter_by(
+        approver_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).order_by(StaffRequestWorkLogin.requested_at.desc()).all()
     return render_template('staff/login_summary.html',
                            tab='login',
                            curr_dept_id=current_user.personal_info.org.id,
                            summary_start_date=start_date.strftime('%d/%m/%Y'),
-                           summary_end_date=end_date.strftime('%d/%m/%Y'))
+                           summary_end_date=end_date.strftime('%d/%m/%Y'),
+                           pending_clockin_requests=pending_clockin_requests)
 
 
 @staff.route('/api/login-summary')
@@ -5055,10 +5198,44 @@ def send_time_report_data():
             'worked_hours': worked_hours,
             'hours_is_negative': hours_is_negative,
             'is_late': is_late,
+            'approved_checkin': row['approved_checkin'],
+            'approved_checkout': row['approved_checkout'],
+            'has_approved_correction': row['has_approved_correction'],
             'className': class_names,
             'type': 'login'
         })
     return jsonify(records)
+
+
+@staff.route('/api/time-report/quota')
+@login_required
+def send_time_report_quota():
+    return jsonify(_build_login_quota_summary(current_user.personal_info))
+
+
+@staff.route('/api/for-hr/login-report/quota/<int:staff_id>')
+@hr_permission.require()
+@login_required
+def get_hr_login_quota_summary(staff_id):
+    staff_personal_info = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        staff_personal_info.retired
+        or staff_personal_info.retirement_date
+        or staff_personal_info.resignation_date
+        or staff_personal_info.staff_account is None
+    ):
+        abort(404)
+
+    quota = _build_login_quota_summary(staff_personal_info)
+    quota.update({
+        'staff_id': staff_personal_info.id,
+        'staff_name': staff_personal_info.fullname,
+        'employment_type': (
+            staff_personal_info.employment.title
+            if staff_personal_info.employment else 'ไม่ระบุ'
+        ),
+    })
+    return jsonify(quota)
 
 
 @staff.route('/time-report/report')

@@ -596,6 +596,11 @@
         white-space: nowrap;
     }
 
+    .staff-login-calendar .staff-login-event-alert {
+        color: #b8433f;
+        margin-right: 0.3rem;
+    }
+
     .staff-login-calendar .staff-login-event-hours {
         flex-shrink: 0;
         font-weight: 800;
@@ -651,6 +656,43 @@
         margin-top: 1rem;
     }
 
+    .staff-login-request-card {
+        margin-top: 1rem;
+    }
+
+    .staff-login-request-table-wrap {
+        overflow-x: auto;
+    }
+
+    .staff-login-request-table {
+        background: transparent;
+        min-width: 680px;
+    }
+
+    .staff-login-request-table th {
+        color: var(--theme-muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .staff-login-request-table td,
+    .staff-login-request-table th {
+        border-color: rgba(18, 39, 84, 0.08);
+        vertical-align: middle;
+    }
+
+    .staff-login-request-type {
+        background: var(--theme-navy-soft);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        display: inline-flex;
+        font-size: 0.76rem;
+        font-weight: 700;
+        padding: 0.3rem 0.65rem;
+        white-space: nowrap;
+    }
+
     @media screen and (max-width: 1100px) {
         .staff-login-summary-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -685,6 +727,7 @@
 {% block page_content %}
 <section class="section staff-login-shell" id="app">
     <div class="container">
+        {% include "messages.html" %}
         <div class="staff-login-hero">
             <div class="staff-login-hero-inner">
                 <div class="staff-login-header">
@@ -739,6 +782,76 @@
                         <div class="delta">สะสมทั้งช่วงวันที่เลือก</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="staff-login-card staff-login-request-card">
+            <div class="staff-login-card-inner">
+                <div class="staff-login-card-head">
+                    <div>
+                        <div class="staff-login-board-title">คำขอรับรองเวลาที่รออนุมัติ</div>
+                        <div class="staff-login-export-note">คำขอจากบุคลากรในสังกัดของคุณ</div>
+                    </div>
+                    <div class="staff-login-board-count">{{ pending_clockin_requests|length }} รายการ</div>
+                </div>
+
+                {% if pending_clockin_requests %}
+                <div class="staff-login-request-table-wrap">
+                    <table class="table is-fullwidth staff-login-request-table">
+                        <thead>
+                            <tr>
+                                <th>ผู้ขอ</th>
+                                <th>ประเภท</th>
+                                <th>วันที่และเวลา</th>
+                                <th>เหตุผล</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in pending_clockin_requests %}
+                            <tr>
+                                <td>{{ req.staff.fullname }}</td>
+                                <td>
+                                    <span class="staff-login-request-type">
+                                        {% if req.is_checkin %}ขอรับรองเวลาเข้า{% else %}ขอรับรองเวลากลับ{% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ req.work_datetime|localdatetime }}</td>
+                                <td>{{ req.reason }}</td>
+                                <td class="has-text-right">
+                                    <div class="buttons is-right">
+                                        <form method="post"
+                                              action="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
+                                              hx-post="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
+                                              hx-confirm="ยืนยันการอนุมัติคำขอนี้หรือไม่?"
+                                              hx-swap="none">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="approved" value="yes">
+                                            <button type="submit" class="button is-small is-success is-rounded">
+                                                อนุมัติ
+                                            </button>
+                                        </form>
+                                        <form method="post"
+                                              action="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
+                                              hx-post="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
+                                              hx-confirm="ยืนยันการไม่อนุมัติคำขอนี้หรือไม่?"
+                                              hx-swap="none">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="approved" value="no">
+                                            <button type="submit" class="button is-small is-danger is-rounded">
+                                                ไม่อนุมัติ
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="staff-login-chart-empty">ไม่มีคำขอที่รออนุมัติ</div>
+                {% endif %}
             </div>
         </div>
 
@@ -957,6 +1070,7 @@
             { label: 'Complete days', value: employee.complete_days || 0, icon: 'fas fa-check-circle' },
             { label: 'Late check-ins', value: employee.late_checkins || 0, icon: 'fas fa-clock' },
             { label: 'Early check-outs', value: employee.early_checkouts || 0, icon: 'fas fa-arrow-right-from-bracket' },
+            { label: 'Flagged records', value: employee.flagged_records || 0, icon: 'fas fa-triangle-exclamation' },
             { label: 'Average hrs/day', value: formatNumber(employee.average_hours_per_day || 0), icon: 'fas fa-chart-line' }
         ];
         $('#employeeDetailTitle').text(employee.name || 'Employee detail');
@@ -1047,9 +1161,16 @@
                 var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / 8) * 100, 12), 100) : 0;
                 var hoursClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
                 var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
+                var correctionLabel = event.approved_checkin && event.approved_checkout
+                    ? 'มีการแก้ไขเวลาเข้าและออก'
+                    : (event.approved_checkin ? 'มีการแก้ไขเวลาเข้า' : 'มีการแก้ไขเวลากลับ');
+                var alertIcon = event.has_approved_correction
+                    ? '<i class="fas fa-triangle-exclamation staff-login-event-alert" role="img" title="' +
+                      escapeHtml(correctionLabel) + '" aria-label="' + escapeHtml(correctionLabel) + '"></i>'
+                    : '';
                 var content = '<span class="staff-login-event-content">';
                 content += '<span class="staff-login-event-head">';
-                content += '<span class="staff-login-event-name">' + name + '</span>';
+                content += '<span class="staff-login-event-name">' + alertIcon + name + '</span>';
                 if (workedHours) {
                     content += '<span class="staff-login-event-hours is-total ' + hoursClass + '">' + workedHours + '</span>';
                 }

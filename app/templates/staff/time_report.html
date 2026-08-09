@@ -4,6 +4,7 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
 <style>
     .staff-login-shell {
         padding: 1.5rem 0 3rem;
@@ -92,6 +93,150 @@
         border-radius: 22px;
         box-shadow: none;
         padding: 0.9rem;
+    }
+
+    .staff-login-quota-card {
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 22px;
+        margin-top: 1rem;
+        padding: 1rem;
+    }
+
+    .staff-login-calendar-shell .staff-login-quota-card {
+        margin: 0 0 1rem;
+        width: 100%;
+    }
+
+    .staff-login-quota-head {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .staff-login-quota-title {
+        color: var(--theme-navy-deep);
+        font-size: 1rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .staff-login-quota-note {
+        color: var(--theme-muted);
+        font-size: 0.8rem;
+        margin-top: 0.2rem;
+    }
+
+    .staff-login-quota-grid {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-content: center;
+    }
+
+    .staff-login-quota-grid .staff-login-quota-item {
+        grid-column: 1 / -1;
+        justify-self: center;
+        max-width: 42rem;
+        width: 100%;
+    }
+
+    .staff-login-quota-item {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 16px;
+        padding: 0.85rem;
+    }
+
+    .staff-login-quota-item-head {
+        align-items: baseline;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: space-between;
+    }
+
+    .staff-login-quota-label {
+        color: var(--theme-navy-deep);
+        font-size: 0.82rem;
+        font-weight: 800;
+    }
+
+    .staff-login-quota-value {
+        color: var(--theme-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .staff-login-quota-ring-wrap {
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        margin: 0.8rem 0 0.9rem;
+    }
+
+    .staff-login-quota-ring {
+        align-items: center;
+        background: conic-gradient(#b8433f var(--staff-login-quota-progress, 0%), rgba(18, 39, 84, 0.08) 0);
+        border-radius: 50%;
+        display: flex;
+        height: 9rem;
+        justify-content: center;
+        position: relative;
+        width: 9rem;
+    }
+
+    .staff-login-quota-ring::before {
+        background: #fff;
+        border-radius: 50%;
+        content: "";
+        height: 7.35rem;
+        position: absolute;
+        width: 7.35rem;
+    }
+
+    .staff-login-quota-ring-center {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        z-index: 1;
+    }
+
+    .staff-login-quota-ring-value {
+        color: var(--theme-navy-deep);
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .staff-login-quota-ring-limit {
+        color: var(--theme-muted);
+        font-size: 0.75rem;
+        margin-top: 0.3rem;
+    }
+
+    .staff-login-quota-remaining {
+        color: var(--theme-muted);
+        font-size: 0.76rem;
+        margin-top: 0.45rem;
+    }
+
+    .staff-login-quota-dates {
+        color: var(--theme-muted);
+        font-size: 0.74rem;
+        line-height: 1.5;
+        margin-top: 0.5rem;
+    }
+
+    .staff-login-quota-help {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin: 0 0 1rem;
+        padding: 0.9rem 1rem;
     }
 
     .staff-login-calendar-head {
@@ -190,6 +335,18 @@
 
     .staff-login-calendar-frame.is-loading .staff-login-calendar-loading {
         display: inline-flex;
+    }
+
+    #clockinRequestModal .modal-card {
+        width: min(680px, calc(100% - 2rem));
+    }
+
+    #clockinRequestModal .modal-card-body {
+        padding: 1.25rem;
+    }
+
+    #clockinRequestModal .radio-inline + .radio-inline {
+        margin-left: 1rem;
     }
 
     .staff-login-calendar .fc,
@@ -333,6 +490,11 @@
         white-space: nowrap;
     }
 
+    .staff-login-calendar .staff-login-event-alert {
+        color: #b8433f;
+        margin-right: 0.3rem;
+    }
+
     .staff-login-calendar .staff-login-event-hours {
         color: var(--theme-navy-deep);
         flex-shrink: 0;
@@ -385,6 +547,10 @@
             min-height: 520px;
         }
 
+        .staff-login-quota-grid {
+            grid-template-columns: 1fr;
+        }
+
         .staff-login-title {
             font-size: 1.2rem;
         }
@@ -409,6 +575,24 @@
                     </span>
                 </div>
                 <div class="staff-login-calendar-shell">
+                    <div class="staff-login-quota-card" id="loginQuotaCard">
+                        <div class="staff-login-quota-head">
+                            <div>
+                                <h2 class="staff-login-quota-title">สรุปโควตาการลงเวลา</h2>
+                                <p class="staff-login-quota-note" id="loginQuotaPeriod">กำลังโหลดรอบโควตา...</p>
+                            </div>
+                            <span class="staff-login-badge" id="loginQuotaLimitBadge">
+                                <i class="fas fa-chart-column" aria-hidden="true"></i>
+                                กำลังโหลดโควตา
+                            </span>
+                        </div>
+                        <div class="staff-login-quota-grid" id="loginQuotaChart">
+                            <div class="staff-login-quota-item">กำลังโหลดข้อมูล...</div>
+                        </div>
+                    </div>
+                    <div class="notification is-warning is-light staff-login-quota-help">
+                        หากต้องการขออนุมัติบันทึกการเข้าทำงานในกรณีที่ไม่ได้แสกนเข้าหรือออก ให้คลิกที่ว่างในช่องวันที่ต้องการในปฏิทิน
+                    </div>
                     <div class="staff-login-calendar-head">
                         <div class="staff-login-calendar-head-copy">
                             <p class="staff-login-calendar-label" id="calendarTitle">กำลังโหลดปฏิทิน...</p>
@@ -434,17 +618,103 @@
                 </div>
             </div>
         </div>
+
     </div>
 </section>
+
+<div class="modal" id="clockinRequestModal" aria-hidden="true">
+    <div class="modal-background" data-close-clockin-request></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="clockinRequestModalTitle">
+        <header class="modal-card-head">
+            <p class="modal-card-title" id="clockinRequestModalTitle">ขอรับรองเวลาเข้างาน</p>
+            <button type="button" class="delete" aria-label="ปิด" data-close-clockin-request></button>
+        </header>
+        <section class="modal-card-body">
+            <p class="help mb-4">เลือกวันที่จากปฏิทินเพื่อกรอกคำขอรับรองเวลา</p>
+            <form method="post" action="{{ url_for('staff.request_for_clockin_clockout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% include "staff/_clockin_request_fields.html" %}
+                <div class="field is-grouped is-grouped-right mt-5">
+                    <div class="control">
+                        <button type="button" class="button is-light" data-close-clockin-request>ยกเลิก</button>
+                    </div>
+                    <div class="control">
+                        <button type="submit" class="button is-primary">ส่งคำขอ</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/locale-all.js" integrity="sha512-vTlIpCig7Yl48kFM3fyxWwW7t+cf+U7Bi22g/o2D4hbGKXnN//6hNZYtIZKSmXQJ5BTdr1jMBz6BUZV030LmuQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
     moment.locale('th');
+    var loginQuotaApiUrl = {{ url_for('staff.send_time_report_quota')|tojson|safe }};
+
+    function renderLoginQuota(quota) {
+        var quotaLimit = Number(quota.quota_limit || 30);
+        var quotaStart = moment(quota.quota_start).format('D MMM YYYY');
+        var quotaEnd = moment(quota.quota_end).format('D MMM YYYY');
+        $('#loginQuotaPeriod').text('รอบโควตา ' + quotaStart + ' – ' + quotaEnd);
+        $('#loginQuotaLimitBadge').html('<i class="fas fa-chart-column" aria-hidden="true"></i> ' + quotaLimit + ' วันต่อรอบ');
+
+        var items = [
+            {
+                label: 'วันที่เข้างานสายและ/หรือทำงานไม่ครบ 8 ชั่วโมง',
+                used: Number(quota.quota_used || 0),
+                remaining: Number(quota.quota_remaining || 0),
+                dates: quota.quota_dates || []
+            }
+        ];
+        $('#loginQuotaChart').html(items.map(function(item) {
+            var width = Math.min((item.used / quotaLimit) * 100, 100);
+            return (
+                '<div class="staff-login-quota-item">' +
+                '<div class="staff-login-quota-item-head">' +
+                '<span class="staff-login-quota-label">' + item.label + '</span>' +
+                '<span class="staff-login-quota-value">' + item.used + ' / ' + quotaLimit + ' วัน</span>' +
+                '</div>' +
+                '<div class="staff-login-quota-ring-wrap">' +
+                '<div class="staff-login-quota-ring" style="--staff-login-quota-progress: ' + width + '%" role="progressbar" aria-valuemin="0" aria-valuemax="' + quotaLimit + '" aria-valuenow="' + item.used + '" aria-label="' + item.label + '">' +
+                '<div class="staff-login-quota-ring-center">' +
+                '<span class="staff-login-quota-ring-value">' + item.used + '</span>' +
+                '<span class="staff-login-quota-ring-limit">จาก ' + quotaLimit + ' วัน</span>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="staff-login-quota-remaining">เหลือโควตา ' + item.remaining + ' วัน</div>' +
+                '<div class="staff-login-quota-dates">' +
+                (item.dates.length
+                    ? 'วันที่: ' + item.dates.map(function(day) { return moment(day).format('D MMM YYYY'); }).join(', ')
+                    : 'ยังไม่มีวันที่ถูกนับ') +
+                '</div>' +
+                '</div>'
+            );
+        }).join(''));
+    }
+
     $(function() {
+        $.getJSON(loginQuotaApiUrl)
+            .done(renderLoginQuota)
+            .fail(function() {
+                $('#loginQuotaPeriod').text('ไม่สามารถโหลดข้อมูลโควตาได้');
+                $('#loginQuotaChart').html('<div class="staff-login-quota-item">ไม่สามารถโหลดข้อมูลโควตาได้</div>');
+            });
+
+        var requestDatePicker = $('#clockinRequestModal input[name="workdatetime"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 5,
+            timePicker24Hour: true,
+            locale: { format: 'DD/MM/YYYY HH:mm' }
+        });
+
         var calendar = $('#loginCalendar').fullCalendar({
             header: false,
             locale: 'th',
@@ -492,9 +762,17 @@
                 var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / 8) * 100, 12), 100) : 0;
                 var hoursClass = event.hours_is_negative ? 'is-negative' : '';
                 var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
+                var correctionLabel = event.approved_checkin && event.approved_checkout
+                    ? 'มีการแก้ไขเวลาเข้าและออก'
+                    : (event.approved_checkin ? 'มีการแก้ไขเวลาเข้า' : 'มีการแก้ไขเวลากลับ');
+                var escapedCorrectionLabel = $('<span/>').text(correctionLabel).html();
+                var alertIcon = event.has_approved_correction
+                    ? '<i class="fas fa-triangle-exclamation staff-login-event-alert" role="img" title="' +
+                      escapedCorrectionLabel + '" aria-label="' + escapedCorrectionLabel + '"></i>'
+                    : '';
                 var content = '<span class="staff-login-event-content">';
                 content += '<span class="staff-login-event-head">';
-                content += '<span class="staff-login-event-name">' + name + '</span>';
+                content += '<span class="staff-login-event-name">' + alertIcon + name + '</span>';
                 if (workedHours) {
                     content += '<span class="staff-login-event-hours ' + hoursClass + '">' + workedHours + '</span>';
                 }
@@ -510,6 +788,13 @@
             viewRender: function(view) {
                 $('#calendarTitle').text(view.title);
                 $('#calendarSubtitle').text(view.intervalStart.format('dddd, D MMMM YYYY'));
+            },
+            dayClick: function(date) {
+                var selectedDate = date.clone().hour(9).minute(0);
+                requestDatePicker.data('daterangepicker').setStartDate(selectedDate);
+                requestDatePicker.data('daterangepicker').setEndDate(selectedDate);
+                $('#clockinRequestModal').addClass('is-active').attr('aria-hidden', 'false');
+                $('#clockinRequestModal input[name="reason"]').trigger('focus');
             }
         });
 
@@ -521,6 +806,16 @@
         });
         $('#calendarToday').on('click', function() {
             calendar.fullCalendar('today');
+        });
+
+        $('[data-close-clockin-request]').on('click', function() {
+            $('#clockinRequestModal').removeClass('is-active').attr('aria-hidden', 'true');
+        });
+
+        $(document).on('keydown', function(event) {
+            if (event.key === 'Escape') {
+                $('#clockinRequestModal').removeClass('is-active').attr('aria-hidden', 'true');
+            }
         });
     });
 </script>
