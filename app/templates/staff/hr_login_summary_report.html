@@ -188,6 +188,91 @@
         margin-top: 0.9rem;
     }
 
+    .hr-login-quota-search {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .hr-login-quota-search-field {
+        flex: 1 1 22rem;
+    }
+
+    .hr-login-quota-search-field label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+
+    .hr-login-quota-search-field input {
+        border: 1px solid rgba(18, 39, 84, 0.14);
+        border-radius: 10px;
+        color: var(--theme-navy-deep);
+        font: inherit;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.65rem;
+        width: 100%;
+    }
+
+    .hr-login-quota-button {
+        background: var(--theme-navy-deep);
+        border: 0;
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .hr-login-quota-button:disabled {
+        cursor: wait;
+        opacity: 0.6;
+    }
+
+    .hr-login-quota-result {
+        margin-top: 1rem;
+    }
+
+    .hr-login-quota-summary {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .hr-login-quota-summary-item {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 18px;
+        padding: 1rem;
+    }
+
+    .hr-login-quota-summary-label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .hr-login-quota-summary-value {
+        color: var(--theme-navy-deep);
+        font-size: 1.45rem;
+        font-weight: 800;
+        margin-top: 0.35rem;
+    }
+
+    .hr-login-quota-dates {
+        color: var(--theme-muted);
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin-top: 1rem;
+    }
+
     @media screen and (max-width: 768px) {
         .hr-login-report-sidebar {
             position: static;
@@ -199,6 +284,10 @@
 
         .hr-login-report-stats {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .hr-login-quota-summary {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -266,6 +355,33 @@
                             <div class="hr-login-report-status" id="reportStatus" role="status" aria-live="polite"></div>
                         </div>
                     </div>
+                    <div class="hr-login-report-card">
+                        <div class="hr-login-report-card-inner">
+                            <h2 class="hr-login-report-title">สรุปโควตาการลงเวลารายบุคคล</h2>
+                            <p class="hr-login-report-subtitle">
+                                ค้นหาบุคลากรเพื่อดูจำนวนวันที่เข้างานสายและ/หรือทำงานไม่ครบ 8 ชั่วโมง
+                                ตามประเภทการจ้างงาน
+                            </p>
+                            <div class="hr-login-quota-search">
+                                <div class="hr-login-quota-search-field">
+                                    <label for="quotaStaffSearch">ค้นหาบุคลากร</label>
+                                    <input id="quotaStaffSearch" type="search" list="quotaStaffOptions"
+                                           placeholder="พิมพ์ชื่อบุคลากร" autocomplete="off">
+                                    <datalist id="quotaStaffOptions">
+                                        {% for staff in quota_staff %}
+                                            <option value="{{ staff.fullname }}" data-staff-id="{{ staff.id }}"></option>
+                                        {% endfor %}
+                                    </datalist>
+                                </div>
+                                <button type="button" class="hr-login-quota-button" id="loadQuotaButton">
+                                    <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                                    ค้นหา
+                                </button>
+                            </div>
+                            <div class="hr-login-report-status" id="quotaStatus" role="status" aria-live="polite"></div>
+                            <div class="hr-login-quota-result" id="quotaResult" hidden></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -275,6 +391,7 @@
 {{ super() }}
     <script>
         const hrLoginReportSummaryApiUrl = {{ url_for('staff.get_hr_login_summary_report_summary')|tojson|safe }};
+        const hrLoginQuotaApiBaseUrl = {{ url_for('staff.get_hr_login_quota_summary', staff_id=0)|tojson|safe }}.replace(/0$/, '');
         let latestReportData = null;
 
         function toInputDateTime(value) {
@@ -307,6 +424,72 @@
 
         function escapeHtml(value) {
             return $('<span/>').text(value == null ? '' : String(value)).html();
+        }
+
+        function formatQuotaDate(value) {
+            const date = new Date(value + 'T00:00:00');
+            if (Number.isNaN(date.getTime())) return value || '';
+            return date.toLocaleDateString('th-TH', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
+        function renderQuota(data) {
+            const dates = data.quota_dates || [];
+            $('#quotaResult').prop('hidden', false).html(
+                '<div class="hr-login-quota-summary">' +
+                    '<div class="hr-login-quota-summary-item">' +
+                        '<span class="hr-login-quota-summary-label">บุคลากร</span>' +
+                        '<div class="hr-login-quota-summary-value">' + escapeHtml(data.staff_name) + '</div>' +
+                        '<div class="hr-login-report-stat-note">ประเภทการจ้างงาน: ' + escapeHtml(data.employment_type) + '</div>' +
+                    '</div>' +
+                    '<div class="hr-login-quota-summary-item">' +
+                        '<span class="hr-login-quota-summary-label">รอบโควตา</span>' +
+                        '<div class="hr-login-quota-summary-value">' + escapeHtml(formatQuotaDate(data.quota_start)) +
+                            ' - ' + escapeHtml(formatQuotaDate(data.quota_end)) + '</div>' +
+                        '<div class="hr-login-report-stat-note">โควตา ' + escapeHtml(data.quota_limit) + ' วันต่อรอบ</div>' +
+                    '</div>' +
+                    '<div class="hr-login-quota-summary-item">' +
+                        '<span class="hr-login-quota-summary-label">ใช้โควตาแล้ว / คงเหลือ</span>' +
+                        '<div class="hr-login-quota-summary-value">' + escapeHtml(data.quota_used) +
+                            ' / ' + escapeHtml(data.quota_remaining) + ' วัน</div>' +
+                        '<div class="hr-login-report-stat-note">นับวันที่ไม่ซ้ำกัน</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="hr-login-quota-dates"><strong>วันที่ถูกนับ:</strong> ' +
+                    (dates.length ? dates.map(formatQuotaDate).map(escapeHtml).join(', ') : 'ยังไม่มีวันที่ถูกนับ') +
+                '</div>'
+            );
+        }
+
+        function loadQuota() {
+            const searchValue = $('#quotaStaffSearch').val().trim();
+            const option = $('#quotaStaffOptions option').filter(function() {
+                return this.value === searchValue;
+            }).first();
+            const staffId = option.attr('data-staff-id');
+            if (!staffId) {
+                $('#quotaStatus').text('กรุณาเลือกบุคลากรจากรายการค้นหา');
+                $('#quotaResult').prop('hidden', true).empty();
+                return;
+            }
+
+            $('#loadQuotaButton').prop('disabled', true);
+            $('#quotaStatus').html('<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> กำลังโหลดข้อมูลโควตา...');
+            $.getJSON(hrLoginQuotaApiBaseUrl + staffId)
+                .done(function(data) {
+                    renderQuota(data);
+                    $('#quotaStatus').text('โหลดข้อมูลโควตาเรียบร้อยแล้ว');
+                })
+                .fail(function() {
+                    $('#quotaResult').prop('hidden', true).empty();
+                    $('#quotaStatus').text('ไม่สามารถโหลดข้อมูลโควตาของบุคลากรได้');
+                })
+                .always(function() {
+                    $('#loadQuotaButton').prop('disabled', false);
+                });
         }
 
         function renderReport(data) {
@@ -420,6 +603,13 @@
             $('#reportEnd').val(toInputDateTime(now));
             $('#loadReportButton').on('click', loadReport);
             $('#downloadReportButton').on('click', downloadReport);
+            $('#loadQuotaButton').on('click', loadQuota);
+            $('#quotaStaffSearch').on('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    loadQuota();
+                }
+            });
             loadReport();
         });
     </script>

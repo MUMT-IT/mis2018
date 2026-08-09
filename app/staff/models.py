@@ -984,6 +984,8 @@ class StaffWorkLogin(db.Model):
                             backref=db.backref('work_logins', lazy='dynamic'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    record_source = db.Column('record_source', db.String(30))
+    correction_type = db.Column('correction_type', db.String(20))
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
     num_scans = db.Column('num_scans', db.Integer(), default=0)

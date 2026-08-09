@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from io import BytesIO
 from functools import wraps
+import json
 
 import arrow
 import pandas as pd
@@ -49,6 +50,7 @@ EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
     'staff.create_qrcode',
     'staff.show_time_report',
     'staff.send_time_report_data',
+    'staff.send_time_report_quota',
     'staff.send_holidays_data',
 }
 
@@ -62,6 +64,8 @@ else:
     drive = None
 
 tz = pytz.timezone('Asia/Bangkok')
+TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
+TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 # TODO: remove hardcoded annual quota soon
 LEAVE_ANNUAL_QUOTA = 10
@@ -107,6 +111,7 @@ def _create_work_login_record(staff_account, now, lat, lon, *, qrcode_exp_dateti
         lat=float(lat),
         long=float(lon),
         start_datetime=now,
+        record_source='scan',
         num_scans=num_scans,
         note=note,
     )
@@ -156,6 +161,12 @@ def _daily_work_login_rows(records):
         if end_reference and end_qrcode_exp:
             end_expired = _to_bangkok(end_reference) > _to_bangkok(end_qrcode_exp)
 
+        approved_correction_types = sorted({
+            rec.correction_type
+            for rec in day_records
+            if rec.record_source == 'approved_request' and rec.correction_type
+        })
+
         lat = float(first.lat) if first.lat is not None else ''
         lon = float(first.long) if first.long is not None else ''
         rows.append({
@@ -168,6 +179,9 @@ def _daily_work_login_rows(records):
             'lon': lon,
             'start_expired': start_expired,
             'end_expired': end_expired,
+            'approved_checkin': 'checkin' in approved_correction_types,
+            'approved_checkout': 'checkout' in approved_correction_types,
+            'has_approved_correction': bool(approved_correction_types),
             'location': '<a href="https://maps.google.com/?q={},{}">Click</a>'.format(lat, lon)
             if lat != '' and lon != '' else '',
         })
@@ -184,6 +198,246 @@ def _parse_login_summary_date(value, *, default=None):
     if isinstance(value, datetime):
         return value.date()
     return datetime.strptime(value.strip(), '%d/%m/%Y').date()
+
+
+def _current_login_quota_period(reference_date=None, staff_personal_info=None):
+    reference_date = reference_date or datetime.now(tz).date()
+    employment_title = getattr(getattr(staff_personal_info, 'employment', None), 'title', '')
+    if employment_title.strip() == 'พนักงานมหาวิทยาลัย':
+        quota_limit = 30
+        quota_start_year = reference_date.year if reference_date.month >= 7 else reference_date.year - 1
+        quota_start = date(quota_start_year, 7, 1)
+        quota_end = date(quota_start_year + 1, 6, 30)
+    elif reference_date.month >= 6:
+        quota_limit = 15
+        quota_start = date(reference_date.year, 6, 1)
+        quota_end = date(reference_date.year, 12, 31)
+    else:
+        quota_limit = 15
+        quota_start = date(reference_date.year, 1, 1)
+        quota_end = date(reference_date.year, 6, 30)
+    return quota_start, quota_end, quota_limit
+
+
+def _build_login_quota_summary(staff_personal_info):
+    quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
+        staff_personal_info=staff_personal_info
+    )
+    staff_account = getattr(staff_personal_info, 'staff_account', None)
+    records = []
+    if staff_account is not None:
+        records = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date)
+            .between(quota_start_date, quota_end_date),
+            StaffWorkLogin.staff_id == staff_account.id,
+        ).all()
+
+    rows = _daily_work_login_rows(records)
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    quota_flagged_dates = set()
+    for row in rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        is_late_day = bool(start_dt and start_dt.time() > office_start_time)
+        is_short_hours_day = bool(
+            start_dt and end_dt and worked_hours is not None and worked_hours < 8.0
+        )
+        if is_late_day or is_short_hours_day:
+            quota_flagged_dates.add(row['date'])
+
+    quota_dates = sorted(day.isoformat() for day in quota_flagged_dates)
+    return {
+        'quota_start': quota_start_date.isoformat(),
+        'quota_end': quota_end_date.isoformat(),
+        'quota_limit': quota_limit,
+        'quota_used': len(quota_dates),
+        'quota_dates': quota_dates,
+        'quota_remaining': max(quota_limit - len(quota_dates), 0),
+    }
+
+
+def _build_login_history_snapshot(staff_personal_info):
+    quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
+        staff_personal_info=staff_personal_info
+    )
+    staff_account = getattr(staff_personal_info, 'staff_account', None)
+    records = []
+    requests_in_period = []
+    if staff_account is not None:
+        records = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date)
+            .between(quota_start_date, quota_end_date),
+            StaffWorkLogin.staff_id == staff_account.id,
+        ).all()
+        requests_in_period = [
+            request_record
+            for request_record in StaffRequestWorkLogin.query.filter_by(
+                staff_account_id=staff_account.id,
+            ).all()
+            if request_record.work_datetime
+            and quota_start_date <= request_record.work_datetime.date() <= quota_end_date
+        ]
+
+    rows = _daily_work_login_rows(records)
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    office_end_time = datetime.strptime('16:30', '%H:%M').time()
+    thai_weekdays = ('จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์')
+    late_days = []
+    early_checkout_days = []
+    incomplete_days = []
+    for row in rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        if start_dt and start_dt.time() > office_start_time:
+            late_days.append({
+                'date': row['date'].isoformat(),
+                'weekday': thai_weekdays[row['date'].weekday()],
+                'time': start_dt.strftime('%H:%M'),
+            })
+        if end_dt and end_dt.time() < office_end_time:
+            early_checkout_days.append({
+                'date': row['date'].isoformat(),
+                'weekday': thai_weekdays[row['date'].weekday()],
+                'time': end_dt.strftime('%H:%M'),
+            })
+        if start_dt and not end_dt:
+            incomplete_days.append(row['date'].isoformat())
+
+    def request_sort_key(item):
+        requested_at = item.requested_at
+        if requested_at is None:
+            return datetime.min.replace(tzinfo=pytz.utc)
+        if requested_at.tzinfo is None:
+            return pytz.utc.localize(requested_at)
+        return requested_at.astimezone(pytz.utc)
+
+    request_records = []
+    for request_record in sorted(
+        requests_in_period,
+        key=request_sort_key,
+        reverse=True,
+    ):
+        if request_record.approved_at:
+            status = 'อนุมัติแล้ว'
+        elif request_record.cancelled_at:
+            status = 'ไม่อนุมัติหรือยกเลิกแล้ว'
+        else:
+            status = 'รออนุมัติ'
+        request_records.append({
+            'date': request_record.work_datetime.strftime('%Y-%m-%d'),
+            'time': request_record.work_datetime.strftime('%H:%M'),
+            'type': 'เข้างาน' if request_record.is_checkin else 'ออกงาน',
+            'status': status,
+            'reason': request_record.reason or '',
+        })
+
+    quota_summary = _build_login_quota_summary(staff_personal_info)
+    employment_type = (
+        staff_personal_info.employment.title
+        if staff_personal_info.employment else 'ไม่ระบุ'
+    )
+    return {
+        'employee': staff_personal_info.fullname,
+        'employment_type': employment_type,
+        'period': {
+            'start': quota_start_date.isoformat(),
+            'end': quota_end_date.isoformat(),
+            'quota_limit': quota_limit,
+        },
+        'attendance': {
+            'late_checkin_count': len(late_days),
+            'late_checkin_days': late_days,
+            'early_checkout_count': len(early_checkout_days),
+            'early_checkout_days': early_checkout_days,
+            'incomplete_checkout_count': len(incomplete_days),
+            'incomplete_checkout_days': incomplete_days,
+        },
+        'quota': {
+            'used_days': quota_summary['quota_used'],
+            'remaining_days': quota_summary['quota_remaining'],
+        },
+        'request_records': request_records,
+    }
+
+
+def _build_typhoon_login_history_prompt(snapshot):
+    ai_snapshot = dict(snapshot)
+    ai_snapshot.pop('employee', None)
+    ai_snapshot['request_records'] = [
+        {
+            key: value
+            for key, value in request_record.items()
+            if key != 'reason'
+        }
+        for request_record in snapshot.get('request_records', [])
+    ]
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'คุณเป็นผู้ช่วยสรุปข้อมูลการลงเวลาสำหรับผู้บังคับบัญชาในระบบบุคลากร. '
+                'เขียนสรุปภาษาไทยแบบกระชับและเป็นกลางจากข้อมูลที่ให้เท่านั้น. '
+                'ให้เน้นรูปแบบที่เห็นซ้ำอย่างชัดเจน ไม่ใช่การเล่าภาพรวมแบบกว้าง ๆ: '
+                'วันในสัปดาห์หรือวันที่เกิดซ้ำ, ช่วงเวลาที่เกิดซ้ำ, วันที่เกิดติดกันหรือกระจุกตัว, '
+                'และแนวโน้มตามลำดับเวลา เช่น เพิ่มขึ้น ลดลง หรือคงที่. '
+                'เชื่อมโยงรูปแบบเหล่านี้กับคำขอรับรองเวลาและสถานะของคำขอเมื่อมีหลักฐาน. '
+                'ห้ามสร้างข้อมูลหรือข้อสรุปเกี่ยวกับเจตนาของบุคลากร. '
+                'หากไม่พบรูปแบบซ้ำหรือแนวโน้มที่ชัดเจน ให้ระบุว่าไม่พบอย่างชัดเจน. '
+                'ใช้โครงสร้าง: รูปแบบที่พบไม่เกิน 3 bullet points '
+                'และข้อเสนอแนะสำหรับผู้บังคับบัญชา 1 ย่อหน้าสั้น ๆ. '
+                'แต่ละ bullet ต้องอ้างอิงวัน เวลา หรือจำนวนครั้งที่เกี่ยวข้อง. '
+                'ระบุให้ชัดเจนหากข้อมูลมีจำนวนน้อยหรือยังไม่มีคำขอ.'
+            ),
+        },
+        {
+            'role': 'user',
+            'content': (
+                'สรุปประวัติการลงเวลาของบุคลากรสำหรับผู้จัดการ:\n'
+                f'{json.dumps(ai_snapshot, ensure_ascii=False, indent=2)}'
+            ),
+        },
+    ]
+
+
+def _call_typhoon_login_history_summary(snapshot):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.2,
+            'max_tokens': 900,
+            'messages': _build_typhoon_login_history_prompt(snapshot),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    if not content or not content.strip():
+        raise ValueError('Empty Typhoon login history summary response.')
+    return content.strip()
+
+
+def _build_fallback_login_history_summary(snapshot):
+    attendance = snapshot['attendance']
+    requests_count = len(snapshot['request_records'])
+    return (
+        'รูปแบบที่พบ:\n'
+        f"- เข้างานสาย {attendance['late_checkin_count']} วัน\n"
+        f"- ออกงานก่อนเวลา {attendance['early_checkout_count']} วัน\n"
+        f"- มีคำขอรับรองเวลาในรอบปัจจุบัน {requests_count} รายการ "
+        f"และใช้โควตาแล้ว {snapshot['quota']['used_days']} จาก {snapshot['period']['quota_limit']} วัน\n\n"
+        'ข้อเสนอแนะสำหรับผู้บังคับบัญชา: ตรวจสอบวันที่มีความถี่สูงและพิจารณาคำขอรับรองเวลาตามหลักฐานที่มี.'
+    )
 
 
 def _build_login_summary_dashboard(start_date, end_date, dept_id):
@@ -230,10 +484,32 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
         records = StaffWorkLogin.query.all()
     daily_rows = _daily_work_login_rows(records)
 
+    quota_periods = {
+        staff_id: _current_login_quota_period(staff_personal_info=employee)[:2]
+        for staff_id, employee in employees_by_id.items()
+    }
+    quota_limits = {
+        staff_id: _current_login_quota_period(staff_personal_info=employee)[2]
+        for staff_id, employee in employees_by_id.items()
+    }
+    quota_start_date = min(period[0] for period in quota_periods.values())
+    quota_end_date = max(period[1] for period in quota_periods.values())
+    quota_records_query = StaffWorkLogin.query.filter(
+        cast(func.timezone('Asia/Bangkok', start_datetime_column), Date)
+        .between(quota_start_date, quota_end_date)
+    )
+    if staff_id_column is not None:
+        quota_records_query = quota_records_query.filter(staff_id_column.in_(staff_ids))
+    quota_daily_rows = _daily_work_login_rows(quota_records_query.all())
+
     rows_by_staff = defaultdict(list)
     for row in daily_rows:
         if row['staff_id'] in employees_by_id:
             rows_by_staff[row['staff_id']].append(row)
+    quota_rows_by_staff = defaultdict(list)
+    for row in quota_daily_rows:
+        if row['staff_id'] in employees_by_id:
+            quota_rows_by_staff[row['staff_id']].append(row)
 
     total_complete_days = 0
     total_late_checkins = 0
@@ -246,6 +522,7 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
         complete_days = 0
         late_checkins = 0
         early_checkouts = 0
+        flagged_records = 0
         worked_hours_total = 0.0
 
         for row in employee_rows:
@@ -260,6 +537,22 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
                 late_checkins += 1
             if end_dt and end_dt.time() < office_end_time:
                 early_checkouts += 1
+            flagged_records += int(row['approved_checkin']) + int(row['approved_checkout'])
+
+        quota_flagged_dates = set()
+        quota_start_date, quota_end_date = quota_periods[staff_id]
+        for row in quota_rows_by_staff.get(staff_id, []):
+            if not quota_start_date <= row['date'] <= quota_end_date:
+                continue
+            quota_start_dt = parser.isoparse(row['start']) if row['start'] else None
+            quota_end_dt = parser.isoparse(row['end']) if row['end'] else None
+            quota_worked_hours = _calculate_work_hours(quota_start_dt, quota_end_dt)
+            is_late_quota_day = bool(quota_start_dt and quota_start_dt.time() > office_start_time)
+            is_short_hours_quota_day = bool(
+                quota_start_dt and quota_end_dt and quota_worked_hours is not None and quota_worked_hours < 8.0
+            )
+            if is_late_quota_day or is_short_hours_quota_day:
+                quota_flagged_dates.add(row['date'])
 
         average_hours_per_day = round(worked_hours_total / complete_days, 1) if complete_days else 0.0
         completion_rate = round((complete_days / len(employee_rows)) * 100, 1) if employee_rows else 0.0
@@ -279,6 +572,13 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             'complete_days': complete_days,
             'late_checkins': late_checkins,
             'early_checkouts': early_checkouts,
+            'flagged_records': flagged_records,
+            'quota_used': len(quota_flagged_dates),
+            'quota_remaining': max(quota_limits[staff_id] - len(quota_flagged_dates), 0),
+            'quota_dates': sorted(day.isoformat() for day in quota_flagged_dates),
+            'quota_limit': quota_limits[staff_id],
+            'quota_start': quota_start_date.isoformat(),
+            'quota_end': quota_end_date.isoformat(),
             'average_hours_per_day': average_hours_per_day,
             'completion_rate': completion_rate,
             'days_with_records': len(employee_rows),
@@ -2546,10 +2846,16 @@ def get_hr_login_time_data():
 def hr_login_summary_report():
     now = datetime.now(tz)
     report_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    active_staff = StaffPersonalInfo.query.filter(
+        StaffPersonalInfo.retirement_date == None,
+        StaffPersonalInfo.resignation_date == None,
+        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
+    ).order_by(StaffPersonalInfo.th_firstname, StaffPersonalInfo.en_firstname).all()
     return render_template(
         'staff/hr_login_summary_report.html',
         report_start=report_start,
         report_end=now,
+        quota_staff=active_staff,
     )
 
 
@@ -2622,6 +2928,9 @@ def hr_manual_checkin_calendar_data():
             'worked_hours_display': worked_hours_display,
             'worked_hours': worked_hours,
             'is_late': is_late,
+            'approved_checkin': row['approved_checkin'],
+            'approved_checkout': row['approved_checkout'],
+            'has_approved_correction': row['has_approved_correction'],
             'backgroundColor': background_color,
             'borderColor': border_color,
             'textColor': text_color,
@@ -2706,6 +3015,7 @@ def hr_manual_checkin():
             date_id=date_id,
             staff=staff_account,
             start_datetime=checkin_dt,
+            record_source='hr_manual',
             lat=0.0,
             long=0.0,
             num_scans=num_scans,
@@ -2798,6 +3108,7 @@ def request_for_clockin_clockout():
         reason = request.form.get('reason')
         work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
         date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        work_datetime_display = tz.localize(work_datetime).strftime('%d/%m/%Y %H:%M')
         # TODO: check duplicate request
         # checkin_request = StaffRequestWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
         if work_datetime < today:
@@ -2822,20 +3133,26 @@ def request_for_clockin_clockout():
             db.session.add(checkin_request)
             db.session.commit()
 
+            login_summary_url = (
+                external_url('staff.login_summary')
+                if current_app.config.get('PUBLIC_BASE_URL')
+                else url_for('staff.login_summary', _external=True, _scheme='https')
+            )
+
             if request.form.get('clock') == 'checkin':
                 req_title = u'ทดสอบแจ้งการขอรับรองเวลาเข้างาน'
                 req_msg = u'{} ขออนุมัติรับรองการเข้างาน วันที่ {} เนื่องจาก {}\n' \
-                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-                    format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                          u'\n\nกรุณาตรวจสอบคำขอที่:\n{}\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                    format(current_user.personal_info.fullname, work_datetime_display,
                            checkin_request.reason,
-                           url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+                           login_summary_url)
             else:
                 req_title = u'ทดสอบแจ้งการขอรับรองเวลากลับ'
                 req_msg = u'{} ขออนุมัติรับรองการทำงาน ในเวลากลับ วันที่ {} เนื่องจาก {}\n' \
-                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-                    format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                          u'\n\nกรุณาตรวจสอบคำขอที่:\n{}\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                    format(current_user.personal_info.fullname, work_datetime_display,
                            checkin_request.reason,
-                           url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+                           login_summary_url)
 
             if wfh_approver:
                 if wfh_approver.is_active:
@@ -2854,12 +3171,55 @@ def request_for_clockin_clockout():
                 flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
             else:
                 flash('ไม่สามารถส่งคำขอได้ เนื่องจากไม่พบผู้บังคับบัญชาชั้นต้น', 'danger')
-            return render_template('staff/checkin_request.html')
+            return redirect(url_for('staff.show_time_report'))
             # return render_template('staff/geo_checkin.html')
         else:
             flash('ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
             return render_template('staff/checkin_request.html')
     return render_template('staff/checkin_request.html')
+
+
+@staff.route('/clockin-clockout/request/<int:request_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_clockin_clockout_request(request_id):
+    clock_request = StaffRequestWorkLogin.query.filter_by(
+        id=request_id,
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).first_or_404()
+
+    if request.method == 'POST':
+        work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
+        if work_datetime >= datetime.today():
+            flash('ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
+            return render_template('staff/checkin_request.html', request_record=clock_request)
+
+        clock_request.work_datetime = work_datetime
+        clock_request.date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        clock_request.reason = request.form.get('reason')
+        clock_request.is_checkin = request.form.get('clock') == 'checkin'
+        clock_request.requested_at = datetime.now(pytz.utc)
+        db.session.commit()
+        flash('แก้ไขคำขอเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.show_time_report'))
+
+    return render_template('staff/checkin_request.html', request_record=clock_request)
+
+
+@staff.route('/clockin-clockout/request/<int:request_id>/cancel', methods=['POST'])
+@login_required
+def cancel_clockin_clockout_request(request_id):
+    clock_request = StaffRequestWorkLogin.query.filter_by(
+        id=request_id,
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).first_or_404()
+    clock_request.cancelled_at = datetime.now(pytz.utc)
+    db.session.commit()
+    flash('ยกเลิกคำขอเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('staff.show_time_report'))
 
 
 @staff.route('/clockin-clockout/request-list')
@@ -2869,31 +3229,34 @@ def list_for_clockin_clockout():
     return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
 
 
-@staff.route('/clockin-clockout/approved/<int:request_id>')
+@staff.route('/clockin-clockout/approved/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def approved_for_clockin_clockout(request_id):
     clock_request = StaffRequestWorkLogin.query.get(request_id)
-    approved = request.args.get("approved")
+    approved = request.form.get('approved') if request.method == 'POST' else request.args.get('approved')
     if approved:
         if approved == 'yes':
             clock_request.approved_at = datetime.now(pytz.utc)
 
             approval = StaffWorkLogin(
                 date_id=clock_request.date_id,
-                staff=clock_request.staff
+                staff=clock_request.staff,
+                start_datetime=clock_request.work_datetime,
+                record_source='approved_request',
+                correction_type='checkin' if clock_request.is_checkin else 'checkout',
             )
-            if clock_request.is_checkin:
-                approval.start_datetime = clock_request.work_datetime
-            else:
-                approval.end_datetime = clock_request.work_datetime
-                # TODO: added num_scans
             db.session.add(approval)
             db.session.commit()
         else:
             clock_request.cancelled_at = datetime.now(pytz.utc)
         db.session.add(clock_request)
         db.session.commit()
-        flash('บันทึกการขอรับรองการทำงานเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
+        flash_message = (
+            'อนุมัติคำขอรับรองการทำงานเรียบร้อยแล้ว'
+            if approved == 'yes'
+            else 'ไม่อนุมัติคำขอรับรองการทำงานเรียบร้อยแล้ว'
+        )
+        flash(flash_message, 'success' if approved == 'yes' else 'warning')
 
         title = u'เข้างาน' if clock_request.is_checkin else u'กลับบ้าน'
         if clock_request.approved_at:
@@ -2920,6 +3283,11 @@ def approved_for_clockin_clockout(request_id):
         approve_title = u'แจ้งสถานะรับรองการทำงาน'
         if not current_app.debug:
             send_mail([clock_request.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        if request.method == 'POST' and request.headers.get('HX-Request') == 'true':
+            response = make_response('', 204)
+            response.headers['HX-Refresh'] = 'true'
+            return response
+
         all_requests = StaffRequestWorkLogin.query.all()
         return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
     return render_template('staff/checkin_approval.html', clock_request=clock_request)
@@ -3270,6 +3638,7 @@ class LoginDataUploadView(BaseView):
                     staff=account.staff_account,
                     start_datetime=tz.localize(start_dt),
                     end_datetime=tz.localize(end_dt),
+                    record_source='hr_manual',
                     checkin_mins=morning,
                     checkout_mins=evening
                 )
@@ -3277,6 +3646,7 @@ class LoginDataUploadView(BaseView):
                 record = StaffWorkLogin(
                     staff=account.staff_account,
                     start_datetime=tz.localize(start_dt),
+                    record_source='hr_manual',
                     checkin_mins=morning,
                 )
             db.session.add(record)
@@ -3389,6 +3759,9 @@ def send_summary_data():
                     'worked_hours_display': worked_hours_display,
                     'worked_hours': worked_hours,
                     'is_late': is_late,
+                    'approved_checkin': row['approved_checkin'],
+                    'approved_checkout': row['approved_checkout'],
+                    'has_approved_correction': row['has_approved_correction'],
                     'className': class_names,
                     'type': 'login'
                 })
@@ -3497,11 +3870,46 @@ def login_summary():
     today = datetime.today().date()
     start_date = date(today.year, today.month, 1)
     end_date = today
+    pending_clockin_requests = StaffRequestWorkLogin.query.filter_by(
+        approver_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).order_by(StaffRequestWorkLogin.requested_at.desc()).all()
     return render_template('staff/login_summary.html',
                            tab='login',
                            curr_dept_id=current_user.personal_info.org.id,
                            summary_start_date=start_date.strftime('%d/%m/%Y'),
-                           summary_end_date=end_date.strftime('%d/%m/%Y'))
+                           summary_end_date=end_date.strftime('%d/%m/%Y'),
+                           pending_clockin_requests=pending_clockin_requests)
+
+
+@staff.route('/api/login-summary/request/<int:request_id>/history')
+@manager_or_secretary_permission.require()
+@login_required
+def get_login_request_history(request_id):
+    clock_request = StaffRequestWorkLogin.query.get_or_404(request_id)
+    if clock_request.approver_id != current_user.id:
+        abort(403)
+
+    staff_personal_info = clock_request.staff.personal_info
+    snapshot = _build_login_history_snapshot(staff_personal_info)
+    try:
+        summary = _call_typhoon_login_history_summary(snapshot)
+        summary_source = 'typhoon'
+    except Exception:
+        current_app.logger.exception(
+            'Failed to generate Typhoon login history summary for request %s.',
+            request_id,
+        )
+        summary = _build_fallback_login_history_summary(snapshot)
+        summary_source = 'fallback'
+
+    return jsonify({
+        'summary': summary,
+        'summary_source': summary_source,
+        'request_id': request_id,
+        'snapshot': snapshot,
+    })
 
 
 @staff.route('/api/login-summary')
@@ -5055,17 +5463,61 @@ def send_time_report_data():
             'worked_hours': worked_hours,
             'hours_is_negative': hours_is_negative,
             'is_late': is_late,
+            'approved_checkin': row['approved_checkin'],
+            'approved_checkout': row['approved_checkout'],
+            'has_approved_correction': row['has_approved_correction'],
             'className': class_names,
             'type': 'login'
         })
     return jsonify(records)
 
 
+@staff.route('/api/time-report/quota')
+@login_required
+def send_time_report_quota():
+    return jsonify(_build_login_quota_summary(current_user.personal_info))
+
+
+@staff.route('/api/for-hr/login-report/quota/<int:staff_id>')
+@hr_permission.require()
+@login_required
+def get_hr_login_quota_summary(staff_id):
+    staff_personal_info = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        staff_personal_info.retired
+        or staff_personal_info.retirement_date
+        or staff_personal_info.resignation_date
+        or staff_personal_info.staff_account is None
+    ):
+        abort(404)
+
+    quota = _build_login_quota_summary(staff_personal_info)
+    quota.update({
+        'staff_id': staff_personal_info.id,
+        'staff_name': staff_personal_info.fullname,
+        'employment_type': (
+            staff_personal_info.employment.title
+            if staff_personal_info.employment else 'ไม่ระบุ'
+        ),
+    })
+    return jsonify(quota)
+
+
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():
+    pending_clockin_requests = StaffRequestWorkLogin.query.filter_by(
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).order_by(StaffRequestWorkLogin.work_datetime.asc()).all()
+    recent_clockin_requests = StaffRequestWorkLogin.query.filter_by(
+        staff_account_id=current_user.id,
+    ).order_by(StaffRequestWorkLogin.requested_at.desc()).limit(10).all()
     return render_template('staff/time_report.html',
-                           logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()))
+                           logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()),
+                           pending_clockin_requests=pending_clockin_requests,
+                           recent_clockin_requests=recent_clockin_requests)
 
 
 @staff.route('/for-hr/staff-info')

@@ -596,6 +596,11 @@
         white-space: nowrap;
     }
 
+    .staff-login-calendar .staff-login-event-alert {
+        color: #b8433f;
+        margin-right: 0.3rem;
+    }
+
     .staff-login-calendar .staff-login-event-hours {
         flex-shrink: 0;
         font-weight: 800;
@@ -651,6 +656,138 @@
         margin-top: 1rem;
     }
 
+    .staff-login-request-card {
+        margin-top: 1rem;
+    }
+
+    .staff-login-request-table-wrap {
+        overflow-x: auto;
+    }
+
+    .staff-login-request-table {
+        background: transparent;
+        min-width: 680px;
+    }
+
+    .staff-login-request-table th {
+        color: var(--theme-muted);
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .staff-login-request-table td,
+    .staff-login-request-table th {
+        border-color: rgba(18, 39, 84, 0.08);
+        vertical-align: middle;
+    }
+
+    .staff-login-request-type {
+        background: var(--theme-navy-soft);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        display: inline-flex;
+        font-size: 0.76rem;
+        font-weight: 700;
+        padding: 0.3rem 0.65rem;
+        white-space: nowrap;
+    }
+
+    .staff-login-request-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        justify-content: flex-end;
+        margin: 0;
+    }
+
+    .staff-login-request-actions form {
+        display: flex;
+        margin: 0;
+    }
+
+    .staff-login-request-actions .button {
+        align-items: center;
+        display: inline-flex;
+        justify-content: center;
+        margin: 0;
+        min-height: 2.25rem;
+        min-width: 5.5rem;
+    }
+
+    .staff-login-history-modal .modal-card {
+        width: min(760px, calc(100% - 2rem));
+    }
+
+    .staff-login-history-summary {
+        background: rgba(245, 247, 252, 0.92);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 16px;
+        color: var(--theme-navy-deep);
+        line-height: 1.7;
+        margin-top: 1rem;
+        min-height: 8rem;
+        padding: 1rem;
+        white-space: pre-wrap;
+    }
+
+    .staff-login-history-meta {
+        color: var(--theme-muted);
+        font-size: 0.85rem;
+        line-height: 1.6;
+    }
+
+    .staff-login-history-metrics {
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 1rem;
+    }
+
+    .staff-login-history-metric {
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 14px;
+        padding: 0.75rem;
+    }
+
+    .staff-login-history-metric-label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .staff-login-history-metric-value {
+        color: var(--theme-navy-deep);
+        font-size: 1.25rem;
+        font-weight: 800;
+        margin-top: 0.25rem;
+    }
+
+    .staff-login-history-requests {
+        margin-top: 1rem;
+    }
+
+    .staff-login-history-requests-title {
+        color: var(--theme-navy-deep);
+        font-weight: 800;
+    }
+
+    .staff-login-history-request-list {
+        color: var(--theme-muted);
+        font-size: 0.85rem;
+        line-height: 1.7;
+        margin-top: 0.35rem;
+    }
+
+    @media screen and (max-width: 768px) {
+        .staff-login-history-metrics {
+            grid-template-columns: 1fr;
+        }
+    }
+
     @media screen and (max-width: 1100px) {
         .staff-login-summary-grid {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -685,6 +822,7 @@
 {% block page_content %}
 <section class="section staff-login-shell" id="app">
     <div class="container">
+        {% include "messages.html" %}
         <div class="staff-login-hero">
             <div class="staff-login-hero-inner">
                 <div class="staff-login-header">
@@ -739,6 +877,80 @@
                         <div class="delta">สะสมทั้งช่วงวันที่เลือก</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="staff-login-card staff-login-request-card">
+            <div class="staff-login-card-inner">
+                <div class="staff-login-card-head">
+                    <div>
+                        <div class="staff-login-board-title">คำขอรับรองเวลาที่รออนุมัติ</div>
+                        <div class="staff-login-export-note">คำขอจากบุคลากรในสังกัดของคุณ</div>
+                    </div>
+                    <div class="staff-login-board-count">{{ pending_clockin_requests|length }} รายการ</div>
+                </div>
+
+                {% if pending_clockin_requests %}
+                <div class="staff-login-request-table-wrap">
+                    <table class="table is-fullwidth staff-login-request-table">
+                        <thead>
+                            <tr>
+                                <th>ผู้ขอ</th>
+                                <th>ประเภท</th>
+                                <th>วันที่และเวลา</th>
+                                <th>เหตุผล</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in pending_clockin_requests %}
+                            <tr>
+                                <td>{{ req.staff.fullname }}</td>
+                                <td>
+                                    <span class="staff-login-request-type">
+                                        {% if req.is_checkin %}ขอรับรองเวลาเข้า{% else %}ขอรับรองเวลากลับ{% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ req.work_datetime|localdatetime }}</td>
+                                <td>{{ req.reason }}</td>
+                                <td class="has-text-right">
+                                    <div class="staff-login-request-actions">
+                                        <form method="post"
+                                              action="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
+                                              hx-post="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
+                                              hx-confirm="ยืนยันการอนุมัติคำขอนี้หรือไม่?"
+                                              hx-swap="none">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="approved" value="yes">
+                                            <button type="submit" class="button is-small is-success is-rounded">
+                                                อนุมัติ
+                                            </button>
+                                        </form>
+                                        <form method="post"
+                                              action="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
+                                              hx-post="{{ url_for('staff.approved_for_clockin_clockout', request_id=req.id) }}"
+                                              hx-confirm="ยืนยันการไม่อนุมัติคำขอนี้หรือไม่?"
+                                              hx-swap="none">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="approved" value="no">
+                                            <button type="submit" class="button is-small is-danger is-rounded">
+                                                ไม่อนุมัติ
+                                            </button>
+                                        </form>
+                                        <button type="button" class="button is-small is-link is-light is-rounded staff-login-history-button"
+                                                data-request-id="{{ req.id }}">
+                                            ประวัติ
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="staff-login-chart-empty">ไม่มีคำขอที่รออนุมัติ</div>
+                {% endif %}
             </div>
         </div>
 
@@ -805,6 +1017,30 @@
             </div>
         </div>
 
+        <div class="modal staff-login-history-modal" id="requestHistoryModal">
+            <div class="modal-background"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title" id="requestHistoryTitle">ประวัติการลงเวลา</p>
+                    <button class="delete" type="button" aria-label="close" id="requestHistoryClose"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="staff-login-history-meta" id="requestHistoryMeta">กำลังโหลดข้อมูล...</div>
+                    <div class="staff-login-history-metrics" id="requestHistoryMetrics"></div>
+                    <div class="staff-login-history-summary" id="requestHistorySummary" role="status" aria-live="polite">
+                        กำลังสร้างสรุปจาก Typhoon AI...
+                    </div>
+                    <div class="staff-login-history-requests">
+                        <div class="staff-login-history-requests-title">คำขอรับรองเวลาที่อยู่ในรอบปัจจุบัน</div>
+                        <div class="staff-login-history-request-list" id="requestHistoryRequests"></div>
+                    </div>
+                </section>
+                <footer class="modal-card-foot">
+                    <button type="button" class="button" id="requestHistoryDismiss">ปิด</button>
+                </footer>
+            </div>
+        </div>
+
         <div class="staff-login-card staff-login-export-card">
             <div class="staff-login-card-inner">
                 <div class="staff-login-card-head">
@@ -844,6 +1080,7 @@
     const calendarApiUrl = {{ url_for('staff.send_summary_data', tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }};
     const leaveCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
     const wfhCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
+    const loginHistoryApiBaseUrl = {{ url_for('staff.get_login_request_history', request_id=0)|tojson|safe }}.replace('/0/history', '/');
     let employeeSummaryMap = {};
 
     function escapeHtml(value) {
@@ -957,6 +1194,7 @@
             { label: 'Complete days', value: employee.complete_days || 0, icon: 'fas fa-check-circle' },
             { label: 'Late check-ins', value: employee.late_checkins || 0, icon: 'fas fa-clock' },
             { label: 'Early check-outs', value: employee.early_checkouts || 0, icon: 'fas fa-arrow-right-from-bracket' },
+            { label: 'Flagged records', value: employee.flagged_records || 0, icon: 'fas fa-triangle-exclamation' },
             { label: 'Average hrs/day', value: formatNumber(employee.average_hours_per_day || 0), icon: 'fas fa-chart-line' }
         ];
         $('#employeeDetailTitle').text(employee.name || 'Employee detail');
@@ -981,6 +1219,63 @@
 
     function closeEmployeeDetail() {
         $('#employeeDetailModal').removeClass('is-active');
+    }
+
+    function formatHistoryDate(value) {
+        if (!value) return '-';
+        const date = new Date(value + 'T00:00:00');
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: 'numeric'});
+    }
+
+    function renderRequestHistory(data) {
+        const snapshot = data.snapshot || {};
+        const attendance = snapshot.attendance || {};
+        const period = snapshot.period || {};
+        const quota = snapshot.quota || {};
+        $('#requestHistoryTitle').text('ประวัติการลงเวลา: ' + (snapshot.employee || ''));
+        $('#requestHistoryMeta').html(
+            'ประเภทการจ้างงาน: ' + escapeHtml(snapshot.employment_type || 'ไม่ระบุ') +
+            '<br>รอบปัจจุบัน: ' + escapeHtml(formatHistoryDate(period.start)) + ' - ' +
+            escapeHtml(formatHistoryDate(period.end)) +
+            '<br>แหล่งสรุป: ' + (data.summary_source === 'typhoon' ? 'Typhoon AI' : 'สรุปสำรองของระบบ')
+        );
+        const metrics = [
+            ['เข้างานสาย', attendance.late_checkin_count || 0],
+            ['ออกงานก่อนเวลา', attendance.early_checkout_count || 0],
+            ['ใช้โควตาแล้ว', (quota.used_days || 0) + ' / ' + (period.quota_limit || 0) + ' วัน']
+        ];
+        $('#requestHistoryMetrics').html(metrics.map(function(item) {
+            return '<div class="staff-login-history-metric"><span class="staff-login-history-metric-label">' +
+                escapeHtml(item[0]) + '</span><div class="staff-login-history-metric-value">' +
+                escapeHtml(item[1]) + '</div></div>';
+        }).join(''));
+        $('#requestHistorySummary').text(data.summary || 'ไม่พบสรุปข้อมูล');
+        const requestRecords = snapshot.request_records || [];
+        $('#requestHistoryRequests').html(requestRecords.length
+            ? '<ul>' + requestRecords.map(function(item) {
+                return '<li>' + escapeHtml(formatHistoryDate(item.date) + ' ' + item.time + ' · ' +
+                    item.type + ' · ' + item.status) + '</li>';
+            }).join('') + '</ul>'
+            : 'ไม่มีคำขอรับรองเวลาในรอบปัจจุบัน');
+    }
+
+    function openRequestHistory(requestId) {
+        $('#requestHistoryModal').addClass('is-active');
+        $('#requestHistoryMeta').text('กำลังโหลดข้อมูล...');
+        $('#requestHistoryMetrics').empty();
+        $('#requestHistorySummary').text('กำลังสร้างสรุปจาก Typhoon AI...');
+        $('#requestHistoryRequests').empty();
+        $.getJSON(loginHistoryApiBaseUrl + requestId + '/history')
+            .done(renderRequestHistory)
+            .fail(function(xhr) {
+                const detail = xhr.status ? ' (HTTP ' + xhr.status + ')' : '';
+                $('#requestHistorySummary').text('ไม่สามารถสร้างสรุปประวัติการลงเวลาได้' + detail);
+            });
+    }
+
+    function closeRequestHistory() {
+        $('#requestHistoryModal').removeClass('is-active');
     }
 
     function loadSummary(startDate, endDate) {
@@ -1047,9 +1342,16 @@
                 var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / 8) * 100, 12), 100) : 0;
                 var hoursClass = event.hours_is_negative ? 'is-negative' : 'is-positive';
                 var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
+                var correctionLabel = event.approved_checkin && event.approved_checkout
+                    ? 'มีการแก้ไขเวลาเข้าและออก'
+                    : (event.approved_checkin ? 'มีการแก้ไขเวลาเข้า' : 'มีการแก้ไขเวลากลับ');
+                var alertIcon = event.has_approved_correction
+                    ? '<i class="fas fa-triangle-exclamation staff-login-event-alert" role="img" title="' +
+                      escapeHtml(correctionLabel) + '" aria-label="' + escapeHtml(correctionLabel) + '"></i>'
+                    : '';
                 var content = '<span class="staff-login-event-content">';
                 content += '<span class="staff-login-event-head">';
-                content += '<span class="staff-login-event-name">' + name + '</span>';
+                content += '<span class="staff-login-event-name">' + alertIcon + name + '</span>';
                 if (workedHours) {
                     content += '<span class="staff-login-event-hours is-total ' + hoursClass + '">' + workedHours + '</span>';
                 }
@@ -1098,6 +1400,18 @@
         });
 
         $('#employeeDetailModal .modal-card').on('click', function(event) {
+            event.stopPropagation();
+        });
+
+        $('.staff-login-history-button').on('click', function() {
+            openRequestHistory($(this).data('request-id'));
+        });
+        $('#requestHistoryModal, #requestHistoryClose, #requestHistoryDismiss').on('click', function(event) {
+            if (event.target === this || $(this).is('#requestHistoryClose, #requestHistoryDismiss')) {
+                closeRequestHistory();
+            }
+        });
+        $('#requestHistoryModal .modal-card').on('click', function(event) {
             event.stopPropagation();
         });
     });

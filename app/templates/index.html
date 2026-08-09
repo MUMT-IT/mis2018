@@ -1064,6 +1064,63 @@
             color: rgba(18, 39, 84, 0.68);
         }
 
+        .home-ai-policy-link {
+            border-color: rgba(46, 139, 87, 0.55);
+            box-shadow: 0 0 10px rgba(46, 139, 87, 0.18);
+        }
+
+        .home-ai-policy-link:hover {
+            border-color: var(--theme-green);
+            box-shadow: 0 0 14px rgba(46, 139, 87, 0.3);
+        }
+
+        .home-ai-policy-modal .modal-card {
+            display: flex;
+            flex-direction: column;
+            height: auto !important;
+            max-height: calc(100vh - 2rem);
+            overflow: hidden;
+            width: min(760px, calc(100vw - 2rem));
+        }
+
+        .home-ai-policy-modal .modal-card-head {
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .home-ai-policy-modal .modal-card-title {
+            color: var(--theme-navy-deep);
+            font-size: 1.15rem;
+            line-height: 1.45;
+        }
+
+        .home-ai-policy-modal .modal-card-body {
+            display: block;
+            flex: 0 1 auto !important;
+            height: auto !important;
+            max-height: 72vh;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .home-ai-policy-modal .content h3 {
+            color: var(--theme-navy-deep);
+            font-size: 1rem;
+            margin-top: 1.35rem;
+        }
+
+        .home-ai-policy-modal .content h3:first-child {
+            margin-top: 0;
+        }
+
+        .home-ai-policy-modal .privacy-note {
+            background: rgba(46, 139, 87, 0.1);
+            border-left: 4px solid var(--theme-green);
+            border-radius: 10px;
+            color: var(--theme-text);
+            padding: 0.9rem 1rem;
+        }
+
         .home-panel:nth-child(1) .home-badge {
             background: rgba(184, 67, 63, 0.12);
             color: var(--theme-red);
@@ -1272,13 +1329,6 @@
                                 </div>
                             </div>
                             <div class="home-link-list">
-                                <a class="home-link-item" href="{{ url_for('staff.show_leave_info') }}">
-                                    <span class="home-link-copy">
-                                        <span class="icon"><i class="fa-solid fa-calendar-check"></i></span>
-                                        <span>ลาปฏิบัติงาน</span>
-                                    </span>
-                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
-                                </a>
                                 <a class="home-link-item" href="{{ url_for('room.index') }}">
                                     <span class="home-link-copy">
                                         <span class="icon"><i class="fa-regular fa-calendar"></i></span>
@@ -1286,10 +1336,17 @@
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
+                                <a class="home-link-item" href="{{ url_for('staff.show_leave_info') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                        <span>ลาปฏิบัติงาน</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
                                 <a class="home-link-item" href="{{ url_for('staff.geo_checkin') }}">
                                     <span class="home-link-copy">
                                         <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
-                                        <span>ลงชื่อใช้งานด้วย GPS</span>
+                                        <span>ลงชื่อเข้าปฏิบัติงานออนไลน์</span>
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
@@ -1307,11 +1364,71 @@
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
+                                <a class="home-link-item home-ai-policy-link" href="#ai-policy-modal" data-ai-policy-open aria-haspopup="dialog" aria-controls="ai-policy-modal">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-robot"></i></span>
+                                        <span>นโยบายการพัฒนาและใช้ AI ในระบบ MIS</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
+
+            <div class="modal home-ai-policy-modal" id="ai-policy-modal" data-ai-policy-modal role="dialog" aria-modal="true" aria-labelledby="ai-policy-modal-title" aria-hidden="true">
+                <div class="modal-background" data-ai-policy-close></div>
+                <div class="modal-card">
+                    <header class="modal-card-head">
+                        <p class="modal-card-title" id="ai-policy-modal-title">
+                            <span class="icon mr-2" aria-hidden="true"><i class="fa-solid fa-robot"></i></span>
+                            นโยบายการพัฒนาและการใช้ปัญญาประดิษฐ์ (AI) ในระบบ MIS
+                        </p>
+                        <button class="delete" type="button" aria-label="ปิดหน้าต่างนโยบาย" data-ai-policy-close></button>
+                    </header>
+                    <section class="modal-card-body content">
+                        <p class="privacy-note">
+                            ระบบ MIS มีการนำเทคโนโลยีปัญญาประดิษฐ์ (AI) จากผู้ให้บริการภายนอกที่เชื่อถือได้ เช่น SCB และ Heroku มาใช้เพื่อสนับสนุนการทำงานของระบบในบางฟังก์ชัน โดยมีวัตถุประสงค์เพื่อช่วยค้นหา วิเคราะห์ สรุปข้อมูล และอำนวยความสะดวกในการใช้งาน ทั้งนี้ AI เป็นเครื่องมือสนับสนุนการทำงาน (Assistive Technology) มิใช่กลไกในการตัดสินใจแทนผู้ใช้ และผู้ใช้สามารถเลือกใช้หรือไม่ใช้ความสามารถของ AI ได้ตามความเหมาะสมของงาน
+                        </p>
+
+                        <h3>หลักการสำคัญ</h3>
+                        <p>ระบบ MIS ออกแบบให้ความสามารถด้าน AI เป็นบริการเสริมเพื่อสนับสนุนการทำงานของผู้ใช้ ไม่ใช่ข้อกำหนดในการใช้งานระบบ ฟังก์ชันหลักของระบบยังคงสามารถดำเนินการได้โดยไม่ต้องพึ่งพา AI เพื่อให้ระบบมีความโปร่งใส ตรวจสอบได้ และสามารถทำงานได้อย่างต่อเนื่องแม้บริการ AI ภายนอกไม่พร้อมใช้งาน</p>
+
+                        <h3>1. การใช้ AI ในระบบ</h3>
+                        <p>ระบบอาจใช้ AI เพื่อช่วยดำเนินการในงานต่อไปนี้</p>
+                        <ul>
+                            <li><strong>ค้นหาเอกสาร:</strong> ช่วยค้นหาเอกสารภายใน สรุปสาระสำคัญ และแนะนำเอกสารที่เกี่ยวข้องผ่าน DocsIQ โดยอ้างอิงเฉพาะเอกสารที่ผู้ใช้มีสิทธิ์เข้าถึง</li>
+                            <li><strong>สรุปกิจกรรม:</strong> ช่วยสรุปกิจกรรมในปฏิทินของผู้ใช้ รวมถึงภาพรวมกิจกรรมในช่วงเวลาที่กำหนด เพื่อช่วยวางแผนการทำงาน</li>
+                            <li><strong>ค้นหาห้องและทรัพยากรด้วยภาษาธรรมชาติ:</strong> ช่วยแปลงคำอธิบายความต้องการของผู้ใช้เป็นเงื่อนไขการค้นหา</li>
+                            <li><strong>สรุปงานติดตาม:</strong> ช่วยสรุปภาพรวมของงานร้องเรียน งานค้างดำเนินการ หรือรายการที่ต้องติดตาม สำหรับผู้ใช้ที่ได้รับสิทธิ์</li>
+                            <li><strong>ประมวลผลเอกสาร:</strong> อาจใช้เทคโนโลยีในการสกัดข้อความจากเอกสารและ OCR เพื่อแปลงภาพเป็นข้อความก่อนนำไปค้นหา วิเคราะห์ หรือสรุป โดยดำเนินการเฉพาะเอกสารที่ได้รับอนุญาตให้ประมวลผล</li>
+                        </ul>
+
+                        <h3>2. หลักการคุ้มครองข้อมูลและความเป็นส่วนตัว</h3>
+                        <p>การใช้บริการ AI ภายนอกดำเนินการภายใต้พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA) รวมถึงนโยบายด้านข้อมูลของมหาวิทยาลัยมหิดลและคณะอย่างเคร่งครัด โดยยึดหลักดังต่อไปนี้</p>
+                        <ul>
+                            <li>ส่งต่อเฉพาะข้อมูลที่จำเป็นต่อการประมวลผล (Data Minimization)</li>
+                            <li>หลีกเลี่ยงการส่งข้อมูลที่สามารถระบุตัวบุคคลได้ เว้นแต่มีความจำเป็นและได้รับอนุญาตตามกฎหมายหรือนโยบายที่เกี่ยวข้อง</li>
+                            <li>การส่งข้อมูลไปยังผู้ให้บริการ AI ภายนอกอยู่ภายใต้การกำกับดูแลของผู้ดูแลระบบ และต้องเป็นไปตามข้อตกลงการใช้บริการและมาตรการรักษาความมั่นคงปลอดภัยของข้อมูล</li>
+                        </ul>
+
+                        <h3>3. หน้าที่และความรับผิดชอบของผู้ใช้</h3>
+                        <p>ผู้ใช้มีหน้าที่</p>
+                        <ul>
+                            <li>ใช้งานข้อมูลภายในขอบเขตสิทธิ์ที่ได้รับ</li>
+                            <li>ปกปิดหรือลบข้อมูลส่วนบุคคลหรือข้อมูลอ่อนไหวที่ไม่จำเป็นก่อนใช้ฟังก์ชัน AI</li>
+                            <li>ตรวจสอบความถูกต้องของผลลัพธ์จาก AI ก่อนนำไปใช้งานหรือเผยแพร่</li>
+                            <li>แจ้งผู้ดูแลระบบทันทีเมื่อพบข้อมูลผิดพลาด การเปิดเผยข้อมูลโดยไม่เหมาะสม หรือพฤติกรรมที่อาจกระทบต่อความมั่นคงปลอดภัยของระบบ</li>
+                        </ul>
+                        <p>ผลลัพธ์จาก AI ถือเป็นข้อมูลเพื่อการสนับสนุนการตัดสินใจ (Decision Support) มิใช่ข้อสรุปหรือคำวินิจฉัยที่ถูกต้องเสมอไป ผู้ใช้ยังคงเป็นผู้รับผิดชอบในการพิจารณา ตรวจสอบ และตัดสินใจขั้นสุดท้าย โดยเฉพาะในกรณีที่เกี่ยวข้องกับสิทธิ ประโยชน์ สุขภาพ ความปลอดภัย หรือผลกระทบต่อบุคคล</p>
+
+                        <h3>4. การกำกับดูแลและการทบทวน</h3>
+                        <p>ผู้ดูแลระบบจะทบทวนการใช้งาน AI ผู้ให้บริการ AI และมาตรการคุ้มครองข้อมูลเป็นระยะ เพื่อให้สอดคล้องกับความเสี่ยง เทคโนโลยี และกฎหมายที่เกี่ยวข้อง รวมทั้งจัดให้มีช่องทางรับแจ้งเหตุด้านความเป็นส่วนตัวและความมั่นคงปลอดภัยของข้อมูล</p>
+                        <p>หากผู้ใช้มีข้อสงสัยเกี่ยวกับการใช้ AI หรือพบเหตุผิดปกติ ควรแจ้งผู้ดูแลระบบ MIS ก่อนนำผลลัพธ์จาก AI ไปใช้ในการตัดสินใจหรือเผยแพร่ต่อบุคคลอื่น</p>
+                    </section>
+                </div>
+            </div>
 
             <section class="home-panel docs-query-home-card">
                 <div class="home-panel-header">
@@ -1380,6 +1497,35 @@
 {% block scripts %}
 {{ super() }}
 <script>
+    var aiPolicyModalLastFocus = null;
+
+    function openAiPolicyModal() {
+        var modal = document.querySelector('[data-ai-policy-modal]');
+        if (!modal) {
+            return;
+        }
+
+        aiPolicyModalLastFocus = document.activeElement;
+        modal.classList.add('is-active');
+        modal.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('is-clipped');
+        modal.querySelector('[data-ai-policy-close]').focus();
+    }
+
+    function closeAiPolicyModal() {
+        var modal = document.querySelector('[data-ai-policy-modal]');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('is-active');
+        modal.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('is-clipped');
+        if (aiPolicyModalLastFocus) {
+            aiPolicyModalLastFocus.focus();
+        }
+    }
+
     function closeHomeCalendarEventPopup() {
         var popup = document.querySelector('[data-calendar-event-popup]');
         if (popup) {
@@ -1388,6 +1534,19 @@
     }
 
     document.addEventListener('click', function (event) {
+        var aiPolicyOpenButton = event.target.closest('[data-ai-policy-open]');
+        if (aiPolicyOpenButton) {
+            event.preventDefault();
+            openAiPolicyModal();
+            return;
+        }
+
+        var aiPolicyCloseButton = event.target.closest('[data-ai-policy-close]');
+        if (aiPolicyCloseButton) {
+            closeAiPolicyModal();
+            return;
+        }
+
         var eventDetailButton = event.target.closest('[data-calendar-event-detail]');
         if (eventDetailButton) {
             var popup = document.querySelector('[data-calendar-event-popup]');
@@ -1470,6 +1629,7 @@
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
+            closeAiPolicyModal();
             closeHomeCalendarEventPopup();
         }
     });
