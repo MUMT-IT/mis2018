@@ -226,20 +226,20 @@ class PAItem(db.Model):
         n = 0
         for s in self.pa_score_item:
             if s.score_sheet_id == scoresheet.id:
-                if s.score:
+                if s.score is not None:
                     score += s.score
                     n += 1
-        return score / n
+        return score / n if n else 0
 
     def total_score(self, scoresheet):
         score = 0
         n = 0
         for s in self.pa_score_item:
             if s.score_sheet_id == scoresheet.id:
-                if s.score:
+                if s.score is not None:
                     score += s.score
                     n += 1
-        return (score / n) * self.percentage
+        return ((score / n) * self.percentage) if n else 0
 
 
 class PACommittee(db.Model):
@@ -294,7 +294,7 @@ class PAScoreSheet(db.Model):
         score = 0
         for c in self.competency_score_items:
             if c.score_sheet_id == self.id:
-                if c.score:
+                if c.score is not None:
                     score += c.score * 10
         return score
 
@@ -302,7 +302,7 @@ class PAScoreSheet(db.Model):
         score = 0
         for c in self.competency_score_items:
             if c.score_sheet_id == self.id:
-                if c.score:
+                if c.score is not None:
                     score += c.score * 10
         net_score = (score / 700) * 20
         return round(net_score,2)
@@ -339,9 +339,10 @@ class PACoreCompetencyItem(db.Model):
     score = db.Column('score', db.Numeric(), info={'label': 'คะแนนเต็ม'})
 
     def competency_multiply(self, scoresheet):
+        score = 0
         for c in self.core_score_core_item:
             if c.score_sheet_id == scoresheet.id:
-                if c.score:
+                if c.score is not None:
                     score = c.score
         return score * self.score
 

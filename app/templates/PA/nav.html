@@ -5,7 +5,6 @@
     subtitle='ระบบประเมินผลการปฏิบัติงาน',
     brand_href=url_for('pa.user_performance'),
     start_links=[
-        {'href': url_for('pa.user_performance'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
     ],
     user_display=current_user.personal_info.fullname,
     account_href=url_for('auth.account'),

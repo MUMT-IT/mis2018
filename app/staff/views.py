@@ -2582,7 +2582,7 @@ def show_wfh_approvers():
 @login_required
 def wfh_manage_requester(requester_id):
     if request.method == 'POST':
-        approver_account_id = request.form.get('staffname'),
+        approver_account_id = int(request.form.get('staffname'))
         find_approver = StaffWorkFromHomeApprover.query.filter_by \
             (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
         if find_approver:
@@ -5959,7 +5959,7 @@ def staff_approver_change_middle_level_status(approver_id, requester_id):
 @login_required
 def staff_add_requester(requester_id):
     if request.method == 'POST':
-        approver_account_id = request.form.get('staffname'),
+        approver_account_id = int(request.form.get('staffname'))
         find_approver = StaffLeaveApprover.query.filter_by \
             (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
         if find_approver:

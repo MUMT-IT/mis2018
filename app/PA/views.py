@@ -1378,17 +1378,12 @@ def summary_scoresheet(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     if not committee:
-        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
-                                                round=pa.round).first()
-        if not committee:
             flash('ไม่พบรายการสรุป scoresheet กรุณาติดต่อหน่วย IT', 'warning')
             return redirect(request.referrer)
     core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).join(PACommittee).filter(
         PACommittee.staff == current_user).first()
-    if consolidated_score_sheet:
-        score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
-    else:
+    if not consolidated_score_sheet:
         consolidated_score_sheet = PAScoreSheet(
             pa_id=pa_id,
             committee_id=committee.id,
@@ -1429,6 +1424,21 @@ def summary_scoresheet(pa_id):
         create_approve_scoresheet = False
     if request.method == 'POST':
         form = request.form
+        expected_fields = []
+        for pa_item in consolidated_score_sheet.pa.pa_items:
+            for kpi_item in pa_item.kpi_items:
+                expected_fields.append(f'pa-item-{pa_item.id}-{kpi_item.id}')
+        for core_item in core_competency_items:
+            expected_fields.append(f'core-{core_item.id}')
+
+        missing_fields = [
+            field for field in expected_fields
+            if form.get(field, '').strip() == ''
+        ]
+        if missing_fields:
+            flash('กรุณากรอกคะแนนให้ครบทุกช่องก่อนบันทึก', 'warning')
+            return redirect(url_for('pa.summary_scoresheet', pa_id=pa_id))
+
         for field, value in form.items():
             if field.startswith('pa-item-'):
                 pa_item_id, kpi_item_id = field.split('-')[-2:]
@@ -1476,6 +1486,18 @@ def confirm_score(scoresheet_id):
 @login_required
 def confirm_final_score(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    pa = scoresheet.pa
+    if scoresheet.is_consolidated:
+        pa_items = PAItem.query.filter_by(pa_id=pa.id).all()
+        existing_pairs = {
+            (item.item_id, item.kpi_item_id)
+            for item in PAScoreSheetItem.query.filter_by(score_sheet_id=scoresheet.id).all()
+        }
+        for pa_item in pa_items:
+            for kpi_item in pa_item.kpi_items:
+                if (pa_item.id, kpi_item.id) not in existing_pairs:
+                    flash('พบข้อมูลคะแนนไม่ครบ กรุณาเปิดหน้าสรุปคะแนนเพื่อให้ระบบเติมข้อมูลให้ครบก่อนยืนยันผล', 'warning')
+                    return redirect(url_for('pa.summary_scoresheet', pa_id=pa.id))
     scoresheet.is_final = True
     scoresheet.confirm_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(scoresheet)
@@ -1504,7 +1526,7 @@ def send_consensus_scoresheets_to_hr(pa_id):
             flash('จำเป็นต้องมีการรับรองผลโดยคณะกรรมการทั้งหมด ก่อนส่งผลคะแนนไปยัง HR', 'warning')
             return redirect(request.referrer)
     pa_agreement = PAAgreement.query.filter_by(id=scoresheet.pa_id).first()
-    if pa_agreement.performance_score:
+    if pa_agreement.performance_score is not None:
         flash('ส่งคะแนนเรียบร้อยแล้ว', 'success')
     else:
         scoresheet.is_appproved = True
