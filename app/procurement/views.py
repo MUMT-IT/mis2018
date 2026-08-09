@@ -549,7 +549,25 @@ def get_procurement_search_data():
     query = base_query
 
     if search:
-        query = query.filter(ProcurementDetail.erp_code.ilike(f'%{search}%'))
+        search_pattern = f'%{search}%'
+        search_filters = [
+            ProcurementDetail.name.ilike(search_pattern),
+            ProcurementDetail.procurement_no.ilike(search_pattern),
+            ProcurementDetail.erp_code.ilike(search_pattern),
+            cast(ProcurementDetail.budget_year, String).ilike(search_pattern),
+            cast(ProcurementDetail.received_date, String).ilike(search_pattern)
+        ]
+
+        # รองรับวันที่ในรูปแบบเดียวกับที่แสดงในตาราง เช่น 31/01/2026
+        for date_format in ('%d/%m/%Y', '%d-%m-%Y'):
+            try:
+                searched_date = datetime.strptime(search, date_format).date()
+                search_filters.append(ProcurementDetail.received_date == searched_date)
+                break
+            except ValueError:
+                pass
+
+        query = query.filter(or_(*search_filters))
 
     if search:
         records_filtered = query.order_by(None).count()

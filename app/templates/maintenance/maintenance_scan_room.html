@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}สแกน QR Code ห้อง | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css">
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section">
+        <div class="container is-max-desktop" id="qr-scan-app">
+            <div class="notification is-light is-link">
+                <h1 class="title has-text-centered has-text-link">สแกน QR Code ห้อง</h1>
+                <p class="has-text-centered">สแกน QR Code ที่ติดหน้าห้องเพื่อเปิดหน้าประวัติและตรวจเช็คอุปกรณ์</p>
+                <div class="has-text-centered mt-3">
+                    <span class="icon is-large"><i class="fas fa-qrcode fa-4x"></i></span>
+                </div>
+            </div>
+
+            <div class="box">
+                <b-loading v-model="loading"></b-loading>
+                <qrcode-stream
+                    :key="scannerKey"
+                    :camera="camera"
+                    @decode="onDecode"
+                    :track="paintOutline"
+                    @init="onInit"
+                ></qrcode-stream>
+                <p v-if="errorMessage" class="help is-danger mt-4"><% errorMessage %></p>
+            </div>
+
+            <div class="has-text-centered">
+                <a href="{{ url_for('maintenance.maintenance_list_room') }}" class="button is-light">กลับหน้ารายการห้อง</a>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/VueQrcodeReader@3.0.umd.min.js') }}"></script>
+    <script>
+        new Vue({
+            el: '#qr-scan-app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    camera: 'auto',
+                    errorMessage: '',
+                    loading: false,
+                    scannerKey: 0
+                };
+            },
+            methods: {
+                paintOutline(detectedCodes, ctx) {
+                    for (const detectedCode of detectedCodes) {
+                        const [firstPoint, ...otherPoints] = detectedCode.cornerPoints;
+                        ctx.strokeStyle = '#e04b4b';
+                        ctx.beginPath();
+                        ctx.moveTo(firstPoint.x, firstPoint.y);
+                        for (const { x, y } of otherPoints) ctx.lineTo(x, y);
+                        ctx.lineTo(firstPoint.x, firstPoint.y);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                },
+                async onInit(promise) {
+                    this.loading = true;
+                    try {
+                        await promise;
+                    } catch (error) {
+                        this.errorMessage = 'ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้อง';
+                        console.error(error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                onDecode(content) {
+                    const roomId = String(content).trim();
+                    if (!/^\d+$/.test(roomId)) {
+                        this.errorMessage = 'QR Code นี้ไม่ใช่รหัสห้อง กรุณาสแกน QR Code ที่สร้างจากระบบ Maintenance';
+                        this.scannerKey += 1;
+                        return;
+                    }
+
+                    this.camera = 'off';
+                    this.loading = true;
+                    const destination = new URL(
+                        '{{ url_for('maintenance.maintenance_items_check') }}',
+                        window.location.origin
+                    );
+                    destination.searchParams.set('room_id', roomId);
+                    window.location.replace(destination.toString());
+                }
+            }
+        });
+    </script>
+{% endblock %}

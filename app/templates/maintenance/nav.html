@@ -1,0 +1,19 @@
+{% from "components/module_nav.html" import render_module_nav %}
+
+{{ render_module_nav(
+    title='Maintenance',
+    subtitle='ระบบ Maintenance ห้องเรียน/บรรยาย',
+    brand_href=url_for('maintenance.maintenance_list_room'),
+    start_links=[
+        {'href': '/', 'label': 'หน้าหลัก', 'icon': 'fas fa-house'},
+        {'href': url_for('maintenance.maintenance_scan_room'), 'label': 'Scan Room', 'icon': 'fas fa-qrcode', 'primary': True},
+        {'href': url_for('maintenance.maintenance_list_room'), 'label': 'สถานะตรวจรายห้อง', 'icon': 'fas fa-clipboard-list'},
+        {'href': url_for('maintenance.print_qr_room'), 'label': 'พิมพ์ QR ห้อง', 'icon': 'fas fa-qrcode'},
+    ],
+    end_links=[
+        {'href': url_for('maintenance.maintenance_equipment_types_admin'), 'label': 'จัดประเภทอุปกรณ์', 'icon': 'fas fa-gear'},
+    ],
+    logout_href=None,
+    close_href=None,
+    menu_id='complaintNavbarMenu'
+) }}

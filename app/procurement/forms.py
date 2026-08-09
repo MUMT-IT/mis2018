@@ -66,7 +66,7 @@ class DatePickerField(Field):
 class ProcurementDetailForm(ModelForm):
     class Meta:
         model = ProcurementDetail
-        exclude = ['image_url']
+        exclude = ['image_url', 'is_qrcode_attached']
 
     image_file_upload = FileField(u'อัพโหลดรูปภาพ')
     cost_center = SelectField(u'ศูนย์ต้นทุน',

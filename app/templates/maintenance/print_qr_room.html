@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}พิมพ์ QR Code ห้อง | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .room-qr-page { padding: 2rem 0 3rem; }
+        .room-qr-shell { background: #fff; border: 1px solid rgba(18,39,84,.1); border-radius: 24px; box-shadow: 0 18px 42px rgba(18,39,84,.08); overflow: hidden; }
+        .room-qr-head { background: linear-gradient(135deg,#14294f,#294b88); color: #fff; padding: 1.4rem 1.5rem; }
+        .room-qr-title { font-size: 1.55rem; font-weight: 800; margin: 0; }
+        .room-qr-subtitle { color: rgba(255,255,255,.76); margin: .35rem 0 0; }
+        .room-qr-content { padding: 1.5rem; }
+        .room-qr-search { align-items: end; background: #f6f8fc; border: 1px solid rgba(18,39,84,.09); border-radius: 18px; display: flex; gap: .75rem; margin-bottom: 1.25rem; padding: 1rem; }
+        .room-qr-search .field { flex: 1; margin-bottom: 0; }
+        .room-qr-search .input, .room-qr-search .button { border-radius: 12px; }
+        .room-qr-layout { display: grid; gap: 1.25rem; grid-template-columns: minmax(0,1fr) minmax(300px,.9fr); }
+        .room-search-results { border: 1px solid rgba(18,39,84,.1); border-radius: 18px; overflow: hidden; }
+        .room-search-results-head { background: #eef3fb; color: #41506a; font-weight: 800; padding: .8rem 1rem; }
+        .room-search-result { align-items: center; border-bottom: 1px solid rgba(18,39,84,.08); display: flex; gap: .75rem; padding: .85rem 1rem; }
+        .room-search-result:last-child { border-bottom: 0; }
+        .room-search-result-name { color: #1c3158; font-weight: 800; }
+        .room-search-result-meta { color: #71809a; font-size: .82rem; margin-top: .15rem; }
+        .room-search-select { margin-right: .1rem; }
+        .room-search-actions { padding: .85rem 1rem; }
+        .room-search-actions .button { border-radius: 10px; }
+        .room-qr-empty { color: #71809a; padding: 2.5rem 1rem; text-align: center; }
+        .room-qr-previews { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .room-qr-preview { align-items: center; background: linear-gradient(145deg,#f7faff,#edf3fc); border: 1px dashed rgba(63,87,214,.34); border-radius: 20px; display: flex; flex-direction: column; justify-content: center; min-height: 390px; padding: 1.5rem; text-align: center; }
+        .room-qr-preview-label { color: #71809a; font-size: .85rem; font-weight: 700; margin-bottom: .45rem; }
+        .room-qr-preview-room { color: #172e57; font-size: 2rem; font-weight: 800; line-height: 1.1; }
+        .room-qr-preview-location { color: #52617a; font-size: 1rem; font-weight: 700; margin-top: .35rem; }
+        .room-qrcode { background: #fff; border: 8px solid #fff; border-radius: 12px; box-shadow: 0 12px 22px rgba(18,39,84,.12); margin: 1.15rem 0; }
+        .room-qr-print-btn { border-radius: 12px; font-weight: 800; margin-top: 1rem; }
+        @media screen and (max-width: 768px) { .room-qr-layout, .room-qr-previews { grid-template-columns: 1fr; } .room-qr-search { align-items: stretch; flex-direction: column; } }
+        @media print { @page { size: A4 portrait; margin: 12mm; } .app-navbar-wrap, .room-qr-head, .room-qr-search, .room-search-results, .room-qr-print-btn, .room-qr-preview-label { display: none !important; } body { background: #fff !important; } .room-qr-page, .room-qr-content { padding: 0; } .room-qr-shell { border: 0; box-shadow: none; } .room-qr-layout { display: block; } .room-qr-previews { display: grid; gap: 5mm; grid-template-columns: 1fr; } .room-qr-preview { border: 0; min-height: 128mm; padding: 0; page-break-inside: avoid; } .room-qr-preview-room { font-size: 2.4rem; } .room-qr-preview-location { font-size: 1.2rem; } .room-qrcode { margin: 6mm 0; } }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section room-qr-page">
+        <div class="container">
+            <div class="room-qr-shell">
+                <header class="room-qr-head"><h1 class="room-qr-title">สร้าง QR Code ประจำห้อง</h1><p class="room-qr-subtitle">ค้นหา เลือกห้อง และพิมพ์ QR Code สำหรับติดหน้าห้อง</p></header>
+                <div class="room-qr-content">
+                    <form class="room-qr-search" method="get">
+                        <div class="field"><label class="label">ค้นหาหมายเลขห้องหรือสถานที่</label><div class="control"><input class="input" name="q" value="{{ q }}" placeholder="เช่น 302 หรือ 302 ศาลายา"></div></div>
+                        <button class="button is-info" type="submit"><span class="icon"><i class="fa-solid fa-magnifying-glass"></i></span><span>ค้นหา</span></button>
+                    </form>
+                    <div class="room-qr-layout">
+                        <form class="room-search-results" method="get">
+                            <input type="hidden" name="q" value="{{ q }}">
+                            <div class="room-search-results-head">ผลการค้นหา: เลือกได้สูงสุด 2 ห้อง</div>
+                            {% for result in rooms %}
+                                <label class="room-search-result">
+                                    <span class="room-search-select"><input type="checkbox" name="room_id" value="{{ result.id }}" {% if result.id in selected_room_ids %}checked{% endif %}></span>
+                                    <span><span class="room-search-result-name">ห้อง {{ result.number }} {{ result.location }}</span><span class="room-search-result-meta">ชั้น {{ result.floor or '-' }}{% if result.desc %} | {{ result.desc }}{% endif %}</span></span>
+                                </label>
+                            {% else %}
+                                <div class="room-qr-empty">ไม่พบข้อมูลห้อง</div>
+                            {% endfor %}
+                            {% if rooms %}
+                                <div class="room-search-actions"><button class="button is-link" type="submit"><span class="icon"><i class="fa-solid fa-qrcode"></i></span><span>สร้าง QR ที่เลือก</span></button></div>
+                            {% endif %}
+                            {% if pagination.pages > 1 %}
+                                <div class="room-search-actions">
+                                    <nav class="pagination is-small is-centered" role="navigation" aria-label="pagination">
+                                        <a class="pagination-previous" {% if pagination.has_prev %}href="{{ url_for('maintenance.print_qr_room', page=pagination.prev_num, q=q) }}"{% else %}disabled{% endif %}>ก่อนหน้า</a>
+                                        <a class="pagination-next" {% if pagination.has_next %}href="{{ url_for('maintenance.print_qr_room', page=pagination.next_num, q=q) }}"{% else %}disabled{% endif %}>ถัดไป</a>
+                                        <ul class="pagination-list">
+                                            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+                                                {% if page_num %}
+                                                    <li><a class="pagination-link {% if page_num == pagination.page %}is-current{% endif %}" href="{{ url_for('maintenance.print_qr_room', page=page_num, q=q) }}">{{ page_num }}</a></li>
+                                                {% else %}
+                                                    <li><span class="pagination-ellipsis">&hellip;</span></li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ul>
+                                    </nav>
+                                </div>
+                            {% endif %}
+                        </form>
+                        <div class="room-qr-previews">
+                            {% for room in selected_rooms %}
+                                <div class="room-qr-preview">
+                                    <div class="room-qr-preview-label">QR Code ประจำห้อง</div>
+                                    <div class="room-qr-preview-room">{{ room.number }}</div>
+                                    <div class="room-qr-preview-location">{{ room.location }}</div>
+                                    <div class="room-qrcode" id="room-qrcode-{{ room.id }}"></div>
+                                </div>
+                            {% else %}
+                                <div class="room-qr-preview">
+                                    <span class="icon is-large has-text-grey-light"><i class="fa-solid fa-qrcode fa-3x"></i></span>
+                                    <p class="mt-4 has-text-grey">เลือกห้องจากผลการค้นหาเพื่อสร้าง QR Code</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if selected_rooms %}
+                            <div class="has-text-right">
+                                <button class="button is-link room-qr-print-btn" type="button" onclick="window.print()"><span class="icon"><i class="fa-solid fa-print"></i></span><span>พิมพ์ QR Code</span></button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {% if selected_rooms %}
+        <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+        <script>
+            {% for room in selected_rooms %}
+            new QRCode(document.getElementById('room-qrcode-{{ room.id }}'), {
+                text: {{ room.id|string|tojson }},
+                width: 220,
+                height: 220,
+                colorDark: '#172e57',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            {% endfor %}
+
+        </script>
+    {% endif %}
+    <script>
+        const roomQrScrollKey = 'maintenance-print-qr-room-scroll-y';
+        const savedRoomQrScroll = sessionStorage.getItem(roomQrScrollKey);
+        if (savedRoomQrScroll !== null) {
+            window.addEventListener('pageshow', function () {
+                window.requestAnimationFrame(function () {
+                    window.scrollTo(0, Number(savedRoomQrScroll));
+                });
+            }, { once: true });
+        }
+
+        document.querySelectorAll('.pagination a[href]').forEach(function (link) {
+            link.addEventListener('click', function () {
+                sessionStorage.setItem(roomQrScrollKey, String(window.scrollY));
+            });
+        });
+
+        document.querySelectorAll('input[name="room_id"]').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                const selected = document.querySelectorAll('input[name="room_id"]:checked');
+                if (selected.length > 2) {
+                    this.checked = false;
+                    window.alert('เลือกห้องเพื่อพิมพ์ได้สูงสุด 2 ห้องต่อครั้ง');
+                }
+            });
+        });
+    </script>
+{% endblock %}

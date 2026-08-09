@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการประเภทอุปกรณ์ | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .maintenance-admin-page {
+            padding-bottom: 3rem;
+            padding-top: 2rem;
+        }
+
+        .maintenance-admin-shell {
+            background: #fff;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 18px 42px rgba(18, 39, 84, 0.08);
+            overflow: hidden;
+        }
+
+        .maintenance-admin-head {
+            background: linear-gradient(135deg, #15284d, #294b88);
+            color: #fff;
+            padding: 1.4rem 1.5rem;
+        }
+
+        .maintenance-admin-title {
+            font-size: 1.55rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .maintenance-admin-subtitle {
+            color: rgba(255, 255, 255, 0.76);
+            margin: 0.35rem 0 0;
+        }
+
+        .maintenance-admin-content {
+            padding: 1.5rem;
+        }
+
+        .maintenance-admin-flash .notification {
+            margin-bottom: 1rem;
+        }
+
+        .maintenance-add-form {
+            align-items: end;
+            background: #f6f8fc;
+            border: 1px solid rgba(18, 39, 84, 0.09);
+            border-radius: 18px;
+            display: grid;
+            gap: 0.9rem;
+            grid-template-columns: minmax(0, 1fr) 130px auto;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+        }
+
+        .maintenance-add-form .label {
+            color: #41506a;
+            font-size: 0.9rem;
+            margin-bottom: 0.35rem;
+        }
+
+        .maintenance-add-form .input,
+        .maintenance-type-table .input {
+            border-radius: 12px;
+        }
+
+        .maintenance-add-form .button {
+            border-radius: 12px;
+            font-weight: 700;
+        }
+
+        .maintenance-type-table-wrap {
+            overflow-x: auto;
+        }
+
+        .maintenance-type-table {
+            min-width: 720px;
+            width: 100%;
+        }
+
+        .maintenance-type-table th {
+            background: #eef3fb;
+            color: #41506a;
+            font-weight: 800;
+        }
+
+        .maintenance-type-table th,
+        .maintenance-type-table td {
+            border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+            padding: 0.8rem;
+            vertical-align: middle;
+        }
+
+        .maintenance-type-row-form {
+            align-items: center;
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: minmax(220px, 1fr) 90px 110px auto;
+        }
+
+        .maintenance-type-row-form .checkbox {
+            color: #41506a;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .maintenance-type-row-form .button,
+        .maintenance-delete-form .button {
+            border-radius: 10px;
+        }
+
+        .maintenance-delete-form {
+            display: inline-block;
+            margin-left: 0.4rem;
+        }
+
+        .maintenance-empty {
+            color: #71809a;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        @media screen and (max-width: 768px) {
+            .maintenance-add-form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section maintenance-admin-page">
+        <div class="container">
+            <div class="maintenance-admin-shell">
+                <div class="maintenance-admin-head">
+                    <h1 class="maintenance-admin-title">จัดการประเภทอุปกรณ์</h1>
+                    <p class="maintenance-admin-subtitle">กำหนดรายการสำหรับ dropdown ประเภทอุปกรณ์ในระบบ Maintenance</p>
+                </div>
+
+                <div class="maintenance-admin-content">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            <div class="maintenance-admin-flash">
+                                {% for category, message in messages %}
+                                    <div class="notification is-{{ category }}">{{ message }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="post" class="maintenance-add-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="field">
+                            <label class="label">ชื่อประเภทอุปกรณ์</label>
+                            <div class="control">
+                                <input class="input" name="name" type="text" placeholder="เช่น ไมโครโฟน" required>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ลำดับ</label>
+                            <div class="control">
+                                <input class="input" name="sort_order" type="number" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <button class="button is-link" type="submit">
+                                <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                                <span>เพิ่มประเภท</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="maintenance-type-table-wrap">
+                        <table class="maintenance-type-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 90px;">No</th>
+                                    <th>รายละเอียดประเภทอุปกรณ์</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for equipment_type in equipment_types %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>
+                                            <form method="post"
+                                                  action="{{ url_for('maintenance.edit_maintenance_equipment_type', equipment_type_id=equipment_type.id) }}"
+                                                  class="maintenance-type-row-form">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <input class="input" name="name" type="text" value="{{ equipment_type.name }}" required>
+                                                <input class="input" name="sort_order" type="number" min="0" value="{{ equipment_type.sort_order }}">
+                                                <label class="checkbox">
+                                                    <input name="is_active" type="checkbox" {% if equipment_type.is_active %}checked{% endif %}>
+                                                    ใช้งาน
+                                                </label>
+                                                <span>
+                                                    <button class="button is-small is-info" type="submit">บันทึก</button>
+                                                </span>
+                                            </form>
+                                            <form method="post"
+                                                  action="{{ url_for('maintenance.delete_maintenance_equipment_type', equipment_type_id=equipment_type.id) }}"
+                                                  class="maintenance-delete-form"
+                                                  onsubmit="return confirm('ยืนยันการลบประเภทอุปกรณ์นี้หรือไม่?');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button class="button is-small is-danger is-light" type="submit">ลบ</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td colspan="2" class="maintenance-empty">ยังไม่มีประเภทอุปกรณ์</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

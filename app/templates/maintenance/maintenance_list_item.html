@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block title %}รายการอุปกรณ์ประจำห้อง | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .maintenance-page {
+            padding-bottom: 3rem;
+            padding-top: 2rem;
+        }
+
+        .maintenance-shell {
+            background: #fff;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 18px 42px rgba(18, 39, 84, 0.08);
+            overflow: hidden;
+        }
+
+        .maintenance-head {
+            align-items: flex-start;
+            background: linear-gradient(180deg, #f7f9ff, #f0f4fb);
+            border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            padding: 1.3rem 1.5rem;
+        }
+
+        .maintenance-title {
+            color: #15284d;
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .maintenance-summary {
+            color: #7a879d;
+            text-align: right;
+        }
+
+        .maintenance-room-chip {
+            background: #eef3fb;
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 999px;
+            color: #41506a;
+            display: inline-block;
+            font-weight: 700;
+            margin-top: 0.35rem;
+            padding: 0.35rem 0.75rem;
+        }
+
+        .maintenance-filter {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+        }
+
+        .maintenance-filter .input {
+            border-radius: 14px;
+            min-width: min(100%, 360px);
+        }
+
+        .maintenance-filter .button {
+            border-radius: 14px;
+        }
+
+        .equipment-add-wrap {
+            padding: 0 1.5rem 1rem;
+        }
+
+        .maintenance-flash {
+            margin: 1rem 1.5rem 0;
+        }
+
+        .maintenance-flash .notification {
+            margin-bottom: 0.75rem;
+        }
+
+        .equipment-add-wrap details {
+            width: 100%;
+        }
+
+        .equipment-add-toggle {
+            align-items: center;
+            background: linear-gradient(180deg, #f3f7ff, #e8eefc);
+            border: 1px solid rgba(18, 39, 84, 0.12);
+            border-radius: 14px;
+            box-shadow: 0 6px 14px rgba(18, 39, 84, 0.06);
+            color: #29406e;
+            cursor: pointer;
+            display: inline-flex;
+            justify-content: flex-start;
+            font-size: 0.95rem;
+            font-weight: 800;
+            gap: 0.6rem;
+            list-style: none;
+            padding: 0.6rem 0.85rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            user-select: none;
+            width: auto;
+        }
+
+        .equipment-add-toggle::-webkit-details-marker {
+            display: none;
+        }
+
+        .equipment-add-toggle .equipment-add-toggle-left {
+            align-items: center;
+            display: inline-flex;
+            gap: 0.6rem;
+        }
+
+        .equipment-add-toggle .equipment-add-toggle-note {
+            color: #5e708f;
+            font-size: 0.86rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .equipment-add-toggle .equipment-add-toggle-spacer {
+            display: inline-block;
+            width: 0.15rem;
+        }
+
+        .equipment-add-toggle:hover {
+            box-shadow: 0 12px 22px rgba(18, 39, 84, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .equipment-add-toggle .icon {
+            color: #3f57d6;
+            font-size: 0.95rem;
+        }
+
+        .equipment-add-panel {
+            background: linear-gradient(180deg, #fbfcff, #f4f7fd);
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 18px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            margin-top: 0.85rem;
+            overflow: hidden;
+            padding: 1rem;
+        }
+
+        .equipment-add-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 1fr);
+            align-items: end;
+        }
+
+        .equipment-add-field .label {
+            color: #41506a;
+            font-size: 0.92rem;
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+        }
+
+        .equipment-add-field .select,
+        .equipment-add-field .input {
+            width: 100%;
+        }
+
+        .equipment-add-field .select select,
+        .equipment-add-field .input {
+            border-radius: 12px;
+            font-size: 0.95rem;
+            min-height: 38px;
+            padding-bottom: 0.45rem;
+            padding-top: 0.45rem;
+        }
+
+        .equipment-add-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-start;
+            margin-top: 1rem;
+        }
+
+        .equipment-add-actions .button {
+            border-radius: 14px;
+            min-width: 110px;
+            min-height: 38px;
+            font-size: 0.95rem;
+        }
+
+        .equipment-add-field .help {
+            color: #7a879d;
+            font-size: 0.82rem;
+            margin-top: 0.35rem;
+        }
+
+        .maintenance-table-wrap {
+            overflow-x: auto;
+        }
+
+        .maintenance-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            min-width: 980px;
+            width: 100%;
+        }
+
+        .maintenance-table th {
+            background: #eef3fb;
+            color: #41506a;
+            font-weight: 800;
+        }
+
+        .maintenance-table th,
+        .maintenance-table td {
+            border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+            padding: 0.9rem;
+            vertical-align: middle;
+        }
+
+        .maintenance-table tbody tr:nth-child(even) {
+            background: #f8faff;
+        }
+
+        .item-name {
+            color: #15284d;
+            font-weight: 800;
+        }
+
+        .item-meta {
+            color: #607086;
+            font-size: 0.9rem;
+            margin-top: 0.15rem;
+        }
+
+        .equipment-delete-btn {
+            align-items: center;
+            background: linear-gradient(180deg, #fff0f0, #ffe2e2);
+            border: 1px solid rgba(214, 57, 57, 0.2);
+            border-radius: 16px;
+            color: #c73333;
+            display: inline-flex;
+            justify-content: center;
+            min-height: 44px;
+            min-width: 44px;
+            text-decoration: none;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .equipment-delete-btn:hover {
+            box-shadow: 0 10px 18px rgba(18, 39, 84, 0.08);
+            color: #9e2323;
+            transform: translateY(-1px);
+        }
+
+        @media screen and (max-width: 768px) {
+            .maintenance-head {
+                flex-direction: column;
+            }
+
+            .maintenance-summary {
+                text-align: left;
+            }
+
+            .equipment-add-toggle {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .equipment-add-toggle .equipment-add-toggle-note {
+                white-space: normal;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.querySelectorAll('.maintenance-flash .delete').forEach(function (button) {
+            button.addEventListener('click', function () {
+                button.parentElement.remove();
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    {% set room_query = room.id if room else none %}
+    {% set row_offset = (pagination.page - 1) * pagination.per_page %}
+    <section class="section maintenance-page">
+        <div class="container">
+            <div class="maintenance-shell">
+                <div class="maintenance-head">
+                    <div>
+                        <h1 class="maintenance-title">รายการอุปกรณ์ประจำห้อง</h1>
+                        <div class="maintenance-room-chip">{{ room_label }}</div>
+                    </div>
+                    <div class="maintenance-summary">
+                        หน้า {{ pagination.page }} จาก {{ pagination.pages or 1 }}
+                        <br>
+                        ทั้งหมด {{ pagination.total }} รายการ
+                    </div>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="maintenance-flash">
+                            {% for category, message in messages %}
+                                <div class="notification is-{{ category }}">
+                                    <button class="delete" type="button" aria-label="close"></button>
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                <div class="equipment-add-wrap">
+                    <details>
+                        <summary class="equipment-add-toggle">
+                            <span class="equipment-add-toggle-left">
+                                <span class="icon"><i class="fa-solid fa-circle-plus"></i></span>
+                                <span>เพิ่มอุปกรณ์</span>
+                            </span>
+                            <span class="equipment-add-toggle-spacer"></span>
+                            <span class="equipment-add-toggle-note">คลิกเพื่อขยายแบบฟอร์ม</span>
+                        </summary>
+                        <form method="post" action="{{ url_for('maintenance.maintenance_list_item', room_id=room.id if room else none) }}" class="equipment-add-panel">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="equipment-add-grid">
+                                <div class="equipment-add-field">
+                                    <div class="label">ประเภทอุปกรณ์</div>
+                                    <div class="select is-fullwidth">
+                                        <select name="equipment_type_id">
+                                            {% if false %}
+                                            <option>คอมพิวเตอร์</option>
+                                            <option>ไมล์</option>
+                                            <option>เครื่อเสียง</option>
+                                            <option>โปรเจคเตอร์</option>
+                                            <option>TV/monitor</option>
+                                            {% endif %}
+                                            <option value="">- Select equipment type -</option>
+                                            {% for equipment_type in equipment_types %}
+                                                <option value="{{ equipment_type.id }}">{{ equipment_type.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="equipment-add-field">
+                                    <div class="label">ชื่ออุปกรณ์</div>
+                                    <input id="maintenance-item-name" class="input" name="equipment_name" type="text" placeholder="กรณีไม่มีเลขครุภัณฑ์" required>
+                                    <div class="help">ใช้กรอกชื่อเมื่อยังไม่มีเลขครุภัณฑ์</div>
+                                </div>
+                                <div class="equipment-add-field">
+                                    <div class="label">Serial Number</div>
+                                    <input class="input" name="serial_number" type="text" placeholder="กรอก Serial Number (ถ้ามี)">
+                                </div>
+                            </div>
+                            <div class="equipment-add-actions">
+                                <button type="submit" class="button is-link">บันทึก</button>
+                            </div>
+                        </form>
+                    </details>
+                </div>
+
+                <div class="maintenance-table-wrap">
+                    <table class="maintenance-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 90px;">No</th>
+                                <th>ชื่ออุปกรณ์</th>
+                                <th>ประเภท</th>
+                                <th>Erp Code(ถ้ามี)</th>
+                                <th style="width: 110px;">ลบ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in pagination.items %}
+                                <tr>
+                                    <td>{{ row_offset + loop.index }}</td>
+                                    <td>
+                                        <div class="item-name">{{ item.equipment_name or '-' }}</div>
+                                        {% if item.serial_number %}
+                                            <div class="item-meta">Serial Number: {{ item.serial_number }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.equipment_type or '-' }}</td>
+                                    <td>{{ item.erp_code or '-' }}</td>
+                                    <td>
+                                        {% if item.source == 'maintenance' %}
+                                            <form method="post"
+                                                  action="{{ url_for('maintenance.delete_maintenance_room_equipment', equipment_id=item.id) }}"
+                                                  onsubmit="return confirm('ยืนยันการลบรายการอุปกรณ์นี้และประวัติการตรวจเช็คทั้งหมดที่เกี่ยวข้องหรือไม่?');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="equipment-delete-btn" aria-label="ลบอุปกรณ์">
+                                                <span class="icon"><i class="fa-regular fa-trash-can"></i></span>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="has-text-centered has-text-grey py-6">
+                                        ไม่พบข้อมูลอุปกรณ์
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if pagination.pages > 1 %}
+                    <div class="p-4">
+                        <nav class="pagination is-centered" role="navigation" aria-label="pagination">
+                            <a class="pagination-previous"
+                               {% if pagination.has_prev %}
+                                   href="{% if room_query %}{{ url_for('maintenance.maintenance_list_item', page=pagination.prev_num, q=q, room_id=room_query) }}{% else %}{{ url_for('maintenance.maintenance_list_item', page=pagination.prev_num, q=q) }}{% endif %}"
+                               {% else %}
+                                   disabled
+                               {% endif %}>
+                                ก่อนหน้า
+                            </a>
+                            <a class="pagination-next"
+                               {% if pagination.has_next %}
+                                   href="{% if room_query %}{{ url_for('maintenance.maintenance_list_item', page=pagination.next_num, q=q, room_id=room_query) }}{% else %}{{ url_for('maintenance.maintenance_list_item', page=pagination.next_num, q=q) }}{% endif %}"
+                               {% else %}
+                                   disabled
+                               {% endif %}>
+                                ถัดไป
+                            </a>
+                            <ul class="pagination-list">
+                                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                    {% if page_num %}
+                                        <li>
+                                            <a class="pagination-link {% if page_num == pagination.page %}is-current{% endif %}"
+                                               href="{% if room_query %}{{ url_for('maintenance.maintenance_list_item', page=page_num, q=q, room_id=room_query) }}{% else %}{{ url_for('maintenance.maintenance_list_item', page=page_num, q=q) }}{% endif %}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li><span class="pagination-ellipsis">&hellip;</span></li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
