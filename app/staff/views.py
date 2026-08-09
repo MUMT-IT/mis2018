@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from io import BytesIO
 from functools import wraps
+import json
 
 import arrow
 import pandas as pd
@@ -63,6 +64,8 @@ else:
     drive = None
 
 tz = pytz.timezone('Asia/Bangkok')
+TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
+TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 # TODO: remove hardcoded annual quota soon
 LEAVE_ANNUAL_QUOTA = 10
@@ -252,6 +255,189 @@ def _build_login_quota_summary(staff_personal_info):
         'quota_dates': quota_dates,
         'quota_remaining': max(quota_limit - len(quota_dates), 0),
     }
+
+
+def _build_login_history_snapshot(staff_personal_info):
+    quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
+        staff_personal_info=staff_personal_info
+    )
+    staff_account = getattr(staff_personal_info, 'staff_account', None)
+    records = []
+    requests_in_period = []
+    if staff_account is not None:
+        records = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date)
+            .between(quota_start_date, quota_end_date),
+            StaffWorkLogin.staff_id == staff_account.id,
+        ).all()
+        requests_in_period = [
+            request_record
+            for request_record in StaffRequestWorkLogin.query.filter_by(
+                staff_account_id=staff_account.id,
+            ).all()
+            if request_record.work_datetime
+            and quota_start_date <= request_record.work_datetime.date() <= quota_end_date
+        ]
+
+    rows = _daily_work_login_rows(records)
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    office_end_time = datetime.strptime('16:30', '%H:%M').time()
+    thai_weekdays = ('จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์')
+    late_days = []
+    early_checkout_days = []
+    incomplete_days = []
+    for row in rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        if start_dt and start_dt.time() > office_start_time:
+            late_days.append({
+                'date': row['date'].isoformat(),
+                'weekday': thai_weekdays[row['date'].weekday()],
+                'time': start_dt.strftime('%H:%M'),
+            })
+        if end_dt and end_dt.time() < office_end_time:
+            early_checkout_days.append({
+                'date': row['date'].isoformat(),
+                'weekday': thai_weekdays[row['date'].weekday()],
+                'time': end_dt.strftime('%H:%M'),
+            })
+        if start_dt and not end_dt:
+            incomplete_days.append(row['date'].isoformat())
+
+    def request_sort_key(item):
+        requested_at = item.requested_at
+        if requested_at is None:
+            return datetime.min.replace(tzinfo=pytz.utc)
+        if requested_at.tzinfo is None:
+            return pytz.utc.localize(requested_at)
+        return requested_at.astimezone(pytz.utc)
+
+    request_records = []
+    for request_record in sorted(
+        requests_in_period,
+        key=request_sort_key,
+        reverse=True,
+    ):
+        if request_record.approved_at:
+            status = 'อนุมัติแล้ว'
+        elif request_record.cancelled_at:
+            status = 'ไม่อนุมัติหรือยกเลิกแล้ว'
+        else:
+            status = 'รออนุมัติ'
+        request_records.append({
+            'date': request_record.work_datetime.strftime('%Y-%m-%d'),
+            'time': request_record.work_datetime.strftime('%H:%M'),
+            'type': 'เข้างาน' if request_record.is_checkin else 'ออกงาน',
+            'status': status,
+            'reason': request_record.reason or '',
+        })
+
+    quota_summary = _build_login_quota_summary(staff_personal_info)
+    employment_type = (
+        staff_personal_info.employment.title
+        if staff_personal_info.employment else 'ไม่ระบุ'
+    )
+    return {
+        'employee': staff_personal_info.fullname,
+        'employment_type': employment_type,
+        'period': {
+            'start': quota_start_date.isoformat(),
+            'end': quota_end_date.isoformat(),
+            'quota_limit': quota_limit,
+        },
+        'attendance': {
+            'late_checkin_count': len(late_days),
+            'late_checkin_days': late_days,
+            'early_checkout_count': len(early_checkout_days),
+            'early_checkout_days': early_checkout_days,
+            'incomplete_checkout_count': len(incomplete_days),
+            'incomplete_checkout_days': incomplete_days,
+        },
+        'quota': {
+            'used_days': quota_summary['quota_used'],
+            'remaining_days': quota_summary['quota_remaining'],
+        },
+        'request_records': request_records,
+    }
+
+
+def _build_typhoon_login_history_prompt(snapshot):
+    ai_snapshot = dict(snapshot)
+    ai_snapshot.pop('employee', None)
+    ai_snapshot['request_records'] = [
+        {
+            key: value
+            for key, value in request_record.items()
+            if key != 'reason'
+        }
+        for request_record in snapshot.get('request_records', [])
+    ]
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'คุณเป็นผู้ช่วยสรุปข้อมูลการลงเวลาสำหรับผู้บังคับบัญชาในระบบบุคลากร. '
+                'เขียนสรุปภาษาไทยแบบกระชับและเป็นกลางจากข้อมูลที่ให้เท่านั้น. '
+                'ให้เน้นรูปแบบที่เห็นซ้ำอย่างชัดเจน ไม่ใช่การเล่าภาพรวมแบบกว้าง ๆ: '
+                'วันในสัปดาห์หรือวันที่เกิดซ้ำ, ช่วงเวลาที่เกิดซ้ำ, วันที่เกิดติดกันหรือกระจุกตัว, '
+                'และแนวโน้มตามลำดับเวลา เช่น เพิ่มขึ้น ลดลง หรือคงที่. '
+                'เชื่อมโยงรูปแบบเหล่านี้กับคำขอรับรองเวลาและสถานะของคำขอเมื่อมีหลักฐาน. '
+                'ห้ามสร้างข้อมูลหรือข้อสรุปเกี่ยวกับเจตนาของบุคลากร. '
+                'หากไม่พบรูปแบบซ้ำหรือแนวโน้มที่ชัดเจน ให้ระบุว่าไม่พบอย่างชัดเจน. '
+                'ใช้โครงสร้าง: รูปแบบที่พบไม่เกิน 3 bullet points '
+                'และข้อเสนอแนะสำหรับผู้บังคับบัญชา 1 ย่อหน้าสั้น ๆ. '
+                'แต่ละ bullet ต้องอ้างอิงวัน เวลา หรือจำนวนครั้งที่เกี่ยวข้อง. '
+                'ระบุให้ชัดเจนหากข้อมูลมีจำนวนน้อยหรือยังไม่มีคำขอ.'
+            ),
+        },
+        {
+            'role': 'user',
+            'content': (
+                'สรุปประวัติการลงเวลาของบุคลากรสำหรับผู้จัดการ:\n'
+                f'{json.dumps(ai_snapshot, ensure_ascii=False, indent=2)}'
+            ),
+        },
+    ]
+
+
+def _call_typhoon_login_history_summary(snapshot):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.2,
+            'max_tokens': 900,
+            'messages': _build_typhoon_login_history_prompt(snapshot),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    if not content or not content.strip():
+        raise ValueError('Empty Typhoon login history summary response.')
+    return content.strip()
+
+
+def _build_fallback_login_history_summary(snapshot):
+    attendance = snapshot['attendance']
+    requests_count = len(snapshot['request_records'])
+    return (
+        'รูปแบบที่พบ:\n'
+        f"- เข้างานสาย {attendance['late_checkin_count']} วัน\n"
+        f"- ออกงานก่อนเวลา {attendance['early_checkout_count']} วัน\n"
+        f"- มีคำขอรับรองเวลาในรอบปัจจุบัน {requests_count} รายการ "
+        f"และใช้โควตาแล้ว {snapshot['quota']['used_days']} จาก {snapshot['period']['quota_limit']} วัน\n\n"
+        'ข้อเสนอแนะสำหรับผู้บังคับบัญชา: ตรวจสอบวันที่มีความถี่สูงและพิจารณาคำขอรับรองเวลาตามหลักฐานที่มี.'
+    )
 
 
 def _build_login_summary_dashboard(start_date, end_date, dept_id):
@@ -3695,6 +3881,35 @@ def login_summary():
                            summary_start_date=start_date.strftime('%d/%m/%Y'),
                            summary_end_date=end_date.strftime('%d/%m/%Y'),
                            pending_clockin_requests=pending_clockin_requests)
+
+
+@staff.route('/api/login-summary/request/<int:request_id>/history')
+@manager_or_secretary_permission.require()
+@login_required
+def get_login_request_history(request_id):
+    clock_request = StaffRequestWorkLogin.query.get_or_404(request_id)
+    if clock_request.approver_id != current_user.id:
+        abort(403)
+
+    staff_personal_info = clock_request.staff.personal_info
+    snapshot = _build_login_history_snapshot(staff_personal_info)
+    try:
+        summary = _call_typhoon_login_history_summary(snapshot)
+        summary_source = 'typhoon'
+    except Exception:
+        current_app.logger.exception(
+            'Failed to generate Typhoon login history summary for request %s.',
+            request_id,
+        )
+        summary = _build_fallback_login_history_summary(snapshot)
+        summary_source = 'fallback'
+
+    return jsonify({
+        'summary': summary,
+        'summary_source': summary_source,
+        'request_id': request_id,
+        'snapshot': snapshot,
+    })
 
 
 @staff.route('/api/login-summary')
