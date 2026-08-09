@@ -18,6 +18,12 @@
                     </div>
                     <h1 class="subtitle">รายการทดสอบระบบ</h1>
                     <hr style="background-color: #CCCCCC;">
+                    <div class="notification is-warning is-light mb-4" style="border-radius: 12px;opacity: 0.8;">
+                        <strong>หมายเหตุ</strong><br>
+                        <p class="ml-4 mt-1">
+                            กรุณาดำเนินการทดสอบระบบและบันทึกผลให้ครบทุกรายการ เมื่อบันทึกแล้วจะไม่สามารถแก้ไขผลการทดสอบได้
+                        </p>
+                    </div>
                     <table id="test_result" class="table is-fullwidth">
                         <thead>
                             <th>Requirement</th>
@@ -52,6 +58,8 @@
                         <thead>
                             <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
+                            <th>ระดับความสำคัญ</th>
+                            <th>ความเร่งด่วน</th>
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
@@ -86,6 +94,30 @@
                     {data: 'title'},
                     {data: 'type'},
                     {
+                        data: 'priority',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +
+                                            data +
+                                        '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'urgency',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +
+                                            data +
+                                        '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
                         data: 'description',
                         width: "230px"
                     },
@@ -106,8 +138,8 @@
                         render: function (data, type, row) {
                             if (data != null) {
                                 return '<span class="tag ' + row.status_color + '">' +
-                                    data +
-                                    '</span>'
+                                            data +
+                                        '</span>'
                             } else {
                                 return ''
                             }

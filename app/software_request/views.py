@@ -810,9 +810,11 @@ def index():
         sort_columns = {
             0: SoftwareRequestDetail.title,
             1: SoftwareRequestDetail.type,
-            2: SoftwareRequestDetail.description,
-            3: SoftwareRequestDetail.created_date,
-            4: SoftwareRequestDetail.status,
+            2: SoftwareRequestDetail.priority,
+            3: SoftwareRequestDetail.urgency,
+            4: SoftwareRequestDetail.description,
+            5: SoftwareRequestDetail.created_date,
+            6: SoftwareRequestDetail.status,
         }
         sort_column_index = request.args.get('order[0][column]', default=3, type=int)
         sort_direction = request.args.get('order[0][dir]', default='desc')
@@ -833,6 +835,10 @@ def index():
                 'id': item.id,
                 'title': item.title,
                 'type': item.type,
+                'priority': item.priority if item.priority else None,
+                'priority_status_color': item.priority_status_color if item.priority_status_color else None,
+                'urgency': item.urgency if item.urgency else None,
+                'urgency_status_color': item.urgency_status_color if item.urgency_status_color else None,
                 'description': item.description,
                 'created_date': item.created_date,
                 'status': item.status,
@@ -876,7 +882,6 @@ def view_request(detail_id):
                 value = request.form.get(form)
                 update_test_result(test_result=test_result, status=test_result.status if test_result.status else '',
                                    note=value)
-        flash('บันทึกผลเรียบร้อยแล้ว', 'success')
         if detail.staffs and count > 0:
             scheme = 'http' if current_app.debug else 'https'
             link = url_for("software_request.update_request", detail_id=detail_id, tab='approve', _external=True, _scheme=scheme)
@@ -889,6 +894,8 @@ def view_request(detail_id):
             message += f'''ระบบขอรับบริการพัฒนา Software\n'''
             message += f'''คณะเทคนิคการแพทย์'''
             send_mail([staff.email + '@mahidol.ac.th' for staff in detail.staffs], title, message)
+        flash('บันทึกผลเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('software_request.index'))
     return render_template('software_request/view_request.html', detail=detail)
 
 
@@ -984,8 +991,10 @@ def admin_index():
         sort_columns = {
             0: SoftwareRequestDetail.title,
             1: SoftwareRequestDetail.type,
-            2: SoftwareRequestDetail.description,
-            5: SoftwareRequestDetail.created_date,
+            2: SoftwareRequestDetail.priority,
+            3: SoftwareRequestDetail.urgency,
+            4: SoftwareRequestDetail.description,
+            7: SoftwareRequestDetail.created_date,
         }
         sort_column_index = request.args.get('order[0][column]', default=5, type=int)
         sort_direction = request.args.get('order[0][dir]', default='desc')

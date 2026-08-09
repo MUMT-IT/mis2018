@@ -73,10 +73,16 @@ class SoftwareRequestDetail(db.Model):
     activity_id = db.Column('activity_id', db.ForeignKey('strategy_activities.id'))
     activity = db.relationship(StrategyActivity, backref=db.backref('software_requests', cascade='all, delete-orphan'))
     priority = db.Column('priority', db.String(), info={'label': 'ระดับความสำคัญ',
-                                                        'choices': [('None', 'กรุณาเลือกระดับความสำคัญ'),
+                                                        'choices': [('', 'กรุณาเลือกระดับความสำคัญ'),
                                                                     ('สูง', 'สูง'),
                                                                     ('กลาง', 'กลาง'),
                                                                     ('ต่ำ', 'ต่ำ')
+                                                                    ]})
+    urgency = db.Column('urgency', db.String(), info={'label': 'ความเร่งด่วน',
+                                                        'choices': [('', 'กรุณาเลือกระดับความเร่งด่วน'),
+                                                                    ('ไม่เร่งด่วน', 'ไม่เร่งด่วน'),
+                                                                    ('ค่อนข้างเร่งด่วน', 'ค่อนข้างเร่งด่วน'),
+                                                                    ('เร่งด่วน', 'เร่งด่วน')
                                                                     ]})
     frequency = db.Column('frequency', db.String(), info={'label': 'ความถี่การใช้งาน',
                                                           'choices': [('None', 'กรุณาเลือกความถี่การใช้งาน'),
@@ -118,6 +124,36 @@ class SoftwareRequestDetail(db.Model):
     @property
     def num_timelines(self):
         return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' and timeline.status != 'เสร็จสิ้น'])
+
+    @property
+    def is_requester_completed_testing(self):
+        return all(test_result.status for test_result in self.test_results)
+
+    @property
+    def urgency_status_color(self):
+        if self.urgency:
+            if self.urgency == 'เร่งด่วน':
+                color = 'is-danger'
+            elif self.urgency == 'ค่อนข้างเร่งด่วน':
+                color = 'is-warning'
+            else:
+                color = 'is-success'
+        else:
+            color = ''
+        return color
+
+    @property
+    def priority_status_color(self):
+        if self.priority:
+            if self.priority == 'สูง':
+                 color = 'is-danger'
+            elif self.priority == 'กลาง':
+                color = 'is-warning'
+            else:
+                color = 'is-success'
+        else:
+            color = ''
+        return color
 
     @property
     def status_color(self):
@@ -225,6 +261,10 @@ class SoftwareRequestDetail(db.Model):
             'title': self.title,
             'type': self.type,
             'description': self.description,
+            'priority': self.priority if self.priority else None,
+            'priority_status_color': self.priority_status_color if self.priority_status_color else None,
+            'urgency': self.urgency if self.urgency else None,
+            'urgency_status_color': self.urgency_status_color if self.urgency_status_color else None,
             'has_timeline': has_timeline,
             'created_by': self.created_by.fullname if self.created_by else None,
             'org': self.created_by.personal_info.org.name if self.created_by else None,
