@@ -1378,6 +1378,9 @@ def summary_scoresheet(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     if not committee:
+        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
+                                                round=pa.round).first()
+        if not committee:
             flash('ไม่พบรายการสรุป scoresheet กรุณาติดต่อหน่วย IT', 'warning')
             return redirect(request.referrer)
     core_competency_items = PACoreCompetencyItem.query.all()
