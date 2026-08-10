@@ -6127,6 +6127,7 @@ def export_request_pdf(request_id):
                      'antimicrobial_activity': 'service_admin.export_bacteria_request_pdf',
                      'virus_disinfection': 'service_admin.export_virus_request_pdf',
                      'air_disinfection': 'service_admin.export_virus_request_pdf',
+                     'foodsafety': 'service_admin.export_food_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
@@ -7733,6 +7734,19 @@ def generate_virus_request_pdf(service_request):
 def export_virus_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     buffer = generate_virus_request_pdf(service_request)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
+
+
+def generate_food_request_pdf(service_request):
+    from app.academic_services.views import generate_food_request_pdf as generate_academic_food_request_pdf
+    return generate_academic_food_request_pdf(service_request)
+
+
+@service_admin.route('/request/food/pdf/<int:request_id>', methods=['GET'])
+@login_required
+def export_food_request_pdf(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    buffer = generate_food_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
