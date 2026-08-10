@@ -4563,6 +4563,7 @@ def export_request_pdf(request_id):
                      'virus_disinfection': 'academic_services.export_virus_request_pdf',
                      'air_disinfection': 'academic_services.export_virus_request_pdf',
                      'foodsafety': 'academic_services.export_food_request_pdf',
+                     'heavymetal': 'academic_services.export_food_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
@@ -6611,9 +6612,6 @@ def generate_food_request_pdf(service_request):
                     data.append(Spacer(5, 5))
                     current_height += 5
                 data.append(table_box)
-                # The table can span multiple pages, so its full wrapped height is
-                # not the height used on the final page. Let ReportLab place the
-                # following sections in the actual remaining frame space.
                 current_height = 0
 
         if text_section:

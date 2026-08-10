@@ -6128,6 +6128,7 @@ def export_request_pdf(request_id):
                      'virus_disinfection': 'service_admin.export_virus_request_pdf',
                      'air_disinfection': 'service_admin.export_virus_request_pdf',
                      'foodsafety': 'service_admin.export_food_request_pdf',
+                     'heavymetal': 'service_admin.export_food_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
