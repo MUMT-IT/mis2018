@@ -1386,7 +1386,9 @@ def summary_scoresheet(pa_id):
     core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).join(PACommittee).filter(
         PACommittee.staff == current_user).first()
-    if not consolidated_score_sheet:
+    if consolidated_score_sheet:
+        score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
+    else:
         consolidated_score_sheet = PAScoreSheet(
             pa_id=pa_id,
             committee_id=committee.id,
@@ -1412,7 +1414,7 @@ def summary_scoresheet(pa_id):
             )
             db.session.add(core_scoresheet_item)
             db.session.commit()
-    score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
+        score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     if approved_scoresheets:
         create_approve_scoresheet = True if len(approved_scoresheets) == len(pa.committees) else False
