@@ -6480,23 +6480,128 @@ def generate_food_request_pdf(service_request):
                 table_data = [[Paragraph(paragraph_cell(h), detail_style) for h in headers]]
                 for row in rows:
                     table_data.append([Paragraph(paragraph_cell(row.get(h, "")), detail_style) for h in headers])
-                table = Table(table_data, colWidths=col_widths, repeatRows=1)
-                table.setStyle(TableStyle([
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                    ('ALIGN', (-1, 1), (-1, -1), 'CENTER'),
-                    ('VALIGN', (-1, 1), (-1, -1), 'MIDDLE'),
-                ]))
+                table_starts_group = bool(
+                    group['contents'] and group['contents'][0] is g
+                )
+                if table_starts_group:
+                    del data[-3:]
+                    current_height -= h_header + 10
+                outer_width = 530
+                gutter_width = max((outer_width - sum(col_widths)) / 2, 0)
+                framed_table_data = [
+                    ['', *row, '']
+                    for row in table_data
+                ]
+                table_header_row = 0
+                outer_frame_start_row = 0
+                inner_table_end_row = -1
+                repeat_rows = 1
+                row_heights = None
+                if table_starts_group:
+                    cell_count = len(headers) + 2
+                    section_header_row = [
+                        Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),
+                        *([''] * (cell_count - 1)),
+                    ]
+                    framed_table_data = [
+                        section_header_row,
+                        [''] * cell_count,
+                        [''] * cell_count,
+                        *framed_table_data,
+                        [''] * cell_count,
+                    ]
+                    table_header_row = 3
+                    outer_frame_start_row = 2
+                    inner_table_end_row = -2
+                    repeat_rows = 4
+                    row_heights = [25, 5, 5, *([None] * len(table_data)), 5]
 
-                table_box = Table([[table]], colWidths=[530])
-                table_box.setStyle(TableStyle([
-                    ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER')
-                ]))
+                last_data_row = table_header_row + len(table_data) - 1
+
+                class FoodRequestDetailTable(Table):
+                    def onSplit(self, fragment, byRow=1):
+                        repeat_row_count = fragment.repeatRows
+                        if not isinstance(repeat_row_count, int):
+                            repeat_row_count = len(repeat_row_count or [])
+                        fragment._linecmds = [
+                            command for command in fragment._linecmds
+                            if not (
+                                command[0] == 'LINEABOVE'
+                                and command[1][1] == repeat_row_count
+                            )
+                        ]
+
+                        split_part_index = getattr(self, '_split_part_index', 0)
+                        self._split_part_index = split_part_index + 1
+                        if split_part_index % 2 == 0:
+                            old_last_row = fragment._nrows - 1
+                            last_column = fragment._ncols - 1
+                            fragment._linecmds = [
+                                command for command in fragment._linecmds
+                                if not (
+                                    command[0] == 'LINEBELOW'
+                                    and command[1] == (0, old_last_row)
+                                    and command[2] == (last_column, old_last_row)
+                                )
+                            ]
+                            fragment._cellvalues.append([''] * fragment._ncols)
+                            fragment._cellStyles.append(fragment._cellStyles[-1][:])
+                            fragment._argH.append(5)
+                            fragment._rowHeights.append(5)
+                            fragment._nrows += 1
+                            fragment.setStyle(TableStyle([
+                                ('SPAN', (0, -1), (-1, -1)),
+                                ('TOPPADDING', (0, -1), (-1, -1), 0),
+                                ('BOTTOMPADDING', (0, -1), (-1, -1), 0),
+                                ('LINEBEFORE', (0, -1), (0, -1), 0.5, colors.grey),
+                                ('LINEAFTER', (-1, -1), (-1, -1), 0.5, colors.grey),
+                                ('LINEBELOW', (0, -1), (-1, -1), 0.5, colors.grey),
+                            ]))
+
+                table_box = FoodRequestDetailTable(
+                    framed_table_data,
+                    colWidths=[gutter_width, *col_widths, gutter_width],
+                    rowHeights=row_heights,
+                    repeatRows=repeat_rows,
+                    splitByRow=1,
+                )
+                table_style = [
+                    ('BOX', (0, outer_frame_start_row), (-1, -1), 0.5, colors.grey),
+                    ('LINEBELOW', (0, 'splitlast'), (-1, 'splitlast'), 0.5, colors.grey),
+                    ('BOX', (1, table_header_row), (-2, inner_table_end_row), 0.5, colors.grey),
+                    ('LINEBEFORE', (2, table_header_row), (-2, inner_table_end_row), 0.5, colors.grey),
+                    ('BACKGROUND', (1, table_header_row), (-2, table_header_row), colors.lightgrey),
+                    ('VALIGN', (1, table_header_row), (-2, inner_table_end_row), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (0, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (0, -1), 0),
+                    ('LEFTPADDING', (-1, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (-1, 0), (-1, -1), 0),
+                    ('LEFTPADDING', (1, table_header_row), (-2, inner_table_end_row), 4),
+                    ('RIGHTPADDING', (1, table_header_row), (-2, inner_table_end_row), 4),
+                    ('ALIGN', (-2, table_header_row + 1), (-2, last_data_row), 'CENTER'),
+                    ('VALIGN', (-2, table_header_row + 1), (-2, last_data_row), 'MIDDLE'),
+                ]
+                if len(table_data) > 2:
+                    table_style.append(
+                        ('LINEBELOW', (1, table_header_row + 1), (-2, last_data_row - 1), 0.5, colors.grey)
+                    )
+                if table_header_row:
+                    table_style.extend([
+                        ('SPAN', (0, 0), (-1, 0)),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('VALIGN', (0, 0), (-1, 0), 'TOP'),
+                        ('SPAN', (0, 1), (-1, 1)),
+                        ('TOPPADDING', (0, 1), (-1, 1), 0),
+                        ('BOTTOMPADDING', (0, 1), (-1, 1), 0),
+                        ('SPAN', (0, 2), (-1, 2)),
+                        ('TOPPADDING', (0, 2), (-1, 2), 0),
+                        ('BOTTOMPADDING', (0, 2), (-1, 2), 0),
+                        ('SPAN', (0, -1), (-1, -1)),
+                        ('TOPPADDING', (0, -1), (-1, -1), 0),
+                        ('BOTTOMPADDING', (0, -1), (-1, -1), 0),
+                    ])
+                table_box.setStyle(TableStyle(table_style))
                 if current_height > first_page_limit:
                     data.append(PageBreak())
                     current_height = 0
@@ -6506,8 +6611,10 @@ def generate_food_request_pdf(service_request):
                     data.append(Spacer(5, 5))
                     current_height += 5
                 data.append(table_box)
-                w, h = table.wrap(doc.width, first_page_limit)
-                current_height += h
+                # The table can span multiple pages, so its full wrapped height is
+                # not the height used on the final page. Let ReportLab place the
+                # following sections in the actual remaining frame space.
+                current_height = 0
 
         if text_section:
             para = Paragraph("<br/>".join(text_section), style=detail_style)
