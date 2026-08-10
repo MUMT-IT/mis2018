@@ -1386,7 +1386,9 @@ def summary_scoresheet(pa_id):
     core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).join(PACommittee).filter(
         PACommittee.staff == current_user).first()
-    if not consolidated_score_sheet:
+    if consolidated_score_sheet:
+        score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
+    else:
         consolidated_score_sheet = PAScoreSheet(
             pa_id=pa_id,
             committee_id=committee.id,
