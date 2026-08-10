@@ -1412,7 +1412,7 @@ def summary_scoresheet(pa_id):
             )
             db.session.add(core_scoresheet_item)
             db.session.commit()
-        score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
+    score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     if approved_scoresheets:
         create_approve_scoresheet = True if len(approved_scoresheets) == len(pa.committees) else False
