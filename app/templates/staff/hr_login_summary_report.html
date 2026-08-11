@@ -522,15 +522,15 @@
             const recordsPageUrl = hrLoginRecordsPageUrl + '?staff_id=' + encodeURIComponent(staffId);
             if (!records.length) {
                 return '<div class="hr-login-checkin-records">' +
-                    '<div class="hr-login-checkin-records-title">รายการลงเวลา</div>' +
-                    '<p class="hr-login-checkin-records-empty">ยังไม่มีรายการลงเวลาในรอบโควตานี้</p>' +
+                    '<div class="hr-login-checkin-records-title">รายการลงเวลา 7 วันล่าสุด</div>' +
+                    '<p class="hr-login-checkin-records-empty">ยังไม่มีรายการลงเวลาในช่วง 7 วันล่าสุด</p>' +
                     '<div class="hr-login-checkin-records-link"><a class="button is-info is-light is-small" href="' + recordsPageUrl + '">' +
                         '<span class="icon"><i class="fas fa-table-list" aria-hidden="true"></i></span><span>ดูรายการลงเวลาทั้งหมด</span>' +
                     '</a></div>' +
                     '</div>';
             }
             return '<div class="hr-login-checkin-records">' +
-                '<div class="hr-login-checkin-records-title">รายการลงเวลา (' + formatNumber(records.length) + ' วัน)</div>' +
+                '<div class="hr-login-checkin-records-title">รายการลงเวลา 7 วันล่าสุด (' + formatNumber(records.length) + ' วัน)</div>' +
                 '<div class="hr-login-checkin-records-table-wrap"><table class="hr-login-checkin-records-table">' +
                     '<thead><tr><th>วันที่</th><th>เข้างาน</th><th>ออกงาน</th><th>ชั่วโมงทำงาน</th><th>สถานะ</th></tr></thead>' +
                     '<tbody>' + records.map(function(record) {

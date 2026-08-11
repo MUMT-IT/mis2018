@@ -247,8 +247,11 @@ def _build_login_quota_summary(staff_personal_info):
             quota_flagged_dates.add(row['date'])
 
     quota_dates = sorted(day.isoformat() for day in quota_flagged_dates)
+    recent_records_start = datetime.now(tz).date() - timedelta(days=6)
     checkin_records = []
     for row in rows:
+        if row['date'] < recent_records_start:
+            continue
         start_dt = parser.isoparse(row['start']) if row['start'] else None
         end_dt = parser.isoparse(row['end']) if row['end'] else None
         worked_hours = _calculate_work_hours(start_dt, end_dt)
