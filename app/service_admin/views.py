@@ -8440,41 +8440,54 @@ def generate_metabolomic_quotation():
         wksp = gc.open_by_key(sheet_price_id)
         sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
-        quote_column_names = {}
         quote_details = {}
         quote_prices = {}
         data = service_request.data
         form = MetabolomicRequestForm(data=data)
+
+        def _normalize_metabolomic_key(value):
+            return re.sub(r'[\s,]+', '', str(value or '')).strip()
+
         for _, row in df_price.iterrows():
-            if row['field_group'] not in quote_column_names:
-                quote_column_names[row['field_group']] = set()
-            for field_name in row['field_name'].split(','):
-                quote_column_names[row['field_group']].add(field_name.strip())
-            sorted_field_group = ''.join(sorted(row['field_group'])).replace(' ', '')
-            key = sorted_field_group + ''.join(sorted(row[4:].str.cat())).replace(' ', '')
+            field_name = _normalize_metabolomic_key(row.get('field_name'))
+            row_price_text = ''.join(
+                _normalize_metabolomic_key(value)
+                for value in row[4:]
+                if pandas.notna(value) and str(value).strip()
+            )
+            key = f'{field_name}|{row_price_text}'
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
 
-        for field in form:
-            if field.label.text not in quote_column_names:
-                continue
-            keys = []
-            keys = walk_form_fields(field, quote_column_names[field.label.text], keys=keys)
-            for r in range(1, len(quote_column_names[field.label.text]) + 1):
-                for key in itertools.combinations(keys, r):
-                    sorted_field_label = ''.join(sorted(field.label.text)).replace(' ', '')
-                    sorted_key_ = sorted(''.join([k[1] for k in key]))
-                    values = ', '.join([k[1] for k in key])
-                    p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
+        for item_form in form.metabolomic_condition_field:
+            for field_name, field_label in (
+                ('clean_up', item_form.clean_up.label.text),
+                ('untargeted_metabolomic', item_form.untargeted_metabolomic.label.text),
+                ('quantitative_metabolomic', item_form.quantitative_metabolomic.label.text),
+            ):
+                field = getattr(item_form, field_name)
+                if not field.data:
+                    continue
 
-                    if p_key in quote_prices:
-                        prices = quote_prices[p_key]
-                        if p_key in quote_details:
-                            quote_details[p_key]["quantity"] += 1
-                        else:
-                            quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                values = ', '.join(field.data) if isinstance(field.data, list) else str(field.data)
+                if not values:
+                    continue
+
+                key = f'{_normalize_metabolomic_key(field_name)}|{_normalize_metabolomic_key(values)}'
+                if key not in quote_prices:
+                    continue
+
+                detail_key = f'{field_name}|{values}'
+                if detail_key in quote_details:
+                    quote_details[detail_key]["quantity"] += 1
+                else:
+                    quote_details[detail_key] = {
+                        "value": f'{field_label} : {values}',
+                        "price": quote_prices[key],
+                        "quantity": 1
+                    }
 
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
