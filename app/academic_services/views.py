@@ -4566,6 +4566,7 @@ def export_request_pdf(request_id):
                      'heavymetal': 'academic_services.export_food_request_pdf',
                      'protein_identification': 'academic_services.export_protein_request_pdf',
                      'sds_page': 'academic_services.export_protein_request_pdf',
+                     'quantitative': 'academic_services.export_protein_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
