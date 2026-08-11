@@ -69,6 +69,7 @@
                     loading: false,
                     result: null,
                     camera: 'auto',
+                    scanInProgress: false,
                     staff: null,
                     time: null,
                     info: {
@@ -88,6 +89,7 @@
             methods: {
                 reset() {
                     this.numScans = 0,
+                    this.scanInProgress = false,
                     this.staff = null
                     this.time = null
                     this.info = {
@@ -128,6 +130,8 @@
                     }
                 },
                 async onDecode(content) {
+                    if (this.scanInProgress) return
+                    this.scanInProgress = true
                     let result = content.split("|")
                     console.log(result)
                     this.info.id = result[0]
@@ -141,9 +145,39 @@
                     this.info.thAffil = result[11]
                     this.info.enAffil = result[12]
                     this.turnCameraOff()
-                    axios.post("{{ url_for('staff.login_scan') }}", {
-                        data: this.info
-                    }).then(async (resp)=>{
+                    this.submitScan(false).then(async (resp)=>{
+                        this.completeScan(resp)
+                    }).catch(async (error)=>{
+                        if (error.response && error.response.status === 409 &&
+                            error.response.data.message === 'checkout_confirmation_required') {
+                            const result = await Swal.fire({
+                                title: 'ยืนยันการออกงาน?',
+                                text: 'เวลาทำงานปัจจุบันประมาณ ' + error.response.data.workedHours + ' ชั่วโมง ต้องการสแกนออกงานหรือไม่?',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'ยืนยันออกงาน',
+                                cancelButtonText: 'ยกเลิก'
+                            })
+                            if (result.isConfirmed) {
+                                this.submitScan(true).then((resp)=>this.completeScan(resp)).catch(()=>this.showScanError())
+                            } else {
+                                this.reset()
+                                this.turnCameraOn()
+                            }
+                            return
+                        }
+                        this.showScanError()
+                    })
+                },
+                submitScan(confirmCheckout) {
+                    const scanData = Object.assign({}, this.info, {
+                        confirm_checkout: confirmCheckout
+                    })
+                    return axios.post("{{ url_for('staff.login_scan') }}", {
+                        data: scanData
+                    })
+                },
+                completeScan(resp) {
                         this.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
                         this.staff = resp.data.name
                         this.numScans = resp.data.numScans
@@ -157,8 +191,8 @@
                         })
                         this.reset()
                         this.turnCameraOn()
-                    }).catch(async (error)=>{
-                        console.log(error.toString())
+                },
+                showScanError() {
                         Swal.fire({
                             title: 'ระบบเกิดความผิดพลาด',
                             timer: 3000,
@@ -168,7 +202,6 @@
                         })
                         this.reset()
                         this.turnCameraOn()
-                    })
                 },
                 logErrors(promise) {
                     promise.catch(console.error)

@@ -123,6 +123,26 @@ def _create_work_login_record(staff_account, now, lat, lon, *, qrcode_exp_dateti
     return record, activity, num_scans
 
 
+def _get_early_checkout_info(staff_account, now):
+    if not getattr(StaffWorkLogin, 'query', None):
+        return None
+    date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
+    records_query = StaffWorkLogin.query.filter_by(date_id=date_id, staff=staff_account)
+    if records_query.count() == 0:
+        return None
+    first_record = records_query.order_by(StaffWorkLogin.start_datetime.asc()).first()
+    if not first_record or not first_record.start_datetime:
+        return None
+    first_scan = _to_bangkok(first_record.start_datetime)
+    elapsed_hours = max((now.astimezone(tz) - first_scan).total_seconds() / 3600, 0)
+    if elapsed_hours >= 8:
+        return None
+    return {
+        'worked_hours': round(elapsed_hours, 1),
+        'first_scan': first_scan,
+    }
+
+
 def _to_bangkok(dt):
     if dt is None:
         return None
@@ -3170,6 +3190,7 @@ def _handle_login_scan_request(template_name, *, note):
 
     if request.method == 'POST':
         req_data = request.get_json()
+        scan_data = req_data['data']
         lat = req_data['data'].get('lat', '0.0')
         long = req_data['data'].get('long', '0.0')
         th_name = req_data['data'].get('thName')
@@ -3193,6 +3214,12 @@ def _handle_login_scan_request(template_name, *, note):
 
         if person:
             now = datetime.now(pytz.utc)
+            early_checkout = _get_early_checkout_info(person.staff_account, now)
+            if early_checkout and not scan_data.get('confirm_checkout'):
+                return jsonify({
+                    'message': 'checkout_confirmation_required',
+                    'workedHours': early_checkout['worked_hours'],
+                }), 409
             record, activity, num_scans = _create_work_login_record(
                 person.staff_account,
                 now,
@@ -6559,6 +6586,13 @@ def geo_checkin():
         lat = req_data['data'].get('lat', '0.0')
         lon = req_data['data'].get('lon', '0.0')
         now = datetime.now(pytz.utc)
+        early_checkout = _get_early_checkout_info(current_user, now)
+        confirm_checkout = req_data['data'].get('confirm_checkout')
+        if early_checkout and not confirm_checkout:
+            return jsonify({
+                'message': 'checkout_confirmation_required',
+                'workedHours': early_checkout['worked_hours'],
+            }), 409
         record, activity, num_scans = _create_work_login_record(
             current_user,
             now,

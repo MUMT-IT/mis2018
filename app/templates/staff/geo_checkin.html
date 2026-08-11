@@ -67,6 +67,7 @@
             data () {
                 return {
                     isLoading: true,
+                    scanInProgress: false,
                     lat: '',
                     lon: '',
                     location: {
@@ -79,17 +80,22 @@
             },
             methods: {
                 checkin(place) {
+                    if (this.scanInProgress) return
+                    this.scanInProgress = true
                     let self = this
                     let distance = self.calcDistance(self.lat, self.lon,
                         self.location[place].lat, self.location[place].lon)
                     if (distance < 0.5) {
-                        axios.post("{{ url_for('staff.geo_checkin') }}", {
+                        const submitCheckin = (confirmCheckout) => axios.post("{{ url_for('staff.geo_checkin') }}", {
                             data: {
                                 lat: self.lat,
                                 lon: self.lon,
-                                place: place
+                                place: place,
+                                confirm_checkout: confirmCheckout
                             }
-                        }).then(async (resp)=>{
+                        })
+                        submitCheckin(false).then(async (resp)=>{
+                            self.scanInProgress = false
                             self.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
                             self.staff = resp.data.name
                             self.numScans = resp.data.numScans
@@ -106,6 +112,40 @@
                                 alert('ลงชื่อเข้าปฏิบัติงานเรียบร้อยเวลา ' + self.time)
                             }
                         }).catch(async (error)=>{
+                            if (error.response && error.response.status === 409 &&
+                                error.response.data.message === 'checkout_confirmation_required') {
+                                const result = await Swal.fire({
+                                    title: 'ยืนยันการออกงาน?',
+                                    text: 'เวลาทำงานปัจจุบันประมาณ ' + error.response.data.workedHours + ' ชั่วโมง ต้องการสแกนออกงานหรือไม่?',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonText: 'ยืนยันออกงาน',
+                                    cancelButtonText: 'ยกเลิก'
+                                })
+                                if (result.isConfirmed) {
+                                    submitCheckin(true).then((resp)=>{
+                                        self.scanInProgress = false
+                                        self.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
+                                        self.staff = resp.data.name
+                                        self.numScans = resp.data.numScans
+                                        Swal.fire({
+                                            title: 'สวัสดี ' + self.staff,
+                                            timer: 3000,
+                                            showConfirmButton: false,
+                                            timerProgressBar: true,
+                                            icon: 'success',
+                                            text: 'เวลาสแกน ' + self.time
+                                        })
+                                    }).catch(()=>{
+                                        self.scanInProgress = false
+                                        Swal.fire({title: 'ระบบเกิดความผิดพลาด', icon: 'error', text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'})
+                                    })
+                                } else {
+                                    self.scanInProgress = false
+                                }
+                                return
+                            }
+                            self.scanInProgress = false
                             try {
                                 Swal.fire({
                                     title: 'ระบบเกิดความผิดพลาด',
@@ -119,6 +159,7 @@
                             }
                         })
                     } else {
+                        self.scanInProgress = false
                         try {
                             Swal.fire({
                                 text: 'ท่านอยู่นอกขอบเขตในการลงชื่อเข้าปฏิบัติงานในพื้นที่',
