@@ -1,0 +1,81 @@
+<section class="staff-info-dashboard" aria-labelledby="staff-info-dashboard-title">
+    <div class="staff-info-dashboard-heading">
+        <div>
+            <p class="staff-info-dashboard-kicker">Active Staff Overview</p>
+            <h2 class="staff-info-dashboard-title" id="staff-info-dashboard-title">ภาพรวมบุคลากรที่ยังปฏิบัติงาน</h2>
+            <p class="staff-info-dashboard-note">ไม่รวมบุคลากรที่เกษียณหรือลาออกแล้ว</p>
+        </div>
+        <span class="staff-info-dashboard-active">
+            <i class="fas fa-circle" aria-hidden="true"></i> Active only
+        </span>
+    </div>
+
+    <div class="staff-info-dashboard-summary">
+        <div class="staff-info-dashboard-stat">
+            <span class="staff-info-dashboard-stat-label">บุคลากรทั้งหมด</span>
+            <strong class="staff-info-dashboard-stat-value">{{ total_staff }}</strong>
+        </div>
+        <a class="staff-info-dashboard-stat is-clickable"
+           href="{{ url_for('staff.staff_info_category', category='academic') }}">
+            <span class="staff-info-dashboard-stat-label">สายวิชาการ</span>
+            <strong class="staff-info-dashboard-stat-value">{{ academic_staff }}</strong>
+            <span class="staff-info-dashboard-stat-link">ดูรายชื่อ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+        <a class="staff-info-dashboard-stat is-clickable"
+           href="{{ url_for('staff.staff_info_category', category='support') }}">
+            <span class="staff-info-dashboard-stat-label">สายสนับสนุน</span>
+            <strong class="staff-info-dashboard-stat-value">{{ non_academic_staff }}</strong>
+            <span class="staff-info-dashboard-stat-link">ดูรายชื่อ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+        </a>
+    </div>
+
+    <div class="staff-info-dashboard-distributions">
+        <section class="staff-info-dashboard-panel" aria-labelledby="staff-info-org-title">
+            <h3 class="staff-info-dashboard-panel-title" id="staff-info-org-title">บุคลากรแยกตามหน่วยงาน</h3>
+            <div class="staff-info-dashboard-list">
+                {% for item in organizations %}
+                    <div class="staff-info-dashboard-row">
+                        <div class="staff-info-dashboard-row-head">
+                            <span class="staff-info-dashboard-row-label">{{ item.label }}</span>
+                            <span class="staff-info-dashboard-row-count">{{ item.count }} คน</span>
+                        </div>
+                        <div class="staff-info-dashboard-meter"
+                             role="progressbar"
+                             aria-label="{{ item.label }}"
+                             aria-valuenow="{{ item.percentage }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            <span class="staff-info-dashboard-meter-fill" style="--staff-info-share: {{ item.percentage }}%"></span>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="staff-info-dashboard-note">ไม่มีข้อมูลหน่วยงาน</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="staff-info-dashboard-panel" aria-labelledby="staff-info-employment-title">
+            <h3 class="staff-info-dashboard-panel-title" id="staff-info-employment-title">บุคลากรแยกตามประเภทการจ้างงาน</h3>
+            <div class="staff-info-dashboard-list">
+                {% for item in employment_types %}
+                    <div class="staff-info-dashboard-row">
+                        <div class="staff-info-dashboard-row-head">
+                            <span class="staff-info-dashboard-row-label">{{ item.label }}</span>
+                            <span class="staff-info-dashboard-row-count">{{ item.count }} คน</span>
+                        </div>
+                        <div class="staff-info-dashboard-meter"
+                             role="progressbar"
+                             aria-label="{{ item.label }}"
+                             aria-valuenow="{{ item.percentage }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            <span class="staff-info-dashboard-meter-fill" style="--staff-info-share: {{ item.percentage }}%"></span>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="staff-info-dashboard-note">ไม่มีข้อมูลประเภทการจ้างงาน</p>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</section>
