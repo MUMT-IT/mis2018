@@ -273,6 +273,76 @@
         margin-top: 1rem;
     }
 
+    .hr-login-checkin-records {
+        margin-top: 1.25rem;
+    }
+
+    .hr-login-checkin-records-title {
+        color: var(--theme-navy-deep);
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin-bottom: 0.6rem;
+    }
+
+    .hr-login-checkin-records-table-wrap {
+        overflow-x: auto;
+    }
+
+    .hr-login-checkin-records-table {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 14px;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 38rem;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .hr-login-checkin-records-table th,
+    .hr-login-checkin-records-table td {
+        border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+        padding: 0.65rem 0.75rem;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .hr-login-checkin-records-table th {
+        background: rgba(18, 39, 84, 0.05);
+        color: var(--theme-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .hr-login-checkin-records-table td {
+        color: var(--theme-navy-deep);
+        font-size: 0.82rem;
+    }
+
+    .hr-login-checkin-records-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .hr-login-checkin-records-badge {
+        background: rgba(202, 168, 74, 0.18);
+        border-radius: 999px;
+        color: var(--theme-navy-deep);
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.2rem 0.5rem;
+    }
+
+    .hr-login-checkin-records-empty {
+        color: var(--theme-muted);
+        font-size: 0.85rem;
+        margin: 0;
+    }
+
+    .hr-login-checkin-records-link {
+        margin-top: 0.85rem;
+    }
+
     @media screen and (max-width: 768px) {
         .hr-login-report-sidebar {
             position: static;
@@ -392,6 +462,7 @@
     <script>
         const hrLoginReportSummaryApiUrl = {{ url_for('staff.get_hr_login_summary_report_summary')|tojson|safe }};
         const hrLoginQuotaApiBaseUrl = {{ url_for('staff.get_hr_login_quota_summary', staff_id=0)|tojson|safe }}.replace(/0$/, '');
+        const hrLoginRecordsPageUrl = {{ url_for('staff.hr_login_records')|tojson|safe }};
         let latestReportData = null;
 
         function toInputDateTime(value) {
@@ -436,8 +507,52 @@
             });
         }
 
+        function formatQuotaTime(value) {
+            if (!value) return '—';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '—';
+            return date.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        function renderCheckinRecords(records, staffId) {
+            const recordsPageUrl = hrLoginRecordsPageUrl + '?staff_id=' + encodeURIComponent(staffId);
+            if (!records.length) {
+                return '<div class="hr-login-checkin-records">' +
+                    '<div class="hr-login-checkin-records-title">รายการลงเวลา</div>' +
+                    '<p class="hr-login-checkin-records-empty">ยังไม่มีรายการลงเวลาในรอบโควตานี้</p>' +
+                    '<div class="hr-login-checkin-records-link"><a class="button is-info is-light is-small" href="' + recordsPageUrl + '">' +
+                        '<span class="icon"><i class="fas fa-table-list" aria-hidden="true"></i></span><span>ดูรายการลงเวลาทั้งหมด</span>' +
+                    '</a></div>' +
+                    '</div>';
+            }
+            return '<div class="hr-login-checkin-records">' +
+                '<div class="hr-login-checkin-records-title">รายการลงเวลา (' + formatNumber(records.length) + ' วัน)</div>' +
+                '<div class="hr-login-checkin-records-table-wrap"><table class="hr-login-checkin-records-table">' +
+                    '<thead><tr><th>วันที่</th><th>เข้างาน</th><th>ออกงาน</th><th>ชั่วโมงทำงาน</th><th>สถานะ</th></tr></thead>' +
+                    '<tbody>' + records.map(function(record) {
+                        const statuses = [];
+                        if (record.is_late) statuses.push('สาย');
+                        if (record.is_short_hours) statuses.push('ไม่ครบ 8 ชม.');
+                        return '<tr>' +
+                            '<td>' + escapeHtml(formatQuotaDate(record.date)) + '</td>' +
+                            '<td>' + escapeHtml(formatQuotaTime(record.checkin)) + '</td>' +
+                            '<td>' + escapeHtml(formatQuotaTime(record.checkout)) + '</td>' +
+                            '<td>' + escapeHtml(record.worked_hours == null ? '—' : record.worked_hours.toFixed(1) + ' ชม.') + '</td>' +
+                            '<td>' + (statuses.length ? '<span class="hr-login-checkin-records-badge">' + escapeHtml(statuses.join(' / ')) + '</span>' : 'ปกติ') + '</td>' +
+                        '</tr>';
+                    }).join('') + '</tbody></table></div>' +
+                    '<div class="hr-login-checkin-records-link"><a class="button is-info is-light is-small" href="' + recordsPageUrl + '">' +
+                        '<span class="icon"><i class="fas fa-table-list" aria-hidden="true"></i></span><span>ดูรายการลงเวลาทั้งหมด</span>' +
+                    '</a></div></div>';
+        }
+
         function renderQuota(data) {
             const dates = data.quota_dates || [];
+            const records = data.checkin_records || [];
             $('#quotaResult').prop('hidden', false).html(
                 '<div class="hr-login-quota-summary">' +
                     '<div class="hr-login-quota-summary-item">' +
@@ -460,7 +575,8 @@
                 '</div>' +
                 '<div class="hr-login-quota-dates"><strong>วันที่ถูกนับ:</strong> ' +
                     (dates.length ? dates.map(formatQuotaDate).map(escapeHtml).join(', ') : 'ยังไม่มีวันที่ถูกนับ') +
-                '</div>'
+                '</div>' +
+                renderCheckinRecords(records, data.staff_id)
             );
         }
 
