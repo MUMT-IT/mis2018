@@ -6129,6 +6129,7 @@ def export_request_pdf(request_id):
                      'air_disinfection': 'service_admin.export_virus_request_pdf',
                      'foodsafety': 'service_admin.export_food_request_pdf',
                      'heavymetal': 'service_admin.export_food_request_pdf',
+                     'protein_identification': 'service_admin.export_protein_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
@@ -7738,16 +7739,21 @@ def export_virus_request_pdf(request_id):
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
-def generate_food_request_pdf(service_request):
-    from app.academic_services.views import generate_food_request_pdf as generate_academic_food_request_pdf
-    return generate_academic_food_request_pdf(service_request)
-
-
 @service_admin.route('/request/food/pdf/<int:request_id>', methods=['GET'])
 @login_required
 def export_food_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
+    from app.academic_services.views import generate_food_request_pdf
     buffer = generate_food_request_pdf(service_request)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
+
+
+@service_admin.route('/request/protein/pdf/<int:request_id>', methods=['GET'])
+@login_required
+def export_protein_request_pdf(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    from app.academic_services.views import generate_protein_request_pdf
+    buffer = generate_protein_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
