@@ -109,7 +109,7 @@
                                         </p>
                                         {% set ns.index = ns.index + 1 %}
                                     {% elif item.type == 'text' %}
-                                        {% if ',' in item.data %}
+                                        {% if ',' in item.data and sample.request.sub_lab.lab.code in ['virology', 'bacteria'] %}
                                             <ul style="margin-bottom:0">
                                                 <li>
                                                     {{ item.data.split(':', 1)[0] }} :
