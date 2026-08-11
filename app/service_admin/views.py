@@ -6195,7 +6195,7 @@ def export_toxicology_request_pdf(request_id):
 
 @service_admin.route('/request/endotoxin/pdf/<int:request_id>', methods=['GET'])
 @login_required
-def export_endotoxinrequest_pdf(request_id):
+def export_endotoxin_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     from app.academic_services.views import generate_endotoxin_request_pdf
     buffer = generate_endotoxin_request_pdf(service_request)
