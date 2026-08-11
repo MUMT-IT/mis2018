@@ -1,62 +1,528 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
+
+{% block title %}จัดการข้อมูลบุคลากร{% endblock %}
+
 {% block page_content %}
-<section class="section" id="app">
-    <h1 class="title">ข้อมูลบุคลากร</h1>
-    {% include "messages.html" %}
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('staff.staff_create_info') }}">
-                            <span class="icon is-large"><i class="fas fa-user-plus fa-4x"></i></span><br><br>
-                            <span class="is-size-4">เพิ่มบุคลากร</span>
-                    </a>
+<style>
+    .staff-info-home {
+        --staff-info-ink: var(--theme-navy-deep);
+        --staff-info-blue: var(--theme-navy);
+        --staff-info-muted: var(--theme-muted);
+        padding: 2.5rem 0 4.5rem;
+    }
+
+    .staff-info-hero {
+        background:
+            radial-gradient(circle at 90% 0%, rgba(202, 168, 74, 0.22), transparent 32%),
+            linear-gradient(135deg, #10264c 0%, #1a3d7c 100%);
+        border-radius: 28px;
+        box-shadow: 0 24px 54px rgba(16, 38, 76, 0.2);
+        color: #fff;
+        overflow: hidden;
+        padding: 2.7rem 3rem;
+        position: relative;
+    }
+
+    .staff-info-hero::after {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 50%;
+        content: '';
+        height: 18rem;
+        pointer-events: none;
+        position: absolute;
+        right: -5rem;
+        top: -9rem;
+        width: 18rem;
+    }
+
+    .staff-info-hero-content {
+        max-width: 44rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .staff-info-eyebrow {
+        align-items: center;
+        color: #e9d693;
+        display: flex;
+        font-size: 0.72rem;
+        font-weight: 800;
+        gap: 0.5rem;
+        letter-spacing: 0.14em;
+        margin-bottom: 0.8rem;
+        text-transform: uppercase;
+    }
+
+    .staff-info-eyebrow::before {
+        background: #e9d693;
+        content: '';
+        height: 2px;
+        width: 1.75rem;
+    }
+
+    .staff-info-title {
+        color: #fff;
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        margin: 0;
+    }
+
+    .staff-info-description {
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 1rem;
+        line-height: 1.7;
+        margin: 1rem 0 0;
+        max-width: 39rem;
+    }
+
+    .staff-info-hero-meta {
+        align-items: center;
+        color: rgba(255, 255, 255, 0.72);
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.82rem;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .staff-info-hero-meta span {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.45rem;
+    }
+
+    .staff-info-section {
+        margin-top: 2.75rem;
+    }
+
+    .staff-info-dashboard-shell {
+        margin-top: 1.25rem;
+    }
+
+    .staff-info-dashboard {
+        background: var(--theme-surface-strong);
+        border: 1px solid var(--theme-border);
+        border-radius: 22px;
+        box-shadow: 0 12px 32px rgba(18, 39, 84, 0.06);
+        padding: 1.25rem;
+    }
+
+    .staff-info-dashboard-heading {
+        align-items: flex-start;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .staff-info-dashboard-kicker {
+        color: var(--staff-info-blue);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        margin: 0 0 0.2rem;
+        text-transform: uppercase;
+    }
+
+    .staff-info-dashboard-title {
+        color: var(--staff-info-ink);
+        font-size: 1rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .staff-info-dashboard-note {
+        color: var(--staff-info-muted);
+        font-size: 0.74rem;
+        margin-top: 0.2rem;
+    }
+
+    .staff-info-dashboard-active {
+        align-items: center;
+        background: rgba(46, 139, 87, 0.1);
+        border-radius: 999px;
+        color: var(--theme-green);
+        display: inline-flex;
+        flex-shrink: 0;
+        font-size: 0.68rem;
+        font-weight: 800;
+        gap: 0.35rem;
+        padding: 0.35rem 0.65rem;
+    }
+
+    .staff-info-dashboard-active i {
+        font-size: 0.45rem;
+    }
+
+    .staff-info-dashboard-summary {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .staff-info-dashboard-stat {
+        background: linear-gradient(145deg, #f8faff, #fff);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 16px;
+        padding: 0.9rem 1rem;
+    }
+
+    .staff-info-dashboard-stat.is-clickable {
+        color: inherit;
+        text-decoration: none;
+        transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    .staff-info-dashboard-stat.is-clickable:hover,
+    .staff-info-dashboard-stat.is-clickable:focus-visible {
+        border-color: rgba(26, 61, 124, 0.3);
+        box-shadow: 0 10px 24px rgba(18, 39, 84, 0.1);
+        outline: none;
+        transform: translateY(-2px);
+    }
+
+    .staff-info-dashboard-stat-label {
+        color: var(--staff-info-muted);
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .staff-info-dashboard-stat-value {
+        color: var(--staff-info-ink);
+        display: block;
+        font-size: 1.55rem;
+        font-weight: 800;
+        line-height: 1.15;
+        margin-top: 0.25rem;
+    }
+
+    .staff-info-dashboard-stat-link {
+        align-items: center;
+        color: var(--staff-info-blue);
+        display: flex;
+        font-size: 0.68rem;
+        font-weight: 800;
+        gap: 0.35rem;
+        margin-top: 0.45rem;
+    }
+
+    .staff-info-dashboard-stat-link i {
+        font-size: 0.6rem;
+        transition: transform 160ms ease;
+    }
+
+    .staff-info-dashboard-stat.is-clickable:hover .staff-info-dashboard-stat-link i,
+    .staff-info-dashboard-stat.is-clickable:focus-visible .staff-info-dashboard-stat-link i {
+        transform: translateX(3px);
+    }
+
+    .staff-info-dashboard-distributions {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 0.85rem;
+    }
+
+    .staff-info-dashboard-panel {
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 16px;
+        min-width: 0;
+        padding: 0.95rem 1rem;
+    }
+
+    .staff-info-dashboard-panel-title {
+        color: var(--staff-info-ink);
+        font-size: 0.78rem;
+        font-weight: 800;
+        margin: 0 0 0.75rem;
+    }
+
+    .staff-info-dashboard-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    .staff-info-dashboard-row-head {
+        align-items: baseline;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+    }
+
+    .staff-info-dashboard-row-label {
+        color: var(--staff-info-ink);
+        font-size: 0.72rem;
+        line-height: 1.35;
+    }
+
+    .staff-info-dashboard-row-count {
+        color: var(--staff-info-muted);
+        flex-shrink: 0;
+        font-size: 0.7rem;
+        font-weight: 800;
+    }
+
+    .staff-info-dashboard-meter {
+        background: rgba(18, 39, 84, 0.08);
+        border-radius: 999px;
+        height: 0.32rem;
+        margin-top: 0.3rem;
+        overflow: hidden;
+    }
+
+    .staff-info-dashboard-meter-fill {
+        background: linear-gradient(90deg, var(--staff-info-blue), #5d7fbd);
+        border-radius: inherit;
+        display: block;
+        height: 100%;
+        width: var(--staff-info-share, 0%);
+    }
+
+    .staff-info-dashboard-loading {
+        align-items: center;
+        color: var(--staff-info-muted);
+        display: flex;
+        font-size: 0.82rem;
+        gap: 0.55rem;
+        justify-content: center;
+        min-height: 8rem;
+    }
+
+    .staff-info-section-heading {
+        align-items: end;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-bottom: 1.1rem;
+    }
+
+    .staff-info-section-title {
+        color: var(--staff-info-ink);
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .staff-info-section-description {
+        color: var(--staff-info-muted);
+        font-size: 0.82rem;
+        margin: 0.25rem 0 0;
+    }
+
+    .staff-info-section-count {
+        background: var(--theme-navy-soft);
+        border-radius: 999px;
+        color: var(--staff-info-blue);
+        flex-shrink: 0;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 0.35rem 0.7rem;
+    }
+
+    .staff-info-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .staff-info-card {
+        background: var(--theme-surface-strong);
+        border: 1px solid var(--theme-border);
+        border-radius: 20px;
+        box-shadow: 0 12px 32px rgba(18, 39, 84, 0.06);
+        color: var(--theme-text);
+        display: flex;
+        flex-direction: column;
+        min-height: 13rem;
+        padding: 1.35rem;
+        text-decoration: none !important;
+        transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    .staff-info-card:hover,
+    .staff-info-card:focus-visible {
+        border-color: rgba(26, 61, 124, 0.35);
+        box-shadow: 0 18px 38px rgba(18, 39, 84, 0.13);
+        color: var(--theme-text);
+        outline: none;
+        transform: translateY(-3px);
+    }
+
+    .staff-info-card.is-featured {
+        background: linear-gradient(145deg, #fff 0%, #f2f6ff 100%);
+        border-color: rgba(26, 61, 124, 0.22);
+    }
+
+    .staff-info-card-icon {
+        align-items: center;
+        background: var(--theme-navy-soft);
+        border-radius: 14px;
+        color: var(--staff-info-blue);
+        display: inline-flex;
+        font-size: 1.2rem;
+        height: 2.8rem;
+        justify-content: center;
+        margin-bottom: 1.2rem;
+        width: 2.8rem;
+    }
+
+    .staff-info-card.is-featured .staff-info-card-icon {
+        background: var(--staff-info-blue);
+        color: #fff;
+    }
+
+    .staff-info-card-title {
+        color: var(--staff-info-ink);
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.35;
+        margin: 0;
+    }
+
+    .staff-info-card-description {
+        color: var(--staff-info-muted);
+        font-size: 0.8rem;
+        line-height: 1.55;
+        margin: 0.45rem 0 1.25rem;
+    }
+
+    .staff-info-card-footer {
+        align-items: center;
+        color: var(--staff-info-blue);
+        display: flex;
+        font-size: 0.75rem;
+        font-weight: 800;
+        gap: 0.4rem;
+        margin-top: auto;
+    }
+
+    .staff-info-card-footer i {
+        font-size: 0.7rem;
+        transition: transform 160ms ease;
+    }
+
+    .staff-info-card:hover .staff-info-card-footer i,
+    .staff-info-card:focus-visible .staff-info-card-footer i {
+        transform: translateX(3px);
+    }
+
+    .staff-info-back {
+        margin-top: 1.5rem;
+    }
+
+    @media screen and (max-width: 768px) {
+        .staff-info-home {
+            padding-top: 1.25rem;
+        }
+
+        .staff-info-hero {
+            border-radius: 22px;
+            padding: 2rem 1.4rem;
+        }
+
+        .staff-info-section-heading {
+            align-items: start;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .staff-info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .staff-info-dashboard-summary,
+        .staff-info-dashboard-distributions {
+            grid-template-columns: 1fr;
+        }
+
+        .staff-info-card {
+            min-height: 0;
+        }
+    }
+</style>
+
+<section class="section staff-info-home">
+    <div class="container">
+        {% include "messages.html" %}
+
+        <header class="staff-info-hero">
+            <div class="staff-info-hero-content">
+                <div class="staff-info-eyebrow">Personnel Administration</div>
+                <h1 class="staff-info-title">จัดการข้อมูลบุคลากร</h1>
+                <p class="staff-info-description">
+                    รวมเครื่องมือสำหรับเพิ่ม ค้นหา และปรับปรุงข้อมูลบุคลากร ตำแหน่งทางวิชาการ และบัญชีผู้ใช้งาน
+                </p>
+                <div class="staff-info-hero-meta">
+                    <span><i class="fas fa-layer-group" aria-hidden="true"></i> 4 เครื่องมือ</span>
+                    <span><i class="fas fa-shield-halved" aria-hidden="true"></i> สำหรับเจ้าหน้าที่ HR</span>
                 </div>
             </div>
+        </header>
+
+        <div id="staff-info-dashboard"
+             class="staff-info-dashboard-shell"
+             hx-get="{{ url_for('staff.staff_info_dashboard') }}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <section class="staff-info-dashboard" aria-busy="true">
+                <div class="staff-info-dashboard-loading">
+                    <span class="icon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></span>
+                    <span>กำลังโหลดภาพรวมบุคลากร...</span>
+                </div>
+            </section>
         </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('staff.staff_add_academic_position') }}">
-                    <span class="icon is-large"><i class="fas fa-school fa-4x"></i></span><br><br>
-                    <span class="is-size-4">เพิ่มตำแหน่งทางวิชาการ</span>
+
+        <section class="staff-info-section" aria-labelledby="staff-info-tools-title">
+            <div class="staff-info-section-heading">
+                <div>
+                    <h2 class="staff-info-section-title" id="staff-info-tools-title">เครื่องมือจัดการบุคลากร</h2>
+                    <p class="staff-info-section-description">เลือกงานที่ต้องการดำเนินการจากรายการด้านล่าง</p>
+                </div>
+                <span class="staff-info-section-count">4 รายการ</span>
+            </div>
+
+            <div class="staff-info-grid">
+                <a class="staff-info-card is-featured" href="{{ url_for('staff.staff_create_info') }}">
+                    <span class="staff-info-card-icon"><i class="fas fa-user-plus" aria-hidden="true"></i></span>
+                    <h3 class="staff-info-card-title">เพิ่มบุคลากร</h3>
+                    <p class="staff-info-card-description">สร้างประวัติบุคลากรใหม่ พร้อมกำหนดข้อมูลหน่วยงานและการจ้างงาน</p>
+                    <span class="staff-info-card-footer">เปิดเครื่องมือ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('staff.staff_search_info') }}">
-                    <span class="icon is-large"><i class="fas fa-user-edit fa-4x"></i></span><br><br>
-                    <span class="is-size-4">แก้ไขข้อมูลบุคลากร</span>
+
+                <a class="staff-info-card is-featured" href="{{ url_for('staff.staff_search_info') }}">
+                    <span class="staff-info-card-icon"><i class="fas fa-user-pen" aria-hidden="true"></i></span>
+                    <h3 class="staff-info-card-title">แก้ไขข้อมูลบุคลากร</h3>
+                    <p class="staff-info-card-description">ค้นหาและปรับปรุงประวัติส่วนบุคคล ตำแหน่ง และข้อมูลการปฏิบัติงาน</p>
+                    <span class="staff-info-card-footer">เปิดเครื่องมือ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
-                </div>
+
+                <a class="staff-info-card" href="{{ url_for('staff.staff_add_academic_position') }}">
+                    <span class="staff-info-card-icon"><i class="fas fa-graduation-cap" aria-hidden="true"></i></span>
+                    <h3 class="staff-info-card-title">เพิ่มตำแหน่งทางวิชาการ</h3>
+                    <p class="staff-info-card-description">เพิ่มและดูแลรายการตำแหน่งทางวิชาการสำหรับใช้กับข้อมูลบุคลากร</p>
+                    <span class="staff-info-card-footer">เปิดเครื่องมือ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
+
+                <a class="staff-info-card" href="{{ url_for('staff.staff_search_to_change_pwd') }}">
+                    <span class="staff-info-card-icon"><i class="fas fa-key" aria-hidden="true"></i></span>
+                    <h3 class="staff-info-card-title">จัดการรหัสผ่าน</h3>
+                    <p class="staff-info-card-description">ค้นหาบัญชีผู้ใช้งานเพื่อเปลี่ยนรหัสผ่านหรือดูแลการเข้าถึงระบบ</p>
+                    <span class="staff-info-card-footer">เปิดเครื่องมือ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
             </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('staff.staff_search_to_change_pwd') }}">
-                        <span class="icon is-large"><i class="fas fa-key fa-4x"></i></span><br><br>
-                        <span class="is-size-4">แก้ไขรหัสผ่าน</span>
-                    </a>
-                </div>
+
+            <div class="staff-info-back">
+                <a class="button is-info is-light" href="{{ url_for('staff.for_hr') }}">
+                    <span class="icon"><i class="fas fa-arrow-left" aria-hidden="true"></i></span>
+                    <span>กลับหน้าหลักงานทรัพยากรบุคคล</span>
+                </a>
             </div>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <a class="button is-info is-light" href="{{ url_for('staff.for_hr') }}">
-                     <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                <span>กลับ</span>
-            </a>
-        </div>
+        </section>
     </div>
 </section>
 {% endblock %}

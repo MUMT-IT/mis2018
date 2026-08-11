@@ -25,7 +25,7 @@
                                 <div class="control">
                                     <input class="input"
                                         name="email" type="text" placeholder="firstname.las"
-                                        value="{{ staff.staff_account.email }}">
+                                        value="{{ staff.staff_account.email if staff.staff_account else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -40,7 +40,7 @@
                                 <div class="control">
                                     <input class="input"
                                         name="external_email" type="email" placeholder="name@example.com"
-                                        value="{{ staff.staff_account.external_email }}">
+                                        value="{{ staff.staff_account.external_email if staff.staff_account else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -413,5 +413,4 @@
     });
 </script>
 {% endblock %}
-
 

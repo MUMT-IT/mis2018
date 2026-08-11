@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block title %}รายชื่อบุคลากร{{ category_title }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .staff-category-page {
+        padding: 2rem 0 4rem;
+    }
+
+    .staff-category-header {
+        align-items: center;
+        background:
+            radial-gradient(circle at 92% 0%, rgba(202, 168, 74, 0.2), transparent 34%),
+            linear-gradient(135deg, #10264c, #1a3d7c);
+        border-radius: 24px;
+        box-shadow: 0 20px 44px rgba(16, 38, 76, 0.18);
+        color: #fff;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+        padding: 1.7rem 2rem;
+    }
+
+    .staff-category-header-copy {
+        align-items: center;
+        display: flex;
+        gap: 1rem;
+    }
+
+    .staff-category-header-icon {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        display: inline-flex;
+        flex-shrink: 0;
+        font-size: 1.25rem;
+        height: 3rem;
+        justify-content: center;
+        width: 3rem;
+    }
+
+    .staff-category-title {
+        color: #fff;
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .staff-category-subtitle {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+
+    .staff-category-count {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 0.45rem 0.8rem;
+    }
+
+    .staff-category-card {
+        background: var(--theme-surface-strong);
+        border: 1px solid var(--theme-border);
+        border-radius: 22px;
+        box-shadow: 0 12px 32px rgba(18, 39, 84, 0.06);
+        padding: 1.25rem;
+    }
+
+    .staff-category-table-wrap {
+        overflow-x: auto;
+    }
+
+    #staffCategoryTable {
+        min-width: 58rem;
+    }
+
+    #staffCategoryTable th {
+        color: var(--theme-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    #staffCategoryTable td {
+        font-size: 0.8rem;
+        vertical-align: middle;
+    }
+
+    .staff-category-name {
+        color: var(--theme-navy-deep);
+        font-weight: 800;
+    }
+
+    .staff-category-muted {
+        color: var(--theme-muted);
+    }
+
+    .staff-category-actions {
+        margin-top: 1rem;
+    }
+
+    @media screen and (max-width: 600px) {
+        .staff-category-page {
+            padding-top: 1.25rem;
+        }
+
+        .staff-category-header {
+            align-items: flex-start;
+            flex-direction: column;
+            padding: 1.4rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="section staff-category-page">
+    <div class="container">
+        {% include "messages.html" %}
+
+        <header class="staff-category-header">
+            <div class="staff-category-header-copy">
+                <span class="staff-category-header-icon">
+                    <i class="fas {{ category_icon }}" aria-hidden="true"></i>
+                </span>
+                <div>
+                    <h1 class="staff-category-title">บุคลากร{{ category_title }}</h1>
+                    <p class="staff-category-subtitle">แสดงเฉพาะบุคลากรที่ยังปฏิบัติงาน</p>
+                </div>
+            </div>
+            <span class="staff-category-count">{{ employees|length }} คน</span>
+        </header>
+
+        <div class="staff-category-card">
+            <div class="staff-category-table-wrap">
+                <table id="staffCategoryTable" class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                        <tr>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>อีเมล</th>
+                            <th>หน่วยงาน</th>
+                            <th>ประเภทการจ้างงาน</th>
+                            <th>ตำแหน่ง</th>
+                            <th>วันที่เริ่มงาน</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in employees %}
+                            <tr>
+                                <td><span class="staff-category-name">{{ employee.fullname }}</span></td>
+                                <td class="staff-category-muted">
+                                    {{ employee.staff_account.email if employee.staff_account and employee.staff_account.email else '-' }}
+                                </td>
+                                <td>{{ employee.org.name if employee.org else 'ไม่ระบุ' }}</td>
+                                <td>{{ employee.employment.title if employee.employment else 'ไม่ระบุ' }}</td>
+                                <td>
+                                    {% if employee.job_position %}
+                                        {{ employee.job_position.th_title }}
+                                    {% elif employee.position %}
+                                        {{ employee.position }}
+                                    {% else %}
+                                        ไม่ระบุ
+                                    {% endif %}
+                                </td>
+                                <td data-order="{{ employee.employed_date.isoformat() if employee.employed_date else '' }}">
+                                    {{ employee.employed_date.strftime('%d/%m/%Y') if employee.employed_date else '-' }}
+                                </td>
+                                <td>
+                                    <a class="button is-small is-info is-light"
+                                       href="{{ url_for('staff.staff_edit_info', staff_id=employee.id) }}">
+                                        <span class="icon"><i class="fas fa-pen" aria-hidden="true"></i></span>
+                                        <span>แก้ไข</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="staff-category-actions">
+                <a class="button is-info is-light" href="{{ url_for('staff.staff_index') }}">
+                    <span class="icon"><i class="fas fa-arrow-left" aria-hidden="true"></i></span>
+                    <span>กลับหน้าจัดการข้อมูลบุคลากร</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(function() {
+        $('#staffCategoryTable').DataTable({
+            pageLength: 25,
+            order: [[0, 'asc']],
+            language: {
+                search: 'ค้นหา:',
+                lengthMenu: 'แสดง _MENU_ รายการ',
+                info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                infoEmpty: 'ไม่มีรายการ',
+                zeroRecords: 'ไม่พบรายชื่อที่ค้นหา',
+                paginate: {
+                    first: 'แรก',
+                    last: 'สุดท้าย',
+                    next: 'ถัดไป',
+                    previous: 'ก่อนหน้า'
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

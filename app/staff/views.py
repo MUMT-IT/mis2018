@@ -5675,11 +5675,108 @@ def show_time_report():
                            recent_clockin_requests=recent_clockin_requests)
 
 
+def _active_staff_filters():
+    return (
+        StaffPersonalInfo.retirement_date.is_(None),
+        StaffPersonalInfo.resignation_date.is_(None),
+        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
+    )
+
+
 @staff.route('/for-hr/staff-info')
 @hr_permission.require()
 @login_required
 def staff_index():
     return render_template('staff/staff_index.html')
+
+
+@staff.route('/for-hr/staff-info/dashboard')
+@hr_permission.require()
+@login_required
+def staff_info_dashboard():
+    active_filters = _active_staff_filters()
+    active_query = StaffPersonalInfo.query.filter(*active_filters)
+    total_staff = active_query.count()
+    academic_staff = active_query.filter(StaffPersonalInfo.academic_staff.is_(True)).count()
+    non_academic_staff = total_staff - academic_staff
+
+    organization_rows = (
+        db.session.query(Org.name, func.count(StaffPersonalInfo.id))
+        .select_from(StaffPersonalInfo)
+        .outerjoin(Org, StaffPersonalInfo.org_id == Org.id)
+        .filter(*active_filters)
+        .group_by(Org.id, Org.name)
+        .order_by(func.count(StaffPersonalInfo.id).desc(), Org.name.asc())
+        .all()
+    )
+    employment_rows = (
+        db.session.query(StaffEmployment.title, func.count(StaffPersonalInfo.id))
+        .select_from(StaffPersonalInfo)
+        .outerjoin(StaffEmployment, StaffPersonalInfo.employment_id == StaffEmployment.id)
+        .filter(*active_filters)
+        .group_by(StaffEmployment.id, StaffEmployment.title)
+        .order_by(func.count(StaffPersonalInfo.id).desc(), StaffEmployment.title.asc())
+        .all()
+    )
+
+    def build_distribution(rows):
+        return [{
+            'label': label or 'ไม่ระบุ',
+            'count': int(count),
+            'percentage': round((count / total_staff) * 100, 1) if total_staff else 0,
+        } for label, count in rows]
+
+    return render_template(
+        'staff/partials/staff_info_dashboard.html',
+        total_staff=total_staff,
+        academic_staff=academic_staff,
+        non_academic_staff=non_academic_staff,
+        organizations=build_distribution(organization_rows),
+        employment_types=build_distribution(employment_rows),
+    )
+
+
+@staff.route('/for-hr/staff-info/category/<string:category>')
+@hr_permission.require()
+@login_required
+def staff_info_category(category):
+    category_config = {
+        'academic': {
+            'title': 'สายวิชาการ',
+            'filter': StaffPersonalInfo.academic_staff.is_(True),
+            'icon': 'fa-graduation-cap',
+        },
+        'support': {
+            'title': 'สายสนับสนุน',
+            'filter': or_(
+                StaffPersonalInfo.academic_staff.is_(False),
+                StaffPersonalInfo.academic_staff.is_(None),
+            ),
+            'icon': 'fa-briefcase',
+        },
+    }
+    selected_category = category_config.get(category)
+    if selected_category is None:
+        abort(404)
+
+    employees = (
+        StaffPersonalInfo.query
+        .filter(*_active_staff_filters())
+        .filter(selected_category['filter'])
+        .order_by(
+            StaffPersonalInfo.th_firstname.asc(),
+            StaffPersonalInfo.th_lastname.asc(),
+            StaffPersonalInfo.en_firstname.asc(),
+        )
+        .all()
+    )
+    return render_template(
+        'staff/staff_info_category.html',
+        category=category,
+        category_title=selected_category['title'],
+        category_icon=selected_category['icon'],
+        employees=employees,
+    )
 
 
 @staff.route('/for-hr/staff-info/create', methods=['GET', 'POST'])
@@ -5796,7 +5893,7 @@ def staff_search_info():
 @hr_permission.require()
 @login_required
 def staff_edit_info(staff_id):
-    staff = StaffPersonalInfo.query.get(staff_id)
+    staff = StaffPersonalInfo.query.get_or_404(staff_id)
     if request.method == 'POST':
         form = request.form
         staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
@@ -5879,7 +5976,18 @@ def staff_edit_info(staff_id):
                     print(req_msg, responsible_person.email)
         flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
         return redirect(url_for('staff.staff_show_info', staff_id=staff_id))
-    return render_template('staff/staff_index.html')
+    staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+    return render_template(
+        'staff/staff_edit_info.html',
+        staff=staff,
+        emp_date=staff.employed_date,
+        retired_date=staff.retirement_date,
+        resign_date=staff.resignation_date,
+        employments=StaffEmployment.query.all(),
+        departments=Org.query.order_by(Org.id.asc()).all(),
+        jobs=StaffJobPosition.query.order_by(StaffJobPosition.id.asc()).all(),
+        staff_resign=StaffResignation.query.filter_by(staff=staff_account).all(),
+    )
 
 
 @staff.route('/for-hr/staff-info/edit-info/<int:staff_id>/show-info')
