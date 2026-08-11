@@ -6130,6 +6130,7 @@ def export_request_pdf(request_id):
                      'foodsafety': 'service_admin.export_food_request_pdf',
                      'heavymetal': 'service_admin.export_food_request_pdf',
                      'protein_identification': 'service_admin.export_protein_request_pdf',
+                     'sds_page': 'service_admin.export_protein_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
