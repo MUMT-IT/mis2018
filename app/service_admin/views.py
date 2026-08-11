@@ -6133,6 +6133,7 @@ def export_request_pdf(request_id):
                      'sds_page': 'service_admin.export_protein_request_pdf',
                      'quantitative': 'service_admin.export_protein_request_pdf',
                      'metabolomic': 'service_admin.export_protein_request_pdf',
+                     'toxicology': 'service_admin.export_toxicology_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
@@ -6179,6 +6180,15 @@ def export_protein_request_pdf(request_id):
     service_request = ServiceRequest.query.get(request_id)
     from app.academic_services.views import generate_protein_request_pdf
     buffer = generate_protein_request_pdf(service_request)
+    return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
+
+
+@service_admin.route('/request/toxicology/pdf/<int:request_id>', methods=['GET'])
+@login_required
+def export_toxicology_request_pdf(request_id):
+    service_request = ServiceRequest.query.get(request_id)
+    from app.academic_services.views import generate_toxicology_request_pdf
+    buffer = generate_toxicology_request_pdf(service_request)
     return send_file(buffer, download_name=f'Request {service_request.request_no}.pdf', as_attachment=True)
 
 
