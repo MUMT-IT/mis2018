@@ -7031,18 +7031,15 @@ def generate_protein_request_pdf(service_request):
                 rows = g['data']
                 for i, row in enumerate(rows):
                     row['Sample no'] = ''
-                    row['สภาพตัวอย่าง'] = 'O ปกติ<br/>O ไม่ปกติ'
                 headers = list(rows[0].keys())
                 raw_widths = []
                 for h in headers:
                     if h == headers[0]:
-                        w = 85
-                    elif h == headers[-2]:
-                        w = 108
+                        w = 90
                     elif h == headers[-1]:
-                        w = 57
+                        w = 108
                     else:
-                        w = 68
+                        w = 100
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
                 max_total = 506
