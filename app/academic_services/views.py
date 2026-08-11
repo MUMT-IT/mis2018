@@ -6416,15 +6416,7 @@ def generate_food_request_pdf(service_request):
                     if not text:
                         continue
 
-                    if ":" in text and "," in text:
-                        header, contents = text.split(":", 1)
-                        text_section.append(header.strip() + " " + ":")
-                        for c in contents.split(","):
-                            content = c.strip()
-                            if content:
-                                text_section.append(f"- {content}")
-                    else:
-                        text_section.append(text)
+                    text_section.append(text)
             elif g['type'] == 'table':
                 if text_section:
                     para = Paragraph("<br/>".join(text_section), style=detail_style)
@@ -7005,15 +6997,7 @@ def generate_protein_request_pdf(service_request):
                     if not text:
                         continue
 
-                    if ":" in text and "," in text:
-                        header, contents = text.split(":", 1)
-                        text_section.append(header.strip() + " " + ":")
-                        for c in contents.split(","):
-                            content = c.strip()
-                            if content:
-                                text_section.append(f"- {content}")
-                    else:
-                        text_section.append(text)
+                    text_section.append(text)
             elif g['type'] == 'table':
                 if text_section:
                     para = Paragraph("<br/>".join(text_section), style=detail_style)
