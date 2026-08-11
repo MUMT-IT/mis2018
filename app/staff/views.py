@@ -21,6 +21,7 @@ from datetime import date, timedelta, datetime
 from collections import defaultdict, namedtuple
 import pytz
 from sqlalchemy import and_, desc, cast, Date, or_, extract, func
+from sqlalchemy.orm import aliased
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from app.linebot_compat import TextSendMessage, FlexSendMessage, BubbleContainer, BoxComponent, TextComponent
@@ -2900,6 +2901,98 @@ def hr_login_summary_report():
         report_end=now,
         quota_staff=active_staff,
     )
+
+
+@staff.route('/for-hr/login-report/checkin-requests')
+@hr_permission.require()
+@login_required
+def hr_checkin_requests():
+    return render_template('staff/hr_checkin_requests.html')
+
+
+@staff.route('/api/for-hr/login-report/checkin-requests')
+@hr_permission.require()
+@login_required
+def get_hr_checkin_requests():
+    staff_account = aliased(StaffAccount)
+    approver_account = aliased(StaffAccount)
+    staff_info = aliased(StaffPersonalInfo)
+    approver_info = aliased(StaffPersonalInfo)
+
+    query = (
+        db.session.query(StaffRequestWorkLogin, staff_account, approver_account)
+        .outerjoin(staff_account, StaffRequestWorkLogin.staff_account_id == staff_account.id)
+        .outerjoin(staff_info, staff_account.personal_id == staff_info.id)
+        .outerjoin(approver_account, StaffRequestWorkLogin.approver_id == approver_account.id)
+        .outerjoin(approver_info, approver_account.personal_id == approver_info.id)
+    )
+    records_total = query.count()
+
+    search_value = (request.args.get('search[value]') or '').strip()
+    if search_value:
+        search_pattern = f'%{search_value}%'
+        query = query.filter(or_(
+            staff_info.th_firstname.ilike(search_pattern),
+            staff_info.th_lastname.ilike(search_pattern),
+            staff_info.en_firstname.ilike(search_pattern),
+            staff_info.en_lastname.ilike(search_pattern),
+            staff_account.email.ilike(search_pattern),
+            approver_info.th_firstname.ilike(search_pattern),
+            approver_info.th_lastname.ilike(search_pattern),
+            approver_info.en_firstname.ilike(search_pattern),
+            approver_info.en_lastname.ilike(search_pattern),
+            approver_account.email.ilike(search_pattern),
+            StaffRequestWorkLogin.reason.ilike(search_pattern),
+        ))
+
+    records_filtered = query.count()
+    order_columns = {
+        0: StaffRequestWorkLogin.id,
+        1: StaffRequestWorkLogin.work_datetime,
+        2: StaffRequestWorkLogin.requested_at,
+        3: StaffRequestWorkLogin.approved_at,
+        4: StaffRequestWorkLogin.approver_id,
+    }
+    order_index = request.args.get('order[0][column]', 2, type=int)
+    order_column = order_columns.get(order_index, StaffRequestWorkLogin.requested_at)
+    order_direction = request.args.get('order[0][dir]', 'desc')
+    if order_direction == 'asc':
+        query = query.order_by(order_column.asc(), StaffRequestWorkLogin.id.asc())
+    else:
+        query = query.order_by(order_column.desc(), StaffRequestWorkLogin.id.desc())
+
+    start = max(request.args.get('start', 0, type=int), 0)
+    length = request.args.get('length', 25, type=int)
+    length = min(max(length, 1), 100)
+    rows = query.offset(start).limit(length).all()
+
+    def status_for(record):
+        if record.approved_at:
+            return {'key': 'approved', 'label': 'อนุมัติ'}
+        if record.cancelled_at:
+            return {'key': 'rejected', 'label': 'ไม่อนุมัติ'}
+        return {'key': 'pending', 'label': 'รออนุมัติ'}
+
+    data = []
+    for record, requester, approver in rows:
+        status = status_for(record)
+        data.append({
+            'id': record.id,
+            'staff_name': requester.fullname if requester else 'ไม่ระบุ',
+            'request_type': 'เข้างาน' if record.is_checkin else 'ออกงาน',
+            'work_datetime': _to_bangkok(record.work_datetime).isoformat() if record.work_datetime else None,
+            'requested_at': _to_bangkok(record.requested_at).isoformat() if record.requested_at else None,
+            'reason': record.reason or '',
+            'status': status,
+            'approver_name': approver.fullname if approver else 'ไม่ระบุ',
+        })
+
+    return jsonify({
+        'draw': request.args.get('draw', 0, type=int),
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+    })
 
 
 @staff.route('/for-hr/login-report/records')
