@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block title %}คำขอรับรองเวลาเข้างาน{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .hr-checkin-requests-shell { padding: 1.5rem 0 3rem; }
+    .hr-checkin-requests-card {
+        background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(245,247,252,.96));
+        border: 1px solid rgba(18,39,84,.08); border-radius: 28px;
+        box-shadow: 0 18px 50px rgba(18,39,84,.08); padding: 1.25rem;
+    }
+    .hr-checkin-requests-title { color: var(--theme-navy-deep); font-size: 1.35rem; font-weight: 800; }
+    .hr-checkin-requests-subtitle { color: var(--theme-muted); margin: .35rem 0 1rem; }
+    .hr-checkin-requests-table-wrap { overflow-x: auto; }
+    #hrCheckinRequestsTable { min-width: 70rem; }
+    #hrCheckinRequestsTable tbody td { vertical-align: middle; }
+    .hr-checkin-reason { max-width: 18rem; white-space: normal; }
+    .hr-checkin-requests-actions { margin-top: 1rem; }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="section hr-checkin-requests-shell">
+    <div class="container">
+        <div class="hr-checkin-requests-card">
+            <h1 class="hr-checkin-requests-title">คำขอรับรองเวลาเข้างาน</h1>
+            <p class="hr-checkin-requests-subtitle">รายการคำขอทั้งหมด พร้อมสถานะและผู้อนุมัติ</p>
+            <div class="hr-checkin-requests-table-wrap">
+                <table id="hrCheckinRequestsTable" class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                        <tr>
+                            <th>รหัส</th><th>ผู้ขอ</th><th>ประเภท</th><th>วันที่ต้องการรับรอง</th>
+                            <th>วันที่ส่งคำขอ</th><th>เหตุผล</th><th>สถานะ</th><th>ผู้อนุมัติ</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+            <div class="hr-checkin-requests-actions">
+                <a class="button is-info is-light" href="{{ url_for('staff.hr_login_summary_report') }}">
+                    <span class="icon"><i class="fas fa-arrow-left" aria-hidden="true"></i></span>
+                    <span>กลับสรุปรายงาน</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function escapeHtml(value) { return $('<span/>').text(value == null ? '' : String(value)).html(); }
+    function formatLocalDateTime(value) {
+        if (!value) return '—';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '—';
+        return date.toLocaleString('th-TH', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false});
+    }
+    $(function() {
+        $('#hrCheckinRequestsTable').DataTable({
+            processing: true, serverSide: true, deferRender: true, searchDelay: 400,
+            pageLength: 25, order: [[4, 'desc']],
+            ajax: {{ url_for('staff.get_hr_checkin_requests')|tojson|safe }},
+            columns: [
+                {data:'id'},
+                {data:'staff_name', render: function(data) { return escapeHtml(data); }},
+                {data:'request_type', render: function(data) { return escapeHtml(data); }},
+                {data:'work_datetime', render: function(data, type) { return type === 'display' ? escapeHtml(formatLocalDateTime(data)) : (data || ''); }},
+                {data:'requested_at', render: function(data, type) { return type === 'display' ? escapeHtml(formatLocalDateTime(data)) : (data || ''); }},
+                {data:'reason', render: function(data) { return '<span class="hr-checkin-reason">' + escapeHtml(data) + '</span>'; }},
+                {data:'status', render: function(data) { return '<span class="tag ' + (data.key === 'approved' ? 'is-success' : data.key === 'rejected' ? 'is-danger' : 'is-warning') + '">' + escapeHtml(data.label) + '</span>'; }},
+                {data:'approver_name', render: function(data) { return escapeHtml(data); }}
+            ],
+            language: { processing:'กำลังโหลด...', search:'ค้นหา:', lengthMenu:'แสดง _MENU_ รายการ', info:'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ', infoEmpty:'ไม่มีรายการ', zeroRecords:'ไม่พบรายการที่ค้นหา', paginate:{first:'แรก', last:'สุดท้าย', next:'ถัดไป', previous:'ก่อนหน้า'} }
+        });
+    });
+</script>
+{% endblock %}
