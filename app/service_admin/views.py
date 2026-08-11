@@ -6132,6 +6132,7 @@ def export_request_pdf(request_id):
                      'protein_identification': 'service_admin.export_protein_request_pdf',
                      'sds_page': 'service_admin.export_protein_request_pdf',
                      'quantitative': 'service_admin.export_protein_request_pdf',
+                     'metabolomic': 'service_admin.export_protein_request_pdf',
                      }
     return redirect(url_for(request_paths[code], code=code, request_id=request_id))
 
