@@ -91,7 +91,7 @@ def format_data(data):
 def paragraph_cell(value):
     if value is None:
         return ""
-    return str(value)
+    return str(value).replace('\u03bc', '\u00b5')
 
 
 def get_status(s_id):
