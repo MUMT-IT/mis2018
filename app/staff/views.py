@@ -247,6 +247,25 @@ def _build_login_quota_summary(staff_personal_info):
             quota_flagged_dates.add(row['date'])
 
     quota_dates = sorted(day.isoformat() for day in quota_flagged_dates)
+    checkin_records = []
+    for row in rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        is_late_day = bool(start_dt and start_dt.time() > office_start_time)
+        is_short_hours_day = bool(
+            start_dt and end_dt and worked_hours is not None and worked_hours < 8.0
+        )
+        checkin_records.append({
+            'date': row['date'].isoformat(),
+            'checkin': row['start'],
+            'checkout': row['end'],
+            'worked_hours': round(worked_hours, 1) if worked_hours is not None else None,
+            'is_late': is_late_day,
+            'is_short_hours': is_short_hours_day,
+            'counts_toward_quota': is_late_day or is_short_hours_day,
+        })
+
     return {
         'quota_start': quota_start_date.isoformat(),
         'quota_end': quota_end_date.isoformat(),
@@ -254,6 +273,7 @@ def _build_login_quota_summary(staff_personal_info):
         'quota_used': len(quota_dates),
         'quota_dates': quota_dates,
         'quota_remaining': max(quota_limit - len(quota_dates), 0),
+        'checkin_records': checkin_records,
     }
 
 
@@ -2857,6 +2877,111 @@ def hr_login_summary_report():
         report_end=now,
         quota_staff=active_staff,
     )
+
+
+@staff.route('/for-hr/login-report/records')
+@hr_permission.require()
+@login_required
+def hr_login_records():
+    staff_id = request.args.get('staff_id', type=int)
+    if not staff_id:
+        abort(400, description='A staff_id is required.')
+    selected_staff = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        selected_staff.retired
+        or selected_staff.retirement_date
+        or selected_staff.resignation_date
+        or selected_staff.staff_account is None
+    ):
+        abort(404)
+    return render_template(
+        'staff/hr_login_records.html',
+        selected_staff=selected_staff,
+    )
+
+
+@staff.route('/api/for-hr/login-report/records')
+@hr_permission.require()
+@login_required
+def get_hr_login_records():
+    staff_id = request.args.get('staff_id', type=int)
+    if not staff_id:
+        return jsonify({'error': 'staff_id is required'}), 400
+    selected_staff = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        selected_staff.retired
+        or selected_staff.retirement_date
+        or selected_staff.resignation_date
+        or selected_staff.staff_account is None
+    ):
+        abort(404)
+    staff_account_id = selected_staff.staff_account.id
+
+    draw = request.args.get('draw', 0, type=int)
+    start = max(request.args.get('start', 0, type=int), 0)
+    length = request.args.get('length', 10, type=int)
+    length = min(max(length, 1), 100)
+
+    query = (
+        StaffWorkLogin.query
+        .filter(StaffWorkLogin.staff_id == staff_account_id)
+        .outerjoin(StaffAccount, StaffWorkLogin.staff_id == StaffAccount.id)
+        .outerjoin(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+    )
+    records_total = query.count()
+
+    search_value = (request.args.get('search[value]') or '').strip()
+    if search_value:
+        search_pattern = f'%{search_value}%'
+        query = query.filter(or_(
+            StaffPersonalInfo.th_firstname.ilike(search_pattern),
+            StaffPersonalInfo.th_lastname.ilike(search_pattern),
+            StaffPersonalInfo.en_firstname.ilike(search_pattern),
+            StaffPersonalInfo.en_lastname.ilike(search_pattern),
+            StaffAccount.email.ilike(search_pattern),
+            StaffWorkLogin.record_source.ilike(search_pattern),
+            StaffWorkLogin.note.ilike(search_pattern),
+        ))
+
+    records_filtered = query.count()
+    order_columns = {
+        0: StaffWorkLogin.id,
+        1: StaffPersonalInfo.th_firstname,
+        2: StaffWorkLogin.start_datetime,
+        3: StaffWorkLogin.end_datetime,
+        4: StaffWorkLogin.record_source,
+    }
+    order_index = request.args.get('order[0][column]', 2, type=int)
+    order_column = order_columns.get(order_index, StaffWorkLogin.start_datetime)
+    order_direction = request.args.get('order[0][dir]', 'desc')
+    if order_direction == 'asc':
+        query = query.order_by(order_column.asc(), StaffWorkLogin.id.asc())
+    else:
+        query = query.order_by(order_column.desc(), StaffWorkLogin.id.desc())
+
+    records = query.offset(start).limit(length).all()
+
+    def isoformat(value):
+        return _to_bangkok(value).isoformat() if value else None
+
+    data = [{
+        'id': record.id,
+        'staff_name': (
+            record.staff.fullname
+            if record.staff and record.staff.personal_info else 'ไม่ระบุ'
+        ),
+        'checkin': isoformat(record.start_datetime),
+        'checkout': isoformat(record.end_datetime),
+        'record_source': record.record_source or '',
+        'note': record.note or '',
+    } for record in records]
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+    })
 
 
 @staff.route('/api/for-hr/login-report/manual-check-in/calendar')
