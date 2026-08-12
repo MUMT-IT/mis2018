@@ -1080,6 +1080,7 @@
     const calendarApiUrl = {{ url_for('staff.send_summary_data', tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }};
     const leaveCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
     const wfhCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
+    const seminarCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='smr', curr_dept_id=curr_dept_id)|tojson|safe }};
     const loginHistoryApiBaseUrl = {{ url_for('staff.get_login_request_history', request_id=0)|tojson|safe }}.replace('/0/history', '/');
     let employeeSummaryMap = {};
 
@@ -1301,7 +1302,7 @@
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             header: false,
             locale: 'th',
-            eventSources: [calendarApiUrl, leaveCalendarApiUrl, wfhCalendarApiUrl],
+            eventSources: [calendarApiUrl, leaveCalendarApiUrl, wfhCalendarApiUrl, seminarCalendarApiUrl],
             displayEventEnd: true,
             defaultView: 'month',
             fixedWeekCount: false,
@@ -1333,6 +1334,12 @@
                         var wfhTitle = $('<span/>').text(event.title || '').html();
                         element.find('.fc-title').html(
                             '<i class="fas fa-house-chimney-user staff-login-wfh-icon" aria-hidden="true"></i> ' + wfhTitle
+                        );
+                    }
+                    if (event.type === 'smr') {
+                        var seminarTitle = $('<span/>').text(event.title || '').html();
+                        element.find('.fc-title').html(
+                            '<i class="fas fa-chalkboard-user staff-login-seminar-icon" aria-hidden="true"></i> ' + seminarTitle
                         );
                     }
                     return;

@@ -105,6 +105,10 @@
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
                     <span class="is-size-5">ข้อมูลสรุปวันทำงาน</span>
                 </a>
+                <a class="panel-block" href="{{ url_for('staff.login_summary') }}">
+                    <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
+                    <span class="is-size-5">ข้อมูลการเข้าปฏิบัติงานและคำขอรับรองเวลาเข้างาน</span>
+                </a>
                 <a class="panel-block" href="{{ url_for('staff.show_leave_approval_info') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
                     <span class="is-size-5">ข้อมูลวันลา</span>
@@ -134,16 +138,10 @@
             <nav class="panel is-success">
                 <p class="panel-heading">สำหรับผู้จัดการหรือเจ้าหน้าที่ธุรการส่วนงาน</p>
                 <a href="{{ url_for('staff.login_summary') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-circle"></i>
-                        </span>
-                    <span class="is-size-5">ข้อมูลสรุปบันทึกการเข้าปฏิบัติงานของบุคลากร</span><br>
-                </a>
-                <a href="{{ url_for('staff.summary_org') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-circle"></i>
-                        </span>
-                    <span class="is-size-5">ข้อมูลการลาของบุคลากร</span><br>
+                    <span class="panel-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </span>
+                    <span class="is-size-5">ข้อมูลการเข้าปฏิบัติงาน</span><br>
                 </a>
                 <a href="{{ url_for('staff.seminar_pre_register_records') }}" class="panel-block">
                         <span class="panel-icon">

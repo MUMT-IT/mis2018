@@ -4075,17 +4075,38 @@ def send_summary_data():
                         'type': 'wfh'
                     })
         if tab in ['smr', 'all']:
-            for smr in emp.staff_account.seminar_attends \
-                    .filter(func.timezone('Asia/Bangkok', StaffSeminarAttend.start_datetime)
-                                    .between(cal_start, cal_end)):
+            for smr in emp.staff_account.seminar_attends.all():
                 text_color = '#ffffff'
                 bg_color = '#FF33A5'
                 border_color = '#ffffff'
+                # Attendance records can contain the QR scan time or employee-specific
+                # values. The calendar event represents the seminar itself, so prefer
+                # the shared seminar schedule to keep the event consistent for all
+                # attendees. Fall back to attendance dates for legacy records without
+                # a linked seminar schedule.
+                seminar_start = getattr(smr.seminar, 'start_datetime', None) or smr.start_datetime
+                seminar_end = getattr(smr.seminar, 'end_datetime', None) or smr.end_datetime
+                seminar_start = _to_bangkok(seminar_start) if seminar_start else None
+                seminar_end = _to_bangkok(seminar_end) if seminar_end else None
+                if not seminar_start:
+                    continue
+                event_end = seminar_end or seminar_start
+                if event_end < cal_start or seminar_start > cal_end:
+                    continue
+                seminar_all_day = bool(
+                    seminar_start and seminar_start.time() == datetime.min.time() and
+                    (seminar_end is None or seminar_end.time() == datetime.min.time())
+                )
+                if seminar_all_day and seminar_end:
+                    # FullCalendar treats an all-day end as exclusive, while the
+                    # seminar end date is stored as an inclusive date.
+                    seminar_end = seminar_end + timedelta(days=1)
                 seminars.append({
-                    'id': smr.id,
-                    'start': smr.start_datetime.astimezone(tz).isoformat() if smr.start_datetime else None,
-                    'end': smr.end_datetime.astimezone(tz).isoformat() if smr.end_datetime else None,
-                    'title': emp.th_firstname + " " + smr.seminar.topic,
+                    'id': 'seminar-{}'.format(smr.id),
+                    'start': seminar_start.isoformat() if seminar_start else None,
+                    'end': seminar_end.isoformat() if seminar_end else None,
+                    'allDay': seminar_all_day,
+                    'title': '{} {}'.format(emp.th_firstname, smr.seminar.topic if smr.seminar else 'สัมมนา'),
                     'staff_id': emp.staff_account.id,
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
@@ -4183,7 +4204,7 @@ def export_login_summary():
     end_date = datetime.strptime(end_date.lstrip(), '%d/%m/%Y')
     query = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
                                         .between(start_date, end_date))
-    query = query.join(StaffAccount, aliased=True) \
+    query = query.join(StaffAccount, StaffWorkLogin.staff_id == StaffAccount.id) \
         .filter(StaffAccount.personal_info.has(org_id=current_user.personal_info.org_id))
     records = []
     for row in _daily_work_login_rows(query.all()):
