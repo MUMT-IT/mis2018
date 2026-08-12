@@ -205,7 +205,7 @@
     .staff-login-employee-card .staff-login-avatar {
         align-items: center;
         background: linear-gradient(135deg, rgba(18, 39, 84, 0.96), rgba(202, 168, 74, 0.96));
-        border-radius: 18px;
+        border-radius: 50%;
         color: #fff;
         display: inline-flex;
         flex-shrink: 0;
@@ -215,6 +215,21 @@
         justify-content: center;
         letter-spacing: 0.04em;
         width: 2.75rem;
+    }
+
+    .staff-login-employee-card .staff-login-avatar img {
+        border-radius: 50%;
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+    }
+
+    .staff-login-avatar-fallback {
+        align-items: center;
+        display: none;
+        height: 100%;
+        justify-content: center;
+        width: 100%;
     }
 
     .staff-login-employee-name {
@@ -1101,6 +1116,14 @@
         return (first + second).toUpperCase();
     }
 
+    function employeeAvatar(employee) {
+        const fallback = escapeHtml(initials(employee.name));
+        if (!employee.image_url) return fallback;
+        return '<img src="' + escapeHtml(employee.image_url) + '" alt="" ' +
+            'onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline-flex\';">' +
+            '<span class="staff-login-avatar-fallback">' + fallback + '</span>';
+    }
+
     function renderSummaryCards(data) {
         const totals = data.totals || {};
         const cards = [
@@ -1163,7 +1186,7 @@
             '<div class="staff-login-employee-card">' +
             '<button type="button" class="staff-login-employee-row" data-employee-id="' + escapeHtml(employee.staff_id) + '">' +
             '<div class="staff-login-employee-left">' +
-            '<div class="staff-login-avatar">' + escapeHtml(initials(employee.name)) + '</div>' +
+            '<div class="staff-login-avatar">' + employeeAvatar(employee) + '</div>' +
             '<div style="min-width: 0; flex: 1;">' +
             '<div class="staff-login-employee-name">' + escapeHtml(employee.name || '-') + '</div>' +
             '<div class="staff-login-employee-meta">' + escapeHtml(subtitleParts.join(' • ') || 'No department') + '</div>' +

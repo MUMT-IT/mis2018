@@ -38,6 +38,7 @@ from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffG
 from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission, event_staff_permission
 from app.staff.models import *
 from app.url_utils import external_url
+from app.org_directory import academic_rank_from_name, email_local_part, parse_saved_page
 from app.auth.views import _normalize_staff_email
 from app.google_credential_utils import load_google_credentials_json
 
@@ -610,8 +611,13 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
         employees_payload.append({
             'staff_id': staff_id,
             'name': employee.fullname,
+            'image_url': employee.image_url or '',
             'org_name': employee.org.name if employee.org else '',
-            'position': employee.position or (employee.job_position.th_title if employee.job_position else ''),
+            'position': (
+                employee.academic_positions[0].position.fullname_th
+                if employee.academic_positions
+                else (employee.job_position.th_title if employee.job_position else employee.position_level or '')
+            ),
             'academic_staff': bool(employee.academic_staff),
             'complete_days': complete_days,
             'late_checkins': late_checkins,
@@ -4251,10 +4257,18 @@ def get_staffid():
 
     staff = []
     for sid in staff_infos:
+        academic_position = sid.academic_positions[0] if sid.academic_positions else None
         staff.append({
             'id': sid.id,
             'fullname': sid.fullname,
             'org': sid.org.name if sid.org else 'ไม่มีต้นสังกัด'
+            , 'email': sid.staff_account.email if sid.staff_account else ''
+            , 'telephone': sid.telephone or ''
+            , 'image_url': sid.image_url or ''
+            , 'position': academic_position.position.fullname_th if academic_position else (
+                sid.job_position.th_title if sid.job_position else sid.position_level or ''
+            )
+            , 'edit_url': url_for('staff.staff_edit_info', staff_id=sid.id)
         })
 
     return jsonify(staff)
@@ -5804,6 +5818,87 @@ def staff_index():
     return render_template('staff/staff_index.html')
 
 
+@staff.route('/for-hr/staff-info/sync-faculty-directory', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def sync_faculty_directory():
+    organizations = Org.query.filter(Org.parent_id.is_(None)).order_by(Org.name.asc()).all()
+    if request.method == 'POST':
+        org_id = request.form.get('org_id', type=int)
+        uploaded = request.files.get('html_file')
+        org = Org.query.filter(Org.id == org_id, Org.parent_id.is_(None)).first()
+        if not org:
+            flash('กรุณาเลือกหน่วยงานหลักที่ถูกต้อง', 'danger')
+            return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+        if not uploaded or not uploaded.filename:
+            flash('กรุณาเลือกไฟล์ HTML ที่บันทึกจากเว็บไซต์คณะ', 'danger')
+            return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.html') as saved:
+            uploaded.save(saved.name)
+            page = parse_saved_page(saved.name, source_url=org.directory_url or uploaded.filename)
+
+        staff_by_email = {
+            email_local_part(account.email): account.personal_info
+            for account in StaffAccount.query.join(StaffAccount.personal_info)
+            if account.email and account.personal_info and account.personal_info.org_id == org.id
+        }
+        matched = updated = academic_updated = 0
+        unmatched = []
+        for employee in page['employees']:
+            email = email_local_part(employee.get('email'))
+            person = staff_by_email.get(email)
+            if not person:
+                unmatched.append(employee.get('email') or employee.get('name'))
+                continue
+            matched += 1
+            person.telephone = employee.get('phone') or person.telephone
+            person.image_url = employee.get('image_url') or person.image_url
+            person.position = employee.get('position') or person.position
+            person.position_level = employee.get('position_level') or person.position_level
+            updated += 1
+
+            rank = employee.get('academic_rank') or academic_rank_from_name(employee.get('name'))
+            if rank:
+                academic_position = StaffAcademicPosition.query.filter(
+                    StaffAcademicPosition.fullname_th == rank
+                ).first()
+                if academic_position:
+                    current_record = (
+                        StaffAcademicPositionRecord.query
+                        .filter_by(personal_info_id=person.id)
+                        .order_by(StaffAcademicPositionRecord.appointed_at.desc().nullslast())
+                        .first()
+                    )
+                    if current_record:
+                        current_record.position_id = academic_position.id
+                    else:
+                        db.session.add(StaffAcademicPositionRecord(
+                            personal_info_id=person.id,
+                            position_id=academic_position.id,
+                            appointed_at=None,
+                        ))
+                    person.academic_staff = True
+                    academic_updated += 1
+
+        db.session.commit()
+        flash(
+            f'ซิงค์ข้อมูลสำเร็จ: พบ {len(page["employees"])} รายการ, จับคู่ได้ {matched}, '
+            f'อัปเดตข้อมูล {updated}, ตำแหน่งวิชาการ {academic_updated}',
+            'success',
+        )
+        if unmatched:
+            flash('ไม่พบอีเมลในหน่วยงานที่เลือก: ' + ', '.join(unmatched), 'warning')
+        return render_template(
+            'staff/sync_faculty_directory.html',
+            organizations=organizations,
+            selected_org_id=org.id,
+        )
+
+    return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+
+
 @staff.route('/for-hr/staff-info/dashboard')
 @hr_permission.require()
 @login_required
@@ -6003,6 +6098,34 @@ def staff_search_info():
     return render_template('staff/staff_find_name_to_edit.html')
 
 
+@staff.route('/for-hr/staff-info/search-results')
+@hr_permission.require()
+@login_required
+def staff_search_info_results():
+    search_term = (request.args.get('q') or '').strip()
+    if not search_term:
+        return ''
+    employees = []
+    pattern = f'%{search_term}%'
+    employees = (
+        StaffPersonalInfo.query
+        .outerjoin(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
+        .outerjoin(Org, StaffPersonalInfo.org_id == Org.id)
+        .filter(or_(
+            StaffPersonalInfo.th_firstname.ilike(pattern),
+            StaffPersonalInfo.th_lastname.ilike(pattern),
+            StaffPersonalInfo.en_firstname.ilike(pattern),
+            StaffPersonalInfo.en_lastname.ilike(pattern),
+            StaffAccount.email.ilike(pattern),
+            Org.name.ilike(pattern),
+        ))
+        .order_by(StaffPersonalInfo.th_firstname.asc(), StaffPersonalInfo.en_firstname.asc())
+        .limit(30)
+        .all()
+    )
+    return render_template('staff/partials/staff_edit_search_results.html', employees=employees)
+
+
 @staff.route('/for-hr/staff-info/edit-info/<int:staff_id>', methods=['GET', 'POST'])
 @hr_permission.require()
 @login_required
@@ -6047,7 +6170,8 @@ def staff_edit_info(staff_id):
         staff.th_firstname = form.get('th_firstname')
         staff.th_lastname = form.get('th_lastname')
         staff.sap_id = form.get('sap_id')
-        staff.position = form.get('position')
+        if not staff.academic_staff:
+            staff.position_level = form.get('position_level')
         staff.employed_date = start_date
         staff.resignation_date = resign_date
         staff.retirement_date = retired_date

@@ -220,6 +220,8 @@ class StaffPersonalInfo(db.Model):
     job_position = db.relationship('StaffJobPosition',
                                    backref=db.backref('job_position_staff'))
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
+    position_level = db.Column('position_level', db.String(), info={'label': u'ระดับตำแหน่ง'})
+    image_url = db.Column('image_url', db.String(), info={'label': u'ที่อยู่รูปภาพ'})
     mobile_phone = db.Column('mobile_phone', db.String(), info={'label': u'มือถือ'})
     telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
     retirement_date = db.Column('retirement_date', db.Date(), nullable=True)

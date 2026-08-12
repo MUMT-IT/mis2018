@@ -3,9 +3,10 @@
 {{ render_module_nav(
     title='Staff',
     subtitle='งานบุคลากร',
-    brand_href=url_for('staff.index'),
+    brand_href=url_for('staff.for_hr') if request.path.startswith('/staff/for-hr') else url_for('staff.index'),
     start_links=[
-        {'href': url_for('staff.index'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
+        {'href': url_for('staff.for_hr') if request.path.startswith('/staff/for-hr') else url_for('staff.index'),
+         'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
     ],
     user_display=current_user.personal_info.fullname,
     account_href=url_for('auth.account'),

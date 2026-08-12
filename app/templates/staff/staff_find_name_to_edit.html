@@ -1,105 +1,151 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
-<section class="section" id="app">
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <h1 class="title has-text-centered">ค้นหาชื่อบุคลากร</h1>
-                    <form method="post" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-                        <input type="hidden" name="staffname" :value="staffid">
-                        <div class="control">
-                            <b-field message="สามารถค้นหาด้วยชื่อ นามสกุล สังกัด">
-                                ชื่อ <% staffNameSelected %>
-                                <b-autocomplete v-model="staffquery" :data="data"
-                                        field="id" :loading="isFetching" icon="magnify"
-                                        @keyup.native="getAsyncData"
-                                        @select="option => { staffname = option.fullname; staffid = option.id; }" required>
-                                    <template slot-scope="props">
-                                        <div class="media">
-                                        <div class="media-content">
-                                        <%props.option.fullname%>
-                                        <br>
-                                        <small>
-                                            รหัส: <%props.option.id%>,
-                                            สังกัด: <%props.option.org%>
-                                        </small>
-                                        </div>
-                                        </div>
-                                    </template>
-                                </b-autocomplete>
-                            </b-field>
-                        </div>
-                        <br>
-                        <div class="field is-centered">
-                            <div class="control">
-                                <input type="submit" value="search" class="button is-info"/>
-                            </div>
-                        </div>
-                        <div class="field is-grouped">
-                            <div class="control">
-                                <a href="{{ url_for('staff.staff_index') }}" class="button  is-light">
-                                    <span class="icon">
-                                        <i class="fas fa-arrow-left"></i>
-                                    </span>
-                                    <span>
-                                        กลับ
-                                    </span>
-                                </a>
-                            </div>
-                        </div>
-                    </form>
+<style>
+    .staff-edit-page {
+        margin: 0 auto;
+        max-width: 820px;
+        padding: 3rem 1rem 5rem;
+    }
+    .staff-edit-heading {
+        margin-bottom: 1.75rem;
+    }
+    .staff-edit-kicker {
+        color: var(--theme-gold, #b18d2c);
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .14em;
+        margin-bottom: .65rem;
+        text-transform: uppercase;
+    }
+    .staff-edit-title {
+        color: var(--theme-navy-deep, #10264c);
+        font-size: clamp(1.8rem, 4vw, 2.5rem);
+        font-weight: 800;
+        letter-spacing: -.03em;
+        line-height: 1.1;
+        margin: 0;
+    }
+    .staff-edit-description {
+        color: var(--theme-muted, #697586);
+        font-size: .95rem;
+        line-height: 1.6;
+        margin-top: .7rem;
+    }
+    .staff-edit-search-box {
+        background: var(--theme-surface-strong, #fff);
+        border: 1px solid var(--theme-border, rgba(18, 39, 84, .1));
+        border-radius: 20px;
+        box-shadow: 0 16px 42px rgba(18, 39, 84, .08);
+        padding: 1.25rem;
+    }
+    .staff-edit-search-box .input {
+        border-color: transparent;
+        border-radius: 12px;
+        box-shadow: none;
+        font-size: 1rem;
+        height: 3.1rem;
+        padding-left: 3rem;
+    }
+    .staff-edit-search-box .input:focus {
+        border-color: rgba(30, 115, 190, .35);
+        box-shadow: 0 0 0 3px rgba(30, 115, 190, .1);
+    }
+    .staff-edit-search-box .control.has-icons-left .icon {
+        height: 3.1rem;
+        width: 3rem;
+    }
+    .staff-edit-search-box .help {
+        color: var(--theme-muted, #697586);
+        margin: .65rem .2rem 0;
+    }
+    .staff-edit-search-results {
+        display: grid;
+        gap: .75rem;
+        margin: 1.25rem auto 0;
+        text-align: left;
+    }
+    .staff-edit-search-card {
+        align-items: center;
+        background: rgba(255, 255, 255, .92);
+        border: 1px solid rgba(18, 39, 84, .1);
+        border-radius: 16px;
+        box-shadow: 0 8px 22px rgba(18, 39, 84, .06);
+        color: inherit;
+        display: flex;
+        gap: .85rem;
+        padding: .9rem 1rem;
+        text-decoration: none;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .staff-edit-search-card:hover {
+        box-shadow: 0 12px 28px rgba(18, 39, 84, .12);
+        transform: translateY(-1px);
+    }
+    .staff-edit-search-avatar {
+        align-items: center;
+        background: linear-gradient(135deg, #12305f, #caa84a);
+        border-radius: 50%;
+        color: #fff;
+        display: inline-flex;
+        flex: 0 0 3rem;
+        font-weight: 800;
+        height: 3rem;
+        justify-content: center;
+        overflow: hidden;
+        width: 3rem;
+    }
+    .staff-edit-search-avatar img {
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+    }
+    .staff-edit-search-name { font-weight: 800; }
+    .staff-edit-search-meta { color: #697586; font-size: .82rem; line-height: 1.5; }
+    .staff-edit-search-empty {
+        color: var(--theme-muted, #697586);
+        font-size: .9rem;
+        padding: 1.5rem 1rem;
+        text-align: center;
+    }
+    .staff-edit-back {
+        color: var(--theme-muted, #697586);
+        display: inline-flex;
+        font-size: .88rem;
+        gap: .4rem;
+        margin-top: 1.5rem;
+    }
+    .staff-edit-back:hover { color: var(--theme-navy, #1a3d7c); }
+</style>
+<section class="section">
+    <div class="staff-edit-page">
+        <div class="staff-edit-heading">
+            <div class="staff-edit-kicker">Staff directory</div>
+            <h1 class="staff-edit-title">ค้นหาบุคลากร</h1>
+            <p class="staff-edit-description">ค้นหาและเลือกบุคลากรเพื่อแก้ไขข้อมูลรายบุคคล</p>
+        </div>
+        <div class="staff-edit-search-box">
+            <div class="field">
+                <label class="is-sr-only" for="staff-search">ค้นหาบุคลากร</label>
+                <div class="control has-icons-left">
+                    <input id="staff-search" class="input" type="search"
+                           name="q" placeholder="ชื่อ นามสกุล สังกัด หรืออีเมล"
+                           autocomplete="off"
+                           hx-get="{{ url_for('staff.staff_search_info_results') }}"
+                           hx-trigger="input changed delay:300ms, search"
+                           hx-target="#staff-search-results"
+                           hx-swap="innerHTML">
+                    <span class="icon is-left"><i class="fas fa-search"></i></span>
                 </div>
+                <p class="help">พิมพ์เพื่อเริ่มค้นหา ผลลัพธ์จะแสดงด้านล่างโดยอัตโนมัติ</p>
             </div>
         </div>
+        <div id="staff-search-results" class="staff-edit-search-results">
+            <div class="staff-edit-search-empty">เริ่มพิมพ์เพื่อค้นหาบุคลากร</div>
+        </div>
+        <a href="{{ url_for('staff.staff_index') }}" class="staff-edit-back">
+            <span aria-hidden="true">←</span> กลับข้อมูลบุคลากร
+        </a>
     </div>
 </section>
-{% endblock %}
-{% block scripts %}
-{{ super() }}
-<script>
-    new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                staffquery: '',
-                staffname: '',
-                staffid: '',
-                isFetching: false,
-                data: []
-            }
-        },
-        computed: {
-            staffNameSelected: function(){
-                if ( this.staffquery !== "" ){
-                    return this.staffname
-                }
-                else{
-                    return "-"
-                }
-            }
-        },
-        methods: {
-            getAsyncData: function() {
-                var self = this
-                self.isFetching = true
-                axios.get('/staff/api/staffids').then(function(resp) {
-                    self.data = []
-                    resp.data.forEach(function(item) {
-                        if (item.fullname.indexOf(self.staffquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        if (item.org.indexOf(self.staffquery) !== -1) {
-                            self.data.push(item)
-                        }
-                    })
-                    self.isFetching = false
-                })
-            },
-        }
-    });
-</script>
 {% endblock %}

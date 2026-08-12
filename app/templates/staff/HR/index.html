@@ -277,6 +277,12 @@
                     <p class="hr-module-description">ค้นหาและจัดการข้อมูลบุคลากรในหน่วยงาน</p>
                     <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                 </a>
+                <a class="hr-module-card" href="{{ url_for('staff.sync_faculty_directory') }}">
+                    <span class="hr-module-icon"><i class="fas fa-arrows-rotate" aria-hidden="true"></i></span>
+                    <h3 class="hr-module-title">ซิงค์ข้อมูลกับเว็บคณะ</h3>
+                    <p class="hr-module-description">อัปเดตโทรศัพท์ รูปภาพ ตำแหน่ง และระดับบุคลากรจากไฟล์เว็บไซต์คณะ</p>
+                    <span class="hr-module-footer">เปิดระบบ <i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+                </a>
                 <a class="hr-module-card" href="{{ url_for('staff.leave_request_result_by_date') }}">
                     <span class="hr-module-icon"><i class="fas fa-calendar-days" aria-hidden="true"></i></span>
                     <h3 class="hr-module-title">ข้อมูลวันลา</h3>
