@@ -126,10 +126,38 @@
             }
 
             .event-participant-item {
+                align-items: center;
                 background: rgba(255, 255, 255, 0.82);
                 border: 1px solid rgba(18, 39, 84, 0.08);
                 border-radius: 18px;
+                display: flex;
+                gap: 0.8rem;
                 padding: 0.85rem 1rem;
+            }
+
+            .event-participant-avatar {
+                align-items: center;
+                background: linear-gradient(135deg, var(--theme-navy), var(--theme-navy-deep));
+                border-radius: 50%;
+                color: #fff;
+                display: inline-flex;
+                flex: 0 0 48px;
+                font-size: 1rem;
+                font-weight: 700;
+                height: 48px;
+                justify-content: center;
+                overflow: hidden;
+                width: 48px;
+            }
+
+            .event-participant-avatar img {
+                height: 100%;
+                object-fit: cover;
+                width: 100%;
+            }
+
+            .event-participant-copy {
+                min-width: 0;
             }
 
             .event-participant-item strong,
@@ -362,8 +390,17 @@
                             <div class="event-participant-list">
                                 {% for participant in event.participants %}
                                     <div class="event-participant-item">
-                                        <strong>{{ participant.fullname }}</strong>
-                                        <span>{{ participant.personal_info.org if participant.personal_info else 'ไม่ระบุหน่วยงาน' }}</span>
+                                        <div class="event-participant-avatar" aria-label="{{ participant.fullname }}">
+                                            {% if participant.personal_info and participant.personal_info.image_url %}
+                                                <img src="{{ participant.personal_info.image_url }}" alt="{{ participant.fullname }}">
+                                            {% else %}
+                                                {{ (participant.fullname or '?')[:1] | upper }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="event-participant-copy">
+                                            <strong>{{ participant.fullname }}</strong>
+                                            <span>{{ participant.personal_info.org if participant.personal_info else 'ไม่ระบุหน่วยงาน' }}</span>
+                                        </div>
                                     </div>
                                 {% endfor %}
                             </div>

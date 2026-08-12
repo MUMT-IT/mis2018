@@ -14,7 +14,7 @@
     subtitle='ระบบจองห้อง',
     brand_href=url_for('room.index'),
     start_links=room_nav_links,
-    user_display=current_user.email,
+    user_display=current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else current_user.email,
     account_href=url_for('auth.account'),
     logout_href=url_for('auth.logout'),
     close_href='/',
