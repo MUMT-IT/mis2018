@@ -49,20 +49,36 @@
                         {% endif %}
 
                         {% if user_display %}
-                            <a class="navbar-item app-navbar-user">
-                                <span class="icon">
-                                    <i class="fas fa-user-circle"></i>
-                                </span>
-                                <span class="app-navbar-user-name">{{ user_display }}</span>
-                            </a>
-                        {% endif %}
-
-                        {% if account_href %}
-                            {{ nav_item(account_href, 'ข้อมูลส่วนตัว', 'fas fa-id-card', False, 'app-navbar-action') }}
-                        {% endif %}
-
-                        {% if logout_href %}
-                            {{ nav_item(logout_href, 'ออกจากระบบ', 'fas fa-sign-out-alt', False, 'app-navbar-action') }}
+                            <div class="navbar-item has-dropdown is-hoverable">
+                                <a class="navbar-link app-navbar-user" aria-label="เมนูบัญชีผู้ใช้">
+                                    <span class="icon">
+                                        <i class="fas fa-user-circle"></i>
+                                    </span>
+                                    <span class="app-navbar-user-name">{{ user_display }}</span>
+                                </a>
+                                <div class="navbar-dropdown is-right">
+                                    {% if account_href %}
+                                        <a class="navbar-item app-navbar-dropdown-link" href="{{ account_href }}">
+                                            <span class="icon"><i class="fas fa-id-card"></i></span>
+                                            <span>ข้อมูลส่วนตัว</span>
+                                        </a>
+                                    {% endif %}
+                                    <a class="navbar-item app-navbar-dropdown-link" href="{{ url_for('staff.show_time_report') }}">
+                                        <span class="icon"><i class="fas fa-calendar-check"></i></span>
+                                        <span>ข้อมูลการเข้า-ออกงาน</span>
+                                    </a>
+                                    <a class="navbar-item app-navbar-dropdown-link" href="{{ url_for('staff.show_leave_info') }}">
+                                        <span class="icon"><i class="fas fa-umbrella-beach"></i></span>
+                                        <span>ลาปฏิบัติงาน</span>
+                                    </a>
+                                    {% if logout_href %}
+                                        <a class="navbar-item app-navbar-dropdown-link" href="{{ logout_href }}">
+                                            <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                                            <span>ออกจากระบบ</span>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
                         {% endif %}
 
                         {% if support_href %}
