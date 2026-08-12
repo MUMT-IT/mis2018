@@ -5939,13 +5939,20 @@ def staff_index():
 @hr_permission.require()
 @login_required
 def sync_faculty_directory():
-    organizations = Org.query.filter(Org.parent_id.is_(None)).order_by(Org.name.asc()).all()
+    active_org_ids = {
+        org_id for (org_id,) in StaffPersonalInfo.query.with_entities(StaffPersonalInfo.org_id)
+        .filter(*_active_staff_filters())
+        .distinct()
+        .all()
+        if org_id is not None
+    }
+    organizations = Org.query.filter(Org.id.in_(active_org_ids)).order_by(Org.name.asc()).all()
     if request.method == 'POST':
         org_id = request.form.get('org_id', type=int)
         uploaded = request.files.get('html_file')
-        org = Org.query.filter(Org.id == org_id, Org.parent_id.is_(None)).first()
+        org = Org.query.filter(Org.id == org_id, Org.id.in_(active_org_ids)).first()
         if not org:
-            flash('กรุณาเลือกหน่วยงานหลักที่ถูกต้อง', 'danger')
+            flash('กรุณาเลือกหน่วยงานที่ถูกต้อง', 'danger')
             return render_template('staff/sync_faculty_directory.html', organizations=organizations)
         if not uploaded or not uploaded.filename:
             flash('กรุณาเลือกไฟล์ HTML ที่บันทึกจากเว็บไซต์คณะ', 'danger')
@@ -5983,7 +5990,12 @@ def sync_faculty_directory():
                 continue
             matched += 1
             person.telephone = employee.get('phone') or person.telephone
-            person.image_url = employee.get('image_url') or person.image_url
+            # A missing image means the parser could not resolve a usable
+            # photo from the source page. Preserve an existing avatar rather
+            # than replacing it with null or an empty value.
+            parsed_image_url = (employee.get('image_url') or '').strip() or None
+            if parsed_image_url:
+                person.image_url = parsed_image_url
             parsed_position = (employee.get('position') or '').strip() or None
             parsed_position_level = (employee.get('position_level') or '').strip() or None
             if parsed_position:
@@ -6305,6 +6317,7 @@ def staff_edit_info(staff_id):
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
         staff.th_lastname = form.get('th_lastname')
+        staff.image_url = (form.get('image_url') or '').strip() or None
         staff.sap_id = form.get('sap_id')
         if not staff.academic_staff:
             staff.position_level = form.get('position_level')
