@@ -856,10 +856,6 @@ def index():
         now=now,
         today_calendar=today_calendar,
         today_checkin_status=today_checkin_status,
-        docs_query_banner_url=generate_s3_asset_url(
-            'ui-assets/docsIQ_banner.webp',
-            'img/docsIQ_banner.webp',
-        ),
     )
 
 
@@ -2969,17 +2965,35 @@ s3 = boto3.client(
 )
 
 
-def generate_s3_asset_url(key, fallback_filename):
+def generate_s3_asset_url(key, fallback_filename=None, expiration=3600):
     if S3_BUCKET_NAME:
         try:
             return s3.generate_presigned_url(
                 'get_object',
                 Params={'Bucket': S3_BUCKET_NAME, 'Key': key},
-                ExpiresIn=3600,
+                ExpiresIn=expiration,
             )
         except Exception:
             app.logger.exception('Could not generate S3 asset URL for %s.', key)
-    return None
+    if fallback_filename:
+        try:
+            return url_for('static', filename=fallback_filename)
+        except RuntimeError:
+            app.logger.warning('Could not build fallback static URL for %s.', fallback_filename)
+    return ''
+
+
+@app.template_filter('s3_asset')
+def s3_asset_filter(key, fallback_filename=None, expiration=3600):
+    """Return a presigned S3 asset URL with an optional local static fallback.
+
+    Template usage:
+        {{ 'ui-assets/logo.webp'|s3_asset }}
+        {{ 'ui-assets/logo.webp'|s3_asset('img/logo.webp') }}
+    """
+    if not key:
+        return ''
+    return generate_s3_asset_url(key, fallback_filename, expiration)
 
 # Allowed file extensions for upload
 

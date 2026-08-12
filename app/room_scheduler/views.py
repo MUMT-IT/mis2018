@@ -951,15 +951,9 @@ def index():
     recent_reservations = current_user.room_reservations \
         .filter(RoomEvent.created_at >= cutoff) \
         .order_by(RoomEvent.created_at.desc())
-    from app.main import generate_s3_asset_url
-
     return render_template(
         'scheduler/room_main.html',
         recent_reservations=recent_reservations,
-        room_search_video_url=generate_s3_asset_url(
-            'ui-assets/room_search_robot.mp4',
-            'img/room_search_robot.mp4',
-        ),
     )
 
 

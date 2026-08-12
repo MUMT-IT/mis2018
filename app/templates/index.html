@@ -1564,6 +1564,7 @@
             </div>
 
             <section class="home-panel docs-query-home-card">
+                {% set docs_query_banner = 'ui-assets/docsIQ_banner.webp'|s3_asset('img/docsIQ_banner.webp') %}
                 <div class="home-panel-header">
                     <div>
                         <p class="home-panel-title">
@@ -1576,10 +1577,10 @@
             <a class="docs-query-home-banner"
                href="{{ url_for('docs_query.index') }}"
                aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
-                {% if docs_query_banner_url %}
+                {% if docs_query_banner %}
                     <picture>
-                        <source srcset="{{ docs_query_banner_url }}" type="image/webp">
-                        <img src="{{ docs_query_banner_url }}"
+                        <source srcset="{{ docs_query_banner }}" type="image/webp">
+                        <img src="{{ docs_query_banner }}"
                              alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
                              decoding="async">
                     </picture>
