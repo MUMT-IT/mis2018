@@ -28,9 +28,17 @@ def normalize_position(text):
     if not raw:
         return {'raw_position': None, 'position': None, 'position_level': None}
     for level in POSITION_LEVELS:
-        if raw.endswith(level):
-            position = raw[:-len(level)].strip(' -–—') or None
-            return {'raw_position': raw, 'position': position, 'position_level': level}
+        level_patterns = (f'ผู้{level}', level)
+        for level_pattern in level_patterns:
+            suffix = next(
+                (candidate for candidate in (f'{level_pattern})', level_pattern) if raw.endswith(candidate)),
+                None,
+            )
+            if suffix:
+                position = raw[:-len(suffix)].rstrip(' )]}').strip(' -–—') or None
+                if position and position.endswith(('(', '[', '{')):
+                    position = position[:-1].rstrip(' -–—') or None
+                return {'raw_position': raw, 'position': position, 'position_level': level}
     return {'raw_position': raw, 'position': raw, 'position_level': None}
 
 
@@ -101,6 +109,8 @@ class _EmployeeParser(HTMLParser):
         self._person_events = []
         self._role_parts = []
         self._in_heading = False
+        self._panel_heading_depth = 0
+        self._panel_role = None
 
     @staticmethod
     def _classes(attrs):
@@ -119,6 +129,15 @@ class _EmployeeParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         attrs_dict = dict(attrs)
         classes = self._classes(attrs)
+        if not self._block_depth and 'vc_tta-panel-heading' in classes:
+            self._panel_heading_depth = 1
+            self._panel_role = None
+            self._role_parts = []
+            return
+        if not self._block_depth and self._panel_heading_depth:
+            if tag not in {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}:
+                self._panel_heading_depth += 1
+            return
         if self._block_depth == 0 and 'vc_tta-panel-body' in classes:
             self._block_depth = 1
             self._block_tag_depth = 1
@@ -126,7 +145,7 @@ class _EmployeeParser(HTMLParser):
             self._person_segments = []
             self._person_depth = 0
             self._person_events = []
-            self._role_parts = []
+            self._role_parts = [self._panel_role] if self._panel_role else []
             return
         if self._block_depth:
             if self._person_depth == 0 and 'wpb_text_column' in classes:
@@ -162,6 +181,12 @@ class _EmployeeParser(HTMLParser):
 
     def handle_endtag(self, tag):
         if not self._block_depth:
+            if self._panel_heading_depth:
+                if tag not in {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}:
+                    self._panel_heading_depth -= 1
+                    if self._panel_heading_depth == 0:
+                        self._panel_role = ' '.join(self._role_parts).strip() or None
+                        self._role_parts = []
             return
         if self._person_depth:
             if tag not in {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}:
@@ -178,6 +203,10 @@ class _EmployeeParser(HTMLParser):
 
     def handle_data(self, data):
         if not self._block_depth:
+            if self._panel_heading_depth:
+                text = ' '.join(data.split())
+                if text:
+                    self._role_parts.append(text)
             return
         text = ' '.join(data.split())
         if not text:
@@ -242,7 +271,7 @@ class _EmployeeParser(HTMLParser):
                 and line.lower() not in {'profile', 'ดูรายละเอียด'}
             ]
             name = candidates[0] if candidates else None
-            position_text = ' '.join(candidates[1:]).strip() if len(candidates) > 1 else None
+            position_text = ' '.join(candidates[1:]).strip() if len(candidates) > 1 else role
             position_data = normalize_position(position_text)
             image_url = next(
                 (event[1] for event in segment if event[0] == 'image' and not self._is_logo_image(event[1], event[2], event[3])),

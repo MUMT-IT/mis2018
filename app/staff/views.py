@@ -5956,12 +5956,24 @@ def sync_faculty_directory():
             uploaded.save(saved.name)
             page = parse_saved_page(saved.name, source_url=org.directory_url or uploaded.filename)
 
+        organization_ids = [org.id]
+        pending_organization_ids = [child.id for child in org.children]
+        while pending_organization_ids:
+            organization_id = pending_organization_ids.pop()
+            if organization_id in organization_ids:
+                continue
+            organization_ids.append(organization_id)
+            child_org = Org.query.get(organization_id)
+            if child_org:
+                pending_organization_ids.extend(child.id for child in child_org.children)
+
         staff_by_email = {
             email_local_part(account.email): account.personal_info
             for account in StaffAccount.query.join(StaffAccount.personal_info)
-            if account.email and account.personal_info and account.personal_info.org_id == org.id
+            if account.email and account.personal_info
+            and account.personal_info.org_id in organization_ids
         }
-        matched = updated = academic_updated = 0
+        matched = updated = position_updated = position_level_updated = academic_updated = 0
         unmatched = []
         for employee in page['employees']:
             email = email_local_part(employee.get('email'))
@@ -5972,8 +5984,14 @@ def sync_faculty_directory():
             matched += 1
             person.telephone = employee.get('phone') or person.telephone
             person.image_url = employee.get('image_url') or person.image_url
-            person.position = employee.get('position') or person.position
-            person.position_level = employee.get('position_level') or person.position_level
+            parsed_position = (employee.get('position') or '').strip() or None
+            parsed_position_level = (employee.get('position_level') or '').strip() or None
+            if parsed_position:
+                person.position = parsed_position
+                position_updated += 1
+            if parsed_position_level:
+                person.position_level = parsed_position_level
+                position_level_updated += 1
             updated += 1
 
             rank = employee.get('academic_rank') or academic_rank_from_name(employee.get('name'))
@@ -6002,7 +6020,8 @@ def sync_faculty_directory():
         db.session.commit()
         flash(
             f'ซิงค์ข้อมูลสำเร็จ: พบ {len(page["employees"])} รายการ, จับคู่ได้ {matched}, '
-            f'อัปเดตข้อมูล {updated}, ตำแหน่งวิชาการ {academic_updated}',
+            f'อัปเดตข้อมูล {updated}, ตำแหน่ง {position_updated}, '
+            f'ระดับตำแหน่ง {position_level_updated}, ตำแหน่งวิชาการ {academic_updated}',
             'success',
         )
         if unmatched:
