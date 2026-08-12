@@ -203,10 +203,6 @@
             {% if current_user.personal_info.org.head == current_user.email %}
             <nav class="panel staff-role-panel staff-role-panel--head">
                 <p class="panel-heading"><i class="fas fa-user-tie mr-2" aria-hidden="true"></i>สำหรับหัวหน้าส่วนงาน</p>
-                <a class="panel-block" href="{{ url_for('staff.summary_index') }}">
-                    <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
-                    <span class="is-size-5">ข้อมูลสรุปวันทำงาน</span>
-                </a>
                 <a class="panel-block" href="{{ url_for('staff.login_summary') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
                     <span class="is-size-5">ข้อมูลการเข้าปฏิบัติงานและคำขอรับรองเวลาเข้างาน</span>
