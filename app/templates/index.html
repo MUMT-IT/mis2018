@@ -10,12 +10,26 @@
         }
 
         .home-hero {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
+            background:
+                radial-gradient(circle at 8% 12%, rgba(26, 61, 124, 0.11), transparent 30%),
+                radial-gradient(circle at 92% 88%, rgba(202, 168, 74, 0.13), transparent 30%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
             border: 1px solid var(--theme-border);
             border-radius: 28px;
             box-shadow: var(--theme-shadow);
             overflow: hidden;
             position: relative;
+        }
+
+        .home-hero::before {
+            background: linear-gradient(90deg, var(--theme-navy-deep), var(--theme-gold), var(--theme-red));
+            content: "";
+            height: 5px;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            z-index: 2;
         }
 
         .home-hero::after {
@@ -110,7 +124,7 @@
             display: grid;
             gap: 0.9rem;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            margin-top: 1.5rem;
+            margin-top: 0;
         }
 
         .home-summary-stack {
@@ -1339,20 +1353,36 @@
             </div> #}
 
             <section class="home-hero">
-                <div class="columns is-variable is-6 is-vcentered m-0">
+                <div class="columns is-variable is-6 m-0">
                     <div class="column is-7-desktop p-6">
-                        <div class="home-brand">
-                            <span class="home-brand-mark">
-                                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Mahidol University logo" width="140" height="72" decoding="async">
-                            </span>
-                            <div>
-                                <p class="home-kicker">MUMT Information System</p>
+                        {% if today_checkin_status %}
+                            <div class="home-checkin-panel{% if not today_checkin_status.checked_in %} is-missing{% endif %}">
+                                <div class="home-checkin-content">
+                                    <span class="home-checkin-avatar">
+                                        {% if today_checkin_status.avatar_url %}
+                                            <img src="{{ today_checkin_status.avatar_url }}" alt="Employee avatar">
+                                        {% else %}
+                                            {{ today_checkin_status.avatar_initials }}
+                                        {% endif %}
+                                    </span>
+                                    <div>
+                                        <p class="home-checkin-label">Today's check-in</p>
+                                        {% if today_checkin_status.checked_in %}
+                                            <p class="home-checkin-time">{{ today_checkin_status.time_label }} น.</p>
+                                            <p class="home-checkin-meta">ลงชื่อเข้างานแล้ว · {{ today_checkin_status.date_label }}</p>
+                                        {% else %}
+                                            <p class="home-checkin-time">วันนี้ยังไม่ได้ลงชื่อเข้างาน</p>
+                                            <p class="home-checkin-meta">อย่าลืมลงชื่อเมื่อเริ่มปฏิบัติงาน</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if not today_checkin_status.checked_in %}
+                                    <a class="button is-small is-rounded home-checkin-action" href="{{ url_for('staff.geo_checkin') }}">
+                                        ลงชื่อเข้างาน
+                                    </a>
+                                {% endif %}
                             </div>
-                        </div>
-                        <h1 class="title is-2 mb-3">ศูนย์รวมระบบสารสนเทศงานภายในสำหรับบุคลากร</h1>
-                        <p class="subtitle is-5 has-text-grey-dark mt-1">
-                            เข้าถึงงานประจำ การจองห้องประชุม การนัดหมาย และระบบรายงานจากหน้าเดียว พร้อมมุมมองกิจกรรมล่าสุดสำหรับผู้ใช้งานที่ลงชื่อเข้าใช้
-                        </p>
+                        {% endif %}
                         <div class="home-summary-grid">
                             <div class="home-summary-stack">
                                 {% if today_calendar %}
@@ -1385,18 +1415,18 @@
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="home-stat home-week-ai-summary"
-                                         hx-get="{{ url_for('home_week_events_summary') }}"
-                                         hx-trigger="load"
-                                         hx-swap="outerHTML">
-                                        <div class="home-week-ai-summary-loading">
-                                            <span class="icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
-                                            <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
-                                        </div>
-                                    </div>
                                 {% endif %}
                             </div>
                             <div class="home-summary-stack">
+                                <div class="home-stat home-week-ai-summary"
+                                     hx-get="{{ url_for('home_week_events_summary') }}"
+                                     hx-trigger="load"
+                                     hx-swap="outerHTML">
+                                    <div class="home-week-ai-summary-loading">
+                                        <span class="icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                                        <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
+                                    </div>
+                                </div>
                                 <a class="home-stat home-summary-link home-summary-link--staff-search" href="{{ url_for('staff.employee_search') }}">
                                     <span class="home-summary-link-copy">
                                         <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
@@ -1419,34 +1449,6 @@
                         </div>
                     </div>
                     <div class="column is-5-desktop p-6 pt-0-mobile">
-                        {% if today_checkin_status %}
-                            <div class="home-checkin-panel{% if not today_checkin_status.checked_in %} is-missing{% endif %}">
-                                <div class="home-checkin-content">
-                                    <span class="home-checkin-avatar">
-                                        {% if today_checkin_status.avatar_url %}
-                                            <img src="{{ today_checkin_status.avatar_url }}" alt="Employee avatar">
-                                        {% else %}
-                                            {{ today_checkin_status.avatar_initials }}
-                                        {% endif %}
-                                    </span>
-                                    <div>
-                                        <p class="home-checkin-label">Today's check-in</p>
-                                        {% if today_checkin_status.checked_in %}
-                                            <p class="home-checkin-time">{{ today_checkin_status.time_label }} น.</p>
-                                            <p class="home-checkin-meta">ลงชื่อเข้างานแล้ว · {{ today_checkin_status.date_label }}</p>
-                                        {% else %}
-                                            <p class="home-checkin-time">วันนี้ยังไม่ได้ลงชื่อเข้างาน</p>
-                                            <p class="home-checkin-meta">อย่าลืมลงชื่อเมื่อเริ่มปฏิบัติงาน</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% if not today_checkin_status.checked_in %}
-                                    <a class="button is-small is-rounded home-checkin-action" href="{{ url_for('staff.geo_checkin') }}">
-                                        ลงชื่อเข้างาน
-                                    </a>
-                                {% endif %}
-                            </div>
-                        {% endif %}
                         <div class="home-panel">
                             <div class="home-panel-header">
                                 <div>
