@@ -847,12 +847,6 @@ def index():
 def employee_search():
     search_term = (request.args.get('q') or '').strip()
     selected_org_id = request.args.get('org_id', type=int)
-    excluded_search_organizations = {
-        'ทีมบริหารและหัวหน้า',
-        'คณะเทคนิคการแพทย์',
-        'บุคลากรภายนอก',
-        'มหาวิทยาลัยมหิดล',
-    }
     all_orgs = Org.query.order_by(Org.id.asc()).all()
     children_by_parent = {}
     for org in all_orgs:
@@ -877,13 +871,36 @@ def employee_search():
         .all()
         if org_id is not None
     }
-    organizations = [
-        org for org in all_orgs
-        if org.parent_id is None
-        and org.name not in excluded_search_organizations
-        and active_org_ids.intersection(organization_tree_ids(org.id))
+    def build_organization_node(org_id):
+        children = [
+            child for child_id in children_by_parent.get(org_id, [])
+            if (child := build_organization_node(child_id)) is not None
+        ]
+        if org_id not in active_org_ids and not children:
+            return None
+        return {'org': next(org for org in all_orgs if org.id == org_id), 'children': children}
+
+    organization_menu = [
+        node for org in all_orgs if org.parent_id is None
+        if (node := build_organization_node(org.id)) is not None
     ]
+
+    def flatten_organization_menu(nodes):
+        result = []
+        for node in nodes:
+            result.append(node['org'])
+            result.extend(flatten_organization_menu(node['children']))
+        return result
+
+    organizations = flatten_organization_menu(organization_menu)
     selected_org = next((org for org in organizations if org.id == selected_org_id), None)
+    selected_org_ancestor_ids = set()
+    if selected_org:
+        parent_by_id = {org.id: org.parent_id for org in all_orgs}
+        parent_id = selected_org.parent_id
+        while parent_id is not None:
+            selected_org_ancestor_ids.add(parent_id)
+            parent_id = parent_by_id.get(parent_id)
     employees = []
 
     if selected_org:
@@ -897,14 +914,25 @@ def employee_search():
             filters.append(StaffPersonalInfo.org_id.in_(org_ids))
         if search_term:
             pattern = f'%{search_term}%'
-            filters.append(or_(
+            matching_org_ids = set()
+            for org in all_orgs:
+                if (
+                    (org.name and search_term.casefold() in org.name.casefold())
+                    or (org.en_name and search_term.casefold() in org.en_name.casefold())
+                ):
+                    matching_org_ids.update(organization_tree_ids(org.id))
+
+            search_conditions = [
                 StaffPersonalInfo.th_firstname.ilike(pattern),
                 StaffPersonalInfo.th_lastname.ilike(pattern),
                 StaffPersonalInfo.en_firstname.ilike(pattern),
                 StaffPersonalInfo.en_lastname.ilike(pattern),
                 Org.name.ilike(pattern),
                 Org.en_name.ilike(pattern),
-            ))
+            ]
+            if matching_org_ids:
+                search_conditions.append(StaffPersonalInfo.org_id.in_(matching_org_ids))
+            filters.append(or_(*search_conditions))
         employee_query = (
             StaffPersonalInfo.query
             .outerjoin(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
@@ -924,8 +952,9 @@ def employee_search():
         template,
         employees=employees,
         search_term=search_term,
-        organizations=organizations,
+        organization_menu=organization_menu,
         selected_org=selected_org,
+        selected_org_ancestor_ids=selected_org_ancestor_ids,
     )
 
 
