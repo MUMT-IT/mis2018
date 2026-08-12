@@ -16,6 +16,7 @@ class Org(db.Model):
     en_name = db.Column('en_name', db.String())
     head = db.Column('head', db.String())
     phone_number = db.Column('phone_number', db.String())
+    directory_url = db.Column('directory_url', db.String())
     is_external = db.Column('is_external', db.Boolean(), nullable=False, default=False)
     parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
     children = db.relationship('Org', backref=db.backref('parent', remote_side=[id]))

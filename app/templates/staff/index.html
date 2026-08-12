@@ -1,6 +1,108 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 
+{% block head %}
+{{ super() }}
+<style>
+    .staff-role-panel {
+        border: 0;
+        border-radius: 18px;
+        box-shadow: 0 10px 26px rgba(18, 39, 84, 0.1);
+        margin-top: 1.25rem;
+        overflow: hidden;
+    }
+
+    .staff-role-panel .panel-heading {
+        align-items: center;
+        display: flex;
+        font-size: 1.05rem;
+        font-weight: 800;
+        justify-content: space-between;
+        letter-spacing: 0.01em;
+        padding: 1rem 1.15rem;
+    }
+
+    .staff-role-panel .panel-block {
+        background: rgba(255, 255, 255, 0.96);
+        border: 0;
+        border-top: 1px solid rgba(18, 39, 84, 0.07);
+        padding: 0.9rem 1.15rem;
+        transition: background 0.15s ease, padding-left 0.15s ease;
+    }
+
+    .staff-role-panel .panel-block:hover {
+        background: #fff;
+        padding-left: 1.35rem;
+    }
+
+    .staff-role-panel--head {
+        border: 2px solid #172f5e;
+    }
+
+    .staff-role-panel--head .panel-heading {
+        background: linear-gradient(135deg, #172f5e, #28558b);
+        color: #fff;
+    }
+
+    .staff-role-panel--manager {
+        border: 2px solid rgba(34, 139, 134, 0.3);
+    }
+
+    .staff-role-panel--manager .panel-heading {
+        background: linear-gradient(135deg, #087f82, #20a39e);
+        color: #fff;
+    }
+
+    .staff-role-panel--event {
+        border: 2px solid rgba(112, 78, 170, 0.28);
+    }
+
+    .staff-role-panel--event .panel-heading {
+        background: linear-gradient(135deg, #60439a, #8b6bc1);
+        color: #fff;
+    }
+
+    .staff-experimental-panel {
+        border: 2px dashed rgba(190, 125, 24, 0.55);
+        border-radius: 18px;
+        box-shadow: 0 8px 20px rgba(190, 125, 24, 0.1);
+        margin-top: 1.25rem;
+        overflow: hidden;
+    }
+
+    .staff-experimental-panel .panel-heading {
+        align-items: center;
+        background: repeating-linear-gradient(-45deg, #fff4d6, #fff4d6 10px, #ffedbd 10px, #ffedbd 20px);
+        color: #79500b;
+        display: flex;
+        font-size: 1.05rem;
+        font-weight: 800;
+        justify-content: space-between;
+        padding: 1rem 1.15rem;
+    }
+
+    .staff-experimental-panel .panel-block {
+        background: rgba(255, 252, 243, 0.96);
+        border-color: rgba(190, 125, 24, 0.15);
+    }
+
+    .staff-experimental-panel .panel-block:hover {
+        background: #fff;
+    }
+
+    .staff-experimental-badge {
+        background: #c27b18;
+        border-radius: 999px;
+        color: #fff;
+        font-size: 0.68rem;
+        letter-spacing: 0.04em;
+        padding: 0.2rem 0.55rem;
+        text-transform: uppercase;
+    }
+
+</style>
+{% endblock %}
+
 {% block page_content %}
 <section class="section">
     {% include "messages.html" %}
@@ -99,11 +201,11 @@
                 </a>
             </nav>
             {% if current_user.personal_info.org.head == current_user.email %}
-            <nav class="panel is-link">
-                <p class="panel-heading">สำหรับหัวหน้าส่วนงาน</p>
-                <a class="panel-block" href="{{ url_for('staff.summary_index') }}">
+            <nav class="panel staff-role-panel staff-role-panel--head">
+                <p class="panel-heading"><i class="fas fa-user-tie mr-2" aria-hidden="true"></i>สำหรับหัวหน้าส่วนงาน</p>
+                <a class="panel-block" href="{{ url_for('staff.login_summary') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
-                    <span class="is-size-5">ข้อมูลสรุปวันทำงาน</span>
+                    <span class="is-size-5">ข้อมูลการเข้าปฏิบัติงานและคำขอรับรองเวลาเข้างาน</span>
                 </a>
                 <a class="panel-block" href="{{ url_for('staff.show_leave_approval_info') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
@@ -131,19 +233,13 @@
             </nav>
             {% endif %}
             {% if secretary_permission.can() or manager_permission.can() %}
-            <nav class="panel is-success">
-                <p class="panel-heading">สำหรับผู้จัดการหรือเจ้าหน้าที่ธุรการส่วนงาน</p>
+            <nav class="panel staff-role-panel staff-role-panel--manager">
+                <p class="panel-heading"><i class="fas fa-address-card mr-2" aria-hidden="true"></i>สำหรับผู้จัดการหรือเจ้าหน้าที่ธุรการส่วนงาน</p>
                 <a href="{{ url_for('staff.login_summary') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-circle"></i>
-                        </span>
-                    <span class="is-size-5">ข้อมูลสรุปบันทึกการเข้าปฏิบัติงานของบุคลากร</span><br>
-                </a>
-                <a href="{{ url_for('staff.summary_org') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-circle"></i>
-                        </span>
-                    <span class="is-size-5">ข้อมูลการลาของบุคลากร</span><br>
+                    <span class="panel-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </span>
+                    <span class="is-size-5">ข้อมูลการเข้าปฏิบัติงาน</span><br>
                 </a>
                 <a href="{{ url_for('staff.seminar_pre_register_records') }}" class="panel-block">
                         <span class="panel-icon">
@@ -154,8 +250,8 @@
             </nav>
             {% endif %}
             {% if event_staff_permission.can() %}
-            <nav class="panel is-success">
-                <p class="panel-heading">สำหรับผู้จัดงาน</p>
+            <nav class="panel staff-role-panel staff-role-panel--event">
+                <p class="panel-heading"><i class="fas fa-users mr-2" aria-hidden="true"></i>สำหรับผู้จัดงาน</p>
                 <a href="{{ url_for('staff.seminar_pre_register_records') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-circle"></i>
@@ -164,8 +260,11 @@
                 </a>
             </nav>
             {% endif %}
-            <nav class="panel is-danger">
-                <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
+            <nav class="panel staff-experimental-panel">
+                <p class="panel-heading">
+                    <span><i class="fas fa-flask mr-2" aria-hidden="true"></i>อยู่ระหว่างการทดสอบ</span>
+                    <span class="staff-experimental-badge">Experimental</span>
+                </p>
                 <a href="{{ url_for('doc.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="far fa-paper-plane"></i>

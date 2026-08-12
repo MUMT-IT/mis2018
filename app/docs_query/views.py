@@ -39,23 +39,6 @@ def _semantic_min_similarity():
         return 0.35
 
 
-def _docs_query_search_video_url():
-    from app.main import generate_s3_asset_url
-
-    return generate_s3_asset_url(
-        'ui-assets/docsIQ_video.mp4',
-        'img/docsIQ_video.mp4',
-    )
-
-
-def _docs_query_banner_url():
-    from app.main import generate_s3_asset_url
-
-    return generate_s3_asset_url(
-        'ui-assets/docsIQ_banner.webp',
-        'img/docsIQ_banner.webp',
-    )
-
 THAI_MONTHS = {
     'มกราคม': 1, 'ม.ค.': 1,
     'กุมภาพันธ์': 2, 'ก.พ.': 2,
@@ -1357,8 +1340,6 @@ def index():
         search_id=search_id,
         statistics=statistics,
         can_manage_documents=admin_permission.can(),
-        docs_query_search_video_url=_docs_query_search_video_url(),
-        docs_query_banner_url=_docs_query_banner_url(),
     )
 
 

@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% set docs_query_banner_url = 'ui-assets/docsIQ_banner.webp'|s3_asset('img/docsIQ_banner.webp') %}
+{% set docs_query_search_video_url = 'ui-assets/docsIQ_video.mp4'|s3_asset('img/docsIQ_video.mp4') %}
 {% include "docs_query/nav.html" %}
 {% block title %}MUMT-MIS: ค้นหาเอกสาร{% endblock %}
 {% block page_content %}

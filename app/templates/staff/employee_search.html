@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block title %}ค้นหาบุคลากร{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .employee-search-page { padding: 2rem 0 4rem; }
+    .employee-search-header,
+    .employee-search-box,
+    .employee-search-results { max-width: 920px; margin-left: auto; margin-right: auto; }
+    .employee-search-header { margin-bottom: 1.25rem; }
+    .employee-search-kicker { color: var(--theme-gold); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .employee-search-title { color: var(--theme-navy-deep); font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; margin: .35rem 0 .5rem; }
+    .employee-search-subtitle { color: var(--theme-muted); line-height: 1.6; margin: 0; }
+    .employee-search-box { background: var(--theme-surface-strong); border: 1px solid var(--theme-border); border-radius: 20px; box-shadow: var(--theme-shadow); padding: 1.2rem; }
+    .employee-search-box .input { border-radius: 12px; height: 3.2rem; padding-left: 3rem; }
+    .employee-search-box .control.has-icons-left .icon { height: 3.2rem; width: 3rem; }
+    .employee-search-help { color: var(--theme-muted); font-size: .82rem; margin: .65rem .2rem 0; }
+    .employee-search-results { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1.25rem; }
+    .employee-card { background: rgba(255, 255, 255, .94); border: 1px solid var(--theme-border); border-radius: 20px; box-shadow: 0 12px 28px rgba(18, 39, 84, .07); padding: 1.1rem; }
+    .employee-card-header { align-items: center; display: flex; gap: .9rem; margin-bottom: 1rem; }
+    .employee-avatar { align-items: center; background: linear-gradient(135deg, var(--theme-navy-deep), var(--theme-gold)); border-radius: 50%; color: #fff; display: inline-flex; flex: 0 0 4.2rem; font-size: 1.25rem; font-weight: 800; height: 4.2rem; justify-content: center; overflow: hidden; width: 4.2rem; }
+    .employee-avatar img { height: 100%; object-fit: cover; width: 100%; }
+    .employee-name { color: var(--theme-navy-deep); font-size: 1.05rem; font-weight: 800; line-height: 1.35; margin: 0; }
+    .employee-name-en { color: var(--theme-muted); font-size: .8rem; margin-top: .15rem; }
+    .employee-details { border-top: 1px solid rgba(18, 39, 84, .08); display: grid; gap: .65rem; padding-top: .9rem; }
+    .employee-detail { display: grid; gap: .15rem; }
+    .employee-detail-label { color: var(--theme-muted); font-size: .72rem; font-weight: 700; }
+    .employee-detail-value { color: var(--theme-text); font-size: .86rem; overflow-wrap: anywhere; }
+    .employee-search-empty { background: rgba(255, 255, 255, .72); border: 1px dashed var(--theme-border); border-radius: 18px; color: var(--theme-muted); grid-column: 1 / -1; padding: 2rem 1rem; text-align: center; }
+    @media screen and (max-width: 700px) { .employee-search-results { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="section employee-search-page">
+    <div class="container">
+        <header class="employee-search-header">
+            <div class="employee-search-kicker">Staff directory</div>
+            <h1 class="employee-search-title">ค้นหาบุคลากร</h1>
+            <p class="employee-search-subtitle">ค้นหาบุคลากรตามชื่อ นามสกุล หรือหน่วยงาน</p>
+        </header>
+
+        <form class="employee-search-box" method="get" action="{{ url_for('staff.employee_search') }}">
+            <div class="field">
+                <label class="is-sr-only" for="employee-search-input">ค้นหาบุคลากร</label>
+                <div class="control has-icons-left">
+                    <input id="employee-search-input" class="input is-medium" type="search" name="q"
+                           value="{{ search_term }}" placeholder="พิมพ์ชื่อ นามสกุล หรือหน่วยงาน"
+                           autocomplete="off" autofocus
+                           hx-get="{{ url_for('staff.employee_search') }}"
+                           hx-trigger="input changed delay:300ms, search"
+                           hx-target=".employee-search-results"
+                           hx-swap="outerHTML"
+                           hx-push-url="true">
+                    <span class="icon is-left"><i class="fas fa-search" aria-hidden="true"></i></span>
+                </div>
+                <p class="employee-search-help">ผลการค้นหาแสดงเฉพาะบุคลากรที่ยังปฏิบัติงานอยู่</p>
+            </div>
+        </form>
+
+        {% include "staff/employee_search_results.html" %}
+    </div>
+</section>
+{% endblock %}

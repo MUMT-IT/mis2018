@@ -147,6 +147,17 @@
             transform: translateY(-1px);
         }
 
+        .home-summary-link--staff-search {
+            border-color: rgba(46, 139, 87, 0.58);
+            box-shadow: 0 0 14px rgba(46, 139, 87, 0.2), var(--theme-shadow);
+        }
+
+        .home-summary-link--staff-search:hover,
+        .home-summary-link--staff-search:focus-visible {
+            border-color: var(--theme-green);
+            box-shadow: 0 0 20px rgba(46, 139, 87, 0.34), 0 12px 28px rgba(18, 39, 84, 0.1);
+        }
+
         .home-summary-link-copy {
             align-items: center;
             display: inline-flex;
@@ -399,6 +410,28 @@
             height: 2.8rem;
             justify-content: center;
             width: 2.8rem;
+        }
+
+        .home-checkin-avatar {
+            align-items: center;
+            background: linear-gradient(135deg, var(--theme-navy-deep), var(--theme-gold));
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 50%;
+            color: #fff;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 0.78rem;
+            font-weight: 800;
+            height: 3.8rem;
+            justify-content: center;
+            overflow: hidden;
+            width: 3.8rem;
+        }
+
+        .home-checkin-avatar img {
+            height: 100%;
+            object-fit: cover;
+            width: 100%;
         }
 
         .home-checkin-panel.is-missing .home-checkin-icon {
@@ -993,6 +1026,81 @@
             background: linear-gradient(180deg, rgba(255, 245, 210, 0.98), rgba(255, 255, 255, 0.92));
         }
 
+        .home-service-card.is-experimental {
+            background: repeating-linear-gradient(-45deg, #fff4d6, #fff4d6 10px, #ffedbd 10px, #ffedbd 20px);
+            border: 2px solid rgba(190, 125, 24, 0.55);
+            box-shadow: 0 8px 20px rgba(190, 125, 24, 0.1);
+        }
+
+        .home-service-card.is-experimental .home-service-icon {
+            background: rgba(194, 123, 24, 0.14);
+            color: #a46410;
+        }
+
+        .home-service-card.is-experimental .home-service-title {
+            color: #79500b;
+        }
+
+        .home-experimental-badge {
+            background: #c27b18;
+            border-radius: 999px;
+            color: #fff;
+            display: inline-block;
+            font-size: 0.62rem;
+            letter-spacing: 0.04em;
+            margin-left: 0.45rem;
+            padding: 0.2rem 0.55rem;
+            vertical-align: middle;
+            text-transform: uppercase;
+        }
+
+        .home-service-card.is-administrator {
+            background: linear-gradient(145deg, #eef3fb, #f8fafc);
+            border: 2px solid #172f5e;
+            box-shadow: 0 12px 28px rgba(18, 39, 84, 0.18);
+        }
+
+        .home-service-card.is-administrator .home-service-head {
+            background: linear-gradient(135deg, #172f5e, #28558b);
+            border-radius: 15px;
+            color: #fff;
+            margin: -0.2rem -0.2rem 1rem;
+            padding: 0.85rem;
+        }
+
+        .home-service-card.is-administrator .home-service-icon {
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+        }
+
+        .home-service-card.is-administrator .home-service-title,
+        .home-service-card.is-administrator .home-service-note {
+            color: #fff;
+        }
+
+        .home-service-card.is-administrator .home-link-item {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgba(23, 47, 94, 0.16);
+        }
+
+        .home-service-card.is-administrator .home-link-item:hover {
+            border-color: rgba(23, 47, 94, 0.5);
+            box-shadow: 0 8px 18px rgba(18, 39, 84, 0.12);
+        }
+
+        .home-admin-badge {
+            background: #caa84a;
+            border-radius: 999px;
+            color: #172f5e;
+            display: inline-block;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            margin-left: 0.45rem;
+            padding: 0.2rem 0.55rem;
+            vertical-align: middle;
+        }
+
         .home-service-head {
             align-items: center;
             display: flex;
@@ -1245,7 +1353,6 @@
                         <p class="subtitle is-5 has-text-grey-dark mt-1">
                             เข้าถึงงานประจำ การจองห้องประชุม การนัดหมาย และระบบรายงานจากหน้าเดียว พร้อมมุมมองกิจกรรมล่าสุดสำหรับผู้ใช้งานที่ลงชื่อเข้าใช้
                         </p>
-
                         <div class="home-summary-grid">
                             <div class="home-summary-stack">
                                 {% if today_calendar %}
@@ -1290,11 +1397,11 @@
                                 {% endif %}
                             </div>
                             <div class="home-summary-stack">
-                                <a class="home-stat home-summary-link" href="{{ url_for('staff.index') }}">
+                                <a class="home-stat home-summary-link home-summary-link--staff-search" href="{{ url_for('staff.employee_search') }}">
                                     <span class="home-summary-link-copy">
                                         <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
                                         <span>
-                                            <span class="home-stat-value">บุคลากร</span>
+                                            <span class="home-stat-value">ค้นหาบุคลากร</span>
                                         </span>
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
@@ -1315,8 +1422,12 @@
                         {% if today_checkin_status %}
                             <div class="home-checkin-panel{% if not today_checkin_status.checked_in %} is-missing{% endif %}">
                                 <div class="home-checkin-content">
-                                    <span class="home-checkin-icon">
-                                        <i class="fa-solid {% if today_checkin_status.checked_in %}fa-user-check{% else %}fa-clock{% endif %}" aria-hidden="true"></i>
+                                    <span class="home-checkin-avatar">
+                                        {% if today_checkin_status.avatar_url %}
+                                            <img src="{{ today_checkin_status.avatar_url }}" alt="Employee avatar">
+                                        {% else %}
+                                            {{ today_checkin_status.avatar_initials }}
+                                        {% endif %}
                                     </span>
                                     <div>
                                         <p class="home-checkin-label">Today's check-in</p>
@@ -1348,6 +1459,13 @@
                                     <span class="home-link-copy">
                                         <span class="icon"><i class="fa-regular fa-calendar"></i></span>
                                         <span>จองห้องประชุมและพื้นที่ใช้งาน</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-link-item" href="{{ url_for('staff.index') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-users"></i></span>
+                                        <span>บุคลากร</span>
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
@@ -1446,6 +1564,7 @@
             </div>
 
             <section class="home-panel docs-query-home-card">
+                {% set docs_query_banner = 'ui-assets/docsIQ_banner.webp'|s3_asset('img/docsIQ_banner.webp') %}
                 <div class="home-panel-header">
                     <div>
                         <p class="home-panel-title">
@@ -1458,10 +1577,10 @@
             <a class="docs-query-home-banner"
                href="{{ url_for('docs_query.index') }}"
                aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
-                {% if docs_query_banner_url %}
+                {% if docs_query_banner %}
                     <picture>
-                        <source srcset="{{ docs_query_banner_url }}" type="image/webp">
-                        <img src="{{ docs_query_banner_url }}"
+                        <source srcset="{{ docs_query_banner }}" type="image/webp">
+                        <img src="{{ docs_query_banner }}"
                              alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
                              decoding="async">
                     </picture>

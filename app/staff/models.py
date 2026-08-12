@@ -220,6 +220,8 @@ class StaffPersonalInfo(db.Model):
     job_position = db.relationship('StaffJobPosition',
                                    backref=db.backref('job_position_staff'))
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
+    position_level = db.Column('position_level', db.String(), info={'label': u'ระดับตำแหน่ง'})
+    image_url = db.Column('image_url', db.String(), info={'label': u'ที่อยู่รูปภาพ'})
     mobile_phone = db.Column('mobile_phone', db.String(), info={'label': u'มือถือ'})
     telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
     retirement_date = db.Column('retirement_date', db.Date(), nullable=True)
@@ -266,6 +268,11 @@ class StaffPersonalInfo(db.Model):
 
     @property
     def en_fullname(self):
+        en_title = (self.en_title or '').strip()
+        if en_title.lower() == 'none':
+            en_title = ''
+        en_firstname = (self.en_firstname or '').strip()
+        en_lastname = (self.en_lastname or '').strip()
         try:
             academic_position = self.academic_positions[0]
         except IndexError:
@@ -277,18 +284,18 @@ class StaffPersonalInfo(db.Model):
             en_position = academic_position.position.shortname_en
 
         if en_position:
-            if self.en_title == u'Dr.':
+            if en_title == u'Dr.':
                 return u'{} {}{} {}'.format(en_position,
-                                            self.en_title,
-                                            self.en_firstname,
-                                            self.en_lastname)
+                                            en_title,
+                                            en_firstname,
+                                            en_lastname)
             else:
-                return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+                return u'{} {} {}'.format(en_position, en_firstname, en_lastname)
         else:
-            if self.en_title == u'Dr.':
-                return u'{}{} {}'.format(self.en_title, self.en_firstname, self.en_lastname)
+            if en_title == u'Dr.':
+                return u'{}{} {}'.format(en_title, en_firstname, en_lastname)
             else:
-                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
+                return u'{}{} {}'.format(en_title, en_firstname, en_lastname)
 
     def get_employ_period(self):
         today = datetime.now().date()

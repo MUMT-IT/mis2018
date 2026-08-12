@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set room_search_video_url = 'ui-assets/room_search_robot.mp4'|s3_asset('img/room_search_robot.mp4') %}
 {% block title %}Room Scheduler Page{% endblock %}
 {% block head %}
     {{ super() }}
