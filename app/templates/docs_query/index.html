@@ -131,7 +131,6 @@
                                 {% if answer %}
                                     <article class="docs-query-answer">
                                         <div class="docs-query-answer-heading">
-                                            <span><i class="fas fa-sparkles" aria-hidden="true"></i> ภาพรวมเอกสาร</span>
                                             <span class="docs-query-answer-label">AI SUMMARY</span>
                                         </div>
                                         <div class="docs-query-answer-body">{{ answer }}</div>
@@ -311,41 +310,61 @@
         .docs-query-ai-button:hover, .docs-query-ai-button:focus { background: linear-gradient(135deg, #244a90, #5442b5); box-shadow: 0 14px 26px rgba(50, 115, 220, .28); transform: translateY(-1px); }
 
         .docs-query-answer {
-            background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(240, 246, 255, .95));
-            border: 1px solid rgba(50, 115, 220, .18);
+            background: #101d33;
+            border: 2px solid #29466f;
             border-radius: 18px;
-            box-shadow: 0 12px 30px rgba(26, 61, 124, .08);
+            box-shadow: 0 5px 14px rgba(18, 39, 84, 0.08);
+            color: #d8e7ff;
             margin: 1rem 0 1.5rem;
             padding: 1.25rem 1.4rem;
             position: relative;
         }
 
         .docs-query-answer::before {
-            background: linear-gradient(180deg, #3273dc, #8c63ff);
-            border-radius: 18px 0 0 18px;
-            bottom: 0;
+            background: #29466f;
+            border-radius: 16px 16px 0 0;
             content: "";
             left: 0;
             position: absolute;
+            right: 0;
             top: 0;
-            width: 4px;
+            height: 2.2rem;
+        }
+
+        .docs-query-answer::after {
+            color: #6f89ae;
+            content: "●  ●  ●";
+            font-size: .55rem;
+            left: 1.1rem;
+            letter-spacing: .1rem;
+            position: absolute;
+            top: .72rem;
         }
 
         .docs-query-answer-heading {
             align-items: center;
-            color: var(--theme-navy-deep);
+            color: #b9d7ff;
             display: flex;
             font-size: .82rem;
             font-weight: 800;
             justify-content: space-between;
             letter-spacing: .02em;
+            margin-bottom: .9rem;
+            position: relative;
+            z-index: 1;
         }
 
-        .docs-query-answer-heading i { color: #8c63ff; margin-right: .35rem; }
-        .docs-query-answer-label { color: #8c63ff; font-size: .62rem; letter-spacing: .1em; }
-        .docs-query-answer-body { color: var(--theme-text); line-height: 1.75; margin-top: .75rem; }
-        .docs-query-ai-warning { color: var(--theme-muted); font-size: .72rem; margin: .9rem 0 0; }
-        .docs-query-ai-warning i { color: var(--theme-green); margin-right: .3rem; }
+        .docs-query-answer-heading i { color: #61d8c5; margin-right: .35rem; }
+        .docs-query-answer-label { color: #61d8c5; font-size: .62rem; letter-spacing: .1em; }
+        .docs-query-answer-body {
+            color: #e5efff;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            line-height: 1.75;
+            margin-top: .75rem;
+            white-space: pre-line;
+        }
+        .docs-query-ai-warning { color: #91a8c9; font-size: .72rem; margin: .9rem 0 0; }
+        .docs-query-ai-warning i { color: #61d8c5; margin-right: .3rem; }
 
         .docs-query-page-banner {
             border-radius: 22px;
@@ -393,6 +412,33 @@
             display: flex;
             justify-content: space-between;
             margin-bottom: 1rem;
+        }
+
+        .docs-query-ai-dashboard > summary {
+            cursor: pointer;
+            list-style: none;
+            margin-bottom: 0;
+        }
+
+        .docs-query-ai-dashboard > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .docs-query-dashboard-toggle {
+            color: var(--theme-muted);
+            transition: transform 180ms ease;
+        }
+
+        .docs-query-ai-dashboard[open] > summary {
+            margin-bottom: 1rem;
+        }
+
+        .docs-query-ai-dashboard[open] .docs-query-dashboard-toggle {
+            transform: rotate(180deg);
+        }
+
+        .docs-query-dashboard-content {
+            padding-top: 0.1rem;
         }
 
         .docs-query-dashboard-kicker {
@@ -556,6 +602,13 @@
             font-size: .65rem;
         }
 
+        .docs-query-shell,
+        .docs-query-dashboard-card,
+        .docs-query-results-card {
+            border: 2px solid var(--theme-border);
+            box-shadow: 0 5px 14px rgba(18, 39, 84, 0.045);
+        }
+
         .docs-query-result {
             border-radius: 14px;
             overflow: hidden;
@@ -659,7 +712,7 @@
 
         .docs-query-answer-body.is-typing::after {
             animation: docs-query-caret 900ms step-end infinite;
-            background: #8c63ff;
+            background: var(--theme-navy);
             content: '';
             display: inline-block;
             height: 1em;
