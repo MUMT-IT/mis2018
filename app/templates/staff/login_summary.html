@@ -94,7 +94,7 @@
     .staff-login-summary-grid {
         display: grid;
         gap: 0.9rem;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         margin-top: 1rem;
     }
 
@@ -151,6 +151,13 @@
     .staff-login-board-note {
         color: var(--theme-muted);
         font-size: 0.88rem;
+    }
+
+    .staff-login-board-period {
+        color: var(--theme-navy);
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-top: 0.3rem;
     }
 
     .staff-login-board-count {
@@ -247,6 +254,24 @@
         color: var(--theme-muted);
         font-size: 0.82rem;
         line-height: 1.4;
+    }
+
+    .staff-login-employee-statuses {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.7rem;
+        margin-top: 0.45rem;
+    }
+
+    .staff-login-employee-statuses span {
+        color: var(--theme-muted);
+        font-size: 0.7rem;
+        white-space: nowrap;
+    }
+
+    .staff-login-employee-statuses .is-missing {
+        color: var(--theme-red);
+        font-weight: 800;
     }
 
     .staff-login-employee-chevron {
@@ -1007,6 +1032,9 @@
                         <div class="staff-login-board-note">
                             คลิกชื่อบุคลากรเพื่อดูสถิติแบบละเอียดในหน้าต่างป๊อปอัป
                         </div>
+                        <div class="staff-login-board-period" id="summaryBoardPeriod">
+                            ช่วงข้อมูล: {{ summary_start_date }} - {{ summary_end_date }}
+                        </div>
                     </div>
                     <div class="staff-login-board-count" id="summaryCount">Loading employees...</div>
                 </div>
@@ -1163,6 +1191,19 @@
                 value: formatNumber(totals.total_hours || 0),
                 note: 'ชั่วโมงรวมในช่วงวันที่เลือก',
                 icon: 'fas fa-hourglass-half'
+            },
+            {
+                label: 'Missing days',
+                value: totals.missing_days || 0,
+                note: 'ไม่มี check-in หรือรายการรองรับ',
+                icon: 'fas fa-triangle-exclamation',
+                accent: true
+            },
+            {
+                label: 'Working days',
+                value: totals.working_days || 0,
+                note: 'ไม่นับเสาร์-อาทิตย์และวันหยุด',
+                icon: 'fas fa-calendar-days'
             }
         ];
         const html = cards.map(card => (
@@ -1174,6 +1215,7 @@
         )).join('');
         $('#summaryStats').html(html);
         $('#summaryRangeBadge').html('<i class="far fa-clock" aria-hidden="true"></i> ' + escapeHtml(data.date_range.start) + ' - ' + escapeHtml(data.date_range.end));
+        $('#summaryBoardPeriod').text('ช่วงข้อมูล: ' + data.date_range.start + ' - ' + data.date_range.end);
         $('#summaryCount').text((totals.employees || 0) + ' employees');
     }
 
@@ -1190,6 +1232,12 @@
             '<div style="min-width: 0; flex: 1;">' +
             '<div class="staff-login-employee-name">' + escapeHtml(employee.name || '-') + '</div>' +
             '<div class="staff-login-employee-meta">' + escapeHtml(subtitleParts.join(' • ') || 'No department') + '</div>' +
+            '<div class="staff-login-employee-statuses">' +
+            '<span class="is-missing"><i class="fas fa-triangle-exclamation"></i> ' + escapeHtml((employee.status_counts || {}).missing || 0) + ' missing</span>' +
+            '<span><i class="fas fa-calendar-check"></i> ' + escapeHtml((employee.status_counts || {}).leave || 0) + ' leave</span>' +
+            '<span><i class="fas fa-house-laptop"></i> ' + escapeHtml((employee.status_counts || {}).wfh || 0) + ' WFH</span>' +
+            '<span><i class="fas fa-chalkboard-user"></i> ' + escapeHtml((employee.status_counts || {}).seminar || 0) + ' seminar</span>' +
+            '</div>' +
             '</div>' +
             '</div>' +
             '<span class="staff-login-employee-chevron"><i class="fas fa-chevron-right" aria-hidden="true"></i></span>' +
@@ -1215,6 +1263,11 @@
         if (employee.org_name) subtitleParts.push(employee.org_name);
         if (employee.position) subtitleParts.push(employee.position);
         const stats = [
+            { label: 'Missing days', value: ((employee.status_counts || {}).missing || 0), icon: 'fas fa-triangle-exclamation' },
+            { label: 'Leave days', value: ((employee.status_counts || {}).leave || 0), icon: 'fas fa-calendar-check' },
+            { label: 'WFH days', value: ((employee.status_counts || {}).wfh || 0), icon: 'fas fa-house-laptop' },
+            { label: 'Seminar days', value: ((employee.status_counts || {}).seminar || 0), icon: 'fas fa-chalkboard-user' },
+            { label: 'Present days', value: ((employee.status_counts || {}).present || 0), icon: 'fas fa-user-check' },
             { label: 'Complete days', value: employee.complete_days || 0, icon: 'fas fa-check-circle' },
             { label: 'Late check-ins', value: employee.late_checkins || 0, icon: 'fas fa-clock' },
             { label: 'Early check-outs', value: employee.early_checkouts || 0, icon: 'fas fa-arrow-right-from-bracket' },

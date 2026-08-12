@@ -489,7 +489,16 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
     office_end_time = datetime.strptime('16:30', '%H:%M').time()
 
-    employee_query = StaffPersonalInfo.query.filter_by(org_id=dept_id)
+    # Keep the mini dashboard aligned with StaffAccount.is_active: retired or
+    # resigned employees should not appear in the manager's staff list.
+    employee_query = StaffPersonalInfo.query.filter(
+        StaffPersonalInfo.org_id == dept_id,
+        or_(
+            StaffPersonalInfo.retired.is_(False),
+            StaffPersonalInfo.retired.is_(None),
+        ),
+        StaffPersonalInfo.resignation_date.is_(None),
+    )
     employees = employee_query.all()
     employees_by_id = {
         employee.staff_account.id: employee
@@ -511,6 +520,12 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
                 'early_checkouts': 0,
                 'total_hours': 0.0,
                 'average_hours_per_day': 0.0,
+                'working_days': 0,
+                'present_days': 0,
+                'leave_days': 0,
+                'wfh_days': 0,
+                'seminar_days': 0,
+                'missing_days': 0,
             },
             'employees': [],
         }
@@ -556,13 +571,87 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
         if row['staff_id'] in employees_by_id:
             quota_rows_by_staff[row['staff_id']].append(row)
 
+    working_days = []
+    current_day = start_date
+    while current_day <= end_date:
+        if current_day.weekday() < 5:
+            working_days.append(current_day)
+        current_day += timedelta(days=1)
+    holiday_dates = {
+        _to_bangkok(holiday.holiday_date).date()
+        if isinstance(holiday.holiday_date, datetime)
+        else holiday.holiday_date
+        for holiday in Holidays.query.filter(
+            cast(Holidays.holiday_date, Date).between(start_date, end_date)
+        ).all()
+        if holiday.holiday_date
+    }
+    working_days = [day for day in working_days if day not in holiday_dates]
+
+    def covered_dates(start_datetime, end_datetime):
+        if not start_datetime:
+            return set()
+        event_start = _to_bangkok(start_datetime).date()
+        event_end = _to_bangkok(end_datetime or start_datetime).date()
+        first_day = max(start_date, event_start)
+        last_day = min(end_date, event_end)
+        return {
+            day for day in working_days
+            if first_day <= day <= last_day
+        }
+
+    def employee_status_dates(employee):
+        account = employee.staff_account
+        login_dates = {
+            row['date']
+            for row in rows_by_staff.get(account.id, [])
+            if row.get('start') or row.get('end')
+        }
+        leave_dates = set()
+        for leave_request in account.leave_requests:
+            if leave_request.cancelled_at or not leave_request.get_approved:
+                continue
+            leave_dates.update(covered_dates(leave_request.start_datetime, leave_request.end_datetime))
+        wfh_dates = set()
+        for wfh_request in account.wfh_requests:
+            if wfh_request.cancelled_at or not wfh_request.get_approved:
+                continue
+            wfh_dates.update(covered_dates(wfh_request.start_datetime, wfh_request.end_datetime))
+        seminar_dates = set()
+        for seminar_attendance in account.seminar_attends:
+            seminar = seminar_attendance.seminar
+            seminar_dates.update(covered_dates(
+                getattr(seminar, 'start_datetime', None) or seminar_attendance.start_datetime,
+                getattr(seminar, 'end_datetime', None) or seminar_attendance.end_datetime,
+            ))
+
+        present_dates = login_dates & set(working_days)
+        leave_dates -= present_dates
+        wfh_dates -= present_dates | leave_dates
+        seminar_dates -= present_dates | leave_dates | wfh_dates
+        accounted_dates = present_dates | leave_dates | wfh_dates | seminar_dates
+        return {
+            'present': present_dates,
+            'leave': leave_dates,
+            'wfh': wfh_dates,
+            'seminar': seminar_dates,
+            'missing': set(working_days) - accounted_dates,
+        }
+
     total_complete_days = 0
     total_late_checkins = 0
     total_early_checkouts = 0
     total_hours = 0.0
+    total_status_days = {'present': 0, 'leave': 0, 'wfh': 0, 'seminar': 0, 'missing': 0}
     employees_payload = []
 
     for staff_id, employee in employees_by_id.items():
+        status_dates = employee_status_dates(employee)
+        status_counts = {
+            status: len(days) for status, days in status_dates.items()
+        }
+        for status, count in status_counts.items():
+            total_status_days[status] += count
         employee_rows = sorted(rows_by_staff.get(staff_id, []), key=lambda row: (row['date'], row['staff_name']))
         complete_days = 0
         late_checkins = 0
@@ -632,6 +721,7 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             'average_hours_per_day': average_hours_per_day,
             'completion_rate': completion_rate,
             'days_with_records': len(employee_rows),
+            'status_counts': status_counts,
         })
 
     employees_payload.sort(key=lambda item: (-item['complete_days'], item['name']))
@@ -651,6 +741,12 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             'early_checkouts': total_early_checkouts,
             'total_hours': round(total_hours, 1),
             'average_hours_per_day': average_hours_per_day,
+            'working_days': len(working_days),
+            'present_days': total_status_days['present'],
+            'leave_days': total_status_days['leave'],
+            'wfh_days': total_status_days['wfh'],
+            'seminar_days': total_status_days['seminar'],
+            'missing_days': total_status_days['missing'],
         },
         'employees': employees_payload,
     }
