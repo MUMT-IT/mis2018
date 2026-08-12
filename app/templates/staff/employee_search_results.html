@@ -1,7 +1,10 @@
 <div class="employee-search-results">
-    {% if not search_term %}
+    {% if not search_term and not selected_org %}
         <div class="employee-search-empty">พิมพ์ชื่อ นามสกุล หรือหน่วยงานเพื่อเริ่มค้นหา</div>
     {% else %}
+        {% if selected_org %}
+            <div class="employee-search-empty" style="grid-column: 1 / -1; padding: 1rem; text-align: left;">บุคลากรใน{{ selected_org.display_name }} ({{ employees|length }} คน)</div>
+        {% endif %}
         {% for employee in employees %}
             {% set initials = ((employee.th_firstname or employee.en_firstname or '?')[:1] ~ (employee.th_lastname or employee.en_lastname or '?')[:1]) %}
             {% set academic_position = employee.academic_positions[0] if employee.academic_positions else none %}

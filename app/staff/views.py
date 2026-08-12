@@ -846,35 +846,87 @@ def index():
 @login_required
 def employee_search():
     search_term = (request.args.get('q') or '').strip()
+    selected_org_id = request.args.get('org_id', type=int)
+    excluded_search_organizations = {
+        'ทีมบริหารและหัวหน้า',
+        'คณะเทคนิคการแพทย์',
+        'บุคลากรภายนอก',
+        'มหาวิทยาลัยมหิดล',
+    }
+    all_orgs = Org.query.order_by(Org.id.asc()).all()
+    children_by_parent = {}
+    for org in all_orgs:
+        if org.parent_id is not None:
+            children_by_parent.setdefault(org.parent_id, []).append(org.id)
+
+    def organization_tree_ids(root_id):
+        org_ids = []
+        pending_org_ids = [root_id]
+        while pending_org_ids:
+            org_id = pending_org_ids.pop()
+            if org_id in org_ids:
+                continue
+            org_ids.append(org_id)
+            pending_org_ids.extend(children_by_parent.get(org_id, []))
+        return org_ids
+
+    active_org_ids = {
+        org_id for (org_id,) in StaffPersonalInfo.query.with_entities(StaffPersonalInfo.org_id)
+        .filter(*_active_staff_filters())
+        .distinct()
+        .all()
+        if org_id is not None
+    }
+    organizations = [
+        org for org in all_orgs
+        if org.parent_id is None
+        and org.name not in excluded_search_organizations
+        and active_org_ids.intersection(organization_tree_ids(org.id))
+    ]
+    selected_org = next((org for org in organizations if org.id == selected_org_id), None)
     employees = []
 
-    if search_term:
-        pattern = f'%{search_term}%'
-        employees = (
+    if selected_org:
+        org_ids = organization_tree_ids(selected_org.id)
+    else:
+        org_ids = []
+
+    if search_term or selected_org:
+        filters = [*_active_staff_filters()]
+        if org_ids:
+            filters.append(StaffPersonalInfo.org_id.in_(org_ids))
+        if search_term:
+            pattern = f'%{search_term}%'
+            filters.append(or_(
+                StaffPersonalInfo.th_firstname.ilike(pattern),
+                StaffPersonalInfo.th_lastname.ilike(pattern),
+                StaffPersonalInfo.en_firstname.ilike(pattern),
+                StaffPersonalInfo.en_lastname.ilike(pattern),
+                Org.name.ilike(pattern),
+                Org.en_name.ilike(pattern),
+            ))
+        employee_query = (
             StaffPersonalInfo.query
             .outerjoin(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
             .outerjoin(Org, StaffPersonalInfo.org_id == Org.id)
-            .filter(
-                *_active_staff_filters(),
-                or_(
-                    StaffPersonalInfo.th_firstname.ilike(pattern),
-                    StaffPersonalInfo.th_lastname.ilike(pattern),
-                    StaffPersonalInfo.en_firstname.ilike(pattern),
-                    StaffPersonalInfo.en_lastname.ilike(pattern),
-                    Org.name.ilike(pattern),
-                    Org.en_name.ilike(pattern),
-                ),
-            )
+            .filter(*filters)
             .order_by(
                 StaffPersonalInfo.th_firstname.asc(),
                 StaffPersonalInfo.en_firstname.asc(),
             )
-            .limit(60)
-            .all()
         )
+        if not selected_org:
+            employee_query = employee_query.limit(60)
+        employees = employee_query.all()
 
     template = 'staff/employee_search_results.html' if request.headers.get('HX-Request') else 'staff/employee_search.html'
-    return render_template(template, employees=employees, search_term=search_term)
+    return render_template(
+        template,
+        employees=employees,
+        search_term=search_term,
+        organizations=organizations,
+        selected_org=selected_org,
+    )
 
 
 @staff.route('/person/<int:account_id>')

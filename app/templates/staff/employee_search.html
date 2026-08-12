@@ -7,9 +7,11 @@
 {{ super() }}
 <style>
     .employee-search-page { padding: 2rem 0 4rem; }
+    .employee-search-layout { align-items: start; display: grid; gap: 1.25rem; grid-template-columns: 240px minmax(0, 1fr); }
+    .employee-search-main { min-width: 0; }
     .employee-search-header,
     .employee-search-box,
-    .employee-search-results { max-width: 920px; margin-left: auto; margin-right: auto; }
+    .employee-search-results { margin-left: auto; margin-right: auto; }
     .employee-search-header { margin-bottom: 1.25rem; }
     .employee-search-kicker { color: var(--theme-gold); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
     .employee-search-title { color: var(--theme-navy-deep); font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; margin: .35rem 0 .5rem; }
@@ -30,6 +32,12 @@
     .employee-detail-label { color: var(--theme-muted); font-size: .72rem; font-weight: 700; }
     .employee-detail-value { color: var(--theme-text); font-size: .86rem; overflow-wrap: anywhere; }
     .employee-search-empty { background: rgba(255, 255, 255, .72); border: 1px dashed var(--theme-border); border-radius: 18px; color: var(--theme-muted); grid-column: 1 / -1; padding: 2rem 1rem; text-align: center; }
+    .employee-search-sidebar { background: var(--theme-surface-strong); border: 1px solid var(--theme-border); border-radius: 18px; box-shadow: var(--theme-shadow); padding: .75rem; position: sticky; top: 1rem; }
+    .employee-search-sidebar-title { color: var(--theme-navy-deep); font-size: .82rem; font-weight: 800; margin: .35rem .65rem .65rem; }
+    .employee-search-org { border-radius: 10px; color: var(--theme-text); display: block; font-size: .85rem; line-height: 1.35; padding: .65rem; transition: background .15s ease, color .15s ease; }
+    .employee-search-org:hover, .employee-search-org.is-selected { background: rgba(18, 39, 84, .08); color: var(--theme-navy-deep); }
+    .employee-search-org.is-selected { font-weight: 800; }
+    @media screen and (max-width: 900px) { .employee-search-layout { grid-template-columns: 1fr; } .employee-search-sidebar { position: static; } }
     @media screen and (max-width: 700px) { .employee-search-results { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
@@ -43,25 +51,43 @@
             <p class="employee-search-subtitle">ค้นหาบุคลากรตามชื่อ นามสกุล หรือหน่วยงาน</p>
         </header>
 
-        <form class="employee-search-box" method="get" action="{{ url_for('staff.employee_search') }}">
-            <div class="field">
-                <label class="is-sr-only" for="employee-search-input">ค้นหาบุคลากร</label>
-                <div class="control has-icons-left">
-                    <input id="employee-search-input" class="input is-medium" type="search" name="q"
-                           value="{{ search_term }}" placeholder="พิมพ์ชื่อ นามสกุล หรือหน่วยงาน"
-                           autocomplete="off" autofocus
-                           hx-get="{{ url_for('staff.employee_search') }}"
-                           hx-trigger="input changed delay:300ms, search"
-                           hx-target=".employee-search-results"
-                           hx-swap="outerHTML"
-                           hx-push-url="true">
-                    <span class="icon is-left"><i class="fas fa-search" aria-hidden="true"></i></span>
-                </div>
-                <p class="employee-search-help">ผลการค้นหาแสดงเฉพาะบุคลากรที่ยังปฏิบัติงานอยู่</p>
-            </div>
-        </form>
+        <div class="employee-search-layout">
+            <aside class="employee-search-sidebar" aria-label="เลือกหน่วยงาน">
+                <div class="employee-search-sidebar-title">หน่วยงาน</div>
+                {% for organization in organizations %}
+                    <a class="employee-search-org{% if selected_org and selected_org.id == organization.id %} is-selected{% endif %}"
+                       href="{{ url_for('staff.employee_search', org_id=organization.id) }}"
+                       hx-get="{{ url_for('staff.employee_search', org_id=organization.id) }}"
+                       hx-target=".employee-search-results"
+                       hx-swap="outerHTML"
+                       hx-push-url="true">{{ organization.display_name }}</a>
+                {% endfor %}
+            </aside>
 
-        {% include "staff/employee_search_results.html" %}
+            <main class="employee-search-main">
+                <form class="employee-search-box" method="get" action="{{ url_for('staff.employee_search') }}">
+                    {% if selected_org %}<input id="employee-search-org-id" type="hidden" name="org_id" value="{{ selected_org.id }}">{% endif %}
+                    <div class="field">
+                        <label class="is-sr-only" for="employee-search-input">ค้นหาบุคลากร</label>
+                        <div class="control has-icons-left">
+                            <input id="employee-search-input" class="input is-medium" type="search" name="q"
+                                   value="{{ search_term }}" placeholder="พิมพ์ชื่อ นามสกุล หรือหน่วยงาน"
+                                   autocomplete="off" autofocus
+                                   hx-get="{{ url_for('staff.employee_search') }}"
+                                   hx-trigger="input changed delay:300ms, search"
+                                   hx-include="#employee-search-org-id"
+                                   hx-target=".employee-search-results"
+                                   hx-swap="outerHTML"
+                                   hx-push-url="true">
+                            <span class="icon is-left"><i class="fas fa-search" aria-hidden="true"></i></span>
+                        </div>
+                        <p class="employee-search-help">ผลการค้นหาแสดงเฉพาะบุคลากรที่ยังปฏิบัติงานอยู่</p>
+                    </div>
+                </form>
+
+                {% include "staff/employee_search_results.html" %}
+            </main>
+        </div>
     </div>
 </section>
 {% endblock %}
