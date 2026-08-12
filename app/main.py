@@ -554,6 +554,13 @@ def get_home_checkin_status(user, now):
     status = {
         'checked_in': False,
         'date_label': f'{local_now.day} {get_thai_month_name(local_now.month)} {local_now.year + 543}',
+        'avatar_url': getattr(getattr(user, 'personal_info', None), 'image_url', '') or '',
+        'avatar_initials': (
+            (getattr(getattr(user, 'personal_info', None), 'th_firstname', None) or
+             getattr(getattr(user, 'personal_info', None), 'en_firstname', None) or '?')[:1] +
+            (getattr(getattr(user, 'personal_info', None), 'th_lastname', None) or
+             getattr(getattr(user, 'personal_info', None), 'en_lastname', None) or '?')[:1]
+        ),
     }
     if first_scan is None:
         return status

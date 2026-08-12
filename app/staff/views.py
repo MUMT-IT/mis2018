@@ -842,6 +842,41 @@ def index():
                            )
 
 
+@staff.route('/employee-search')
+@login_required
+def employee_search():
+    search_term = (request.args.get('q') or '').strip()
+    employees = []
+
+    if search_term:
+        pattern = f'%{search_term}%'
+        employees = (
+            StaffPersonalInfo.query
+            .outerjoin(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
+            .outerjoin(Org, StaffPersonalInfo.org_id == Org.id)
+            .filter(
+                *_active_staff_filters(),
+                or_(
+                    StaffPersonalInfo.th_firstname.ilike(pattern),
+                    StaffPersonalInfo.th_lastname.ilike(pattern),
+                    StaffPersonalInfo.en_firstname.ilike(pattern),
+                    StaffPersonalInfo.en_lastname.ilike(pattern),
+                    Org.name.ilike(pattern),
+                    Org.en_name.ilike(pattern),
+                ),
+            )
+            .order_by(
+                StaffPersonalInfo.th_firstname.asc(),
+                StaffPersonalInfo.en_firstname.asc(),
+            )
+            .limit(60)
+            .all()
+        )
+
+    template = 'staff/employee_search_results.html' if request.headers.get('HX-Request') else 'staff/employee_search.html'
+    return render_template(template, employees=employees, search_term=search_term)
+
+
 @staff.route('/person/<int:account_id>')
 @login_required
 def show_person_info(account_id=None):
@@ -5778,6 +5813,7 @@ def get_hr_login_quota_summary(staff_id):
     quota.update({
         'staff_id': staff_personal_info.id,
         'staff_name': staff_personal_info.fullname,
+        'staff_image_url': staff_personal_info.image_url or '',
         'employment_type': (
             staff_personal_info.employment.title
             if staff_personal_info.employment else 'ไม่ระบุ'
