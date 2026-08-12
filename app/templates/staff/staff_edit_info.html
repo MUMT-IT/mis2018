@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
+{% block head %}
+{{ super() }}
+<style>
+    .staff-edit-avatar { align-items: center; background: linear-gradient(135deg, var(--theme-navy-deep), var(--theme-gold)); border-radius: 50%; color: #fff; display: inline-flex; font-size: 2rem; font-weight: 800; height: 7rem; justify-content: center; overflow: hidden; width: 7rem; }
+    .staff-edit-avatar img { height: 100%; object-fit: cover; width: 100%; }
+</style>
+{% endblock %}
 <section class="section" id="app">
     <div class="container">
         {% for msg in get_flashed_messages() %}
@@ -8,6 +15,13 @@
         {% endfor %}
         <div class="columns">
             <div class="column has-text-centered">
+                <div class="staff-edit-avatar" aria-label="รูปภาพ {{ staff.fullname }}">
+                    {% if staff.image_url %}
+                        <img src="{{ staff.image_url }}" alt="{{ staff.fullname }}">
+                    {% else %}
+                        {{ (staff.th_firstname or staff.en_firstname or '?')[:1] }}
+                    {% endif %}
+                </div>
                 <h1 class="title">แก้ไขข้อมูล {{ staff.fullname }}</h1>
             </div>
         </div>
@@ -99,6 +113,22 @@
                                            name="en_title" type="text" placeholder="ภาษาอังกฤษ"
                                            value="{{ staff.en_title }}">
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label" for="image_url">รูปภาพบุคลากร</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           id="image_url" name="image_url" type="url"
+                                           placeholder="https://example.com/avatar.jpg"
+                                           value="{{ staff.image_url or '' }}">
+                                </div>
+                                <p class="help">ใส่ URL รูปภาพสำหรับแสดงในระบบ</p>
                             </div>
                         </div>
                     </div>
