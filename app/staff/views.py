@@ -4165,9 +4165,9 @@ def send_summary_data():
     tab = request.args.get('tab')
     approved_only = request.args.get('approved_only', type=int) == 1
     if cal_start:
-        cal_start = parser.isoparse(cal_start)
+        cal_start = _to_bangkok(parser.isoparse(cal_start))
     if cal_end:
-        cal_end = parser.isoparse(cal_end)
+        cal_end = _to_bangkok(parser.isoparse(cal_end))
     selected_org = Org.query.get(curr_dept_id) if curr_dept_id else None
     org_ids = get_org_and_children_ids(selected_org) if selected_org else [curr_dept_id]
     employees = StaffPersonalInfo.query.filter(StaffPersonalInfo.org_id.in_(org_ids))
@@ -6994,11 +6994,11 @@ def send_holidays_data():
         text_color = '#ffffff'
         bg_color = '#ff9f1a'
         border_color = '#ffffff'
-        holiday_date = rec.holiday_date.astimezone(tz).date().isoformat() if rec.holiday_date else None
+        holiday_day = _to_bangkok(rec.holiday_date).date() if rec.holiday_date else None
         records.append({
             'id': rec.id,
-            'start': holiday_date,
-            'end': holiday_date,
+            'start': holiday_day.isoformat() if holiday_day else None,
+            'end': (holiday_day + timedelta(days=1)).isoformat() if holiday_day else None,
             'title': u'{}'.format(rec.holiday_name),
             'backgroundColor': bg_color,
             'borderColor': border_color,
