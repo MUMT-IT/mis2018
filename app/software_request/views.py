@@ -120,7 +120,6 @@ def _get_software_request_email_recipients():
 def _get_pending_requester_test_projects():
     return SoftwareRequestDetail.query.options(
         joinedload(SoftwareRequestDetail.created_by).joinedload(StaffAccount.personal_info),
-        joinedload(SoftwareRequestDetail.staffs).joinedload(StaffAccount.personal_info),
         joinedload(SoftwareRequestDetail.system),
         joinedload(SoftwareRequestDetail.test_results).joinedload(SoftwareRequestTestResult.issue),
     ).filter(
@@ -136,10 +135,8 @@ def _get_pending_requester_test_projects():
 
 def _get_pending_test_recipient_emails(detail):
     recipients = set()
-    accounts = [detail.created_by, *detail.staffs]
-    for account in accounts:
-        if not account or not account.is_active or account.is_retired:
-            continue
+    account = detail.created_by
+    if account and account.is_active and not account.is_retired:
         email = _normalize_internal_email(account.email)
         if email:
             recipients.add(email)
