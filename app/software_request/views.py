@@ -143,6 +143,15 @@ def _get_pending_test_recipient_emails(detail):
     return sorted(recipients)
 
 
+def _get_pending_test_line_recipients(detail):
+    recipients = set()
+    account = detail.created_by
+    if account and account.is_active and not account.is_retired:
+       if account.line_id:
+            recipients.add(account.line_id)
+    return sorted(recipients)
+
+
 def _build_pending_test_reminder(detail):
     project_name = detail.title or 'โครงการ/ระบบที่ไม่ระบุชื่อ'
     pending_test_details = [
@@ -1320,6 +1329,70 @@ def email_pending_requester_tests():
         'project_count': len(packages),
         'email_count': sent_count,
         'skipped_count': skipped_count,
+        'failed_count': failed_count,
+    }), status_code
+
+
+@software_request.route('/admin/line-pending-requester-tests', methods=['GET', 'POST'])
+def line_pending_requester_tests():
+    scheduler_request = _is_valid_notification_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not software_request_permission.can():
+            return current_app.response_class('Forbidden', status=403)
+
+    if not _request_flag('send'):
+        return jsonify({'sent': False, 'message': 'Add send=true to trigger delivery.'}), 400
+
+    projects = _get_pending_requester_test_projects()
+    sent_count = 0
+    skipped_count = 0
+    failed_count = 0
+    for detail in projects:
+        line_ids = _get_pending_test_line_recipients(detail)
+        _, message = _build_pending_test_reminder(detail)
+        if not line_ids:
+            skipped_count += 1
+            continue
+        for line_id in line_ids:
+            try:
+                line_bot_api.push_message(
+                    to=line_id,
+                    messages=TextSendMessage(text=message),
+                )
+                sent_count += 1
+            except LineBotApiError:
+                failed_count += 1
+                current_app.logger.exception(
+                    'Failed pending requester test LINE reminder project_id=%s line_id=%s',
+                    detail.id,
+                    _mask_line_id(line_id),
+                )
+
+    current_app.logger.info(
+        'pending_requester_test_line_reminders projects=%s sent=%s skipped_projects=%s failed=%s',
+        len(projects),
+        sent_count,
+        skipped_count,
+        failed_count,
+    )
+    if not scheduler_request:
+        if failed_count:
+            flash(
+                f'ส่ง LINE แจ้งเตือนสำเร็จ {sent_count} ข้อความ และไม่สำเร็จ {failed_count} ข้อความ',
+                'warning',
+            )
+        else:
+            flash(f'ส่ง LINE แจ้งเตือนการทดสอบเรียบร้อยแล้ว {sent_count} ข้อความ', 'success')
+        return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+
+    status_code = 500 if failed_count else 200
+    return jsonify({
+        'sent': failed_count == 0,
+        'project_count': len(projects),
+        'message_count': sent_count,
+        'skipped_project_count': skipped_count,
         'failed_count': failed_count,
     }), status_code
 
