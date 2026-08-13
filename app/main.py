@@ -1940,7 +1940,7 @@ def populatedb():
 
 
 @dbutils.command('migrate-clockin-request-datetimes')
-@click.option('--before', required=True, help='Only migrate requests created before this ISO-8601 timestamp.')
+@click.option('--before', required=True, help='Only migrate check-in times before this ISO-8601 timestamp.')
 @click.option('--shift-hours', type=int, default=0, show_default=True,
               help='Hours to add to already-aware legacy values; use -7 when production values are 7 hours ahead.')
 @click.option('--apply', 'apply_changes', is_flag=True,
@@ -1957,8 +1957,7 @@ def migrate_clockin_request_datetimes(before, shift_hours, apply_changes):
         cutoff = bangkok.localize(cutoff)
 
     records = StaffRequestWorkLogin.query.filter(
-        StaffRequestWorkLogin.requested_at < cutoff,
-        StaffRequestWorkLogin.work_datetime.isnot(None),
+        StaffRequestWorkLogin.work_datetime < cutoff,
     ).order_by(StaffRequestWorkLogin.id.asc()).all()
     changes = []
     for record in records:
