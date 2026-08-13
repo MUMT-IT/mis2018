@@ -117,6 +117,55 @@ def _get_software_request_email_recipients():
     return sorted(recipients.values(), key=lambda item: item['email'])
 
 
+def _get_pending_requester_test_projects():
+    return SoftwareRequestDetail.query.options(
+        joinedload(SoftwareRequestDetail.created_by).joinedload(StaffAccount.personal_info),
+        joinedload(SoftwareRequestDetail.staffs).joinedload(StaffAccount.personal_info),
+        joinedload(SoftwareRequestDetail.system),
+    ).filter(
+        SoftwareRequestDetail.status == 'อนุมัติ',
+        SoftwareRequestDetail.test_results.any(
+            or_(
+                SoftwareRequestTestResult.status.is_(None),
+                SoftwareRequestTestResult.status == '',
+            )
+        ),
+    ).order_by(SoftwareRequestDetail.id.asc()).all()
+
+
+def _get_pending_test_recipient_emails(detail):
+    recipients = set()
+    accounts = [detail.created_by, *detail.staffs]
+    for account in accounts:
+        if not account or not account.is_active or account.is_retired:
+            continue
+        email = _normalize_internal_email(account.email)
+        if email:
+            recipients.add(email)
+    return sorted(recipients)
+
+
+def _build_pending_test_reminder(detail):
+    project_name = detail.title or 'โครงการที่ไม่ระบุชื่อ'
+    system_name = detail.system.system if detail.system and detail.system.system else 'ไม่ระบุระบบ'
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for(
+        'software_request.view_request',
+        detail_id=detail.id,
+        _external=True,
+        _scheme=scheme,
+    )
+    subject = f'แจ้งเตือนให้ดำเนินการทดสอบ: {project_name} ({system_name})'
+    body = (
+        f'โครงการ/คำขอ "{project_name}" ระบบ "{system_name}" '
+        f'ยังไม่ได้ดำเนินการทดสอบ กรุณาเข้ามาดำเนินการทดสอบ\n\n'
+        f'{link}\n\n'
+        f'ระบบขอรับบริการพัฒนา Software\n'
+        f'คณะเทคนิคการแพทย์'
+    )
+    return subject, body
+
+
 def _get_software_request_line_recipients():
     recipients = {}
     for account in _get_software_request_role_accounts():
@@ -1189,6 +1238,85 @@ def email_unfinished_summary():
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return redirect(url_for('software_request.admin_index', tab='all'))
+
+
+@software_request.route('/admin/email-pending-requester-tests', methods=['GET', 'POST'])
+def email_pending_requester_tests():
+    scheduler_request = _is_valid_notification_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not software_request_permission.can():
+            return current_app.response_class('Forbidden', status=403)
+
+    should_send = _request_flag('send')
+    projects = _get_pending_requester_test_projects()
+    packages = []
+    for detail in projects:
+        recipients = _get_pending_test_recipient_emails(detail)
+        subject, body = _build_pending_test_reminder(detail)
+        packages.append({
+            'project_id': detail.id,
+            'recipients': recipients,
+            'subject': subject,
+            'body': body,
+        })
+
+    if not should_send:
+        return jsonify({
+            'sent': False,
+            'project_count': len(packages),
+            'emails': packages,
+        })
+
+    sent_count = 0
+    skipped_count = 0
+    failed_count = 0
+    for package in packages:
+        if not package['recipients']:
+            skipped_count += 1
+            current_app.logger.warning(
+                'Skipped pending requester test reminder without recipients project_id=%s',
+                package['project_id'],
+            )
+            continue
+        try:
+            # Send separately for every project/system so recipients can follow up in context.
+            send_mail(package['recipients'], package['subject'], package['body'])
+            sent_count += 1
+        except Exception:
+            failed_count += 1
+            current_app.logger.exception(
+                'Failed pending requester test reminder project_id=%s recipients=%s',
+                package['project_id'],
+                package['recipients'],
+            )
+
+    current_app.logger.info(
+        'pending_requester_test_reminders projects=%s sent=%s skipped=%s failed=%s',
+        len(packages),
+        sent_count,
+        skipped_count,
+        failed_count,
+    )
+    if not scheduler_request:
+        if failed_count:
+            flash(
+                f'ส่งอีเมลแจ้งเตือนสำเร็จ {sent_count} โครงการ และไม่สำเร็จ {failed_count} โครงการ',
+                'danger',
+            )
+        else:
+            flash(f'ส่งอีเมลแจ้งเตือนการทดสอบเรียบร้อยแล้ว {sent_count} โครงการ', 'success')
+        return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+
+    status_code = 500 if failed_count else 200
+    return jsonify({
+        'sent': failed_count == 0,
+        'project_count': len(packages),
+        'email_count': sent_count,
+        'skipped_count': skipped_count,
+        'failed_count': failed_count,
+    }), status_code
 
 
 @software_request.route('/api/timelines/<tab>')
