@@ -527,7 +527,7 @@ def checkin_member(invite_id):
         db.session.add(invite)
         db.session.commit()
         template = '''
-        <a class="button is-light" hx-put="{}" hx-target="#checkin-{}">
+        <a class="button is-light" hx-patch="{}" hx-target="#checkin-{}">
             <span class="icon">
                 <i class="fa-solid fa-user-clock"></i>
             </span>
