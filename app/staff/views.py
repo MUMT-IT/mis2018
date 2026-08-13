@@ -3642,7 +3642,7 @@ def request_for_clockin_clockout():
             if wfh_approver:
                 if wfh_approver.is_active:
                     if not current_app.debug:
-                        send_mail([wfh_approver.approver.email + "@mahidol.ac.th"], req_title, req_msg)
+                        send_mail([wfh_approver.account.email + "@mahidol.ac.th"], req_title, req_msg)
                         if wfh_approver.notified_by_line and wfh_approver.account.line_id:
                             try:
                                 line_bot_api.push_message(to=wfh_approver.account.line_id,
