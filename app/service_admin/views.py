@@ -8440,6 +8440,7 @@ def generate_metabolomic_quotation():
         wksp = gc.open_by_key(sheet_price_id)
         sheet_price = wksp.worksheet(service_request.sub_lab.code)
         df_price = pandas.DataFrame(sheet_price.get_all_records())
+        quote_column_names = {}
         quote_details = {}
         quote_prices = {}
         data = service_request.data
@@ -8448,26 +8449,60 @@ def generate_metabolomic_quotation():
         def _normalize_metabolomic_key(value):
             return re.sub(r'[\s,]+', '', str(value or '')).strip()
 
+        def _build_metabolomic_quote_key(field_name, value):
+            return f'{_normalize_metabolomic_key(field_name)}|{_normalize_metabolomic_key(value)}'
+
         for _, row in df_price.iterrows():
+            if row['field_group'] not in quote_column_names:
+                quote_column_names[row['field_group']] = set()
+            for field_name in str(row['field_name']).split(','):
+                quote_column_names[row['field_group']].add(field_name.strip())
             field_name = _normalize_metabolomic_key(row.get('field_name'))
             row_price_text = ''.join(
                 _normalize_metabolomic_key(value)
                 for value in row[4:]
                 if pandas.notna(value) and str(value).strip()
             )
-            key = f'{field_name}|{row_price_text}'
+            key = _build_metabolomic_quote_key(field_name, row_price_text)
             if service_request.customer.customer_info.type.type == 'หน่วยงานรัฐ':
                 quote_prices[key] = row['government_price']
             else:
                 quote_prices[key] = row['other_price']
 
-        for item_form in form.metabolomic_condition_field:
-            for field_name, field_label in (
-                ('clean_up', item_form.clean_up.label.text),
-                ('untargeted_metabolomic', item_form.untargeted_metabolomic.label.text),
-                ('quantitative_metabolomic', item_form.quantitative_metabolomic.label.text),
-            ):
-                field = getattr(item_form, field_name)
+        for field in form:
+            if field.label.text not in quote_column_names and field.name != 'processing_data':
+                continue
+
+            if field.type == 'FieldList':
+                required_cols = quote_column_names.get(field.label.text, set())
+                for item_form in field:
+                    for subfield in item_form:
+                        subfield_name = subfield.name.split('-')[-1]
+                        if subfield_name in ('csrf_token', 'submit'):
+                            continue
+
+                        clean_subfield_name = re.sub(r'_\d+$', '', subfield_name)
+                        if clean_subfield_name not in required_cols or not subfield.data:
+                            continue
+
+                        values = ', '.join(subfield.data) if isinstance(subfield.data, list) else str(subfield.data)
+                        if not values:
+                            continue
+
+                        key = _build_metabolomic_quote_key(clean_subfield_name, values)
+                        if key not in quote_prices:
+                            continue
+
+                        detail_key = f'{clean_subfield_name}|{values}'
+                        if detail_key in quote_details:
+                            quote_details[detail_key]["quantity"] += 1
+                        else:
+                            quote_details[detail_key] = {
+                                "value": f'{subfield.label.text} : {values}',
+                                "price": quote_prices[key],
+                                "quantity": 1
+                            }
+            else:
                 if not field.data:
                     continue
 
@@ -8475,7 +8510,8 @@ def generate_metabolomic_quotation():
                 if not values:
                     continue
 
-                key = f'{_normalize_metabolomic_key(field_name)}|{_normalize_metabolomic_key(values)}'
+                field_name = field.name
+                key = _build_metabolomic_quote_key(field_name, values)
                 if key not in quote_prices:
                     continue
 
@@ -8484,7 +8520,7 @@ def generate_metabolomic_quotation():
                     quote_details[detail_key]["quantity"] += 1
                 else:
                     quote_details[detail_key] = {
-                        "value": f'{field_label} : {values}',
+                        "value": f'{field.label.text} : {values}',
                         "price": quote_prices[key],
                         "quantity": 1
                     }
