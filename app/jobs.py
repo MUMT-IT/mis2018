@@ -237,6 +237,24 @@ def send_software_request_summary_report():
     _run_job(job_name, _job)
 
 
+def send_pending_requester_test_reminders():
+    job_name = 'send_pending_requester_test_reminders'
+
+    def _job():
+        params = {'send': 'true'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/software_request/admin/email-pending-requester-tests',
+            params=params,
+            timeout=90,
+        )
+
+    _run_job(job_name, _job)
+
+
 def send_line_reminder_no_status_today():
     job_name = 'send_line_reminder_no_status_today'
 
@@ -371,6 +389,11 @@ scheduler.add_job(send_complaint_summary_report,
                   minute='00',
                   timezone='Asia/Bangkok')
 scheduler.add_job(send_software_request_summary_report,
+                  'cron', day_of_week='mon',
+                  hour='9',
+                  minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_pending_requester_test_reminders,
                   'cron', day_of_week='mon',
                   hour='9',
                   minute='00',
