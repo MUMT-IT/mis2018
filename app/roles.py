@@ -69,6 +69,9 @@ with app.app_context():
     finance_head_permission = Permission() if not head_finance_role else Permission(head_finance_role.to_tuple())
     manager_permission = Permission() if not manager_role else Permission(manager_role.to_tuple())
     secretary_permission = Permission() if not secretary_role else Permission(secretary_role.to_tuple())
+    # Department and unit heads are granted this permission dynamically when
+    # their Flask-Principal identity is loaded.
+    head_permission = Permission(('head', None, None))
     event_staff_permission = Permission() if not event_staff else Permission(event_staff.to_tuple())
     center_standardization_product_validation_permission = Permission() if not \
         center_standardization_product_validation_role else \
