@@ -117,6 +117,69 @@ def _get_software_request_email_recipients():
     return sorted(recipients.values(), key=lambda item: item['email'])
 
 
+def _get_pending_requester_test_projects():
+    return SoftwareRequestDetail.query.options(
+        joinedload(SoftwareRequestDetail.created_by).joinedload(StaffAccount.personal_info),
+        joinedload(SoftwareRequestDetail.system),
+        joinedload(SoftwareRequestDetail.test_results).joinedload(SoftwareRequestTestResult.issue),
+    ).filter(
+        SoftwareRequestDetail.status == 'อนุมัติ',
+        SoftwareRequestDetail.test_results.any(
+            or_(
+                SoftwareRequestTestResult.status.is_(None),
+                SoftwareRequestTestResult.status == '',
+            )
+        ),
+    ).order_by(SoftwareRequestDetail.id.asc()).all()
+
+
+def _get_pending_test_recipient_emails(detail):
+    recipients = set()
+    account = detail.created_by
+    if account and account.is_active and not account.is_retired:
+        email = _normalize_internal_email(account.email)
+        if email:
+            recipients.add(email)
+    return sorted(recipients)
+
+
+def _get_pending_test_line_recipients(detail):
+    recipients = set()
+    account = detail.created_by
+    if account and account.is_active and not account.is_retired:
+       if account.line_id:
+            recipients.add(account.line_id)
+    return sorted(recipients)
+
+
+def _build_pending_test_reminder(detail):
+    project_name = detail.title or 'โครงการ/ระบบที่ไม่ระบุชื่อ'
+    pending_test_details = [
+        test_result.issue.issue
+        for test_result in detail.test_results
+        if not test_result.status and test_result.issue and test_result.issue.issue
+    ]
+    test_detail_text = '\n'.join(f'- {item}' for item in pending_test_details) or '- ไม่ระบุรายละเอียด'
+    scheme = 'http' if current_app.debug else 'https'
+    link = url_for(
+        'software_request.view_request',
+        detail_id=detail.id,
+        _external=True,
+        _scheme=scheme,
+    )
+    subject = f'แจ้งเตือนให้ดำเนินการทดสอบของ {project_name}'
+    body = (
+        f'ขณะนี้มีรายการทดสอบของ "{project_name}" ที่ยังไม่ได้ดำเนินการทดสอบ โดยมีรายละเอียดดังนี้\n'
+        f'{test_detail_text}\n'
+        f'กรุณาดำเนินการทดสอบและบันทึกผล โดยท่านสามารถดำเนินการได้ที่ลิงก์ด้านล่าง\n'
+        f'{link}\n\n'
+        f'ขอบคุณค่ะ\n'
+        f'ระบบขอรับบริการพัฒนา Software\n'
+        f'คณะเทคนิคการแพทย์'
+    )
+    return subject, body
+
+
 def _get_software_request_line_recipients():
     recipients = {}
     for account in _get_software_request_role_accounts():
@@ -1189,6 +1252,149 @@ def email_unfinished_summary():
         resp.headers['HX-Refresh'] = 'true'
         return resp
     return redirect(url_for('software_request.admin_index', tab='all'))
+
+
+@software_request.route('/admin/email-pending-requester-tests', methods=['GET', 'POST'])
+def email_pending_requester_tests():
+    scheduler_request = _is_valid_notification_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not software_request_permission.can():
+            return current_app.response_class('Forbidden', status=403)
+
+    should_send = _request_flag('send')
+    projects = _get_pending_requester_test_projects()
+    packages = []
+    for detail in projects:
+        recipients = _get_pending_test_recipient_emails(detail)
+        subject, body = _build_pending_test_reminder(detail)
+        packages.append({
+            'project_id': detail.id,
+            'recipients': recipients,
+            'subject': subject,
+            'body': body,
+        })
+
+    if not should_send:
+        return jsonify({
+            'sent': False,
+            'project_count': len(packages),
+            'emails': packages,
+        })
+
+    sent_count = 0
+    skipped_count = 0
+    failed_count = 0
+    for package in packages:
+        if not package['recipients']:
+            skipped_count += 1
+            current_app.logger.warning(
+                'Skipped pending requester test reminder without recipients project_id=%s',
+                package['project_id'],
+            )
+            continue
+        try:
+            # Send separately for every project/system so recipients can follow up in context.
+            send_mail(package['recipients'], package['subject'], package['body'])
+            sent_count += 1
+        except Exception:
+            failed_count += 1
+            current_app.logger.exception(
+                'Failed pending requester test reminder project_id=%s recipients=%s',
+                package['project_id'],
+                package['recipients'],
+            )
+
+    current_app.logger.info(
+        'pending_requester_test_reminders projects=%s sent=%s skipped=%s failed=%s',
+        len(packages),
+        sent_count,
+        skipped_count,
+        failed_count,
+    )
+    if not scheduler_request:
+        if failed_count:
+            flash(
+                f'ส่งอีเมลแจ้งเตือนสำเร็จ {sent_count} โครงการ และไม่สำเร็จ {failed_count} โครงการ',
+                'danger',
+            )
+        else:
+            flash(f'ส่งอีเมลแจ้งเตือนการทดสอบเรียบร้อยแล้ว {sent_count} โครงการ', 'success')
+        return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+
+    status_code = 500 if failed_count else 200
+    return jsonify({
+        'sent': failed_count == 0,
+        'project_count': len(packages),
+        'email_count': sent_count,
+        'skipped_count': skipped_count,
+        'failed_count': failed_count,
+    }), status_code
+
+
+@software_request.route('/admin/line-pending-requester-tests', methods=['GET', 'POST'])
+def line_pending_requester_tests():
+    scheduler_request = _is_valid_notification_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not software_request_permission.can():
+            return current_app.response_class('Forbidden', status=403)
+
+    if not _request_flag('send'):
+        return jsonify({'sent': False, 'message': 'Add send=true to trigger delivery.'}), 400
+
+    projects = _get_pending_requester_test_projects()
+    sent_count = 0
+    skipped_count = 0
+    failed_count = 0
+    for detail in projects:
+        line_ids = _get_pending_test_line_recipients(detail)
+        _, message = _build_pending_test_reminder(detail)
+        if not line_ids:
+            skipped_count += 1
+            continue
+        for line_id in line_ids:
+            try:
+                line_bot_api.push_message(
+                    to=line_id,
+                    messages=TextSendMessage(text=message),
+                )
+                sent_count += 1
+            except LineBotApiError:
+                failed_count += 1
+                current_app.logger.exception(
+                    'Failed pending requester test LINE reminder project_id=%s line_id=%s',
+                    detail.id,
+                    _mask_line_id(line_id),
+                )
+
+    current_app.logger.info(
+        'pending_requester_test_line_reminders projects=%s sent=%s skipped_projects=%s failed=%s',
+        len(projects),
+        sent_count,
+        skipped_count,
+        failed_count,
+    )
+    if not scheduler_request:
+        if failed_count:
+            flash(
+                f'ส่ง LINE แจ้งเตือนสำเร็จ {sent_count} ข้อความ และไม่สำเร็จ {failed_count} ข้อความ',
+                'warning',
+            )
+        else:
+            flash(f'ส่ง LINE แจ้งเตือนการทดสอบเรียบร้อยแล้ว {sent_count} ข้อความ', 'success')
+        return redirect(request.referrer or url_for('software_request.admin_index', tab='all'))
+
+    status_code = 500 if failed_count else 200
+    return jsonify({
+        'sent': failed_count == 0,
+        'project_count': len(projects),
+        'message_count': sent_count,
+        'skipped_project_count': skipped_count,
+        'failed_count': failed_count,
+    }), status_code
 
 
 @software_request.route('/api/timelines/<tab>')

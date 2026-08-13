@@ -1433,7 +1433,7 @@ class MetabolomicConditionForm(FlaskForm):
 
 class MetabolomicRequestForm(FlaskForm):
     processing_data = CheckboxField('Processing data for quantitation analysis (Extra change)',
-                                    choices=[('Process data', 'Do')])
+                                    choices=[('Processing data', 'Do')])
     sample_species = StringField('Sample species', validators=[DataRequired()],
                                  render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                             "oninput": "this.setCustomValidity('')"

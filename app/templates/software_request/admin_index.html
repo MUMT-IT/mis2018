@@ -40,6 +40,20 @@
                     </span>
                     <span class="is-size-6">ส่งสรุปเรื่องคงค้าง</span>
                 </a>
+                <a href="{{ url_for('software_request.email_pending_requester_tests', send='true') }}"
+                   class="button is-warning is-small is-rounded">
+                    <span class="icon">
+                        <i class="fas fa-paper-plane"></i>
+                    </span>
+                    <span class="is-size-6">ส่งแจ้งเตือนผู้แจ้งให้ทดสอบ</span>
+                </a>
+                <a href="{{ url_for('software_request.line_pending_requester_tests', send='true') }}"
+                   class="button is-success is-small is-rounded">
+                    <span class="icon">
+                        <i class="fab fa-line"></i>
+                    </span>
+                    <span class="is-size-6">ส่ง LINE แจ้งเตือนการทดสอบ</span>
+                </a>
             </div>
             <div class="columns">
                 <div class="column">
