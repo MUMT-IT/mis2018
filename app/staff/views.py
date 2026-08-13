@@ -3580,11 +3580,12 @@ def request_for_clockin_clockout():
     # post from /staff/users/geo-checkin function
     if request.method == 'POST':
         # TODO: check server time
-        today = datetime.today()
+        today = datetime.now(tz)
         reason = request.form.get('reason')
         work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
-        date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
-        work_datetime_display = tz.localize(work_datetime).strftime('%d/%m/%Y %H:%M')
+        work_datetime = tz.localize(work_datetime)
+        date_id = StaffRequestWorkLogin.generate_date_id(work_datetime)
+        work_datetime_display = work_datetime.strftime('%d/%m/%Y %H:%M')
         # TODO: check duplicate request
         # checkin_request = StaffRequestWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
         if work_datetime < today:
@@ -3675,13 +3676,13 @@ def edit_clockin_clockout_request(request_id):
     ).first_or_404()
 
     if request.method == 'POST':
-        work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
-        if work_datetime >= datetime.today():
+        work_datetime = tz.localize(datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M'))
+        if work_datetime >= datetime.now(tz):
             flash('ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
             return render_template('staff/checkin_request.html', request_record=clock_request)
 
         clock_request.work_datetime = work_datetime
-        clock_request.date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        clock_request.date_id = StaffRequestWorkLogin.generate_date_id(work_datetime)
         clock_request.reason = request.form.get('reason')
         clock_request.is_checkin = request.form.get('clock') == 'checkin'
         clock_request.requested_at = datetime.now(pytz.utc)

@@ -1939,6 +1939,63 @@ def populatedb():
     database.load_activities()
 
 
+@dbutils.command('migrate-clockin-request-datetimes')
+@click.option('--before', required=True, help='Only migrate requests created before this ISO-8601 timestamp.')
+@click.option('--shift-hours', type=int, default=0, show_default=True,
+              help='Hours to add to already-aware legacy values; use -7 when production values are 7 hours ahead.')
+@click.option('--apply', 'apply_changes', is_flag=True,
+              help='Write changes. Without this flag, the command only previews them.')
+def migrate_clockin_request_datetimes(before, shift_hours, apply_changes):
+    """Repair legacy clock-in request times using Asia/Bangkok as the local timezone."""
+    bangkok = timezone('Asia/Bangkok')
+    try:
+        cutoff = datetime.fromisoformat(before.replace('Z', '+00:00'))
+    except ValueError as exc:
+        raise click.UsageError('--before must be an ISO-8601 timestamp, for example '
+                               '2026-08-13T00:00:00+07:00') from exc
+    if cutoff.tzinfo is None:
+        cutoff = bangkok.localize(cutoff)
+
+    records = StaffRequestWorkLogin.query.filter(
+        StaffRequestWorkLogin.requested_at < cutoff,
+        StaffRequestWorkLogin.work_datetime.isnot(None),
+    ).order_by(StaffRequestWorkLogin.id.asc()).all()
+    changes = []
+    for record in records:
+        old_value = record.work_datetime
+        if old_value.tzinfo is None:
+            new_value = bangkok.localize(old_value)
+            reason = 'naive -> Asia/Bangkok'
+        elif shift_hours:
+            new_value = old_value + timedelta(hours=shift_hours)
+            reason = '{} hours'.format(shift_hours)
+        else:
+            continue
+        changes.append((record, old_value, new_value, reason))
+
+    click.echo('Matching requests: {}'.format(len(records)))
+    click.echo('Changes: {}'.format(len(changes)))
+    for record, old_value, new_value, reason in changes:
+        click.echo('#{}: {} -> {} ({})'.format(
+            record.id, old_value.isoformat(), new_value.isoformat(), reason
+        ))
+
+    if not apply_changes:
+        click.echo('Dry run only. Re-run with --apply to save these changes.')
+        return
+    if not changes:
+        click.echo('No changes to apply.')
+        return
+    if not click.confirm('Apply {} datetime changes?'.format(len(changes))):
+        click.echo('Cancelled.')
+        return
+    for record, _old_value, new_value, _reason in changes:
+        record.work_datetime = new_value
+        db.session.add(record)
+    db.session.commit()
+    click.echo('Applied {} datetime changes.'.format(len(changes)))
+
+
 from app.database import load_students
 
 
@@ -2526,8 +2583,9 @@ def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y %X'
     if dt:
-        if dt.tzinfo:
-            return dt.astimezone(bangkok).strftime(datetime_format)
+        if dt.tzinfo is None:
+            dt = bangkok.localize(dt)
+        return dt.astimezone(bangkok).strftime(datetime_format)
     else:
         return None
 
