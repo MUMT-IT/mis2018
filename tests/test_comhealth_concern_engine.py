@@ -4,6 +4,9 @@ import importlib.util
 import os
 import sys
 import types
+from types import SimpleNamespace
+
+from flask import Flask, render_template
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP_DIR = os.path.join(PROJECT_ROOT, "app")
@@ -16,6 +19,7 @@ app_pkg = sys.modules.setdefault("app", types.ModuleType("app"))
 app_pkg.__path__ = [APP_DIR]
 comhealth_pkg = sys.modules.setdefault("app.comhealth", types.ModuleType("app.comhealth"))
 comhealth_pkg.__path__ = [COMHEALTH_DIR]
+sys.modules.setdefault("requests", types.ModuleType("requests"))
 
 
 def _load_module(module_name: str, file_path: str):
@@ -30,8 +34,11 @@ def _load_module(module_name: str, file_path: str):
 _load_module("app.comhealth.concern_rules", os.path.join(COMHEALTH_DIR, "concern_rules.py"))
 concern_engine = _load_module("app.comhealth.concern_engine", os.path.join(COMHEALTH_DIR, "concern_engine.py"))
 build_health_risk_report = concern_engine.build_health_risk_report
+video_admin = _load_module("app.comhealth.video_admin", os.path.join(COMHEALTH_DIR, "video_admin.py"))
 health_risk_summary = _load_module("app.comhealth.health_risk_summary", os.path.join(COMHEALTH_DIR, "health_risk_summary.py"))
 build_health_risk_summary = health_risk_summary.build_health_risk_summary
+health_risk_copy = _load_module("app.comhealth.health_risk_copy", os.path.join(COMHEALTH_DIR, "health_risk_copy.py"))
+get_health_risk_copy = health_risk_copy.get_health_risk_copy
 
 
 def _row(tcode, name, result, ref, unit):
@@ -267,3 +274,63 @@ def test_triglyceride_hdl_ratio_is_reported_in_metabolic_section():
     ratio_item = next(item for item in metabolic["evidence_table"] if item["key"] == "triglycerides_hdl_ratio")
     assert ratio_item["label"] == "Triglycerides / HDL ratio"
     assert ratio_item["status"] != "missing"
+
+
+def test_issue_cards_include_related_videos_link():
+    app = Flask("test", template_folder=os.path.join(APP_DIR, "templates"))
+    issue = {
+        "key": "diabetes_risk",
+        "issue_name": "Diabetes Risk",
+        "concern_score": 2,
+        "concern_level": "Mild concern",
+        "concern_badge_class": "is-dark",
+        "evidence_completeness": 67,
+        "short_explanation": "Mild concern.",
+        "description": "Fasting glucose is the primary evidence.",
+        "missing_evidence": [],
+        "evidence_table": [],
+    }
+    recommended_videos = [
+        SimpleNamespace(title="Diabetes basics", youtube_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+    ]
+
+    with app.test_request_context("/"):
+        rendered = render_template(
+            "comhealth/partials/health_risk_issues.html",
+            ui=get_health_risk_copy("en"),
+            issues=[issue],
+            issue_video_map={"diabetes_risk": recommended_videos},
+            issue_videos_page_urls={
+                "diabetes_risk": "/comhealth/health-education-videos?lang=en&report_url=/result&concern=diabetes_risk"
+            },
+        )
+
+    assert 'href="/comhealth/health-education-videos?lang=en&amp;report_url=/result&amp;concern=diabetes_risk"' in rendered
+    assert 'href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"' in rendered
+    assert "Diabetes basics" in rendered
+
+
+def test_zero_score_issues_are_filtered_out():
+    issues = [
+        {"key": "diabetes_risk", "concern_score": 0},
+        {"key": "kidney_health", "concern_score": 1},
+    ]
+
+    filtered = video_admin.visible_health_risk_issues(issues, 0)
+    assert [issue["key"] for issue in filtered] == ["kidney_health"]
+
+
+def test_related_videos_section_renders_empty_state():
+    app = Flask("test", template_folder=os.path.join(APP_DIR, "templates"))
+
+    with app.test_request_context("/"):
+        rendered = render_template(
+            "comhealth/partials/health_education_recommendations.html",
+            ui=get_health_risk_copy("en"),
+            recommended_videos=[],
+            more_videos_url="/comhealth/health-education-videos",
+        )
+
+    assert 'id="health-education-videos-section"' in rendered
+    assert "No related videos are available yet" in rendered
+    assert "more.." in rendered

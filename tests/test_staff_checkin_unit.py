@@ -78,6 +78,33 @@ def _module(name: str, **attrs):
 
 
 def _install_import_stubs(monkeypatch):
+    class _ArrowMoment:
+        def __init__(self, dt):
+            self._dt = dt
+
+        @property
+        def datetime(self):
+            return self._dt
+
+        def date(self):
+            return self._dt.date()
+
+    def _arrow_now(_tz=None):
+        return _ArrowMoment(pytz.timezone("Asia/Bangkok").localize(datetime(2026, 7, 21, 12, 0)))
+
+    def _arrow_get(value, _tz=None):
+        if isinstance(value, datetime):
+            dt_value = value
+            if dt_value.tzinfo is None:
+                dt_value = pytz.timezone("Asia/Bangkok").localize(dt_value)
+            return _ArrowMoment(dt_value)
+        parsed = datetime.fromisoformat(str(value))
+        if parsed.tzinfo is None:
+            parsed = pytz.timezone("Asia/Bangkok").localize(parsed)
+        return _ArrowMoment(parsed)
+
+    monkeypatch.setitem(sys.modules, "arrow", _module("arrow", now=_arrow_now, get=_arrow_get))
+
     staff_pkg = _module("app.staff", staffbp=_NoOpBlueprint())
     staff_pkg.__path__ = [str(PROJECT_ROOT / "app" / "staff")]
     monkeypatch.setitem(sys.modules, "app.staff", staff_pkg)
@@ -288,6 +315,55 @@ def test_to_bangkok_normalizes_naive_utc_datetimes(staff_views):
     assert converted.isoformat() == "2026-06-26T07:48:00+07:00"
 
 
+@pytest.mark.parametrize(
+    ("start_time", "end_time", "expected_hours"),
+    [
+        ((7, 30), (17, 30), 8.0),
+        ((8, 30), (16, 30), 8.0),
+        ((9, 15), (18, 45), 8.0),
+        ((9, 15), (15, 0), 5.8),
+        ((6, 30), (7, 30), 0.0),
+        ((18, 0), (19, 0), 1.0),
+    ],
+)
+def test_calculate_work_hours_starts_at_eight_and_caps_total(
+    staff_views, start_time, end_time, expected_hours
+):
+    tz = pytz.timezone("Asia/Bangkok")
+    start_dt = tz.localize(datetime(2026, 6, 26, *start_time))
+    end_dt = tz.localize(datetime(2026, 6, 26, *end_time))
+
+    assert staff_views._calculate_work_hours(start_dt, end_dt) == expected_hours
+
+
+def test_calculate_work_hours_requires_checkout(staff_views):
+    start_dt = pytz.timezone("Asia/Bangkok").localize(datetime(2026, 6, 26, 8, 0))
+
+    assert staff_views._calculate_work_hours(start_dt, None) is None
+
+
+def test_work_login_event_style_uses_warning_for_short_hours(staff_views):
+    text_color, background_color, border_color, class_names = (
+        staff_views._work_login_event_style(True, True, True)
+    )
+
+    assert text_color == "#10264c"
+    assert background_color == "#fff3bf"
+    assert border_color == "#e6cf73"
+    assert class_names == ["is-late-login", "is-short-hours"]
+
+
+def test_work_login_event_style_uses_soft_green_for_complete_hours(staff_views):
+    text_color, background_color, border_color, class_names = (
+        staff_views._work_login_event_style(False, False, True)
+    )
+
+    assert text_color == "#245b38"
+    assert background_color == "#e4f3e9"
+    assert border_color == "#b8ddc4"
+    assert class_names == ["is-complete-hours"]
+
+
 def test_get_login_records_collapses_multiple_scans_and_filters_by_department(staff_views, monkeypatch):
     tz = pytz.timezone("Asia/Bangkok")
     org_id = 41
@@ -346,6 +422,120 @@ def test_get_login_records_collapses_multiple_scans_and_filters_by_department(st
     assert row["lat"] == pytest.approx(13.1)
     assert row["lon"] == pytest.approx(100.1)
     assert row["location"] == '<a href="https://maps.google.com/?q=13.1,100.1">Click</a>'
+
+
+def test_build_login_summary_dashboard_groups_by_employee_and_calculates_counts(staff_views, monkeypatch):
+    tz = pytz.timezone("Asia/Bangkok")
+    dept_id = 41
+
+    alice_account = SimpleNamespace(id=7, fullname="Alice Example")
+    bob_account = SimpleNamespace(id=8, fullname="Bob Example")
+
+    alice = SimpleNamespace(
+        staff_account=alice_account,
+        fullname="Alice Example",
+        org=SimpleNamespace(name="HR"),
+        position="Officer",
+        job_position=None,
+        academic_staff=False,
+    )
+    bob = SimpleNamespace(
+        staff_account=bob_account,
+        fullname="Bob Example",
+        org=SimpleNamespace(name="HR"),
+        position=None,
+        job_position=None,
+        academic_staff=False,
+    )
+
+    records = [
+        SimpleNamespace(
+            id=1,
+            staff_id=alice_account.id,
+            staff=alice_account,
+            start_datetime=tz.localize(datetime(2026, 7, 1, 8, 50)).astimezone(pytz.utc).replace(tzinfo=None),
+            end_datetime=tz.localize(datetime(2026, 7, 1, 17, 0)).astimezone(pytz.utc).replace(tzinfo=None),
+            lat=13.1,
+            long=100.1,
+            qrcode_in_exp_datetime=pytz.utc.localize(datetime(2026, 7, 1, 9, 0)),
+            qrcode_out_exp_datetime=pytz.utc.localize(datetime(2026, 7, 1, 16, 30)),
+        ),
+        SimpleNamespace(
+            id=2,
+            staff_id=alice_account.id,
+            staff=alice_account,
+            start_datetime=tz.localize(datetime(2026, 7, 2, 9, 10)).astimezone(pytz.utc).replace(tzinfo=None),
+            end_datetime=tz.localize(datetime(2026, 7, 2, 16, 0)).astimezone(pytz.utc).replace(tzinfo=None),
+            lat=13.2,
+            long=100.2,
+            qrcode_in_exp_datetime=pytz.utc.localize(datetime(2026, 7, 2, 9, 0)),
+            qrcode_out_exp_datetime=pytz.utc.localize(datetime(2026, 7, 2, 16, 30)),
+        ),
+    ]
+
+    staff_personal_query = SimpleNamespace(filter_by=lambda **kwargs: SimpleNamespace(all=lambda: [alice, bob]))
+    staff_work_query = _FakeQuery()
+    staff_work_query.rows = records
+
+    monkeypatch.setattr(staff_views, "StaffPersonalInfo", SimpleNamespace(query=staff_personal_query))
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", SimpleNamespace(query=staff_work_query))
+
+    dashboard = staff_views._build_login_summary_dashboard(
+        datetime(2026, 7, 1).date(),
+        datetime(2026, 7, 31).date(),
+        dept_id,
+    )
+
+    assert dashboard["totals"]["employees"] == 2
+    assert dashboard["totals"]["employees_with_records"] == 1
+    assert dashboard["totals"]["complete_days"] == 2
+    assert dashboard["totals"]["late_checkins"] == 1
+    assert dashboard["totals"]["early_checkouts"] == 1
+    assert dashboard["totals"]["average_hours_per_day"] == 7.4
+
+    alice_summary = dashboard["employees"][0]
+    assert alice_summary["name"] == "Alice Example"
+    assert alice_summary["complete_days"] == 2
+    assert alice_summary["late_checkins"] == 1
+    assert alice_summary["early_checkouts"] == 1
+    assert alice_summary["average_hours_per_day"] == 7.4
+
+    bob_summary = dashboard["employees"][1]
+    assert bob_summary["name"] == "Bob Example"
+    assert bob_summary["complete_days"] == 0
+
+
+def test_get_login_summary_data_uses_requested_date_range(staff_views, monkeypatch):
+    captured = {}
+
+    monkeypatch.setattr(
+        staff_views,
+        "_build_login_summary_dashboard",
+        lambda start_date, end_date, dept_id: captured.update(
+            {"start_date": start_date, "end_date": end_date, "dept_id": dept_id}
+        ) or {"totals": {}, "employees": [], "date_range": {"start": "2026-07-01", "end": "2026-07-31"}},
+    )
+    monkeypatch.setattr(staff_views, "jsonify", lambda payload: SimpleNamespace(get_json=lambda: payload))
+    monkeypatch.setattr(
+        staff_views,
+        "request",
+        SimpleNamespace(
+            args=SimpleNamespace(
+                get=lambda key, default=None, type=None: {"start": "01/07/2026", "end": "31/07/2026", "dept_id": 41}.get(
+                    key, default
+                )
+            )
+        ),
+    )
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(personal_info=SimpleNamespace(org_id=99)))
+
+    response = staff_views.get_login_summary_data.__wrapped__()
+    payload = response.get_json()
+
+    assert payload["date_range"]["start"] == "2026-07-01"
+    assert captured["start_date"].isoformat() == "2026-07-01"
+    assert captured["end_date"].isoformat() == "2026-07-31"
+    assert captured["dept_id"] == 41
 
 
 def test_build_missing_checkin_recipients_uses_same_day_records(staff_views, monkeypatch):

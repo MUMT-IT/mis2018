@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container" style="max-width: 760px;">
+        <h1 class="title">ซิงค์ข้อมูลกับเว็บคณะ</h1>
+        <p class="subtitle">อัปโหลดไฟล์ HTML ที่บันทึกจากหน้าเว็บบุคลากรของคณะ เพื่ออัปเดตข้อมูลบุคลากรในหน่วยงาน</p>
+        <div class="notification is-info is-light">
+            ระบบจะจับคู่บุคลากรด้วยอีเมล และอัปเดตเฉพาะบุคลากรที่อยู่ในหน่วยงานที่เลือก
+        </div>
+        <form method="post" enctype="multipart/form-data" class="box">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+            <label class="label" for="org_id">หน่วยงาน</label>
+                <div class="control">
+                    <div class="select is-fullwidth">
+                        <select id="org_id" name="org_id" required>
+                            <option value="">-- เลือกหน่วยงาน --</option>
+                            {% for org in organizations %}
+                            <option value="{{ org.id }}" {% if selected_org_id == org.id %}selected{% endif %}>{{ org.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label" for="html_file">ไฟล์ HTML ที่บันทึกจากเว็บคณะ</label>
+                <div class="control">
+                    <input class="input" id="html_file" name="html_file" type="file" accept=".html,.htm,text/html" required>
+                </div>
+            </div>
+            <div class="field is-grouped is-grouped-right">
+                <div class="control"><a href="{{ url_for('staff.staff_index') }}" class="button is-light">ยกเลิก</a></div>
+                <div class="control"><button type="submit" class="button is-info">ซิงค์ข้อมูล</button></div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

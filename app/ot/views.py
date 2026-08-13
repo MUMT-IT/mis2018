@@ -52,6 +52,9 @@ login_tuple = namedtuple('LoginPair', ['staff_id', 'start', 'end', 'start_id', '
 
 MAX_LATE_MINUTES = 45
 
+# OT matching stays conservative: keep missing scans visible, prefer complete pairs first,
+# and only let open or synthetic rows satisfy one shift so they do not leak forward.
+
 EXTERNAL_OT_ALLOWED_ENDPOINTS = {
     'ot.view_monthly_records',
     'ot.summary_each_person',
@@ -1635,8 +1638,10 @@ def view_monthly_records():
 @manager_permission.union(secretary_permission).require()
 def view_staff_monthly_records(staff_id, announcement_id):
     staff = StaffAccount.query.get(staff_id)
+    announcement = OtPaymentAnnounce.query.get_or_404(announcement_id)
     return render_template('ot/staff_admin_records.html',
-                           staff=staff, announcement_id=announcement_id)
+                           staff=staff, announcement_id=announcement_id,
+                           signatories=announcement.signatories)
 
 
 @ot.route('/admin/announcements/<int:announcement_id>/shifts')
@@ -1813,6 +1818,7 @@ def convert_time_format(time):
 
 
 def write_ot_report_workbook(writer, records_df, format='timesheet'):
+    records_df = _normalize_ot_export_frame(records_df)
     total_work_minutes = records_df.groupby(['fullname', 'sap'])['work_minutes'].sum()
     total_work_minutes.apply(convert_time_format).to_excel(writer, sheet_name='total_minutes')
 
@@ -1865,7 +1871,34 @@ def format_buddhist_date_range(start_date, end_date):
     return f'{start_text} - {end_text}'
 
 
+def _normalize_ot_export_frame(records_df):
+    frame = records_df.copy()
+    for column in [
+        'fullname',
+        'sap',
+        'position',
+        'rate',
+        'start',
+        'end',
+        'checkins',
+        'checkouts',
+        'late_checkin_display',
+        'late_minutes',
+        'early_checkout_display',
+        'early_minutes',
+        'work_minutes',
+        'payment',
+        'staff',
+        'timeslot',
+        'startDate',
+    ]:
+        if column not in frame.columns:
+            frame[column] = pd.NA
+    return frame
+
+
 def build_custom_ot_report_workbook(records_df, cal_start, cal_end, selected_signatory=None):
+    records_df = _normalize_ot_export_frame(records_df)
     report_df = records_df[records_df['payment'].notna()].copy()
     workbook = Workbook()
     workbook.remove(workbook.active)
@@ -1918,12 +1951,15 @@ def write_total_payment_custom_sheet(workbook, report_df):
     total_payment = report_df.groupby(['fullname', 'sap'])['payment'].sum().reset_index()
     for row in total_payment.itertuples(index=False):
         sheet.append([row.fullname, row.sap, round(row.payment, 2)])
-    total_row = sheet.max_row + 1
-    sheet.cell(row=total_row, column=3).value = f'=SUM(C2:C{total_row - 1})'
+    if sheet.max_row > 1:
+        total_row = sheet.max_row + 1
+        sheet.cell(row=total_row, column=3).value = f'=SUM(C2:C{total_row - 1})'
 
 
 def write_summary_report_custom_sheet(workbook, renamed_df, cal_end):
     sheet = workbook.create_sheet('summary_report ไม่แก้ไข')
+    if renamed_df.empty:
+        return
 
     date_values = sorted(renamed_df['วันที่'].dropna().unique())
     start_col = 6
@@ -2125,6 +2161,7 @@ def _signer_display_position(signatory):
 
 
 def build_finance_pdf(records_df, cal_start, cal_end, selected_signatory=None):
+    records_df = _normalize_ot_export_frame(records_df)
     report_df = records_df[records_df['payment'].notna()].copy()
     renamed_df = report_df.copy()
     if 'staff' in renamed_df.columns:
@@ -2294,18 +2331,30 @@ def _build_checkin_pairs(checkin_query):
                     pair = login_tuple(checkin_staff_id, curr_start, None, checkins[i].id, None)
                     checkin_pairs[checkin_staff_id].append(pair)
                 else:
-                    # Split a cross-midnight sequence into two pairs so work time can be computed.
-                    _d = curr_start + timedelta(days=1)
-                    midnight1 = _d.replace(hour=0, minute=0, second=0, microsecond=0)
-                    midnight2 = next_start.replace(hour=0, minute=0, second=0, microsecond=0)
-                    pair = login_tuple(checkin_staff_id, curr_start, midnight1, checkins[i].id, None)
-                    pair2 = login_tuple(checkin_staff_id, midnight2, next_start, None, checkins[i + 1].id)
                     _delta_days = (next_start.date() - curr_start.date()).days
-                    if _delta_days == 1:
+                    if _delta_days == 1 and (
+                        curr_start.time() >= time(18, 0) or next_start.time() <= time(4, 0)
+                    ):
+                        # Split a cross-midnight open sequence at midnight so the overnight shift
+                        # can use the midnight scan and the next day keeps its own check-in.
+                        _d = curr_start + timedelta(days=1)
+                        midnight1 = _d.replace(hour=0, minute=0, second=0, microsecond=0)
+                        midnight2 = next_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                        pair = login_tuple(checkin_staff_id, curr_start, midnight1, checkins[i].id, None)
+                        pair2 = login_tuple(checkin_staff_id, midnight2, next_start, None, checkins[i + 1].id)
                         checkin_pairs[checkin_staff_id].append(pair)
                         checkin_pairs[checkin_staff_id].append(pair2)
-                    elif _delta_days == 0:
+                    elif _delta_days == 1 and next_start.time() >= curr_start.time():
+                        # A long adjacent-day span with forward-moving times is treated as one
+                        # continuous attendance window so back-to-back daytime shifts can reuse it.
                         pair = login_tuple(checkin_staff_id, curr_start, next_start, checkins[i].id, checkins[i + 1].id)
+                        checkin_pairs[checkin_staff_id].append(pair)
+                    elif _delta_days == 0 and checkins[i + 1].end_datetime is None:
+                        pair = login_tuple(checkin_staff_id, curr_start, next_start, checkins[i].id, checkins[i + 1].id)
+                        checkin_pairs[checkin_staff_id].append(pair)
+                    else:
+                        # Same-day open rows are left open so they do not consume the next scan.
+                        pair = login_tuple(checkin_staff_id, curr_start, None, checkins[i].id, None)
                         checkin_pairs[checkin_staff_id].append(pair)
             i += 1
 
@@ -2332,6 +2381,7 @@ def _compute_work_minutes(record, shift_start, shift_end, pair):
                 'checkout_early_minutes': 0,
                 'total_work_minutes': None,
                 'total_pay': None,
+                'missing_checkout': True,
             }
         checkin_late_minutes = 0
         checkout_early_minutes = 0
@@ -2344,6 +2394,7 @@ def _compute_work_minutes(record, shift_start, shift_end, pair):
             'checkout_early_minutes': checkout_early_minutes,
             'total_work_minutes': total_work_minutes,
             'total_pay': total_pay,
+            'missing_checkout': False,
         }
 
     if pair.end:
@@ -2365,6 +2416,17 @@ def _compute_work_minutes(record, shift_start, shift_end, pair):
         total_pay = round(record.calculate_total_pay(record.total_shift_minutes), 2)
         total_work_minutes = record.total_shift_minutes
 
+    if pair.end is None:
+        return {
+            'checkin': checkin,
+            'checkout': checkout,
+            'checkin_late_minutes': 0 if start_delta_minutes[0] < 0 else start_delta_minutes[0],
+            'checkout_early_minutes': 0,
+            'total_work_minutes': None,
+            'total_pay': None,
+            'missing_checkout': True,
+        }
+
     return {
         'checkin': checkin,
         'checkout': checkout,
@@ -2372,6 +2434,7 @@ def _compute_work_minutes(record, shift_start, shift_end, pair):
         'checkout_early_minutes': checkout_early_minutes,
         'total_work_minutes': total_work_minutes,
         'total_pay': total_pay,
+        'missing_checkout': False,
     }
 
 
@@ -2397,6 +2460,9 @@ def _build_ot_record_row(record, shift_start, shift_end, announcement_id, staff_
         'payment': None,
         'work_minutes': None,
         'work_minutes_display': None,
+        'anchor_warning': False,
+        'anchor_warning_display': None,
+        'missing_checkout': False,
         'position': record.compensation.ot_job_role.role if record.compensation else '-',
         'rate': record.compensation.rate if record.compensation else '-',
         'startDate': shift_start.strftime('%Y/%m/%d'),
@@ -2493,23 +2559,15 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
         checkin_query = checkin_query.filter_by(staff_id=staff_id)
     checkin_pairs = _build_checkin_pairs(checkin_query)
 
-    for sid, checkins in checkin_pairs.items():
-        print(f'{sid}')
-        print('============================')
-        for p in checkins:
-            if p.end:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {p.end.strftime("%Y-%m-%d %H:%M")}')
-            else:
-                print(f'\t{p.start.strftime("%Y-%m-%d %H:%M")} - {"NA"}')
-        print('============================')
-        print('============================')
-
-    all_records = []
-    used_checkouts = defaultdict(set)
     shift_query = OtShift.query.filter(OtShift.datetime.op('&&')(cal_daterange))
     if announcement_id:
         shift_query = shift_query.filter(OtShift.timeslot.has(announcement_id=announcement_id))
 
+    all_records = []
+    used_checkouts = defaultdict(set)
+    rejected_complete_pairs = defaultdict(set)
+    rejected_complete_pair_ids = defaultdict(set)
+    consumed_late_complete_pair_ids = defaultdict(set)
     ot_record_checkins = {}
     for shift in shift_query.order_by(OtShift.datetime):
         for record in shift.records:
@@ -2521,24 +2579,43 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
             ot_record_checkins[record] = 0
 
             if checkin_pairs[record.staff_account_id]:
+                best_complete = None
+                best_complete_rank = None
+                best_open = None
+                best_open_rank = None
                 for _pair in checkin_pairs[record.staff_account_id]:
-                    '''Ignore all check-in/-out time that do not matched with the corresponding shift start and end 
-                    date.'''
-                    if _pair.start and _pair.end:
-                        if _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
-                            continue
+                    is_reusable_complete = bool(_pair.end and _pair.start_id and _pair.end_id)
+                    is_open_or_synthetic = not is_reusable_complete
+                    pair_ids = (_pair.start_id, _pair.end_id)
+                    pair_key = (
+                        _pair.start.strftime('%Y-%m-%d %H:%M:%S'),
+                        _pair.end.strftime('%Y-%m-%d %H:%M:%S') if _pair.end else None,
+                        _pair.start_id,
+                        _pair.end_id,
+                    )
 
-                    '''Prevent using midnight as a check-in time when the shift does not start at midnight.
-                    This causes a problem when one checks in late in the morning.
-                    '''
+                    if is_reusable_complete and (
+                        pair_ids in rejected_complete_pair_ids[record.staff_account_id]
+                        or pair_ids in consumed_late_complete_pair_ids[record.staff_account_id]
+                        or pair_key in rejected_complete_pairs[record.staff_account_id]
+                    ):
+                        continue
+
+                    # Ignore scan pairs that do not belong to the shift day.
+                    # Open rows must stay on their own day so a later scan cannot satisfy an earlier shift.
+                    if _pair.end is None:
+                        if _pair.start.date() != shift_start.date():
+                            continue
+                    elif _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
+                        continue
+
+                    # Treat midnight as a real check-in only for midnight-starting shifts.
                     if _pair.start.time() == time(0, 0) and shift_start.time() != _pair.start.time():
-                        if _pair.end and _pair.start_id is None:
+                        if is_open_or_synthetic and _pair.end:
                             used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
                         continue
-                    '''Prevent check-out time after midnight to be used as a check-in time.
-                    This happens when one checks out after midnight and checks in in the morning again.
-                    '''
-                    if _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
+                    # Do not reuse a checkout after midnight as a later check-in.
+                    if is_open_or_synthetic and _pair.start.strftime('%Y-%m-%d %H:%M:%S') in used_checkouts[record.staff_account_id]:
                         continue
 
                     attendance = _compute_work_minutes(record, shift_start, shift_end, _pair)
@@ -2551,6 +2628,38 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                     checkout_early_minutes = attendance['checkout_early_minutes']
                     total_work_minutes = attendance['total_work_minutes']
                     total_pay = attendance['total_pay']
+                    anchor_warning = bool(
+                        _pair.end
+                        and _pair.start.date() != _pair.end.date()
+                        and _pair.start.time() != time(0, 0)
+                        and _pair.end.time() != time(0, 0)
+                    )
+                    selection_rank = (
+                        0 if is_reusable_complete else 1,
+                        checkin_late_minutes,
+                        checkout_early_minutes,
+                        abs((_pair.start - shift_start).total_seconds()) / 60.0,
+                    )
+
+                    if total_work_minutes is None:
+                        if best_open_rank is None or selection_rank < best_open_rank:
+                            best_open_rank = selection_rank
+                            best_open = (_pair, attendance)
+                    elif total_work_minutes > 0:
+                        if best_complete_rank is None or selection_rank < best_complete_rank:
+                            best_complete_rank = selection_rank
+                            best_complete = (_pair, attendance)
+
+                chosen = best_complete or best_open
+                if chosen is not None:
+                    _pair, attendance = chosen
+                    checkin = attendance['checkin']
+                    checkout = attendance['checkout']
+                    checkin_late_minutes = attendance['checkin_late_minutes']
+                    checkout_early_minutes = attendance['checkout_early_minutes']
+                    total_work_minutes = attendance['total_work_minutes']
+                    total_pay = attendance['total_pay']
+                    is_late_cutoff = checkin_late_minutes > MAX_LATE_MINUTES
 
                     if total_work_minutes is None:
                         rec.update({
@@ -2560,10 +2669,11 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                             'late_minutes': checkin_late_minutes,
                             'early_minutes': checkout_early_minutes,
                             'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
+                            'missing_checkout': True,
                         })
-                        continue
-
-                    if total_work_minutes > 0 and checkin_late_minutes <= MAX_LATE_MINUTES:
+                        if _pair.end and _pair.start_id is None:
+                            used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                    else:
                         rec.update({
                             'checkin_staff_id': _pair.staff_id,
                             'checkin_id': _pair.start_id,
@@ -2574,14 +2684,24 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                             'late_minutes': checkin_late_minutes,
                             'early_minutes': checkout_early_minutes,
                             'early_checkout_display': f'{humanized_work_time(checkout_early_minutes)}' if checkout_early_minutes else None,
-                            'payment': total_pay,
+                            'payment': 0.0 if is_late_cutoff else total_pay,
                             'work_minutes': total_work_minutes,
                             'work_minutes_display': f'{humanized_work_time(total_work_minutes)}' if total_work_minutes else None,
+                            'anchor_warning': anchor_warning,
+                            'anchor_warning_display': 'May need a 00:00 anchor' if anchor_warning else None,
                         })
                         ot_record_checkins[record] += 1
                         if _pair.end and _pair.start_id is None:
                             used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
-                        break
+                        if is_late_cutoff and _pair.end and _pair.start_id and _pair.end_id:
+                            rejected_complete_pairs[record.staff_account_id].add(pair_key)
+                            rejected_complete_pair_ids[record.staff_account_id].add(pair_ids)
+                            consumed_late_complete_pair_ids[record.staff_account_id].add(pair_ids)
+                            used_checkouts[record.staff_account_id].add(_pair.end.strftime('%Y-%m-%d %H:%M:%S'))
+                            checkin_pairs[record.staff_account_id] = [
+                                candidate for candidate in checkin_pairs[record.staff_account_id]
+                                if candidate != _pair
+                            ]
             all_records.append(rec)
 
     if download == 'yes':

@@ -1017,6 +1017,21 @@ def _render_summary_email_html(package):
 #         return None
 
 
+@complaint_tracker.route('/aws-s3/download/<key>', methods=['GET'])
+def download_file(key):
+    download_filename = request.args.get('download_filename')
+    s3_client = boto3.client(
+        's3',
+        region_name=os.getenv('BUCKETEER_AWS_REGION'),
+        aws_access_key_id=os.getenv('BUCKETEER_AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('BUCKETEER_AWS_SECRET_ACCESS_KEY')
+    )
+    outfile = BytesIO()
+    s3_client.download_fileobj(os.getenv('BUCKETEER_BUCKET_NAME'), key, outfile)
+    outfile.seek(0)
+    return send_file(outfile, download_name=download_filename, as_attachment=True)
+
+
 @complaint_tracker.route('/api/committee/position')
 @login_required
 def get_position():
@@ -1207,6 +1222,23 @@ def edit_record_admin(record_id):
                                                statuses=statuses)
             form.populate_obj(record)
             record.deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+            for i, company_form in enumerate(form.repair_companies):
+                file = company_form.file_upload.data
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    if company_form.company_name.data:
+                        name = f'ใบเสนอราคา{company_form.company_name.data}'
+                    else:
+                        name = f'ใบเสนอราคา{record.id}'
+                    file_name = '{}.{}'.format(name, file.filename.split('.')[-1])
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    record.repair_companies[i].quotation_file = file_name
             db.session.add(record)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
@@ -1279,6 +1311,19 @@ def edit_record_admin(record_id):
     else:
         return render_template('complaint_tracker/record_cancelled_page.html', record_id=record_id,
                                tab=tab)
+
+
+@complaint_tracker.route('/issue/repair_company/file/delete/<int:repair_company_id>', methods=['GET', 'POST'])
+@login_required
+def delete_quotation_file(repair_company_id):
+    repair_company = ComplaintRepairCompany.query.get(repair_company_id)
+    repair_company.quotation_file = None
+    db.session.add(repair_company)
+    db.session.commit()
+    flash("ลบไฟล์เรียบร้อยแล้ว", "success")
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @complaint_tracker.route('/admin', methods=['GET', 'POST'])

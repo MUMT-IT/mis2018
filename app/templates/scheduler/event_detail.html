@@ -126,10 +126,38 @@
             }
 
             .event-participant-item {
+                align-items: center;
                 background: rgba(255, 255, 255, 0.82);
                 border: 1px solid rgba(18, 39, 84, 0.08);
                 border-radius: 18px;
+                display: flex;
+                gap: 0.8rem;
                 padding: 0.85rem 1rem;
+            }
+
+            .event-participant-avatar {
+                align-items: center;
+                background: linear-gradient(135deg, var(--theme-navy), var(--theme-navy-deep));
+                border-radius: 50%;
+                color: #fff;
+                display: inline-flex;
+                flex: 0 0 48px;
+                font-size: 1rem;
+                font-weight: 700;
+                height: 48px;
+                justify-content: center;
+                overflow: hidden;
+                width: 48px;
+            }
+
+            .event-participant-avatar img {
+                height: 100%;
+                object-fit: cover;
+                width: 100%;
+            }
+
+            .event-participant-copy {
+                min-width: 0;
             }
 
             .event-participant-item strong,
@@ -189,9 +217,15 @@
                 background-color: #f0f7ff;
                 transform: translateX(2px);
             }
+            .recurring-link {
+                flex: 1;
+                display: block;
+                color: inherit;
+                text-decoration: none;
+            }
             .recurring-item-label {
                 color: var(--theme-text);
-                display: block;
+                {#display: block;#}
             }
         </style>
         <div class="container event-detail-shell">
@@ -269,17 +303,26 @@
                             <h3 class="title is-5 event-detail-section-title">รายการจองต่อเนื่อง</h3>
                             <div class="recurring-list-container">
                                 {% if repeat_events %}
-                                    {% for repeat_event in repeat_events %}
-                                        <a href="{{ url_for('room.show_event_detail', event_id=repeat_event.id) }}"
-                                           class="recurring-item">
-                                            <span class="is-size-6 recurring-item-label">
-                                                <i class="far fa-calendar mr-2 has-text-grey"></i>
-                                                ครั้งที่ {{ loop.index }} : {{ repeat_event.start|localdatetime }} - {{ repeat_event.end|localdatetime }}
-                                            </span>
-                                            <span class="icon has-text-grey">
-                                                <i class="far fa-eye"></i>
-                                            </span>
-                                        </a>
+                                    {% for repeat_event in repeat_events if not repeat_event.cancelled_at %}
+                                        <div class="recurring-item">
+                                            <a href="{{ url_for('room.show_event_detail', event_id=repeat_event.id) }}"
+                                               class="recurring-link">
+                                                <span class="is-size-6 recurring-item-label">
+                                                    <i class="far fa-calendar mr-2 has-text-grey"></i>
+                                                    ครั้งที่ {{ loop.index }} : {{ repeat_event.start|localdatetime }} - {{ repeat_event.end|localdatetime }}
+                                                </span>
+                                            </a>
+                                            <div>
+                                                <a href="{{ url_for('room.show_event_detail', event_id=repeat_event.id) }}"
+                                                   class="icon has-text-grey mr-3">
+                                                    <i class="far fa-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('room.cancel', event_id=repeat_event.id, repeat="true") }}"
+                                                   class="icon has-text-danger">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </a>
+                                            </div>
+                                        </div>
                                     {% endfor %}
                                 {% else %}
                                     <div class="recurring-item">
@@ -347,8 +390,17 @@
                             <div class="event-participant-list">
                                 {% for participant in event.participants %}
                                     <div class="event-participant-item">
-                                        <strong>{{ participant.fullname }}</strong>
-                                        <span>{{ participant.personal_info.org if participant.personal_info else 'ไม่ระบุหน่วยงาน' }}</span>
+                                        <div class="event-participant-avatar" aria-label="{{ participant.fullname }}">
+                                            {% if participant.personal_info and participant.personal_info.image_url %}
+                                                <img src="{{ participant.personal_info.image_url }}" alt="{{ participant.fullname }}">
+                                            {% else %}
+                                                {{ (participant.fullname or '?')[:1] | upper }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="event-participant-copy">
+                                            <strong>{{ participant.fullname }}</strong>
+                                            <span>{{ participant.personal_info.org if participant.personal_info else 'ไม่ระบุหน่วยงาน' }}</span>
+                                        </div>
                                     </div>
                                 {% endfor %}
                             </div>

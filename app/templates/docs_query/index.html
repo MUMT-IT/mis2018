@@ -1,0 +1,1033 @@
+{% extends "base.html" %}
+{% set docs_query_banner_url = 'ui-assets/docsIQ_banner.webp'|s3_asset('img/docsIQ_banner.webp') %}
+{% set docs_query_search_video_url = 'ui-assets/docsIQ_video.mp4'|s3_asset('img/docsIQ_video.mp4') %}
+{% include "docs_query/nav.html" %}
+{% block title %}MUMT-MIS: ค้นหาเอกสาร{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="docs-query-page-banner">
+                {% if docs_query_banner_url %}
+                    <picture>
+                        <source srcset="{{ docs_query_banner_url }}" type="image/webp">
+                        <img src="{{ docs_query_banner_url }}"
+                             alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
+                             decoding="async">
+                    </picture>
+                {% endif %}
+            </div>
+            <div id="docs-query-dashboard"
+                 hx-get="{{ url_for('docs_query.dashboard') }}"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <section class="box docs-query-dashboard-card" aria-busy="true">
+                    <div class="has-text-centered has-text-grey py-4">
+                        <span class="icon"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i></span>
+                        <span>กำลังโหลดภาพรวมเอกสาร...</span>
+                    </div>
+                </section>
+            </div>
+            <div class="columns is-centered">
+                <div class="column is-10-tablet is-9-desktop is-12-widescreen docs-query-page-column">
+                    {% include "messages.html" %}
+                    <div class="box docs-query-shell docs-query-ai-shell">
+                        <div class="docs-query-ai-kicker">
+                            <span><i class="fas fa-sparkles" aria-hidden="true"></i> Ask DocsIQ</span>
+                            <span class="docs-query-ai-ready"><i class="fas fa-circle" aria-hidden="true"></i> READY</span>
+                        </div>
+                        <div class="has-text-centered mb-6">
+                            {% if docs_query_search_video_url %}
+                                <video id="docs-query-search-video" class="docs-query-search-video" muted playsinline preload="metadata" aria-label="กำลังค้นหาเอกสาร">
+                                    <source src="{{ docs_query_search_video_url }}" type="video/mp4">
+                                </video>
+                            {% endif %}
+                        </div>
+
+                        <form id="docs-query-search-form" method="post" action="{{ url_for('docs_query.index') }}"
+                              hx-post="{{ url_for('docs_query.index') }}"
+                              hx-target="#docs-query-results"
+                              hx-swap="innerHTML">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <div class="control docs-query-query-frame">
+                                    <span class="docs-query-query-icon"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i></span>
+                                    <textarea
+                                        class="textarea is-large docs-query-ai-input"
+                                        id="query"
+                                        name="query"
+                                        rows="4"
+                                        role="combobox"
+                                        aria-autocomplete="list"
+                                        aria-controls="docs-query-suggestions"
+                                        aria-expanded="false"
+                                        placeholder="พิมพ์คำถามเกี่ยวกับประกาศ แนวปฏิบัติ หรือเอกสาร..."
+                                    >{{ query or '' }}</textarea>
+                                </div>
+                                <div id="docs-query-suggestions" class="docs-query-suggestions" role="listbox" aria-label="คำค้นที่เคยใช้" hidden></div>
+                            </div>
+                            <div class="docs-query-ai-actions">
+                                <p><i class="fas fa-shield-halved" aria-hidden="true"></i> คำตอบจะอ้างอิงจากเอกสารในคลัง</p>
+                                <button id="docs-query-search-button" class="button is-info is-medium docs-query-ai-button" type="submit">
+                                    <span class="icon"><i class="fas fa-arrow-up" aria-hidden="true"></i></span>
+                                    <span>ค้นหาคำตอบ</span>
+                                </button>
+                            </div>
+                        </form>
+
+                    </div>
+
+                    {% if not query %}
+                    <div class="box docs-query-discovery-card">
+                        <div class="columns is-variable is-5 mt-6 docs-query-discovery">
+                            <div class="column">
+                                <h2 class="title is-5 mb-3">คำค้นหรือคำถามยอดนิยม</h2>
+                                {% if statistics.popular_queries %}
+                                    <ol class="docs-query-popular-list">
+                                        {% for popular_query in statistics.popular_queries[:5] %}
+                                            <li>
+                                                <button class="docs-query-popular-label docs-query-popular-query" type="button" title="ค้นหา {{ popular_query.query_text }}" data-query="{{ popular_query.query_text }}">{{ popular_query.query_text }}</button>
+                                                <span class="tag is-info is-light">{{ popular_query.search_count }} ครั้ง</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                {% else %}
+                                    <p class="has-text-grey is-size-7">ยังไม่มีข้อมูลการค้นหา</p>
+                                {% endif %}
+                            </div>
+                            <div class="column">
+                                <h2 class="title is-5 mb-3">เอกสารที่ถูกเปิดบ่อย</h2>
+                                {% if statistics.popular_documents %}
+                                    <ol class="docs-query-popular-list">
+                                        {% for document, click_count in statistics.popular_documents[:5] %}
+                                            <li>
+                                                <a class="docs-query-popular-label" href="https://drive.google.com/file/d/{{ document.drive_file_id }}/view" target="_blank" rel="noopener noreferrer" title="{{ document.document_title or document.filename }}">
+                                                    {{ document.document_title or document.filename }}
+                                                </a>
+                                                <span class="tag is-info is-light">{{ click_count }} ครั้ง</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                {% else %}
+                                    <p class="has-text-grey is-size-7">ยังไม่มีข้อมูลการเปิดเอกสาร</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                        <div id="docs-query-results">
+                        {% if query %}
+                        <div class="box docs-query-results-card">
+                            <div class="mt-5">
+                                <div class="level is-mobile mb-3">
+                                    <div>
+                                        <h2 class="title is-4 mb-1">ผลการค้นหา</h2>
+                                        <p class="has-text-grey is-size-7">ผลลัพธ์สำหรับ “{{ query }}”</p>
+                                    </div>
+                                    {% if related_documents %}
+                                        <span class="tag is-info is-light">พบเอกสารที่อาจเกี่ยวข้อง {{ related_documents|length }} รายการ</span>
+                                    {% endif %}
+                                </div>
+                                {% if answer %}
+                                    <article class="docs-query-answer">
+                                        <div class="docs-query-answer-heading">
+                                            <span class="docs-query-answer-label">AI SUMMARY</span>
+                                        </div>
+                                        <div class="docs-query-answer-body">{{ answer }}</div>
+                                        <p class="docs-query-ai-warning">
+                                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                                            กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
+                                        </p>
+                                    </article>
+                                {% endif %}
+                                {% if related_documents %}
+                                    <div class="mb-3">
+                                        <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
+                                        <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
+                                    </div>
+                                    <div class="table-container docs-query-related-table-container">
+                                        <table class="table is-fullwidth is-hoverable docs-query-related-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>วันที่ออก</th>
+                                                    <th>เอกสาร</th>
+                                                    <th>ประเภทและแท็ก</th>
+                                                    <th>สถานะ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                        {% for related in related_documents %}
+                                                <tr>
+                                                    <td class="docs-query-related-date">{{ related.issue_date_label }}</td>
+                                                    <td class="docs-query-related-title">
+                                                        <a href="{{ related.click_url or related.url }}" target="_blank" rel="noopener noreferrer">
+                                                            <span class="has-text-weight-semibold">{{ related.document.document_title or related.document.filename }}</span>
+                                                            <span class="icon has-text-info"><i class="fas fa-external-link-alt" aria-hidden="true"></i></span>
+                                                        </a>
+                                                        {% if related.document.summary %}
+                                                            <span class="docs-query-table-subtitle">{{ related.document.summary }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <span>{{ related.document.document_type or 'เอกสาร' }}</span>
+                                                    {% if related.document.tags %}
+                                                        <div class="tags mt-2 mb-0">
+                                                            {% for tag in related.document.tags %}
+                                                                <span class="tag is-info is-light">{{ tag.name }}</span>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if related.document.is_expired %}<span class="tag is-danger is-light">หมดอายุ</span>{% else %}<span class="tag is-success is-light">ใช้งานได้</span>{% endif %}
+                                                    </td>
+                                                </tr>
+                                        {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="notification is-light">
+                                        ไม่พบเอกสาร
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        </div>
+
+                        <div class="has-text-centered mt-5 docs-query-documents-link">
+                            <a class="button is-info is-medium docs-query-documents-cta" href="{{ url_for('docs_query.documents') }}">
+                                <span class="icon"><i class="fas fa-list"></i></span>
+                                <span>ดูเอกสารทั้งหมด</span>
+                            </a>
+                        </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .docs-query-shell {
+            border-radius: 28px;
+            margin: 3rem auto;
+            padding: 2.75rem;
+        }
+
+        .docs-query-ai-shell {
+            background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(240, 246, 255, .95));
+            border: 1px solid rgba(50, 115, 220, .18);
+            box-shadow: 0 24px 60px rgba(26, 61, 124, .13), inset 0 1px 0 rgba(255, 255, 255, .9);
+            overflow: hidden;
+            position: relative;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .docs-query-ai-shell::before {
+            display: none;
+        }
+
+        .docs-query-ai-kicker {
+            align-items: center;
+            color: var(--theme-navy);
+            display: flex;
+            font-size: .7rem;
+            font-weight: 800;
+            justify-content: space-between;
+            letter-spacing: .12em;
+            margin-bottom: 2.5rem;
+            text-transform: uppercase;
+        }
+
+        .docs-query-ai-kicker .icon,
+        .docs-query-ai-kicker i { color: #8c63ff; margin-right: .35rem; }
+        .docs-query-ai-ready { animation: docs-query-ready-blink 1.8s ease-in-out infinite; color: var(--theme-green); font-size: .65rem; }
+        .docs-query-ai-ready i { color: var(--theme-green); font-size: .5rem; }
+        @keyframes docs-query-ready-blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+        .docs-query-ai-label { color: var(--theme-navy-deep); display: block; font-size: .85rem; font-weight: 800; margin-bottom: .55rem; }
+
+        .docs-query-query-frame {
+            align-items: flex-start;
+            background: rgba(255, 255, 255, .9);
+            border: 1px solid rgba(50, 115, 220, .28);
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(26, 61, 124, .08);
+            display: flex;
+            overflow: hidden;
+            padding: .2rem .5rem .2rem 1rem;
+            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
+
+        .docs-query-query-frame:focus-within {
+            border-color: #8c63ff;
+            box-shadow: 0 0 0 4px rgba(140, 99, 255, .12), 0 12px 30px rgba(26, 61, 124, .12);
+            transform: translateY(-1px);
+        }
+
+        .docs-query-query-icon { color: #8c63ff; font-size: 1rem; padding-top: 1.2rem; }
+        .docs-query-ai-input { background: transparent; border: 0; box-shadow: none; color: var(--theme-text); min-height: 8rem; padding-left: .85rem; resize: vertical; }
+        .docs-query-ai-input:focus { border: 0; box-shadow: none; }
+        .docs-query-ai-input::placeholder { color: #8190aa; }
+        .docs-query-suggestions {
+            background: #fff;
+            border: 1px solid rgba(50, 115, 220, .16);
+            border-radius: 14px;
+            box-shadow: 0 14px 30px rgba(26, 61, 124, .12);
+            margin-top: .5rem;
+            max-height: 15rem;
+            overflow-y: auto;
+            padding: .35rem;
+            position: relative;
+            text-align: left;
+            z-index: 10;
+        }
+
+        .docs-query-suggestion-item {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            border-radius: 10px;
+            color: var(--theme-text);
+            cursor: pointer;
+            display: flex;
+            font-size: .82rem;
+            gap: .55rem;
+            padding: .65rem .75rem;
+            text-align: left;
+            width: 100%;
+        }
+
+        .docs-query-suggestion-item:hover,
+        .docs-query-suggestion-item:focus,
+        .docs-query-suggestion-item.is-active { background: rgba(50, 115, 220, .08); color: var(--theme-navy-deep); outline: none; }
+        .docs-query-suggestion-item i { color: #8c63ff; font-size: .75rem; }
+        .docs-query-ai-actions { align-items: center; display: flex; justify-content: space-between; margin-top: 1rem; }
+        .docs-query-ai-actions p { color: var(--theme-muted); font-size: .75rem; }
+        .docs-query-ai-actions p i { color: var(--theme-green); margin-right: .3rem; }
+        .docs-query-ai-button { background: linear-gradient(135deg, #3273dc, #6a5acd); border: 0; border-radius: 999px; box-shadow: 0 10px 20px rgba(50, 115, 220, .22); font-weight: 800; padding-left: 1.2rem; padding-right: 1.2rem; }
+        .docs-query-ai-button:hover, .docs-query-ai-button:focus { background: linear-gradient(135deg, #244a90, #5442b5); box-shadow: 0 14px 26px rgba(50, 115, 220, .28); transform: translateY(-1px); }
+
+        .docs-query-answer {
+            background: #101d33;
+            border: 2px solid #29466f;
+            border-radius: 18px;
+            box-shadow: 0 5px 14px rgba(18, 39, 84, 0.08);
+            color: #d8e7ff;
+            margin: 1rem 0 1.5rem;
+            padding: 1.25rem 1.4rem;
+            position: relative;
+        }
+
+        .docs-query-answer::before {
+            background: #29466f;
+            border-radius: 16px 16px 0 0;
+            content: "";
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 2.2rem;
+        }
+
+        .docs-query-answer::after {
+            color: #6f89ae;
+            content: "●  ●  ●";
+            font-size: .55rem;
+            left: 1.1rem;
+            letter-spacing: .1rem;
+            position: absolute;
+            top: .72rem;
+        }
+
+        .docs-query-answer-heading {
+            align-items: center;
+            color: #b9d7ff;
+            display: flex;
+            font-size: .82rem;
+            font-weight: 800;
+            justify-content: space-between;
+            letter-spacing: .02em;
+            margin-bottom: .9rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .docs-query-answer-heading i { color: #61d8c5; margin-right: .35rem; }
+        .docs-query-answer-label { color: #61d8c5; font-size: .62rem; letter-spacing: .1em; }
+        .docs-query-answer-body {
+            color: #e5efff;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            line-height: 1.75;
+            margin-top: .75rem;
+            white-space: pre-line;
+        }
+        .docs-query-ai-warning { color: #91a8c9; font-size: .72rem; margin: .9rem 0 0; }
+        .docs-query-ai-warning i { color: #61d8c5; margin-right: .3rem; }
+
+        .docs-query-page-banner {
+            border-radius: 22px;
+            box-shadow: 0 12px 28px rgba(18, 39, 84, 0.12);
+            display: block;
+            margin: 0 auto 1.5rem;
+            overflow: hidden;
+            transition: box-shadow 180ms ease, transform 180ms ease;
+            width: 80%;
+        }
+
+        .docs-query-page-banner img {
+            display: block;
+            height: auto;
+            width: 100%;
+        }
+
+        .docs-query-dashboard-card {
+            border-radius: 28px;
+            margin: 0 auto 1.5rem;
+            max-width: 1100px;
+            padding: 1.25rem 1.5rem;
+        }
+
+        .docs-query-ai-dashboard {
+            background: linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(240, 246, 255, .95));
+            border: 1px solid rgba(50, 115, 220, .18);
+            box-shadow: 0 16px 38px rgba(26, 61, 124, .09), inset 0 1px 0 rgba(255, 255, 255, .9);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .docs-query-ai-dashboard::before {
+            background: linear-gradient(90deg, #3273dc, #8c63ff, #3273dc);
+            content: "";
+            height: 3px;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+
+        .docs-query-dashboard-heading {
+            align-items: flex-start;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .docs-query-ai-dashboard > summary {
+            cursor: pointer;
+            list-style: none;
+            margin-bottom: 0;
+        }
+
+        .docs-query-ai-dashboard > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .docs-query-dashboard-toggle {
+            color: var(--theme-muted);
+            transition: transform 180ms ease;
+        }
+
+        .docs-query-ai-dashboard[open] > summary {
+            margin-bottom: 1rem;
+        }
+
+        .docs-query-ai-dashboard[open] .docs-query-dashboard-toggle {
+            transform: rotate(180deg);
+        }
+
+        .docs-query-dashboard-content {
+            padding-top: 0.1rem;
+        }
+
+        .docs-query-dashboard-kicker {
+            color: #8c63ff;
+            font-size: .62rem;
+            font-weight: 800;
+            letter-spacing: .1em;
+            margin-bottom: .45rem;
+            text-transform: uppercase;
+        }
+
+        .docs-query-dashboard-kicker i { margin-right: .3rem; }
+        .docs-query-dashboard-status { color: var(--theme-green); font-size: .65rem; font-weight: 800; letter-spacing: .08em; }
+        .docs-query-dashboard-status i { font-size: .45rem; margin-right: .25rem; }
+
+        .docs-query-dashboard-stats {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .docs-query-dashboard-stat {
+            background: rgba(255, 255, 255, .75);
+            border: 1px solid rgba(50, 115, 220, .12);
+            border-radius: 14px;
+            padding: 0.8rem 1rem;
+        }
+
+        .docs-query-dashboard-stat.is-warning {
+            background: rgba(140, 99, 255, .07);
+            border-color: rgba(140, 99, 255, .18);
+        }
+
+        .docs-query-dashboard-stat strong {
+            color: var(--theme-navy-deep);
+            display: block;
+            font-size: 1.45rem;
+            line-height: 1.2;
+        }
+
+        .docs-query-dashboard-label {
+            color: var(--theme-muted);
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .docs-query-dashboard-types {
+            border-top: 1px solid rgba(50, 115, 220, 0.12);
+            margin-top: 1rem;
+            padding-top: 0.85rem;
+        }
+
+        .docs-query-ai-dashboard .tag { background: rgba(50, 115, 220, .08); color: var(--theme-navy); }
+        .docs-query-ai-dashboard .tag:hover { background: rgba(140, 99, 255, .14); color: var(--theme-navy-deep); }
+
+        @media screen and (max-width: 1023px) {
+            .docs-query-ai-shell { margin-left: 0; margin-right: 0; width: 100%; }
+        }
+
+        @media screen and (max-width: 768px) {
+            .docs-query-dashboard-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .docs-query-page-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .docs-query-shell { order: 0; }
+        #docs-query-results { order: 1; }
+        .docs-query-discovery-card { order: 2; }
+        .docs-query-documents-link { order: 3; }
+
+        .docs-query-documents-cta {
+            background: rgba(18, 39, 84, .04);
+            border: 1px solid rgba(18, 39, 84, .16);
+            border-radius: 999px;
+            box-shadow: none;
+            color: var(--theme-muted);
+            font-size: .85rem;
+            font-weight: 600;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+            transition: background .15s ease, border-color .15s ease, color .15s ease;
+        }
+
+        .docs-query-documents-cta:hover,
+        .docs-query-documents-cta:focus {
+            background: rgba(18, 39, 84, .08);
+            border-color: rgba(18, 39, 84, .28);
+            color: var(--theme-navy-deep);
+        }
+
+        .docs-query-search-video {
+            background: transparent;
+            border: 0;
+            border-radius: 18px;
+            box-shadow: 0 16px 34px rgba(18, 39, 84, 0.24);
+            display: block;
+            height: auto;
+            margin: 0;
+            max-width: 360px;
+            opacity: 0;
+            pointer-events: none;
+            position: fixed;
+            right: 1.5rem;
+            top: 5.5rem;
+            transform: translateY(-8px) scale(0.98);
+            transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+            visibility: hidden;
+            width: min(36vw, 360px);
+            z-index: 30;
+        }
+
+        .docs-query-search-video.is-searching {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            visibility: visible;
+        }
+
+        .docs-query-discovery-card,
+        .docs-query-results-card {
+            border-radius: 28px;
+            margin: 1.5rem auto 3rem;
+            padding: 1.25rem 2.75rem;
+        }
+
+        .docs-query-discovery-card {
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            margin-bottom: 1.5rem;
+            padding: .75rem 0 0;
+        }
+
+        .docs-query-discovery-card .docs-query-discovery {
+            border-top-color: rgba(18, 39, 84, .08);
+            margin-top: 1rem !important;
+            padding-top: 1.15rem;
+        }
+
+        .docs-query-discovery-card .title {
+            color: var(--theme-muted);
+            font-size: .82rem;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .docs-query-discovery-card .docs-query-popular-list {
+            color: var(--theme-muted);
+            font-size: .78rem;
+        }
+
+        .docs-query-discovery-card .tag {
+            background: rgba(18, 39, 84, .05);
+            color: var(--theme-muted);
+            font-size: .65rem;
+        }
+
+        .docs-query-shell,
+        .docs-query-dashboard-card,
+        .docs-query-results-card {
+            border: 2px solid var(--theme-border);
+            box-shadow: 0 5px 14px rgba(18, 39, 84, 0.045);
+        }
+
+        .docs-query-result {
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .docs-query-result .message-header {
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .docs-query-result .message-body {
+            line-height: 1.65;
+        }
+
+        .docs-query-related-document {
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            height: 100%;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .docs-query-related-document:hover {
+            box-shadow: 0 0.5rem 1.5rem rgba(18, 39, 84, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .docs-query-related-table-container {
+            margin-top: 1.25rem;
+        }
+
+        .docs-query-related-table {
+            min-width: 980px;
+        }
+
+        .docs-query-related-table th {
+            background: rgba(18, 39, 84, 0.04);
+            color: var(--theme-navy-deep);
+            font-size: 0.78rem;
+            white-space: nowrap;
+        }
+
+        .docs-query-related-table td {
+            vertical-align: middle;
+        }
+
+        .docs-query-related-date {
+            color: #3273dc;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .docs-query-related-title {
+            min-width: 18rem;
+        }
+
+        .docs-query-related-title a {
+            align-items: flex-start;
+            color: var(--theme-navy-deep);
+            display: inline-flex;
+            gap: 0.35rem;
+            line-height: 1.4;
+        }
+
+        .docs-query-related-title a:hover {
+            color: #3273dc;
+        }
+
+        .docs-query-table-subtitle {
+            color: var(--theme-muted);
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 400;
+            line-height: 1.45;
+            margin-top: 0.25rem;
+            max-width: 32rem;
+        }
+
+        .docs-query-related-table .button {
+            white-space: nowrap;
+        }
+
+        .docs-query-reference-modal .modal-card {
+            width: min(720px, calc(100vw - 2rem));
+        }
+
+        .docs-query-reference-text {
+            background: rgba(18, 39, 84, 0.04);
+            border-left: 3px solid #3273dc;
+            border-radius: 8px;
+            line-height: 1.7;
+            max-height: 28rem;
+            overflow-y: auto;
+            padding: 1rem;
+            white-space: pre-line;
+        }
+
+        .docs-query-answer {
+            border-radius: 14px;
+            margin-bottom: 1.25rem;
+        }
+
+        .docs-query-answer-body.is-typing::after {
+            animation: docs-query-caret 900ms step-end infinite;
+            background: var(--theme-navy);
+            content: '';
+            display: inline-block;
+            height: 1em;
+            margin-left: 0.22rem;
+            vertical-align: -0.12em;
+            width: 0.42em;
+        }
+
+        @keyframes docs-query-caret {
+            0%, 45% { opacity: 1; }
+            46%, 100% { opacity: 0; }
+        }
+
+        .docs-query-discovery {
+            border-top: 1px solid rgba(18, 39, 84, 0.1);
+            padding-top: 1.5rem;
+        }
+
+        .docs-query-popular-list {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        .docs-query-popular-list li {
+            align-items: center;
+            display: grid;
+            gap: .5rem;
+            grid-template-columns: minmax(0, 1fr) auto;
+            margin-bottom: .65rem;
+            min-width: 0;
+        }
+
+        .docs-query-popular-label {
+            background: transparent;
+            border: 0;
+            color: inherit;
+            display: block;
+            font: inherit;
+            min-width: 0;
+            overflow: hidden;
+            padding: 0;
+            text-align: left;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .docs-query-popular-query {
+            cursor: pointer;
+        }
+
+        .docs-query-popular-query:hover,
+        .docs-query-popular-query:focus {
+            color: #3273dc;
+            text-decoration: underline;
+        }
+
+        @media screen and (max-width: 768px) {
+            .docs-query-page-banner {
+                width: 100%;
+            }
+
+            .docs-query-search-video {
+                right: 0.75rem;
+                top: 4.75rem;
+                width: min(44vw, 240px);
+            }
+        }
+    </style>
+    <script>
+        var searchForm = document.getElementById('docs-query-search-form');
+        var searchInput = document.getElementById('query');
+        var searchButton = document.getElementById('docs-query-search-button');
+        var searchVideo = document.getElementById('docs-query-search-video');
+        var suggestionsPanel = document.getElementById('docs-query-suggestions');
+        var existingQueries = [
+            {% for popular_query in statistics.popular_queries %}
+                {{ popular_query.query_text|tojson }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        var searchInProgress = false;
+        var activeSuggestionIndex = -1;
+
+        function uniqueQueryMatches(value) {
+            var normalizedValue = value.trim().toLowerCase();
+            return existingQueries.filter(function (queryText, index, queries) {
+                var normalizedQuery = queryText.toLowerCase();
+                return (!normalizedValue || normalizedQuery.indexOf(normalizedValue) !== -1) && queries.indexOf(queryText) === index;
+            }).slice(0, 6);
+        }
+
+        function renderQuerySuggestions(showWhenEmpty) {
+            if (!searchInput || !suggestionsPanel) return;
+            var value = searchInput.value.trim();
+            if (!value && !showWhenEmpty) {
+                suggestionsPanel.hidden = true;
+                suggestionsPanel.innerHTML = '';
+                searchInput.setAttribute('aria-expanded', 'false');
+                return;
+            }
+
+            var matches = uniqueQueryMatches(value);
+            activeSuggestionIndex = -1;
+
+            suggestionsPanel.innerHTML = '';
+            matches.forEach(function (queryText, index) {
+                var option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'docs-query-suggestion-item';
+                option.setAttribute('role', 'option');
+                option.id = 'docs-query-suggestion-' + index;
+                option.innerHTML = '<i class="fas fa-clock-rotate-left" aria-hidden="true"></i><span></span>';
+                option.querySelector('span').textContent = queryText;
+                option.addEventListener('mousedown', function (event) {
+                    event.preventDefault();
+                });
+                option.addEventListener('click', function () {
+                    searchInput.value = queryText;
+                    suggestionsPanel.hidden = true;
+                    suggestionsPanel.innerHTML = '';
+                    searchInput.setAttribute('aria-expanded', 'false');
+                    searchInput.removeAttribute('aria-activedescendant');
+                    searchInput.focus();
+                });
+                suggestionsPanel.appendChild(option);
+            });
+            suggestionsPanel.hidden = matches.length === 0;
+            searchInput.setAttribute('aria-expanded', matches.length > 0 ? 'true' : 'false');
+        }
+
+        function setActiveSuggestion(nextIndex) {
+            var options = suggestionsPanel ? suggestionsPanel.querySelectorAll('.docs-query-suggestion-item') : [];
+            if (!options.length) return;
+            activeSuggestionIndex = (nextIndex + options.length) % options.length;
+            options.forEach(function (option, index) {
+                option.classList.toggle('is-active', index === activeSuggestionIndex);
+            });
+            searchInput.setAttribute('aria-activedescendant', options[activeSuggestionIndex].id);
+            options[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('focus', function () { renderQuerySuggestions(true); });
+            searchInput.addEventListener('input', function () { renderQuerySuggestions(false); });
+            searchInput.addEventListener('keydown', function (event) {
+                var options = suggestionsPanel ? suggestionsPanel.querySelectorAll('.docs-query-suggestion-item') : [];
+                if (event.key === 'ArrowDown' && options.length) {
+                    event.preventDefault();
+                    setActiveSuggestion(activeSuggestionIndex + 1);
+                } else if (event.key === 'ArrowUp' && options.length) {
+                    event.preventDefault();
+                    setActiveSuggestion(activeSuggestionIndex - 1);
+                } else if (event.key === 'Enter' && activeSuggestionIndex >= 0 && options[activeSuggestionIndex]) {
+                    event.preventDefault();
+                    options[activeSuggestionIndex].click();
+                } else if (event.key === 'Escape') {
+                    suggestionsPanel.hidden = true;
+                    searchInput.setAttribute('aria-expanded', 'false');
+                    searchInput.removeAttribute('aria-activedescendant');
+                }
+            });
+        }
+        document.addEventListener('click', function (event) {
+            if (suggestionsPanel && !suggestionsPanel.contains(event.target) && event.target !== searchInput) {
+                suggestionsPanel.hidden = true;
+                if (searchInput) searchInput.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        if (searchVideo) {
+            searchVideo.addEventListener('loadedmetadata', function () {
+                searchVideo.currentTime = 0;
+                searchVideo.pause();
+            });
+
+            searchVideo.addEventListener('ended', function () {
+                if (searchInProgress) {
+                    searchVideo.currentTime = 0;
+                    searchVideo.play().catch(function () {});
+                } else {
+                    stopSearchVideo();
+                }
+            });
+        }
+
+        function stopSearchVideo() {
+            if (!searchVideo) return;
+            searchVideo.pause();
+            searchVideo.currentTime = 0;
+            searchVideo.classList.remove('is-searching');
+        }
+
+        function setSearchLoading(isLoading) {
+            searchButton.classList.toggle('is-loading', isLoading);
+            searchButton.disabled = isLoading;
+            if (isLoading && searchVideo) {
+                searchInProgress = true;
+                searchVideo.classList.add('is-searching');
+                searchVideo.currentTime = 0;
+                searchVideo.play().catch(function () {});
+            } else {
+                searchInProgress = false;
+                if (searchVideo && searchVideo.ended) {
+                    stopSearchVideo();
+                }
+            }
+        }
+
+        searchForm.addEventListener('submit', function () {
+            setSearchLoading(true);
+        });
+
+        document.querySelectorAll('.docs-query-popular-query').forEach(function (queryButton) {
+            queryButton.addEventListener('click', function () {
+                searchInput.value = queryButton.dataset.query;
+                searchForm.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+                window.setTimeout(function () {
+                    searchForm.requestSubmit();
+                }, 550);
+            });
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function (event) {
+            if (event.detail.elt === searchForm) {
+                setSearchLoading(false);
+            }
+        });
+
+        function bindReferenceModals() {
+            document.querySelectorAll('.docs-query-reference-trigger').forEach(function (trigger) {
+                trigger.addEventListener('click', function () {
+                    var modal = document.getElementById(trigger.dataset.target);
+                    if (modal) modal.classList.add('is-active');
+                });
+            });
+            document.querySelectorAll('.docs-query-modal-close, .docs-query-reference-modal .modal-background').forEach(function (closeButton) {
+                closeButton.addEventListener('click', function () {
+                    var modal = closeButton.closest('.modal');
+                    if (modal) modal.classList.remove('is-active');
+                });
+            });
+        }
+
+        function scrollToSearchResults(targetY, duration) {
+            var startY = window.scrollY;
+            var distance = targetY - startY;
+            var startTime = null;
+
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                var progress = Math.min((timestamp - startTime) / duration, 1);
+                var easedProgress = progress < 0.5
+                    ? 2 * progress * progress
+                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                window.scrollTo(0, startY + distance * easedProgress);
+                if (progress < 1) window.requestAnimationFrame(step);
+            }
+
+            window.requestAnimationFrame(step);
+        }
+
+        function getAnswerGraphemes(text) {
+            if (window.Intl && Intl.Segmenter) {
+                var segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+                return Array.from(segmenter.segment(text), function (part) { return part.segment; });
+            }
+            return Array.from(text);
+        }
+
+        function typeAnswer(answerBody) {
+            if (!answerBody || answerBody.dataset.typingReady === 'true') return;
+
+            var answerText = answerBody.textContent;
+            if (!answerText || !answerText.trim()) return;
+
+            answerBody.dataset.typingReady = 'true';
+            answerBody.textContent = '';
+            answerBody.classList.add('is-typing');
+
+            var graphemes = getAnswerGraphemes(answerText);
+            var index = 0;
+
+            function typeNext() {
+                if (index >= graphemes.length) {
+                    answerBody.classList.remove('is-typing');
+                    return;
+                }
+
+                answerBody.appendChild(document.createTextNode(graphemes[index]));
+                index += 1;
+                var previous = graphemes[index - 1];
+                var delay = /[.!?。！？]/.test(previous) ? 110 : (previous === ' ' ? 10 : 18);
+                window.setTimeout(typeNext, delay);
+            }
+
+            typeNext();
+        }
+
+        function startAnswerTyping(root) {
+            var scope = root || document;
+            scope.querySelectorAll('.docs-query-answer .docs-query-answer-body').forEach(typeAnswer);
+        }
+
+        bindReferenceModals();
+        startAnswerTyping();
+        document.body.addEventListener('htmx:afterSwap', function (event) {
+            if (event.detail.target.id === 'docs-query-results') {
+                bindReferenceModals();
+                startAnswerTyping(event.detail.target);
+                var results = event.detail.target;
+                var scrollTop = results.getBoundingClientRect().top + window.scrollY - 80;
+                scrollToSearchResults(Math.max(scrollTop, 0), 1000);
+            }
+        });
+    </script>
+{% endblock %}

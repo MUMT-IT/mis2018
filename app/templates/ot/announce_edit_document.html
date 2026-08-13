@@ -5,11 +5,33 @@
 {{ super() }}
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/timepicker/1.3.5/jquery.timepicker.min.css">
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+<style>
+    #signatories-container .select2-container {
+        width: 100% !important;
+    }
+
+    #add-signatory {
+        margin-top: 0.75rem;
+    }
+
+    @media screen and (min-width: 769px) {
+        #signatories-container .signatory-employee-column {
+            flex: 0 0 21.5%;
+            max-width: 21.5%;
+        }
+
+        #signatories-container .signatory-position-column {
+            flex: 0 0 22.5%;
+            max-width: 22.5%;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block page_content %}
 <section class="section">
-    <div class="container">
+    <div class="container is-fluid">
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
@@ -17,7 +39,7 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-two-thirds is-offset-2">
+            <div class="column is-full">
                 <div class="box">
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
@@ -39,23 +61,23 @@
                                 {% for signatory in form.signatories %}
                                 <div class="box signatory-row" data-index="{{ loop.index0 }}">
                                     <div class="columns is-multiline is-vcentered">
-                                        <div class="column is-3">
+                                        <div class="column is-3 signatory-employee-column">
                                             <label class="label">{{ signatory.form.report_creator_staff.label }}</label>
-                                            <div class="select is-fullwidth">
-                                                {{ signatory.form.report_creator_staff() }}
+                                            <div>
+                                                {{ signatory.form.report_creator_staff(class="employee-search") }}
                                             </div>
                                         </div>
-                                        <div class="column is-2">
+                                        <div class="column is-2 signatory-position-column">
                                             <label class="label">{{ signatory.form.report_creator_position.label }}</label>
                                             {{ signatory.form.report_creator_position(class="input") }}
                                         </div>
-                                        <div class="column is-3">
+                                        <div class="column is-3 signatory-employee-column">
                                             <label class="label">{{ signatory.form.signer_staff.label }}</label>
-                                            <div class="select is-fullwidth">
-                                                {{ signatory.form.signer_staff() }}
+                                            <div>
+                                                {{ signatory.form.signer_staff(class="employee-search") }}
                                             </div>
                                         </div>
-                                        <div class="column is-2">
+                                        <div class="column is-2 signatory-position-column">
                                             <label class="label">{{ signatory.form.signer_position.label }}</label>
                                             {{ signatory.form.signer_position(class="input") }}
                                         </div>
@@ -146,6 +168,7 @@
 {% block scripts %}
 {{ super() }}
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     function initializeDatePicker(selector) {
         const $input = $(selector);
@@ -180,7 +203,28 @@
     $(document).ready(function() {
         initializeDatePicker('input[name="announce_at"]');
         initializeDatePicker('input[name="start_datetime"]');
+        initializeEmployeeSearch(document);
     });
+
+    function initializeEmployeeSearch(scope) {
+        $(scope).find('select.employee-search').each(function() {
+            const select = $(this);
+            if (select.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+            select.select2({
+                allowClear: true,
+                placeholder: 'ค้นหาบุคลากร...',
+                width: '100%'
+            });
+        });
+    }
+
+    function destroyEmployeeSearch() {
+        $('#signatories-container select.employee-search.select2-hidden-accessible').each(function() {
+            $(this).select2('destroy');
+        });
+    }
 
     function reindexSignatories() {
         $('#signatories-container .signatory-row').each(function(index) {
@@ -208,6 +252,7 @@
 
     $('#add-signatory').on('click', function() {
         const $rows = $('#signatories-container .signatory-row');
+        destroyEmployeeSearch();
         const $template = $rows.last().clone();
         const nextIndex = $rows.length;
         $template.attr('data-index', nextIndex);
@@ -236,6 +281,7 @@
         });
         $('#signatories-container').append($template);
         reindexSignatories();
+        initializeEmployeeSearch(document);
     });
 
     $(document).on('click', '.remove-signatory', function() {

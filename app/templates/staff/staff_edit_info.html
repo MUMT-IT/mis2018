@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
+{% block head %}
+{{ super() }}
+<style>
+    .staff-edit-avatar { align-items: center; background: linear-gradient(135deg, var(--theme-navy-deep), var(--theme-gold)); border-radius: 50%; color: #fff; display: inline-flex; font-size: 2rem; font-weight: 800; height: 7rem; justify-content: center; overflow: hidden; width: 7rem; }
+    .staff-edit-avatar img { height: 100%; object-fit: cover; width: 100%; }
+</style>
+{% endblock %}
 <section class="section" id="app">
     <div class="container">
         {% for msg in get_flashed_messages() %}
@@ -8,6 +15,13 @@
         {% endfor %}
         <div class="columns">
             <div class="column has-text-centered">
+                <div class="staff-edit-avatar" aria-label="รูปภาพ {{ staff.fullname }}">
+                    {% if staff.image_url %}
+                        <img src="{{ staff.image_url }}" alt="{{ staff.fullname }}">
+                    {% else %}
+                        {{ (staff.th_firstname or staff.en_firstname or '?')[:1] }}
+                    {% endif %}
+                </div>
                 <h1 class="title">แก้ไขข้อมูล {{ staff.fullname }}</h1>
             </div>
         </div>
@@ -25,7 +39,7 @@
                                 <div class="control">
                                     <input class="input"
                                         name="email" type="text" placeholder="firstname.las"
-                                        value="{{ staff.staff_account.email }}">
+                                        value="{{ staff.staff_account.email if staff.staff_account else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -40,7 +54,7 @@
                                 <div class="control">
                                     <input class="input"
                                         name="external_email" type="email" placeholder="name@example.com"
-                                        value="{{ staff.staff_account.external_email }}">
+                                        value="{{ staff.staff_account.external_email if staff.staff_account else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -104,6 +118,22 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label" for="image_url">รูปภาพบุคลากร</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           id="image_url" name="image_url" type="url"
+                                           placeholder="https://example.com/avatar.jpg"
+                                           value="{{ staff.image_url or '' }}">
+                                </div>
+                                <p class="help">ใส่ URL รูปภาพสำหรับแสดงในระบบ</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">Firstname</label>
                         </div>
                         <div class="field-body">
@@ -132,20 +162,39 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ตำแหน่ง</label>
+                            <label class="label">ระดับตำแหน่ง</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                        name="position" type="text" placeholder="ตำแหน่ง" value="{{ staff.position }}">
+                                        name="position_level" type="text" placeholder="ระดับตำแหน่ง" value="{{ staff.position_level or '' }}"
+                                        {% if staff.academic_staff %}disabled{% endif %}>
+                                    {% if staff.academic_staff %}
+                                    <p class="help">บุคลากรสายวิชาการใช้ตำแหน่งทางวิชาการจากข้อมูลตำแหน่งทางวิชาการ</p>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ตำแหน่ง</label>
+                            <label class="label">ตำแหน่งวิชาการ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input" type="text"
+                                           value="{{ staff.academic_positions[0].position.fullname_th if staff.academic_positions else '' }}"
+                                           disabled>
+                                </div>
+                                <p class="help">แก้ไขผ่านข้อมูลตำแหน่งทางวิชาการ</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ตำแหน่งงาน</label>
                         </div>
                         <div class="field-body">
                             <div class="control">
@@ -413,5 +462,3 @@
     });
 </script>
 {% endblock %}
-
-

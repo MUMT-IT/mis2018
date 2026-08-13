@@ -2,21 +2,91 @@
 
 {% include "files_services/nav.html" %}
 {% block page_content %}
-   <section>
-    <h1>Upload File to S3</h1>
-    {% if request.args.get('success') %}
-        <p style="color: green;">File uploaded successfully!</p>
-        <p>File URL: <a href="{{ request.args.get('file_url') }}" target="_blank">{{ request.args.get('file_url') }}</a></p>
-    {% endif %}
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-8-tablet is-6-desktop is-5-widescreen">
+                    <div class="box" style="border-radius: 22px; padding: 2.5rem;">
+                        <div class="has-text-centered mb-5">
+                            <span class="icon is-large has-text-info mb-3">
+                                <i class="fas fa-cloud-upload-alt fa-3x" aria-hidden="true"></i>
+                            </span>
+                            <h1 class="title is-3 mb-2">Upload file to S3</h1>
+                            <p class="subtitle is-6 has-text-grey mb-0">
+                                Select a file to upload it to
+                                <code>{{ prefix or 'ui-assets/' }}</code>.
+                            </p>
+                        </div>
 
-    <form action="{{ url_for('files_services.upload_file') }}" method="post" enctype="multipart/form-data">
- <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-        <label for="file">Select file:</label>
-        <input type="file" name="file" id="file" required>
-        <button type="submit">Upload</button>
-    </form>
+                        {% if request.args.get('success') %}
+                            <div class="notification is-success is-light">
+                                <p class="has-text-weight-semibold">File uploaded successfully.</p>
+                                {% if request.args.get('file_url') %}
+                                    <a href="{{ request.args.get('file_url') }}" target="_blank" rel="noopener noreferrer">
+                                        View uploaded file
+                                    </a>
+                                {% endif %}
+                                {% if request.args.get('file_key') %}
+                                    <p class="is-size-7 mt-2">S3 key: <code>{{ request.args.get('file_key') }}</code></p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
 
+                        <form action="{{ url_for('files_services.upload_file') }}" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="prefix" value="{{ prefix }}">
+                            <div class="field">
+                                <label class="label" for="file">Choose a file</label>
+                                <div class="control">
+                                    <div class="file has-name is-fullwidth">
+                                        <label class="file-label">
+                                            <input class="file-input" type="file" name="file" id="file" required>
+                                            <span class="file-cta">
+                                                <span class="file-icon"><i class="fas fa-folder-open" aria-hidden="true"></i></span>
+                                                <span class="file-label">Browse files</span>
+                                            </span>
+                                            <span class="file-name" id="selected-file-name">No file selected</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
 
-</section>
+                            <div class="field mt-5">
+                                <div class="control">
+                                    <button class="button is-info is-medium is-fullwidth" id="upload-submit-button" type="submit">
+                                        <span class="icon"><i class="fas fa-upload" aria-hidden="true"></i></span>
+                                        <span class="upload-button-label">Upload to S3</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
+    <script>
+        (function () {
+            var fileInput = document.getElementById('file');
+            var fileName = document.getElementById('selected-file-name');
+            var uploadForm = fileInput ? fileInput.form : null;
+            var uploadButton = document.getElementById('upload-submit-button');
+            if (!fileInput || !fileName) return;
+
+            fileInput.addEventListener('change', function () {
+                fileName.textContent = fileInput.files.length
+                    ? fileInput.files[0].name
+                    : 'No file selected';
+            });
+
+            if (uploadForm && uploadButton) {
+                uploadForm.addEventListener('submit', function () {
+                    uploadButton.classList.add('is-loading');
+                    uploadButton.disabled = true;
+                    uploadButton.querySelector('.upload-button-label').textContent = 'Uploading...';
+                });
+            }
+        })();
+    </script>
 {% endblock %}

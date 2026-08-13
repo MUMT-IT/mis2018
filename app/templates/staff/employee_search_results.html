@@ -1,0 +1,44 @@
+<div class="employee-search-results">
+    {% if not search_term and not selected_org %}
+        <div class="employee-search-empty">พิมพ์ชื่อ นามสกุล หรือหน่วยงานเพื่อเริ่มค้นหา</div>
+    {% else %}
+        {% if selected_org %}
+            <div class="employee-search-empty" style="grid-column: 1 / -1; padding: 1rem; text-align: left;">บุคลากรใน{{ selected_org.display_name }} ({{ employees|length }} คน)</div>
+        {% endif %}
+        {% for employee in employees %}
+            {% set initials = ((employee.th_firstname or employee.en_firstname or '?')[:1] ~ (employee.th_lastname or employee.en_lastname or '?')[:1]) %}
+            {% set academic_position = employee.academic_positions[0] if employee.academic_positions else none %}
+            {% set job_position_name = employee.job_position.th_title if employee.job_position else employee.position %}
+            {% set is_department_head = employee.position and 'หัวหน้าภาควิชา' in employee.position %}
+            <article class="employee-card{% if is_department_head %} employee-card--head{% endif %}">
+                <div class="employee-card-header">
+                    <span class="employee-avatar">
+                        {% if employee.image_url %}
+                            <img src="{{ employee.image_url }}" alt="{{ employee.fullname }}">
+                        {% else %}
+                            {{ initials }}
+                        {% endif %}
+                    </span>
+                    <div>
+                        {% if is_department_head %}<span class="employee-head-badge"><i class="fas fa-star" aria-hidden="true"></i> หัวหน้าภาควิชา</span>{% endif %}
+                        <h2 class="employee-name">
+                            {{ employee.fullname }}
+                        </h2>
+                        <p class="employee-name-en">
+                            {{ employee.en_fullname }}
+                        </p>
+                    </div>
+                </div>
+                <div class="employee-details">
+                    <div class="employee-detail"><span class="employee-detail-label">หน่วยงาน</span><span class="employee-detail-value">{{ employee.org.name if employee.org else 'ไม่ระบุ' }}</span></div>
+                    <div class="employee-detail"><span class="employee-detail-label">ตำแหน่ง</span><span class="employee-detail-value">{% if job_position_name %}{{ job_position_name }}{% if employee.position_level %} ({{ employee.position_level }}){% endif %}{% elif academic_position %}{{ academic_position.position.fullname_th }}{% else %}ไม่ระบุ{% endif %}</span></div>
+                    <div class="employee-detail"><span class="employee-detail-label">อีเมล</span><span class="employee-detail-value">{% if employee.staff_account and employee.staff_account.email %}{{ employee.staff_account.email }}{% if '@' not in employee.staff_account.email %}@mahidol.ac.th{% endif %}{% else %}ไม่ระบุ{% endif %}</span></div>
+                    <div class="employee-detail"><span class="employee-detail-label">โทรศัพท์</span><span class="employee-detail-value">{{ employee.mobile_phone or employee.telephone or 'ไม่ระบุ' }}</span></div>
+                    <div class="employee-detail"><span class="employee-detail-label">ประเภทการจ้างงาน</span><span class="employee-detail-value">{{ employee.employment.title if employee.employment else 'ไม่ระบุ' }}</span></div>
+                </div>
+            </article>
+        {% else %}
+            <div class="employee-search-empty">ไม่พบบุคลากรที่ตรงกับ “{{ search_term }}”</div>
+        {% endfor %}
+    {% endif %}
+</div>

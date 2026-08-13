@@ -15,6 +15,7 @@ from flask import (render_template, redirect, request,
 from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity, identity_loaded, UserNeed
 from app.staff.models import StaffAccount, StaffLeaveApprover
+from app.roles import head_permission
 from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import requests
@@ -150,6 +151,11 @@ def on_identity_loaded(sender, identity):
     if hasattr(current_user, 'roles'):
         for role in current_user.roles:
             identity.provides.add(role.to_tuple())
+
+    personal_info = getattr(current_user, 'personal_info', None)
+    org = getattr(personal_info, 'org', None)
+    if org and org.head and org.head == current_user.email:
+        identity.provides.update(head_permission.needs)
 
 
 @auth.route('/login', methods=['GET', 'POST'])
@@ -452,6 +458,7 @@ def line_profile():
                 flash(u'Your account is inactive. บัญชีผู้ใช้นี้ไม่สามารถเข้าใช้งานได้', 'danger')
                 return redirect(url_for('auth.login'))
             session['user_type'] = 'staff'
+            identity_changed.send(current_app._get_current_object(), identity=Identity(line_user.id))
         if _is_external_account(line_user):
             return redirect(url_for('external_landing'))
         return redirect(next_url or url_for('index'))

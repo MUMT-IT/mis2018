@@ -10,7 +10,10 @@
         }
 
         .home-hero {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
+            background:
+                radial-gradient(circle at 8% 12%, rgba(26, 61, 124, 0.11), transparent 30%),
+                radial-gradient(circle at 92% 88%, rgba(202, 168, 74, 0.13), transparent 30%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.96));
             border: 1px solid var(--theme-border);
             border-radius: 28px;
             box-shadow: var(--theme-shadow);
@@ -18,15 +21,72 @@
             position: relative;
         }
 
+        .home-hero::before {
+            background: linear-gradient(90deg, var(--theme-navy-deep), var(--theme-gold), var(--theme-red));
+            content: "";
+            height: 5px;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            z-index: 2;
+        }
+
         .home-hero::after {
             background: linear-gradient(135deg, rgba(240, 196, 25, 0.24), rgba(184, 67, 63, 0));
             border-radius: 999px;
             content: "";
             height: 16rem;
+            pointer-events: none;
             position: absolute;
             right: -4rem;
             top: -5rem;
             width: 16rem;
+        }
+
+        .home-hero > .columns {
+            position: relative;
+            z-index: 1;
+        }
+
+        .docs-query-home-banner {
+            border-radius: 22px;
+            box-shadow: var(--theme-shadow);
+            display: block;
+            margin: 1.25rem auto 1.5rem;
+            overflow: hidden;
+            transition: box-shadow 180ms ease, transform 180ms ease;
+            width: 80%;
+        }
+
+        .docs-query-home-card {
+            margin: 1.5rem 0;
+            padding: 1.2rem;
+        }
+
+        .docs-query-home-card .home-panel-header {
+            margin-bottom: 0.9rem;
+        }
+
+        .docs-query-home-card .home-panel-subtitle {
+            color: var(--theme-navy);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 auto 1rem;
+            max-width: 62rem;
+            text-align: center;
+        }
+
+        .docs-query-home-banner:hover,
+        .docs-query-home-banner:focus-visible {
+            box-shadow: 0 16px 34px rgba(18, 39, 84, 0.16);
+            transform: translateY(-2px);
+        }
+
+        .docs-query-home-banner img {
+            display: block;
+            height: auto;
+            width: 100%;
         }
 
         .home-kicker {
@@ -64,7 +124,13 @@
             display: grid;
             gap: 0.9rem;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            margin-top: 1.5rem;
+            margin-top: 0;
+        }
+
+        .home-summary-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
         .home-stat,
@@ -72,9 +138,9 @@
         .home-service-card {
             backdrop-filter: blur(12px);
             background: var(--theme-surface);
-            border: 1px solid var(--theme-border);
+            border: 2px solid var(--theme-border);
             border-radius: 22px;
-            box-shadow: var(--theme-shadow);
+            box-shadow: 0 5px 14px rgba(18, 39, 84, 0.045);
         }
 
         .home-stat {
@@ -93,6 +159,17 @@
             border-color: rgba(202, 168, 74, 0.28);
             box-shadow: 0 12px 28px rgba(18, 39, 84, 0.08);
             transform: translateY(-1px);
+        }
+
+        .home-summary-link--staff-search {
+            border-color: rgba(46, 139, 87, 0.58);
+            box-shadow: 0 0 14px rgba(46, 139, 87, 0.2), var(--theme-shadow);
+        }
+
+        .home-summary-link--staff-search:hover,
+        .home-summary-link--staff-search:focus-visible {
+            border-color: var(--theme-green);
+            box-shadow: 0 0 20px rgba(46, 139, 87, 0.34), 0 12px 28px rgba(18, 39, 84, 0.1);
         }
 
         .home-summary-link-copy {
@@ -119,8 +196,147 @@
             line-height: 1.15;
         }
 
+        .home-today-calendar {
+            padding: 1rem 1.05rem;
+        }
+
+        .home-today-calendar-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .home-today-calendar-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .home-today-calendar-date {
+            color: var(--theme-muted);
+            font-size: 0.78rem;
+            margin-top: 0.1rem;
+        }
+
+        .home-today-calendar-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.75rem;
+        }
+
+        .home-mini-calendar-toggle {
+            background: transparent;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            color: var(--theme-navy-deep);
+            font-size: 0.72rem;
+            font-weight: 700;
+            height: 1.9rem;
+            padding: 0 0.55rem;
+        }
+
+        .home-mini-calendar-toggle:hover,
+        .home-mini-calendar-toggle:focus {
+            border-color: rgba(18, 39, 84, 0.24);
+            color: var(--theme-navy-deep);
+        }
+
+        .home-today-calendar-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .home-today-calendar-event {
+            background: linear-gradient(135deg, rgba(228, 243, 233, 0.98), rgba(246, 251, 248, 0.96));
+            border: 1px solid #b8ddc4;
+            border-left: 4px solid #4f8f67;
+            border-radius: 14px;
+            padding: 0.7rem 0.75rem;
+        }
+
+        .home-today-calendar-event-copy {
+            min-width: 0;
+        }
+
+        .home-today-calendar-event-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.88rem;
+            font-weight: 800;
+            line-height: 1.3;
+            margin: 0;
+        }
+
+        .home-today-calendar-event-meta {
+            color: #52627d;
+            font-size: 0.76rem;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-top: 0.15rem;
+        }
+
+        .home-today-calendar-empty {
+            color: var(--theme-muted);
+            font-size: 0.82rem;
+            padding: 0.1rem 0;
+        }
+
+        .home-week-ai-summary {
+            background: linear-gradient(145deg, rgba(255, 252, 240, 0.96), rgba(255, 255, 255, 0.92));
+            border-color: rgba(202, 168, 74, 0.24);
+        }
+
+        .home-week-ai-summary-head {
+            align-items: flex-start;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            margin-bottom: 0.7rem;
+        }
+
+        .home-ai-badge {
+            align-items: center;
+            background: rgba(202, 168, 74, 0.14);
+            border: 1px solid rgba(202, 168, 74, 0.2);
+            border-radius: 999px;
+            color: #765b0b;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 0.65rem;
+            font-weight: 700;
+            gap: 0.3rem;
+            padding: 0.3rem 0.5rem;
+        }
+
+        .home-week-ai-summary-text,
+        .home-week-ai-summary-empty,
+        .home-week-ai-summary-error {
+            color: var(--theme-navy-deep);
+            font-size: 0.8rem;
+            line-height: 1.55;
+            margin: 0;
+            white-space: pre-line;
+        }
+
+        .home-week-ai-summary-empty,
+        .home-week-ai-summary-error {
+            color: var(--theme-muted);
+        }
+
+        .home-week-ai-summary-loading {
+            align-items: center;
+            display: flex;
+            gap: 0.55rem;
+        }
+
         .home-main-grid {
             margin-top: 1.5rem;
+        }
+
+        .home-mini-calendar-panel.is-hidden {
+            display: none;
         }
 
         .home-announcement {
@@ -166,6 +382,118 @@
         .home-panel {
             height: 100%;
             padding: 1.2rem;
+        }
+
+        .home-panel-fullwidth {
+            grid-column: 1 / -1;
+        }
+
+        .home-checkin-panel {
+            align-items: center;
+            background: linear-gradient(135deg, rgba(228, 243, 233, 0.98), rgba(245, 250, 247, 0.96));
+            border: 1px solid #b8ddc4;
+            border-radius: 22px;
+            box-shadow: var(--theme-shadow);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 1.1rem 1.2rem;
+        }
+
+        .home-checkin-panel.is-missing {
+            background: linear-gradient(135deg, rgba(255, 243, 191, 0.98), rgba(255, 250, 229, 0.96));
+            border-color: #e6cf73;
+        }
+
+        .home-checkin-content {
+            align-items: center;
+            display: flex;
+            gap: 0.85rem;
+            min-width: 0;
+        }
+
+        .home-checkin-icon {
+            align-items: center;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 16px;
+            color: #397550;
+            display: inline-flex;
+            flex-shrink: 0;
+            height: 2.8rem;
+            justify-content: center;
+            width: 2.8rem;
+        }
+
+        .home-checkin-avatar {
+            align-items: center;
+            background: linear-gradient(135deg, var(--theme-navy-deep), var(--theme-gold));
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 50%;
+            color: #fff;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 0.78rem;
+            font-weight: 800;
+            height: 3.8rem;
+            justify-content: center;
+            overflow: hidden;
+            width: 3.8rem;
+        }
+
+        .home-checkin-avatar img {
+            height: 100%;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .home-checkin-panel.is-missing .home-checkin-icon {
+            color: #9a7610;
+        }
+
+        .home-checkin-label {
+            color: var(--theme-muted);
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.1rem;
+            text-transform: uppercase;
+        }
+
+        .home-checkin-time {
+            color: #245b38;
+            font-size: 1.45rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin: 0;
+        }
+
+        .home-checkin-panel.is-missing .home-checkin-time {
+            color: var(--theme-navy-deep);
+            font-size: 1rem;
+            line-height: 1.3;
+        }
+
+        .home-checkin-meta {
+            color: var(--theme-muted);
+            font-size: 0.78rem;
+            margin-top: 0.2rem;
+        }
+
+        .home-checkin-action {
+            background: var(--theme-navy-deep);
+            border-color: var(--theme-navy-deep);
+            color: #fff;
+            flex-shrink: 0;
+            font-weight: 700;
+        }
+
+        .home-checkin-action:hover,
+        .home-checkin-action:focus {
+            background: var(--theme-navy);
+            border-color: var(--theme-navy);
+            color: #fff;
         }
 
         .home-panel-header {
@@ -246,8 +574,18 @@
             gap: 0.85rem;
         }
 
+        .home-feed-grid {
+            display: grid;
+            gap: 0.85rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
         .home-feed.is-compact .home-feed-item {
             padding: 0.85rem 0.95rem;
+        }
+
+        .home-feed-grid.is-compact .home-feed-item {
+            height: 100%;
         }
 
         .home-feed-item {
@@ -261,9 +599,415 @@
             margin-bottom: 0;
         }
 
-        .home-feed-meta {
+        .home-feed-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 0.2rem;
+        }
+
+        .home-mini-calendar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .home-mini-calendar-tabs {
+            background: rgba(18, 39, 84, 0.05);
+            border-radius: 999px;
+            display: inline-flex;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            padding: 0.25rem;
+        }
+
+        .home-mini-calendar-tab {
+            align-items: center;
+            background: transparent;
+            border: 0;
+            border-radius: 999px;
             color: var(--theme-muted);
-            font-size: 0.86rem;
+            cursor: pointer;
+            display: inline-flex;
+            font: inherit;
+            font-size: 0.76rem;
+            font-weight: 700;
+            gap: 0.4rem;
+            padding: 0.5rem 0.8rem;
+        }
+
+        .home-mini-calendar-tab.is-active {
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(18, 39, 84, 0.1);
+            color: var(--theme-navy-deep);
+        }
+
+        .home-mini-calendar-grid-shell {
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .home-mini-calendar-month-nav {
+            align-items: center;
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: auto 1fr auto;
+            margin-bottom: 0.85rem;
+        }
+
+        .home-mini-calendar-month-heading {
+            align-items: center;
+            display: flex;
+            gap: 0.55rem;
+            justify-content: center;
+        }
+
+        .home-mini-calendar-month-label {
+            color: var(--theme-navy-deep);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .home-mini-calendar-month-actions {
+            align-items: center;
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .home-mini-calendar-nav-button,
+        .home-mini-calendar-today-button {
+            align-items: center;
+            background: #fff;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 999px;
+            color: var(--theme-navy-deep);
+            cursor: pointer;
+            display: inline-flex;
+            font: inherit;
+            font-size: 0.72rem;
+            font-weight: 700;
+            height: 2rem;
+            justify-content: center;
+        }
+
+        .home-mini-calendar-nav-button {
+            width: 2rem;
+        }
+
+        .home-mini-calendar-today-button {
+            padding: 0 0.7rem;
+        }
+
+        .home-mini-calendar-nav-button:hover,
+        .home-mini-calendar-today-button:hover {
+            border-color: rgba(18, 39, 84, 0.25);
+        }
+
+        .home-mini-event-card {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            padding: 0.75rem 0.85rem;
+        }
+
+        .home-mini-event-card-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .home-mini-event-date {
+            color: var(--theme-navy-deep);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .home-mini-event-time {
+            color: var(--theme-muted);
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .home-mini-calendar-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .home-mini-calendar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .home-mini-calendar-toggle {
+            background: transparent;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            color: var(--theme-navy-deep);
+            font-size: 0.72rem;
+            font-weight: 700;
+            height: 1.9rem;
+            padding: 0 0.55rem;
+        }
+
+        .home-mini-calendar-toggle:hover,
+        .home-mini-calendar-toggle:focus {
+            border-color: rgba(18, 39, 84, 0.24);
+            color: var(--theme-navy-deep);
+        }
+
+        .home-mini-calendar-toggle {
+            background: linear-gradient(135deg, var(--theme-navy), var(--theme-navy-deep));
+            border-color: transparent;
+            box-shadow: 0 6px 14px rgba(18, 39, 84, 0.18);
+            color: #fff;
+            font-size: 0.76rem;
+            height: 2rem;
+            padding: 0 0.7rem;
+            transition: box-shadow 160ms ease, transform 160ms ease;
+        }
+
+        .home-mini-calendar-toggle:hover,
+        .home-mini-calendar-toggle:focus {
+            background: linear-gradient(135deg, #244a90, #16335e);
+            border-color: transparent;
+            box-shadow: 0 8px 17px rgba(18, 39, 84, 0.24);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .home-mini-calendar-body.is-hidden {
+            display: none;
+        }
+
+        .home-mini-calendar-weeks {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .home-mini-calendar-weekdays,
+        .home-mini-calendar-grid {
+            display: grid;
+            gap: 0.5rem;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            min-width: 700px;
+        }
+
+        .home-mini-calendar-weekday {
+            color: var(--theme-muted);
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .home-mini-calendar-week-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            margin-bottom: 0.35rem;
+        }
+
+        .home-mini-day {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(18, 39, 84, 0.08);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            min-height: 6.2rem;
+            padding: 0.5rem;
+        }
+
+        .home-mini-day.is-outside {
+            opacity: 0.45;
+        }
+
+        .home-mini-day.is-today {
+            border-color: rgba(184, 67, 63, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(184, 67, 63, 0.1);
+        }
+
+        .home-mini-day-head {
+            align-items: center;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .home-mini-day-number {
+            color: var(--theme-navy-deep);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .home-mini-day.is-outside .home-mini-day-number {
+            color: var(--theme-muted);
+        }
+
+        .home-mini-day-events {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            gap: 0.25rem;
+            min-height: 0;
+        }
+
+        .home-mini-event {
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.05rem;
+            padding: 0.35rem 0.45rem;
+        }
+
+        .home-mini-event-button {
+            border: 0;
+            cursor: pointer;
+            font: inherit;
+            text-align: left;
+            width: 100%;
+        }
+
+        .home-mini-event-button:hover,
+        .home-mini-event-button:focus-visible {
+            box-shadow: inset 0 0 0 1px rgba(18, 39, 84, 0.16);
+            outline: none;
+        }
+
+        .home-mini-event.is-room {
+            background: rgba(202, 168, 74, 0.12);
+        }
+
+        .home-mini-event.is-seminar {
+            background: rgba(18, 39, 84, 0.06);
+        }
+
+        .home-mini-event.is-meeting {
+            background: rgba(46, 139, 87, 0.12);
+        }
+
+        .home-mini-event-title {
+            color: var(--theme-navy-deep);
+            font-size: 0.72rem;
+            font-weight: 700;
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .home-mini-event-meta {
+            color: var(--theme-muted);
+            font-size: 0.65rem;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .home-mini-event-more {
+            color: var(--theme-muted);
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0 0.2rem;
+        }
+
+        .home-calendar-event-popup {
+            align-items: center;
+            background: rgba(12, 24, 48, 0.28);
+            display: flex;
+            inset: 0;
+            justify-content: center;
+            padding: 1rem;
+            position: fixed;
+            z-index: 1000;
+        }
+
+        .home-calendar-event-popup.is-hidden {
+            display: none;
+        }
+
+        .home-calendar-event-popup-card {
+            background: #fff;
+            border: 1px solid rgba(18, 39, 84, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 24px 70px rgba(18, 39, 84, 0.22);
+            max-width: 430px;
+            padding: 1.15rem;
+            position: relative;
+            width: 100%;
+        }
+
+        .home-calendar-event-popup-close {
+            align-items: center;
+            background: rgba(18, 39, 84, 0.06);
+            border: 0;
+            border-radius: 999px;
+            color: var(--theme-muted);
+            cursor: pointer;
+            display: flex;
+            height: 1.9rem;
+            justify-content: center;
+            position: absolute;
+            right: 0.85rem;
+            top: 0.85rem;
+            width: 1.9rem;
+        }
+
+        .home-calendar-event-popup-type {
+            background: rgba(202, 168, 74, 0.14);
+            border-radius: 999px;
+            color: #765b0b;
+            display: inline-flex;
+            font-size: 0.68rem;
+            font-weight: 700;
+            margin-bottom: 0.55rem;
+            max-width: calc(100% - 2.4rem);
+            padding: 0.28rem 0.55rem;
+        }
+
+        .home-calendar-event-popup-title {
+            color: var(--theme-navy-deep);
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.4;
+            margin: 0 2.2rem 0.85rem 0;
+        }
+
+        .home-calendar-event-popup-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+        }
+
+        .home-calendar-event-popup-row {
+            align-items: flex-start;
+            color: var(--theme-muted);
+            display: flex;
+            font-size: 0.78rem;
+            gap: 0.55rem;
+            line-height: 1.45;
+        }
+
+        .home-calendar-event-popup-row > i {
+            color: var(--theme-navy);
+            flex: 0 0 1rem;
+            margin-top: 0.16rem;
+            text-align: center;
+        }
+
+        .home-calendar-event-popup-row strong {
+            color: var(--theme-navy-deep);
         }
 
         .home-feed-actions {
@@ -294,6 +1038,81 @@
 
         .home-service-card.is-highlight {
             background: linear-gradient(180deg, rgba(255, 245, 210, 0.98), rgba(255, 255, 255, 0.92));
+        }
+
+        .home-service-card.is-experimental {
+            background: repeating-linear-gradient(-45deg, #fff4d6, #fff4d6 10px, #ffedbd 10px, #ffedbd 20px);
+            border: 2px solid rgba(190, 125, 24, 0.55);
+            box-shadow: 0 8px 20px rgba(190, 125, 24, 0.1);
+        }
+
+        .home-service-card.is-experimental .home-service-icon {
+            background: rgba(194, 123, 24, 0.14);
+            color: #a46410;
+        }
+
+        .home-service-card.is-experimental .home-service-title {
+            color: #79500b;
+        }
+
+        .home-experimental-badge {
+            background: #c27b18;
+            border-radius: 999px;
+            color: #fff;
+            display: inline-block;
+            font-size: 0.62rem;
+            letter-spacing: 0.04em;
+            margin-left: 0.45rem;
+            padding: 0.2rem 0.55rem;
+            vertical-align: middle;
+            text-transform: uppercase;
+        }
+
+        .home-service-card.is-administrator {
+            background: linear-gradient(145deg, #eef3fb, #f8fafc);
+            border: 2px solid #172f5e;
+            box-shadow: 0 12px 28px rgba(18, 39, 84, 0.18);
+        }
+
+        .home-service-card.is-administrator .home-service-head {
+            background: linear-gradient(135deg, #172f5e, #28558b);
+            border-radius: 15px;
+            color: #fff;
+            margin: -0.2rem -0.2rem 1rem;
+            padding: 0.85rem;
+        }
+
+        .home-service-card.is-administrator .home-service-icon {
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+        }
+
+        .home-service-card.is-administrator .home-service-title,
+        .home-service-card.is-administrator .home-service-note {
+            color: #fff;
+        }
+
+        .home-service-card.is-administrator .home-link-item {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgba(23, 47, 94, 0.16);
+        }
+
+        .home-service-card.is-administrator .home-link-item:hover {
+            border-color: rgba(23, 47, 94, 0.5);
+            box-shadow: 0 8px 18px rgba(18, 39, 84, 0.12);
+        }
+
+        .home-admin-badge {
+            background: #caa84a;
+            border-radius: 999px;
+            color: #172f5e;
+            display: inline-block;
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            margin-left: 0.45rem;
+            padding: 0.2rem 0.55rem;
+            vertical-align: middle;
         }
 
         .home-service-head {
@@ -382,6 +1201,63 @@
             color: rgba(18, 39, 84, 0.68);
         }
 
+        .home-ai-policy-link {
+            border-color: rgba(46, 139, 87, 0.55);
+            box-shadow: 0 0 10px rgba(46, 139, 87, 0.18);
+        }
+
+        .home-ai-policy-link:hover {
+            border-color: var(--theme-green);
+            box-shadow: 0 0 14px rgba(46, 139, 87, 0.3);
+        }
+
+        .home-ai-policy-modal .modal-card {
+            display: flex;
+            flex-direction: column;
+            height: auto !important;
+            max-height: calc(100vh - 2rem);
+            overflow: hidden;
+            width: min(760px, calc(100vw - 2rem));
+        }
+
+        .home-ai-policy-modal .modal-card-head {
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .home-ai-policy-modal .modal-card-title {
+            color: var(--theme-navy-deep);
+            font-size: 1.15rem;
+            line-height: 1.45;
+        }
+
+        .home-ai-policy-modal .modal-card-body {
+            display: block;
+            flex: 0 1 auto !important;
+            height: auto !important;
+            max-height: 72vh;
+            min-height: 0;
+            overflow-y: auto;
+        }
+
+        .home-ai-policy-modal .content h3 {
+            color: var(--theme-navy-deep);
+            font-size: 1rem;
+            margin-top: 1.35rem;
+        }
+
+        .home-ai-policy-modal .content h3:first-child {
+            margin-top: 0;
+        }
+
+        .home-ai-policy-modal .privacy-note {
+            background: rgba(46, 139, 87, 0.1);
+            border-left: 4px solid var(--theme-green);
+            border-radius: 10px;
+            color: var(--theme-text);
+            padding: 0.9rem 1rem;
+        }
+
         .home-panel:nth-child(1) .home-badge {
             background: rgba(184, 67, 63, 0.12);
             color: var(--theme-red);
@@ -412,9 +1288,32 @@
         }
 
         @media screen and (max-width: 768px) {
+            .docs-query-home-banner {
+                width: 100%;
+            }
+
             .home-brand {
                 align-items: flex-start;
                 flex-direction: column;
+            }
+
+            .home-mini-calendar-weekdays,
+            .home-mini-calendar-grid {
+                gap: 0.35rem;
+            }
+
+            .home-mini-day {
+                min-height: 5.6rem;
+                padding: 0.45rem;
+            }
+
+            .home-checkin-panel {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .home-checkin-action {
+                width: 100%;
             }
         }
     </style>
@@ -440,7 +1339,8 @@
         <div class="container">
             {% include "messages.html" %}
 
-            <div class="home-announcement">
+            {# Temporarily hidden; retain the banner markup for easy restoration. #}
+            {# <div class="home-announcement">
                 <span class="icon is-medium">
                     <i class="fa-solid fa-bullhorn"></i>
                 </span>
@@ -450,43 +1350,102 @@
                         ตั้งแต่วันที่ 1 มิถุนายน 2569 เป็นต้นไป ระบบจะปิดการลงชื่อเข้าใช้งาน (log in) ด้วย username, password ขอให้บุคลากรทุกท่าน log in เข้าระบบด้วย Google หรือ Line เพื่อเพิ่มความปลอดภัย
                     </p>
                 </div>
-            </div>
+            </div> #}
 
             <section class="home-hero">
-                <div class="columns is-variable is-6 is-vcentered m-0">
+                <div class="columns is-variable is-6 m-0">
                     <div class="column is-7-desktop p-6">
-                        <div class="home-brand">
-                            <span class="home-brand-mark">
-                                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Mahidol University logo" width="140" height="72" decoding="async">
-                            </span>
-                            <div>
-                                <p class="home-kicker">MUMT Information System</p>
+                        {% if today_checkin_status %}
+                            <div class="home-checkin-panel{% if not today_checkin_status.checked_in %} is-missing{% endif %}">
+                                <div class="home-checkin-content">
+                                    <span class="home-checkin-avatar">
+                                        {% if today_checkin_status.avatar_url %}
+                                            <img src="{{ today_checkin_status.avatar_url }}" alt="Employee avatar">
+                                        {% else %}
+                                            {{ today_checkin_status.avatar_initials }}
+                                        {% endif %}
+                                    </span>
+                                    <div>
+                                        <p class="home-checkin-label">Today's check-in</p>
+                                        {% if today_checkin_status.checked_in %}
+                                            <p class="home-checkin-time">{{ today_checkin_status.time_label }} น.</p>
+                                            <p class="home-checkin-meta">ลงชื่อเข้างานแล้ว · {{ today_checkin_status.date_label }}</p>
+                                        {% else %}
+                                            <p class="home-checkin-time">วันนี้ยังไม่ได้ลงชื่อเข้างาน</p>
+                                            <p class="home-checkin-meta">อย่าลืมลงชื่อเมื่อเริ่มปฏิบัติงาน</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if not today_checkin_status.checked_in %}
+                                    <a class="button is-small is-rounded home-checkin-action" href="{{ url_for('staff.geo_checkin') }}">
+                                        ลงชื่อเข้างาน
+                                    </a>
+                                {% endif %}
                             </div>
-                        </div>
-                        <h1 class="title is-2 mb-3">ศูนย์รวมระบบสารสนเทศงานภายในสำหรับบุคลากร</h1>
-                        <p class="subtitle is-5 has-text-grey-dark mt-1">
-                            เข้าถึงงานประจำ การจองห้องประชุม การนัดหมาย และระบบรายงานจากหน้าเดียว พร้อมมุมมองกิจกรรมล่าสุดสำหรับผู้ใช้งานที่ลงชื่อเข้าใช้
-                        </p>
-
+                        {% endif %}
                         <div class="home-summary-grid">
-                            <a class="home-stat home-summary-link" href="{{ url_for('staff.index') }}">
-                                <span class="home-summary-link-copy">
-                                    <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
-                                    <span>
-                                        <span class="home-stat-value">บุคลากร</span>
+                            <div class="home-summary-stack">
+                                {% if today_calendar %}
+                                    <div class="home-stat home-today-calendar">
+                                        <div class="home-today-calendar-head">
+                                            <div>
+                                                <p class="home-today-calendar-title">กิจกรรมวันนี้</p>
+                                                <p class="home-today-calendar-date">{{ today_calendar.today_label }}</p>
+                                            </div>
+                                            <span class="home-badge">{{ today_calendar.count }} รายการ</span>
+                                        </div>
+                                        <div class="home-today-calendar-list">
+                                            {% for item in today_calendar['items'] %}
+                                                <div class="home-today-calendar-event is-{{ item.type }}">
+                                                    <div class="home-today-calendar-event-copy">
+                                                        <p class="home-today-calendar-event-title">{{ item.title }}</p>
+                                                        <p class="home-today-calendar-event-meta">{{ item.time }} · {{ item.meta }}</p>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="home-today-calendar-empty">วันนี้ไม่มีนัดหมาย</div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="home-today-calendar-actions">
+                                            <button type="button"
+                                                    class="button is-small is-rounded home-mini-calendar-toggle"
+                                                    data-mini-calendar-toggle
+                                                    aria-expanded="false">
+                                                แสดงปฏิทินกิจกรรม
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="home-summary-stack">
+                                <div class="home-stat home-week-ai-summary"
+                                     hx-get="{{ url_for('home_week_events_summary') }}"
+                                     hx-trigger="load"
+                                     hx-swap="outerHTML">
+                                    <div class="home-week-ai-summary-loading">
+                                        <span class="icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                                        <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
+                                    </div>
+                                </div>
+                                <a class="home-stat home-summary-link home-summary-link--staff-search" href="{{ url_for('staff.employee_search') }}">
+                                    <span class="home-summary-link-copy">
+                                        <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
+                                        <span>
+                                            <span class="home-stat-value">ค้นหาบุคลากร</span>
+                                        </span>
                                     </span>
-                                </span>
-                                <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
-                            </a>
-                            <a class="home-stat home-summary-link" href="{{ url_for('comhealth.landing') }}">
-                                <span class="home-summary-link-copy">
-                                    <span class="icon is-medium"><i class="fa-solid fa-heart-pulse"></i></span>
-                                    <span>
-                                        <span class="home-stat-value">ระบบงานบริการสุขภาพชุมชน</span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-stat home-summary-link" href="{{ url_for('comhealth.landing') }}">
+                                    <span class="home-summary-link-copy">
+                                        <span class="icon is-medium"><i class="fa-solid fa-heart-pulse"></i></span>
+                                        <span>
+                                            <span class="home-stat-value">ระบบงานบริการสุขภาพชุมชน</span>
+                                        </span>
                                     </span>
-                                </span>
-                                <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
-                            </a>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <div class="column is-5-desktop p-6 pt-0-mobile">
@@ -498,13 +1457,6 @@
                                 </div>
                             </div>
                             <div class="home-link-list">
-                                <a class="home-link-item" href="{{ url_for('staff.show_leave_info') }}">
-                                    <span class="home-link-copy">
-                                        <span class="icon"><i class="fa-solid fa-calendar-check"></i></span>
-                                        <span>ลาปฏิบัติงาน</span>
-                                    </span>
-                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
-                                </a>
                                 <a class="home-link-item" href="{{ url_for('room.index') }}">
                                     <span class="home-link-copy">
                                         <span class="icon"><i class="fa-regular fa-calendar"></i></span>
@@ -512,10 +1464,31 @@
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
+                                <a class="home-link-item" href="{{ url_for('staff.index') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-users"></i></span>
+                                        <span>บุคลากร</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-link-item" href="{{ url_for('staff.show_leave_info') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-calendar-check"></i></span>
+                                        <span>ลาปฏิบัติงาน</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
                                 <a class="home-link-item" href="{{ url_for('staff.geo_checkin') }}">
                                     <span class="home-link-copy">
                                         <span class="icon"><i class="fas fa-map-marker-alt"></i></span>
-                                        <span>ลงชื่อใช้งานด้วย GPS</span>
+                                        <span>ลงชื่อเข้าปฏิบัติงานออนไลน์</span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-link-item" href="{{ url_for('docs_query.index') }}">
+                                    <span class="home-link-copy">
+                                        <span class="icon"><i class="fa-solid fa-folder-open"></i></span>
+                                        <span>คลังเอกสารความรู้ (DocsIQ)</span>
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
@@ -526,10 +1499,10 @@
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
-                                <a class="home-link-item" href="{{ url_for('user_support_index') }}">
+                                <a class="home-link-item home-ai-policy-link" href="#ai-policy-modal" data-ai-policy-open aria-haspopup="dialog" aria-controls="ai-policy-modal">
                                     <span class="home-link-copy">
-                                        <span class="icon"><i class="fa-solid fa-circle-info"></i></span>
-                                        <span>แจ้งปัญหาและขอความช่วยเหลือ</span>
+                                        <span class="icon"><i class="fa-solid fa-robot"></i></span>
+                                        <span>นโยบายการพัฒนาและใช้ AI ในระบบ MIS</span>
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
@@ -537,6 +1510,84 @@
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <div class="modal home-ai-policy-modal" id="ai-policy-modal" data-ai-policy-modal role="dialog" aria-modal="true" aria-labelledby="ai-policy-modal-title" aria-hidden="true">
+                <div class="modal-background" data-ai-policy-close></div>
+                <div class="modal-card">
+                    <header class="modal-card-head">
+                        <p class="modal-card-title" id="ai-policy-modal-title">
+                            <span class="icon mr-2" aria-hidden="true"><i class="fa-solid fa-robot"></i></span>
+                            นโยบายการพัฒนาและการใช้ปัญญาประดิษฐ์ (AI) ในระบบ MIS
+                        </p>
+                        <button class="delete" type="button" aria-label="ปิดหน้าต่างนโยบาย" data-ai-policy-close></button>
+                    </header>
+                    <section class="modal-card-body content">
+                        <p class="privacy-note">
+                            ระบบ MIS มีการนำเทคโนโลยีปัญญาประดิษฐ์ (AI) จากผู้ให้บริการภายนอกที่เชื่อถือได้ เช่น SCB และ Heroku มาใช้เพื่อสนับสนุนการทำงานของระบบในบางฟังก์ชัน โดยมีวัตถุประสงค์เพื่อช่วยค้นหา วิเคราะห์ สรุปข้อมูล และอำนวยความสะดวกในการใช้งาน ทั้งนี้ AI เป็นเครื่องมือสนับสนุนการทำงาน (Assistive Technology) มิใช่กลไกในการตัดสินใจแทนผู้ใช้ และผู้ใช้สามารถเลือกใช้หรือไม่ใช้ความสามารถของ AI ได้ตามความเหมาะสมของงาน
+                        </p>
+
+                        <h3>หลักการสำคัญ</h3>
+                        <p>ระบบ MIS ออกแบบให้ความสามารถด้าน AI เป็นบริการเสริมเพื่อสนับสนุนการทำงานของผู้ใช้ ไม่ใช่ข้อกำหนดในการใช้งานระบบ ฟังก์ชันหลักของระบบยังคงสามารถดำเนินการได้โดยไม่ต้องพึ่งพา AI เพื่อให้ระบบมีความโปร่งใส ตรวจสอบได้ และสามารถทำงานได้อย่างต่อเนื่องแม้บริการ AI ภายนอกไม่พร้อมใช้งาน</p>
+
+                        <h3>1. การใช้ AI ในระบบ</h3>
+                        <p>ระบบอาจใช้ AI เพื่อช่วยดำเนินการในงานต่อไปนี้</p>
+                        <ul>
+                            <li><strong>ค้นหาเอกสาร:</strong> ช่วยค้นหาเอกสารภายใน สรุปสาระสำคัญ และแนะนำเอกสารที่เกี่ยวข้องผ่าน DocsIQ โดยอ้างอิงเฉพาะเอกสารที่ผู้ใช้มีสิทธิ์เข้าถึง</li>
+                            <li><strong>สรุปกิจกรรม:</strong> ช่วยสรุปกิจกรรมในปฏิทินของผู้ใช้ รวมถึงภาพรวมกิจกรรมในช่วงเวลาที่กำหนด เพื่อช่วยวางแผนการทำงาน</li>
+                            <li><strong>ค้นหาห้องและทรัพยากรด้วยภาษาธรรมชาติ:</strong> ช่วยแปลงคำอธิบายความต้องการของผู้ใช้เป็นเงื่อนไขการค้นหา</li>
+                            <li><strong>สรุปงานติดตาม:</strong> ช่วยสรุปภาพรวมของงานร้องเรียน งานค้างดำเนินการ หรือรายการที่ต้องติดตาม สำหรับผู้ใช้ที่ได้รับสิทธิ์</li>
+                            <li><strong>ประมวลผลเอกสาร:</strong> อาจใช้เทคโนโลยีในการสกัดข้อความจากเอกสารและ OCR เพื่อแปลงภาพเป็นข้อความก่อนนำไปค้นหา วิเคราะห์ หรือสรุป โดยดำเนินการเฉพาะเอกสารที่ได้รับอนุญาตให้ประมวลผล</li>
+                        </ul>
+
+                        <h3>2. หลักการคุ้มครองข้อมูลและความเป็นส่วนตัว</h3>
+                        <p>การใช้บริการ AI ภายนอกดำเนินการภายใต้พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA) รวมถึงนโยบายด้านข้อมูลของมหาวิทยาลัยมหิดลและคณะอย่างเคร่งครัด โดยยึดหลักดังต่อไปนี้</p>
+                        <ul>
+                            <li>ส่งต่อเฉพาะข้อมูลที่จำเป็นต่อการประมวลผล (Data Minimization)</li>
+                            <li>หลีกเลี่ยงการส่งข้อมูลที่สามารถระบุตัวบุคคลได้ เว้นแต่มีความจำเป็นและได้รับอนุญาตตามกฎหมายหรือนโยบายที่เกี่ยวข้อง</li>
+                            <li>การส่งข้อมูลไปยังผู้ให้บริการ AI ภายนอกอยู่ภายใต้การกำกับดูแลของผู้ดูแลระบบ และต้องเป็นไปตามข้อตกลงการใช้บริการและมาตรการรักษาความมั่นคงปลอดภัยของข้อมูล</li>
+                        </ul>
+
+                        <h3>3. หน้าที่และความรับผิดชอบของผู้ใช้</h3>
+                        <p>ผู้ใช้มีหน้าที่</p>
+                        <ul>
+                            <li>ใช้งานข้อมูลภายในขอบเขตสิทธิ์ที่ได้รับ</li>
+                            <li>ปกปิดหรือลบข้อมูลส่วนบุคคลหรือข้อมูลอ่อนไหวที่ไม่จำเป็นก่อนใช้ฟังก์ชัน AI</li>
+                            <li>ตรวจสอบความถูกต้องของผลลัพธ์จาก AI ก่อนนำไปใช้งานหรือเผยแพร่</li>
+                            <li>แจ้งผู้ดูแลระบบทันทีเมื่อพบข้อมูลผิดพลาด การเปิดเผยข้อมูลโดยไม่เหมาะสม หรือพฤติกรรมที่อาจกระทบต่อความมั่นคงปลอดภัยของระบบ</li>
+                        </ul>
+                        <p>ผลลัพธ์จาก AI ถือเป็นข้อมูลเพื่อการสนับสนุนการตัดสินใจ (Decision Support) มิใช่ข้อสรุปหรือคำวินิจฉัยที่ถูกต้องเสมอไป ผู้ใช้ยังคงเป็นผู้รับผิดชอบในการพิจารณา ตรวจสอบ และตัดสินใจขั้นสุดท้าย โดยเฉพาะในกรณีที่เกี่ยวข้องกับสิทธิ ประโยชน์ สุขภาพ ความปลอดภัย หรือผลกระทบต่อบุคคล</p>
+
+                        <h3>4. การกำกับดูแลและการทบทวน</h3>
+                        <p>ผู้ดูแลระบบจะทบทวนการใช้งาน AI ผู้ให้บริการ AI และมาตรการคุ้มครองข้อมูลเป็นระยะ เพื่อให้สอดคล้องกับความเสี่ยง เทคโนโลยี และกฎหมายที่เกี่ยวข้อง รวมทั้งจัดให้มีช่องทางรับแจ้งเหตุด้านความเป็นส่วนตัวและความมั่นคงปลอดภัยของข้อมูล</p>
+                        <p>หากผู้ใช้มีข้อสงสัยเกี่ยวกับการใช้ AI หรือพบเหตุผิดปกติ ควรแจ้งผู้ดูแลระบบ MIS ก่อนนำผลลัพธ์จาก AI ไปใช้ในการตัดสินใจหรือเผยแพร่ต่อบุคคลอื่น</p>
+                    </section>
+                </div>
+            </div>
+
+            <section class="home-panel docs-query-home-card">
+                {% set docs_query_banner = 'ui-assets/docsIQ_banner.webp'|s3_asset('img/docsIQ_banner.webp') %}
+                <div class="home-panel-header">
+                    <div>
+                        <p class="home-panel-title">
+                            <span class="icon mr-2" aria-hidden="true"><i class="fa-solid fa-bullhorn"></i></span>
+                            แนะนำระบบใหม่
+                        </p>
+                    </div>
+                </div>
+                <p class="home-panel-subtitle">ขอเชิญบุคลากรทุกท่านร่วมเปิดประสบการณ์ใหม่ ทดลองใช้งานระบบคลังเอกสารความรู้ที่พัฒนาโดยหน่วยไอที พร้อมค้นหาและเข้าถึงองค์ความรู้ได้ง่ายยิ่งขึ้น ตั้งแต่วันนี้เป็นต้นไป</p>
+            <a class="docs-query-home-banner"
+               href="{{ url_for('docs_query.index') }}"
+               aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
+                {% if docs_query_banner %}
+                    <picture>
+                        <source srcset="{{ docs_query_banner }}" type="image/webp">
+                        <img src="{{ docs_query_banner }}"
+                             alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
+                             decoding="async">
+                    </picture>
+                {% endif %}
+            </a>
             </section>
 
             {% if current_user.is_authenticated %}
@@ -581,4 +1632,146 @@
             {% endif %}
         </div>
     </section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    var aiPolicyModalLastFocus = null;
+
+    function openAiPolicyModal() {
+        var modal = document.querySelector('[data-ai-policy-modal]');
+        if (!modal) {
+            return;
+        }
+
+        aiPolicyModalLastFocus = document.activeElement;
+        modal.classList.add('is-active');
+        modal.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('is-clipped');
+        modal.querySelector('[data-ai-policy-close]').focus();
+    }
+
+    function closeAiPolicyModal() {
+        var modal = document.querySelector('[data-ai-policy-modal]');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('is-active');
+        modal.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('is-clipped');
+        if (aiPolicyModalLastFocus) {
+            aiPolicyModalLastFocus.focus();
+        }
+    }
+
+    function closeHomeCalendarEventPopup() {
+        var popup = document.querySelector('[data-calendar-event-popup]');
+        if (popup) {
+            popup.classList.add('is-hidden');
+        }
+    }
+
+    document.addEventListener('click', function (event) {
+        var aiPolicyOpenButton = event.target.closest('[data-ai-policy-open]');
+        if (aiPolicyOpenButton) {
+            event.preventDefault();
+            openAiPolicyModal();
+            return;
+        }
+
+        var aiPolicyCloseButton = event.target.closest('[data-ai-policy-close]');
+        if (aiPolicyCloseButton) {
+            closeAiPolicyModal();
+            return;
+        }
+
+        var eventDetailButton = event.target.closest('[data-calendar-event-detail]');
+        if (eventDetailButton) {
+            var popup = document.querySelector('[data-calendar-event-popup]');
+            if (!popup) {
+                return;
+            }
+
+            popup.querySelector('[data-calendar-event-popup-title]').textContent = eventDetailButton.dataset.eventTitle;
+            popup.querySelector('[data-calendar-event-popup-type]').textContent = eventDetailButton.dataset.eventType;
+            popup.querySelector('[data-calendar-event-popup-date]').textContent = eventDetailButton.dataset.eventDate;
+            popup.querySelector('[data-calendar-event-popup-time]').textContent = eventDetailButton.dataset.eventTime;
+            popup.querySelector('[data-calendar-event-popup-location]').textContent = eventDetailButton.dataset.eventLocation;
+
+            var org = eventDetailButton.dataset.eventOrg || '';
+            var orgRow = popup.querySelector('[data-calendar-event-popup-org-row]');
+            orgRow.classList.toggle('is-hidden', !org);
+            popup.querySelector('[data-calendar-event-popup-org]').textContent = org;
+
+            var participants = eventDetailButton.dataset.eventParticipants || '';
+            var participantsRow = popup.querySelector('[data-calendar-event-popup-participants-row]');
+            participantsRow.classList.toggle('is-hidden', !participants);
+            popup.querySelector('[data-calendar-event-popup-participants]').textContent = participants;
+
+            popup.classList.remove('is-hidden');
+            popup.querySelector('[data-calendar-event-popup-close]').focus();
+            return;
+        }
+
+        var popupCloseButton = event.target.closest('[data-calendar-event-popup-close]');
+        var popupBackdrop = event.target.matches('[data-calendar-event-popup]');
+        if (popupCloseButton || popupBackdrop) {
+            closeHomeCalendarEventPopup();
+            return;
+        }
+
+        var viewButton = event.target.closest('[data-mini-calendar-view-button]');
+        if (viewButton) {
+            var viewPanel = viewButton.closest('[data-mini-calendar-panel]');
+            var selectedView = viewButton.getAttribute('data-mini-calendar-view-button');
+            if (!viewPanel) {
+                return;
+            }
+
+            viewPanel.querySelectorAll('[data-mini-calendar-view-button]').forEach(function (button) {
+                var isSelected = button === viewButton;
+                button.classList.toggle('is-active', isSelected);
+                button.setAttribute('aria-selected', String(isSelected));
+            });
+            viewPanel.querySelectorAll('[data-mini-calendar-view]').forEach(function (view) {
+                view.classList.toggle(
+                    'is-hidden',
+                    view.getAttribute('data-mini-calendar-view') !== selectedView
+                );
+            });
+            return;
+        }
+
+        var toggleButton = event.target.closest('[data-mini-calendar-toggle]');
+        if (!toggleButton) {
+            return;
+        }
+
+        var panel = document.querySelector('[data-mini-calendar-panel]');
+        if (!panel) {
+            return;
+        }
+
+        var isHidden = panel.classList.toggle('is-hidden');
+        toggleButton.setAttribute('aria-expanded', String(!isHidden));
+        toggleButton.textContent = isHidden ? 'แสดงปฏิทินกิจกรรม' : 'ซ่อนปฏิทินกิจกรรม';
+        if (!isHidden) {
+            window.setTimeout(function () {
+                panel.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 0);
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeAiPolicyModal();
+            closeHomeCalendarEventPopup();
+        }
+    });
+</script>
 {% endblock %}

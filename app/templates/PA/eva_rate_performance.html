@@ -90,73 +90,76 @@
                             <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             <tbody>
-                            {% for group in scoresheet.score_sheet_items|sort(attribute='item_id')|sort(attribute='item.category_id')|groupby('item_id') %}
-                                {% set item_rows = group.list %}
-                                {% set first = item_rows[0] %}
-                                {% for s in item_rows %}
-                                <tr>
-                                    {% if loop.first %}
-                                    <td style="width: 5%" rowspan="{{ item_rows|length }}">
-                                        <p class="help">{{ first.item.category }}</p>
-                                    </td>
-                                    <td style="width: 20%" rowspan="{{ item_rows|length }}">
-                                        <p><strong>{{ first.item }}</strong></p>
-                                        {% if first.item.strategy_activity %}
-                                        <p class="help is-info">{{ first.item.strategy_activity }}</p>
-                                        {% endif %}
-                                        {% if first.item.process %}
-                                        <p class="help is-info">{{ first.item.process }}</p>
-                                        {% endif %}
-                                        <p class="help">(เก็บข้อมูลจาก: {{ first.kpi_item.kpi.source }})</p>
-                                    </td>
-                                    <td style="width: 2%" rowspan="{{ item_rows|length }}">
-                                        {{ first.item.percentage }}
-                                    </td>
-                                    <td style="width: 20%" rowspan="{{ item_rows|length }}">
-                                        {{ first.item.report }}<br>
-                                        {% if first.item.related_url %}
-                                            <a class="button is-small"
-                                               href="{{ first.item.related_url }}" target="_blank">
-                                                <span class="icon is-small">
-                                                    <i class="fa-solid fa-paperclip"></i>
-                                                </span>
-                                                <span>เอกสารแนบ</span>
-                                            </a>
-                                        {% endif %}
-                                    </td>
-                                    {% endif %}
-                                    <td style="width: 42%">
-                                        <p class="has-text-success">{{ s.kpi_item }}</p>
-                                    <ul>
-                                        <p class="help">ประเภท: {{ s.kpi_item.kpi.type }}</p>
-                                        {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light"></i></span>
-                                                <small>{{ kpi.goal }} ({{ kpi.level }} คะแนน)</small></li>
-                                        {% endfor %}
-                                    </ul>
-                                    </td>
-                                    {% if for_self == 'false' %}
-                                    <td style="width: 2%">
-                                        {{ self_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
-                                    </td>
-                                    <td style="width: 2%">
-                                        <div class="field is-grouped">
-                                            {% if head_scoresheet %}
-                                            {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
+                            {% for cat in categories|sort(attribute='id') %}
+                                {% set category_items = scoresheet.score_sheet_items|selectattr('item.category_id', 'equalto', cat.id)|sort(attribute='item_id') %}
+                                {% for group in category_items|groupby('item_id') %}
+                                    {% set item_rows = group.list %}
+                                    {% set first = item_rows[0] %}
+                                    {% for s in item_rows %}
+                                    <tr>
+                                        {% if loop.first %}
+                                        <td style="width: 5%" rowspan="{{ item_rows|length }}">
+                                            <p class="help">{{ first.item.category }}</p>
+                                        </td>
+                                        <td style="width: 20%" rowspan="{{ item_rows|length }}">
+                                            <p><strong>{{ first.item }}</strong></p>
+                                            {% if first.item.strategy_activity %}
+                                            <p class="help is-info">{{ first.item.strategy_activity }}</p>
                                             {% endif %}
-                                        </div>
-                                    </td>
-                                    {% endif %}
-                                    <td style="width: 7%">
-                                        <div class="field">
-                                            <div class="control">
-                                                <input class="input" required name="pa-item-{{ s.id }}"  type="number"
-                                                       {% if scoresheet.is_final %} readonly {% endif %}
-                                                       value="{{ s.score }}" step="0.5" min="0" max="10" id="score"/>
+                                            {% if first.item.process %}
+                                            <p class="help is-info">{{ first.item.process }}</p>
+                                            {% endif %}
+                                            <p class="help">(เก็บข้อมูลจาก: {{ first.kpi_item.kpi.source }})</p>
+                                        </td>
+                                        <td style="width: 2%" rowspan="{{ item_rows|length }}">
+                                            {{ first.item.percentage }}
+                                        </td>
+                                        <td style="width: 20%" rowspan="{{ item_rows|length }}">
+                                            {{ first.item.report }}<br>
+                                            {% if first.item.related_url %}
+                                                <a class="button is-small"
+                                                   href="{{ first.item.related_url }}" target="_blank">
+                                                    <span class="icon is-small">
+                                                        <i class="fa-solid fa-paperclip"></i>
+                                                    </span>
+                                                    <span>เอกสารแนบ</span>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+                                        <td style="width: 42%">
+                                            <p class="has-text-success">{{ s.kpi_item }}</p>
+                                        <ul>
+                                            <p class="help">ประเภท: {{ s.kpi_item.kpi.type }}</p>
+                                            {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
+                                                <li><span class="icon"><i class="fa-solid fa-star has-text-light"></i></span>
+                                                    <small>{{ kpi.goal }} ({{ kpi.level }} คะแนน)</small></li>
+                                            {% endfor %}
+                                        </ul>
+                                        </td>
+                                        {% if for_self == 'false' %}
+                                        <td style="width: 2%">
+                                            {{ self_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
+                                        </td>
+                                        <td style="width: 2%">
+                                            <div class="field is-grouped">
+                                                {% if head_scoresheet %}
+                                                {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
+                                                {% endif %}
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                        {% endif %}
+                                        <td style="width: 7%">
+                                            <div class="field">
+                                                <div class="control">
+                                                    <input class="input" required name="pa-item-{{ s.id }}"  type="number"
+                                                           {% if scoresheet.is_final %} readonly {% endif %}
+                                                           value="{{ s.score }}" step="0.5" min="0" max="10" id="score"/>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
                                 {% endfor %}
                             {% endfor %}
                             </tbody>

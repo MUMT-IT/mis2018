@@ -1,7 +1,7 @@
 """add maintenance room equipment tables
 
 Revision ID: b7a50d9c8e12
-Revises: 33caa7a78fe2
+Revises: e4db066c9d32
 Create Date: 2026-07-20 00:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'b7a50d9c8e12'
-down_revision = '33caa7a78fe2'
+down_revision = 'e4db066c9d32'
 branch_labels = None
 depends_on = None
 

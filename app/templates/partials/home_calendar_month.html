@@ -1,0 +1,78 @@
+<div id="home-mini-calendar-month-content">
+    <div class="home-mini-calendar-month-nav">
+        <button type="button"
+                class="home-mini-calendar-nav-button"
+                aria-label="เดือนก่อนหน้า"
+                hx-get="{{ url_for('home_calendar_month', month=mini_calendar.previous_month_value) }}"
+                hx-target="#home-mini-calendar-month-content"
+                hx-swap="outerHTML">
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <div class="home-mini-calendar-month-heading">
+            <span class="home-mini-calendar-month-label">{{ mini_calendar.month_label }}</span>
+            <span class="home-badge">{{ mini_calendar.total_count }} รายการ</span>
+        </div>
+        <div class="home-mini-calendar-month-actions">
+            {% if not mini_calendar.is_current_month %}
+                <button type="button"
+                        class="home-mini-calendar-today-button"
+                        hx-get="{{ url_for('home_calendar_month') }}"
+                        hx-target="#home-mini-calendar-month-content"
+                        hx-swap="outerHTML">
+                    เดือนนี้
+                </button>
+            {% endif %}
+            <button type="button"
+                    class="home-mini-calendar-nav-button"
+                    aria-label="เดือนถัดไป"
+                    hx-get="{{ url_for('home_calendar_month', month=mini_calendar.next_month_value) }}"
+                    hx-target="#home-mini-calendar-month-content"
+                    hx-swap="outerHTML">
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+    <div class="home-mini-calendar-grid-shell">
+        <div class="home-mini-calendar-weekdays">
+            {% for weekday_label in mini_calendar['weekday_labels'] %}
+                <div class="home-mini-calendar-weekday">{{ weekday_label }}</div>
+            {% endfor %}
+        </div>
+        <div class="home-mini-calendar-grid">
+            {% for week in mini_calendar['weeks'] %}
+                {% for day in week %}
+                    <div class="home-mini-day{% if not day.in_month %} is-outside{% endif %}{% if day.is_today %} is-today{% endif %}">
+                        <div class="home-mini-day-head">
+                            <span class="home-mini-day-number">{{ day.day }}</span>
+                        </div>
+                        <div class="home-mini-day-events">
+                            {% for item in day['items'] %}
+                                <button type="button"
+                                        class="home-mini-event home-mini-event-button is-{{ item.type }}"
+                                        title="ดูรายละเอียด {{ item.title }}"
+                                        aria-haspopup="dialog"
+                                        data-calendar-event-detail
+                                        data-event-title="{{ item.title }}"
+                                        data-event-type="{{ 'สัมมนา' if item.type == 'seminar' else 'การใช้ห้องประชุม/ห้องเรียน' }}"
+                                        data-event-date="{{ item.date.strftime('%d/%m/%Y') }}"
+                                        data-event-time="{{ item.time }}"
+                                        data-event-location="{{ item.meta }}"
+                                        data-event-org="{{ item.org_name }}"
+                                        data-event-participants="{{ item.participants_text }}">
+                                    <span class="home-mini-event-title">{{ item.title }}</span>
+                                    <span class="home-mini-event-meta">{{ item.time }}</span>
+                                </button>
+                            {% endfor %}
+                            {% if day.extra_count > 0 %}
+                                <span class="home-mini-event-more">+{{ day.extra_count }} รายการ</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+    </div>
+    {% if mini_calendar.total_count == 0 %}
+        <div class="home-feed-empty mt-4">ไม่มีกิจกรรมในเดือนนี้</div>
+    {% endif %}
+</div>

@@ -112,6 +112,42 @@
                                 </div>
                             </div>
                         </div>
+{#                        <div class="field is-horizontal">#}
+{#                            <div class="field-label">#}
+{#                                <label class="label has-text-left">ระดับความสำคัญ</label>#}
+{#                            </div>#}
+{#                            <div class="field-body">#}
+{#                                <div class="field">#}
+{#                                    <div class="control">#}
+{#                                        {% if detail.priority %}#}
+{#                                            <span class="tag {{ detail.priority_status_color }} is-light is-rounded">#}
+{#                                                {{ detail.priority }}#}
+{#                                            </span>#}
+{#                                        {% else %}#}
+{#                                            ไม่มีระดับความสำคัญ#}
+{#                                        {% endif %}#}
+{#                                    </div>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="field is-horizontal">#}
+{#                            <div class="field-label">#}
+{#                                <label class="label has-text-left">ความเร่งด่วน</label>#}
+{#                            </div>#}
+{#                            <div class="field-body">#}
+{#                                <div class="field">#}
+{#                                    <div class="control">#}
+{#                                        {% if detail.urgency %}#}
+{#                                            <span class="tag {{ detail.urgency_status_color }} is-light is-rounded">#}
+{#                                                {{ detail.urgency }}#}
+{#                                            </span>#}
+{#                                        {% else %}#}
+{#                                            ไม่มีความเร่งด่วน#}
+{#                                        {% endif %}#}
+{#                                    </div>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
                         <div class="field is-horizontal">
                             <div class="field-label has-text-left">
                                 <label class="label">เหตุผลและความจำเป็น</label>
@@ -281,7 +317,7 @@
                                     <tbody>
                                         {% for test_result in detail.test_results %}
                                             <tr>
-                                                {% if detail.status == 'อนุมัติ' %}
+                                                {% if detail.status == 'อนุมัติ' and not test_result.status %}
                                                     <td>
                                                         <input class="is-checkradio"
                                                                id="pass_{{ test_result.id }}"
@@ -326,7 +362,7 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                {% if detail.test_results and detail.status == 'อนุมัติ' %}
+                                {% if detail.test_results and detail.status == 'อนุมัติ' and not detail.is_requester_completed_testing %}
                                     <div class="field mt-1">
                                         <input type="submit" value="บันทีก" class="button is-info is-rounded">
                                     </div>

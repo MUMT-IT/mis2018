@@ -1225,7 +1225,7 @@ class HeavyMetalConditionForm(FlaskForm):
 class HeavyMetalRequestForm(FlaskForm):
     objective = RadioField('วัตถุประสงค์',
                            choices=[('เพื่อทราบผล/General info.', 'เพื่อทราบผล/General info.'),
-                                    ('จำหน่ำยในประเทศ/Domestic', 'จำหน่ำยในประเทศ/Domestic'),
+                                    ('จำหน่ายในประเทศ/Domestic', 'จำหน่ายในประเทศ/Domestic'),
                                     ('ยื่นขอ อย./Thai FDA', 'ยื่นขอ อย./Thai FDA'),
                                     ('ส่งออก/Export', 'ส่งออก/Export'),
                                     ('งานวิจัย/Reserch', 'งานวิจัย/Reserch'),
@@ -1279,7 +1279,7 @@ class FoodSafetyConditionForm(FlaskForm):
 class FoodSafetyRequestForm(FlaskForm):
     objective = RadioField('วัตถุประสงค์',
                            choices=[('เพื่อทราบผล/General info.', 'เพื่อทราบผล/General info.'),
-                                    ('จำหน่ำยในประเทศ/Domestic', 'จำหน่ำยในประเทศ/Domestic'),
+                                    ('จำหน่ายในประเทศ/Domestic', 'จำหน่ายในประเทศ/Domestic'),
                                     ('ยื่นขอ อย./Thai FDA', 'ยื่นขอ อย./Thai FDA'),
                                     ('ส่งออก/Export', 'ส่งออก/Export'),
                                     ('งานวิจัย/Reserch', 'งานวิจัย/Reserch'),

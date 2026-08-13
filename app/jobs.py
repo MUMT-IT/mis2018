@@ -219,6 +219,24 @@ def send_complaint_summary_report():
     _run_job(job_name, _job)
 
 
+def send_software_request_summary_report():
+    job_name = 'send_software_request_summary_report'
+
+    def _job():
+        params = {'send': 'true'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/software_request/admin/email-unfinished-summary',
+            params=params,
+            timeout=90,
+        )
+
+    _run_job(job_name, _job)
+
+
 def send_line_reminder_no_status_today():
     job_name = 'send_line_reminder_no_status_today'
 
@@ -254,6 +272,60 @@ def send_line_reminder_no_status_today():
                 'url': response.url,
             })
             raise error
+
+    _run_job(job_name, _job)
+
+
+def send_service_admin_monthly_overdue_summary():
+    job_name = 'send_service_admin_monthly_overdue_summary'
+
+    def _job():
+        params = {'send': 'true'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/service_admin/admin/monthly-overdue-summary',
+            params=params,
+            timeout=90,
+        )
+
+    _run_job(job_name, _job)
+
+
+def send_service_admin_line_reminder_pending():
+    job_name = 'send_service_admin_line_reminder_pending'
+
+    def _job():
+        params = {'send': 'true'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/service_admin/admin/line-remind-pending',
+            params=params,
+            timeout=90,
+        )
+
+    _run_job(job_name, _job)
+
+
+def send_service_admin_weekly_overdue_invoice_reminder():
+    job_name = 'send_service_admin_weekly_overdue_invoice_reminder'
+
+    def _job():
+        params = {'send': 'true'}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'GET',
+            f'{BASE_URL}/service_admin/admin/weekly-overdue-invoice-reminder',
+            params=params,
+            timeout=90,
+        )
 
     _run_job(job_name, _job)
 
@@ -298,14 +370,34 @@ scheduler.add_job(send_complaint_summary_report,
                   hour='9',
                   minute='00',
                   timezone='Asia/Bangkok')
+scheduler.add_job(send_software_request_summary_report,
+                  'cron', day_of_week='mon',
+                  hour='9',
+                  minute='00',
+                  timezone='Asia/Bangkok')
 scheduler.add_job(send_line_reminder_no_status_today,
                   'cron', day_of_week='mon-fri',
                   hour='15',
                   minute='00',
                   timezone='Asia/Bangkok')
+scheduler.add_job(send_service_admin_monthly_overdue_summary,
+                  'cron', day='1',
+                  hour='9',
+                  minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_service_admin_line_reminder_pending,
+                  'cron', day='1',
+                  hour='9',
+                  minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_service_admin_weekly_overdue_invoice_reminder,
+                  'cron', day_of_week='mon',
+                  hour='9',
+                  minute='00',
+                  timezone='Asia/Bangkok')
 scheduler.add_job(send_checkin_reminder,
                   'cron', day_of_week='mon-fri',
                   hour='8',
-                  minute='50',
+                  minute='29',
                   timezone='Asia/Bangkok')
 scheduler.start()

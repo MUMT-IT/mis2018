@@ -1,0 +1,25 @@
+{% if employees %}
+    {% for employee in employees %}
+    {% set academic_position = employee.academic_positions[0] if employee.academic_positions else none %}
+    <a class="staff-edit-search-card" href="{{ url_for('staff.staff_edit_info', staff_id=employee.id) }}">
+        <span class="staff-edit-search-avatar">
+            {% if employee.image_url %}
+            <img src="{{ employee.image_url }}" alt="{{ employee.fullname }}">
+            {% else %}
+            <span>{{ employee.fullname[:2] }}</span>
+            {% endif %}
+        </span>
+        <span>
+            <span class="staff-edit-search-name">{{ employee.fullname }}</span>
+            <span class="staff-edit-search-meta">
+                {{ employee.org.name if employee.org else 'ไม่มีต้นสังกัด' }}<br>
+                {{ academic_position.position.fullname_th if academic_position else (employee.job_position.th_title if employee.job_position else employee.position_level or 'ไม่ระบุตำแหน่ง') }}
+                {% if employee.staff_account and employee.staff_account.email %} · {{ employee.staff_account.email }}{% endif %}
+                {% if employee.telephone %} · {{ employee.telephone }}{% endif %}
+            </span>
+        </span>
+    </a>
+    {% endfor %}
+{% elif request.args.get('q') %}
+    <div class="staff-edit-search-empty">ไม่พบบุคลากรที่ตรงกัน</div>
+{% endif %}

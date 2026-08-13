@@ -103,14 +103,26 @@
             },
             {
                 data: 'checkins',
-                render: function(data, type) {
-                    return moment(data).format('lll')
+                render: function(data, type, row) {
+                    if (data) {
+                        return moment(data).format('lll')
+                    } else {
+                        return row.anchor_warning
+                            ? 'not found <span class="tag is-warning is-light is-rounded ml-2">May need a 00:00 anchor</span>'
+                            : 'not found'
+                    }
                 }
             },
             {
                 data: 'checkouts',
-                render: function(data, type) {
-                    return moment(data).format('lll')
+                render: function(data, type, row) {
+                    if (data) {
+                        return moment(data).format('lll')
+                    } else {
+                        return row.anchor_warning
+                            ? 'not found <span class="tag is-warning is-light is-rounded ml-2">May need a 00:00 anchor</span>'
+                            : 'not found'
+                    }
                 }
             },
             {

@@ -32,7 +32,7 @@ s3 = boto3.client(
 )
 
 # Allowed file extensions for upload
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf', 'mp4', 'webm'}
 
 # Function to check if the file extension is allowed
 def allowed_file(filename):
@@ -141,7 +141,10 @@ def get_procurement_image_data():
 @files_services.route('/')
 @login_required
 def index():
-    return render_template('files_services/upload.html')
+    prefix = (request.args.get('prefix') or '').strip().lstrip('/')
+    if prefix and not prefix.endswith('/'):
+        prefix += '/'
+    return render_template('files_services/upload.html', prefix=prefix)
 #
 # # Route for direct file upload by the user
 @files_services.route('/upload_file', methods=['GET', 'POST'])
@@ -157,42 +160,45 @@ def upload_file():
 
     if file and allowed_file(file.filename):
 
-        mime_type = file.mimetype
-        file_name = '200-200-5002.{}'.format(file.filename.split('.')[1])
+        mime_type = file.mimetype or 'application/octet-stream'
+        safe_name = secure_filename(file.filename)
+        if not safe_name:
+            return jsonify({"status": "error", "message": "Invalid file name"}), 400
+
+        prefix = (request.form.get('prefix') or 'ui-assets/').strip().lstrip('/')
+        if prefix and not prefix.endswith('/'):
+            prefix += '/'
+        file_name = f'{prefix}{safe_name}'
         file_data = file.stream.read()
 
-
-        # response =  s3.put_object(
-        #     Bucket=S3_BUCKET_NAME,
-        #     Key=file_name,
-        #     Body=file_data,
-        #     ContentType=mime_type
-        # )
-        #
-
-
-
-        if file_data:
-            # print('file', file_data)
-            # # Store the file URL in PostgreSQL
-            # conn = get_db_connection()
-            # cursor = conn.cursor()
-            # # Replace Table Here
-            # insert_query = sql.SQL("INSERT INTO files (file_name, file_url) VALUES (%s, %s)")
-            #
-            # cursor.execute(insert_query, (filename, file_url))
-            # conn.commit()
-            # cursor.close()
-            # conn.close()
-
-
-            # url = s3.generate_presigned_url('get_object',
-            #                                 Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
-            #                                 ExpiresIn=600)  # 604800 = 7 days
-            print(f"generating pre-signed URL: {file_name}")
-            return file_name
-        else:
+        if not file_data:
             return jsonify({"status": "error", "message": "Error uploading file"}), 500
+
+        if not S3_BUCKET_NAME:
+            return jsonify({"status": "error", "message": "S3 bucket is not configured"}), 500
+
+        try:
+            s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=file_data,
+                ContentType=mime_type,
+            )
+        except Exception as error:
+            return jsonify({"status": "error", "message": f"S3 upload failed: {error}"}), 500
+
+        file_url = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': S3_BUCKET_NAME, 'Key': file_name},
+            ExpiresIn=3600,
+        )
+        return redirect(url_for(
+            'files_services.index',
+            success=1,
+            file_url=file_url,
+            file_key=file_name,
+            prefix=prefix,
+        ))
     else:
         return jsonify({"status": "error", "message": "File type not allowed"}), 400
 

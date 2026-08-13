@@ -41,6 +41,75 @@
         .danger-panel .account-panel-title {
             color: var(--theme-red);
         }
+
+        .account-hero {
+            margin-bottom: 1.5rem;
+        }
+
+        .employee-avatar {
+            align-items: center;
+            background: linear-gradient(135deg, var(--theme-navy-deep), var(--theme-navy));
+            border: 5px solid var(--theme-surface);
+            border-radius: 50%;
+            box-shadow: 0 8px 18px rgba(18, 39, 84, 0.18);
+            color: #fff;
+            display: inline-flex;
+            font-size: 2rem;
+            font-weight: 700;
+            height: 104px;
+            justify-content: center;
+            overflow: hidden;
+            width: 104px;
+        }
+
+        .employee-avatar img {
+            height: 100%;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .account-hero .title {
+            margin-bottom: 0.35rem;
+            margin-top: 0.75rem;
+        }
+
+        .line-linked-indicator {
+            align-items: center;
+            background: rgba(46, 139, 87, 0.1);
+            border: 1px solid rgba(46, 139, 87, 0.24);
+            border-radius: 12px;
+            color: var(--theme-green);
+            display: inline-flex;
+            gap: 0.7rem;
+            padding: 0.7rem 1rem;
+            text-align: left;
+        }
+
+        .line-linked-indicator .icon {
+            align-items: center;
+            background: var(--theme-green);
+            border-radius: 50%;
+            color: #fff;
+            display: inline-flex;
+            height: 1.7rem;
+            justify-content: center;
+            width: 1.7rem;
+        }
+
+        .line-linked-indicator strong,
+        .line-linked-indicator small {
+            display: block;
+        }
+
+        .line-linked-indicator strong {
+            line-height: 1.2;
+        }
+
+        .line-linked-indicator small {
+            color: var(--theme-muted);
+            font-size: 0.78rem;
+            margin-top: 0.15rem;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -50,7 +119,16 @@
         <div class="column is-half is-offset-one-quarter">
             <div class="has-text-centered">
                 {% include "messages.html" %}
-                <h2 class="title">ข้อมูลบัญชีของคุณ</h2>
+                <div class="account-hero">
+                    <figure class="employee-avatar" aria-label="Employee avatar">
+                        {% if current_user.personal_info.image_url %}
+                            <img src="{{ current_user.personal_info.image_url }}" alt="{{ current_user.fullname }}">
+                        {% else %}
+                            {{ (current_user.fullname or current_user.email or '?')[:1] | upper }}
+                        {% endif %}
+                    </figure>
+                    <h2 class="title">ข้อมูลบัญชีของคุณ</h2>
+                </div>
                 {% if not current_user.personal_info.org.is_external %}
                     {% if line_profile %}
                     <figure class="image is-128x128 is-inline-block">
@@ -73,7 +151,15 @@
                     </p>
                     {% endif %}
                     {% if current_user.line_id %}
-                    <span class="tag is-success is-medium">เชื่อมต่อบัญชี Line แล้ว</span>
+                    <div class="line-linked-indicator" role="status" aria-label="เชื่อมต่อบัญชี Line แล้ว">
+                        <span class="icon" aria-hidden="true">
+                            <i class="fas fa-check"></i>
+                        </span>
+                        <span>
+                            <strong>เชื่อมต่อบัญชี Line แล้ว</strong>
+                            <small>บัญชี Line ของคุณพร้อมใช้งานแล้ว</small>
+                        </span>
+                    </div>
                     {% else %}
                     <div class="buttons is-centered">
                         <a class="button is-success" href="{{ url_for('auth.link_line_account') }}">

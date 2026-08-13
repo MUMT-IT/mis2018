@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block title %}รายการลงเวลาทั้งหมด{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .hr-login-records-shell {
+        padding: 1.5rem 0 3rem;
+    }
+
+    .hr-login-records-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 252, 0.96));
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 28px;
+        box-shadow: 0 18px 50px rgba(18, 39, 84, 0.08);
+        padding: 1.25rem;
+    }
+
+    .hr-login-records-title {
+        color: var(--theme-navy-deep);
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 0.35rem;
+    }
+
+    .hr-login-records-subtitle {
+        color: var(--theme-muted);
+        line-height: 1.55;
+        margin: 0 0 1rem;
+    }
+
+    .hr-login-records-table-wrap {
+        overflow-x: auto;
+    }
+
+    #hrLoginRecordsTable {
+        min-width: 52rem;
+    }
+
+    #hrLoginRecordsTable tbody td {
+        vertical-align: middle;
+    }
+
+    .hr-login-records-note {
+        max-width: 18rem;
+        white-space: normal;
+    }
+
+    .hr-login-records-actions {
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="section hr-login-records-shell">
+    <div class="container">
+        <div class="hr-login-records-card">
+            <h1 class="hr-login-records-title">รายการลงเวลาของ {{ selected_staff.fullname }}</h1>
+            <p class="hr-login-records-subtitle">
+                ค้นหาและเรียงลำดับรายการลงเวลาของบุคลากรที่เลือก
+            </p>
+            <div class="hr-login-records-table-wrap">
+                <table id="hrLoginRecordsTable" class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                        <tr>
+                            <th>รหัสรายการ</th>
+                            <th>บุคลากร</th>
+                            <th>เข้างาน</th>
+                            <th>ออกงาน</th>
+                            <th>แหล่งที่มา</th>
+                            <th>หมายเหตุ</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+            <div class="hr-login-records-actions">
+                <a class="button is-info is-light" href="{{ url_for('staff.hr_login_summary_report') }}">
+                    <span class="icon"><i class="fas fa-arrow-left" aria-hidden="true"></i></span>
+                    <span>กลับสรุปรายงาน</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function escapeHtml(value) {
+        return $('<span/>').text(value == null ? '' : String(value)).html();
+    }
+
+    function formatLocalDateTime(value) {
+        if (!value) return '—';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '—';
+        return date.toLocaleString('th-TH', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+    }
+
+    $(function() {
+        $('#hrLoginRecordsTable').DataTable({
+            processing: true,
+            serverSide: true,
+            deferRender: true,
+            searchDelay: 400,
+            pageLength: 25,
+            order: [[2, 'desc']],
+            ajax: {
+                url: {{ url_for('staff.get_hr_login_records')|tojson|safe }},
+                data: {
+                    staff_id: {{ selected_staff.id }}
+                }
+            },
+            columns: [
+                {data: 'id'},
+                {data: 'staff_name', render: function(data) { return escapeHtml(data); }},
+                {data: 'checkin', render: function(data, type) {
+                    return type === 'display' ? escapeHtml(formatLocalDateTime(data)) : (data || '');
+                }},
+                {data: 'checkout', render: function(data, type) {
+                    return type === 'display' ? escapeHtml(formatLocalDateTime(data)) : (data || '');
+                }},
+                {data: 'record_source', render: function(data) { return escapeHtml(data); }},
+                {data: 'note', render: function(data) { return '<span class="hr-login-records-note">' + escapeHtml(data) + '</span>'; }}
+            ],
+            language: {
+                processing: 'กำลังโหลด...',
+                search: 'ค้นหา:',
+                lengthMenu: 'แสดง _MENU_ รายการ',
+                info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                infoEmpty: 'ไม่มีรายการ',
+                zeroRecords: 'ไม่พบรายการที่ค้นหา',
+                paginate: {
+                    first: 'แรก',
+                    last: 'สุดท้าย',
+                    next: 'ถัดไป',
+                    previous: 'ก่อนหน้า'
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

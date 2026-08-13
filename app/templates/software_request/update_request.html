@@ -47,7 +47,14 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ detail.created_by.fullname }} ({{ detail.created_by.personal_info.org }})
+                                        {% if detail.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
+                                            {{ form.created_by(class='js-example-basic-single') }}
+                                        {% else %}
+                                            {{ detail.created_by.fullname }}
+                                        {% endif %}
+                                        {% if detail.created_by %}
+                                            ({{ detail.created_by.personal_info.org }})
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -88,6 +95,42 @@
                                 </div>
                             </div>
                         </div>
+{#                        <div class="field is-horizontal">#}
+{#                            <div class="field-label">#}
+{#                                <label class="label">ระดับความสำคัญ</label>#}
+{#                            </div>#}
+{#                            <div class="field-body">#}
+{#                                <div class="field">#}
+{#                                    <div class="control">#}
+{#                                        {% if detail.priority %}#}
+{#                                            <span class="tag {{ detail.priority_status_color }} is-light is-rounded">#}
+{#                                                {{ detail.priority }}#}
+{#                                            </span>#}
+{#                                        {% else %}#}
+{#                                            ไม่มีระดับความสำคัญ#}
+{#                                        {% endif %}#}
+{#                                    </div>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <div class="field is-horizontal">#}
+{#                            <div class="field-label">#}
+{#                                <label class="label">ความเร่งด่วน</label>#}
+{#                            </div>#}
+{#                            <div class="field-body">#}
+{#                                <div class="field">#}
+{#                                    <div class="control">#}
+{#                                        {% if detail.urgency %}#}
+{#                                            <span class="tag {{ detail.urgency_status_color }} is-light is-rounded">#}
+{#                                                {{ detail.urgency }}#}
+{#                                            </span>#}
+{#                                        {% else %}#}
+{#                                            ไม่มีความเร่งด่วน#}
+{#                                        {% endif %}#}
+{#                                    </div>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
                         <div class="field is-horizontal">
                             <div class="field-label">
                                 <label class="label">เหตุผลและความจำเป็น</label>
@@ -584,6 +627,9 @@
         }
 
         $(document).ready(function () {
+             $('.js-example-basic-single').select2({
+                placeholder: 'กรุณาเลือกผู้ส่งคำขอ'
+            })
             $('.js-example-basic-multiple').select2({
                 width: '100%',
                 placeholder: 'กรุณาเลือกผู้รับผิดชอบ'

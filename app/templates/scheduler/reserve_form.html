@@ -101,6 +101,27 @@
             grid-column: 1 / -1;
         }
 
+        .reserve-participants-section {
+            background: linear-gradient(135deg, rgba(238, 243, 255, 0.96), rgba(255, 248, 230, 0.86));
+            border: 2px solid rgba(26, 61, 124, 0.24);
+            border-radius: 24px;
+            box-shadow: 0 10px 24px rgba(18, 39, 84, 0.08);
+            padding: 1.25rem;
+        }
+
+        .reserve-participants-section .reserve-section-title {
+            align-items: center;
+            color: var(--theme-navy-deep);
+            display: flex;
+            font-size: 1.35rem;
+            gap: 0.65rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .reserve-participants-section .reserve-help {
+            color: var(--theme-navy);
+        }
+
         .reserve-field-card .label {
             color: var(--theme-muted);
             font-size: 0.82rem;
@@ -325,8 +346,10 @@
                             </div>
                         </div>
 
-                        <div class="reserve-section">
-                            <h2 class="title is-4 reserve-section-title">ผู้เข้าร่วมและกลุ่ม</h2>
+                        <div class="reserve-section reserve-participants-section">
+                            <h2 class="title is-4 reserve-section-title">
+                                <span>ผู้เข้าร่วมและกลุ่ม</span>
+                            </h2>
                             <div class="reserve-grid">
                                 <div class="reserve-field-card">
                                     <label class="label">กลุ่ม</label>
@@ -349,7 +372,7 @@
                                 <div class="reserve-field-card is-full">
                                     <label class="label">ผู้เข้าร่วม</label>
                                     {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
-                                    <p class="reserve-help">รายชื่อผู้ที่เข้าร่วมเพื่อแจ้งเตือนหรือเป็นบันทึก</p>
+                                    <p class="reserve-help">ระบุรายชื่อผู้เข้าร่วมเพื่อให้ระบบส่งการแจ้งเตือนทางอีเมลและไลน์</p>
                                 </div>
                                 <div class="reserve-field-card is-full">
                                     <label class="checkbox">
@@ -572,6 +595,49 @@
                 }
                 clearAvailabilityStatus('#' + $(this).attr('id'))
             })
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            const reserveForm = document.querySelector('form[method="post"]');
+            let allowEmptyParticipants = false;
+
+            if (!reserveForm) {
+                return;
+            }
+
+            reserveForm.addEventListener('submit', function (event) {
+                const participantSelect = reserveForm.querySelector('select[name="participants"]');
+                const groupSelect = reserveForm.querySelector('select[name="groups"]');
+                const hasParticipants = participantSelect && participantSelect.selectedOptions.length > 0;
+                const hasGroups = groupSelect && groupSelect.selectedOptions.length > 0;
+
+                if (allowEmptyParticipants || hasParticipants || hasGroups) {
+                    allowEmptyParticipants = false;
+                    return;
+                }
+
+                event.preventDefault();
+
+                Swal.fire({
+                    text: 'ท่านไม่ได้ระบุรายชื่อผู้เข้าร่วม หากระบุรายชื่อ ผู้ที่เข้าร่วมจะได้รับการเตือนทางอีเมลและไลน์เกี่ยวกับการประชุม/กิจกรรมนี้',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'ดำเนินการต่อ',
+                    cancelButtonText: 'ย้อนกลับ',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        allowEmptyParticipants = true;
+                        if (typeof reserveForm.requestSubmit === 'function') {
+                            reserveForm.requestSubmit(event.submitter);
+                        } else {
+                            HTMLFormElement.prototype.submit.call(reserveForm);
+                        }
+                    }
+                });
+            });
         });
     </script>
     <script>

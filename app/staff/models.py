@@ -220,6 +220,8 @@ class StaffPersonalInfo(db.Model):
     job_position = db.relationship('StaffJobPosition',
                                    backref=db.backref('job_position_staff'))
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
+    position_level = db.Column('position_level', db.String(), info={'label': u'ระดับตำแหน่ง'})
+    image_url = db.Column('image_url', db.String(), info={'label': u'ที่อยู่รูปภาพ'})
     mobile_phone = db.Column('mobile_phone', db.String(), info={'label': u'มือถือ'})
     telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
     retirement_date = db.Column('retirement_date', db.Date(), nullable=True)
@@ -266,6 +268,11 @@ class StaffPersonalInfo(db.Model):
 
     @property
     def en_fullname(self):
+        en_title = (self.en_title or '').strip()
+        if en_title.lower() == 'none':
+            en_title = ''
+        en_firstname = (self.en_firstname or '').strip()
+        en_lastname = (self.en_lastname or '').strip()
         try:
             academic_position = self.academic_positions[0]
         except IndexError:
@@ -277,18 +284,18 @@ class StaffPersonalInfo(db.Model):
             en_position = academic_position.position.shortname_en
 
         if en_position:
-            if self.en_title == u'Dr.':
+            if en_title == u'Dr.':
                 return u'{} {}{} {}'.format(en_position,
-                                            self.en_title,
-                                            self.en_firstname,
-                                            self.en_lastname)
+                                            en_title,
+                                            en_firstname,
+                                            en_lastname)
             else:
-                return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+                return u'{} {} {}'.format(en_position, en_firstname, en_lastname)
         else:
-            if self.en_title == u'Dr.':
-                return u'{}{} {}'.format(self.en_title, self.en_firstname, self.en_lastname)
+            if en_title == u'Dr.':
+                return u'{}{} {}'.format(en_title, en_firstname, en_lastname)
             else:
-                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
+                return u'{}{} {}'.format(en_title, en_firstname, en_lastname)
 
     def get_employ_period(self):
         today = datetime.now().date()
@@ -979,9 +986,13 @@ class StaffWorkLogin(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     date_id = db.Column('date_id', db.String())
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship('StaffAccount', backref=db.backref('work_logins', lazy='dynamic'))
+    staff = db.relationship('StaffAccount',
+                            foreign_keys=[staff_id],
+                            backref=db.backref('work_logins', lazy='dynamic'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    record_source = db.Column('record_source', db.String(30))
+    correction_type = db.Column('correction_type', db.String(20))
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
     num_scans = db.Column('num_scans', db.Integer(), default=0)
@@ -990,6 +1001,8 @@ class StaffWorkLogin(db.Model):
     lat = db.Column('lat', db.Numeric())
     long = db.Column('long', db.Numeric())
     note = db.Column('note', db.Text())
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    creator = db.relationship('StaffAccount', foreign_keys=[creator_id])
 
     @staticmethod
     def generate_date_id(date):

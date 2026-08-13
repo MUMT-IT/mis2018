@@ -15,35 +15,48 @@
                 </div>
                 <ul class="steps">
                     <li class="steps-segment {% if not sample.appointment_date and not sample.tracking_number %} is-active {% endif %}">
-                    <span class="steps-marker">
-                        <span class="icon">
-                            <i class="fas fa-calendar"></i>
+                        <span class="steps-marker">
+                            <span class="icon">
+                                <i class="fas fa-calendar"></i>
+                            </span>
                         </span>
-                    </span>
                         <div class="steps-content">
                             <p>ยังไม่ได้นัดหมายส่งตัวอย่าง</p>
                         </div>
                     </li>
-                    <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at %} is-active {% endif %}">
-                    <span class="steps-marker">
-                        <span class="icon">
-                            <i class="fas fa-shipping-fast"></i>
+                    <li class="steps-segment {% if (sample.appointment_date or sample.tracking_number) and not sample.received_at and not sample.rejected_at %} is-active {% endif %}">
+                        <span class="steps-marker">
+                            <span class="icon">
+                                <i class="fas fa-shipping-fast"></i>
+                            </span>
                         </span>
-                    </span>
                         <div class="steps-content">
                             <p>รอส่งตัวอย่าง</p>
                         </div>
                     </li>
-                    <li class="steps-segment {% if sample.received_at %} is-active {% endif %}">
-                    <span class="steps-marker">
-                        <span class="icon">
-                            <i class="fa fa-check"></i>
-                        </span>
-                    </span>
-                        <div class="steps-content">
-                            <p>ส่งตัวอย่างแล้ว</p>
-                        </div>
-                    </li>
+                    {% if sample.rejected_at %}
+                        <li class="steps-segment {% if sample.rejected_at %} is-active {% endif %}">
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fa fa-times"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>ปฏิเสธรับตัวอย่าง</p>
+                            </div>
+                        </li>
+                    {% else %}
+                        <li class="steps-segment {% if sample.received_at %} is-active {% endif %}">
+                            <span class="steps-marker">
+                                <span class="icon">
+                                    <i class="fa fa-check"></i>
+                                </span>
+                            </span>
+                            <div class="steps-content">
+                                <p>ส่งตัวอย่างแล้ว</p>
+                            </div>
+                        </li>
+                    {% endif %}
                 </ul>
                 <div class="card">
                     <header class="card-header">
@@ -118,13 +131,7 @@
                             {% endif %}
                             <p>
                                 <label class="label">สถานะ</label>
-                                {% if sample.received_at %}
-                                    <span class="tag is-success">ส่งตัวอย่างแล้ว</span>
-                                {% elif sample.appointment_date or sample.tracking_number %}
-                                    <span class="tag is-warning">รอส่งตัวอย่าง</span>
-                                {% else %}
-                                    <span class="tag is-danger">ยังไม่ได้นัดหมายส่งตัวอย่าง</span>
-                                {% endif %}
+                                <span class="tag {{ sample.customer_status_color }}">{{ sample.customer_status }}</span>
                             </p>
                             <p>
                                 <label class="label">ผู้รับตัวอย่าง</label>
@@ -242,26 +249,28 @@
                             <p>
                                 <label class="label">รายการทดสอบ</label>
                                 {% for quotation in sample.request.quotations %}
-                                    {% for item in quotation.quotation_items|sort(attribute='sequence') %}
-                                        <article class="media">
-                                            <div class="media-left">
-                                                <span class="tag is-info is-light">{{ item.sequence }}</span>
-                                            </div>
-                                            <div class="media-content">
-                                                <div class="content">
-                                                    {{ item.item|safe }}
+                                    {% if quotation.approved_at %}
+                                        {% for item in quotation.quotation_items|sort(attribute='sequence') %}
+                                            <article class="media">
+                                                <div class="media-left">
+                                                    <span class="tag is-info is-light">{{ item.sequence }}</span>
                                                 </div>
-                                            </div>
-                                            <div class="media-right">
-                                                <strong>{{ "{:,.2f}".format(item.net_price()) }} บาท</strong>
-                                            </div>
-                                        </article>
-                                    {% endfor %}
-                                    <div class="has-text-right mt-3">
-                                        <strong>
-                                            รวมเป็นเงินทั้งสิ้น {{ "{:,.2f}".format(quotation.grand_total()) }} บาท
-                                        </strong>
-                                    </div>
+                                                <div class="media-content">
+                                                    <div class="content">
+                                                        {{ item.item|safe }}
+                                                    </div>
+                                                </div>
+                                                <div class="media-right">
+                                                    <strong>{{ "{:,.2f}".format(item.net_price()) }} บาท</strong>
+                                                </div>
+                                            </article>
+                                        {% endfor %}
+                                        <div class="has-text-right mt-3">
+                                            <strong>
+                                                รวมเป็นเงินทั้งสิ้น {{ "{:,.2f}".format(quotation.grand_total()) }} บาท
+                                            </strong>
+                                        </div>
+                                    {% endif %}
                                 {% endfor %}
                             </p>
                         </div>

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% include "docs_query/nav.html" %}
+{% block title %}MUMT-MIS: เอกสารทั้งหมด{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="box docs-query-documents-shell">
+                <div class="level mb-5">
+                    <div>
+                        <p class="is-size-7 has-text-weight-semibold has-text-info">ระบบค้นหาเอกสาร</p>
+                        <h1 class="title is-2 mb-2">เอกสารทั้งหมด</h1>
+                        <p class="subtitle is-6 has-text-grey">ดูชื่อเอกสารและสถานะการประมวลผล</p>
+                    </div>
+                    <a class="button is-light" href="{{ url_for('docs_query.index') }}">
+                        <span class="icon"><i class="fas fa-search"></i></span>
+                        <span>กลับไปค้นหาเอกสาร</span>
+                    </a>
+                </div>
+
+                <div class="table-container">
+                    <table id="docs-query-documents-table" class="table is-fullwidth">
+                        <thead>
+                        <tr>
+                            <th>ชื่อเอกสาร</th>
+                            <th>ประเภทเอกสาร</th>
+                            <th>หมายเหตุ</th>
+                            <th>สถานะ</th>
+                        </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+    <style>
+        .docs-query-documents-shell {
+            border-radius: 28px;
+            margin: 2rem auto;
+            padding: 2.25rem;
+        }
+
+        .docs-query-documents-shell .table td,
+        .docs-query-documents-shell .table th {
+            vertical-align: middle;
+        }
+
+        .docs-query-table-subtitle {
+            color: #6b7280;
+            display: block;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            margin-top: 0.25rem;
+            max-width: 32rem;
+        }
+
+        .docs-query-documents-shell .table-container {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: visible;
+        }
+
+        .docs-query-documents-shell #docs-query-documents-table {
+            border-radius: 0;
+        }
+    </style>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(function () {
+            function escapeHtml(value) {
+                return $('<div>').text(value || '').html();
+            }
+
+            $('#docs-query-documents-table').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50], [10, 25, 50]],
+                ajax: {
+                    url: '{{ url_for("docs_query.documents_data") }}',
+                    type: 'GET'
+                },
+                order: [[0, 'asc']],
+                columns: [
+                    {
+                        data: 'title',
+                        render: function (data, type, row) {
+                            if (type !== 'display') return data;
+                            var summary = row.summary
+                                ? '<span class="docs-query-table-subtitle">' + escapeHtml(row.summary) + '</span>'
+                                : '';
+                            return '<div><a href="' + escapeHtml(row.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(data) + '</a>' + summary + '</div>';
+                        }
+                    },
+                    {
+                        data: 'document_type',
+                        render: function (data, type) {
+                            return type === 'display' ? escapeHtml(data) : data;
+                        }
+                    },
+                    {
+                        data: 'note',
+                        render: function (data, type) {
+                            if (type !== 'display') return data || '';
+                            return data ? escapeHtml(data) : '-';
+                        }
+                    },
+                    {
+                        data: 'status',
+                        render: function (data, type, row) {
+                            if (type !== 'display') return data;
+                            return '<span class="tag ' + escapeHtml(row.status_class) + '">' + escapeHtml(data) + '</span>';
+                        }
+                    }
+                ],
+                language: {
+                    processing: 'กำลังโหลดข้อมูล...',
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีรายการเอกสาร',
+                    zeroRecords: 'ไม่พบเอกสารที่ตรงกับการค้นหา',
+                    paginate: {
+                        first: 'หน้าแรก',
+                        last: 'หน้าสุดท้าย',
+                        next: 'ถัดไป',
+                        previous: 'ก่อนหน้า'
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

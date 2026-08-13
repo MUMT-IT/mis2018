@@ -1,6 +1,6 @@
 import os
 import boto3
-from sqlalchemy import func, LargeBinary
+from sqlalchemy import func, LargeBinary, text
 import math
 from app.main import db
 from dateutil.utils import today
@@ -46,11 +46,18 @@ class ServiceNumberID(db.Model):
     @classmethod
     def get_number(cls, code, db, lab, date=today()):
         fiscal_year = convert_to_fiscal_year(date)
+        bind = db.session.get_bind()
+        lock_key = f'{cls.__tablename__}:{code}:{lab}:{fiscal_year + 543}'
+        if bind and bind.dialect.name == 'postgresql':
+            db.session.execute(
+                text('SELECT pg_advisory_xact_lock(hashtext(:lock_key))'),
+                {'lock_key': lock_key}
+            )
         number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543, lab=lab).first()
         if not number:
             number = cls(buddhist_year=fiscal_year + 543, code=code, lab=lab, count=0)
             db.session.add(number)
-            db.session.commit()
+            db.session.flush()
         return number
 
     @property
@@ -466,23 +473,24 @@ class ServiceRequest(db.Model):
             'sender': self.customer.customer_info.cus_name if self.customer else None,
             'status_id': self.status.status_id if self.status else None,
             'is_completed': self.is_completed if self.is_completed else None,
+            'has_quotation': True if self.quotations else None,
             'has_result': True if self.get_result() else None,
             'admin_status': self.status.admin_status if self.status else None,
             'admin_status_color': self.status.admin_status_color if self.status else None,
             'customer_status': self.status.customer_status if self.status else None,
             'quotation_id': [quotation.id for quotation in self.quotations if quotation.disapproved_at == None] if self.quotations else None,
-            'sample_id': [sample.id for sample in self.samples] if self.samples else None,
+            'sample_id': [sample.id for sample in self.samples if not sample.rejected_at] if self.samples else None,
+            'reject_sample_id': [sample.id for sample in self.samples if sample.rejected_at and sample.is_rescheduled == False]
+                                if self.samples else None,
             'customer_status_color': self.status.customer_status_color if self.status else None,
             'quotation_sent_at': ', '.join(str(quotation.sent_at) for quotation in self.quotations
                                            if quotation.sent_at) if self.quotations else None,
             'quotation_approved_at': ', '.join(str(quotation.approved_at) for quotation in self.quotations
                                                if quotation.approved_at) if self.quotations else None,
-            'quotation_confirmed_at': ', '.join(str(quotation.confirmed_at) for quotation in self.quotations
-                                                if quotation.confirmed_at) if self.quotations else None,
+            'quotation_confirmed_at': self.quotations[-1].confirmed_at if self.quotations else None,
             'quotation_cancelled_at': ', '.join(str(quotation.cancelled_at) for quotation in
                                        self.quotations if quotation.cancelled_at) if self.quotations else None,
-            'sample_received_at': ', '.join(str(sample.received_at) for sample in self.samples if sample.received_at)
-                if self.samples else None,
+            'sample_received_at': self.samples[-1].received_at if self.samples else None,
             'sample_test_at' : ', '.join(str(result.released_at) for result in self.results if result.released_at)
                 if self.results else None,
             'result_approved_at': self.get_result().approved_at if self.get_result() and self.get_result().approved_at else None,
@@ -505,16 +513,17 @@ class ServiceRequest(db.Model):
                                                   if quotation.invoices for invoice in quotation.invoices
                                                   if invoice.payments for payment in invoice.payments if payment.paid_at)
                                                     if self.quotations else None,
-            'verified_at':  ', '.join(str(payment.verified_at) for quotation in self.quotations
-                                                  if quotation.invoices for invoice in quotation.invoices
-                                                  if invoice.payments for payment in invoice.payments if payment.verified_at)
-                                                    if self.quotations else None,
+            'verified_at': (self.quotations[-1].invoices[-1].payments[-1].verified_at
+                            if (self.quotations and self.quotations[-1].invoices
+                                and self.quotations[-1].invoices[-1].payments.count() > 0)
+                            else None
+            ),
             'invoice_no': invoice_no,
             'invoice_file': invoice_file,
             'has_invoice': has_invoice,
-            'invoice_id': [invoice.id for quotation in self.quotations
-                           if quotation.invoices for invoice in quotation.invoices]
-                            if self.quotations else None,
+            'invoice_id':(self.quotations[-1].invoices[-1].id
+                            if (self.quotations and self.quotations[-1].invoices)
+                            else None),
             'result_id': [result.id for result in self.results] if self.results else None
         }
 
@@ -747,10 +756,15 @@ class ServiceSample(db.Model):
     has_license = db.Column('has_license', db.Boolean(), default=True)
     has_recipe = db.Column('has_recipe', db.Boolean(), default=True)
     note = db.Column('note', db.Text(), info={'label': 'ข้อมูลเพิ่มเติม'})
+    reason = db.Column('reason', db.Text(), info={'label': 'เหตุผล'})
+    is_rescheduled = db.Column('is_rescheduled', db.Boolean(), default=False)
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     received_at = db.Column('received_at', db.DateTime(timezone=True))
+    rejected_at = db.Column('rejected_at', db.DateTime(timezone=True))
     receiver_id = db.Column('receiver_id', db.ForeignKey('staff_account.id'))
     received_by = db.relationship(StaffAccount, backref=db.backref('receive_sample'), foreign_keys=[receiver_id])
+    rejecter_id = db.Column('rejecter_id', db.ForeignKey('staff_account.id'))
+    rejecter = db.relationship(StaffAccount, backref=db.backref('rejected_sample'), foreign_keys=[rejecter_id])
     request_id = db.Column('request_id', db.ForeignKey('service_requests.id'))
     request = db.relationship(ServiceRequest, backref=db.backref('samples'))
 
@@ -765,9 +779,11 @@ class ServiceSample(db.Model):
             'note': self.note if self.note else None,
             'received_at': self.received_at,
             'received_by': self.received_by.fullname if self.received_by else None,
+            'rejected_at': self.rejected_at if self.rejected_at else None,
             'request_no': self.request.request_no if self.request else None,
             'sample_condition_status': self.sample_condition_status,
             'sample_condition_status_color': self.sample_condition_status_color,
+            'reason': self.reason if self.reason else None,
             'request_id': self.request_id if self.request_id else None,
             'file': self.get_file if self.get_file else None,
             'customer_status': self.customer_status if self.customer_status else None,
@@ -822,6 +838,8 @@ class ServiceSample(db.Model):
     def customer_status(self):
         if self.received_at:
             status = 'ส่งตัวอย่างแล้ว'
+        elif self.rejected_at:
+            status = 'ปฏิเสธรับตัวอย่าง'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             status = 'รอส่งตัวอย่าง'
         else:
@@ -832,6 +850,8 @@ class ServiceSample(db.Model):
     def customer_status_color(self):
         if self.received_at:
             color = 'is-success'
+        elif self.rejected_at:
+            color = 'is-danger'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             color = 'is-warning'
         else:
@@ -842,6 +862,8 @@ class ServiceSample(db.Model):
     def admin_status(self):
         if self.received_at:
             status = 'ได้รับตัวอย่างแล้ว'
+        elif self.rejected_at:
+            status = 'ปฏิเสธรับตัวอย่าง'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             status = 'รอรับตัวอย่าง'
         else:
@@ -852,6 +874,8 @@ class ServiceSample(db.Model):
     def admin_status_color(self):
         if self.received_at:
             color = 'is-success'
+        elif self.rejected_at:
+            color = 'is-danger'
         elif (self.appointment_date or self.tracking_number) and not self.received_at:
             color = 'is-warning'
         else:
@@ -890,6 +914,11 @@ class ServiceTestItem(db.Model):
         else:
             return None
 
+    @property
+    def download_all_final_files(self):
+        result = self.request.results.filter(ServiceResult.request_id == self.request_id).first()
+        return result.download_all_final_files if result else None
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -907,6 +936,7 @@ class ServiceTestItem(db.Model):
             'invoice_id': self.get_invoice().id if self.get_invoice() else None,
             'quotation_id': [quotation.id for quotation in self.request.quotations
                              if quotation.confirmed_at],
+            'download_all_final_files': self.download_all_final_files if self.download_all_final_files else None,
         }
 
 
@@ -936,7 +966,8 @@ class ServiceInvoice(db.Model):
     file_attached_id = db.Column('file_attached_id', db.ForeignKey('staff_account.id'))
     file_attached_by = db.relationship(StaffAccount, backref=db.backref('file_attached_invoices'),
                                        foreign_keys=[file_attached_id])
-    downloaded_at = db.Column('downloaded_at', db.DateTime(timezone=True))
+    admin_downloaded_at = db.Column('admin_downloaded_at', db.DateTime(timezone=True))
+    customer_downloaded_at = db.Column('customer_downloaded_at', db.DateTime(timezone=True))
     due_date = db.Column('due_date', db.DateTime(timezone=True))
     note = db.Column('note', db.Text())
     verify_at = db.Column('verify_at', db.DateTime(timezone=True))
@@ -1148,6 +1179,19 @@ class ServiceInvoiceItem(db.Model):
             return 0
 
 
+class ServiceInvoiceView(db.Model):
+    __tablename__ = 'service_invoice_views'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    viewed_at = db.Column('viewed_at', db.DateTime(timezone=True))
+    invoice_id = db.Column('invoice_id', db.ForeignKey('service_invoices.id'))
+    invoice = db.relationship(ServiceInvoice, backref=db.backref('viewed_invoice'))
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_accounts.id'))
+    customer = db.relationship(ServiceCustomerAccount, backref=db.backref("viewed_invoice"), foreign_keys=[customer_id])
+
+    def __str__(self):
+        return f'{self.viewed_at} - {self.customer_id}'
+
+
 class ServicePayment(db.Model):
     __tablename__ = 'service_payments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -1252,7 +1296,8 @@ class ServiceResult(db.Model):
             'is_edited': self.is_edited if self.is_edited else None,
             'approved_at': self.approved_at if self.approved_at else None,
             'creator': self.creator.fullname if self.creator else None,
-            'request_id': self.request_id if self.request_id else None
+            'request_id': self.request_id if self.request_id else None,
+            'download_all_final_files': self.download_all_final_files if self.download_all_final_files else None,
         }
 
     @property
@@ -1277,6 +1322,30 @@ class ServiceResult(db.Model):
             else:
                 quotation_id = None
         return quotation_id
+
+    @property
+    def download_all_final_files(self):
+        all_download = all(item.is_downloaded for item in self.result_items)
+        return all_download
+
+    @property
+    def all_copy_file(self):
+        selected_files = {
+            assoc.report_language.language
+            for assoc in self.request.report_languages
+        }
+
+        copy_files = {
+            rl.item
+            for rl in self.request.sub_lab.report_languages
+            if rl.category == "copy" and rl.language in selected_files
+        }
+
+        result_items = {
+            item.report_language
+            for item in self.result_items
+        }
+        return copy_files.issubset(result_items)
 
     @property
     def admin_status(self):
@@ -1317,7 +1386,7 @@ class ServiceResult(db.Model):
             status = 'รอยืนยันใบรายงานผล'
             color = 'is-warning'
         elif not uploaded_all or (uploaded_all and not self.sent_at):
-            status = 'กำลังทดสอบตัวอย่าง'
+            status = 'กำลังออกรายงานผล'
             color = 'is-light'
         else:
             status = 'ยังไม่ดำเนินการทดสอบ'
@@ -1331,6 +1400,7 @@ class ServiceResultItem(db.Model):
     sequence = db.Column('sequence', db.Integer())
     result_id = db.Column('result_id', db.ForeignKey('service_results.id'))
     result = db.relationship(ServiceResult, backref=db.backref('result_items'))
+    category = db.Column('category', db.String())
     report_language = db.Column('report_language', db.String())
     url = db.Column('url', db.String())
     draft_file = db.Column('draft_file', db.String())
@@ -1350,6 +1420,8 @@ class ServiceResultItem(db.Model):
     note = db.Column('note', db.Text())
     edited_at = db.Column('edited_at', db.DateTime(timezone=True))
     is_edited = db.Column('is_edited', db.Boolean())
+    is_downloaded = db.Column('is_downloaded', db.Boolean(), default=False)
+    status_note = db.Column('status_note', db.Boolean())
     released_at = db.Column('released_at', db.DateTime(timezone=True))
     modified_at = db.Column('modified_at', db.DateTime(timezone=True))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
@@ -1425,12 +1497,31 @@ class ServiceResultItem(db.Model):
             status = 'รอยืนยันใบรายงานผล'
             color = 'is-warning'
         elif not uploaded_all:
-            status = 'กำลังทดสอบตัวอย่าง'
+            status = 'กำลังออกรายงานผล'
             color = 'is-light'
         else:
             status = 'ยังไม่ดำเนินการทดสอบ'
             color = 'is-danger'
         return {'status': status, 'color': color}
+
+
+class ServiceFinalResultItemReversion(db.Model):
+    __tablename__ = 'service_final_result_item_reversions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    note = db.Column('note', db.Text())
+    remark = db.Column('remark', db.Text())
+    is_approved = db.Column('is_approved', db.Boolean())
+    result_item_id = db.Column('result_item_id', db.ForeignKey('service_result_items.id'))
+    result_item = db.relationship(ServiceResultItem, backref=db.backref('final_reversion'))
+    requested_at = db.Column('requested_at', db.DateTime(timezone=True))
+    requester_id = db.Column('requester_id', db.ForeignKey("service_customer_accounts.id"))
+    requester = db.relationship(ServiceCustomerAccount, foreign_keys=[requester_id])
+    edited_at = db.Column('edited_at', db.DateTime(timezone=True))
+    editor_id = db.Column('editor_id', db.ForeignKey("staff_account.id"))
+    editor = db.relationship(StaffAccount, foreign_keys=[editor_id])
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    approver_id = db.Column('approver_id', db.ForeignKey("service_customer_accounts.id"))
+    approver = db.relationship(ServiceCustomerAccount, foreign_keys=[approver_id])
 
 
 class ServiceOrder(db.Model):

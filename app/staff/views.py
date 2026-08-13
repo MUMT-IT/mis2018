@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from io import BytesIO
 from functools import wraps
+import json
 
 import arrow
 import pandas as pd
@@ -19,7 +20,8 @@ from flask import (abort, jsonify, render_template, render_template_string, requ
 from datetime import date, timedelta, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc, cast, Date, or_, extract
+from sqlalchemy import and_, desc, cast, Date, or_, extract, func
+from sqlalchemy.orm import aliased
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from app.linebot_compat import TextSendMessage, FlexSendMessage, BubbleContainer, BoxComponent, TextComponent
@@ -33,9 +35,11 @@ from flask_admin import BaseView, expose
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
 from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm
-from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission, event_staff_permission
+from app.roles import (admin_permission, hr_permission, secretary_permission, manager_permission,
+                       event_staff_permission, head_permission)
 from app.staff.models import *
 from app.url_utils import external_url
+from app.org_directory import academic_rank_from_name, email_local_part, parse_saved_page
 from app.auth.views import _normalize_staff_email
 from app.google_credential_utils import load_google_credentials_json
 
@@ -49,6 +53,7 @@ EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
     'staff.create_qrcode',
     'staff.show_time_report',
     'staff.send_time_report_data',
+    'staff.send_time_report_quota',
     'staff.send_holidays_data',
 }
 
@@ -62,11 +67,14 @@ else:
     drive = None
 
 tz = pytz.timezone('Asia/Bangkok')
+TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
+TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 
 # TODO: remove hardcoded annual quota soon
 LEAVE_ANNUAL_QUOTA = 10
 
 manager_or_secretary_permission = manager_permission.union(secretary_permission)
+login_summary_permission = manager_or_secretary_permission.union(head_permission)
 
 
 def _is_external_account():
@@ -107,6 +115,7 @@ def _create_work_login_record(staff_account, now, lat, lon, *, qrcode_exp_dateti
         lat=float(lat),
         long=float(lon),
         start_datetime=now,
+        record_source='scan',
         num_scans=num_scans,
         note=note,
     )
@@ -116,6 +125,26 @@ def _create_work_login_record(staff_account, now, lat, lon, *, qrcode_exp_dateti
     db.session.commit()
     activity = 'checked in' if num_scans == 1 else 'checked out'
     return record, activity, num_scans
+
+
+def _get_early_checkout_info(staff_account, now):
+    if not getattr(StaffWorkLogin, 'query', None):
+        return None
+    date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
+    records_query = StaffWorkLogin.query.filter_by(date_id=date_id, staff=staff_account)
+    if records_query.count() == 0:
+        return None
+    first_record = records_query.order_by(StaffWorkLogin.start_datetime.asc()).first()
+    if not first_record or not first_record.start_datetime:
+        return None
+    first_scan = _to_bangkok(first_record.start_datetime)
+    elapsed_hours = max((now.astimezone(tz) - first_scan).total_seconds() / 3600, 0)
+    if elapsed_hours >= 8:
+        return None
+    return {
+        'worked_hours': round(elapsed_hours, 1),
+        'first_scan': first_scan,
+    }
 
 
 def _to_bangkok(dt):
@@ -156,6 +185,12 @@ def _daily_work_login_rows(records):
         if end_reference and end_qrcode_exp:
             end_expired = _to_bangkok(end_reference) > _to_bangkok(end_qrcode_exp)
 
+        approved_correction_types = sorted({
+            rec.correction_type
+            for rec in day_records
+            if rec.record_source == 'approved_request' and rec.correction_type
+        })
+
         lat = float(first.lat) if first.lat is not None else ''
         lon = float(first.long) if first.long is not None else ''
         rows.append({
@@ -168,12 +203,588 @@ def _daily_work_login_rows(records):
             'lon': lon,
             'start_expired': start_expired,
             'end_expired': end_expired,
+            'approved_checkin': 'checkin' in approved_correction_types,
+            'approved_checkout': 'checkout' in approved_correction_types,
+            'has_approved_correction': bool(approved_correction_types),
             'location': '<a href="https://maps.google.com/?q={},{}">Click</a>'.format(lat, lon)
             if lat != '' and lon != '' else '',
         })
 
     rows.sort(key=lambda row: (row['date'], row['staff_name']))
     return rows
+
+
+def _parse_login_summary_date(value, *, default=None):
+    if not value:
+        return default
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    return datetime.strptime(value.strip(), '%d/%m/%Y').date()
+
+
+def _current_login_quota_period(reference_date=None, staff_personal_info=None):
+    reference_date = reference_date or datetime.now(tz).date()
+    employment_title = getattr(getattr(staff_personal_info, 'employment', None), 'title', '')
+    if employment_title.strip() == 'พนักงานมหาวิทยาลัย':
+        quota_limit = 30
+        quota_start_year = reference_date.year if reference_date.month >= 7 else reference_date.year - 1
+        quota_start = date(quota_start_year, 7, 1)
+        quota_end = date(quota_start_year + 1, 6, 30)
+    elif reference_date.month >= 6:
+        quota_limit = 15
+        quota_start = date(reference_date.year, 6, 1)
+        quota_end = date(reference_date.year, 12, 31)
+    else:
+        quota_limit = 15
+        quota_start = date(reference_date.year, 1, 1)
+        quota_end = date(reference_date.year, 6, 30)
+    return quota_start, quota_end, quota_limit
+
+
+def _build_login_quota_summary(staff_personal_info):
+    quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
+        staff_personal_info=staff_personal_info
+    )
+    staff_account = getattr(staff_personal_info, 'staff_account', None)
+    records = []
+    if staff_account is not None:
+        records = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date)
+            .between(quota_start_date, quota_end_date),
+            StaffWorkLogin.staff_id == staff_account.id,
+        ).all()
+
+    rows = _daily_work_login_rows(records)
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    quota_flagged_dates = set()
+    for row in rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        is_late_day = bool(start_dt and start_dt.time() > office_start_time)
+        is_short_hours_day = bool(
+            start_dt and end_dt and worked_hours is not None and worked_hours < 8.0
+        )
+        if is_late_day or is_short_hours_day:
+            quota_flagged_dates.add(row['date'])
+
+    quota_dates = sorted(day.isoformat() for day in quota_flagged_dates)
+    recent_records_start = datetime.now(tz).date() - timedelta(days=6)
+    checkin_records = []
+    for row in rows:
+        if row['date'] < recent_records_start:
+            continue
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        is_late_day = bool(start_dt and start_dt.time() > office_start_time)
+        is_short_hours_day = bool(
+            start_dt and end_dt and worked_hours is not None and worked_hours < 8.0
+        )
+        checkin_records.append({
+            'date': row['date'].isoformat(),
+            'checkin': row['start'],
+            'checkout': row['end'],
+            'worked_hours': round(worked_hours, 1) if worked_hours is not None else None,
+            'is_late': is_late_day,
+            'is_short_hours': is_short_hours_day,
+            'counts_toward_quota': is_late_day or is_short_hours_day,
+        })
+
+    return {
+        'quota_start': quota_start_date.isoformat(),
+        'quota_end': quota_end_date.isoformat(),
+        'quota_limit': quota_limit,
+        'quota_used': len(quota_dates),
+        'quota_dates': quota_dates,
+        'quota_remaining': max(quota_limit - len(quota_dates), 0),
+        'checkin_records': checkin_records,
+    }
+
+
+def _build_login_history_snapshot(staff_personal_info):
+    quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
+        staff_personal_info=staff_personal_info
+    )
+    staff_account = getattr(staff_personal_info, 'staff_account', None)
+    records = []
+    requests_in_period = []
+    if staff_account is not None:
+        records = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date)
+            .between(quota_start_date, quota_end_date),
+            StaffWorkLogin.staff_id == staff_account.id,
+        ).all()
+        requests_in_period = [
+            request_record
+            for request_record in StaffRequestWorkLogin.query.filter_by(
+                staff_account_id=staff_account.id,
+            ).all()
+            if request_record.work_datetime
+            and quota_start_date <= request_record.work_datetime.date() <= quota_end_date
+        ]
+
+    rows = _daily_work_login_rows(records)
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    office_end_time = datetime.strptime('16:30', '%H:%M').time()
+    thai_weekdays = ('จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์')
+    late_days = []
+    early_checkout_days = []
+    incomplete_days = []
+    for row in rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        if start_dt and start_dt.time() > office_start_time:
+            late_days.append({
+                'date': row['date'].isoformat(),
+                'weekday': thai_weekdays[row['date'].weekday()],
+                'time': start_dt.strftime('%H:%M'),
+            })
+        if end_dt and end_dt.time() < office_end_time:
+            early_checkout_days.append({
+                'date': row['date'].isoformat(),
+                'weekday': thai_weekdays[row['date'].weekday()],
+                'time': end_dt.strftime('%H:%M'),
+            })
+        if start_dt and not end_dt:
+            incomplete_days.append(row['date'].isoformat())
+
+    def request_sort_key(item):
+        requested_at = item.requested_at
+        if requested_at is None:
+            return datetime.min.replace(tzinfo=pytz.utc)
+        if requested_at.tzinfo is None:
+            return pytz.utc.localize(requested_at)
+        return requested_at.astimezone(pytz.utc)
+
+    request_records = []
+    for request_record in sorted(
+        requests_in_period,
+        key=request_sort_key,
+        reverse=True,
+    ):
+        if request_record.approved_at:
+            status = 'อนุมัติแล้ว'
+        elif request_record.cancelled_at:
+            status = 'ไม่อนุมัติหรือยกเลิกแล้ว'
+        else:
+            status = 'รออนุมัติ'
+        request_records.append({
+            'date': request_record.work_datetime.strftime('%Y-%m-%d'),
+            'time': request_record.work_datetime.strftime('%H:%M'),
+            'type': 'เข้างาน' if request_record.is_checkin else 'ออกงาน',
+            'status': status,
+            'reason': request_record.reason or '',
+        })
+
+    quota_summary = _build_login_quota_summary(staff_personal_info)
+    employment_type = (
+        staff_personal_info.employment.title
+        if staff_personal_info.employment else 'ไม่ระบุ'
+    )
+    return {
+        'employee': staff_personal_info.fullname,
+        'employment_type': employment_type,
+        'period': {
+            'start': quota_start_date.isoformat(),
+            'end': quota_end_date.isoformat(),
+            'quota_limit': quota_limit,
+        },
+        'attendance': {
+            'late_checkin_count': len(late_days),
+            'late_checkin_days': late_days,
+            'early_checkout_count': len(early_checkout_days),
+            'early_checkout_days': early_checkout_days,
+            'incomplete_checkout_count': len(incomplete_days),
+            'incomplete_checkout_days': incomplete_days,
+        },
+        'quota': {
+            'used_days': quota_summary['quota_used'],
+            'remaining_days': quota_summary['quota_remaining'],
+        },
+        'request_records': request_records,
+    }
+
+
+def _pending_clockin_requests_for(approver_id):
+    return StaffRequestWorkLogin.query.filter_by(
+        approver_id=approver_id,
+        approved_at=None,
+        cancelled_at=None,
+    ).order_by(StaffRequestWorkLogin.requested_at.desc()).all()
+
+
+def _build_typhoon_login_history_prompt(snapshot):
+    ai_snapshot = dict(snapshot)
+    ai_snapshot.pop('employee', None)
+    ai_snapshot['request_records'] = [
+        {
+            key: value
+            for key, value in request_record.items()
+            if key != 'reason'
+        }
+        for request_record in snapshot.get('request_records', [])
+    ]
+    return [
+        {
+            'role': 'system',
+            'content': (
+                'คุณเป็นผู้ช่วยสรุปข้อมูลการลงเวลาสำหรับผู้บังคับบัญชาในระบบบุคลากร. '
+                'เขียนสรุปภาษาไทยแบบกระชับและเป็นกลางจากข้อมูลที่ให้เท่านั้น. '
+                'ให้เน้นรูปแบบที่เห็นซ้ำอย่างชัดเจน ไม่ใช่การเล่าภาพรวมแบบกว้าง ๆ: '
+                'วันในสัปดาห์หรือวันที่เกิดซ้ำ, ช่วงเวลาที่เกิดซ้ำ, วันที่เกิดติดกันหรือกระจุกตัว, '
+                'และแนวโน้มตามลำดับเวลา เช่น เพิ่มขึ้น ลดลง หรือคงที่. '
+                'เชื่อมโยงรูปแบบเหล่านี้กับคำขอรับรองเวลาและสถานะของคำขอเมื่อมีหลักฐาน. '
+                'ห้ามสร้างข้อมูลหรือข้อสรุปเกี่ยวกับเจตนาของบุคลากร. '
+                'หากไม่พบรูปแบบซ้ำหรือแนวโน้มที่ชัดเจน ให้ระบุว่าไม่พบอย่างชัดเจน. '
+                'ใช้โครงสร้าง: รูปแบบที่พบไม่เกิน 3 bullet points '
+                'และข้อเสนอแนะสำหรับผู้บังคับบัญชา 1 ย่อหน้าสั้น ๆ. '
+                'แต่ละ bullet ต้องอ้างอิงวัน เวลา หรือจำนวนครั้งที่เกี่ยวข้อง. '
+                'ระบุให้ชัดเจนหากข้อมูลมีจำนวนน้อยหรือยังไม่มีคำขอ.'
+            ),
+        },
+        {
+            'role': 'user',
+            'content': (
+                'สรุปประวัติการลงเวลาของบุคลากรสำหรับผู้จัดการ:\n'
+                f'{json.dumps(ai_snapshot, ensure_ascii=False, indent=2)}'
+            ),
+        },
+    ]
+
+
+def _call_typhoon_login_history_summary(snapshot):
+    api_key = os.environ.get('SCB_TYPHOON_API_KEY')
+    if not api_key:
+        raise RuntimeError('SCB_TYPHOON_API_KEY is not configured.')
+
+    response = requests.post(
+        TYPHOON_API_URL,
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': TYPHOON_MODEL,
+            'temperature': 0.2,
+            'max_tokens': 900,
+            'messages': _build_typhoon_login_history_prompt(snapshot),
+        },
+        timeout=45,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    content = payload['choices'][0]['message']['content']
+    if not content or not content.strip():
+        raise ValueError('Empty Typhoon login history summary response.')
+    return content.strip()
+
+
+def _build_fallback_login_history_summary(snapshot):
+    attendance = snapshot['attendance']
+    requests_count = len(snapshot['request_records'])
+    return (
+        'รูปแบบที่พบ:\n'
+        f"- เข้างานสาย {attendance['late_checkin_count']} วัน\n"
+        f"- ออกงานก่อนเวลา {attendance['early_checkout_count']} วัน\n"
+        f"- มีคำขอรับรองเวลาในรอบปัจจุบัน {requests_count} รายการ "
+        f"และใช้โควตาแล้ว {snapshot['quota']['used_days']} จาก {snapshot['period']['quota_limit']} วัน\n\n"
+        'ข้อเสนอแนะสำหรับผู้บังคับบัญชา: ตรวจสอบวันที่มีความถี่สูงและพิจารณาคำขอรับรองเวลาตามหลักฐานที่มี.'
+    )
+
+
+def _build_login_summary_dashboard(start_date, end_date, dept_id):
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    office_end_time = datetime.strptime('16:30', '%H:%M').time()
+
+    # Keep the mini dashboard aligned with StaffAccount.is_active: retired or
+    # resigned employees should not appear in the manager's staff list.
+    employee_query = StaffPersonalInfo.query.filter(
+        StaffPersonalInfo.org_id == dept_id,
+        or_(
+            StaffPersonalInfo.retired.is_(False),
+            StaffPersonalInfo.retired.is_(None),
+        ),
+        StaffPersonalInfo.resignation_date.is_(None),
+    )
+    employees = employee_query.all()
+    employees_by_id = {
+        employee.staff_account.id: employee
+        for employee in employees
+        if getattr(employee, 'staff_account', None) is not None
+    }
+
+    if not employees_by_id:
+        return {
+            'date_range': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat(),
+            },
+            'totals': {
+                'employees': 0,
+                'employees_with_records': 0,
+                'complete_days': 0,
+                'late_checkins': 0,
+                'early_checkouts': 0,
+                'total_hours': 0.0,
+                'average_hours_per_day': 0.0,
+                'working_days': 0,
+                'present_days': 0,
+                'leave_days': 0,
+                'wfh_days': 0,
+                'seminar_days': 0,
+                'missing_days': 0,
+            },
+            'employees': [],
+        }
+
+    start_datetime_column = getattr(StaffWorkLogin, 'start_datetime', None)
+    staff_id_column = getattr(StaffWorkLogin, 'staff_id', None)
+    staff_ids = list(employees_by_id)
+    if start_datetime_column is not None:
+        records_query = StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', start_datetime_column), Date).between(start_date, end_date)
+        )
+        if staff_id_column is not None:
+            records_query = records_query.filter(staff_id_column.in_(staff_ids))
+        records = records_query.all()
+    else:
+        records = StaffWorkLogin.query.all()
+    daily_rows = _daily_work_login_rows(records)
+
+    quota_periods = {
+        staff_id: _current_login_quota_period(staff_personal_info=employee)[:2]
+        for staff_id, employee in employees_by_id.items()
+    }
+    quota_limits = {
+        staff_id: _current_login_quota_period(staff_personal_info=employee)[2]
+        for staff_id, employee in employees_by_id.items()
+    }
+    quota_start_date = min(period[0] for period in quota_periods.values())
+    quota_end_date = max(period[1] for period in quota_periods.values())
+    quota_records_query = StaffWorkLogin.query.filter(
+        cast(func.timezone('Asia/Bangkok', start_datetime_column), Date)
+        .between(quota_start_date, quota_end_date)
+    )
+    if staff_id_column is not None:
+        quota_records_query = quota_records_query.filter(staff_id_column.in_(staff_ids))
+    quota_daily_rows = _daily_work_login_rows(quota_records_query.all())
+
+    rows_by_staff = defaultdict(list)
+    for row in daily_rows:
+        if row['staff_id'] in employees_by_id:
+            rows_by_staff[row['staff_id']].append(row)
+    quota_rows_by_staff = defaultdict(list)
+    for row in quota_daily_rows:
+        if row['staff_id'] in employees_by_id:
+            quota_rows_by_staff[row['staff_id']].append(row)
+
+    working_days = []
+    current_day = start_date
+    while current_day <= end_date:
+        if current_day.weekday() < 5:
+            working_days.append(current_day)
+        current_day += timedelta(days=1)
+    holiday_dates = {
+        _to_bangkok(holiday.holiday_date).date()
+        if isinstance(holiday.holiday_date, datetime)
+        else holiday.holiday_date
+        for holiday in Holidays.query.filter(
+            cast(Holidays.holiday_date, Date).between(start_date, end_date)
+        ).all()
+        if holiday.holiday_date
+    }
+    working_days = [day for day in working_days if day not in holiday_dates]
+
+    def covered_dates(start_datetime, end_datetime):
+        if not start_datetime:
+            return set()
+        event_start = _to_bangkok(start_datetime).date()
+        event_end = _to_bangkok(end_datetime or start_datetime).date()
+        first_day = max(start_date, event_start)
+        last_day = min(end_date, event_end)
+        return {
+            day for day in working_days
+            if first_day <= day <= last_day
+        }
+
+    def employee_status_dates(employee):
+        account = employee.staff_account
+        login_dates = {
+            row['date']
+            for row in rows_by_staff.get(account.id, [])
+            if row.get('start') or row.get('end')
+        }
+        leave_dates = set()
+        for leave_request in account.leave_requests:
+            if leave_request.cancelled_at or not leave_request.get_approved:
+                continue
+            leave_dates.update(covered_dates(leave_request.start_datetime, leave_request.end_datetime))
+        wfh_dates = set()
+        for wfh_request in account.wfh_requests:
+            if wfh_request.cancelled_at or not wfh_request.get_approved:
+                continue
+            wfh_dates.update(covered_dates(wfh_request.start_datetime, wfh_request.end_datetime))
+        seminar_dates = set()
+        for seminar_attendance in account.seminar_attends:
+            seminar = seminar_attendance.seminar
+            seminar_dates.update(covered_dates(
+                getattr(seminar, 'start_datetime', None) or seminar_attendance.start_datetime,
+                getattr(seminar, 'end_datetime', None) or seminar_attendance.end_datetime,
+            ))
+
+        present_dates = login_dates & set(working_days)
+        leave_dates -= present_dates
+        wfh_dates -= present_dates | leave_dates
+        seminar_dates -= present_dates | leave_dates | wfh_dates
+        accounted_dates = present_dates | leave_dates | wfh_dates | seminar_dates
+        return {
+            'present': present_dates,
+            'leave': leave_dates,
+            'wfh': wfh_dates,
+            'seminar': seminar_dates,
+            'missing': set(working_days) - accounted_dates,
+        }
+
+    total_complete_days = 0
+    total_late_checkins = 0
+    total_early_checkouts = 0
+    total_hours = 0.0
+    total_status_days = {'present': 0, 'leave': 0, 'wfh': 0, 'seminar': 0, 'missing': 0}
+    employees_payload = []
+
+    for staff_id, employee in employees_by_id.items():
+        status_dates = employee_status_dates(employee)
+        status_counts = {
+            status: len(days) for status, days in status_dates.items()
+        }
+        for status, count in status_counts.items():
+            total_status_days[status] += count
+        employee_rows = sorted(rows_by_staff.get(staff_id, []), key=lambda row: (row['date'], row['staff_name']))
+        complete_days = 0
+        late_checkins = 0
+        early_checkouts = 0
+        flagged_records = 0
+        worked_hours_total = 0.0
+
+        for row in employee_rows:
+            start_dt = parser.isoparse(row['start']) if row['start'] else None
+            end_dt = parser.isoparse(row['end']) if row['end'] else None
+            worked_hours = _calculate_work_hours(start_dt, end_dt)
+            if worked_hours is not None:
+                worked_hours_total += worked_hours
+            if start_dt and end_dt:
+                complete_days += 1
+            if start_dt and start_dt.time() > office_start_time:
+                late_checkins += 1
+            if end_dt and end_dt.time() < office_end_time:
+                early_checkouts += 1
+            flagged_records += int(row['approved_checkin']) + int(row['approved_checkout'])
+
+        quota_flagged_dates = set()
+        quota_start_date, quota_end_date = quota_periods[staff_id]
+        for row in quota_rows_by_staff.get(staff_id, []):
+            if not quota_start_date <= row['date'] <= quota_end_date:
+                continue
+            quota_start_dt = parser.isoparse(row['start']) if row['start'] else None
+            quota_end_dt = parser.isoparse(row['end']) if row['end'] else None
+            quota_worked_hours = _calculate_work_hours(quota_start_dt, quota_end_dt)
+            is_late_quota_day = bool(quota_start_dt and quota_start_dt.time() > office_start_time)
+            is_short_hours_quota_day = bool(
+                quota_start_dt and quota_end_dt and quota_worked_hours is not None and quota_worked_hours < 8.0
+            )
+            if is_late_quota_day or is_short_hours_quota_day:
+                quota_flagged_dates.add(row['date'])
+
+        average_hours_per_day = round(worked_hours_total / complete_days, 1) if complete_days else 0.0
+        completion_rate = round((complete_days / len(employee_rows)) * 100, 1) if employee_rows else 0.0
+        latest_row = employee_rows[-1] if employee_rows else None
+
+        total_complete_days += complete_days
+        total_late_checkins += late_checkins
+        total_early_checkouts += early_checkouts
+        total_hours += worked_hours_total
+
+        employees_payload.append({
+            'staff_id': staff_id,
+            'name': employee.fullname,
+            'image_url': employee.image_url or '',
+            'org_name': employee.org.name if employee.org else '',
+            'position': (
+                employee.academic_positions[0].position.fullname_th
+                if employee.academic_positions
+                else (employee.job_position.th_title if employee.job_position else employee.position_level or '')
+            ),
+            'academic_staff': bool(employee.academic_staff),
+            'complete_days': complete_days,
+            'late_checkins': late_checkins,
+            'early_checkouts': early_checkouts,
+            'flagged_records': flagged_records,
+            'quota_used': len(quota_flagged_dates),
+            'quota_remaining': max(quota_limits[staff_id] - len(quota_flagged_dates), 0),
+            'quota_dates': sorted(day.isoformat() for day in quota_flagged_dates),
+            'quota_limit': quota_limits[staff_id],
+            'quota_start': quota_start_date.isoformat(),
+            'quota_end': quota_end_date.isoformat(),
+            'average_hours_per_day': average_hours_per_day,
+            'completion_rate': completion_rate,
+            'days_with_records': len(employee_rows),
+            'status_counts': status_counts,
+        })
+
+    employees_payload.sort(key=lambda item: (-item['complete_days'], item['name']))
+    total_employees_with_records = sum(1 for item in employees_payload if item['days_with_records'])
+    average_hours_per_day = round(total_hours / total_complete_days, 1) if total_complete_days else 0.0
+
+    return {
+        'date_range': {
+            'start': start_date.isoformat(),
+            'end': end_date.isoformat(),
+        },
+        'totals': {
+            'employees': len(employees_payload),
+            'employees_with_records': total_employees_with_records,
+            'complete_days': total_complete_days,
+            'late_checkins': total_late_checkins,
+            'early_checkouts': total_early_checkouts,
+            'total_hours': round(total_hours, 1),
+            'average_hours_per_day': average_hours_per_day,
+            'working_days': len(working_days),
+            'present_days': total_status_days['present'],
+            'leave_days': total_status_days['leave'],
+            'wfh_days': total_status_days['wfh'],
+            'seminar_days': total_status_days['seminar'],
+            'missing_days': total_status_days['missing'],
+        },
+        'employees': employees_payload,
+    }
+
+
+def _calculate_work_hours(start_dt, end_dt):
+    if not start_dt or not end_dt:
+        return None
+
+    workday_start = start_dt.replace(hour=8, minute=0, second=0, microsecond=0)
+    effective_start = max(start_dt, workday_start)
+    worked_seconds = max(0, (end_dt - effective_start).total_seconds())
+    worked_hours = worked_seconds / 3600.0
+    return min(8.0, worked_hours)
+
+
+def _work_login_event_style(is_late, hours_is_negative, has_checkout):
+    class_names = []
+    if is_late:
+        class_names.append('is-late-login')
+        return '#8b1e1e', '#f8caca', '#e59b9b', class_names
+    if hours_is_negative:
+        class_names.append('is-short-hours')
+        return '#10264c', '#fff3bf', '#e6cf73', class_names
+    if has_checkout:
+        class_names.append('is-complete-hours')
+        return '#245b38', '#e4f3e9', '#b8ddc4', class_names
+    return '#ffffff', '#7d9df0', '#f56956', class_names
 
 
 def get_fiscal_date(date):
@@ -245,7 +856,7 @@ def calculate_leave_quota_limit(staff_id, quota_id, date_time):
             quota_limit = quota.max_per_year
     else:
         if delta.months > 5:
-            if datetime.today().month in [10, 11, 12]:
+            if date_time.month in [10, 11, 12]:
                 if max_cum_quota:
                     if this_year_quota:
                         quota_limit = this_year_quota.quota_days
@@ -335,6 +946,122 @@ def index():
                            secretary_permission=secretary_permission,
                            manager_permission=manager_permission, event_staff_permission=event_staff_permission
                            )
+
+
+@staff.route('/employee-search')
+@login_required
+def employee_search():
+    search_term = (request.args.get('q') or '').strip()
+    selected_org_id = request.args.get('org_id', type=int)
+    all_orgs = Org.query.order_by(Org.id.asc()).all()
+    children_by_parent = {}
+    for org in all_orgs:
+        if org.parent_id is not None:
+            children_by_parent.setdefault(org.parent_id, []).append(org.id)
+
+    def organization_tree_ids(root_id):
+        org_ids = []
+        pending_org_ids = [root_id]
+        while pending_org_ids:
+            org_id = pending_org_ids.pop()
+            if org_id in org_ids:
+                continue
+            org_ids.append(org_id)
+            pending_org_ids.extend(children_by_parent.get(org_id, []))
+        return org_ids
+
+    active_org_ids = {
+        org_id for (org_id,) in StaffPersonalInfo.query.with_entities(StaffPersonalInfo.org_id)
+        .filter(*_active_staff_filters())
+        .distinct()
+        .all()
+        if org_id is not None
+    }
+    def build_organization_node(org_id):
+        children = [
+            child for child_id in children_by_parent.get(org_id, [])
+            if (child := build_organization_node(child_id)) is not None
+        ]
+        if org_id not in active_org_ids and not children:
+            return None
+        return {'org': next(org for org in all_orgs if org.id == org_id), 'children': children}
+
+    organization_menu = [
+        node for org in all_orgs if org.parent_id is None
+        if (node := build_organization_node(org.id)) is not None
+    ]
+
+    def flatten_organization_menu(nodes):
+        result = []
+        for node in nodes:
+            result.append(node['org'])
+            result.extend(flatten_organization_menu(node['children']))
+        return result
+
+    organizations = flatten_organization_menu(organization_menu)
+    selected_org = next((org for org in organizations if org.id == selected_org_id), None)
+    selected_org_ancestor_ids = set()
+    if selected_org:
+        parent_by_id = {org.id: org.parent_id for org in all_orgs}
+        parent_id = selected_org.parent_id
+        while parent_id is not None:
+            selected_org_ancestor_ids.add(parent_id)
+            parent_id = parent_by_id.get(parent_id)
+    employees = []
+
+    if selected_org:
+        org_ids = organization_tree_ids(selected_org.id)
+    else:
+        org_ids = []
+
+    if search_term or selected_org:
+        filters = [*_active_staff_filters()]
+        if org_ids:
+            filters.append(StaffPersonalInfo.org_id.in_(org_ids))
+        if search_term:
+            pattern = f'%{search_term}%'
+            matching_org_ids = set()
+            for org in all_orgs:
+                if (
+                    (org.name and search_term.casefold() in org.name.casefold())
+                    or (org.en_name and search_term.casefold() in org.en_name.casefold())
+                ):
+                    matching_org_ids.update(organization_tree_ids(org.id))
+
+            search_conditions = [
+                StaffPersonalInfo.th_firstname.ilike(pattern),
+                StaffPersonalInfo.th_lastname.ilike(pattern),
+                StaffPersonalInfo.en_firstname.ilike(pattern),
+                StaffPersonalInfo.en_lastname.ilike(pattern),
+                Org.name.ilike(pattern),
+                Org.en_name.ilike(pattern),
+            ]
+            if matching_org_ids:
+                search_conditions.append(StaffPersonalInfo.org_id.in_(matching_org_ids))
+            filters.append(or_(*search_conditions))
+        employee_query = (
+            StaffPersonalInfo.query
+            .outerjoin(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
+            .outerjoin(Org, StaffPersonalInfo.org_id == Org.id)
+            .filter(*filters)
+            .order_by(
+                StaffPersonalInfo.th_firstname.asc(),
+                StaffPersonalInfo.en_firstname.asc(),
+            )
+        )
+        if not selected_org:
+            employee_query = employee_query.limit(60)
+        employees = employee_query.all()
+
+    template = 'staff/employee_search_results.html' if request.headers.get('HX-Request') else 'staff/employee_search.html'
+    return render_template(
+        template,
+        employees=employees,
+        search_term=search_term,
+        organization_menu=organization_menu,
+        selected_org=selected_org,
+        selected_org_ancestor_ids=selected_org_ancestor_ids,
+    )
 
 
 @staff.route('/person/<int:account_id>')
@@ -2127,7 +2854,7 @@ def show_wfh_approvers():
 @login_required
 def wfh_manage_requester(requester_id):
     if request.method == 'POST':
-        approver_account_id = request.form.get('staffname'),
+        approver_account_id = int(request.form.get('staffname'))
         find_approver = StaffWorkFromHomeApprover.query.filter_by \
             (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
         if find_approver:
@@ -2213,6 +2940,94 @@ def get_hr_login_summary_report_data():
     return data_table.ToJSon(columns_order=('date', 'heads'))
 
 
+def _parse_hr_login_report_datetime(value, default):
+    if not value:
+        return default
+    parsed = parser.isoparse(value)
+    if parsed.tzinfo is None:
+        return tz.localize(parsed)
+    return parsed.astimezone(tz)
+
+
+@staff.route('/api/for-hr/login-report/summary')
+@hr_permission.require()
+@login_required
+def get_hr_login_summary_report_summary():
+    now = datetime.now(tz)
+    default_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start_datetime = _parse_hr_login_report_datetime(request.args.get('start'), default_start)
+    end_datetime = _parse_hr_login_report_datetime(request.args.get('end'), now)
+    if start_datetime > end_datetime:
+        start_datetime, end_datetime = end_datetime, start_datetime
+
+    employees = StaffPersonalInfo.query.filter(
+        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired == None)
+    ).all()
+    employees_by_id = {
+        employee.staff_account.id: employee
+        for employee in employees
+        if employee.staff_account is not None
+    }
+    staff_ids = list(employees_by_id)
+
+    records = []
+    if staff_ids:
+        records = StaffWorkLogin.query.filter(
+            StaffWorkLogin.staff_id.in_(staff_ids),
+            or_(
+                StaffWorkLogin.start_datetime.between(start_datetime, end_datetime),
+                StaffWorkLogin.end_datetime.between(start_datetime, end_datetime),
+            )
+        ).all()
+
+    checkin_staff_ids = {
+        record.staff_id for record in records
+        if record.start_datetime is not None
+    }
+
+    academic_total = sum(1 for employee in employees_by_id.values() if employee.academic_staff)
+    non_academic_total = len(employees_by_id) - academic_total
+    academic_missed = sum(
+        1 for staff_id, employee in employees_by_id.items()
+        if employee.academic_staff and staff_id not in checkin_staff_ids
+    )
+    non_academic_missed = sum(
+        1 for staff_id, employee in employees_by_id.items()
+        if not employee.academic_staff and staff_id not in checkin_staff_ids
+    )
+
+    daily_rows = _daily_work_login_rows(records)
+    incomplete_checkouts = sum(1 for row in daily_rows if row['start'] and not row['end'])
+    incomplete_checkins = sum(1 for record in records if record.start_datetime is None)
+    manual_records = sum(1 for record in records if record.creator_id is not None)
+
+    def percentage(value, total):
+        return round((value / total) * 100, 1) if total else 0.0
+
+    return jsonify({
+        'date_range': {
+            'start': start_datetime.isoformat(),
+            'end': end_datetime.isoformat(),
+        },
+        'employees': {
+            'total': len(employees_by_id),
+            'academic': {
+                'total': academic_total,
+                'missed_checkin': academic_missed,
+                'missed_percentage': percentage(academic_missed, academic_total),
+            },
+            'non_academic': {
+                'total': non_academic_total,
+                'missed_checkin': non_academic_missed,
+                'missed_percentage': percentage(non_academic_missed, non_academic_total),
+            },
+        },
+        'incomplete_checkins': incomplete_checkins,
+        'incomplete_checkouts': incomplete_checkouts,
+        'manual_records': manual_records,
+    })
+
+
 @staff.route('/api/for-hr/wfh-report')
 @hr_permission.require()
 @login_required
@@ -2266,17 +3081,31 @@ def get_hr_leave_summary_report_data():
 @login_required
 def get_hr_login_time_data():
     description = {'timeofday': ("timeofday", "Time"), 'heads': ("number", "heads")}
-    data = defaultdict(int)
-    for rec in StaffWorkLogin.query.all():
-        start_datetime = rec.start_datetime.astimezone(tz)
-        data[(start_datetime.hour, start_datetime.minute, 0)] += 1
-
-    count_data = []
-    for tod, heads in data.items():
-        count_data.append({
-            'timeofday': list(tod),
-            'heads': heads
-        })
+    local_start = func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
+    grouped_rows = (
+        db.session.query(
+            extract('hour', local_start).label('hour'),
+            extract('minute', local_start).label('minute'),
+            func.count(StaffWorkLogin.id).label('heads'),
+        )
+        .filter(StaffWorkLogin.start_datetime.isnot(None))
+        .group_by(
+            extract('hour', local_start),
+            extract('minute', local_start),
+        )
+        .order_by(
+            extract('hour', local_start),
+            extract('minute', local_start),
+        )
+        .all()
+    )
+    count_data = [
+        {
+            'timeofday': [int(row.hour), int(row.minute), 0],
+            'heads': int(row.heads),
+        }
+        for row in grouped_rows
+    ]
 
     data_table = gviz_api.DataTable(description)
     data_table.LoadData(count_data)
@@ -2287,7 +3116,394 @@ def get_hr_login_time_data():
 @hr_permission.require()
 @login_required
 def hr_login_summary_report():
-    return render_template('staff/hr_login_summary_report.html')
+    now = datetime.now(tz)
+    report_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    active_staff = StaffPersonalInfo.query.filter(
+        StaffPersonalInfo.retirement_date == None,
+        StaffPersonalInfo.resignation_date == None,
+        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
+    ).order_by(StaffPersonalInfo.th_firstname, StaffPersonalInfo.en_firstname).all()
+    return render_template(
+        'staff/hr_login_summary_report.html',
+        report_start=report_start,
+        report_end=now,
+        quota_staff=active_staff,
+    )
+
+
+@staff.route('/for-hr/login-report/checkin-requests')
+@hr_permission.require()
+@login_required
+def hr_checkin_requests():
+    return render_template('staff/hr_checkin_requests.html')
+
+
+@staff.route('/api/for-hr/login-report/checkin-requests')
+@hr_permission.require()
+@login_required
+def get_hr_checkin_requests():
+    staff_account = aliased(StaffAccount)
+    approver_account = aliased(StaffAccount)
+    staff_info = aliased(StaffPersonalInfo)
+    approver_info = aliased(StaffPersonalInfo)
+
+    query = (
+        db.session.query(StaffRequestWorkLogin, staff_account, approver_account)
+        .outerjoin(staff_account, StaffRequestWorkLogin.staff_account_id == staff_account.id)
+        .outerjoin(staff_info, staff_account.personal_id == staff_info.id)
+        .outerjoin(approver_account, StaffRequestWorkLogin.approver_id == approver_account.id)
+        .outerjoin(approver_info, approver_account.personal_id == approver_info.id)
+    )
+    records_total = query.count()
+
+    search_value = (request.args.get('search[value]') or '').strip()
+    if search_value:
+        search_pattern = f'%{search_value}%'
+        query = query.filter(or_(
+            staff_info.th_firstname.ilike(search_pattern),
+            staff_info.th_lastname.ilike(search_pattern),
+            staff_info.en_firstname.ilike(search_pattern),
+            staff_info.en_lastname.ilike(search_pattern),
+            staff_account.email.ilike(search_pattern),
+            approver_info.th_firstname.ilike(search_pattern),
+            approver_info.th_lastname.ilike(search_pattern),
+            approver_info.en_firstname.ilike(search_pattern),
+            approver_info.en_lastname.ilike(search_pattern),
+            approver_account.email.ilike(search_pattern),
+            StaffRequestWorkLogin.reason.ilike(search_pattern),
+        ))
+
+    records_filtered = query.count()
+    order_columns = {
+        0: StaffRequestWorkLogin.id,
+        1: StaffRequestWorkLogin.work_datetime,
+        2: StaffRequestWorkLogin.requested_at,
+        3: StaffRequestWorkLogin.approved_at,
+        4: StaffRequestWorkLogin.approver_id,
+    }
+    order_index = request.args.get('order[0][column]', 2, type=int)
+    order_column = order_columns.get(order_index, StaffRequestWorkLogin.requested_at)
+    order_direction = request.args.get('order[0][dir]', 'desc')
+    if order_direction == 'asc':
+        query = query.order_by(order_column.asc(), StaffRequestWorkLogin.id.asc())
+    else:
+        query = query.order_by(order_column.desc(), StaffRequestWorkLogin.id.desc())
+
+    start = max(request.args.get('start', 0, type=int), 0)
+    length = request.args.get('length', 25, type=int)
+    length = min(max(length, 1), 100)
+    rows = query.offset(start).limit(length).all()
+
+    def status_for(record):
+        if record.approved_at:
+            return {'key': 'approved', 'label': 'อนุมัติ'}
+        if record.cancelled_at:
+            return {'key': 'rejected', 'label': 'ไม่อนุมัติ'}
+        return {'key': 'pending', 'label': 'รออนุมัติ'}
+
+    data = []
+    for record, requester, approver in rows:
+        status = status_for(record)
+        data.append({
+            'id': record.id,
+            'staff_name': requester.fullname if requester else 'ไม่ระบุ',
+            'request_type': 'เข้างาน' if record.is_checkin else 'ออกงาน',
+            'work_datetime': _to_bangkok(record.work_datetime).isoformat() if record.work_datetime else None,
+            'requested_at': _to_bangkok(record.requested_at).isoformat() if record.requested_at else None,
+            'reason': record.reason or '',
+            'status': status,
+            'approver_name': approver.fullname if approver else 'ไม่ระบุ',
+        })
+
+    return jsonify({
+        'draw': request.args.get('draw', 0, type=int),
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+    })
+
+
+@staff.route('/for-hr/login-report/records')
+@hr_permission.require()
+@login_required
+def hr_login_records():
+    staff_id = request.args.get('staff_id', type=int)
+    if not staff_id:
+        abort(400, description='A staff_id is required.')
+    selected_staff = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        selected_staff.retired
+        or selected_staff.retirement_date
+        or selected_staff.resignation_date
+        or selected_staff.staff_account is None
+    ):
+        abort(404)
+    return render_template(
+        'staff/hr_login_records.html',
+        selected_staff=selected_staff,
+    )
+
+
+@staff.route('/api/for-hr/login-report/records')
+@hr_permission.require()
+@login_required
+def get_hr_login_records():
+    staff_id = request.args.get('staff_id', type=int)
+    if not staff_id:
+        return jsonify({'error': 'staff_id is required'}), 400
+    selected_staff = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        selected_staff.retired
+        or selected_staff.retirement_date
+        or selected_staff.resignation_date
+        or selected_staff.staff_account is None
+    ):
+        abort(404)
+    staff_account_id = selected_staff.staff_account.id
+
+    draw = request.args.get('draw', 0, type=int)
+    start = max(request.args.get('start', 0, type=int), 0)
+    length = request.args.get('length', 10, type=int)
+    length = min(max(length, 1), 100)
+
+    query = (
+        StaffWorkLogin.query
+        .filter(StaffWorkLogin.staff_id == staff_account_id)
+        .outerjoin(StaffAccount, StaffWorkLogin.staff_id == StaffAccount.id)
+        .outerjoin(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+    )
+    records_total = query.count()
+
+    search_value = (request.args.get('search[value]') or '').strip()
+    if search_value:
+        search_pattern = f'%{search_value}%'
+        query = query.filter(or_(
+            StaffPersonalInfo.th_firstname.ilike(search_pattern),
+            StaffPersonalInfo.th_lastname.ilike(search_pattern),
+            StaffPersonalInfo.en_firstname.ilike(search_pattern),
+            StaffPersonalInfo.en_lastname.ilike(search_pattern),
+            StaffAccount.email.ilike(search_pattern),
+            StaffWorkLogin.record_source.ilike(search_pattern),
+            StaffWorkLogin.note.ilike(search_pattern),
+        ))
+
+    records_filtered = query.count()
+    order_columns = {
+        0: StaffWorkLogin.id,
+        1: StaffPersonalInfo.th_firstname,
+        2: StaffWorkLogin.start_datetime,
+        3: StaffWorkLogin.end_datetime,
+        4: StaffWorkLogin.record_source,
+    }
+    order_index = request.args.get('order[0][column]', 2, type=int)
+    order_column = order_columns.get(order_index, StaffWorkLogin.start_datetime)
+    order_direction = request.args.get('order[0][dir]', 'desc')
+    if order_direction == 'asc':
+        query = query.order_by(order_column.asc(), StaffWorkLogin.id.asc())
+    else:
+        query = query.order_by(order_column.desc(), StaffWorkLogin.id.desc())
+
+    records = query.offset(start).limit(length).all()
+
+    def isoformat(value):
+        return _to_bangkok(value).isoformat() if value else None
+
+    data = [{
+        'id': record.id,
+        'staff_name': (
+            record.staff.fullname
+            if record.staff and record.staff.personal_info else 'ไม่ระบุ'
+        ),
+        'checkin': isoformat(record.start_datetime),
+        'checkout': isoformat(record.end_datetime),
+        'record_source': record.record_source or '',
+        'note': record.note or '',
+    } for record in records]
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+    })
+
+
+@staff.route('/api/for-hr/login-report/manual-check-in/calendar')
+@hr_permission.require()
+@login_required
+def hr_manual_checkin_calendar_data():
+    staff_id = request.args.get('staff_id', type=int)
+    month_value = (request.args.get('month') or '').strip()
+    if not staff_id or not month_value:
+        return jsonify({'events': [], 'count': 0, 'staff_name': '', 'month': month_value})
+
+    staff_person = StaffPersonalInfo.query.get(staff_id)
+    if not staff_person or not getattr(staff_person, 'staff_account', None):
+        return jsonify({'events': [], 'count': 0, 'staff_name': '', 'month': month_value})
+
+    try:
+        month_start = tz.localize(datetime.strptime(month_value + '-01', '%Y-%m-%d'))
+    except ValueError:
+        month_start = tz.localize(datetime.now(tz).replace(day=1, hour=0, minute=0, second=0, microsecond=0))
+        month_value = month_start.strftime('%Y-%m')
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1)
+
+    records = (
+        StaffWorkLogin.query.filter_by(staff=staff_person.staff_account)
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= month_start)
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) < next_month_start)
+        .order_by(StaffWorkLogin.start_datetime.asc(), StaffWorkLogin.id.asc())
+        .all()
+    )
+    daily_rows = _daily_work_login_rows(records)
+    events = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    for row in daily_rows:
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        if not start_dt:
+            continue
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
+        worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+        is_late = bool(start_dt and start_dt.time() > office_start_time)
+        text_color, background_color, border_color, class_names = _work_login_event_style(
+            is_late, hours_is_negative, bool(end_dt)
+        )
+        checkin_display = start_dt.strftime('%H:%M') if start_dt else ''
+        checkout_display = end_dt.strftime('%H:%M') if end_dt else ''
+        if checkin_display and checkout_display:
+            note = f'{checkin_display} • {checkout_display}'
+        elif checkin_display:
+            note = checkin_display
+        else:
+            note = ''
+        staff_first_name = (
+            getattr(staff_person, 'th_firstname', None)
+            or getattr(staff_person, 'en_firstname', None)
+            or (row['staff_name'] or '').split()[0]
+        )
+        events.append({
+            'id': f"{row['staff_id']}-{row['date'].isoformat()}",
+            'start': row['start'],
+            'end': row['end'],
+            'status': 'Done' if end_dt else 'Not done',
+            'title': staff_first_name,
+            'first_name': staff_first_name,
+            'note': note,
+            'worked_hours_display': worked_hours_display,
+            'worked_hours': worked_hours,
+            'is_late': is_late,
+            'approved_checkin': row['approved_checkin'],
+            'approved_checkout': row['approved_checkout'],
+            'has_approved_correction': row['has_approved_correction'],
+            'backgroundColor': background_color,
+            'borderColor': border_color,
+            'textColor': text_color,
+            'hours_is_negative': hours_is_negative,
+            'className': class_names,
+            'type': 'login'
+        })
+
+    return jsonify({
+        'events': events,
+        'count': len(events),
+        'staff_name': staff_person.fullname,
+        'month': month_value,
+    })
+
+
+@staff.route('/for-hr/login-report/manual-check-in', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def hr_manual_checkin():
+    def _render_page(*, selected_staff=None, checkin_value=None, note_value='', selected_month=None):
+        selected_staff_id = selected_staff.id if selected_staff else ''
+        selected_staff_name = selected_staff.fullname if selected_staff else ''
+        checkin_value = checkin_value or datetime.now(tz).strftime('%Y-%m-%dT%H:%M')
+        selected_month = selected_month or checkin_value[:7]
+        return render_template(
+            'staff/hr_manual_checkin.html',
+            selected_staff=selected_staff,
+            selected_staff_id=selected_staff_id,
+            selected_staff_name=selected_staff_name,
+            default_checkin_datetime=checkin_value,
+            selected_month=selected_month,
+            note_value=note_value,
+        )
+
+    staff_id = request.args.get('staff_id', type=int)
+    checkin_arg = (request.args.get('checkin_datetime') or '').strip()
+    month_arg = (request.args.get('month') or '').strip()
+    selected_staff = StaffPersonalInfo.query.get(staff_id) if staff_id else None
+    if checkin_arg and not month_arg and len(checkin_arg) >= 7:
+        month_arg = checkin_arg[:7]
+
+    if request.method == 'POST':
+        form = request.form
+        staff_id = form.get('staffname', type=int)
+        staff_person = StaffPersonalInfo.query.get(staff_id) if staff_id else None
+        checkin_raw = (form.get('checkin_datetime') or '').strip()
+        note = (form.get('note') or '').strip()
+
+        if not staff_person:
+            flash('ไม่พบข้อมูลบุคลากรที่เลือก', 'warning')
+            return _render_page(checkin_value=checkin_raw, note_value=note, selected_month=month_arg)
+
+        if not checkin_raw:
+            flash('กรุณาระบุวันและเวลาที่ต้องการบันทึก', 'warning')
+            return _render_page(selected_staff=staff_person, note_value=note, selected_month=month_arg or None)
+
+        try:
+            checkin_dt = tz.localize(datetime.strptime(checkin_raw, '%Y-%m-%dT%H:%M'))
+        except ValueError:
+            flash('รูปแบบวันและเวลาไม่ถูกต้อง', 'warning')
+            return _render_page(
+                selected_staff=staff_person,
+                checkin_value=checkin_raw,
+                note_value=note,
+                selected_month=month_arg or None,
+            )
+
+        staff_account = staff_person.staff_account
+        if not staff_account:
+            flash('บุคลากรที่เลือกยังไม่มีบัญชีผู้ใช้งาน', 'warning')
+            return _render_page(
+                selected_staff=staff_person,
+                checkin_value=checkin_raw,
+                note_value=note,
+                selected_month=month_arg or None,
+            )
+
+        date_id = StaffWorkLogin.generate_date_id(checkin_dt)
+        num_scans = StaffWorkLogin.query.filter_by(date_id=date_id, staff=staff_account).count() + 1
+        record = StaffWorkLogin(
+            date_id=date_id,
+            staff=staff_account,
+            start_datetime=checkin_dt,
+            record_source='hr_manual',
+            lat=0.0,
+            long=0.0,
+            num_scans=num_scans,
+            note=note or 'บันทึกโดย HR',
+            creator_id=current_user.id,
+        )
+        db.session.add(record)
+        db.session.commit()
+        flash('บันทึกการเข้างานเรียบร้อยแล้ว', 'success')
+        return redirect(url_for(
+            'staff.hr_manual_checkin',
+            staff_id=staff_person.id,
+            checkin_datetime=checkin_dt.strftime('%Y-%m-%dT%H:%M'),
+            month=checkin_dt.strftime('%Y-%m'),
+        ))
+
+    if not month_arg:
+        month_arg = checkin_arg[:7] if checkin_arg else datetime.now(tz).strftime('%Y-%m')
+    return _render_page(selected_staff=selected_staff, checkin_value=checkin_arg or None, selected_month=month_arg)
 
 
 def _handle_login_scan_request(template_name, *, note):
@@ -2295,6 +3511,7 @@ def _handle_login_scan_request(template_name, *, note):
 
     if request.method == 'POST':
         req_data = request.get_json()
+        scan_data = req_data['data']
         lat = req_data['data'].get('lat', '0.0')
         long = req_data['data'].get('long', '0.0')
         th_name = req_data['data'].get('thName')
@@ -2318,6 +3535,12 @@ def _handle_login_scan_request(template_name, *, note):
 
         if person:
             now = datetime.now(pytz.utc)
+            early_checkout = _get_early_checkout_info(person.staff_account, now)
+            if early_checkout and not scan_data.get('confirm_checkout'):
+                return jsonify({
+                    'message': 'checkout_confirmation_required',
+                    'workedHours': early_checkout['worked_hours'],
+                }), 409
             record, activity, num_scans = _create_work_login_record(
                 person.staff_account,
                 now,
@@ -2361,6 +3584,7 @@ def request_for_clockin_clockout():
         reason = request.form.get('reason')
         work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
         date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        work_datetime_display = tz.localize(work_datetime).strftime('%d/%m/%Y %H:%M')
         # TODO: check duplicate request
         # checkin_request = StaffRequestWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
         if work_datetime < today:
@@ -2373,37 +3597,52 @@ def request_for_clockin_clockout():
                 is_checkin=True if request.form.get('clock') == 'checkin' else False
             )
 
-            if len(current_user.wfh_requesters) == 0:
+            wfh_approver = StaffWorkFromHomeApprover.query.filter_by(
+                staff_account_id=current_user.id,
+                is_active=True,
+            ).order_by(StaffWorkFromHomeApprover.id.asc()).first()
+            if wfh_approver is None:
                 print('no approver found, assign head of the organization')
                 org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-                approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
-                db.session.add(approver)
-                db.session.commit()
-            wfh_approver = StaffWorkFromHomeApprover.query.filter_by(
-                staff_account_id=checkin_request.staff_account_id).first()
+                if org_head is None:
+                    flash('ไม่พบผู้อนุมัติคำขอรับรองเวลา', 'danger')
+                    return redirect(url_for('staff.show_time_report'))
+                wfh_approver = StaffWorkFromHomeApprover(
+                    requester=current_user,
+                    account=org_head,
+                    is_active=True,
+                )
+                db.session.add(wfh_approver)
+                db.session.flush()
             checkin_request.approver_id = wfh_approver.approver_account_id
             db.session.add(checkin_request)
             db.session.commit()
 
+            login_summary_url = (
+                external_url('staff.login_summary')
+                if current_app.config.get('PUBLIC_BASE_URL')
+                else url_for('staff.login_summary', _external=True, _scheme='https')
+            )
+
             if request.form.get('clock') == 'checkin':
                 req_title = u'ทดสอบแจ้งการขอรับรองเวลาเข้างาน'
                 req_msg = u'{} ขออนุมัติรับรองการเข้างาน วันที่ {} เนื่องจาก {}\n' \
-                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-                    format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                          u'\n\nกรุณาตรวจสอบคำขอที่:\n{}\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                    format(current_user.personal_info.fullname, work_datetime_display,
                            checkin_request.reason,
-                           url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+                           login_summary_url)
             else:
                 req_title = u'ทดสอบแจ้งการขอรับรองเวลากลับ'
                 req_msg = u'{} ขออนุมัติรับรองการทำงาน ในเวลากลับ วันที่ {} เนื่องจาก {}\n' \
-                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-                    format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                          u'\n\nกรุณาตรวจสอบคำขอที่:\n{}\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                    format(current_user.personal_info.fullname, work_datetime_display,
                            checkin_request.reason,
-                           url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+                           login_summary_url)
 
             if wfh_approver:
                 if wfh_approver.is_active:
                     if not current_app.debug:
-                        send_mail([wfh_approver.approver.email + "@mahidol.ac.th"], req_title, req_msg)
+                        send_mail([wfh_approver.account.email + "@mahidol.ac.th"], req_title, req_msg)
                         if wfh_approver.notified_by_line and wfh_approver.account.line_id:
                             try:
                                 line_bot_api.push_message(to=wfh_approver.account.line_id,
@@ -2417,12 +3656,55 @@ def request_for_clockin_clockout():
                 flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
             else:
                 flash('ไม่สามารถส่งคำขอได้ เนื่องจากไม่พบผู้บังคับบัญชาชั้นต้น', 'danger')
-            return render_template('staff/checkin_request.html')
+            return redirect(url_for('staff.show_time_report'))
             # return render_template('staff/geo_checkin.html')
         else:
             flash('ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
             return render_template('staff/checkin_request.html')
     return render_template('staff/checkin_request.html')
+
+
+@staff.route('/clockin-clockout/request/<int:request_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_clockin_clockout_request(request_id):
+    clock_request = StaffRequestWorkLogin.query.filter_by(
+        id=request_id,
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).first_or_404()
+
+    if request.method == 'POST':
+        work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
+        if work_datetime >= datetime.today():
+            flash('ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
+            return render_template('staff/checkin_request.html', request_record=clock_request)
+
+        clock_request.work_datetime = work_datetime
+        clock_request.date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        clock_request.reason = request.form.get('reason')
+        clock_request.is_checkin = request.form.get('clock') == 'checkin'
+        clock_request.requested_at = datetime.now(pytz.utc)
+        db.session.commit()
+        flash('แก้ไขคำขอเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.show_time_report'))
+
+    return render_template('staff/checkin_request.html', request_record=clock_request)
+
+
+@staff.route('/clockin-clockout/request/<int:request_id>/cancel', methods=['POST'])
+@login_required
+def cancel_clockin_clockout_request(request_id):
+    clock_request = StaffRequestWorkLogin.query.filter_by(
+        id=request_id,
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).first_or_404()
+    clock_request.cancelled_at = datetime.now(pytz.utc)
+    db.session.commit()
+    flash('ยกเลิกคำขอเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('staff.show_time_report'))
 
 
 @staff.route('/clockin-clockout/request-list')
@@ -2432,31 +3714,37 @@ def list_for_clockin_clockout():
     return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
 
 
-@staff.route('/clockin-clockout/approved/<int:request_id>')
+@staff.route('/clockin-clockout/approved/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def approved_for_clockin_clockout(request_id):
-    clock_request = StaffRequestWorkLogin.query.get(request_id)
-    approved = request.args.get("approved")
+    clock_request = StaffRequestWorkLogin.query.filter_by(
+        id=request_id,
+        approver_id=current_user.id,
+    ).first_or_404()
+    approved = request.form.get('approved') if request.method == 'POST' else request.args.get('approved')
     if approved:
         if approved == 'yes':
             clock_request.approved_at = datetime.now(pytz.utc)
 
             approval = StaffWorkLogin(
                 date_id=clock_request.date_id,
-                staff=clock_request.staff
+                staff=clock_request.staff,
+                start_datetime=clock_request.work_datetime,
+                record_source='approved_request',
+                correction_type='checkin' if clock_request.is_checkin else 'checkout',
             )
-            if clock_request.is_checkin:
-                approval.start_datetime = clock_request.work_datetime
-            else:
-                approval.end_datetime = clock_request.work_datetime
-                # TODO: added num_scans
             db.session.add(approval)
             db.session.commit()
         else:
             clock_request.cancelled_at = datetime.now(pytz.utc)
         db.session.add(clock_request)
         db.session.commit()
-        flash('บันทึกการขอรับรองการทำงานเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
+        flash_message = (
+            'อนุมัติคำขอรับรองการทำงานเรียบร้อยแล้ว'
+            if approved == 'yes'
+            else 'ไม่อนุมัติคำขอรับรองการทำงานเรียบร้อยแล้ว'
+        )
+        flash(flash_message, 'success' if approved == 'yes' else 'warning')
 
         title = u'เข้างาน' if clock_request.is_checkin else u'กลับบ้าน'
         if clock_request.approved_at:
@@ -2483,6 +3771,11 @@ def approved_for_clockin_clockout(request_id):
         approve_title = u'แจ้งสถานะรับรองการทำงาน'
         if not current_app.debug:
             send_mail([clock_request.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        if request.method == 'POST' and request.headers.get('HX-Request') == 'true':
+            response = make_response('', 204)
+            response.headers['HX-Refresh'] = 'true'
+            return response
+
         all_requests = StaffRequestWorkLogin.query.all()
         return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
     return render_template('staff/checkin_approval.html', clock_request=clock_request)
@@ -2833,6 +4126,7 @@ class LoginDataUploadView(BaseView):
                     staff=account.staff_account,
                     start_datetime=tz.localize(start_dt),
                     end_datetime=tz.localize(end_dt),
+                    record_source='hr_manual',
                     checkin_mins=morning,
                     checkout_mins=evening
                 )
@@ -2840,6 +4134,7 @@ class LoginDataUploadView(BaseView):
                 record = StaffWorkLogin(
                     staff=account.staff_account,
                     start_datetime=tz.localize(start_dt),
+                    record_source='hr_manual',
                     checkin_mins=morning,
                 )
             db.session.add(record)
@@ -2890,15 +4185,22 @@ def send_summary_data():
     cal_end = request.args.get('end')
     curr_dept_id = request.args.get('curr_dept_id', type=int)
     tab = request.args.get('tab')
+    approved_only = request.args.get('approved_only', type=int) == 1
     if cal_start:
-        cal_start = parser.isoparse(cal_start)
+        cal_start = _to_bangkok(parser.isoparse(cal_start))
     if cal_end:
-        cal_end = parser.isoparse(cal_end)
-    employees = StaffPersonalInfo.query.filter_by(org_id=curr_dept_id)
+        cal_end = _to_bangkok(parser.isoparse(cal_end))
+    selected_org = Org.query.get(curr_dept_id) if curr_dept_id else None
+    org_ids = get_org_and_children_ids(selected_org) if selected_org else [curr_dept_id]
+    employees = StaffPersonalInfo.query.filter(StaffPersonalInfo.org_id.in_(org_ids))
+    staff_id = request.args.get('staff_id', type=int)
+    if staff_id:
+        employees = employees.filter(StaffPersonalInfo.staff_account.has(StaffAccount.id == staff_id))
     leaves = []
     wfhs = []
     seminars = []
     logins = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
     for emp in employees:
         if tab in ['login', 'all']:
             for row in _daily_work_login_rows(
@@ -2907,9 +4209,15 @@ def send_summary_data():
                 .all()
             ):
                 end = row['end']
-                border_color = '#ffffff' if end else '#f56956'
-                text_color = '#ffffff'
-                bg_color = '#7d9df0'
+                start_dt = parser.isoparse(row['start']) if row['start'] else None
+                end_dt = parser.isoparse(end) if end else None
+                worked_hours = _calculate_work_hours(start_dt, end_dt)
+                hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
+                worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+                is_late = bool(start_dt and start_dt.time() > office_start_time)
+                text_color, bg_color, border_color, class_names = _work_login_event_style(
+                    is_late, hours_is_negative, bool(end)
+                )
                 '''
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
@@ -2935,6 +4243,14 @@ def send_summary_data():
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,
+                    'hours_is_negative': hours_is_negative,
+                    'worked_hours_display': worked_hours_display,
+                    'worked_hours': worked_hours,
+                    'is_late': is_late,
+                    'approved_checkin': row['approved_checkin'],
+                    'approved_checkout': row['approved_checkout'],
+                    'has_approved_correction': row['has_approved_correction'],
+                    'className': class_names,
                     'type': 'login'
                 })
 
@@ -2942,7 +4258,7 @@ def send_summary_data():
             for leave_req in StaffLeaveRequest.query.filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffLeaveRequest.start_datetime)
                                     .between(cal_start, cal_end)):
-                if not leave_req.cancelled_at:
+                if not leave_req.cancelled_at and (not approved_only or leave_req.get_approved):
                     if leave_req.get_approved:
                         text_color = '#ffffff'
                         bg_color = '#2b8c36'
@@ -2953,13 +4269,14 @@ def send_summary_data():
                         bg_color = '#d1e0e0'
                         border_color = '#ffffff'
                         leave_status = 'Pending'
+                    leave_type = getattr(getattr(leave_req.quota, 'leave_type', None), 'type_', 'Leave')
                     leaves.append({
-                        'id': leave_req.id,
-                        'start': leave_req.start_datetime.astimezone(tz).isoformat() \
+                        'id': 'leave-{}'.format(leave_req.id),
+                        'start': _to_bangkok(leave_req.start_datetime).isoformat() \
                             if leave_req.start_datetime else None,
-                        'end': leave_req.end_datetime.astimezone(tz).isoformat() \
+                        'end': _to_bangkok(leave_req.end_datetime).isoformat() \
                             if leave_req.end_datetime else None,
-                        'title': u'{} {}'.format(emp.th_firstname, leave_req.quota.leave_type),
+                        'title': u'{} {}'.format(emp.th_firstname, leave_type),
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
@@ -2972,7 +4289,8 @@ def send_summary_data():
                     .filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.start_datetime)
                                     .between(cal_start, cal_end)):
-                if not wfh_req.cancelled_at and not wfh_req.get_unapproved:
+                if not wfh_req.cancelled_at and not wfh_req.get_unapproved \
+                        and (not approved_only or wfh_req.get_approved):
                     if wfh_req.get_approved:
                         text_color = '#989898'
                         bg_color = '#C5ECFB'
@@ -2984,10 +4302,10 @@ def send_summary_data():
                         border_color = '#ffffff'
                         wfh_status = 'Pending'
                     wfhs.append({
-                        'id': wfh_req.id,
-                        'start': wfh_req.start_datetime.astimezone(tz).isoformat() \
+                        'id': 'wfh-{}'.format(wfh_req.id),
+                        'start': _to_bangkok(wfh_req.start_datetime).isoformat() \
                             if wfh_req.start_datetime else None,
-                        'end': wfh_req.end_datetime.astimezone(tz).isoformat() \
+                        'end': _to_bangkok(wfh_req.end_datetime).isoformat() \
                             if wfh_req.end_datetime else None,
                         'title': emp.th_firstname + " WFH",
                         'backgroundColor': bg_color,
@@ -2997,17 +4315,38 @@ def send_summary_data():
                         'type': 'wfh'
                     })
         if tab in ['smr', 'all']:
-            for smr in emp.staff_account.seminar_attends \
-                    .filter(func.timezone('Asia/Bangkok', StaffSeminarAttend.start_datetime)
-                                    .between(cal_start, cal_end)):
+            for smr in emp.staff_account.seminar_attends.all():
                 text_color = '#ffffff'
                 bg_color = '#FF33A5'
                 border_color = '#ffffff'
+                # Attendance records can contain the QR scan time or employee-specific
+                # values. The calendar event represents the seminar itself, so prefer
+                # the shared seminar schedule to keep the event consistent for all
+                # attendees. Fall back to attendance dates for legacy records without
+                # a linked seminar schedule.
+                seminar_start = getattr(smr.seminar, 'start_datetime', None) or smr.start_datetime
+                seminar_end = getattr(smr.seminar, 'end_datetime', None) or smr.end_datetime
+                seminar_start = _to_bangkok(seminar_start) if seminar_start else None
+                seminar_end = _to_bangkok(seminar_end) if seminar_end else None
+                if not seminar_start:
+                    continue
+                event_end = seminar_end or seminar_start
+                if event_end < cal_start or seminar_start > cal_end:
+                    continue
+                seminar_all_day = bool(
+                    seminar_start and seminar_start.time() == datetime.min.time() and
+                    (seminar_end is None or seminar_end.time() == datetime.min.time())
+                )
+                if seminar_all_day and seminar_end:
+                    # FullCalendar treats an all-day end as exclusive, while the
+                    # seminar end date is stored as an inclusive date.
+                    seminar_end = seminar_end + timedelta(days=1)
                 seminars.append({
-                    'id': smr.id,
-                    'start': smr.start_datetime.astimezone(tz).isoformat() if smr.start_datetime else None,
-                    'end': smr.end_datetime.astimezone(tz).isoformat() if smr.end_datetime else None,
-                    'title': emp.th_firstname + " " + smr.seminar.topic,
+                    'id': 'seminar-{}'.format(smr.id),
+                    'start': seminar_start.isoformat() if seminar_start else None,
+                    'end': seminar_end.isoformat() if seminar_end else None,
+                    'allDay': seminar_all_day,
+                    'title': '{} {}'.format(emp.th_firstname, smr.seminar.topic if smr.seminar else 'สัมมนา'),
                     'staff_id': emp.staff_account.id,
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
@@ -3034,16 +4373,66 @@ def summary_index():
 
 
 @staff.route('/summary/logins')
-@manager_or_secretary_permission.require()
+@login_summary_permission.require()
 @login_required
 def login_summary():
+    today = datetime.today().date()
+    start_date = date(today.year, today.month, 1)
+    end_date = today
+    pending_clockin_requests = _pending_clockin_requests_for(current_user.id)
     return render_template('staff/login_summary.html',
                            tab='login',
-                           curr_dept_id=current_user.personal_info.org.id)
+                           curr_dept_id=current_user.personal_info.org.id,
+                           summary_start_date=start_date.strftime('%d/%m/%Y'),
+                           summary_end_date=end_date.strftime('%d/%m/%Y'),
+                           pending_clockin_requests=pending_clockin_requests)
+
+
+@staff.route('/api/login-summary/request/<int:request_id>/history')
+@login_summary_permission.require()
+@login_required
+def get_login_request_history(request_id):
+    clock_request = StaffRequestWorkLogin.query.get_or_404(request_id)
+    if clock_request.approver_id != current_user.id:
+        abort(403)
+
+    staff_personal_info = clock_request.staff.personal_info
+    snapshot = _build_login_history_snapshot(staff_personal_info)
+    try:
+        summary = _call_typhoon_login_history_summary(snapshot)
+        summary_source = 'typhoon'
+    except Exception:
+        current_app.logger.exception(
+            'Failed to generate Typhoon login history summary for request %s.',
+            request_id,
+        )
+        summary = _build_fallback_login_history_summary(snapshot)
+        summary_source = 'fallback'
+
+    return jsonify({
+        'summary': summary,
+        'summary_source': summary_source,
+        'request_id': request_id,
+        'snapshot': snapshot,
+    })
+
+
+@staff.route('/api/login-summary')
+@login_summary_permission.require()
+@login_required
+def get_login_summary_data():
+    dept_id = request.args.get('dept_id', type=int) or current_user.personal_info.org.id
+    today = datetime.today().date()
+    default_start = date(today.year, today.month, 1)
+    start_date = _parse_login_summary_date(request.args.get('start'), default=default_start)
+    end_date = _parse_login_summary_date(request.args.get('end'), default=today)
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    return jsonify(_build_login_summary_dashboard(start_date, end_date, dept_id))
 
 
 @staff.route('/summary/logins/export', methods=['POST'])
-@manager_or_secretary_permission.require()
+@login_summary_permission.require()
 @login_required
 def export_login_summary():
     start_date, end_date = request.form.get('datePicker').split('-')
@@ -3051,7 +4440,7 @@ def export_login_summary():
     end_date = datetime.strptime(end_date.lstrip(), '%d/%m/%Y')
     query = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
                                         .between(start_date, end_date))
-    query = query.join(StaffAccount, aliased=True) \
+    query = query.join(StaffAccount, StaffWorkLogin.staff_id == StaffAccount.id) \
         .filter(StaffAccount.personal_info.has(org_id=current_user.personal_info.org_id))
     records = []
     for row in _daily_work_login_rows(query.all()):
@@ -3089,12 +4478,27 @@ def export_login_summary():
 @staff.route('/api/staffids')
 @login_required
 def get_staffid():
+    only_active = request.args.get('active', type=int) == 1
+    if only_active:
+        staffs = StaffAccount.get_active_accounts()
+        staff_infos = [account.personal_info for account in staffs if account.personal_info]
+    else:
+        staff_infos = StaffPersonalInfo.query.all()
+
     staff = []
-    for sid in StaffPersonalInfo.query.all():
+    for sid in staff_infos:
+        academic_position = sid.academic_positions[0] if sid.academic_positions else None
         staff.append({
             'id': sid.id,
             'fullname': sid.fullname,
             'org': sid.org.name if sid.org else 'ไม่มีต้นสังกัด'
+            , 'email': sid.staff_account.email if sid.staff_account else ''
+            , 'telephone': sid.telephone or ''
+            , 'image_url': sid.image_url or ''
+            , 'position': academic_position.position.fullname_th if academic_position else (
+                sid.job_position.th_title if sid.job_position else sid.position_level or ''
+            )
+            , 'edit_url': url_for('staff.staff_edit_info', staff_id=sid.id)
         })
 
     return jsonify(staff)
@@ -4545,11 +5949,21 @@ def send_time_report_data():
         .all()
     )
     records = []
+    office_start_time = datetime.strptime('09:00', '%H:%M').time()
     for row in rows:
-        # The event object is a dict object with a 'summary' key.
-        text_color = '#ffffff'
-        bg_color = '#4da6ff'
-        border_color = '#ffffff'
+        start_dt = parser.isoparse(row['start']) if row['start'] else None
+        end_dt = parser.isoparse(row['end']) if row['end'] else None
+        hours_is_negative = False
+        worked_hours_display = None
+        worked_hours = _calculate_work_hours(start_dt, end_dt)
+        if worked_hours is not None:
+            hours_is_negative = worked_hours < 8.0
+            worked_hours_display = '{:.1f} hrs.'.format(worked_hours)
+
+        is_late = bool(start_dt and start_dt.time() > office_start_time)
+        text_color, bg_color, border_color, class_names = _work_login_event_style(
+            is_late, hours_is_negative, bool(row['end'])
+        )
         records.append({
             'id': f"{row['staff_id']}-{row['date'].isoformat()}",
             'start': row['start'],
@@ -4558,16 +5972,74 @@ def send_time_report_data():
             'backgroundColor': bg_color,
             'borderColor': border_color,
             'textColor': text_color,
+            'worked_hours_display': worked_hours_display,
+            'worked_hours': worked_hours,
+            'hours_is_negative': hours_is_negative,
+            'is_late': is_late,
+            'approved_checkin': row['approved_checkin'],
+            'approved_checkout': row['approved_checkout'],
+            'has_approved_correction': row['has_approved_correction'],
+            'className': class_names,
             'type': 'login'
         })
     return jsonify(records)
 
 
+@staff.route('/api/time-report/quota')
+@login_required
+def send_time_report_quota():
+    return jsonify(_build_login_quota_summary(current_user.personal_info))
+
+
+@staff.route('/api/for-hr/login-report/quota/<int:staff_id>')
+@hr_permission.require()
+@login_required
+def get_hr_login_quota_summary(staff_id):
+    staff_personal_info = StaffPersonalInfo.query.get_or_404(staff_id)
+    if (
+        staff_personal_info.retired
+        or staff_personal_info.retirement_date
+        or staff_personal_info.resignation_date
+        or staff_personal_info.staff_account is None
+    ):
+        abort(404)
+
+    quota = _build_login_quota_summary(staff_personal_info)
+    quota.update({
+        'staff_id': staff_personal_info.id,
+        'staff_name': staff_personal_info.fullname,
+        'staff_image_url': staff_personal_info.image_url or '',
+        'employment_type': (
+            staff_personal_info.employment.title
+            if staff_personal_info.employment else 'ไม่ระบุ'
+        ),
+    })
+    return jsonify(quota)
+
+
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():
+    pending_clockin_requests = StaffRequestWorkLogin.query.filter_by(
+        staff_account_id=current_user.id,
+        approved_at=None,
+        cancelled_at=None,
+    ).order_by(StaffRequestWorkLogin.work_datetime.asc()).all()
+    recent_clockin_requests = StaffRequestWorkLogin.query.filter_by(
+        staff_account_id=current_user.id,
+    ).order_by(StaffRequestWorkLogin.requested_at.desc()).limit(10).all()
     return render_template('staff/time_report.html',
-                           logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()))
+                           logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()),
+                           pending_clockin_requests=pending_clockin_requests,
+                           recent_clockin_requests=recent_clockin_requests)
+
+
+def _active_staff_filters():
+    return (
+        StaffPersonalInfo.retirement_date.is_(None),
+        StaffPersonalInfo.resignation_date.is_(None),
+        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired.is_(None)),
+    )
 
 
 @staff.route('/for-hr/staff-info')
@@ -4575,6 +6047,207 @@ def show_time_report():
 @login_required
 def staff_index():
     return render_template('staff/staff_index.html')
+
+
+@staff.route('/for-hr/staff-info/sync-faculty-directory', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def sync_faculty_directory():
+    active_org_ids = {
+        org_id for (org_id,) in StaffPersonalInfo.query.with_entities(StaffPersonalInfo.org_id)
+        .filter(*_active_staff_filters())
+        .distinct()
+        .all()
+        if org_id is not None
+    }
+    organizations = Org.query.filter(Org.id.in_(active_org_ids)).order_by(Org.name.asc()).all()
+    if request.method == 'POST':
+        org_id = request.form.get('org_id', type=int)
+        uploaded = request.files.get('html_file')
+        org = Org.query.filter(Org.id == org_id, Org.id.in_(active_org_ids)).first()
+        if not org:
+            flash('กรุณาเลือกหน่วยงานที่ถูกต้อง', 'danger')
+            return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+        if not uploaded or not uploaded.filename:
+            flash('กรุณาเลือกไฟล์ HTML ที่บันทึกจากเว็บไซต์คณะ', 'danger')
+            return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.html') as saved:
+            uploaded.save(saved.name)
+            page = parse_saved_page(saved.name, source_url=org.directory_url or uploaded.filename)
+
+        organization_ids = [org.id]
+        pending_organization_ids = [child.id for child in org.children]
+        while pending_organization_ids:
+            organization_id = pending_organization_ids.pop()
+            if organization_id in organization_ids:
+                continue
+            organization_ids.append(organization_id)
+            child_org = Org.query.get(organization_id)
+            if child_org:
+                pending_organization_ids.extend(child.id for child in child_org.children)
+
+        staff_by_email = {
+            email_local_part(account.email): account.personal_info
+            for account in StaffAccount.query.join(StaffAccount.personal_info)
+            if account.email and account.personal_info
+            and account.personal_info.org_id in organization_ids
+        }
+        matched = updated = position_updated = position_level_updated = academic_updated = 0
+        unmatched = []
+        for employee in page['employees']:
+            email = email_local_part(employee.get('email'))
+            person = staff_by_email.get(email)
+            if not person:
+                unmatched.append(employee.get('email') or employee.get('name'))
+                continue
+            matched += 1
+            person.telephone = employee.get('phone') or person.telephone
+            # A missing image means the parser could not resolve a usable
+            # photo from the source page. Preserve an existing avatar rather
+            # than replacing it with null or an empty value.
+            parsed_image_url = (employee.get('image_url') or '').strip() or None
+            if parsed_image_url:
+                person.image_url = parsed_image_url
+            parsed_position = (employee.get('position') or '').strip() or None
+            parsed_position_level = (employee.get('position_level') or '').strip() or None
+            if parsed_position:
+                person.position = parsed_position
+                position_updated += 1
+            if parsed_position_level:
+                person.position_level = parsed_position_level
+                position_level_updated += 1
+            updated += 1
+
+            rank = employee.get('academic_rank') or academic_rank_from_name(employee.get('name'))
+            if rank:
+                academic_position = StaffAcademicPosition.query.filter(
+                    StaffAcademicPosition.fullname_th == rank
+                ).first()
+                if academic_position:
+                    current_record = (
+                        StaffAcademicPositionRecord.query
+                        .filter_by(personal_info_id=person.id)
+                        .order_by(StaffAcademicPositionRecord.appointed_at.desc().nullslast())
+                        .first()
+                    )
+                    if current_record:
+                        current_record.position_id = academic_position.id
+                    else:
+                        db.session.add(StaffAcademicPositionRecord(
+                            personal_info_id=person.id,
+                            position_id=academic_position.id,
+                            appointed_at=None,
+                        ))
+                    person.academic_staff = True
+                    academic_updated += 1
+
+        db.session.commit()
+        flash(
+            f'ซิงค์ข้อมูลสำเร็จ: พบ {len(page["employees"])} รายการ, จับคู่ได้ {matched}, '
+            f'อัปเดตข้อมูล {updated}, ตำแหน่ง {position_updated}, '
+            f'ระดับตำแหน่ง {position_level_updated}, ตำแหน่งวิชาการ {academic_updated}',
+            'success',
+        )
+        if unmatched:
+            flash('ไม่พบอีเมลในหน่วยงานที่เลือก: ' + ', '.join(unmatched), 'warning')
+        return render_template(
+            'staff/sync_faculty_directory.html',
+            organizations=organizations,
+            selected_org_id=org.id,
+        )
+
+    return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+
+
+@staff.route('/for-hr/staff-info/dashboard')
+@hr_permission.require()
+@login_required
+def staff_info_dashboard():
+    active_filters = _active_staff_filters()
+    active_query = StaffPersonalInfo.query.filter(*active_filters)
+    total_staff = active_query.count()
+    academic_staff = active_query.filter(StaffPersonalInfo.academic_staff.is_(True)).count()
+    non_academic_staff = total_staff - academic_staff
+
+    organization_rows = (
+        db.session.query(Org.name, func.count(StaffPersonalInfo.id))
+        .select_from(StaffPersonalInfo)
+        .outerjoin(Org, StaffPersonalInfo.org_id == Org.id)
+        .filter(*active_filters)
+        .group_by(Org.id, Org.name)
+        .order_by(func.count(StaffPersonalInfo.id).desc(), Org.name.asc())
+        .all()
+    )
+    employment_rows = (
+        db.session.query(StaffEmployment.title, func.count(StaffPersonalInfo.id))
+        .select_from(StaffPersonalInfo)
+        .outerjoin(StaffEmployment, StaffPersonalInfo.employment_id == StaffEmployment.id)
+        .filter(*active_filters)
+        .group_by(StaffEmployment.id, StaffEmployment.title)
+        .order_by(func.count(StaffPersonalInfo.id).desc(), StaffEmployment.title.asc())
+        .all()
+    )
+
+    def build_distribution(rows):
+        return [{
+            'label': label or 'ไม่ระบุ',
+            'count': int(count),
+            'percentage': round((count / total_staff) * 100, 1) if total_staff else 0,
+        } for label, count in rows]
+
+    return render_template(
+        'staff/partials/staff_info_dashboard.html',
+        total_staff=total_staff,
+        academic_staff=academic_staff,
+        non_academic_staff=non_academic_staff,
+        organizations=build_distribution(organization_rows),
+        employment_types=build_distribution(employment_rows),
+    )
+
+
+@staff.route('/for-hr/staff-info/category/<string:category>')
+@hr_permission.require()
+@login_required
+def staff_info_category(category):
+    category_config = {
+        'academic': {
+            'title': 'สายวิชาการ',
+            'filter': StaffPersonalInfo.academic_staff.is_(True),
+            'icon': 'fa-graduation-cap',
+        },
+        'support': {
+            'title': 'สายสนับสนุน',
+            'filter': or_(
+                StaffPersonalInfo.academic_staff.is_(False),
+                StaffPersonalInfo.academic_staff.is_(None),
+            ),
+            'icon': 'fa-briefcase',
+        },
+    }
+    selected_category = category_config.get(category)
+    if selected_category is None:
+        abort(404)
+
+    employees = (
+        StaffPersonalInfo.query
+        .filter(*_active_staff_filters())
+        .filter(selected_category['filter'])
+        .order_by(
+            StaffPersonalInfo.th_firstname.asc(),
+            StaffPersonalInfo.th_lastname.asc(),
+            StaffPersonalInfo.en_firstname.asc(),
+        )
+        .all()
+    )
+    return render_template(
+        'staff/staff_info_category.html',
+        category=category,
+        category_title=selected_category['title'],
+        category_icon=selected_category['icon'],
+        employees=employees,
+    )
 
 
 @staff.route('/for-hr/staff-info/create', methods=['GET', 'POST'])
@@ -4687,11 +6360,39 @@ def staff_search_info():
     return render_template('staff/staff_find_name_to_edit.html')
 
 
+@staff.route('/for-hr/staff-info/search-results')
+@hr_permission.require()
+@login_required
+def staff_search_info_results():
+    search_term = (request.args.get('q') or '').strip()
+    if not search_term:
+        return ''
+    employees = []
+    pattern = f'%{search_term}%'
+    employees = (
+        StaffPersonalInfo.query
+        .outerjoin(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
+        .outerjoin(Org, StaffPersonalInfo.org_id == Org.id)
+        .filter(or_(
+            StaffPersonalInfo.th_firstname.ilike(pattern),
+            StaffPersonalInfo.th_lastname.ilike(pattern),
+            StaffPersonalInfo.en_firstname.ilike(pattern),
+            StaffPersonalInfo.en_lastname.ilike(pattern),
+            StaffAccount.email.ilike(pattern),
+            Org.name.ilike(pattern),
+        ))
+        .order_by(StaffPersonalInfo.th_firstname.asc(), StaffPersonalInfo.en_firstname.asc())
+        .limit(30)
+        .all()
+    )
+    return render_template('staff/partials/staff_edit_search_results.html', employees=employees)
+
+
 @staff.route('/for-hr/staff-info/edit-info/<int:staff_id>', methods=['GET', 'POST'])
 @hr_permission.require()
 @login_required
 def staff_edit_info(staff_id):
-    staff = StaffPersonalInfo.query.get(staff_id)
+    staff = StaffPersonalInfo.query.get_or_404(staff_id)
     if request.method == 'POST':
         form = request.form
         staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
@@ -4730,8 +6431,10 @@ def staff_edit_info(staff_id):
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
         staff.th_lastname = form.get('th_lastname')
+        staff.image_url = (form.get('image_url') or '').strip() or None
         staff.sap_id = form.get('sap_id')
-        staff.position = form.get('position')
+        if not staff.academic_staff:
+            staff.position_level = form.get('position_level')
         staff.employed_date = start_date
         staff.resignation_date = resign_date
         staff.retirement_date = retired_date
@@ -4774,7 +6477,18 @@ def staff_edit_info(staff_id):
                     print(req_msg, responsible_person.email)
         flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
         return redirect(url_for('staff.staff_show_info', staff_id=staff_id))
-    return render_template('staff/staff_index.html')
+    staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+    return render_template(
+        'staff/staff_edit_info.html',
+        staff=staff,
+        emp_date=staff.employed_date,
+        retired_date=staff.retirement_date,
+        resign_date=staff.resignation_date,
+        employments=StaffEmployment.query.all(),
+        departments=Org.query.order_by(Org.id.asc()).all(),
+        jobs=StaffJobPosition.query.order_by(StaffJobPosition.id.asc()).all(),
+        staff_resign=StaffResignation.query.filter_by(staff=staff_account).all(),
+    )
 
 
 @staff.route('/for-hr/staff-info/edit-info/<int:staff_id>/show-info')
@@ -5009,7 +6723,7 @@ def staff_approver_change_middle_level_status(approver_id, requester_id):
 @login_required
 def staff_add_requester(requester_id):
     if request.method == 'POST':
-        approver_account_id = request.form.get('staffname'),
+        approver_account_id = int(request.form.get('staffname'))
         find_approver = StaffLeaveApprover.query.filter_by \
             (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
         if find_approver:
@@ -5298,11 +7012,11 @@ def send_holidays_data():
         text_color = '#ffffff'
         bg_color = '#ff9f1a'
         border_color = '#ffffff'
-        holiday_date = rec.holiday_date.astimezone(tz).date().isoformat() if rec.holiday_date else None
+        holiday_day = _to_bangkok(rec.holiday_date).date() if rec.holiday_date else None
         records.append({
             'id': rec.id,
-            'start': holiday_date,
-            'end': holiday_date,
+            'start': holiday_day.isoformat() if holiday_day else None,
+            'end': (holiday_day + timedelta(days=1)).isoformat() if holiday_day else None,
             'title': u'{}'.format(rec.holiday_name),
             'backgroundColor': bg_color,
             'borderColor': border_color,
@@ -5481,6 +7195,13 @@ def geo_checkin():
         lat = req_data['data'].get('lat', '0.0')
         lon = req_data['data'].get('lon', '0.0')
         now = datetime.now(pytz.utc)
+        early_checkout = _get_early_checkout_info(current_user, now)
+        confirm_checkout = req_data['data'].get('confirm_checkout')
+        if early_checkout and not confirm_checkout:
+            return jsonify({
+                'message': 'checkout_confirmation_required',
+                'workedHours': early_checkout['worked_hours'],
+            }), 409
         record, activity, num_scans = _create_work_login_record(
             current_user,
             now,

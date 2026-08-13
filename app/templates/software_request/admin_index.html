@@ -18,7 +18,29 @@
     <section class="section">
         <div class="container">
             <h1 class="title">รายการขอรับบริการพัฒนา Software (สำหรับหน่วย IT)</h1>
-            {% include 'messages.html' %}
+            <div class="buttons is-left">
+{#                <a href="{{ url_for('software_request.line_remind_software_request_admins', dry_run='true') }}"#}
+{#                   class="button is-info is-small is-rounded">#}
+{#                    <span class="icon">#}
+{#                        <i class="fas fa-vial"></i>#}
+{#                    </span>#}
+{#                    <span class="is-size-5">ทดสอบ line reminder</span>#}
+{#                </a>#}
+{#                <a href="{{ url_for('software_request.line_remind_software_request_admins', send='true') }}"#}
+{#                   class="button is-warning is-small is-rounded">#}
+{#                    <span class="icon">#}
+{#                        <i class="fas fa-bullhorn"></i>#}
+{#                    </span>#}
+{#                    <span class="is-size-5">ส่ง line reminder ให้ผู้ดูแล</span>#}
+{#                </a>#}
+                <a href="{{ url_for('software_request.email_unfinished_summary', send='true') }}"
+                   class="button is-primary is-small is-rounded">
+                    <span class="icon">
+                        <i class="fas fa-envelope"></i>
+                    </span>
+                    <span class="is-size-6">ส่งสรุปเรื่องคงค้าง</span>
+                </a>
+            </div>
             <div class="columns">
                 <div class="column">
                     <hr>
@@ -100,6 +122,8 @@
                                 <tr>
                                     <th>โครงการ/ระบบ</th>
                                     <th>ประเภทคำขอ</th>
+{#                                    <th>ระดับความสำคัญ</th>#}
+{#                                    <th>ความเร่งด่วน</th>#}
                                     <th>รายละเอียด</th>
                                     <th>ผู้ส่งคำขอ</th>
                                     <th>สังกัด</th>
@@ -192,6 +216,28 @@
                 columns: [
                     {data: 'title'},
                     {data: 'type'},
+                    {#{#}
+                    {#    data: 'priority',#}
+                    {#    render: function (data, type, row) {#}
+                    {#        if (data != null) {#}
+                    {#            return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +#}
+                    {#                        data +#}
+                    {#                    '</span>'#}
+                    {#        } else {#}
+                    {#            return ''#}
+                    {#        }#}
+                    {#    }#}
+                    {#{#}
+                    {#    data: 'urgency',#}
+                    {#    render: function (data, type, row) {#}
+                    {#        if (data != null) {#}
+                    {#            return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +#}
+                    {#                        data +#}
+                    {#                    '</span>'#}
+                    {#        } else {#}
+                    {#            return ''#}
+                    {#        }#}
+                    {#    }#}
                     {
                         data: 'description',
                         width: "230px"

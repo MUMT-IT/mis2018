@@ -16,16 +16,54 @@
                             <span>ส่งคำขอรับบริการ</span>
                         </a>
                     </div>
+                    <h1 class="subtitle">รายการทดสอบระบบ</h1>
+                    <hr style="background-color: #CCCCCC;">
+                    <div class="notification is-warning is-light mb-4" style="border-radius: 12px;opacity: 0.8;">
+                        <strong>หมายเหตุ</strong><br>
+                        <p class="ml-4 mt-1">
+                            กรุณาดำเนินการทดสอบระบบและบันทึกผลให้ครบทุกรายการ เมื่อบันทึกแล้วจะไม่สามารถแก้ไขผลการทดสอบได้
+                        </p>
+                    </div>
+                    <table id="test_result" class="table is-fullwidth">
+                        <thead>
+                            <th>Requirement</th>
+                            <th>Title</th>
+                            <th>Detail</th>
+                            <th>View</th>
+                        </thead>
+                        <tbody>
+                            {% for request in current_user.created_requests %}
+                                {% for test_result in request.test_results %}
+                                    {% if not test_result.status and request.status not in ['เสร็จสิ้น', 'ยกเลิก', 'ไม่อนุมัติ'] %}
+                                        <tr>
+                                            <td>{{ test_result.issue.issue }}</td>
+                                            <td>{{ test_result.request.title }}</td>
+                                            <td>{{ test_result.request.description }}</td>
+                                            <td>
+                                                <a href="{{ url_for('software_request.view_request',
+                                                    detail_id=test_result.request_id) }}">
+                                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 40px;"></div>
+                    <h1 class="subtitle">รายการคำขอพัฒนาระบบ</h1>
+                    <hr style="background-color: #CCCCCC;">
                     <table id="detail" class="table is-fullwidth">
                         <thead>
-                            <tr>
                             <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
+{#                            <th>ระดับความสำคัญ</th>#}
+{#                            <th>ความเร่งด่วน</th>#}
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
                             <th>รายละเอียด</th>
-                            </tr>
                         </thead>
                         <tbody>
                         </tbody>
@@ -40,6 +78,9 @@
     <script>
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
+            $('#test_result').DataTable({
+
+            });
             $('#detail').DataTable({
                 processing: true,
                 serverSide: true,
@@ -52,6 +93,28 @@
                 columns: [
                     {data: 'title'},
                     {data: 'type'},
+                    {#{#}
+                    {#    data: 'priority',#}
+                    {#    render: function (data, type, row) {#}
+                    {#        if (data != null) {#}
+                    {#            return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +#}
+                    {#                        data +#}
+                    {#                    '</span>'#}
+                    {#        } else {#}
+                    {#            return ''#}
+                    {#        }#}
+                    {#    }#}
+                    {#{#}
+                    {#    data: 'urgency',#}
+                    {#    render: function (data, type, row) {#}
+                    {#        if (data != null) {#}
+                    {#            return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +#}
+                    {#                        data +#}
+                    {#                    '</span>'#}
+                    {#        } else {#}
+                    {#            return ''#}
+                    {#        }#}
+                    {#    }#}
                     {
                         data: 'description',
                         width: "230px"
@@ -73,8 +136,8 @@
                         render: function (data, type, row) {
                             if (data != null) {
                                 return '<span class="tag ' + row.status_color + '">' +
-                                    data +
-                                    '</span>'
+                                            data +
+                                        '</span>'
                             } else {
                                 return ''
                             }

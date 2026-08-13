@@ -1429,6 +1429,21 @@ def summary_scoresheet(pa_id):
         create_approve_scoresheet = False
     if request.method == 'POST':
         form = request.form
+        expected_fields = []
+        for pa_item in consolidated_score_sheet.pa.pa_items:
+            for kpi_item in pa_item.kpi_items:
+                expected_fields.append(f'pa-item-{pa_item.id}-{kpi_item.id}')
+        for core_item in core_competency_items:
+            expected_fields.append(f'core-{core_item.id}')
+
+        missing_fields = [
+            field for field in expected_fields
+            if form.get(field, '').strip() == ''
+        ]
+        if missing_fields:
+            flash('กรุณากรอกคะแนนให้ครบทุกช่องก่อนบันทึก', 'warning')
+            return redirect(url_for('pa.summary_scoresheet', pa_id=pa_id))
+
         for field, value in form.items():
             if field.startswith('pa-item-'):
                 pa_item_id, kpi_item_id = field.split('-')[-2:]
@@ -1476,6 +1491,18 @@ def confirm_score(scoresheet_id):
 @login_required
 def confirm_final_score(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    pa = scoresheet.pa
+    if scoresheet.is_consolidated:
+        pa_items = PAItem.query.filter_by(pa_id=pa.id).all()
+        existing_pairs = {
+            (item.item_id, item.kpi_item_id)
+            for item in PAScoreSheetItem.query.filter_by(score_sheet_id=scoresheet.id).all()
+        }
+        for pa_item in pa_items:
+            for kpi_item in pa_item.kpi_items:
+                if (pa_item.id, kpi_item.id) not in existing_pairs:
+                    flash('พบข้อมูลคะแนนไม่ครบ กรุณาเปิดหน้าสรุปคะแนนเพื่อให้ระบบเติมข้อมูลให้ครบก่อนยืนยันผล', 'warning')
+                    return redirect(url_for('pa.summary_scoresheet', pa_id=pa.id))
     scoresheet.is_final = True
     scoresheet.confirm_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(scoresheet)
@@ -1504,7 +1531,7 @@ def send_consensus_scoresheets_to_hr(pa_id):
             flash('จำเป็นต้องมีการรับรองผลโดยคณะกรรมการทั้งหมด ก่อนส่งผลคะแนนไปยัง HR', 'warning')
             return redirect(request.referrer)
     pa_agreement = PAAgreement.query.filter_by(id=scoresheet.pa_id).first()
-    if pa_agreement.performance_score:
+    if pa_agreement.performance_score is not None:
         flash('ส่งคะแนนเรียบร้อยแล้ว', 'success')
     else:
         scoresheet.is_appproved = True
@@ -1735,6 +1762,7 @@ def rate_performance(scoresheet_id):
         return redirect(url_for('pa.all_performance', scoresheet_id=scoresheet_id))
     head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee=committee, is_consolidated=False).first()
     self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
+    categories = PAItemCategory.query.all()
     core_competency_items = PACoreCompetencyItem.query.all()
     if for_self == 'true':
         next_url = url_for('pa.add_pa_item', round_id=pa.round_id)
@@ -1768,6 +1796,7 @@ def rate_performance(scoresheet_id):
                            head_scoresheet=head_scoresheet,
                            self_scoresheet=self_scoresheet,
                            next_url=next_url,
+                           categories=categories,
                            core_competency_items=core_competency_items,
                            for_self=for_self)
 
@@ -2162,10 +2191,32 @@ def pa_detail(round_id, pa_id):
         items = []
         for item in kpi.pa_kpi_items:
             items.append((item.id, item.goal))
+    relate_idp = []
+    for idp in IDP.query.filter_by(staff_account_id=pa.staff_account_id).join(PAFunctionalCompetencyRound).all():
+        if idp.round.start.year >= pa.round.start.year and idp.round.start.year <= pa.round.start.year+1:
+            relate_idp.append(idp)
     return render_template('staff/HR/PA/pa_detail.html',
                            pa_round=pa_round,
                            pa=pa,
-                           categories=categories)
+                           categories=categories, relate_idp=relate_idp)
+
+
+@pa.route('/rounds/<int:round_id>/<int:pa_id>/<int:idp_id>/change-head-idp')
+@login_required
+def change_head_idp(round_id,pa_id,idp_id):
+    pa = PAAgreement.query.get(pa_id)
+    idp = IDP.query.get(idp_id)
+    if pa and idp:
+        idp.approver = pa.head_committee_staff_account
+        db.session.add(idp)
+        db.session.commit()
+        flash('เปลี่ยนผู้ประเมิน idp รอบ {}({}) เรียบร้อยแล้ว'.format(idp.round.desc,idp.round), 'success')
+    else:
+        if pa:
+            flash('ไม่พบ idp ที่ค้นหา', 'danger')
+        else:
+            flash('ไม่พบรอบ pa กรุณาติดต่อ it', 'danger')
+    return redirect(url_for('pa.pa_detail', round_id=round_id, pa_id=pa_id))
 
 
 @pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/head-committee', methods=['GET', 'POST'])

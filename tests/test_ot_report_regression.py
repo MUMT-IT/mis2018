@@ -415,3 +415,15 @@ def test_ot_report_matches_legacy_sample_rows(ot_views):
             f"actual:   {len(actual_rows)}"
         )
         _compare_row_sets(expected_rows, actual_rows, f"{employee_key[1]} {employee_key[0]}")
+
+
+def test_ot_report_exports_handle_empty_dataframe(ot_views):
+    empty = pd.DataFrame()
+    cal_start = datetime(2026, 1, 1)
+    cal_end = datetime(2026, 1, 2)
+
+    report_buffer = ot_views.build_custom_ot_report_workbook(empty, cal_start, cal_end)
+    finance_buffer = ot_views.build_finance_pdf(empty, cal_start, cal_end)
+
+    assert report_buffer.getbuffer().nbytes > 0
+    assert finance_buffer.getbuffer().nbytes > 0
