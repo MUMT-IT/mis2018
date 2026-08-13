@@ -35,7 +35,8 @@ from flask_admin import BaseView, expose
 from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
 from app.staff.forms import StaffSeminarForm, create_seminar_attend_form, StaffGroupDetailForm
-from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission, event_staff_permission
+from app.roles import (admin_permission, hr_permission, secretary_permission, manager_permission,
+                       event_staff_permission, head_permission)
 from app.staff.models import *
 from app.url_utils import external_url
 from app.org_directory import academic_rank_from_name, email_local_part, parse_saved_page
@@ -73,6 +74,7 @@ TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
 LEAVE_ANNUAL_QUOTA = 10
 
 manager_or_secretary_permission = manager_permission.union(secretary_permission)
+login_summary_permission = manager_or_secretary_permission.union(head_permission)
 
 
 def _is_external_account():
@@ -404,6 +406,14 @@ def _build_login_history_snapshot(staff_personal_info):
         },
         'request_records': request_records,
     }
+
+
+def _pending_clockin_requests_for(approver_id):
+    return StaffRequestWorkLogin.query.filter_by(
+        approver_id=approver_id,
+        approved_at=None,
+        cancelled_at=None,
+    ).order_by(StaffRequestWorkLogin.requested_at.desc()).all()
 
 
 def _build_typhoon_login_history_prompt(snapshot):
@@ -3587,14 +3597,23 @@ def request_for_clockin_clockout():
                 is_checkin=True if request.form.get('clock') == 'checkin' else False
             )
 
-            if len(current_user.wfh_requesters) == 0:
+            wfh_approver = StaffWorkFromHomeApprover.query.filter_by(
+                staff_account_id=current_user.id,
+                is_active=True,
+            ).order_by(StaffWorkFromHomeApprover.id.asc()).first()
+            if wfh_approver is None:
                 print('no approver found, assign head of the organization')
                 org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-                approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
-                db.session.add(approver)
-                db.session.commit()
-            wfh_approver = StaffWorkFromHomeApprover.query.filter_by(
-                staff_account_id=checkin_request.staff_account_id).first()
+                if org_head is None:
+                    flash('ไม่พบผู้อนุมัติคำขอรับรองเวลา', 'danger')
+                    return redirect(url_for('staff.show_time_report'))
+                wfh_approver = StaffWorkFromHomeApprover(
+                    requester=current_user,
+                    account=org_head,
+                    is_active=True,
+                )
+                db.session.add(wfh_approver)
+                db.session.flush()
             checkin_request.approver_id = wfh_approver.approver_account_id
             db.session.add(checkin_request)
             db.session.commit()
@@ -3698,7 +3717,10 @@ def list_for_clockin_clockout():
 @staff.route('/clockin-clockout/approved/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def approved_for_clockin_clockout(request_id):
-    clock_request = StaffRequestWorkLogin.query.get(request_id)
+    clock_request = StaffRequestWorkLogin.query.filter_by(
+        id=request_id,
+        approver_id=current_user.id,
+    ).first_or_404()
     approved = request.form.get('approved') if request.method == 'POST' else request.args.get('approved')
     if approved:
         if approved == 'yes':
@@ -4351,17 +4373,13 @@ def summary_index():
 
 
 @staff.route('/summary/logins')
-@manager_or_secretary_permission.require()
+@login_summary_permission.require()
 @login_required
 def login_summary():
     today = datetime.today().date()
     start_date = date(today.year, today.month, 1)
     end_date = today
-    pending_clockin_requests = StaffRequestWorkLogin.query.filter_by(
-        approver_id=current_user.id,
-        approved_at=None,
-        cancelled_at=None,
-    ).order_by(StaffRequestWorkLogin.requested_at.desc()).all()
+    pending_clockin_requests = _pending_clockin_requests_for(current_user.id)
     return render_template('staff/login_summary.html',
                            tab='login',
                            curr_dept_id=current_user.personal_info.org.id,
@@ -4371,7 +4389,7 @@ def login_summary():
 
 
 @staff.route('/api/login-summary/request/<int:request_id>/history')
-@manager_or_secretary_permission.require()
+@login_summary_permission.require()
 @login_required
 def get_login_request_history(request_id):
     clock_request = StaffRequestWorkLogin.query.get_or_404(request_id)
@@ -4400,7 +4418,7 @@ def get_login_request_history(request_id):
 
 
 @staff.route('/api/login-summary')
-@manager_or_secretary_permission.require()
+@login_summary_permission.require()
 @login_required
 def get_login_summary_data():
     dept_id = request.args.get('dept_id', type=int) or current_user.personal_info.org.id
@@ -4414,7 +4432,7 @@ def get_login_summary_data():
 
 
 @staff.route('/summary/logins/export', methods=['POST'])
-@manager_or_secretary_permission.require()
+@login_summary_permission.require()
 @login_required
 def export_login_summary():
     start_date, end_date = request.form.get('datePicker').split('-')
