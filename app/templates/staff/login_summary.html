@@ -1124,6 +1124,7 @@
     const leaveCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='leave', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
     const wfhCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='wfh', curr_dept_id=curr_dept_id, approved_only=1)|tojson|safe }};
     const seminarCalendarApiUrl = {{ url_for('staff.send_summary_data', tab='smr', curr_dept_id=curr_dept_id)|tojson|safe }};
+    const holidayCalendarApiUrl = {{ url_for('staff.send_holidays_data')|tojson|safe }};
     const loginHistoryApiBaseUrl = {{ url_for('staff.get_login_request_history', request_id=0)|tojson|safe }}.replace('/0/history', '/');
     let employeeSummaryMap = {};
 
@@ -1378,7 +1379,7 @@
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             header: false,
             locale: 'th',
-            eventSources: [calendarApiUrl, leaveCalendarApiUrl, wfhCalendarApiUrl, seminarCalendarApiUrl],
+            eventSources: [calendarApiUrl, leaveCalendarApiUrl, wfhCalendarApiUrl, seminarCalendarApiUrl, holidayCalendarApiUrl],
             displayEventEnd: true,
             defaultView: 'month',
             fixedWeekCount: false,
