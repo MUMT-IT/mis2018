@@ -122,6 +122,7 @@ def _get_pending_requester_test_projects():
         joinedload(SoftwareRequestDetail.created_by).joinedload(StaffAccount.personal_info),
         joinedload(SoftwareRequestDetail.staffs).joinedload(StaffAccount.personal_info),
         joinedload(SoftwareRequestDetail.system),
+        joinedload(SoftwareRequestDetail.test_results).joinedload(SoftwareRequestTestResult.issue),
     ).filter(
         SoftwareRequestDetail.status == 'อนุมัติ',
         SoftwareRequestDetail.test_results.any(
@@ -146,8 +147,13 @@ def _get_pending_test_recipient_emails(detail):
 
 
 def _build_pending_test_reminder(detail):
-    project_name = detail.title or 'โครงการที่ไม่ระบุชื่อ'
-    system_name = detail.system.system if detail.system and detail.system.system else 'ไม่ระบุระบบ'
+    project_name = detail.title or 'โครงการ/ระบบที่ไม่ระบุชื่อ'
+    pending_test_details = [
+        test_result.issue.issue
+        for test_result in detail.test_results
+        if not test_result.status and test_result.issue and test_result.issue.issue
+    ]
+    test_detail_text = '\n'.join(f'- {item}' for item in pending_test_details) or '- ไม่ระบุรายละเอียด'
     scheme = 'http' if current_app.debug else 'https'
     link = url_for(
         'software_request.view_request',
@@ -155,11 +161,13 @@ def _build_pending_test_reminder(detail):
         _external=True,
         _scheme=scheme,
     )
-    subject = f'แจ้งเตือนให้ดำเนินการทดสอบ: {project_name} ({system_name})'
+    subject = f'แจ้งเตือนให้ดำเนินการทดสอบของ {project_name}'
     body = (
-        f'โครงการ/คำขอ "{project_name}" ระบบ "{system_name}" '
-        f'ยังไม่ได้ดำเนินการทดสอบ กรุณาเข้ามาดำเนินการทดสอบ\n\n'
+        f'ขณะนี้มีรายการทดสอบของ "{project_name}" ที่ยังไม่ได้ดำเนินการทดสอบ โดยมีรายละเอียดดังนี้\n'
+        f'{test_detail_text}\n'
+        f'กรุณาดำเนินการทดสอบและบันทึกผล โดยท่านสามารถดำเนินการได้ที่ลิงก์ด้านล่าง\n'
         f'{link}\n\n'
+        f'ขอบคุณค่ะ\n'
         f'ระบบขอรับบริการพัฒนา Software\n'
         f'คณะเทคนิคการแพทย์'
     )
