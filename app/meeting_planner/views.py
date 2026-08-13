@@ -60,11 +60,15 @@ def create_meeting(poll_id=None):
                                    , end=end)
         form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        form.meeting_events.entries = [
+            event_form for event_form in form.meeting_events.entries
+            if event_form.room.data
+        ]
+
         for event_form in form.meeting_events:
-            if event_form.room.data:
-                event_form.start.data = form.start.data
-                event_form.end.data = form.end.data
-                event_form.title.data = f'ประชุม{form.title.data}'
+            event_form.start.data = form.start.data
+            event_form.end.data = form.end.data
+            event_form.title.data = f'ประชุม{form.title.data}'
         new_meeting = MeetingEvent()
         form.populate_obj(new_meeting)
         if poll_id:
