@@ -6735,21 +6735,21 @@ def generate_food_request_pdf(service_request):
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[190, 150, 150])],
+        ], colWidths=[100, 95, 105])],
         [Table([
             [
                 Paragraph("บุคลากรและปริมาณงาน :", style=review_row_style),
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[190, 150, 150])],
+        ], colWidths=[100, 95, 105])],
         [Table([
             [
                 Paragraph("วิธีการทดสอบ :", style=review_row_style),
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[190, 150, 150])],
+        ], colWidths=[100, 95, 105])],
     ], colWidths=[530])
 
     repeat_table.setStyle(TableStyle([
