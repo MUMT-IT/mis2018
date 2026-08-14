@@ -6498,6 +6498,8 @@ def generate_food_request_pdf(service_request):
                 repeat_rows = 1
                 row_heights = None
                 if table_starts_group:
+                    data.append(Spacer(5, 5))
+                    current_height += 5
                     cell_count = len(headers) + 2
                     section_header_row = [
                         Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),
@@ -7076,6 +7078,8 @@ def generate_protein_request_pdf(service_request):
                 repeat_rows = 1
                 row_heights = None
                 if table_starts_group:
+                    data.append(Spacer(5, 5))
+                    current_height += 5
                     cell_count = len(headers) + 2
                     section_header_row = [
                         Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),
@@ -7653,6 +7657,8 @@ def generate_toxicology_request_pdf(service_request):
                 repeat_rows = 1
                 row_heights = None
                 if table_starts_group:
+                    data.append(Spacer(5, 5))
+                    current_height += 5
                     cell_count = len(headers) + 2
                     section_header_row = [
                         Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),
@@ -8231,6 +8237,8 @@ def generate_endotoxin_request_pdf(service_request):
                 repeat_rows = 1
                 row_heights = None
                 if table_starts_group:
+                    data.append(Spacer(5, 5))
+                    current_height += 5
                     cell_count = len(headers) + 2
                     section_header_row = [
                         Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),
