@@ -4613,6 +4613,9 @@ def generate_bacteria_request_pdf(service_request):
         ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 1), (-1, 1), 10),
     ]))
 
     lab_information = '''<para><font size=13>
@@ -6683,25 +6686,70 @@ def generate_food_request_pdf(service_request):
         leading=18
     )
 
-    checkbox = f'<font name="DejaVuSans">☐</font>'
+    checkbox_style = ParagraphStyle(
+        'CheckboxStyle',
+        parent=detail_style,
+        fontSize=13,
+        leading=16,
+    )
+
+    def checkbox_box():
+        box = Table([['']], colWidths=[9], rowHeights=[9])
+        box.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        return box
+
+    def checkbox_option(label):
+        option_table = Table(
+            [[checkbox_box(), Paragraph(label, checkbox_style)]],
+            colWidths=[11, 58],
+        )
+        option_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        return option_table
+
+    review_row_style = ParagraphStyle(
+        'ReviewRowStyle',
+        parent=detail_style,
+        fontSize=13,
+        leading=16,
+    )
 
     repeat_table = Table([
         [Spacer(1, 6)],
         [Paragraph("การทบทวน", style=sub_header_bold_style)],
-        [Paragraph(
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เครื่องมือ : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{checkbox} พร้อม&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{checkbox} ไม่พร้อม",
-            style=detail_style)],
-        [Paragraph(
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;บุคลากรและปริมาณงาน : {checkbox} พร้อม&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{checkbox} ไม่พร้อม",
-            style=detail_style)],
-        [Paragraph(
-            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;วิธีการทดสอบ : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"&nbsp;&nbsp;&nbsp;&nbsp;{checkbox} พร้อม&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
-            f"{checkbox} ไม่พร้อม",
-            style=detail_style)]
+        [Table([
+            [
+                Paragraph("เครื่องมือ :", style=review_row_style),
+                checkbox_option("พร้อม"),
+                checkbox_option("ไม่พร้อม"),
+            ]
+        ], colWidths=[190, 150, 150])],
+        [Table([
+            [
+                Paragraph("บุคลากรและปริมาณงาน :", style=review_row_style),
+                checkbox_option("พร้อม"),
+                checkbox_option("ไม่พร้อม"),
+            ]
+        ], colWidths=[190, 150, 150])],
+        [Table([
+            [
+                Paragraph("วิธีการทดสอบ :", style=review_row_style),
+                checkbox_option("พร้อม"),
+                checkbox_option("ไม่พร้อม"),
+            ]
+        ], colWidths=[190, 150, 150])],
     ], colWidths=[530])
 
     repeat_table.setStyle(TableStyle([
@@ -6719,7 +6767,8 @@ def generate_food_request_pdf(service_request):
         data.append(KeepTogether(Spacer(5, 5)))
         current_height += 5
     data.append(KeepTogether(repeat_table))
-    w, h = report_table.wrap(doc.width, first_page_limit)
+    w, h = repeat_table.wrap(doc.width, first_page_limit)
+
     current_height += h
 
     sign_table = Table([
