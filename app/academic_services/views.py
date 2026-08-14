@@ -6719,11 +6719,12 @@ def generate_food_request_pdf(service_request):
         ]))
         return option_table
 
-    review_row_style = ParagraphStyle(
-        'ReviewRowStyle',
+    review_label_style = ParagraphStyle(
+        'ReviewLabelStyle',
         parent=detail_style,
         fontSize=13,
         leading=16,
+        leftIndent=20
     )
 
     repeat_table = Table([
@@ -6731,25 +6732,25 @@ def generate_food_request_pdf(service_request):
         [Paragraph("การทบทวน", style=sub_header_bold_style)],
         [Table([
             [
-                Paragraph("เครื่องมือ :", style=review_row_style),
+                Paragraph("เครื่องมือ :", style=review_label_style),
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[100, 95, 105])],
+        ], colWidths=[120, 95, 105])],
         [Table([
             [
-                Paragraph("บุคลากรและปริมาณงาน :", style=review_row_style),
+                Paragraph("บุคลากรและปริมาณงาน :", style=review_label_style),
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[100, 95, 105])],
+        ], colWidths=[120, 95, 105])],
         [Table([
             [
-                Paragraph("วิธีการทดสอบ :", style=review_row_style),
+                Paragraph("วิธีการทดสอบ :", style=review_label_style),
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[100, 95, 105])],
+        ], colWidths=[120, 95, 105])],
     ], colWidths=[530])
 
     repeat_table.setStyle(TableStyle([
