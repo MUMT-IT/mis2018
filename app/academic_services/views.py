@@ -7980,7 +7980,7 @@ def generate_endotoxin_request_pdf(service_request):
 
     staff_only = '''<para><font size=13>
                             สำหรับเจ้าหน้าที่ / Staff only<br/>
-                            เลขที่ใบคำขอ &nbsp; <u>&nbsp;{request_no}&nbsp;</u><br/>
+                            เลขที่ใบคำขอ &nbsp; <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
                             วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                             วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                             </font></para>'''.format(request_no=service_request.request_no)
@@ -8196,17 +8196,20 @@ def generate_endotoxin_request_pdf(service_request):
                     text_section = []
 
                 rows = g['data']
-                # for i, row in enumerate(rows):
-                #     row['Sample no'] = ''
+                for i, row in enumerate(rows):
+                    row['SR Code'] = ''
+                    row['LAB'] = ''
                 headers = list(rows[0].keys())
                 raw_widths = []
                 for h in headers:
                     if h == headers[0]:
-                        w = 90
-                    # elif h == headers[-1]:
-                    #     w = 108
+                        w = 80
+                    elif h == headers[-2]:
+                        w = 57
+                    elif h == headers[-1]:
+                        w = 108
                     else:
-                        w = 100
+                        w = 68
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
                 max_total = 506
