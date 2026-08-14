@@ -6707,8 +6707,8 @@ def generate_food_request_pdf(service_request):
 
     def checkbox_option(label):
         option_table = Table(
-            [[checkbox_box(), Paragraph(label, checkbox_style)]],
-            colWidths=[11, 58],
+            [[checkbox_box(), Spacer(4, 1), Paragraph(label, checkbox_style)]],
+            colWidths=[11, 4, 58],
         )
         option_table.setStyle(TableStyle([
             ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -6736,21 +6736,21 @@ def generate_food_request_pdf(service_request):
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[120, 95, 105])],
+        ], colWidths=[120, 95, 60])],
         [Table([
             [
                 Paragraph("บุคลากรและปริมาณงาน :", style=review_label_style),
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[120, 95, 105])],
+        ], colWidths=[120, 95, 60])],
         [Table([
             [
                 Paragraph("วิธีการทดสอบ :", style=review_label_style),
                 checkbox_option("พร้อม"),
                 checkbox_option("ไม่พร้อม"),
             ]
-        ], colWidths=[120, 95, 105])],
+        ], colWidths=[120, 95, 60])],
     ], colWidths=[530])
 
     repeat_table.setStyle(TableStyle([
