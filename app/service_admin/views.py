@@ -8264,7 +8264,7 @@ def generate_sds_page_quotation():
             else:
                 quote_prices[key] = row['other_price']
 
-        for field in form:
+        for field in sorted(form, key=lambda field: field.label.text.startswith('Image')):
             if field.label.text not in quote_column_names:
                 continue
 
