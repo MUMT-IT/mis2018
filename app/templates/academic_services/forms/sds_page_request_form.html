@@ -159,74 +159,82 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script>
-        $(document).ready(function () {
-            const sampleSpecies = $('input[type="checkbox"][name="sample_species"]');
-
-            function validateSampleSpeciesInput() {
-                const checkedCount = sampleSpecies.filter(':checked').length;
-
-                if (checkedCount === 0) {
-                    sampleSpecies.prop('required', true);
-                    sampleSpecies.each(function () {
-                        this.setCustomValidity('Please select at least 1 item.');
-                    });
-                } else {
-                    sampleSpecies.prop('required', false);
-                    sampleSpecies.each(function () {
-                        this.setCustomValidity('');
-                    });
-                }
-            }
-
-            validateSampleSpeciesInput();
-            sampleSpecies.on('change', validateSampleSpeciesInput);
-        });
-    </script>
-    <script>
-        $(document).ready(function () {
-            const sampleType = $('input[type="checkbox"][name="sample_type"]');
-
-            function validateSampleTypeInput() {
-                const checkedCount = sampleType.filter(':checked').length;
-
-                if (checkedCount === 0) {
-                    sampleType.prop('required', true);
-                    sampleType.each(function () {
-                        this.setCustomValidity('Please select at least 1 item.');
-                    });
-                } else {
-                    sampleType.prop('required', false);
-                    sampleType.each(function () {
-                        this.setCustomValidity('');
-                    });
-                }
-            }
-
-            validateSampleTypeInput();
-            sampleType.on('change', validateSampleTypeInput);
-        });
-    </script>
+{#    <script>#}
+{#        $(document).ready(function () {#}
+{#            const sampleSpecies = $('input[type="checkbox"][name="sample_species"]');#}
+{##}
+{#            function validateSampleSpeciesInput() {#}
+{#                const checkedCount = sampleSpecies.filter(':checked').length;#}
+{##}
+{#                if (checkedCount === 0) {#}
+{#                    sampleSpecies.prop('required', true);#}
+{#                    sampleSpecies.each(function () {#}
+{#                        this.setCustomValidity('Please select at least 1 item.');#}
+{#                    });#}
+{#                } else {#}
+{#                    sampleSpecies.prop('required', false);#}
+{#                    sampleSpecies.each(function () {#}
+{#                        this.setCustomValidity('');#}
+{#                    });#}
+{#                }#}
+{#            }#}
+{##}
+{#            validateSampleSpeciesInput();#}
+{#            sampleSpecies.on('change', validateSampleSpeciesInput);#}
+{#        });#}
+{#    </script>#}
+{#    <script>#}
+{#        $(document).ready(function () {#}
+{#            const sampleType = $('input[type="checkbox"][name="sample_type"]');#}
+{##}
+{#            function validateSampleTypeInput() {#}
+{#                const checkedCount = sampleType.filter(':checked').length;#}
+{##}
+{#                if (checkedCount === 0) {#}
+{#                    sampleType.prop('required', true);#}
+{#                    sampleType.each(function () {#}
+{#                        this.setCustomValidity('Please select at least 1 item.');#}
+{#                    });#}
+{#                } else {#}
+{#                    sampleType.prop('required', false);#}
+{#                    sampleType.each(function () {#}
+{#                        this.setCustomValidity('');#}
+{#                    });#}
+{#                }#}
+{#            }#}
+{##}
+{#            validateSampleTypeInput();#}
+{#            sampleType.on('change', validateSampleTypeInput);#}
+{#        });#}
+{#    </script>#}
     <script>
         $(document).ready(function () {
             $('#condition-field div[id]').each(function () {
-                const staining = $('input[type="checkbox"][name$="staining"]');
+                const staining = $('input[type="radio"][name$="staining"]');
 
                 function validateStainingInput() {
-                    const checkedCount = staining.filter(':checked').length;
+                    staining.prop('required', true).attr('oninvalid', "this.setCustomValidity('Please select item')");
 
-                    if (checkedCount === 0) {
-                        staining.prop('required', true);
-                        staining.each(function () {
-                            this.setCustomValidity('Please select at least 1 item.');
-                        });
-                    } else {
-                        staining.prop('required', false);
+                    staining.on('change', function () {
                         staining.each(function () {
                             this.setCustomValidity('');
                         });
-                    }
+                    });
                 }
+                {#function validateStainingInput() {#}
+                {#    const checkedCount = staining.filter(':checked').length;#}
+                {##}
+                {#    if (checkedCount === 0) {#}
+                {#        staining.prop('required', true);#}
+                {#        staining.each(function () {#}
+                {#            this.setCustomValidity('Please select at least 1 item.');#}
+                {#        });#}
+                {#    } else {#}
+                {#        staining.prop('required', false);#}
+                {#        staining.each(function () {#}
+                {#            this.setCustomValidity('');#}
+                {#        });#}
+                {#    }#}
 
                 validateStainingInput();
                 staining.on('change', validateStainingInput);
