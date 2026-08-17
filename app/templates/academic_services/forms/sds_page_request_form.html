@@ -80,6 +80,18 @@
                                 </div>
                             </div>
                             <div class="field">
+                                <label class="label">{{ form.image_capture.label }}</label>
+                                <div class="control">
+                                    {{ form.image_capture() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.image_analysis.label }}</label>
+                                <div class="control">
+                                    {{ form.image_analysis() }}
+                                </div>
+                            </div>
+                            <div class="field">
                                 <label class="label">{{ form.comment.label }}</label>
                                 <div class="control">
                                     {{ form.comment(class='input') }}
