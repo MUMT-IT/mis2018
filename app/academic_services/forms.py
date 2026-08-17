@@ -1395,6 +1395,8 @@ class SDSPageRequestForm(FlaskForm):
                                 render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                            "oninput": "this.setCustomValidity('')"
                                            })
+    image_capture = CheckboxField('Image capture', choices=[('Capture', 'Capture')])
+    image_analysis = CheckboxField('Image analysis', choices=[('Analysis', 'Analysis')])
     comment = StringField('Comments')
     sds_page_condition_field = FieldList(FormField(SDSPageConditionForm), min_entries=1)
 
