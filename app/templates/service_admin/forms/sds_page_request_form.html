@@ -39,7 +39,7 @@
                                     {{ form.sample_species.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control">
+                                <div class="select">
                                     {{ form.sample_species(
                                         **{'hx-get': url_for("service_admin.get_sample_species_other",
                                                 request_id=request_id),
@@ -57,7 +57,7 @@
                                     {{ form.sample_type.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control">
+                                <div class="select">
                                     {{ form.sample_type(
                                         **{'hx-get': url_for("service_admin.get_sample_type_other",
                                                 request_id=request_id),
