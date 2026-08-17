@@ -6650,6 +6650,13 @@ def approve_invoice(invoice_id):
         invoice.sent_at = arrow.now('Asia/Bangkok').datetime
         invoice.sender_id = current_user.id
         invoice.quotation.request.status_id = status_id
+        for item in invoice.invoice_items:
+            quantity = request.form.get(f'quantity_{item.id}')
+            if quantity and int(quantity) > 0:
+                item.quantity = int(quantity)
+                item.total_price = item.quantity * item.unit_price
+                db.session.add(item)
+        db.session.commit()
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
             if email:
@@ -6804,6 +6811,23 @@ def view_invoice_for_central_admin(invoice_id):
     invoice = ServiceInvoice.query.get(invoice_id)
     return render_template('service_admin/view_invoice_for_central_admin.html', invoice=invoice,
                            menu=menu, tab=tab)
+
+
+@service_admin.route('/invoice/item/update/<int:invoice_id>', methods=['POST'])
+def update_invoice_item(invoice_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    admin = request.args.get('admin')
+    invoice = ServiceInvoice.query.get(invoice_id)
+    for item in invoice.invoice_items:
+        quantity = request.form.get(f'quantity_{item.id}')
+        if quantity and int(quantity) > 0:
+            item.quantity = int(quantity)
+            item.total_price = item.quantity * item.unit_price
+            db.session.add(item)
+    db.session.commit()
+    return redirect(url_for('service_admin.view_invoice', admin=admin, invoice=invoice, tab=tab, menu=menu,
+                            invoice_id=invoice_id))
 
 
 def generate_invoice_pdf(invoice, qr_image_base64=None):
