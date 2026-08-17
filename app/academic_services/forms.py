@@ -1364,8 +1364,9 @@ class SDSPageConditionForm(FlaskForm):
 
 
 class SDSPageRequestForm(FlaskForm):
-    sds_page = StringField('SDS Page', validators=[DataRequired()],
-                           render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
+    sds_page = IntegerField('SDS Page', validators=[DataRequired()],
+                           render_kw={"type": "number",
+                                      "oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                       "oninput": "this.setCustomValidity('')"
                                       })
     sample_species = SelectField('Sample species', choices=[('', 'กรุณาเลือก Sample species'),
