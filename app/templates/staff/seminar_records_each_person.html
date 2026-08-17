@@ -129,7 +129,7 @@
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
                             </span>
-                            <span>สร้างอบรมใหม่</span>
+                            <span>เพิ่มกิจกรรม</span>
                         </a>)
                         <br>
                     </span>
@@ -155,16 +155,8 @@
         </div>
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">ค้นหารายการประชุม อบรม สัมมนา</h1>
+                <h1 class="title">กิจกรรมที่จะเกิดขึ้น</h1>
                 <p class="subtitle is-size-6 has-text-grey">เลือกกิจกรรมที่มีอยู่ หรือเพิ่มกิจกรรมใหม่ได้ที่ปุ่มด้านขวา</p>
-            </div>
-            <div class="column has-text-right">
-                <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
-                    <span class="icon">
-                        <i class="fas fa-plus"></i>
-                    </span>
-                    <span>เพิ่มข้อมูลอบรม</span>
-                </a>
             </div>
         </div>
         <div class="columns">
@@ -178,6 +170,7 @@
                     <th>หน่วยงานที่จัด</th>
                     <th>ค่าใช้จ่าย</th>
                     <th>เอกสารโครงการ</th>
+                    <th></th>
                     </thead>
                     <tbody>
                     {% for records in seminar_records|sort(attribute='start_datetime') %}
@@ -208,11 +201,22 @@
                             <a href="{{ records.upload_file_url }}">คลิกเพื่อดู</a>
                             {% endif %}
                         </td>
+                        <td>
+                            <a href="{{ url_for('staff.seminar_create_record', seminar_id=records.id) }}">ขออนุมัติ</a>
+                        </td>
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="column has-text-centered is-medium">
+            <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>เพิ่มกิจกรรม</span>
+            </a>
         </div>
         {% if approver %}
         <hr>

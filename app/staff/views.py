@@ -3709,6 +3709,10 @@ def seminar_records():
 @staff.route('/seminar/create-record/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
 def seminar_create_record(seminar_id):
+    is_attend = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id, staff=current_user).first()
+    if is_attend:
+        flash('พบข้อมูลของท่าน บันทึกเข้าร่วมกิจกรรมนี้แล้ว', 'success')
+        return redirect(url_for('staff.show_seminar_info_each_person', record_id=is_attend.id))
     MyStaffSeminarAttendForm = create_seminar_attend_form(current_user)
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
