@@ -1358,8 +1358,8 @@ class SDSPageConditionForm(FlaskForm):
                               render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                          "oninput": "this.setCustomValidity('')"
                                          })
-    clean_up = CheckboxField('Clean Up Sample', choices=[('Sample cleanup service', 'Do')], validators=[Optional()])
-    staining = CheckboxField('Staining', choices=[('Coomassie Stain', 'Coomassie Stain'),
+    clean_up = CheckboxField('Clean up sample', choices=[('Clean up sample', 'Clean')], validators=[Optional()])
+    staining = RadioField('Staining', choices=[('Coomassie Stain', 'Coomassie Stain'),
                                                   ('Silver Stain', 'Silver Stain')], validators=[Optional()])
 
 
@@ -1368,17 +1368,29 @@ class SDSPageRequestForm(FlaskForm):
                            render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                       "oninput": "this.setCustomValidity('')"
                                       })
-    sample_species = CheckboxField('Sample species', choices=[('Human', 'Human'),
-                                                              ('Mouse', 'Mouse'),
-                                                              ('Others', 'Others')])
+    sample_species = SelectField('Sample species', choices=[('', 'กรุณาเลือก Sample species'),
+                                                            ('Human', 'Human'),
+                                                            ('Mouse', 'Mouse'),
+                                                            ('Others', 'Others')],
+                                 validators=[DataRequired()],
+                                 render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือก Sample species')",
+                                             "oninput": "this.setCustomValidity('')"
+                                             })
+
     sample_species_other = StringField('Other')
-    sample_type = CheckboxField('Sample Type', choices=[('Cell pellet', 'Cell pellet'),
-                                                        ('Protein extract', 'Protein extract'),
-                                                        ('Immunoprecipitation', 'Immunoprecipitation'),
-                                                        ('Tissue', 'Tissue'),
-                                                        ('Serum', 'Serum'),
-                                                        (' Cerebrospinal fluid', ' Cerebrospinal fluid'),
-                                                        ('Others', 'Others')])
+    sample_type = SelectField('Sample type', choices=[('', 'กรุณาเลือก Sample type'),
+                                                      ('Cell pellet', 'Cell pellet'),
+                                                      ('Protein extract', 'Protein extract'),
+                                                      ('Immunoprecipitation', 'Immunoprecipitation'),
+                                                      ('Tissue', 'Tissue'),
+                                                      ('Serum', 'Serum'),
+                                                      ('Cerebrospinal fluid', 'Cerebrospinal fluid'),
+                                                      ('Others', 'Others')],
+                              validators=[DataRequired()],
+                              render_kw={"oninvalid": "this.setCustomValidity('กรุณาเลือก Sample type')",
+                                         "oninput": "this.setCustomValidity('')"
+                                         })
+    sample_type_other = StringField('Other')
     sample_amount = StringField('Sample amount (mg/ml)', validators=[DataRequired()],
                                 render_kw={"oninvalid": "this.setCustomValidity('Please fill in the information.')",
                                            "oninput": "this.setCustomValidity('')"
