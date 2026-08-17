@@ -8278,21 +8278,29 @@ def generate_sds_page_quotation():
 
                     if field.label.text == 'SDS Page':
                         p_key = sorted_field_label
-                        counts = re.findall(r'\d+', values)
-                        quantity = int(counts[0])
+                        # counts = re.findall(r'\d+', values)
+                        # quantity = int(counts[0])
+                        quantity = int(values)
+                    elif field.label.text.startswith('Image'):
+                        p_key = sorted_field_label
+                        if field.label.text == 'Image capture':
+                            values = 'การสแกนภาพเจลโดยเครื่อง Image Scanner (ตามชั่วโมงการใช้งานจริง)'
+                        else:
+                            values = 'การวิเคราะห์ภาพเจลโดยเครื่อง Image Scanner (ตามชั่วโมงการใช้งานจริง)'
+                        quantity = 1
                     else:
                         p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                        quantity = None
+                        quantity = 1
                     if p_key in quote_prices:
                         prices = quote_prices[p_key]
                         if p_key in quote_details:
                             quote_details[p_key]["quantity"] += 1
                         else:
-                            if quantity:
+                            if field.label.text == 'SDS Page':
                                 quote_details[p_key] = {"value": f'SDS Page {values}', "price": prices,
                                                         "quantity": quantity}
                             else:
-                                quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                                quote_details[p_key] = {"value": values, "price": prices, "quantity": quantity}
 
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,
