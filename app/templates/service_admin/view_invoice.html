@@ -421,7 +421,7 @@
             });
         }
 
-        function calculateDiscountAmount(row, totalPrice) {
+        function calculateDiscount(row, totalPrice) {
             const discountType = row.dataset.discountType || '';
             const discountValue = Number(row.dataset.discountValue || 0);
 
@@ -436,7 +436,7 @@
             return discountValue;
         }
 
-        function recalculateInvoiceTotals() {
+        function calculatePrice() {
             const rows = document.querySelectorAll('[data-item-row]');
             let subtotal = 0;
             let discountTotal = 0;
@@ -447,48 +447,47 @@
                 const quantityValue = quantityInput ? Number(quantityInput.value || 0) : Number(row.dataset.quantity || 0);
                 const unitPrice = Number(row.dataset.unitPrice || 0);
                 const totalPrice = quantityValue * unitPrice;
-                const discountAmount = calculateDiscountAmount(row, totalPrice);
-                const netPrice = totalPrice - discountAmount;
+                const discount = calculateDiscount(row, totalPrice);
+                const netPrice = totalPrice - discount;
 
-                const totalCell = row.querySelector('[data-total-price]');
-                const discountCell = row.querySelector('[data-discount-amount]');
-                const netCell = row.querySelector('[data-net-price]');
+                const totalPriceData = row.querySelector('[data-total-price]');
+                const discountData = row.querySelector('[data-discount-amount]');
+                const netPriceData = row.querySelector('[data-net-price]');
 
-                if (totalCell) {
-                    totalCell.textContent = formatMoney(totalPrice);
+                if (totalPriceData) {
+                    totalPriceData.textContent = formatMoney(totalPrice);
                 }
-                if (discountCell) {
-                    discountCell.textContent = formatMoney(discountAmount);
-                }
-                if (netCell) {
-                    netCell.textContent = formatMoney(netPrice);
+                if (discountData) {
+                    discountData.textContent = formatMoney(discount);                }
+                if (netPriceData) {
+                    netPriceData.textContent = formatMoney(netPrice);
                 }
 
                 subtotal += totalPrice;
-                discountTotal += discountAmount;
+                discountTotal += discount;
                 grandTotal += netPrice;
             });
 
-            const subtotalEl = document.getElementById('subtotal');
-            const discountEl = document.getElementById('discount');
-            const grandTotalEl = document.getElementById('grand-total');
+            const subtotalData = document.getElementById('subtotal');
+            const discountData = document.getElementById('discount');
+            const grandTotalData = document.getElementById('grand-total');
 
-            if (subtotalEl) {
-                subtotalEl.textContent = formatMoney(subtotal);
+            if (subtotalData) {
+                subtotalData.textContent = formatMoney(subtotal);
             }
-            if (discountEl) {
-                discountEl.textContent = formatMoney(discountTotal);
+            if (discountData) {
+                discountData.textContent = formatMoney(discountTotal);
             }
-            if (grandTotalEl) {
-                grandTotalEl.textContent = formatMoney(grandTotal);
+            if (grandTotalData) {
+                grandTotalData.textContent = formatMoney(grandTotal);
             }
         }
 
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.quantity-input').forEach((input) => {
-                input.addEventListener('input', recalculateInvoiceTotals);
+                input.addEventListener('input', calculatePrice);
             });
-            recalculateInvoiceTotals();
+            calculatePrice();
         });
     </script>
 {% endblock %}
