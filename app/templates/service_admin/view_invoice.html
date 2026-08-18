@@ -414,81 +414,81 @@
         });
     </script>
     <script>
-        (function () {
-            function formatMoney(value) {
-                return Number(value || 0).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                });
-            }
-
-            function calculateDiscountAmount(row, totalPrice) {
-                const discountType = row.dataset.discountType || '';
-                const discountValue = Number(row.dataset.discountValue || 0);
-
-                if (!discountValue) {
-                    return 0;
-                }
-
-                if (discountType === 'เปอร์เซ็นต์') {
-                    return totalPrice * (discountValue / 100);
-                }
-
-                return discountValue;
-            }
-
-            function recalculateInvoiceTotals() {
-                const rows = document.querySelectorAll('[data-item-row]');
-                let subtotal = 0;
-                let discountTotal = 0;
-                let grandTotal = 0;
-
-                rows.forEach((row) => {
-                    const quantityInput = row.querySelector('.quantity-input');
-                    const quantityValue = quantityInput ? Number(quantityInput.value || 0) : Number(row.dataset.quantity || 0);
-                    const unitPrice = Number(row.dataset.unitPrice || 0);
-                    const totalPrice = quantityValue * unitPrice;
-                    const discountAmount = calculateDiscountAmount(row, totalPrice);
-                    const netPrice = totalPrice - discountAmount;
-
-                    const totalCell = row.querySelector('[data-total-price]');
-                    const discountCell = row.querySelector('[data-discount-amount]');
-                    const netCell = row.querySelector('[data-net-price]');
-                    if (totalCell) {
-                        totalCell.textContent = formatMoney(totalPrice);
-                    }
-                    if (discountCell) {
-                        discountCell.textContent = formatMoney(discountAmount);
-                    }
-                    if (netCell) {
-                        netCell.textContent = formatMoney(netPrice);
-                    }
-
-                    subtotal += totalPrice;
-                    discountTotal += discountAmount;
-                    grandTotal += netPrice;
-                });
-
-                const subtotalEl = document.getElementById('subtotal');
-                const discountEl = document.getElementById('discount');
-                const grandTotalEl = document.getElementById('grand-total');
-                if (subtotalEl) {
-                    subtotalEl.textContent = formatMoney(subtotal);
-                }
-                if (discountEl) {
-                    discountEl.textContent = formatMoney(discountTotal);
-                }
-                if (grandTotalEl) {
-                    grandTotalEl.textContent = formatMoney(grandTotal);
-                }
-            }
-
-            document.addEventListener('DOMContentLoaded', function () {
-                document.querySelectorAll('.quantity-input').forEach((input) => {
-                    input.addEventListener('input', recalculateInvoiceTotals);
-                });
-                recalculateInvoiceTotals();
+        function formatMoney(value) {
+            return Number(value || 0).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
             });
-        })();
+        }
+
+        function calculateDiscountAmount(row, totalPrice) {
+            const discountType = row.dataset.discountType || '';
+            const discountValue = Number(row.dataset.discountValue || 0);
+
+            if (!discountValue) {
+                return 0;
+            }
+
+            if (discountType === 'เปอร์เซ็นต์') {
+                return totalPrice * (discountValue / 100);
+            }
+
+            return discountValue;
+        }
+
+        function recalculateInvoiceTotals() {
+            const rows = document.querySelectorAll('[data-item-row]');
+            let subtotal = 0;
+            let discountTotal = 0;
+            let grandTotal = 0;
+
+            rows.forEach((row) => {
+                const quantityInput = row.querySelector('.quantity-input');
+                const quantityValue = quantityInput ? Number(quantityInput.value || 0) : Number(row.dataset.quantity || 0);
+                const unitPrice = Number(row.dataset.unitPrice || 0);
+                const totalPrice = quantityValue * unitPrice;
+                const discountAmount = calculateDiscountAmount(row, totalPrice);
+                const netPrice = totalPrice - discountAmount;
+
+                const totalCell = row.querySelector('[data-total-price]');
+                const discountCell = row.querySelector('[data-discount-amount]');
+                const netCell = row.querySelector('[data-net-price]');
+
+                if (totalCell) {
+                    totalCell.textContent = formatMoney(totalPrice);
+                }
+                if (discountCell) {
+                    discountCell.textContent = formatMoney(discountAmount);
+                }
+                if (netCell) {
+                    netCell.textContent = formatMoney(netPrice);
+                }
+
+                subtotal += totalPrice;
+                discountTotal += discountAmount;
+                grandTotal += netPrice;
+            });
+
+            const subtotalEl = document.getElementById('subtotal');
+            const discountEl = document.getElementById('discount');
+            const grandTotalEl = document.getElementById('grand-total');
+
+            if (subtotalEl) {
+                subtotalEl.textContent = formatMoney(subtotal);
+            }
+            if (discountEl) {
+                discountEl.textContent = formatMoney(discountTotal);
+            }
+            if (grandTotalEl) {
+                grandTotalEl.textContent = formatMoney(grandTotal);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.quantity-input').forEach((input) => {
+                input.addEventListener('input', recalculateInvoiceTotals);
+            });
+            recalculateInvoiceTotals();
+        });
     </script>
 {% endblock %}
