@@ -1015,6 +1015,10 @@ class ServiceInvoice(db.Model):
     #     return len([payment for payment in self.payments if not payment.approved_at])
 
     @property
+    def sub_lab(self):
+        return self.quotation.request.sub_lab
+
+    @property
     def customer_name(self):
         return self.quotation.request.customer.customer_name
 
