@@ -103,30 +103,42 @@
                             <hr style="background-color: gainsboro">
                             <div id="condition-field" class="field">
                                 {% for item_form in form.sds_page_condition_field %}
-                                    <div id="{{ item_form.id }}">
+                                    <div id="{{ item_form.id }}" class="condition-item">
                                         <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
                                         <table class="table is-fullwidth ">
                                             <thead>
-                                            <th style="border: none">
-                                                {{ item_form.sample_name.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </th>
-                                            <th style="border: none">{{ item_form.clean_up.label }}</th>
-                                            <th style="border: none">
-                                                {{ item_form.staining.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </th>
+                                                <th style="border: none">
+                                                    {{ item_form.sample_name.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">{{ item_form.clean_up.label }}</th>
+                                                <th style="border: none">
+                                                    {{ item_form.staining.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
                                             </thead>
                                             <tbody>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.sample_name(class='input') }}
-                                            </td>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.clean_up() }}
-                                            </td>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.staining() }}
-                                            </td>
+                                                <tr>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.sample_name(class='input') }}
+                                                    </td>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.clean_up() }}
+                                                    </td>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.staining() }}
+                                                    </td>
+                                                    <td style="border: none">
+                                                        <a class="button is-danger is-outlined"
+                                                           hx-delete="{{ url_for('academic_services.remove_sds_page_condition_item',
+                                                           name=item_form.name) }}"
+                                                           hx-target="closest .condition-item"
+                                                           hx-swap="outerHTML"
+                                                        >
+                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                        </a>
+                                                    </td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                         {% if not loop.last %}
@@ -146,16 +158,16 @@
                                         <span>เพิ่ม</span>
                                     </a>
                                 </div>
-                                <div class="control">
-                                    <a class="button is-danger is-small is-light is-rounded"
-                                       hx-delete="{{ url_for('academic_services.remove_sds_page_condition_item') }}"
-                                       hx-target="#condition-field" hx-swap="innerHTML">
-                                            <span class="icon">
-                                                <i class="far fa-trash-alt"></i>
-                                            </span>
-                                        <span class="">ลบ</span>
-                                    </a>
-                                </div>
+{#                                <div class="control">#}
+{#                                    <a class="button is-danger is-small is-light is-rounded"#}
+{#                                       hx-delete="{{ url_for('academic_services.remove_sds_page_condition_item') }}"#}
+{#                                       hx-target="#condition-field" hx-swap="innerHTML">#}
+{#                                            <span class="icon">#}
+{#                                                <i class="far fa-trash-alt"></i>#}
+{#                                            </span>#}
+{#                                        <span class="">ลบ</span>#}
+{#                                    </a>#}
+{#                                </div>#}
                             </div>
                         </div>
                         <div class="field is-grouped is-justify-content-center">
