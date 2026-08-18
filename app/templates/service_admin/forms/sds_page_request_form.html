@@ -184,6 +184,16 @@
 {% block scripts %}
     {{ super() }}
     <script>
+        function renumberSdsPageItems() {
+            const items = document.querySelectorAll('#condition-field .condition-item');
+            items.forEach(function (item, index) {
+                const label = item.querySelector('p strong');
+                if (label) {
+                    label.textContent = `รายการที่ ${index + 1}`;
+                }
+            });
+        }
+
         function initSubforms() {
             $('#condition-field div[id]').each(function () {
                 const staining = $('input[type="radio"][name$="staining"]');
@@ -205,10 +215,12 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             initSubforms();
+            renumberSdsPageItems();
         });
 
         document.body.addEventListener('htmx:afterSwap', function () {
             initSubforms();
+            renumberSdsPageItems();
         });
     </script>
 {% endblock %}
