@@ -2721,7 +2721,7 @@ def create_bacteria_disinfection_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -3659,7 +3659,7 @@ def create_virus_disinfection_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4003,7 +4003,7 @@ def create_virus_air_disinfection_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4142,7 +4142,7 @@ def create_heavy_metal_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4281,7 +4281,7 @@ def create_food_safety_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4522,7 +4522,7 @@ def create_protein_identification_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4649,7 +4649,7 @@ def create_sds_page_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4758,7 +4758,7 @@ def create_quantitative_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4891,7 +4891,7 @@ def create_metabolomic_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -5126,7 +5126,7 @@ def create_endotoxin_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -5293,7 +5293,7 @@ def create_toxicology_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
