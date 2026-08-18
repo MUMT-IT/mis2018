@@ -152,12 +152,14 @@
                                         <td class="has-text-centered">{{ item.sequence }}</td>
                                         <td>{{ item.item|safe }}</td>
                                         <td class="has-text-centered">
-                                            {% if 'Image' in item.item %}
-                                                <input class="input" type="number" style="width: 4em;" id="{{ item.id }}"
-                                                       name="quantity_{{ item.id }}" value="{{ item.quantity }}"
-                                                >
-                                            {% else %}
-                                                {{ item.quantity }}
+                                            {% if invoice.sub_lab.code == 'sds_page' and admin and not invoice.sent_at %}
+                                                {% if 'Image' in item.item %}
+                                                    <input class="input" type="number" style="width: 4em;" id="{{ item.id }}"
+                                                           name="quantity_{{ item.id }}" value="{{ item.quantity }}"
+                                                    >
+                                                {% else %}
+                                                    {{ item.quantity }}
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                         <td class="has-text-right">
@@ -188,13 +190,15 @@
                             <div class="field">
                                 <div class="buttons is-centered">
                                     {% if invoice.quotation.request.status.status_id == 18 and admin %}
-                                        <button type="submit" class="button is-info is-rounded is-small mb-2"
-                                           formaction="{{ url_for('service_admin.update_invoice_item',
-                                           invoice_id=invoice.id, menu=menu, tab='draft', admin='admin') }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-save"></i></span>
-                                            <span>บันทึก</span>
-                                        </button>
+                                        {% if invoice.sub_lab.code == 'sds_page' %}
+                                            <button type="submit" class="button is-info is-rounded is-small mb-2"
+                                               formaction="{{ url_for('service_admin.update_invoice_item',
+                                               invoice_id=invoice.id, menu=menu, tab='draft', admin='admin') }}"
+                                            >
+                                                <span class="icon"><i class="fas fa-save"></i></span>
+                                                <span>บันทึก</span>
+                                            </button>
+                                        {% endif %}
                                         <button type="submit" class="button is-success is-rounded is-small mb-2"
                                                 formaction="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
                                                 admin='admin', menu=menu, tab='pending_supervisor') }}"
