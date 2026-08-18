@@ -220,7 +220,7 @@
 {#        });#}
 {#    </script>#}
     <script>
-        $(document).ready(function () {
+        function initSubforms() {
             $('#condition-field div[id]').each(function () {
                 const staining = $('input[type="radio"][name$="staining"]');
 
@@ -251,6 +251,14 @@
                 validateStainingInput();
                 staining.on('change', validateStainingInput);
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initSubforms();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            initSubforms();
         });
     </script>
 {% endblock %}
