@@ -149,7 +149,7 @@
                                 <tbody>
                                 {% for item in invoice.invoice_items|sort(attribute='sequence') %}
                                     <tr
-                                        data-invoice-item-row
+                                        data-item-row
                                         data-unit-price="{{ item.unit_price or 0 }}"
                                         data-discount-type="{{ item.discount_type or '' }}"
                                         data-discount-value="{{ item.discount or 0 }}"
@@ -160,7 +160,7 @@
                                         <td class="has-text-centered">
                                             {% if invoice.sub_lab.code == 'sds_page' and admin and not invoice.sent_at %}
                                                 {% if 'Image' in item.item %}
-                                                    <input class="input invoice-quantity-input" type="number" style="width: 4em;" id="{{ item.id }}"
+                                                    <input class="input quantity-input" type="number" style="width: 4em;" id="{{ item.id }}"
                                                            name="quantity_{{ item.id }}" value="{{ item.quantity }}"
                                                     >
                                                 {% else %}
@@ -172,18 +172,18 @@
                                             {{ "{:,.2f}".format(item.unit_price) }}
                                         </td>
                                         <td class="has-text-right">
-                                            <span data-invoice-total-price>
+                                            <span data-total-price>
                                                 {{ "{:,.2f}".format(item.total_price) }}
                                             </span>
                                         </td>
                                         {% if not invoice.file_attached_at %}
                                             <td class="has-text-right">
-                                                <span data-invoice-discount-amount>
+                                                <span data-discount-amount>
                                                     {{ "{:,.2f}".format(item.get_discount_amount()) }}
                                                 </span>
                                             </td>
                                             <td class="has-text-right">
-                                                <span data-invoice-net-price>
+                                                <span data-net-price>
                                                     {{ "{:,.2f}".format(item.net_price()) }}
                                                 </span>
                                             </td>
@@ -195,18 +195,18 @@
                             <hr>
                             <div class="has-text-right">
                                 <p><strong>รวมเป็นเงิน : </strong>
-                                    <span id="invoice-subtotal">
+                                    <span id="subtotal">
                                         {{ "{:,.2f}".format(invoice.subtotal()) }}
                                     </span>
                                 </p>
                                 <p>
                                     <strong>ส่วนลด : </strong>
-                                    <span id="invoice-discount">
+                                    <span id="discount">
                                         {{ "{:,.2f}".format(invoice.discount()) }}
                                     </span>
                                 </p>
                                 <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>
-                                    <span id="invoice-grand-total">
+                                    <span id="grand-total">
                                         {{ "{:,.2f}".format(invoice.grand_total) }}
                                     </span>
                                 </p>
@@ -438,22 +438,22 @@
             }
 
             function recalculateInvoiceTotals() {
-                const rows = document.querySelectorAll('[data-invoice-item-row]');
+                const rows = document.querySelectorAll('[data-item-row]');
                 let subtotal = 0;
                 let discountTotal = 0;
                 let grandTotal = 0;
 
                 rows.forEach((row) => {
-                    const quantityInput = row.querySelector('.invoice-quantity-input');
+                    const quantityInput = row.querySelector('.quantity-input');
                     const quantityValue = quantityInput ? Number(quantityInput.value || 0) : Number(row.dataset.quantity || 0);
                     const unitPrice = Number(row.dataset.unitPrice || 0);
                     const totalPrice = quantityValue * unitPrice;
                     const discountAmount = calculateDiscountAmount(row, totalPrice);
                     const netPrice = totalPrice - discountAmount;
 
-                    const totalCell = row.querySelector('[data-invoice-total-price]');
-                    const discountCell = row.querySelector('[data-invoice-discount-amount]');
-                    const netCell = row.querySelector('[data-invoice-net-price]');
+                    const totalCell = row.querySelector('[data-total-price]');
+                    const discountCell = row.querySelector('[data-discount-amount]');
+                    const netCell = row.querySelector('[data-net-price]');
                     if (totalCell) {
                         totalCell.textContent = formatMoney(totalPrice);
                     }
@@ -469,9 +469,9 @@
                     grandTotal += netPrice;
                 });
 
-                const subtotalEl = document.getElementById('invoice-subtotal');
-                const discountEl = document.getElementById('invoice-discount');
-                const grandTotalEl = document.getElementById('invoice-grand-total');
+                const subtotalEl = document.getElementById('subtotal');
+                const discountEl = document.getElementById('discount');
+                const grandTotalEl = document.getElementById('grand-total');
                 if (subtotalEl) {
                     subtotalEl.textContent = formatMoney(subtotal);
                 }
@@ -484,7 +484,7 @@
             }
 
             document.addEventListener('DOMContentLoaded', function () {
-                document.querySelectorAll('.invoice-quantity-input').forEach((input) => {
+                document.querySelectorAll('.quantity-input').forEach((input) => {
                     input.addEventListener('input', recalculateInvoiceTotals);
                 });
                 recalculateInvoiceTotals();
