@@ -2960,9 +2960,7 @@ def get_hr_login_summary_report_summary():
     if start_datetime > end_datetime:
         start_datetime, end_datetime = end_datetime, start_datetime
 
-    employees = StaffPersonalInfo.query.filter(
-        or_(StaffPersonalInfo.retired == False, StaffPersonalInfo.retired == None)
-    ).all()
+    employees = StaffPersonalInfo.query.filter(*_active_staff_filters()).all()
     employees_by_id = {
         employee.staff_account.id: employee
         for employee in employees
