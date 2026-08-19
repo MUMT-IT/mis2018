@@ -107,7 +107,10 @@
         }
         .lab-test-table-wrap { overflow-x: auto; }
         .lab-test-table { margin-bottom: 0 !important; white-space: nowrap; }
-        .lab-test-table th { background: #4f6fa8; color: #ffffff; }
+        .lab-test-table thead th {
+            background: #4f6fa8;
+            color: #ffffff !important;
+        }
         .lab-test-table tbody tr.department-color-0 { background: #f1f6ff; }
         .lab-test-table tbody tr.department-color-1 { background: #fff8df; }
         .lab-test-table tbody tr.department-color-0:hover { background: #e3edff; }
@@ -231,10 +234,6 @@
                         <tbody id="table-body"></tbody>
                     </table>
                 </div>
-                <div id="approval-json-preview" class="lab-test-error-details is-hidden">
-                    <strong>JSON สำหรับนำไปพัฒนา API</strong>
-                    <pre id="approval-json-content" class="mt-3"></pre>
-                </div>
             </div>
 
             <div class="lab-test-panel xray-panel">
@@ -272,7 +271,7 @@
                     <span class="icon"><i class="fas fa-rotate-left"></i></span>
                     <span>ยกเลิกการเปลี่ยนแปลง</span>
                 </button>
-                <button id="preview-approval-json" class="button is-success" type="button" disabled>
+                <button id="save-approval" class="button is-success" type="button" disabled>
                     <span class="icon"><i class="fas fa-save"></i></span>
                     <span>บันทึกการอนุมัติ</span>
                 </button>
@@ -290,6 +289,9 @@
             const xraysApiUrl = {{ url_for('comhealth.xrays_api') | tojson }};
             const labApprovalsApiUrl = {{ url_for('comhealth.save_lab_approvals_api') | tojson }};
             const serviceNo = {{ service_no | default('', true) | tojson }};
+            const customerEmail = {{ customer_email | default('', true) | tojson }};
+            const serviceDate = {{ service_date | default('', true) | tojson }};
+            const customerAge = {{ customer_age | default('', true) | tojson }};
             const passedPatientName = {{ patient_name | default('', true) | tojson }};
             const staffAccount = {{ staff_account | default({}, true) | tojson }};
             const csrfToken = {{ csrf_token() | tojson }};
@@ -309,9 +311,7 @@
             const approveEverySection = document.getElementById('approve-every-section');
             const approvalChangeCount = document.getElementById('approval-change-count');
             const cancelApprovalChanges = document.getElementById('cancel-approval-changes');
-            const previewApprovalJson = document.getElementById('preview-approval-json');
-            const approvalJsonPreview = document.getElementById('approval-json-preview');
-            const approvalJsonContent = document.getElementById('approval-json-content');
+            const saveApprovalButton = document.getElementById('save-approval');
             let labRows = [];
             let originalLabApprovalStates = [];
             const physicalStates = {
@@ -481,7 +481,9 @@
                     'lname',
                     'printIndex',
                     'department',
-                    'tcode'
+                    'tcode',
+                    'testNormalBook',
+                    'isProfile'
                 ];
                 const columns = preferredColumns.filter(function (column) {
                     return column === 'isApproved' || apiColumns.includes(column);
@@ -544,7 +546,7 @@
                 approveAllLab.indeterminate = approvedCount > 0 && approvedCount < labRows.length;
                 approvalChangeCount.textContent = `${changedCount} รายการ`;
                 cancelApprovalChanges.disabled = changedCount === 0;
-                previewApprovalJson.disabled = changedCount === 0;
+                saveApprovalButton.disabled = changedCount === 0;
                 updateEverySectionUi();
             }
 
@@ -557,7 +559,6 @@
                 if (!event.target.matches('input[type="checkbox"][data-row-index]')) return;
                 const rowIndex = Number(event.target.dataset.rowIndex);
                 labRows[rowIndex].isApproved = event.target.checked;
-                approvalJsonPreview.classList.add('is-hidden');
                 updateLabApprovalUi();
             });
 
@@ -566,7 +567,6 @@
                 tableBody.querySelectorAll('input[type="checkbox"][data-row-index]').forEach(function (checkbox) {
                     checkbox.checked = approveAllLab.checked;
                 });
-                approvalJsonPreview.classList.add('is-hidden');
                 updateLabApprovalUi();
             });
 
@@ -581,7 +581,6 @@
                 ).forEach(function (checkbox) {
                     checkbox.checked = isApproved;
                 });
-                approvalJsonPreview.classList.add('is-hidden');
                 updateLabApprovalUi();
             });
 
@@ -592,15 +591,17 @@
                 tableBody.querySelectorAll('input[type="checkbox"][data-row-index]').forEach(function (checkbox) {
                     checkbox.checked = originalLabApprovalStates[Number(checkbox.dataset.rowIndex)];
                 });
-                approvalJsonPreview.classList.add('is-hidden');
                 updateLabApprovalUi();
             });
 
-            previewApprovalJson.addEventListener('click', async function () {
+            saveApprovalButton.addEventListener('click', async function () {
                 const changedItems = changedLabRows();
                 if (!changedItems.length) return;
                 const payload = {
                     serviceNo: serviceNo,
+                    customerEmail: customerEmail,
+                    serviceDate: serviceDate,
+                    customerAge: customerAge,
                     section: 'lab',
                     approvedStatus: approveEverySection.checked ? 'complete' : 'some',
                     staffAccount: staffAccount,
@@ -608,9 +609,9 @@
                 };
                 if (!window.confirm(`ยืนยันบันทึกการอนุมัติ Lab ${changedItems.length} รายการหรือไม่`)) return;
 
-                previewApprovalJson.disabled = true;
+                saveApprovalButton.disabled = true;
                 cancelApprovalChanges.disabled = true;
-                previewApprovalJson.classList.add('is-loading');
+                saveApprovalButton.classList.add('is-loading');
                 try {
                     const response = await fetch(labApprovalsApiUrl, {
                         method: 'POST',
@@ -627,24 +628,21 @@
                     if (responseText) {
                         try { responseBody = JSON.parse(responseText); } catch (parseError) {}
                     }
-                    approvalJsonContent.textContent = JSON.stringify({
-                        request: payload,
-                        responseStatus: response.status,
-                        response: responseBody
-                    }, null, 2);
-                    approvalJsonPreview.classList.remove('is-hidden');
                     if (!response.ok) {
                         throw new Error(`API ตอบกลับด้วยสถานะ ${response.status}`);
                     }
                     if (window.showToastAlert) {
-                        showToastAlert('success', `บันทึกการอนุมัติ Lab สำเร็จ ${changedItems.length} รายการ`);
+                        const notification = responseBody && responseBody.emailNotification;
+                        const emailMessage = notification && notification.sent
+                            ? ` และส่งลิงก์ผลตรวจไปที่ ${notification.recipient} แล้ว`
+                            : ' แต่ยังไม่ได้ส่งอีเมล กรุณาตรวจสอบอีเมลผู้รับบริการ';
+                        showToastAlert('success', `บันทึกการอนุมัติ Lab สำเร็จ ${changedItems.length} รายการ${emailMessage}`);
                     }
                     await loadTestDetails();
                 } catch (error) {
                     if (window.showToastAlert) showToastAlert('error', `บันทึกไม่สำเร็จ: ${error.message}`);
-                    approvalJsonPreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 } finally {
-                    previewApprovalJson.classList.remove('is-loading');
+                    saveApprovalButton.classList.remove('is-loading');
                     updateLabApprovalUi();
                 }
             });

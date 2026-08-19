@@ -518,6 +518,8 @@ def services_by_service_prefix_customer_api():
 def approved_labno_test():
     service_no = request.args.get('serviceNo', '').strip()
     customer_age = request.args.get('age', '').strip()
+    customer_email = request.args.get('email', '').strip().lower()
+    service_date = request.args.get('serviceDate', '').strip()
     patient_name = ' '.join(filter(None, (
         request.args.get('prename', '').strip(),
         request.args.get('fname', '').strip(),
@@ -527,6 +529,8 @@ def approved_labno_test():
         'comhealth/approved_labno_test.html',
         service_no=service_no,
         customer_age=customer_age,
+        customer_email=customer_email,
+        service_date=service_date,
         patient_name=patient_name,
         staff_account={
             'id': current_user.id,
@@ -609,16 +613,100 @@ def save_lab_approvals_api():
         'email': current_user.email,
         'fullname': current_user.fullname,
     }
+    customer_email = str(payload.get('customerEmail') or '').strip().lower()
+    service_no = str(payload.get('serviceNo') or '').strip()
+    service_date = str(payload.get('serviceDate') or '').strip()
+    customer_age = str(payload.get('customerAge') or '').strip()
+    approval_payload = dict(payload)
+    for notification_field in ('customerEmail', 'serviceDate', 'customerAge'):
+        approval_payload.pop(notification_field, None)
     response = _online_results_api_request(
         'POST',
         '/Approvals/lab',
-        json=payload,
+        json=approval_payload,
     )
+
+    email_notification = {'sent': False}
+    if response.ok:
+        if customer_email and service_no.isdigit() and service_date:
+            try:
+                serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
+                token = serializer.dumps({
+                    'email': customer_email,
+                    'serviceNo': service_no,
+                    'serviceDate': service_date,
+                    'age': customer_age,
+                })
+                result_url = url_for(
+                    'comhealth.open_approved_result_from_email',
+                    token=token,
+                    _external=True,
+                )
+                title = 'ผลตรวจสุขภาพออนไลน์พร้อมดูแล้ว / Online health results available'
+                message = (
+                    'เรียน ผู้รับบริการ\n\n'
+                    'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณาคลิกลิงก์ด้านล่าง:\n'
+                    f'{result_url}\n\n'
+                    'ลิงก์นี้สามารถใช้งานได้ภายใน 7 วันนับจากเวลาที่ส่งอีเมลนี้\n'
+                    'ลิงก์นี้มีข้อมูลสำหรับเข้าถึงผลตรวจส่วนบุคคล กรุณาอย่าส่งต่อให้ผู้อื่น\n\n'
+                    'Dear customer,\n\n'
+                    'Your online health examination results are available at the link below:\n'
+                    f'{result_url}\n\n'
+                    'This link is valid for 7 days from the time this email is sent.\n'
+                    'This link provides access to personal health information. Please do not share it.\n\n'
+                    'อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ'
+                )
+                send_mail([customer_email], title, message)
+                email_notification = {'sent': True, 'recipient': customer_email}
+            except Exception:
+                current_app.logger.exception(
+                    'Unable to send approved lab result email for serviceNo=%s',
+                    service_no,
+                )
+                email_notification = {
+                    'sent': False,
+                    'recipient': customer_email,
+                    'error': 'Approval saved, but email could not be sent.',
+                }
+        else:
+            email_notification['error'] = 'Missing customer email, service number, or service date.'
+
+    try:
+        api_response = response.json()
+    except ValueError:
+        api_response = response.text
     return (
-        response.content,
+        {
+            'apiResponse': api_response,
+            'emailNotification': email_notification,
+        },
         response.status_code,
-        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
     )
+
+
+@comhealth.route('/online-results/email-link/<token>')
+def open_approved_result_from_email(token):
+    serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token, max_age=604800)
+        email = str(token_data.get('email') or '').strip().lower()
+        service_no = str(token_data.get('serviceNo') or '').strip()
+        service_date = str(token_data.get('serviceDate') or '').strip()
+        age = str(token_data.get('age') or '').strip()
+        if not email or not service_no.isdigit() or not service_date:
+            raise ValueError('Invalid result link data')
+    except Exception:
+        flash('ลิงก์ดูผลตรวจไม่ถูกต้องหรือหมดอายุ กรุณาติดต่อเจ้าหน้าที่', 'danger')
+        return redirect(url_for('comhealth.landing'))
+
+    session['comhealth_online_results_email'] = email
+    return redirect(url_for(
+        'comhealth.customer_result',
+        serviceNo=int(service_no),
+        email=email,
+        servicedate=service_date,
+        **({'age': age} if age.isdigit() else {}),
+    ))
 
 
 @comhealth.route('/finance', methods=('GET', 'POST'))
@@ -4619,19 +4707,18 @@ def customer_result(serviceNo, email, servicedate, age=None):
     response_employee = _online_results_api_request('GET', f'/Employees/email/{email}')
     employee = response_employee.json()
 
-    dt = datetime.fromisoformat(servicedate)
-    servicedate_thai = dt.strftime("%d/%m/") + str(dt.year + 543)
-
-    load_all_interpret()
-    age_for_api = age if age and str(age).isdigit() else 0
-    age_display = age if age and str(age).isdigit() else '-'
     current_lang = (request.args.get('lang', 'th') or 'th').lower()
     current_lang = 'en' if current_lang.startswith('en') else 'th'
+    dt = datetime.fromisoformat(servicedate)
+    servicedate_thai = (
+        dt.strftime("%d/%m/%Y")
+        if current_lang == 'en'
+        else dt.strftime("%d/%m/") + str(dt.year + 543)
+    )
+
+    age_for_api = age if age and str(age).isdigit() else 0
+    age_display = age if age and str(age).isdigit() else '-'
     ui = get_health_risk_copy(current_lang)
-    bundle = _load_health_risk_bundle(serviceNo, email, servicedate, age_display, current_lang)
-    concern_keys = _health_risk_video_concern_keys(bundle['report'])
-    recommended_videos = _recommended_health_education_videos(concern_keys, limit=3)
-    selected_concern_label = bundle['report']['top_issues'][0]['issue_name'] if bundle['report']['top_issues'] else ''
 
     return render_template(
         'comhealth/result.html',
@@ -4644,10 +4731,6 @@ def customer_result(serviceNo, email, servicedate, age=None):
         age_for_api=age_for_api,
         current_lang=current_lang,
         ui=ui,
-        top_issues=bundle["report"]["top_issues"],
-        health_summary=bundle["health_summary"],
-        recommended_videos=recommended_videos,
-        selected_concern_label=selected_concern_label,
         health_risk_url=url_for(
             'comhealth.health_risk_result',
             serviceNo=serviceNo,
@@ -4671,19 +4754,6 @@ def customer_result(serviceNo, email, servicedate, age=None):
             servicedate=servicedate,
             age=age_display,
             lang='en',
-        ),
-        more_videos_url=url_for(
-            'comhealth.health_education_videos_page',
-            concern=concern_keys[0] if concern_keys else '',
-            lang=current_lang,
-            report_url=url_for(
-                'comhealth.customer_result',
-                serviceNo=serviceNo,
-                email=email,
-                servicedate=servicedate,
-                age=age_display,
-                lang=current_lang,
-            ),
         ),
     )
 
@@ -4918,7 +4988,8 @@ def employee_physical(serviceNo):
     if not waistline:
         waistline = '-'
 
-    interpret_cache = load_all_interpret()
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    interpret_cache = _localized_interpret_cache(load_all_interpret(), current_lang)
     condition_cache = load_all_conditions()
 
     def calculate_bmi(weight_kg, height_cm):
@@ -4940,10 +5011,20 @@ def employee_physical(serviceNo):
 
     if bmi is not None:
         bmi_condi = match_condition(bmi, 0, 0, condition_cache.get("BMI"))
-        bmi_inp_id = interpret_cache.get(bmi_condi.get('condiInterpretId',""))
+        bmi_inp_id = _condition_interpret(interpret_cache, bmi_condi)
         bmi_adv = bmi_inp_id.get('advise',"")
         bmi_isnormal = bmi_inp_id.get('autoVal', "")
         color_bmi_inp = mapping_color_inp.get(bmi_isnormal, ("has-text-warning"))
+        bmi_interpretation_text = ' '.join((
+            str(bmi_inp_id.get('interpret') or ''),
+            str(bmi_adv or ''),
+        )).lower()
+        if (
+            'โรคอ้วน' in bmi_interpretation_text
+            or 'obese' in bmi_interpretation_text
+            or 'obesity' in bmi_interpretation_text
+        ):
+            color_bmi_inp = 'has-text-danger'
     else:
         bmi = '-'
         bmi_inp = ''
@@ -5014,14 +5095,19 @@ def employee_lab(serviceNo, age, gender):
             else:
                 tcode_oob = tcode
 
+            result_flag = lab_result_flag_from_reference(value, ref_value, gender)
             try:
                 condi = match_condition(value, age, gender, condition_cache.get(tcode))
-                inp_id = interpret_cache.get(condi.get('condiInterpretId', ""))
+                inp_id = _condition_interpret(interpret_cache, condi)
                 isnormal = inp_id.get('autoVal', "")
                 color_inp = mapping_color_inp.get(isnormal, ("has-text-warning"))
             except:
                 condi = None
                 color_inp = 'has-text-dark'
+
+            # The current-result color follows the displayed reference range.
+            # Normal values are black; only values marked High/Low are orange.
+            color_inp = 'has-text-warning' if result_flag else 'has-text-dark'
 
             results_dict[tcode] = {
                 "testname": testname,
@@ -5035,19 +5121,40 @@ def employee_lab(serviceNo, age, gender):
                 testname=testname,
                 unit=unit,
                 color=color_inp,
+                result_flag=result_flag,
                 previous_result1=escape(row.get("previousResult1") or "-"),
                 previous_result2=escape(row.get("previousResult2") or "-"),
                 previous_date1=format_service_no_date(row.get("previousServiceNo1")),
                 previous_date2=format_service_no_date(row.get("previousServiceNo2")),
             )
-    html += interpert_normaltest(lab,age,gender)
-    html += xray_result(serviceNo)
+    html += xray_result(serviceNo, current_lang)
     html += f'<div id="loader-overlay" class="hidden" hx-swap-oob="true"></div>'
 
     return html
 
 
-def interpert_normaltest(lab,age,gender):
+@comhealth.route('/api/lab-interpretation/<int:serviceNo>/<int:age>/<gender>')
+def employee_lab_interpretation(serviceNo, age, gender):
+    access_response = _require_online_results_access()
+    if access_response:
+        return access_response
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    try:
+        response = _online_results_api_request(
+            'GET',
+            f'/Labs/service/test-details-approved/{serviceNo}',
+        )
+        lab = response.json()
+    except Exception:
+        current_app.logger.exception(
+            'Unable to load lab interpretation for serviceNo=%s', serviceNo
+        )
+        message = 'Unable to load recommendations' if current_lang.startswith('en') else 'ไม่สามารถโหลดคำแนะนำได้'
+        return f'<span class="has-text-danger">{message}</span>', 502
+    return interpert_normaltest(lab, age, gender, current_lang)
+
+
+def interpert_normaltest(lab, age, gender, current_lang='th'):
     TARGET_TCODES = [
         "GTT2","BUN","CRE","UA","CHO","HDLC","LDL2","TG","LDLD",
         "AST","ALT","ALK",
@@ -5057,8 +5164,14 @@ def interpert_normaltest(lab,age,gender):
     ]
     result = {}
     urine_other = None
-    interpret_cache = load_all_interpret()
+    interpret_cache = _localized_interpret_cache(load_all_interpret(), current_lang)
     condition_cache = load_all_conditions()
+    def localized_api_interpret(interpret_id):
+        return _condition_interpret(
+            interpret_cache,
+            {'condiInterpretId': interpret_id},
+        )
+
     lab_rows = lab if isinstance(lab, list) else lab.get("data", [])
     for row in lab_rows:
         if row.get("testNormalBook", True) is True:
@@ -5130,20 +5243,20 @@ def interpert_normaltest(lab,age,gender):
             ('004003', '004004'),
         }
         if (bun_condi_inp_id, cre_condi_inp_id) in abnormal_pairs:
-            return api_interpert('004005')
+            return localized_api_interpret('004005')
 
         # กรณีค่าตรงกันทั้งคู่
         if bun_condi_inp_id == cre_condi_inp_id:
             if bun_condi_inp_id in ['004001', '004002']:
-                return api_interpert(bun_condi_inp_id)
+                return localized_api_interpret(bun_condi_inp_id)
 
         # CRE เดี่ยว
         if cre_condi_inp_id in ['004001', '004002', '004004', '004006']:
-            return api_interpert(cre_condi_inp_id)
+            return localized_api_interpret(cre_condi_inp_id)
 
         # BUN เดี่ยว
         if bun_condi_inp_id == '004003':
-            return api_interpert(bun_condi_inp_id)
+            return localized_api_interpret(bun_condi_inp_id)
 
     bun_cre_inp = None
     bun_cre_adv = None
@@ -5159,25 +5272,25 @@ def interpert_normaltest(lab,age,gender):
     def cho_tg_hdl_ldl_inadv(cho_condi_inp_id, tg_condi_inp_id, ldl_condi_inp_id):
         # CHO และ LDL = 007003 (มี return ทันที)
         if cho_condi_inp_id == '007003' and ldl_condi_inp_id == '007003':
-            return api_interpert('007003')
+            return localized_api_interpret('007003')
 
         # CHO = 007004 และ LDL = 007006 (มี return ทันที)
         if cho_condi_inp_id == '007004' and ldl_condi_inp_id == '007006':
-            return api_interpert('007004')
+            return localized_api_interpret('007004')
 
         result = None
 
         # กลุ่มปกติ
         if '007002' in (cho_condi_inp_id, tg_condi_inp_id, ldl_condi_inp_id):
-            result = api_interpert('007002')
+            result = localized_api_interpret('007002')
 
         # CHO ต่ำ
         if cho_condi_inp_id == '007001':
-            result = api_interpert('007001')
+            result = localized_api_interpret('007001')
 
         # สูงกว่าเล็กน้อย
         if '007003' in (cho_condi_inp_id, tg_condi_inp_id, ldl_condi_inp_id):
-            result = api_interpert('007003')
+            result = localized_api_interpret('007003')
 
         # สูง
         if (
@@ -5185,7 +5298,7 @@ def interpert_normaltest(lab,age,gender):
                 tg_condi_inp_id == '007005' or
                 ldl_condi_inp_id == '007006'
         ):
-            result = api_interpert('007004')
+            result = localized_api_interpret('007004')
 
         return result
 
@@ -5216,15 +5329,15 @@ def interpert_normaltest(lab,age,gender):
 
         # ระดับผิดปกติ
         if '008003' in values:
-            return api_interpert('008003')
+            return localized_api_interpret('008003')
 
         # ระดับกึ่ง
         if '008002' in values:
-            return api_interpert('008002')
+            return localized_api_interpret('008002')
 
         # ระดับปกติ
         if '008001' in values:
-            return api_interpert('008001')
+            return localized_api_interpret('008001')
 
         return None
 
@@ -5252,7 +5365,7 @@ def interpert_normaltest(lab,age,gender):
                 e_id == "014001" and
                 b_id == "015001"
         ):
-            data = api_interpert(n_id)
+            data = localized_api_interpret(n_id)
             result = data.get("interpret")
 
         # ต่ำกว่าปกติ (ระดับแรก)
@@ -5261,7 +5374,7 @@ def interpert_normaltest(lab,age,gender):
                 l_id == "012002" or
                 m_id == "013002"
         ):
-            data = api_interpert("011002")
+            data = localized_api_interpret("011002")
             result = data.get("interpret")
 
         # ต่ำกว่าปกติ (ระดับรุนแรงกว่า)
@@ -5272,7 +5385,7 @@ def interpert_normaltest(lab,age,gender):
                 e_id == "014002" or
                 b_id == "015002"
         ):
-            data = api_interpert("011003")
+            data = localized_api_interpret("011003")
             result = data.get("interpret")
 
         return result
@@ -5297,19 +5410,25 @@ def interpert_normaltest(lab,age,gender):
 
 
     def urine_protein_glucose_interpret(u1_p_id, u1_g_id):
+        def localized_interpret(interpret_id):
+            return _condition_interpret(
+                interpret_cache,
+                {'condiInterpretId': interpret_id},
+            ).get('interpret')
+
         # พบแพทย์ (รุนแรงสุด)
         if u1_p_id in {"017007", "017006"}:
-            return api_interpert(u1_p_id).get("interpret")
+            return localized_interpret(u1_p_id)
         # ผิดปกติ
         if u1_p_id == "017005":
-            return api_interpert(u1_p_id).get("interpret")
+            return localized_interpret(u1_p_id)
         if u1_g_id == "017004":
-            return api_interpert(u1_g_id).get("interpret")
+            return localized_interpret(u1_g_id)
         # ระดับรองลงมา
         if u1_p_id == "017003":
-            return api_interpert(u1_p_id).get("interpret")
+            return localized_interpret(u1_p_id)
         if u1_g_id == "017002":
-            return api_interpert(u1_g_id).get("interpret")
+            return localized_interpret(u1_g_id)
         return None
 
     u_micro_adv = None
@@ -5325,7 +5444,7 @@ def interpert_normaltest(lab,age,gender):
         u_rbc_inp_id = result.get("UA14", {}).get("interpret", "")
         u_crystal_id = result.get("UA18", {}).get("interpret", "")
 
-    urine_p_g_inp = 'ไม่ตรวจ'
+    urine_p_g_inp = 'Not tested' if current_lang == 'en' else 'ไม่ตรวจ'
     urine_p_g_adv = None
     if "UA05" in result and "UA06" in result:
         urine_protein = result["UA05"]["advise"]
@@ -5390,6 +5509,13 @@ def testspecial(serviceNo, gender, age):
     use_english_reference = current_lang.startswith('en')
     cre_value = None
     lab_rows = lab if isinstance(lab, list) else lab.get("data", [])
+    lab_rows = sorted(
+        lab_rows,
+        key=lambda row: (
+            row.get('printIndex') is None,
+            int(row.get('printIndex')) if str(row.get('printIndex', '')).strip().isdigit() else float('inf'),
+        ),
+    )
     previous_date1 = '-'
     previous_date2 = '-'
     for row in lab_rows:
@@ -5415,11 +5541,13 @@ def testspecial(serviceNo, gender, age):
             unit = row.get("unit", "")
             previous_result1 = escape(row.get("previousResult1") or "-")
             previous_result2 = escape(row.get("previousResult2") or "-")
+            result_flag = lab_result_flag_from_reference(value, ref_value, gender)
+            result_flag_html = render_lab_result_flag(result_flag)
 
             rows += f'''
                 <tr>
                     <td>{testname}</td>
-                    <td class="text-center">{value}</td>
+                    <td class="text-center">{value}{result_flag_html}</td>
                     <td class="text-center has-text-grey">{previous_result1}</td>
                     <td class="text-center has-text-grey">{previous_result2}</td>
                     <td>{ref}</td>
@@ -5427,7 +5555,8 @@ def testspecial(serviceNo, gender, age):
                 </tr>
             '''
     if not rows:
-        rows = '<tr><td colspan="6" class="text-muted text-center">ไม่มีข้อมูลรายการตรวจพิเศษ</td></tr>'
+        empty_message = 'No special test data' if use_english_reference else 'ไม่มีข้อมูลรายการตรวจพิเศษ'
+        rows = f'<tr><td colspan="6" class="text-muted text-center">{empty_message}</td></tr>'
 
     return f'''
             <tbody id="testspecial" data-previous-date1="{previous_date1}" data-previous-date2="{previous_date2}">
@@ -5437,7 +5566,7 @@ def testspecial(serviceNo, gender, age):
 
 
 @comhealth.route('/api/xray/<int:serviceNo>')
-def xray_result(serviceNo):
+def xray_result(serviceNo, current_lang=None):
     access_response = _require_online_results_access()
     if access_response:
         return access_response
@@ -5447,8 +5576,10 @@ def xray_result(serviceNo):
     chest = xray.get("chest")
     isnormal = xray.get("normal")
 
+    if current_lang is None:
+        current_lang = (request.args.get('lang', 'th') or 'th').lower()
     if status == 404:
-        status = 'ไม่ X-ray'
+        status = 'No X-ray examination' if current_lang.startswith('en') else 'ไม่ X-ray'
         chest = ''
         status_class = "has-text-black"
     else:
@@ -5468,12 +5599,144 @@ def format_service_no_date(service_no):
     return f'{value[6:8]}/{value[4:6]}/{value[:4]}'
 
 
+def _condition_interpret(interpret_cache, condition):
+    if not condition:
+        return {}
+    interpret_id = condition.get('condiInterpretId')
+    interpretation = interpret_cache.get(interpret_id)
+    if interpretation is not None:
+        return interpretation
+    interpret_id_text = str(interpret_id)
+    for cache_id, cached_interpretation in interpret_cache.items():
+        if str(cache_id) == interpret_id_text:
+            return cached_interpretation
+    return {}
+
+
+def _localized_interpret_cache(interpret_cache, current_lang):
+    if not str(current_lang or '').lower().startswith('en'):
+        return interpret_cache
+
+    localized_cache = {}
+    for interpret_id, interpretation in interpret_cache.items():
+        localized = dict(interpretation)
+        localized['interpret'] = (
+            interpretation.get('interpretEng')
+            or interpretation.get('InterpretEng')
+            or interpretation.get('interpret')
+            or ''
+        )
+        localized['advise'] = (
+            interpretation.get('adviseEng')
+            or interpretation.get('AdviseEng')
+            or interpretation.get('advise')
+            or ''
+        )
+        localized_cache[interpret_id] = localized
+    return localized_cache
+
+
+def _gender_specific_reference(reference_text, sex):
+    sex_value = str(sex if sex is not None else '').strip().lower()
+    if sex_value in ('1', 'm', 'male', 'ชาย'):
+        gender = 'male'
+    elif sex_value in ('2', 'f', 'female', 'หญิง'):
+        gender = 'female'
+    else:
+        gender = ''
+
+    has_male = bool(re.search(r'ชาย|\bmale\b', reference_text, re.IGNORECASE))
+    has_female = bool(re.search(r'หญิง|\bfemale\b', reference_text, re.IGNORECASE))
+    if not (has_male and has_female):
+        return reference_text
+    if not gender:
+        return ''
+
+    if gender == 'male':
+        matched = re.search(
+            r'(?:ชาย|\bmale\b)\s*:?\s*(.*?)(?=(?:หญิง|\bfemale\b)|$)',
+            reference_text,
+            re.IGNORECASE,
+        )
+    else:
+        matched = re.search(
+            r'(?:หญิง|\bfemale\b)\s*:?\s*(.*?)(?=(?:ชาย|\bmale\b)|$)',
+            reference_text,
+            re.IGNORECASE,
+        )
+    return matched.group(1).strip(' ,;/') if matched else ''
+
+
+def lab_result_flag_from_reference(test_result, reference, sex=None):
+    """Compare a numeric result with the displayed Thai/English reference."""
+    try:
+        numeric_result = float(str(test_result).strip().replace(',', ''))
+    except (TypeError, ValueError):
+        return ''
+
+    reference_text = str(reference or '').strip().replace(',', '')
+    reference_text = _gender_specific_reference(reference_text, sex)
+    numbers = [float(value) for value in re.findall(r'\d+(?:\.\d+)?', reference_text)]
+    if not numbers:
+        return ''
+    lowered = reference_text.lower()
+    threshold = numbers[0]
+
+    # Check longer Thai phrases before their contained shorter phrases.
+    if 'ไม่น้อยกว่า' in reference_text or 'อย่างน้อย' in reference_text:
+        return 'low' if numeric_result < threshold else ''
+    if 'ไม่เกิน' in reference_text:
+        return 'high' if numeric_result > threshold else ''
+    if 'น้อยกว่าหรือเท่ากับ' in reference_text:
+        return 'high' if numeric_result > threshold else ''
+    if 'มากกว่าหรือเท่ากับ' in reference_text:
+        return 'low' if numeric_result < threshold else ''
+    if 'น้อยกว่า' in reference_text:
+        return 'high' if numeric_result >= threshold else ''
+    if 'มากกว่า' in reference_text:
+        return 'low' if numeric_result <= threshold else ''
+
+    compact = re.sub(r'\s+', '', lowered)
+    if compact.startswith('<='):
+        return 'high' if numeric_result > threshold else ''
+    if compact.startswith('<'):
+        return 'high' if numeric_result >= threshold else ''
+    if compact.startswith('>='):
+        return 'low' if numeric_result < threshold else ''
+    if compact.startswith('>'):
+        return 'low' if numeric_result <= threshold else ''
+
+    if len(numbers) >= 2 and re.search(r'\d\s*(?:-|–|—|to|ถึง)\s*\d', lowered):
+        lower, upper = sorted(numbers[:2])
+        if numeric_result < lower:
+            return 'low'
+        if numeric_result > upper:
+            return 'high'
+    return ''
+
+
+def render_lab_result_flag(result_flag):
+    if result_flag == 'high':
+        return (
+            ' <span class="lab-result-flag" title="High" aria-label="High">'
+            '<i class="fa-solid fa-arrow-up" aria-hidden="true"></i></span>'
+        )
+    if result_flag == 'low':
+        return (
+            ' <span class="lab-result-flag" title="Low" aria-label="Low">'
+            '<i class="fa-solid fa-arrow-down" aria-hidden="true"></i></span>'
+        )
+    return ''
+
+
 def render_lab_oob(tcode, value, ref, testname, unit, color,
+                   result_flag='',
                    previous_result1='-', previous_result2='-',
                    previous_date1='-', previous_date2='-'):
+    result_flag_html = render_lab_result_flag(result_flag)
     return (
         f'<span id="{tcode}_name" hx-swap-oob="true">{testname}</span>'
-        f'<span id="{tcode}_result" hx-swap-oob="true" class="{color}">{value}</span>'
+        f'<span id="{tcode}_result" hx-swap-oob="true" class="{color}">{value}{result_flag_html}</span>'
         f'<span id="{tcode}_previous1" hx-swap-oob="true">{previous_result1}</span>'
         f'<span id="{tcode}_previous2" hx-swap-oob="true">{previous_result2}</span>'
         f'<span id="lab_previous_date1" hx-swap-oob="innerHTML">{previous_date1}</span>'
@@ -5496,7 +5759,9 @@ def match_condition(test_result, age, sex, conditions):
     for c in conditions:
 
         # ---------- เพศ ----------
-        if c.get("sex") not in ("0", sex):
+        condition_sex = str(c.get("sex") if c.get("sex") is not None else "0").strip()
+        requested_sex = str(sex if sex is not None else "0").strip()
+        if condition_sex not in ("0", requested_sex):
             continue
 
         condi_type = c.get("condiType")
@@ -5509,6 +5774,7 @@ def match_condition(test_result, age, sex, conditions):
                     "condiId": c["condiId"],
                     "condiInterpretId": c["condiInterpretId"],
                     "groupCondiId": c["groupCondiId"],
+                    "condiType": condi_type,
                 }
             continue
 
@@ -5565,6 +5831,7 @@ def match_condition(test_result, age, sex, conditions):
             return {
                 "condiId": c.get("condiId"),
                 "condiInterpretId": c.get("condiInterpretId"),
+                "condiType": condi_type,
                 "ref": c.get("refEng"),
                 "unit": c.get("unit"),
             }

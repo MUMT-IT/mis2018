@@ -306,6 +306,8 @@
                         const params = new URLSearchParams({
                             serviceNo: serviceNo,
                             age: item.age || item.customerAge || customerAge,
+                            email: item.email || item.customerEmail || (item.customer && item.customer.email) || '',
+                            serviceDate: item.serviceDate || item.servicedate || item.service_date || '',
                             prename: item.prename || item.preName || '',
                             fname: item.fname || item.firstName || '',
                             lname: item.lname || item.lastName || ''
