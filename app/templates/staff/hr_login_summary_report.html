@@ -510,19 +510,23 @@
                                     <span class="is-size-6">Dashboard</span>
                                 </span>
                             </div>
+                            <a class="panel-block" href="{{ url_for('staff.hr_daily_attendance_report') }}">
+                                <span>
+                                    <span class="icon"><i class="fas fa-chart-line" aria-hidden="true"></i></span>
+                                    <span class="is-size-6">Daily Attendance Statistics</span>
+                                </span>
+                            </a>
                             <a class="panel-block" href="{{ url_for('staff.hr_manual_checkin') }}">
                                 <span>
                                     <span class="icon"><i class="fas fa-map-marker-alt" aria-hidden="true"></i></span>
                                     <span class="is-size-6">Add Check-In</span>
                                 </span>
-                                <span class="icon"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                             </a>
                             <a class="panel-block" href="{{ url_for('staff.hr_checkin_requests') }}">
                                 <span>
                                     <span class="icon"><i class="fas fa-clipboard-check" aria-hidden="true"></i></span>
                                     <span class="is-size-6">Check-In Requests</span>
                                 </span>
-                                <span class="icon"><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
                             </a>
                             <a class="panel-block" href="{{ url_for('staff.for_hr') }}">
                                 <span>

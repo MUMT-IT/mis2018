@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block title %}รายละเอียดข้อมูลสรุปรายวัน{% endblock %}
+
+{% block page_content %}
+<style>
+    .daily-attendance-detail {
+        padding: 2rem 0 4rem;
+    }
+
+    .daily-attendance-detail-card {
+        background: #fff;
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 24px;
+        box-shadow: 0 18px 50px rgba(18, 39, 84, 0.08);
+        margin: 0 auto;
+        max-width: 78rem;
+        padding: 1.5rem;
+    }
+
+    .daily-attendance-detail-title {
+        color: var(--theme-navy-deep);
+        font-size: 1.45rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .daily-attendance-detail-subtitle {
+        color: var(--theme-muted);
+        margin: 0.35rem 0 0;
+    }
+
+    .daily-attendance-detail-filter {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+    }
+
+    .daily-attendance-detail-filter label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+
+    .daily-attendance-detail-filter input {
+        border: 1px solid rgba(18, 39, 84, 0.14);
+        border-radius: 10px;
+        font: inherit;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.65rem;
+    }
+
+    .daily-attendance-detail-filter button {
+        background: var(--theme-navy-deep);
+        border: 0;
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 2.5rem;
+        padding: 0.45rem 1rem;
+    }
+
+    .daily-attendance-detail-back {
+        display: inline-block;
+        margin-top: 0.85rem;
+    }
+
+    .daily-attendance-detail-table-wrap {
+        margin-top: 1.5rem;
+        overflow-x: auto;
+    }
+
+    .daily-attendance-detail-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 64rem;
+        width: 100%;
+    }
+
+    .daily-attendance-detail-table th,
+    .daily-attendance-detail-table td {
+        border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+        padding: 0.7rem 0.75rem;
+        text-align: left;
+    }
+
+    .daily-attendance-detail-table th {
+        background: rgba(18, 39, 84, 0.05);
+        color: var(--theme-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .daily-attendance-detail-table td {
+        color: var(--theme-navy-deep);
+        font-size: 0.82rem;
+    }
+
+    .attendance-status-tag {
+        border-radius: 999px;
+        display: inline-flex;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 0.3rem 0.65rem;
+        white-space: nowrap;
+    }
+
+    .attendance-status-tag.is-present {
+        background: rgba(46, 139, 87, 0.12);
+        color: #247346;
+    }
+
+    .attendance-status-tag.is-absent {
+        background: rgba(190, 59, 59, 0.12);
+        color: #a72f2f;
+    }
+
+    .attendance-status-tag.is-leave {
+        background: rgba(210, 143, 37, 0.14);
+        color: #996516;
+    }
+
+    .attendance-status-tag.is-work-from-home {
+        background: rgba(54, 112, 181, 0.13);
+        color: #285d9b;
+    }
+
+    .attendance-status-tag.is-holiday {
+        background: rgba(125, 91, 158, 0.13);
+        color: #68458a;
+    }
+</style>
+
+<section class="section daily-attendance-detail">
+    <div class="daily-attendance-detail-card">
+        <h1 class="daily-attendance-detail-title">{{ staff_account.fullname }}</h1>
+        <p class="daily-attendance-detail-subtitle">
+            Snapshot records from {{ start_date.strftime('%d/%m/%Y') }} to {{ end_date.strftime('%d/%m/%Y') }}
+        </p>
+
+        <form class="daily-attendance-detail-filter" method="get">
+            <div>
+                <label for="detailStart">Start date</label>
+                <input id="detailStart" name="start" type="date" value="{{ start_date.isoformat() }}" required>
+            </div>
+            <div>
+                <label for="detailEnd">End date</label>
+                <input id="detailEnd" name="end" type="date" value="{{ end_date.isoformat() }}" required>
+            </div>
+            <button type="submit"><i class="fas fa-filter" aria-hidden="true"></i> Filter</button>
+        </form>
+
+        <a class="daily-attendance-detail-back"
+           href="{{ url_for('staff.hr_daily_attendance_report', start=start_date.isoformat(), end=end_date.isoformat()) }}">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to daily attendance statistics
+        </a>
+
+        <div class="daily-attendance-detail-table-wrap">
+            <table class="daily-attendance-detail-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Source</th>
+                        <th>First check-in</th>
+                        <th>Last checkout</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                        <tr>
+                            <td>{{ record.attendance_date.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <span class="attendance-status-tag is-{{ record.status|replace('_', '-') }}">
+                                {% if record.status == 'present' %}Present
+                                {% elif record.status == 'absent' %}Absent
+                                {% elif record.status == 'leave' %}Leave
+                                {% elif record.status == 'work_from_home' %}Work from home
+                                {% elif record.status == 'holiday' %}Holiday
+                                {% else %}{{ record.status }}{% endif %}
+                                </span>
+                            </td>
+                            <td>{% if record.source == 'attendance_reconciliation' %}{% elif record.source %}{{ record.source }}{% else %}—{% endif %}</td>
+                            <td>{{ record.first_checkin_at|localdatetime if record.first_checkin_at else '—' }}</td>
+                            <td>{{ record.last_checkout_at|localdatetime if record.last_checkout_at else '—' }}</td>
+                            <td>{% if record.note == 'No check-in record found' %}{% elif record.note %}{{ record.note }}{% else %}—{% endif %}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6">No snapshot records found for the selected period.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

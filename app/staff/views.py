@@ -3183,6 +3183,227 @@ def hr_login_summary_report():
     )
 
 
+@staff.route('/for-hr/daily-attendance-report')
+@hr_permission.require()
+@login_required
+def hr_daily_attendance_report():
+    today = datetime.now(tz).date()
+    default_start = today.replace(day=1)
+    staff_type = request.args.get('staff_type', 'all')
+    if staff_type not in {'all', 'academic', 'non_academic'}:
+        staff_type = 'all'
+    selected_org_id = request.args.get('org_id', type=int)
+
+    def parse_date(value, default):
+        if not value:
+            return default
+        try:
+            return datetime.strptime(value, '%Y-%m-%d').date()
+        except ValueError:
+            return default
+
+    start_date = parse_date(request.args.get('start'), default_start)
+    end_date = parse_date(request.args.get('end'), today)
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    staff_type_filter = None
+    if staff_type == 'academic':
+        staff_type_filter = StaffPersonalInfo.academic_staff.is_(True)
+    elif staff_type == 'non_academic':
+        staff_type_filter = or_(
+            StaffPersonalInfo.academic_staff.is_(False),
+            StaffPersonalInfo.academic_staff.is_(None),
+        )
+    snapshot_filters = [
+        StaffDailyAttendance.attendance_date.between(start_date, end_date),
+        *_active_staff_filters(),
+    ]
+    if selected_org_id:
+        snapshot_filters.append(StaffPersonalInfo.org_id == selected_org_id)
+    if staff_type_filter is not None:
+        snapshot_filters.append(staff_type_filter)
+
+    grouped_rows = (
+        db.session.query(
+            StaffDailyAttendance.attendance_date,
+            StaffDailyAttendance.status,
+            func.count(StaffDailyAttendance.id),
+        )
+        .join(StaffAccount, StaffDailyAttendance.staff_id == StaffAccount.id)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(*snapshot_filters)
+        .group_by(StaffDailyAttendance.attendance_date, StaffDailyAttendance.status)
+        .order_by(StaffDailyAttendance.attendance_date.asc())
+        .all()
+    )
+
+    status_order = ('present', 'absent', 'leave', 'work_from_home', 'holiday')
+    status_labels = {
+        'present': 'ลงเวลาปกติ',
+        'absent': 'ไม่พบการลงเวลา',
+        'leave': 'ลา',
+        'work_from_home': 'ทำงานที่บ้าน',
+        'holiday': 'วันหยุด',
+    }
+    counts_by_date = defaultdict(lambda: defaultdict(int))
+    totals = defaultdict(int)
+    for attendance_date, status, count in grouped_rows:
+        counts_by_date[attendance_date][status] = int(count)
+        totals[status] += int(count)
+
+    source_rows = (
+        db.session.query(
+            StaffDailyAttendance.source,
+            func.count(StaffDailyAttendance.id),
+        )
+        .join(StaffAccount, StaffDailyAttendance.staff_id == StaffAccount.id)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(*snapshot_filters)
+        .group_by(StaffDailyAttendance.source)
+        .all()
+    )
+    source_counts = defaultdict(int)
+    for source, count in source_rows:
+        source_counts[source or 'unknown'] = int(count)
+
+    staff_snapshot_rows = (
+        db.session.query(StaffDailyAttendance, StaffPersonalInfo)
+        .join(StaffAccount, StaffDailyAttendance.staff_id == StaffAccount.id)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(*snapshot_filters)
+        .order_by(StaffPersonalInfo.th_firstname.asc(), StaffPersonalInfo.en_firstname.asc())
+        .all()
+    )
+    staff_rows_by_id = {}
+    for snapshot, personal_info in staff_snapshot_rows:
+        row = staff_rows_by_id.setdefault(snapshot.staff_id, {
+            'staff_id': snapshot.staff_id,
+            'name': personal_info.fullname,
+            'normal_checkin': 0,
+            'approved_request': 0,
+            'hr_manual': 0,
+            'other_present': 0,
+            'absent': 0,
+            'leave': 0,
+            'work_from_home': 0,
+            'holiday': 0,
+            'total': 0,
+        })
+        row['total'] += 1
+        if snapshot.status == 'present':
+            if snapshot.source == 'approved_request':
+                row['approved_request'] += 1
+            elif snapshot.source == 'hr_manual':
+                row['hr_manual'] += 1
+            elif snapshot.source in (None, 'scan'):
+                row['normal_checkin'] += 1
+            else:
+                row['other_present'] += 1
+        elif snapshot.status in row:
+            row[snapshot.status] += 1
+
+    staff_rows = sorted(staff_rows_by_id.values(), key=lambda row: row['name'])
+    active_org_ids = [
+        org_id for (org_id,) in (
+            db.session.query(StaffPersonalInfo.org_id)
+            .join(StaffAccount, StaffPersonalInfo.id == StaffAccount.personal_id)
+            .filter(*_active_staff_filters())
+            .filter(StaffPersonalInfo.org_id.isnot(None))
+            .distinct()
+            .all()
+        )
+    ]
+    organizations = (
+        Org.query
+        .filter(Org.id.in_(active_org_ids))
+        .order_by(Org.name.asc())
+        .all()
+        if active_org_ids else []
+    )
+
+    daily_rows = []
+    current_date = start_date
+    while current_date <= end_date:
+        date_counts = counts_by_date[current_date]
+        daily_rows.append({
+            'date': current_date,
+            'counts': {status: date_counts.get(status, 0) for status in status_order},
+            'total': sum(date_counts.values()),
+        })
+        current_date += timedelta(days=1)
+
+    snapshot_rows = sum(totals.values())
+    staff_count = (
+        db.session.query(func.count(func.distinct(StaffDailyAttendance.staff_id)))
+        .join(StaffAccount, StaffDailyAttendance.staff_id == StaffAccount.id)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(*snapshot_filters)
+        .scalar()
+    ) or 0
+
+    return render_template(
+        'staff/hr_daily_attendance_report.html',
+        start_date=start_date,
+        end_date=end_date,
+        staff_type=staff_type,
+        organizations=organizations,
+        selected_org_id=selected_org_id,
+        status_order=status_order,
+        status_labels=status_labels,
+        totals=totals,
+        source_counts=source_counts,
+        snapshot_rows=snapshot_rows,
+        staff_count=staff_count,
+        staff_rows=staff_rows,
+        daily_rows=daily_rows,
+    )
+
+
+@staff.route('/for-hr/daily-attendance-report/staff/<int:staff_id>')
+@hr_permission.require()
+@login_required
+def hr_daily_attendance_staff_detail(staff_id):
+    today = datetime.now(tz).date()
+    default_start = today.replace(day=1)
+
+    def parse_date(value, default):
+        if not value:
+            return default
+        try:
+            return datetime.strptime(value, '%Y-%m-%d').date()
+        except ValueError:
+            return default
+
+    start_date = parse_date(request.args.get('start'), default_start)
+    end_date = parse_date(request.args.get('end'), today)
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    staff_account = (
+        StaffAccount.query
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(StaffAccount.id == staff_id, *_active_staff_filters())
+        .first_or_404()
+    )
+    records = (
+        StaffDailyAttendance.query
+        .filter(
+            StaffDailyAttendance.staff_id == staff_id,
+            StaffDailyAttendance.attendance_date.between(start_date, end_date),
+        )
+        .order_by(StaffDailyAttendance.attendance_date.desc())
+        .all()
+    )
+    return render_template(
+        'staff/hr_daily_attendance_staff_detail.html',
+        staff_account=staff_account,
+        records=records,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+
 @staff.route('/for-hr/login-report/checkin-requests')
 @hr_permission.require()
 @login_required
