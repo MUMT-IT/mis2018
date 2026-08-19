@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Online Results{% endblock %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<section class="section">
+    <div class="container" style="max-width: 680px;">
+        <div class="box" style="border-radius: 24px; margin-top: 2rem;">
+            <div class="has-text-centered" style="margin-bottom: 2rem;">
+                <span class="icon is-large has-text-link"><i class="fas fa-envelope-open-text fa-3x"></i></span>
+                <h1 class="title is-3" style="margin-top: 1rem;">ดูผลตรวจสุขภาพออนไลน์</h1>
+                <p class="subtitle is-6">
+                    กรอกอีเมลที่ลงทะเบียนไว้ ระบบจะส่งลิงก์แบบใช้ครั้งเดียวเพื่อเข้าสู่หน้าผลตรวจของท่าน
+                </p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="notification is-{{ 'danger' if category == 'error' else category }}">{{ message }}</div>
+                {% endfor %}
+            {% endwith %}
+
+            <form method="post">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    {{ form.email.label(class="label") }}
+                    <div class="control has-icons-left">
+                        {{ form.email(class="input is-medium", placeholder="your@email.com", autocomplete="email", required=true) }}
+                        <span class="icon is-small is-left"><i class="fas fa-envelope"></i></span>
+                    </div>
+                    {% for error in form.email.errors %}
+                        <p class="help is-danger">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                <button class="button is-link is-medium is-fullwidth" type="submit">
+                    <span class="icon"><i class="fas fa-paper-plane"></i></span>
+                    <span>ส่งลิงก์เข้าดูผลตรวจ</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
