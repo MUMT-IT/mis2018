@@ -47,7 +47,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
 from app.main import mail
-from app.roles import admin_permission
+from app.roles import admin_permission, approve_lab_permission
 from .concern_engine import build_health_risk_report
 from .health_risk_copy import get_health_risk_copy
 from .health_risk_summary import build_health_risk_summary
@@ -118,6 +118,7 @@ def _require_online_results_access():
 def _inject_comhealth_admin_flags():
     return {
         'comhealth_admin_tools_visible': current_user.is_authenticated and admin_permission.can(),
+        'comhealth_approve_lab_visible': current_user.is_authenticated and approve_lab_permission.can(),
     }
 
 
@@ -439,6 +440,185 @@ def get_line_id(lineid):
 @comhealth.route('/')
 def landing():
     return render_template('comhealth/landing.html')
+
+
+@comhealth.route('/schedules-lab')
+@login_required
+@approve_lab_permission.require(http_exception=403)
+def schedules_lab():
+    return render_template('comhealth/schedules_lab.html')
+
+
+@comhealth.route('/api/schedules-lab')
+@login_required
+@approve_lab_permission.require(http_exception=403)
+def schedules_lab_api():
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('pageSize', 10, type=int)
+    page = max(page, 1)
+    page_size = min(max(page_size, 1), 150)
+
+    response = _online_results_api_request(
+        'GET',
+        '/Schedules/with-customer',
+        params={'page': page, 'pageSize': page_size},
+    )
+    return (
+        response.content,
+        response.status_code,
+        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+    )
+
+
+@comhealth.route('/approved-labno')
+@login_required
+def approved_labno():
+    start_date = request.args.get('startDate', '')
+    cust_id = request.args.get('custId', '').strip()
+    customer_name = request.args.get('cname', '').strip()
+    customer_age = request.args.get('age', '').strip()
+    matched_date = re.match(r'^(\d{4})-(\d{2})-(\d{2})', start_date)
+    service_no_prefix = ''.join(matched_date.groups()) if matched_date else ''
+    service_date_display = (
+        f'{matched_date.group(3)}/{matched_date.group(2)}/{matched_date.group(1)}'
+        if matched_date else ''
+    )
+    return render_template(
+        'comhealth/approved_labno.html',
+        service_no_prefix=service_no_prefix,
+        cust_id=cust_id,
+        customer_name=customer_name,
+        customer_age=customer_age,
+        service_date_display=service_date_display,
+    )
+
+
+@comhealth.route('/api/services-by-service-prefix-customer')
+@login_required
+def services_by_service_prefix_customer_api():
+    service_no_prefix = request.args.get('serviceNoPrefix', '').strip()
+    cust_id = request.args.get('custId', '').strip()
+    if not re.fullmatch(r'\d{8}', service_no_prefix) or not cust_id:
+        return {'error': 'Invalid serviceNoPrefix or custId'}, 400
+
+    response = _online_results_api_request(
+        'GET',
+        '/Services/by-service-prefix-customer',
+        params={'serviceNoPrefix': service_no_prefix, 'custId': cust_id},
+    )
+    return (
+        response.content,
+        response.status_code,
+        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+    )
+
+
+@comhealth.route('/approved-labno-test')
+@login_required
+def approved_labno_test():
+    service_no = request.args.get('serviceNo', '').strip()
+    customer_age = request.args.get('age', '').strip()
+    patient_name = ' '.join(filter(None, (
+        request.args.get('prename', '').strip(),
+        request.args.get('fname', '').strip(),
+        request.args.get('lname', '').strip(),
+    )))
+    return render_template(
+        'comhealth/approved_labno_test.html',
+        service_no=service_no,
+        customer_age=customer_age,
+        patient_name=patient_name,
+        staff_account={
+            'id': current_user.id,
+            'email': current_user.email,
+            'fullname': current_user.fullname,
+        },
+    )
+
+
+@comhealth.route('/api/lab-test-details')
+@login_required
+def lab_test_details_api():
+    service_no = request.args.get('serviceNo', '').strip()
+    if not service_no or not re.fullmatch(r'[A-Za-z0-9_-]+', service_no):
+        return {'error': 'Invalid serviceNo'}, 400
+
+    response = _online_results_api_request(
+        'GET',
+        f'/Labs/service/test-details/{service_no}',
+    )
+    response_headers = {
+        'Content-Type': response.headers.get('Content-Type', 'application/json'),
+    }
+    for header_name in ('X-Request-ID', 'X-Correlation-ID', 'traceparent'):
+        if response.headers.get(header_name):
+            response_headers[header_name] = response.headers[header_name]
+    return (
+        response.content,
+        response.status_code,
+        response_headers,
+    )
+
+
+@comhealth.route('/api/physical-exams')
+@login_required
+def physical_exams_api():
+    service_no = request.args.get('serviceNo', '').strip()
+    if not service_no or not re.fullmatch(r'[A-Za-z0-9_-]+', service_no):
+        return {'error': 'Invalid serviceNo'}, 400
+
+    response = _online_results_api_request(
+        'GET',
+        f'/PhysicalExams/{service_no}',
+    )
+    return (
+        response.content,
+        response.status_code,
+        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+    )
+
+
+@comhealth.route('/api/xrays')
+@login_required
+def xrays_api():
+    service_no = request.args.get('serviceNo', '').strip()
+    if not service_no or not re.fullmatch(r'[A-Za-z0-9_-]+', service_no):
+        return {'error': 'Invalid serviceNo'}, 400
+
+    response = _online_results_api_request(
+        'GET',
+        f'/XRays/{service_no}',
+    )
+    return (
+        response.content,
+        response.status_code,
+        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+    )
+
+
+@comhealth.route('/api/lab-approvals', methods=['POST'])
+@login_required
+def save_lab_approvals_api():
+    payload = request.get_json(silent=True) or {}
+    items = payload.get('items')
+    if not isinstance(items, list) or not items:
+        return {'error': 'items must be a non-empty array'}, 400
+
+    payload['staffAccount'] = {
+        'id': current_user.id,
+        'email': current_user.email,
+        'fullname': current_user.fullname,
+    }
+    response = _online_results_api_request(
+        'POST',
+        '/Approvals/lab',
+        json=payload,
+    )
+    return (
+        response.content,
+        response.status_code,
+        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+    )
 
 
 @comhealth.route('/finance', methods=('GET', 'POST'))
@@ -4601,7 +4781,7 @@ def _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang):
     age_for_api = age if age and str(age).isdigit() else 0
 
     try:
-        response_lab = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
+        response_lab = _online_results_api_request('GET', f'/Labs/service/test-details-approved/{serviceNo}')
         lab_payload = response_lab.json()
     except Exception:
         lab_payload = {"data": []}
@@ -4623,8 +4803,9 @@ def _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang):
         "waistline": waistline_payload.get("waistline", ""),
     }
 
+    lab_rows = lab_payload if isinstance(lab_payload, list) else lab_payload.get("data", [])
     report = build_health_risk_report(
-        rows=lab_payload.get("data", []),
+        rows=lab_rows,
         physical=physical,
         question=waistline_payload,
         age=age_for_api,
@@ -4800,22 +4981,30 @@ def employee_lab(serviceNo, age, gender):
         return access_response
 
     try:
-        response = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
+        response = _online_results_api_request('GET', f'/Labs/service/test-details-approved/{serviceNo}')
         lab = response.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
 
     html = ""
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    use_english_reference = current_lang.startswith('en')
     condition_cache = load_all_conditions()
     interpret_cache = load_all_interpret()
     results_dict = {}
 
-    for row in lab.get("data", []):
-        if row.get("testNormalBook") == True and row.get("isProfile") == False:
+    lab_rows = lab if isinstance(lab, list) else lab.get("data", [])
+    for row in lab_rows:
+        if row.get("testNormalBook", True) is True and row.get("isProfile", False) is False:
             tcode = row.get("tcode")
-            testname = escape(row.get("testNamePrintResult"))
+            testname = escape(row.get("testNamePrintResult") or row.get("test") or "-")
             value = escape(row.get("testResult"))
-            ref = escape(row.get("refBookTh"))
+            ref_value = (
+                row.get("refBookEng", row.get("RefBookEng"))
+                if use_english_reference
+                else row.get("refBookTh", row.get("RefBookTh"))
+            )
+            ref = escape(ref_value or "-")
             unit = row.get("unit")
 
             if tcode == "LDL2":
@@ -4845,7 +5034,11 @@ def employee_lab(serviceNo, age, gender):
                 ref=ref,
                 testname=testname,
                 unit=unit,
-                color=color_inp
+                color=color_inp,
+                previous_result1=escape(row.get("previousResult1") or "-"),
+                previous_result2=escape(row.get("previousResult2") or "-"),
+                previous_date1=format_service_no_date(row.get("previousServiceNo1")),
+                previous_date2=format_service_no_date(row.get("previousServiceNo2")),
             )
     html += interpert_normaltest(lab,age,gender)
     html += xray_result(serviceNo)
@@ -4866,8 +5059,9 @@ def interpert_normaltest(lab,age,gender):
     urine_other = None
     interpret_cache = load_all_interpret()
     condition_cache = load_all_conditions()
-    for row in lab.get("data", []):
-        if row.get("testNormalBook") == True:
+    lab_rows = lab if isinstance(lab, list) else lab.get("data", [])
+    for row in lab_rows:
+        if row.get("testNormalBook", True) is True:
 
             tcode = row.get("tcode")
             value = escape(row.get("testResult"))
@@ -5186,39 +5380,57 @@ def testspecial(serviceNo, gender, age):
     if access_response:
         return access_response
     try:
-        response = _online_results_api_request('GET', f'/Labs/service/testsummary/{serviceNo}')
+        response = _online_results_api_request('GET', f'/Labs/service/test-details-approved/{serviceNo}')
         lab = response.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
 
     rows = ""
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    use_english_reference = current_lang.startswith('en')
     cre_value = None
-    for row in lab.get("data", []):
+    lab_rows = lab if isinstance(lab, list) else lab.get("data", [])
+    previous_date1 = '-'
+    previous_date2 = '-'
+    for row in lab_rows:
+        if previous_date1 == '-':
+            previous_date1 = format_service_no_date(row.get("previousServiceNo1"))
+        if previous_date2 == '-':
+            previous_date2 = format_service_no_date(row.get("previousServiceNo2"))
         tcode = escape(row.get("tcode", "-"))
         if tcode == 'CRE':
             cre_value = escape(row.get("testResult", "-"))
-        if not row.get("testNormalBook") and not row.get("isProfile"):
-            testname = escape(row.get("testNamePrintResult", "-"))
+        if row.get("testNormalBook") is False and row.get("isProfile") is False:
+            testname = escape(row.get("testNamePrintResult") or row.get("test") or "-")
             if tcode == 'eGFR':
                 value = egfr(gender,cre_value,age)
             else:
                 value = escape(row.get("testResult", "-"))
-            ref = escape(row.get("refBookTh", "-"))
+            ref_value = (
+                row.get("refBookEng", row.get("RefBookEng"))
+                if use_english_reference
+                else row.get("refBookTh", row.get("RefBookTh"))
+            )
+            ref = escape(ref_value or "-")
             unit = row.get("unit", "")
+            previous_result1 = escape(row.get("previousResult1") or "-")
+            previous_result2 = escape(row.get("previousResult2") or "-")
 
             rows += f'''
                 <tr>
                     <td>{testname}</td>
                     <td class="text-center">{value}</td>
+                    <td class="text-center has-text-grey">{previous_result1}</td>
+                    <td class="text-center has-text-grey">{previous_result2}</td>
                     <td>{ref}</td>
                     <td>{unit}</td>
                 </tr>
             '''
     if not rows:
-        rows = '<tr><td colspan="4" class="text-muted text-center">ไม่มีข้อมูลรายการตรวจพิเศษ</td></tr>'
+        rows = '<tr><td colspan="6" class="text-muted text-center">ไม่มีข้อมูลรายการตรวจพิเศษ</td></tr>'
 
     return f'''
-            <tbody id="testspecial">
+            <tbody id="testspecial" data-previous-date1="{previous_date1}" data-previous-date2="{previous_date2}">
                 {rows}
             </tbody>
         '''
@@ -5248,10 +5460,24 @@ def xray_result(serviceNo):
     )
 
 
-def render_lab_oob(tcode, value, ref, testname, unit, color):
+def format_service_no_date(service_no):
+    """Return the YYYYMMDD prefix of a service number as DD/MM/YYYY."""
+    value = str(service_no or '').strip()
+    if len(value) < 8 or not value[:8].isdigit():
+        return '-'
+    return f'{value[6:8]}/{value[4:6]}/{value[:4]}'
+
+
+def render_lab_oob(tcode, value, ref, testname, unit, color,
+                   previous_result1='-', previous_result2='-',
+                   previous_date1='-', previous_date2='-'):
     return (
         f'<span id="{tcode}_name" hx-swap-oob="true">{testname}</span>'
         f'<span id="{tcode}_result" hx-swap-oob="true" class="{color}">{value}</span>'
+        f'<span id="{tcode}_previous1" hx-swap-oob="true">{previous_result1}</span>'
+        f'<span id="{tcode}_previous2" hx-swap-oob="true">{previous_result2}</span>'
+        f'<span id="lab_previous_date1" hx-swap-oob="innerHTML">{previous_date1}</span>'
+        f'<span id="lab_previous_date2" hx-swap-oob="innerHTML">{previous_date2}</span>'
         f'<span id="{tcode}_ref" hx-swap-oob="true">{ref}</span>'
         f'<span id="{tcode}_unit" hx-swap-oob="true">{unit}</span>'
     )
