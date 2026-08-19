@@ -227,6 +227,7 @@
         .vital-value { font-size: 1.6rem; font-weight: 700; color: #1e293b; line-height: 1.2; }
         .vital-unit { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
         .reference-text { font-size: 0.7rem; color: var(--secondary-medical); margin-top: 4px; font-weight: 600; }
+        .lab-history-column { color: #64748b; font-size: 0.85rem; }
 
         .summary-list-card {
             background: var(--summary-bg);
@@ -1449,7 +1450,7 @@
                                 </tr>
                             </thead>
                             <tbody id="testspecial"
-                                hx-get="{{ url_for('comhealth.testspecial', serviceNo=service_no, gender=employee.sex, age=age_for_api) }}"
+                                hx-get="{{ url_for('comhealth.testspecial', serviceNo=service_no, gender=employee.sex, age=age_for_api, lang=current_lang) }}"
                                 hx-trigger="load"
                                 hx-swap="outerHTML">
                                 <tr><td colspan="4">... special tests ...</td></tr>
@@ -1463,10 +1464,97 @@
         </main>
 
     </div>
+    <div class="is-hidden" aria-hidden="true">
+        <span id="lab_previous_date1">-</span>
+        <span id="lab_previous_date2">-</span>
+    </div>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const previousDate1 = document.getElementById("lab_previous_date1");
+    const previousDate2 = document.getElementById("lab_previous_date2");
+
+    function updateHistoryHeaders() {
+        const date1 = previousDate1.textContent.trim();
+        const date2 = previousDate2.textContent.trim();
+        if (date1 && date1 !== "-") {
+            document.querySelectorAll(".lab-previous1-header").forEach(function (header) {
+                header.textContent = date1;
+            });
+        }
+        if (date2 && date2 !== "-") {
+            document.querySelectorAll(".lab-previous2-header").forEach(function (header) {
+                header.textContent = date2;
+            });
+        }
+    }
+
+    new MutationObserver(updateHistoryHeaders).observe(previousDate1, { childList: true, subtree: true });
+    new MutationObserver(updateHistoryHeaders).observe(previousDate2, { childList: true, subtree: true });
+
+    document.body.addEventListener("htmx:afterSwap", function (event) {
+        const target = event.detail.target;
+        if (!target || target.id !== "testspecial") return;
+
+        const specialTestBody = document.getElementById("testspecial");
+        if (!specialTestBody) return;
+        const date1 = specialTestBody.dataset.previousDate1;
+        const date2 = specialTestBody.dataset.previousDate2;
+        if (date1 && date1 !== "-") {
+            document.querySelectorAll(".lab-previous1-header").forEach(function (header) {
+                header.textContent = date1;
+            });
+        }
+        if (date2 && date2 !== "-") {
+            document.querySelectorAll(".lab-previous2-header").forEach(function (header) {
+                header.textContent = date2;
+            });
+        }
+    });
+
+    document.querySelectorAll(".lab-table-card table").forEach(function (table) {
+        const headerRow = table.querySelector("thead tr");
+        if (!headerRow || headerRow.dataset.historyColumnsReady === "true") return;
+        const headerCells = headerRow.querySelectorAll("th");
+        if (headerCells.length < 4) return;
+
+        headerCells[0].style.width = "30%";
+        headerCells[1].textContent = "ผลปัจจุบัน";
+        const previous1Header = document.createElement("th");
+        previous1Header.className = "has-text-centered lab-previous1-header";
+        previous1Header.textContent = "ย้อนหลัง 1";
+        const previous2Header = document.createElement("th");
+        previous2Header.className = "has-text-centered lab-previous2-header";
+        previous2Header.textContent = "ย้อนหลัง 2";
+        headerCells[1].after(previous2Header);
+        headerCells[1].after(previous1Header);
+        headerRow.dataset.historyColumnsReady = "true";
+
+        table.querySelectorAll("tbody tr").forEach(function (row) {
+            const resultSpan = row.querySelector('span[id$="_result"]');
+            if (!resultSpan) return;
+            const resultCell = resultSpan.closest("td");
+            const originalColspan = resultCell.colSpan;
+            const tcode = resultSpan.id.slice(0, -"_result".length);
+            resultCell.colSpan = 1;
+
+            const previous1Cell = document.createElement("td");
+            previous1Cell.className = "has-text-centered lab-history-column";
+            previous1Cell.innerHTML = `<span id="${tcode}_previous1">-</span>`;
+            const previous2Cell = document.createElement("td");
+            previous2Cell.className = "has-text-centered lab-history-column";
+            previous2Cell.innerHTML = `<span id="${tcode}_previous2">-</span>`;
+            resultCell.after(previous2Cell);
+            resultCell.after(previous1Cell);
+
+            if (originalColspan > 1) {
+                row.appendChild(document.createElement("td"));
+                row.appendChild(document.createElement("td"));
+            }
+        });
+    });
+
     console.log("Start calling lab......");
-    htmx.ajax("GET", "{{ url_for('comhealth.employee_lab', serviceNo=service_no, age=age_for_api, gender=employee.sex) }}", {
+    htmx.ajax("GET", "{{ url_for('comhealth.employee_lab', serviceNo=service_no, age=age_for_api, gender=employee.sex, lang=current_lang) }}", {
         swap: "none"
     });
     console.log("Start calling physical...");

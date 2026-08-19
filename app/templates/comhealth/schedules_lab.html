@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Approve ผล Lab{% endblock %}
+{% include "comhealth/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .lab-page { padding: 2rem 1.25rem 3rem; }
+        .lab-shell { margin: 0 auto; max-width: 1280px; }
+        .lab-header {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .lab-panel {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid var(--theme-border);
+            border-radius: 18px;
+            box-shadow: var(--theme-shadow);
+            overflow: hidden;
+        }
+        .lab-table-wrap { overflow-x: auto; }
+        .lab-table { margin-bottom: 0 !important; white-space: nowrap; }
+        .lab-table th { background: var(--theme-navy-soft); color: var(--theme-navy-deep); }
+        .lab-search-bar {
+            align-items: center;
+            border-bottom: 1px solid var(--theme-border);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            padding: 1rem;
+        }
+        .lab-search-control { max-width: 520px; width: 100%; }
+        .lab-table tbody tr[data-detail-url] { cursor: pointer; }
+        .lab-table tbody tr[data-detail-url]:hover { background: var(--theme-navy-soft); }
+        .lab-state { padding: 3.5rem 1.5rem; text-align: center; }
+        .lab-pagination {
+            align-items: center;
+            border-top: 1px solid var(--theme-border);
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            padding: 1rem;
+        }
+        @media (max-width: 768px) {
+            .lab-header { align-items: flex-start; flex-direction: column; }
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    <section class="lab-page">
+        <div class="lab-shell">
+            <div class="lab-header">
+                <div>
+                    <h1 class="title is-3 mb-2">Approve ผล Lab</h1>
+                    <p class="subtitle is-6">ยืนยันผลถูกต้องเพื่อให้ผู้รับบริการสามารถดูผลตรวจได้</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('comhealth.landing') }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+
+            <div class="lab-panel">
+                <div id="loading-state" class="lab-state">
+                    <span class="icon is-large"><i class="fas fa-spinner fa-spin fa-2x"></i></span>
+                    <p class="mt-3">กำลังโหลดข้อมูล...</p>
+                </div>
+                <div id="error-state" class="lab-state has-text-danger is-hidden" role="alert"></div>
+                <div id="empty-state" class="lab-state is-hidden">ไม่พบข้อมูลผล Lab</div>
+                <div id="table-state" class="is-hidden">
+                    <div class="lab-search-bar">
+                        <div class="control has-icons-left lab-search-control">
+                            <input id="schedule-search" class="input" type="search"
+                                   placeholder="ค้นหารหัสสถานที่ หรือชื่อหน่วยงาน">
+                            <span class="icon is-left"><i class="fas fa-search"></i></span>
+                        </div>
+                        <span id="search-result-count" class="tag is-light"></span>
+                    </div>
+                    <div class="lab-table-wrap">
+                        <table class="table is-fullwidth is-hoverable lab-table">
+                            <thead><tr id="table-head"></tr></thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                    <nav class="lab-pagination" aria-label="pagination">
+                        <button id="previous-page" class="button" type="button">หน้าก่อนหน้า</button>
+                        <span id="page-label">หน้า 1</span>
+                        <button id="next-page" class="button" type="button">หน้าถัดไป</button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const pageSize = 150;
+            const displayPageSize = 20;
+            const schedulesApiUrl = {{ url_for('comhealth.schedules_lab_api') | tojson }};
+            const approvedLabUrl = {{ url_for('comhealth.approved_labno') | tojson }};
+            let currentPage = 1;
+            let loadedRows = [];
+            let filteredRows = [];
+
+            const elements = {
+                loading: document.getElementById('loading-state'),
+                error: document.getElementById('error-state'),
+                empty: document.getElementById('empty-state'),
+                table: document.getElementById('table-state'),
+                head: document.getElementById('table-head'),
+                body: document.getElementById('table-body'),
+                previous: document.getElementById('previous-page'),
+                next: document.getElementById('next-page'),
+                label: document.getElementById('page-label'),
+                search: document.getElementById('schedule-search'),
+                searchCount: document.getElementById('search-result-count')
+            };
+
+            function showState(name) {
+                ['loading', 'error', 'empty', 'table'].forEach(function (state) {
+                    elements[state].classList.toggle('is-hidden', state !== name);
+                });
+            }
+
+            function getRows(payload) {
+                if (Array.isArray(payload)) return payload;
+                const candidates = [payload.data, payload.items, payload.results, payload.schedules];
+                for (const candidate of candidates) {
+                    if (Array.isArray(candidate)) return candidate;
+                    if (candidate && Array.isArray(candidate.items)) return candidate.items;
+                }
+                return payload && typeof payload === 'object' ? [payload] : [];
+            }
+
+            function formatDate(value) {
+                const matchedDate = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (matchedDate) return `${matchedDate[3]}/${matchedDate[2]}/${matchedDate[1]}`;
+
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return String(value);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                return `${day}/${month}/${date.getFullYear()}`;
+            }
+
+            function displayValue(value, column) {
+                if (value === null || value === undefined || value === '') return '-';
+                if (['startdate', 'enddate'].includes(String(column).toLowerCase())) {
+                    return formatDate(value);
+                }
+                if (typeof value === 'object') return JSON.stringify(value);
+                return String(value);
+            }
+
+            function appendCell(row, tagName, value, column) {
+                const cell = document.createElement(tagName);
+                cell.textContent = displayValue(value, column);
+                row.appendChild(cell);
+            }
+
+            function getCustomerId(item) {
+                return item.custId
+                    || item.customerId
+                    || (item.customer && (item.customer.custId || item.customer.customerId))
+                    || '';
+            }
+
+            function getCustomerName(item) {
+                return item.cname
+                    || item.customerName
+                    || (item.customer && (item.customer.cname || item.customer.customerName || item.customer.name))
+                    || '';
+            }
+
+            function getCustomerAge(item) {
+                return item.age
+                    || item.customerAge
+                    || (item.customer && (item.customer.age || item.customer.customerAge))
+                    || '';
+            }
+
+            function filterSchedules() {
+                const keyword = elements.search.value.trim().toLocaleLowerCase('th');
+                filteredRows = keyword
+                    ? loadedRows.filter(function (item) {
+                        const custId = String(getCustomerId(item)).toLocaleLowerCase('th');
+                        const customerName = String(getCustomerName(item)).toLocaleLowerCase('th');
+                        return custId.includes(keyword) || customerName.includes(keyword);
+                    })
+                    : loadedRows;
+                currentPage = 1;
+                renderSchedulePage();
+                elements.searchCount.textContent = `พบ ${filteredRows.length} รายการ`;
+            }
+
+            function renderSchedulePage() {
+                const totalPages = Math.max(1, Math.ceil(filteredRows.length / displayPageSize));
+                currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+                const startIndex = (currentPage - 1) * displayPageSize;
+                renderTable(filteredRows.slice(startIndex, startIndex + displayPageSize));
+                elements.label.textContent = `หน้า ${currentPage} จาก ${totalPages}`;
+                elements.previous.disabled = currentPage <= 1;
+                elements.next.disabled = currentPage >= totalPages;
+            }
+
+            function renderTable(rows) {
+                const headerLabels = {
+                    custId: 'รหัสสถานที่',
+                    cname: 'ชื่อหน่วยงาน',
+                    yearSchedule: 'ปี',
+                    amount: 'จำนวนที่คาด',
+                    srunning: 'เริ่มที่ LabNo.'
+                };
+                const columns = Array.from(rows.reduce(function (keys, row) {
+                    if (row && typeof row === 'object' && !Array.isArray(row)) {
+                        Object.keys(row).forEach(function (key) { keys.add(key); });
+                    }
+                    return keys;
+                }, new Set()));
+
+                elements.head.replaceChildren();
+                elements.body.replaceChildren();
+                columns.forEach(function (column) {
+                    appendCell(elements.head, 'th', headerLabels[column] || column);
+                });
+                rows.forEach(function (item) {
+                    const row = document.createElement('tr');
+                    columns.forEach(function (column) { appendCell(row, 'td', item[column], column); });
+                    const custId = getCustomerId(item);
+                    if (item.startDate && custId) {
+                        const params = new URLSearchParams({
+                            startDate: item.startDate,
+                            custId: custId,
+                            cname: getCustomerName(item),
+                            age: getCustomerAge(item)
+                        });
+                        row.dataset.detailUrl = `${approvedLabUrl}?${params.toString()}`;
+                        row.tabIndex = 0;
+                        row.setAttribute('role', 'link');
+                        row.setAttribute('aria-label', `ดูรายการผล Lab ของ ${custId}`);
+                    }
+                    elements.body.appendChild(row);
+                });
+            }
+
+            elements.body.addEventListener('click', function (event) {
+                const row = event.target.closest('tr[data-detail-url]');
+                if (row) window.location.href = row.dataset.detailUrl;
+            });
+
+            elements.body.addEventListener('keydown', function (event) {
+                const row = event.target.closest('tr[data-detail-url]');
+                if (row && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    window.location.href = row.dataset.detailUrl;
+                }
+            });
+
+            async function loadSchedules(page) {
+                showState('loading');
+                try {
+                    const params = new URLSearchParams({ page: page, pageSize: pageSize });
+                    const response = await fetch(`${schedulesApiUrl}?${params.toString()}`, {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin'
+                    });
+                    if (!response.ok) throw new Error(`API ตอบกลับด้วยสถานะ ${response.status}`);
+
+                    const payload = await response.json();
+                    const rows = getRows(payload);
+                    if (!rows.length) {
+                        showState('empty');
+                        return;
+                    }
+                    loadedRows = rows;
+                    elements.search.value = '';
+                    filterSchedules();
+                    showState('table');
+                } catch (error) {
+                    elements.error.textContent = `ไม่สามารถโหลดข้อมูลได้: ${error.message}`;
+                    showState('error');
+                }
+            }
+
+            elements.previous.addEventListener('click', function () {
+                if (currentPage > 1) {
+                    currentPage -= 1;
+                    renderSchedulePage();
+                }
+            });
+            elements.next.addEventListener('click', function () {
+                const totalPages = Math.ceil(filteredRows.length / displayPageSize);
+                if (currentPage < totalPages) {
+                    currentPage += 1;
+                    renderSchedulePage();
+                }
+            });
+            elements.search.addEventListener('input', filterSchedules);
+
+            loadSchedules(1);
+        });
+    </script>
+{% endblock %}
