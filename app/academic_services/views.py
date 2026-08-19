@@ -3437,7 +3437,7 @@ def add_sds_page_condition_item():
     item_form = form.sds_page_condition_field[-1]
     index = len(form.sds_page_condition_field)
     template = """
-        <div id="{}">
+        <div id="{}" class="condition-item">
             <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
@@ -3453,9 +3453,20 @@ def add_sds_page_condition_item():
                     </th>
                 </thead>
                 <tbody>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
+                    <tr>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none">
+                            <a class="button is-danger is-outlined"
+                                hx-delete="{}" 
+                                hx-target="closest .condition-item"
+                                hx-swap="outerHTML"
+                            >
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </a>
+                        </td>
+                    </tr>    
                 </tbody>
             </table>
         </div>
@@ -3467,7 +3478,8 @@ def add_sds_page_condition_item():
                            item_form.staining.label,
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
-                           item_form.staining()
+                           item_form.staining(),
+                           url_for('academic_services.remove_sds_page_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
@@ -3476,47 +3488,63 @@ def add_sds_page_condition_item():
 @academic_services.route('/api/request/sds_page/item/remove', methods=['DELETE'])
 @login_required
 def remove_sds_page_condition_item():
+    field_name = request.args.get('name')
     form = SDSPageRequestForm()
-    form.sds_page_condition_field.pop_entry()
-    resp = ''
-    for i, item_form in enumerate(form.sds_page_condition_field, start=1):
-        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
-        template = """
-            <div id="{}">
-                {}   
-                <p><strong>รายการที่ {}</strong></p>
-                <table class="table is-fullwidth ">
-                    <thead>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                    </thead>
-                    <tbody>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                    </tbody>
-                </table>
-            </div>
-        """
-        resp += template.format(item_form.id,
-                                hr,
-                                i,
-                                item_form.sample_name.label,
-                                item_form.clean_up.label,
-                                item_form.staining.label,
-                                item_form.sample_name(class_='input'),
-                                item_form.clean_up(),
-                                item_form.staining()
-                                )
-    resp = make_response(resp)
-    return resp
+    temp_entries = []
+    for entry in form.sds_page_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.sds_page_condition_field) > 0:
+        form.sds_page_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.sds_page_condition_field.append_entry(entry)
+    return ""
+
+
+# @academic_services.route('/api/request/sds_page/item/remove', methods=['DELETE'])
+# @login_required
+# def remove_sds_page_condition_item():
+#     form = SDSPageRequestForm()
+#     form.sds_page_condition_field.pop_entry()
+#     resp = ''
+#     for i, item_form in enumerate(form.sds_page_condition_field, start=1):
+#         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
+#         template = """
+#             <div id="{}">
+#                 {}
+#                 <p><strong>รายการที่ {}</strong></p>
+#                 <table class="table is-fullwidth ">
+#                     <thead>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                         <th style="border: none">{}</th>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                     </thead>
+#                     <tbody>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                     </tbody>
+#                 </table>
+#             </div>
+#         """
+#         resp += template.format(item_form.id,
+#                                 hr,
+#                                 i,
+#                                 item_form.sample_name.label,
+#                                 item_form.clean_up.label,
+#                                 item_form.staining.label,
+#                                 item_form.sample_name(class_='input'),
+#                                 item_form.clean_up(),
+#                                 item_form.staining()
+#                                 )
+#     resp = make_response(resp)
+#     return resp
 
 
 @academic_services.route('/request/quantitative/add', methods=['GET', 'POST'])
@@ -4613,6 +4641,9 @@ def generate_bacteria_request_pdf(service_request):
         ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 1), (-1, 1), 10),
     ]))
 
     lab_information = '''<para><font size=13>
@@ -6498,6 +6529,8 @@ def generate_food_request_pdf(service_request):
                 repeat_rows = 1
                 row_heights = None
                 if table_starts_group:
+                    data.append(Spacer(5, 5))
+                    current_height += 5
                     cell_count = len(headers) + 2
                     section_header_row = [
                         Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),
@@ -6681,6 +6714,91 @@ def generate_food_request_pdf(service_request):
         leading=18
     )
 
+    checkbox_style = ParagraphStyle(
+        'CheckboxStyle',
+        parent=detail_style,
+        fontSize=13,
+        leading=16,
+    )
+
+    def checkbox_box():
+        box = Table([['']], colWidths=[9], rowHeights=[9])
+        box.setStyle(TableStyle([
+            ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        return box
+
+    def checkbox_option(label):
+        option_table = Table(
+            [[checkbox_box(), Spacer(4, 1), Paragraph(label, checkbox_style)]],
+            colWidths=[11, 4, 58],
+        )
+        option_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        return option_table
+
+    review_label_style = ParagraphStyle(
+        'ReviewLabelStyle',
+        parent=detail_style,
+        fontSize=13,
+        leading=16,
+        leftIndent=20
+    )
+
+    repeat_table = Table([
+        [Spacer(1, 6)],
+        [Paragraph("การทบทวน", style=sub_header_bold_style)],
+        [Table([
+            [
+                Paragraph("เครื่องมือ :", style=review_label_style),
+                checkbox_option("พร้อม"),
+                checkbox_option("ไม่พร้อม"),
+            ]
+        ], colWidths=[120, 95, 60])],
+        [Table([
+            [
+                Paragraph("บุคลากรและปริมาณงาน :", style=review_label_style),
+                checkbox_option("พร้อม"),
+                checkbox_option("ไม่พร้อม"),
+            ]
+        ], colWidths=[120, 95, 60])],
+        [Table([
+            [
+                Paragraph("วิธีการทดสอบ :", style=review_label_style),
+                checkbox_option("พร้อม"),
+                checkbox_option("ไม่พร้อม"),
+            ]
+        ], colWidths=[120, 95, 60])],
+    ], colWidths=[530])
+
+    repeat_table.setStyle(TableStyle([
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    if current_height > first_page_limit:
+        data.append(PageBreak())
+        current_height = 0
+    else:
+        data.append(KeepTogether(Spacer(5, 5)))
+        current_height += 5
+    data.append(KeepTogether(repeat_table))
+    w, h = repeat_table.wrap(doc.width, first_page_limit)
+
+    current_height += h
 
     sign_table = Table([
         [Spacer(1, 6)],
@@ -7076,6 +7194,8 @@ def generate_protein_request_pdf(service_request):
                 repeat_rows = 1
                 row_heights = None
                 if table_starts_group:
+                    data.append(Spacer(5, 5))
+                    current_height += 5
                     cell_count = len(headers) + 2
                     section_header_row = [
                         Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),
@@ -7259,6 +7379,63 @@ def generate_protein_request_pdf(service_request):
         leading=18
     )
 
+    sub_detail_style = ParagraphStyle(
+        'SubDetailStyle',
+        parent=detail_style,
+        leftIndent=100
+    )
+
+    image_table = Table([
+        [Spacer(1, 6)],
+        [Paragraph("For Staff Only", style=sub_header_bold_style)],
+        [Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image capture (hour)", style=detail_style)],
+        [Paragraph(
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
+            style=detail_style)],
+        [Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Image analysis (hour)", style=detail_style)],
+        [Paragraph(
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+            f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u>",
+            style=detail_style)],
+        [Spacer(1, 6)],
+    ], colWidths=[530])
+
+    image_table.setStyle(TableStyle([
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+
+    if current_height > first_page_limit:
+        data.append(PageBreak())
+        current_height = 0
+    else:
+        data.append(KeepTogether(Spacer(5, 5)))
+        current_height += 5
+    data.append(KeepTogether(image_table))
+    w, h = image_table.wrap(doc.width, first_page_limit)
+    current_height += h
 
     sign_table = Table([
         [Spacer(1, 6)],
@@ -7396,7 +7573,7 @@ def generate_toxicology_request_pdf(service_request):
 
     staff_only = '''<para><font size=13>
                             สำหรับเจ้าหน้าที่ / Staff only<br/>
-                            เลขที่ใบคำขอ &nbsp; <u>&nbsp;{request_no}&nbsp;</u><br/>
+                            เลขที่ใบคำขอ &nbsp; <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                             วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                             วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                             </font></para>'''.format(request_no=service_request.request_no)
@@ -7653,6 +7830,8 @@ def generate_toxicology_request_pdf(service_request):
                 repeat_rows = 1
                 row_heights = None
                 if table_starts_group:
+                    data.append(Spacer(5, 5))
+                    current_height += 5
                     cell_count = len(headers) + 2
                     section_header_row = [
                         Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),
@@ -7974,7 +8153,7 @@ def generate_endotoxin_request_pdf(service_request):
 
     staff_only = '''<para><font size=13>
                             สำหรับเจ้าหน้าที่ / Staff only<br/>
-                            เลขที่ใบคำขอ &nbsp; <u>&nbsp;{request_no}&nbsp;</u><br/>
+                            เลขที่ใบคำขอ &nbsp; <u>&nbsp;&nbsp;&nbsp;{request_no}&nbsp;&nbsp;&nbsp;</u><br/>
                             วันที่รับตัวอย่าง <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                             วันที่รายงานผล <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br/>
                             </font></para>'''.format(request_no=service_request.request_no)
@@ -8190,17 +8369,20 @@ def generate_endotoxin_request_pdf(service_request):
                     text_section = []
 
                 rows = g['data']
-                # for i, row in enumerate(rows):
-                #     row['Sample no'] = ''
+                for i, row in enumerate(rows):
+                    row['SR Code'] = ''
+                    row['LAB'] = ''
                 headers = list(rows[0].keys())
                 raw_widths = []
                 for h in headers:
                     if h == headers[0]:
-                        w = 90
-                    # elif h == headers[-1]:
-                    #     w = 108
+                        w = 80
+                    elif h == headers[-2]:
+                        w = 57
+                    elif h == headers[-1]:
+                        w = 108
                     else:
-                        w = 100
+                        w = 68
                     raw_widths.append(w)
                 total_width = sum(raw_widths)
                 max_total = 506
@@ -8231,6 +8413,8 @@ def generate_endotoxin_request_pdf(service_request):
                 repeat_rows = 1
                 row_heights = None
                 if table_starts_group:
+                    data.append(Spacer(5, 5))
+                    current_height += 5
                     cell_count = len(headers) + 2
                     section_header_row = [
                         Paragraph(f"<b>{group['header']} / {eng_header}</b>", style=header_style),

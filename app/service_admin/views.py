@@ -2721,7 +2721,7 @@ def create_bacteria_disinfection_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -3659,7 +3659,7 @@ def create_virus_disinfection_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4003,7 +4003,7 @@ def create_virus_air_disinfection_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4142,7 +4142,7 @@ def create_heavy_metal_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4281,7 +4281,7 @@ def create_food_safety_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4522,7 +4522,7 @@ def create_protein_identification_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4649,7 +4649,7 @@ def create_sds_page_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4675,7 +4675,7 @@ def add_sds_page_condition_item():
     item_form = form.sds_page_condition_field[-1]
     index = len(form.sds_page_condition_field)
     template = """
-        <div id="{}">
+        <div id="{}" class="condition-item">
             <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
@@ -4691,9 +4691,20 @@ def add_sds_page_condition_item():
                     </th>
                 </thead>
                 <tbody>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
+                    <tr>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none">
+                            <a class="button is-danger is-outlined"
+                                hx-delete="{}" 
+                                hx-target="closest .condition-item"
+                                hx-swap="outerHTML"
+                            >
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </a>
+                        </td>
+                    </tr>    
                 </tbody>
             </table>
         </div>
@@ -4705,7 +4716,8 @@ def add_sds_page_condition_item():
                            item_form.staining.label,
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
-                           item_form.staining()
+                           item_form.staining(),
+                           url_for('service_admin.remove_sds_page_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
@@ -4714,47 +4726,17 @@ def add_sds_page_condition_item():
 @service_admin.route('/api/request/sds_page/item/remove', methods=['DELETE'])
 @login_required
 def remove_sds_page_condition_item():
+    field_name = request.args.get('name')
     form = SDSPageRequestForm()
-    form.sds_page_condition_field.pop_entry()
-    resp = ''
-    for i, item_form in enumerate(form.sds_page_condition_field, start=1):
-        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
-        template = """
-            <div id="{}">
-                {}
-                <p><strong>รายการที่ {}</strong></p>
-                <table class="table is-fullwidth ">
-                    <thead>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                    </thead>
-                    <tbody>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                    </tbody>
-                </table>
-            </div>
-        """
-        resp += template.format(item_form.id,
-                                hr,
-                                i,
-                                item_form.sample_name.label,
-                                item_form.clean_up.label,
-                                item_form.staining.label,
-                                item_form.sample_name(class_='input'),
-                                item_form.clean_up(),
-                                item_form.staining()
-                                )
-    resp = make_response(resp)
-    return resp
+    temp_entries = []
+    for entry in form.sds_page_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.sds_page_condition_field) > 0:
+        form.sds_page_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.sds_page_condition_field.append_entry(entry)
+    return ""
 
 
 @service_admin.route('/request/quantitative/add', methods=['GET', 'POST'])
@@ -4776,7 +4758,7 @@ def create_quantitative_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -4909,7 +4891,7 @@ def create_metabolomic_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -5144,7 +5126,7 @@ def create_endotoxin_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -5311,7 +5293,7 @@ def create_toxicology_request(request_id=None):
             service_request.data = format_data(form.data)
             service_request.modified_at = arrow.now('Asia/Bangkok').datetime
         else:
-            status_id = get_status(2)
+            status_id = get_status(3)
             request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
             service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_id, status_id=status_id,
                                              created_at=arrow.now('Asia/Bangkok').datetime, sub_lab=sub_lab,
@@ -6536,6 +6518,23 @@ def create_invoice(quotation_id):
                                invoice_id=[invoice.id for invoice in quotation.invoices])
 
 
+@service_admin.route('/invoice/item/update/<int:invoice_id>', methods=['POST'])
+def update_invoice_item(invoice_id):
+    tab = request.args.get('tab')
+    menu = request.args.get('menu')
+    admin = request.args.get('admin')
+    invoice = ServiceInvoice.query.get(invoice_id)
+    for item in invoice.invoice_items:
+        quantity = request.form.get(f'quantity_{item.id}')
+        if quantity and int(quantity) > 0:
+            item.quantity = int(quantity)
+            item.total_price = item.quantity * item.unit_price
+            db.session.add(item)
+    db.session.commit()
+    return redirect(url_for('service_admin.view_invoice', admin=admin, invoice=invoice, tab=tab, menu=menu,
+                            invoice_id=invoice_id))
+
+
 @service_admin.route('/invoice/approve/<int:invoice_id>', methods=['GET', 'POST'])
 @login_required
 def approve_invoice(invoice_id):
@@ -6650,6 +6649,14 @@ def approve_invoice(invoice_id):
         invoice.sent_at = arrow.now('Asia/Bangkok').datetime
         invoice.sender_id = current_user.id
         invoice.quotation.request.status_id = status_id
+        if invoice.sub_lab.code == 'sds_page':
+            for item in invoice.invoice_items:
+                quantity = request.form.get(f'quantity_{item.id}')
+                if quantity and int(quantity) > 0:
+                    item.quantity = int(quantity)
+                    item.total_price = item.quantity * item.unit_price
+                    db.session.add(item)
+            # db.session.commit()
         if admins:
             email = [a.admin.email + '@mahidol.ac.th' for a in admins if a.is_supervisor]
             if email:
@@ -8264,7 +8271,7 @@ def generate_sds_page_quotation():
             else:
                 quote_prices[key] = row['other_price']
 
-        for field in form:
+        for field in sorted(form, key=lambda field: field.label.text.startswith('Image')):
             if field.label.text not in quote_column_names:
                 continue
 
@@ -8278,21 +8285,29 @@ def generate_sds_page_quotation():
 
                     if field.label.text == 'SDS Page':
                         p_key = sorted_field_label
-                        counts = re.findall(r'\d+', values)
-                        quantity = int(counts[0])
+                        # counts = re.findall(r'\d+', values)
+                        # quantity = int(counts[0])
+                        quantity = int(values)
+                    elif field.label.text.startswith('Image'):
+                        p_key = sorted_field_label
+                        if field.label.text == 'Image capture':
+                            values = 'การสแกนภาพเจลโดยเครื่อง Image Scanner (ตามชั่วโมงการใช้งานจริง)'
+                        else:
+                            values = 'การวิเคราะห์ภาพเจลโดยเครื่อง Image Scanner (ตามชั่วโมงการใช้งานจริง)'
+                        quantity = 1
                     else:
                         p_key = sorted_field_label + ''.join(sorted_key_).replace(' ', '')
-                        quantity = None
+                        quantity = 1
                     if p_key in quote_prices:
                         prices = quote_prices[p_key]
                         if p_key in quote_details:
                             quote_details[p_key]["quantity"] += 1
                         else:
-                            if quantity:
+                            if field.label.text == 'SDS Page':
                                 quote_details[p_key] = {"value": f'SDS Page {values}', "price": prices,
                                                         "quantity": quantity}
                             else:
-                                quote_details[p_key] = {"value": values, "price": prices, "quantity": 1}
+                                quote_details[p_key] = {"value": values, "price": prices, "quantity": quantity}
 
         quotation_no = ServiceNumberID.get_number('Quotation', db, lab=service_request.sub_lab.ref)
         quotation = ServiceQuotation(quotation_no=quotation_no.number, request_id=request_id,

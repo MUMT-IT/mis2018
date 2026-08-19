@@ -39,7 +39,7 @@
                                     {{ form.sample_species.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control">
+                                <div class="select">
                                     {{ form.sample_species(
                                         **{'hx-get': url_for("academic_services.get_sample_species_other",
                                                 request_id=request_id),
@@ -57,7 +57,7 @@
                                     {{ form.sample_type.label }}
                                     <span class="has-text-danger">*</span>
                                 </label>
-                                <div class="control">
+                                <div class="select">
                                     {{ form.sample_type(
                                         **{'hx-get': url_for("academic_services.get_sample_type_other",
                                                 request_id=request_id),
@@ -80,6 +80,18 @@
                                 </div>
                             </div>
                             <div class="field">
+                                <label class="label">{{ form.image_capture.label }}</label>
+                                <div class="control">
+                                    {{ form.image_capture() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.image_analysis.label }}</label>
+                                <div class="control">
+                                    {{ form.image_analysis() }}
+                                </div>
+                            </div>
+                            <div class="field">
                                 <label class="label">{{ form.comment.label }}</label>
                                 <div class="control">
                                     {{ form.comment(class='input') }}
@@ -91,30 +103,42 @@
                             <hr style="background-color: gainsboro">
                             <div id="condition-field" class="field">
                                 {% for item_form in form.sds_page_condition_field %}
-                                    <div id="{{ item_form.id }}">
+                                    <div id="{{ item_form.id }}" class="condition-item">
                                         <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
                                         <table class="table is-fullwidth ">
                                             <thead>
-                                            <th style="border: none">
-                                                {{ item_form.sample_name.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </th>
-                                            <th style="border: none">{{ item_form.clean_up.label }}</th>
-                                            <th style="border: none">
-                                                {{ item_form.staining.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </th>
+                                                <th style="border: none">
+                                                    {{ item_form.sample_name.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">{{ item_form.clean_up.label }}</th>
+                                                <th style="border: none">
+                                                    {{ item_form.staining.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
                                             </thead>
                                             <tbody>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.sample_name(class='input') }}
-                                            </td>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.clean_up() }}
-                                            </td>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.staining() }}
-                                            </td>
+                                                <tr>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.sample_name(class='input') }}
+                                                    </td>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.clean_up() }}
+                                                    </td>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.staining() }}
+                                                    </td>
+                                                    <td style="border: none">
+                                                        <a class="button is-danger is-outlined"
+                                                           hx-delete="{{ url_for('academic_services.remove_sds_page_condition_item',
+                                                           name=item_form.name) }}"
+                                                           hx-target="closest .condition-item"
+                                                           hx-swap="outerHTML"
+                                                        >
+                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                        </a>
+                                                    </td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                         {% if not loop.last %}
@@ -134,16 +158,16 @@
                                         <span>เพิ่ม</span>
                                     </a>
                                 </div>
-                                <div class="control">
-                                    <a class="button is-danger is-small is-light is-rounded"
-                                       hx-delete="{{ url_for('academic_services.remove_sds_page_condition_item') }}"
-                                       hx-target="#condition-field" hx-swap="innerHTML">
-                                            <span class="icon">
-                                                <i class="far fa-trash-alt"></i>
-                                            </span>
-                                        <span class="">ลบ</span>
-                                    </a>
-                                </div>
+{#                                <div class="control">#}
+{#                                    <a class="button is-danger is-small is-light is-rounded"#}
+{#                                       hx-delete="{{ url_for('academic_services.remove_sds_page_condition_item') }}"#}
+{#                                       hx-target="#condition-field" hx-swap="innerHTML">#}
+{#                                            <span class="icon">#}
+{#                                                <i class="far fa-trash-alt"></i>#}
+{#                                            </span>#}
+{#                                        <span class="">ลบ</span>#}
+{#                                    </a>#}
+{#                                </div>#}
                             </div>
                         </div>
                         <div class="field is-grouped is-justify-content-center">
@@ -159,78 +183,106 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+{#    <script>#}
+{#        $(document).ready(function () {#}
+{#            const sampleSpecies = $('input[type="checkbox"][name="sample_species"]');#}
+{##}
+{#            function validateSampleSpeciesInput() {#}
+{#                const checkedCount = sampleSpecies.filter(':checked').length;#}
+{##}
+{#                if (checkedCount === 0) {#}
+{#                    sampleSpecies.prop('required', true);#}
+{#                    sampleSpecies.each(function () {#}
+{#                        this.setCustomValidity('Please select at least 1 item.');#}
+{#                    });#}
+{#                } else {#}
+{#                    sampleSpecies.prop('required', false);#}
+{#                    sampleSpecies.each(function () {#}
+{#                        this.setCustomValidity('');#}
+{#                    });#}
+{#                }#}
+{#            }#}
+{##}
+{#            validateSampleSpeciesInput();#}
+{#            sampleSpecies.on('change', validateSampleSpeciesInput);#}
+{#        });#}
+{#    </script>#}
+{#    <script>#}
+{#        $(document).ready(function () {#}
+{#            const sampleType = $('input[type="checkbox"][name="sample_type"]');#}
+{##}
+{#            function validateSampleTypeInput() {#}
+{#                const checkedCount = sampleType.filter(':checked').length;#}
+{##}
+{#                if (checkedCount === 0) {#}
+{#                    sampleType.prop('required', true);#}
+{#                    sampleType.each(function () {#}
+{#                        this.setCustomValidity('Please select at least 1 item.');#}
+{#                    });#}
+{#                } else {#}
+{#                    sampleType.prop('required', false);#}
+{#                    sampleType.each(function () {#}
+{#                        this.setCustomValidity('');#}
+{#                    });#}
+{#                }#}
+{#            }#}
+{##}
+{#            validateSampleTypeInput();#}
+{#            sampleType.on('change', validateSampleTypeInput);#}
+{#        });#}
+{#    </script>#}
     <script>
-        $(document).ready(function () {
-            const sampleSpecies = $('input[type="checkbox"][name="sample_species"]');
-
-            function validateSampleSpeciesInput() {
-                const checkedCount = sampleSpecies.filter(':checked').length;
-
-                if (checkedCount === 0) {
-                    sampleSpecies.prop('required', true);
-                    sampleSpecies.each(function () {
-                        this.setCustomValidity('Please select at least 1 item.');
-                    });
-                } else {
-                    sampleSpecies.prop('required', false);
-                    sampleSpecies.each(function () {
-                        this.setCustomValidity('');
-                    });
+        function renumberSdsPageItems() {
+            const items = document.querySelectorAll('#condition-field .condition-item');
+            items.forEach(function (item, index) {
+                const label = item.querySelector('p strong');
+                if (label) {
+                    label.textContent = `รายการที่ ${index + 1}`;
                 }
-            }
+            });
+        }
 
-            validateSampleSpeciesInput();
-            sampleSpecies.on('change', validateSampleSpeciesInput);
-        });
-    </script>
-    <script>
-        $(document).ready(function () {
-            const sampleType = $('input[type="checkbox"][name="sample_type"]');
-
-            function validateSampleTypeInput() {
-                const checkedCount = sampleType.filter(':checked').length;
-
-                if (checkedCount === 0) {
-                    sampleType.prop('required', true);
-                    sampleType.each(function () {
-                        this.setCustomValidity('Please select at least 1 item.');
-                    });
-                } else {
-                    sampleType.prop('required', false);
-                    sampleType.each(function () {
-                        this.setCustomValidity('');
-                    });
-                }
-            }
-
-            validateSampleTypeInput();
-            sampleType.on('change', validateSampleTypeInput);
-        });
-    </script>
-    <script>
-        $(document).ready(function () {
+        function initSubforms() {
             $('#condition-field div[id]').each(function () {
-                const staining = $('input[type="checkbox"][name$="staining"]');
+                const staining = $('input[type="radio"][name$="staining"]');
 
                 function validateStainingInput() {
-                    const checkedCount = staining.filter(':checked').length;
+                    staining.prop('required', true).attr('oninvalid', "this.setCustomValidity('Please select item')");
 
-                    if (checkedCount === 0) {
-                        staining.prop('required', true);
-                        staining.each(function () {
-                            this.setCustomValidity('Please select at least 1 item.');
-                        });
-                    } else {
-                        staining.prop('required', false);
+                    staining.on('change', function () {
                         staining.each(function () {
                             this.setCustomValidity('');
                         });
-                    }
+                    });
                 }
+                {#function validateStainingInput() {#}
+                {#    const checkedCount = staining.filter(':checked').length;#}
+                {##}
+                {#    if (checkedCount === 0) {#}
+                {#        staining.prop('required', true);#}
+                {#        staining.each(function () {#}
+                {#            this.setCustomValidity('Please select at least 1 item.');#}
+                {#        });#}
+                {#    } else {#}
+                {#        staining.prop('required', false);#}
+                {#        staining.each(function () {#}
+                {#            this.setCustomValidity('');#}
+                {#        });#}
+                {#    }#}
 
                 validateStainingInput();
                 staining.on('change', validateStainingInput);
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initSubforms();
+            renumberSdsPageItems();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            initSubforms();
+            renumberSdsPageItems();
         });
     </script>
 {% endblock %}

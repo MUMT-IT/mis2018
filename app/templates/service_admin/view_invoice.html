@@ -130,86 +130,134 @@
                                 {{ invoice.taxpayer_identification_no or '-' }}<br>
                             </div>
                         </div>
-                        <table class="table is-fullwidth mt-4">
-                            <thead>
-                            <tr>
-                                <th class="has-text-centered">ลำดับ</th>
-                                <th class="has-text-centered">รายการ</th>
-                                <th class="has-text-centered">จำนวน</th>
-                                <th class="has-text-centered">ราคา</th>
-                                <th class="has-text-centered">จำนวนเงิน</th>
-                                {% if not invoice.file_attached_at %}
-                                    <th class="has-text-centered">ส่วนลด</th>
-                                    <th class="has-text-centered">ราคารวม</th>
-                                {% endif %}
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for item in invoice.invoice_items|sort(attribute='sequence') %}
+                        <form method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <table class="table is-fullwidth mt-4">
+                                <thead>
                                 <tr>
-                                    <td class="has-text-centered">{{ item.sequence }}</td>
-                                    <td>{{ item.item|safe }}</td>
-                                    <td class="has-text-centered">{{ item.quantity }}</td>
-                                    <td class="has-text-right">
-                                        {{ "{:,.2f}".format(item.unit_price) }}
-                                    </td>
-                                    <td class="has-text-right">
-                                        {{ "{:,.2f}".format(item.total_price) }}
-                                    </td>
+                                    <th class="has-text-centered">ลำดับ</th>
+                                    <th class="has-text-centered">รายการ</th>
+                                    <th class="has-text-centered">จำนวน</th>
+                                    <th class="has-text-centered">ราคา</th>
+                                    <th class="has-text-centered">จำนวนเงิน</th>
                                     {% if not invoice.file_attached_at %}
-                                        <td class="has-text-right">{{ "{:,.2f}".format(item.get_discount_amount()) }}</td>
-                                        <td class="has-text-right">{{ "{:,.2f}".format(item.net_price()) }}</td>
+                                        <th class="has-text-centered">ส่วนลด</th>
+                                        <th class="has-text-centered">ราคารวม</th>
                                     {% endif %}
                                 </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                        <hr>
-                        <div class="has-text-right">
-                            <p><strong>รวมเป็นเงิน : </strong>
-                                {{ "{:,.2f}".format(invoice.subtotal()) }}
-                            </p>
-                            <p>
-                                <strong>ส่วนลด : </strong>
-                                {{ "{:,.2f}".format(invoice.discount()) }}
-                            </p>
-                            <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>{{ "{:,.2f}".format(invoice.grand_total) }}</p>
-                        </div>
-                        <div class="field">
-                            <div class="buttons is-centered">
-                                {% if invoice.quotation.request.status.status_id == 18 and admin %}
-                                    <a class="button is-success is-rounded is-small mb-2"
-                                       href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                           admin='admin', menu=menu, tab='pending_supervisor') }}"
+                                </thead>
+                                <tbody>
+                                {% for item in invoice.invoice_items|sort(attribute='sequence') %}
+                                    <tr
+                                        data-item-row
+                                        data-unit-price="{{ item.unit_price or 0 }}"
+                                        data-discount-type="{{ item.discount_type or '' }}"
+                                        data-discount-value="{{ item.discount or 0 }}"
+                                        data-quantity="{{ item.quantity or 0 }}"
                                     >
-                                        <span class="icon"><i class="fas fa-check"></i></span>
-                                        <span>เสนอหัวหน้าอนุมัติ</span>
-                                    </a>
-                                {% elif (invoice.quotation.request.status.status_id == 19 and supervisor) or
-                                        (invoice.quotation.request.status.status_id == 20 and assistant) %}
-                                    <a class="button is-success is-rounded is-small mb-2"
-                                            {% if supervisor %}
-                                       href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='supervisor', menu=menu, tab='pending_assistant') }}"
-                                            {% elif assistant %}
-                                       href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
-                                                   admin='assistant', menu=menu, tab='pending_dean') }}"
+                                        <td class="has-text-centered">{{ item.sequence }}</td>
+                                        <td>{{ item.item|safe }}</td>
+                                        <td class="has-text-centered">
+                                            {% if invoice.sub_lab.code == 'sds_page' and admin and not invoice.sent_at %}
+                                                {% if 'Image' in item.item %}
+                                                    <input class="input quantity-input" type="number" style="width: 4em;" id="{{ item.id }}"
+                                                           name="quantity_{{ item.id }}" value="{{ item.quantity }}"
+                                                    >
+                                                {% else %}
+                                                    {{ item.quantity }}
+                                                {% endif %}
+                                            {% else %}
+                                                {{ item.quantity }}
                                             {% endif %}
-                                    >
-                                        <span class="icon"><i class="fas fa-check"></i></span>
-                                        <span>อนุมัติ</span>
-                                    </a>
-                                {% elif invoice.file %}
-                                    <a class="button is-info is-outlined is-rounded is-small mb-2"
-                                       href="{{ url_for('service_admin.download_file', key=invoice.file,
-                                            download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
-                                    >
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>ดาวน์โหลดใบแจ้งหนี้</span>
-                                    </a>
-                                {% endif %}
+                                        </td>
+                                        <td class="has-text-right">
+                                            {{ "{:,.2f}".format(item.unit_price) }}
+                                        </td>
+                                        <td class="has-text-right">
+                                            <span data-total-price>
+                                                {{ "{:,.2f}".format(item.total_price) }}
+                                            </span>
+                                        </td>
+                                        {% if not invoice.file_attached_at %}
+                                            <td class="has-text-right">
+                                                <span data-discount-amount>
+                                                    {{ "{:,.2f}".format(item.get_discount_amount()) }}
+                                                </span>
+                                            </td>
+                                            <td class="has-text-right">
+                                                <span data-net-price>
+                                                    {{ "{:,.2f}".format(item.net_price()) }}
+                                                </span>
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                            <hr>
+                            <div class="has-text-right">
+                                <p><strong>รวมเป็นเงิน : </strong>
+                                    <span id="subtotal">
+                                        {{ "{:,.2f}".format(invoice.subtotal()) }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <strong>ส่วนลด : </strong>
+                                    <span id="discount">
+                                        {{ "{:,.2f}".format(invoice.discount()) }}
+                                    </span>
+                                </p>
+                                <p><strong>รวมเป็นเงินทั้งสิ้น : </strong>
+                                    <span id="grand-total">
+                                        {{ "{:,.2f}".format(invoice.grand_total) }}
+                                    </span>
+                                </p>
                             </div>
-                        </div>
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    {% if invoice.quotation.request.status.status_id == 18 and admin %}
+                                        {% if invoice.sub_lab.code == 'sds_page' %}
+                                            <button type="submit" class="button is-info is-rounded is-small mb-2"
+                                               formaction="{{ url_for('service_admin.update_invoice_item',
+                                               invoice_id=invoice.id, menu=menu, tab='draft', admin='admin') }}"
+                                            >
+                                                <span class="icon"><i class="fas fa-save"></i></span>
+                                                <span>บันทึก</span>
+                                            </button>
+                                        {% endif %}
+                                        <button type="submit" class="button is-success is-rounded is-small mb-2"
+                                                formaction="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                admin='admin', menu=menu, tab='pending_supervisor') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-check"></i></span>
+                                            <span>เสนอหัวหน้าอนุมัติ</span>
+                                        </button>
+                                    {% elif (invoice.quotation.request.status.status_id == 19 and supervisor) or
+                                            (invoice.quotation.request.status.status_id == 20 and assistant) %}
+                                        <a class="button is-success is-rounded is-small mb-2"
+                                                {% if supervisor %}
+                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                       admin='supervisor', menu=menu, tab='pending_assistant') }}"
+                                                {% elif assistant %}
+                                           href="{{ url_for('service_admin.approve_invoice', invoice_id=invoice.id,
+                                                       admin='assistant', menu=menu, tab='pending_dean') }}"
+                                                {% endif %}
+                                        >
+                                            <span class="icon"><i class="fas fa-check"></i></span>
+                                            <span>อนุมัติ</span>
+                                        </a>
+                                    {% elif invoice.file %}
+                                        <a class="button is-info is-outlined is-rounded is-small mb-2"
+                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                                download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
                 <div class="column is-one-quarter ">
@@ -365,6 +413,83 @@
                     printJS({{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id)|tojson|safe }});
                 }
             },
+        });
+    </script>
+    <script>
+        function formatMoney(value) {
+            return Number(value || 0).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function calculateDiscount(row, totalPrice) {
+            const discountType = row.dataset.discountType || '';
+            const discountValue = Number(row.dataset.discountValue || 0);
+
+            if (!discountValue) {
+                return 0;
+            }
+
+            if (discountType === 'เปอร์เซ็นต์') {
+                return totalPrice * (discountValue / 100);
+            }
+
+            return discountValue;
+        }
+
+        function calculatePrice() {
+            const rows = document.querySelectorAll('[data-item-row]');
+            let subtotal = 0;
+            let discountTotal = 0;
+            let grandTotal = 0;
+
+            rows.forEach((row) => {
+                const quantityInput = row.querySelector('.quantity-input');
+                const quantityValue = quantityInput ? Number(quantityInput.value || 0) : Number(row.dataset.quantity || 0);
+                const unitPrice = Number(row.dataset.unitPrice || 0);
+                const totalPrice = quantityValue * unitPrice;
+                const discount = calculateDiscount(row, totalPrice);
+                const netPrice = totalPrice - discount;
+
+                const totalPriceData = row.querySelector('[data-total-price]');
+                const discountData = row.querySelector('[data-discount-amount]');
+                const netPriceData = row.querySelector('[data-net-price]');
+
+                if (totalPriceData) {
+                    totalPriceData.textContent = formatMoney(totalPrice);
+                }
+                if (discountData) {
+                    discountData.textContent = formatMoney(discount);                }
+                if (netPriceData) {
+                    netPriceData.textContent = formatMoney(netPrice);
+                }
+
+                subtotal += totalPrice;
+                discountTotal += discount;
+                grandTotal += netPrice;
+            });
+
+            const subtotalData = document.getElementById('subtotal');
+            const discountData = document.getElementById('discount');
+            const grandTotalData = document.getElementById('grand-total');
+
+            if (subtotalData) {
+                subtotalData.textContent = formatMoney(subtotal);
+            }
+            if (discountData) {
+                discountData.textContent = formatMoney(discountTotal);
+            }
+            if (grandTotalData) {
+                grandTotalData.textContent = formatMoney(grandTotal);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.quantity-input').forEach((input) => {
+                input.addEventListener('input', calculatePrice);
+            });
+            calculatePrice();
         });
     </script>
 {% endblock %}

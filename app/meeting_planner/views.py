@@ -53,17 +53,26 @@ def create_meeting(poll_id=None):
         form.title.data = poll.poll_name
         form.participant.data = poll.participants
     if form.validate_on_submit():
+        participant = form.participant.data if poll_id else request.form.getlist('participants')
+        if not participant:
+            flash('กรุณาเลือกรายชื่อผู้เข้าร่วม', 'danger')
+            return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id, start=start
+                                   , end=end)
         form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        form.meeting_events.entries = [
+            event_form for event_form in form.meeting_events.entries
+            if event_form.room.data
+        ]
+
         for event_form in form.meeting_events:
-            if event_form.room.data:
-                event_form.start.data = form.start.data
-                event_form.end.data = form.end.data
-                event_form.title.data = f'ประชุม{form.title.data}'
+            event_form.start.data = form.start.data
+            event_form.end.data = form.end.data
+            event_form.title.data = f'ประชุม{form.title.data}'
         new_meeting = MeetingEvent()
         form.populate_obj(new_meeting)
         if poll_id:
-            for staff_id in form.participant.data:
+            for staff_id in participant:
                 staff = StaffPersonalInfo.query.get(staff_id.id)
                 invitation = MeetingInvitation(staff_id=staff.staff_account.id,
                                                created_at=new_meeting.start,
@@ -71,7 +80,7 @@ def create_meeting(poll_id=None):
                 new_meeting.poll_id = poll_id
                 db.session.add(invitation)
         else:
-            for staff_id in request.form.getlist('participants'):
+            for staff_id in participant:
                 staff = StaffPersonalInfo.query.get(int(staff_id))
                 invitation = MeetingInvitation(staff_id=staff.staff_account.id,
                                                created_at=new_meeting.start,
@@ -522,7 +531,7 @@ def checkin_member(invite_id):
         db.session.add(invite)
         db.session.commit()
         template = '''
-        <a class="button is-light" hx-put="{}" hx-target="#checkin-{}">
+        <a class="button is-light" hx-patch="{}" hx-target="#checkin-{}">
             <span class="icon">
                 <i class="fa-solid fa-user-clock"></i>
             </span>

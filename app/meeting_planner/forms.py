@@ -1,7 +1,7 @@
 import pytz
 from flask_wtf import FlaskForm
 from wtforms import FieldList, FormField
-from wtforms.validators import Optional
+from wtforms.validators import DataRequired, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 
 from app.main import RoomEvent, RoomResource
@@ -39,6 +39,10 @@ class MeetingAgendaNoteForm(ModelForm):
 class MeetingAgendaForm(ModelForm):
     class Meta:
         model = MeetingAgenda
+        field_args = {
+            'number': {'validators': [DataRequired(message='กรุณากรอกลำดับ')]},
+            'detail': {'validators': [DataRequired(message='กรุณากรอกหัวข้อ')]}
+        }
 
 
 def create_new_meeting(poll_id=None):
