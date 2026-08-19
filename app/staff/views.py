@@ -4240,6 +4240,7 @@ def refresh_daily_attendance(target_date, staff_ids=None):
         if wfh_request.staff_account_id in account_ids and wfh_request.get_approved
     }
     holiday = _get_holiday_for_date(target_date)
+    is_weekend = target_date.weekday() >= 5
     calculated_at = datetime.now(pytz.utc)
     absent_count = 0
 
@@ -4260,10 +4261,10 @@ def refresh_daily_attendance(target_date, staff_ids=None):
             source_record_id = first_record.id
             created_by_id = first_record.creator_id
             approved_by_id = first_record.approved_by_id
-        elif holiday:
+        elif holiday or is_weekend:
             status = 'holiday'
             source = 'holiday'
-            note = holiday.holiday_name
+            note = holiday.holiday_name if holiday else 'Weekend'
             source_record_id = None
             created_by_id = None
             approved_by_id = None
