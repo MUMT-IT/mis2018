@@ -387,53 +387,69 @@ def send_checkin_reminder():
     _run_job(job_name, _job)
 
 
+def _run_flask_cli(job_name, arguments, timeout):
+    command = [
+        sys.executable,
+        '-m',
+        'flask',
+        '--app',
+        'app.main:app',
+    ] + list(arguments)
+    logger.info(
+        'job_checkpoint job=%s step=cli_start command=%s timeout_seconds=%s',
+        job_name,
+        ' '.join(command),
+        timeout,
+    )
+    result = subprocess.run(
+        command,
+        check=False,
+        cwd=os.getcwd(),
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+    )
+    if result.stdout:
+        logger.info(
+            'job_checkpoint job=%s step=cli_stdout output=%s',
+            job_name,
+            _safe_text(result.stdout, 10000),
+        )
+    if result.stderr:
+        logger.warning(
+            'job_checkpoint job=%s step=cli_stderr output=%s',
+            job_name,
+            _safe_text(result.stderr, 10000),
+        )
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(
+            result.returncode,
+            command,
+            output=result.stdout,
+            stderr=result.stderr,
+        )
+
+
 def run_docs_query_backfill():
     job_name = 'run_docs_query_backfill'
 
     def _job():
-        command = [
-            sys.executable,
-            '-m',
-            'flask',
-            '--app',
-            'app.main:app',
-            'docs-query',
-            'backfill',
-        ]
         timeout = int(os.getenv('DOCS_QUERY_BACKFILL_TIMEOUT_SECONDS', '21600'))
-        logger.info(
-            'job_checkpoint job=%s step=cli_start command=%s timeout_seconds=%s',
+        _run_flask_cli(job_name, ['docs-query', 'backfill'], timeout)
+
+    _run_job(job_name, _job)
+
+
+def reconcile_daily_attendance():
+    job_name = 'reconcile_daily_attendance'
+
+    def _job():
+        timeout = int(os.getenv('STAFF_ATTENDANCE_RECONCILIATION_TIMEOUT_SECONDS', '1800'))
+        _run_flask_cli(
             job_name,
-            ' '.join(command),
+            ['staff', 'reconcile-daily-attendance', '--days', '14'],
             timeout,
         )
-        result = subprocess.run(
-            command,
-            check=False,
-            cwd=os.getcwd(),
-            text=True,
-            capture_output=True,
-            timeout=timeout,
-        )
-        if result.stdout:
-            logger.info(
-                'job_checkpoint job=%s step=cli_stdout output=%s',
-                job_name,
-                _safe_text(result.stdout, 10000),
-            )
-        if result.stderr:
-            logger.warning(
-                'job_checkpoint job=%s step=cli_stderr output=%s',
-                job_name,
-                _safe_text(result.stderr, 10000),
-            )
-        if result.returncode != 0:
-            raise subprocess.CalledProcessError(
-                result.returncode,
-                command,
-                output=result.stdout,
-                stderr=result.stderr,
-            )
 
     _run_job(job_name, _job)
 
@@ -503,5 +519,10 @@ scheduler.add_job(run_docs_query_backfill,
                   'cron',
                   hour='0',
                   minute='00',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(reconcile_daily_attendance,
+                  'cron',
+                  hour='0',
+                  minute='15',
                   timezone='Asia/Bangkok')
 scheduler.start()

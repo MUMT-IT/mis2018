@@ -188,6 +188,112 @@
         margin-top: 0.9rem;
     }
 
+    .hr-daily-absence-controls {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .hr-daily-absence-date {
+        flex: 1 1 14rem;
+    }
+
+    .hr-daily-absence-date label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+
+    .hr-daily-absence-date input {
+        border: 1px solid rgba(18, 39, 84, 0.14);
+        border-radius: 10px;
+        color: var(--theme-navy-deep);
+        font: inherit;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.65rem;
+        width: 100%;
+    }
+
+    .hr-daily-absence-type {
+        flex: 1 1 18rem;
+    }
+
+    .hr-daily-absence-type legend {
+        color: var(--theme-muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+
+    .hr-daily-absence-type-options {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        min-height: 2.5rem;
+    }
+
+    .hr-daily-absence-type-options label {
+        color: var(--theme-navy-deep);
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .hr-daily-absence-type-options input {
+        margin-right: 0.25rem;
+    }
+
+    .hr-daily-absence-button {
+        background: var(--theme-navy-deep);
+        border: 0;
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .hr-daily-absence-table-wrap {
+        margin-top: 1rem;
+        overflow-x: auto;
+    }
+
+    .hr-daily-absence-table {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 14px;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 38rem;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .hr-daily-absence-table th,
+    .hr-daily-absence-table td {
+        border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+        padding: 0.65rem 0.75rem;
+        text-align: left;
+    }
+
+    .hr-daily-absence-table th {
+        background: rgba(18, 39, 84, 0.05);
+        color: var(--theme-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .hr-daily-absence-table td {
+        color: var(--theme-navy-deep);
+        font-size: 0.82rem;
+    }
+
     .hr-login-quota-search {
         align-items: end;
         display: flex;
@@ -486,6 +592,32 @@
                             <div class="hr-login-quota-result" id="quotaResult" hidden></div>
                         </div>
                     </div>
+                    <div class="hr-login-report-card">
+                        <div class="hr-login-report-card-inner">
+                            <h2 class="hr-login-report-title">รายชื่อบุคลากรที่ไม่พบการลงเวลา</h2>
+                            <p class="hr-login-report-subtitle">รายการคำนวณจากข้อมูลสรุปรายวัน โดยไม่นับวันหยุด การลา และการทำงานที่บ้านที่ได้รับอนุมัติ</p>
+                            <div class="hr-daily-absence-controls">
+                                <div class="hr-daily-absence-date">
+                                    <label for="dailyAbsenceDate">วันที่</label>
+                                    <input id="dailyAbsenceDate" type="date">
+                                </div>
+                                <fieldset class="hr-daily-absence-type">
+                                    <legend>ประเภทบุคลากร</legend>
+                                    <div class="hr-daily-absence-type-options">
+                                        <label><input type="radio" name="dailyAbsenceType" value="all" checked> ทั้งหมด</label>
+                                        <label><input type="radio" name="dailyAbsenceType" value="academic"> สายวิชาการ</label>
+                                        <label><input type="radio" name="dailyAbsenceType" value="non_academic"> สายสนับสนุน</label>
+                                    </div>
+                                </fieldset>
+                                <button type="button" class="hr-daily-absence-button" id="loadDailyAbsenceButton">
+                                    <i class="fas fa-user-clock" aria-hidden="true"></i>
+                                    โหลดรายชื่อ
+                                </button>
+                            </div>
+                            <div class="hr-login-report-status" id="dailyAbsenceStatus" role="status" aria-live="polite"></div>
+                            <div id="dailyAbsenceResult"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -495,6 +627,7 @@
 {{ super() }}
     <script>
         const hrLoginReportSummaryApiUrl = {{ url_for('staff.get_hr_login_summary_report_summary')|tojson|safe }};
+        const hrDailyAbsencesApiUrl = {{ url_for('staff.get_hr_daily_absences')|tojson|safe }};
         const hrLoginQuotaApiBaseUrl = {{ url_for('staff.get_hr_login_quota_summary', staff_id=0)|tojson|safe }}.replace(/0$/, '');
         const hrLoginRecordsPageUrl = {{ url_for('staff.hr_login_records')|tojson|safe }};
         let latestReportData = null;
@@ -550,6 +683,56 @@
                 minute: '2-digit',
                 hour12: false
             });
+        }
+
+        function localDateInputValue(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        }
+
+        function renderDailyAbsences(data) {
+            const absences = data.absences || [];
+            if (!absences.length) {
+                $('#dailyAbsenceResult').html('<p class="hr-login-report-status">ไม่พบรายชื่อบุคลากรที่ขาดงานสำหรับวันที่เลือก</p>');
+                return;
+            }
+            $('#dailyAbsenceResult').html(
+                '<div class="hr-daily-absence-table-wrap"><table class="hr-daily-absence-table">' +
+                    '<thead><tr><th>#</th><th>ชื่อบุคลากร</th><th>หน่วยงาน</th><th>อีเมล</th></tr></thead>' +
+                    '<tbody>' + absences.map(function(absence, index) {
+                        return '<tr>' +
+                            '<td>' + (index + 1) + '</td>' +
+                            '<td>' + escapeHtml(absence.name) + '</td>' +
+                            '<td>' + escapeHtml(absence.department || '—') + '</td>' +
+                            '<td>' + escapeHtml(absence.email || '—') + '</td>' +
+                        '</tr>';
+                    }).join('') + '</tbody></table></div>'
+            );
+        }
+
+        function loadDailyAbsences() {
+            const selectedDate = $('#dailyAbsenceDate').val();
+            const staffType = $('input[name="dailyAbsenceType"]:checked').val() || 'all';
+            if (!selectedDate) {
+                $('#dailyAbsenceStatus').text('กรุณาเลือกวันที่');
+                return;
+            }
+            $('#loadDailyAbsenceButton').prop('disabled', true);
+            $('#dailyAbsenceStatus').html('<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> กำลังโหลดรายชื่อ...');
+            $.getJSON(hrDailyAbsencesApiUrl, {date: selectedDate, staff_type: staffType})
+                .done(function(data) {
+                    renderDailyAbsences(data);
+                    $('#dailyAbsenceStatus').text('พบ ' + formatNumber(data.count) + ' คน สำหรับวันที่ ' + data.date);
+                })
+                .fail(function() {
+                    $('#dailyAbsenceResult').empty();
+                    $('#dailyAbsenceStatus').text('ยังไม่มีข้อมูลสรุปสำหรับวันที่เลือก หรือไม่สามารถโหลดข้อมูลได้');
+                })
+                .always(function() {
+                    $('#loadDailyAbsenceButton').prop('disabled', false);
+                });
         }
 
         function renderCheckinRecords(records, staffId) {
@@ -759,8 +942,13 @@
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
             $('#reportStart').val(toInputDateTime(monthStart));
             $('#reportEnd').val(toInputDateTime(now));
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            $('#dailyAbsenceDate').val(localDateInputValue(yesterday));
             $('#loadReportButton').on('click', loadReport);
             $('#downloadReportButton').on('click', downloadReport);
+            $('#loadDailyAbsenceButton').on('click', loadDailyAbsences);
+            $('input[name="dailyAbsenceType"]').on('change', loadDailyAbsences);
             $('#loadQuotaButton').on('click', loadQuota);
             $('#quotaStaffSearch').on('keydown', function(event) {
                 if (event.key === 'Enter') {
@@ -769,6 +957,7 @@
                 }
             });
             loadReport();
+            loadDailyAbsences();
         });
     </script>
 {% endblock %}
