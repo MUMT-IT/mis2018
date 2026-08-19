@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block title %}สถิติการลงเวลาจากข้อมูลสรุปรายวัน{% endblock %}
+
+{% block page_content %}
+<style>
+    .daily-attendance-report {
+        padding: 2rem 0 4rem;
+    }
+
+    .daily-attendance-report-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 247, 252, 0.96));
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 24px;
+        box-shadow: 0 18px 50px rgba(18, 39, 84, 0.08);
+        margin: 0 auto;
+        max-width: 78rem;
+        padding: 1.5rem;
+    }
+
+    .daily-attendance-report-title {
+        color: var(--theme-navy-deep);
+        font-size: 1.45rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .daily-attendance-report-subtitle {
+        color: var(--theme-muted);
+        margin: 0.35rem 0 0;
+    }
+
+    .daily-attendance-report-filters {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+    }
+
+    .daily-attendance-report-filter {
+        flex: 1 1 14rem;
+    }
+
+    .daily-attendance-report-filter label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+
+    .daily-attendance-report-filter input {
+        border: 1px solid rgba(18, 39, 84, 0.14);
+        border-radius: 10px;
+        font: inherit;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.65rem;
+        width: 100%;
+    }
+
+    .daily-attendance-report-filter select {
+        background: #fff;
+        border: 1px solid rgba(18, 39, 84, 0.14);
+        border-radius: 10px;
+        font: inherit;
+        min-height: 2.5rem;
+        padding: 0.45rem 0.65rem;
+        width: 100%;
+    }
+
+    .daily-attendance-report-type {
+        flex: 1 1 20rem;
+    }
+
+    .daily-attendance-report-type legend {
+        color: var(--theme-muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+    }
+
+    .daily-attendance-report-type-options {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        min-height: 2.5rem;
+    }
+
+    .daily-attendance-report-type-options label {
+        color: var(--theme-navy-deep);
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .daily-attendance-report-type-options input {
+        margin-right: 0.25rem;
+    }
+
+    .daily-attendance-report-button {
+        background: var(--theme-navy-deep);
+        border: 0;
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 2.5rem;
+        padding: 0.45rem 1rem;
+    }
+
+    .daily-attendance-report-link {
+        display: inline-block;
+        margin-top: 0.85rem;
+    }
+
+    .daily-attendance-report-summary {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 1.5rem;
+    }
+
+    .daily-attendance-report-stat {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-radius: 16px;
+        padding: 1rem;
+    }
+
+    .daily-attendance-report-stat-label {
+        color: var(--theme-muted);
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .daily-attendance-report-stat-value {
+        color: var(--theme-navy-deep);
+        display: block;
+        font-size: 1.55rem;
+        font-weight: 800;
+        margin-top: 0.25rem;
+    }
+
+    .daily-attendance-report-table-wrap {
+        margin-top: 1.5rem;
+        overflow-x: auto;
+    }
+
+    .daily-attendance-report-table {
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid rgba(18, 39, 84, 0.08);
+        border-collapse: separate;
+        border-radius: 14px;
+        border-spacing: 0;
+        min-width: 54rem;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .daily-attendance-report-table th,
+    .daily-attendance-report-table td {
+        border-bottom: 1px solid rgba(18, 39, 84, 0.08);
+        padding: 0.65rem 0.75rem;
+        text-align: right;
+    }
+
+    .daily-attendance-report-table th:first-child,
+    .daily-attendance-report-table td:first-child {
+        text-align: left;
+    }
+
+    .daily-attendance-report-table th {
+        background: rgba(18, 39, 84, 0.05);
+        color: var(--theme-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .daily-attendance-report-table td {
+        color: var(--theme-navy-deep);
+        font-size: 0.82rem;
+    }
+
+    .daily-attendance-report-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    @media (max-width: 700px) {
+        .daily-attendance-report-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<section class="section daily-attendance-report">
+    <div class="daily-attendance-report-card">
+        <h1 class="daily-attendance-report-title">สถิติการลงเวลาจากข้อมูลสรุปรายวัน</h1>
+        <p class="daily-attendance-report-subtitle">
+            สรุปสถานะจาก check-in snapshot ของบุคลากรที่ยังปฏิบัติงานในช่วงวันที่เลือก
+        </p>
+
+        <form class="daily-attendance-report-filters" method="get">
+            <div class="daily-attendance-report-filter">
+                <label for="dailyAttendanceStart">วันที่เริ่มต้น</label>
+                <input id="dailyAttendanceStart" name="start" type="date"
+                       value="{{ start_date.isoformat() }}" required>
+            </div>
+            <div class="daily-attendance-report-filter">
+                <label for="dailyAttendanceEnd">วันที่สิ้นสุด</label>
+                <input id="dailyAttendanceEnd" name="end" type="date"
+                       value="{{ end_date.isoformat() }}" required>
+            </div>
+            <div class="daily-attendance-report-filter">
+                <label for="dailyAttendanceOrganization">หน่วยงาน</label>
+                <select id="dailyAttendanceOrganization" name="org_id">
+                    <option value="">ทุกหน่วยงาน</option>
+                    {% for organization in organizations %}
+                        <option value="{{ organization.id }}"
+                                {% if selected_org_id == organization.id %}selected{% endif %}>
+                            {{ organization.display_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <fieldset class="daily-attendance-report-type">
+                <legend>ประเภทบุคลากร</legend>
+                <div class="daily-attendance-report-type-options">
+                    <label><input type="radio" name="staff_type" value="all"
+                                  {% if staff_type == 'all' %}checked{% endif %}> ทั้งหมด</label>
+                    <label><input type="radio" name="staff_type" value="academic"
+                                  {% if staff_type == 'academic' %}checked{% endif %}> สายวิชาการ</label>
+                    <label><input type="radio" name="staff_type" value="non_academic"
+                                  {% if staff_type == 'non_academic' %}checked{% endif %}> สายสนับสนุน</label>
+                </div>
+            </fieldset>
+            <button class="daily-attendance-report-button" type="submit">
+                <i class="fas fa-chart-column" aria-hidden="true"></i>
+                แสดงสถิติ
+            </button>
+        </form>
+
+        <a class="daily-attendance-report-link" href="{{ url_for('staff.hr_login_summary_report') }}">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> กลับหน้าสรุปการเข้าออกงาน
+        </a>
+
+        <div class="daily-attendance-report-summary">
+            <div class="daily-attendance-report-stat">
+                <span class="daily-attendance-report-stat-label">จำนวนวัน</span>
+                <strong class="daily-attendance-report-stat-value">{{ daily_rows|length }}</strong>
+            </div>
+            <div class="daily-attendance-report-stat">
+                <span class="daily-attendance-report-stat-label">บุคลากรที่พบใน snapshot</span>
+                <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(staff_count) }}</strong>
+            </div>
+            <div class="daily-attendance-report-stat">
+                <span class="daily-attendance-report-stat-label">รายการ snapshot ทั้งหมด</span>
+                <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(snapshot_rows) }}</strong>
+            </div>
+        </div>
+
+        <div class="daily-attendance-report-summary">
+            {% for status in status_order %}
+                <div class="daily-attendance-report-stat">
+                    <span class="daily-attendance-report-stat-label">{{ status_labels[status] }}</span>
+                    <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(totals.get(status, 0)) }}</strong>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="daily-attendance-report-summary">
+            <div class="daily-attendance-report-stat">
+                <span class="daily-attendance-report-stat-label">อนุมัติคำขอรับรองเวลา</span>
+                <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(source_counts.get('approved_request', 0)) }}</strong>
+            </div>
+            <div class="daily-attendance-report-stat">
+                <span class="daily-attendance-report-stat-label">บันทึกโดย HR</span>
+                <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(source_counts.get('hr_manual', 0)) }}</strong>
+            </div>
+        </div>
+
+        <div class="daily-attendance-report-table-wrap">
+            <table class="daily-attendance-report-table">
+                <thead>
+                    <tr>
+                        <th>บุคลากร</th>
+                        <th>ลงเวลาปกติ</th>
+                        <th>อนุมัติคำขอ</th>
+                        <th>บันทึกโดย HR</th>
+                        <th>อื่น ๆ</th>
+                        <th>ไม่พบการลงเวลา</th>
+                        <th>ลา</th>
+                        <th>ทำงานที่บ้าน</th>
+                        <th>วันหยุด</th>
+                        <th>รวม</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in staff_rows %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('staff.hr_daily_attendance_staff_detail', staff_id=row.staff_id, start=start_date.isoformat(), end=end_date.isoformat()) }}">
+                                    {{ row.name }}
+                                </a>
+                            </td>
+                            <td>{{ '{:,}'.format(row.normal_checkin) }}</td>
+                            <td>{{ '{:,}'.format(row.approved_request) }}</td>
+                            <td>{{ '{:,}'.format(row.hr_manual) }}</td>
+                            <td>{{ '{:,}'.format(row.other_present) }}</td>
+                            <td>{{ '{:,}'.format(row.absent) }}</td>
+                            <td>{{ '{:,}'.format(row.leave) }}</td>
+                            <td>{{ '{:,}'.format(row.work_from_home) }}</td>
+                            <td>{{ '{:,}'.format(row.holiday) }}</td>
+                            <td>{{ '{:,}'.format(row.total) }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="10">ไม่พบข้อมูล snapshot ตามเงื่อนไขที่เลือก</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
