@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online health results</title>
+</head>
+<body style="margin:0; padding:0; background:#f3f6fb; color:#17345f; font-family:Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f3f6fb;">
+        <tr>
+            <td align="center" style="padding:32px 16px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px; background:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 8px 24px rgba(20,52,95,.10);">
+                    <tr>
+                        <td style="padding:26px 32px; background:#003b70; color:#ffffff; border-bottom:5px solid #c59b45;">
+                            <div style="font-size:13px; letter-spacing:.08em; text-transform:uppercase; opacity:.85;">MUMT-MIS</div>
+                            <div style="font-size:25px; font-weight:700; margin-top:8px;">ผลตรวจสุขภาพออนไลน์</div>
+                            <div style="font-size:16px; margin-top:4px; opacity:.92;">Online Health Results</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:32px;">
+                            <p style="margin:0 0 16px; font-size:18px; font-weight:700;">สวัสดี {{ customer_name }}</p>
+                            <p style="margin:0 0 12px; line-height:1.7;">เราได้รับคำขอเข้าสู่หน้าผลตรวจสุขภาพออนไลน์ของท่าน</p>
+                            <p style="margin:0 0 24px; line-height:1.7;">กดปุ่มด้านล่างเพื่อเปิดดูผลตรวจ ลิงก์นี้จะใช้งานได้ภายใน <strong>10 นาที</strong></p>
+                            <p style="margin:0 0 24px; line-height:1.7; color:#49627f;">We received a request to view your online health results. Click the button below. This link expires in <strong>10 minutes</strong>.</p>
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 28px;">
+                                <tr>
+                                    <td align="center" style="border-radius:8px; background:#1261a0;">
+                                        <a href="{{ access_url }}" style="display:inline-block; padding:14px 28px; color:#ffffff; font-size:17px; font-weight:700; text-decoration:none; border-radius:8px;">เปิดดูผลตรวจ / View results</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div style="padding:16px; background:#fff8e7; border:1px solid #ecd9a5; border-radius:10px; color:#705b27; font-size:14px; line-height:1.6;">
+                                หากท่านไม่ได้เป็นผู้ขอลิงก์นี้ สามารถละเว้นอีเมลฉบับนี้ได้<br>
+                                If you did not request this link, you can safely ignore this email.
+                            </div>
+                            <p style="margin:24px 0 0; color:#718096; font-size:12px; line-height:1.6;">ปุ่มเปิดไม่ได้ใช่หรือไม่? คัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์:<br><a href="{{ access_url }}" style="color:#1261a0; word-break:break-all;">{{ access_url }}</a></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:18px 32px; background:#f7f9fc; color:#718096; font-size:12px; line-height:1.6;">อีเมลนี้ส่งโดยระบบอัตโนมัติจากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br>This is an automated message from the Faculty of Medical Technology, Mahidol University.</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

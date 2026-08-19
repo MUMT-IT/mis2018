@@ -60,9 +60,90 @@ def test_jobs_registers_weekday_checkin_reminder(monkeypatch):
     assert args[0] == 'cron'
     assert kwargs['day_of_week'] == 'mon-fri'
     assert kwargs['hour'] == '8'
-    assert kwargs['minute'] == '50'
+    assert kwargs['minute'] == '29'
     assert kwargs['timezone'] == 'Asia/Bangkok'
     assert scheduler.started is True
+
+
+def test_jobs_registers_docs_query_backfill_at_midnight(monkeypatch):
+    jobs = _import_jobs(monkeypatch)
+
+    added = [entry for entry in jobs.scheduler.added_jobs if entry[0] is jobs.run_docs_query_backfill]
+
+    assert added
+    _, args, kwargs = added[0]
+    assert args[0] == 'cron'
+    assert kwargs['hour'] == '0'
+    assert kwargs['minute'] == '00'
+    assert kwargs['timezone'] == 'Asia/Bangkok'
+
+
+def test_jobs_registers_daily_attendance_reconciliation_after_midnight(monkeypatch):
+    jobs = _import_jobs(monkeypatch)
+
+    added = [entry for entry in jobs.scheduler.added_jobs if entry[0] is jobs.reconcile_daily_attendance]
+
+    assert added
+    _, args, kwargs = added[0]
+    assert args[0] == 'cron'
+    assert kwargs['hour'] == '0'
+    assert kwargs['minute'] == '15'
+    assert kwargs['timezone'] == 'Asia/Bangkok'
+
+
+def test_docs_query_backfill_runs_flask_cli(monkeypatch):
+    captured = {}
+
+    def run(command, **kwargs):
+        captured['command'] = command
+        captured['kwargs'] = kwargs
+        return type('CompletedProcess', (), {
+            'returncode': 0,
+            'stdout': 'Completed: 2 processed, 0 failed, 3 skipped',
+            'stderr': '',
+        })()
+
+    jobs = _import_jobs(monkeypatch)
+    monkeypatch.setattr(jobs.subprocess, 'run', run)
+    monkeypatch.setattr(jobs, '_run_job', lambda _job_name, fn: fn())
+
+    jobs.run_docs_query_backfill()
+
+    assert captured['command'][1:3] == ['-m', 'flask']
+    assert captured['command'][-2:] == ['docs-query', 'backfill']
+    assert captured['kwargs']['check'] is False
+    assert captured['kwargs']['capture_output'] is True
+    assert captured['kwargs']['text'] is True
+
+
+def test_daily_attendance_reconciliation_runs_flask_cli(monkeypatch):
+    captured = {}
+
+    def run(command, **kwargs):
+        captured['command'] = command
+        captured['kwargs'] = kwargs
+        return type('CompletedProcess', (), {
+            'returncode': 0,
+            'stdout': '2026-08-18: 10 processed, 2 absent',
+            'stderr': '',
+        })()
+
+    jobs = _import_jobs(monkeypatch)
+    monkeypatch.setattr(jobs.subprocess, 'run', run)
+    monkeypatch.setattr(jobs, '_run_job', lambda _job_name, fn: fn())
+
+    jobs.reconcile_daily_attendance()
+
+    assert captured['command'][1:3] == ['-m', 'flask']
+    assert captured['command'][-4:] == [
+        'staff',
+        'reconcile-daily-attendance',
+        '--days',
+        '14',
+    ]
+    assert captured['kwargs']['check'] is False
+    assert captured['kwargs']['capture_output'] is True
+    assert captured['kwargs']['text'] is True
 
 
 def test_send_checkin_reminder_posts_tokenized_request(monkeypatch):

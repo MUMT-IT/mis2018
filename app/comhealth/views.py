@@ -80,6 +80,12 @@ GOOGLE_SCOPES = [
 SPECIMENS_SUMMARY_PAGE_SIZE_MAX = 100
 SERVICE_CUSTOMERS_PAGE_SIZE_MAX = 100
 
+# These limits apply only to ComHealth sessions established through the public
+# email link or the Online Results Google flow. Main MUMT-MIS logins continue to
+# use their normal Flask-Login session lifetime.
+PUBLIC_RESULTS_IDLE_TIMEOUT = 30 * 60
+PUBLIC_RESULTS_MAX_LIFETIME = 2 * 60 * 60
+
 
 def _is_google_verification_enabled():
     return bool(os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'))
@@ -104,9 +110,58 @@ def _has_online_results_access():
     return current_user.is_authenticated or bool(session.get('comhealth_online_results_email'))
 
 
+def _set_online_results_session(email, display_name):
+    now = time.time()
+    session['comhealth_online_results_email'] = email
+    session['comhealth_online_results_name'] = display_name
+    session['comhealth_online_results_started_at'] = now
+    session['comhealth_online_results_last_seen_at'] = now
+
+
+def _clear_online_results_session():
+    for key in (
+        'comhealth_online_results_email',
+        'comhealth_online_results_name',
+        'comhealth_online_results_started_at',
+        'comhealth_online_results_last_seen_at',
+    ):
+        session.pop(key, None)
+
+
 def _require_online_results_access():
-    if _has_online_results_access():
+    if current_user.is_authenticated:
         return None
+
+    email = session.get('comhealth_online_results_email')
+    if email:
+        now = time.time()
+        started_at = session.get('comhealth_online_results_started_at')
+        last_seen_at = session.get('comhealth_online_results_last_seen_at')
+
+        # Initialize timestamps for sessions created before timeout support was
+        # deployed, instead of unexpectedly logging those users out.
+        if not isinstance(started_at, (int, float)):
+            started_at = now
+            session['comhealth_online_results_started_at'] = started_at
+        if not isinstance(last_seen_at, (int, float)):
+            last_seen_at = now
+            session['comhealth_online_results_last_seen_at'] = last_seen_at
+
+        idle_expired = now - last_seen_at > PUBLIC_RESULTS_IDLE_TIMEOUT
+        absolute_expired = now - started_at > PUBLIC_RESULTS_MAX_LIFETIME
+        if not idle_expired and not absolute_expired:
+            session['comhealth_online_results_last_seen_at'] = now
+            session.modified = True
+            return None
+
+        _clear_online_results_session()
+        flash(
+            'Your online results session has expired. Please request a new access link. '
+            '/ เซสชันดูผลตรวจออนไลน์หมดอายุแล้ว กรุณาขอลิงก์ใหม่',
+            'warning'
+        )
+        return redirect(url_for('comhealth.landing'))
+
     flash(
         'Please verify your email access before viewing online results. / กรุณายืนยันสิทธิ์อีเมลก่อนดูผลตรวจออนไลน์',
         'warning'
@@ -469,6 +524,103 @@ def email_registration_general_public():
     return render_template('comhealth/email_registration_general_public.html')
 
 
+@comhealth.route('/online-results/general-public', methods=('GET', 'POST'))
+def online_results_general_public():
+    """Request a short-lived email link for public online results access."""
+    form = SendMailToCustomerForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        email = form.email.data.strip().lower()
+        customer = ComHealthCustomer.query.filter(
+            db.func.lower(ComHealthCustomer.email) == email
+        ).first()
+
+        # Keep this response identical for known and unknown addresses to avoid
+        # exposing which email addresses exist in the health database.
+        if customer:
+            serializer = TimedJSONWebSignatureSerializer(
+                current_app.config.get('SECRET_KEY'),
+                salt='comhealth-online-results-access'
+            )
+            token = serializer.dumps({
+                'email': email,
+                'display_name': customer.fullname,
+                'nonce': secrets.token_urlsafe(24),
+            })
+            access_url = url_for(
+                'comhealth.online_results_general_public_access',
+                token=token,
+                _external=True
+            )
+            email_subject = 'Your online health results / ลิงก์เข้าดูผลตรวจออนไลน์'
+            email_body = (
+                'Open this link to view your online health results. '
+                'The link expires in 10 minutes:\n{}\n\n'
+                'เปิดลิงก์นี้เพื่อดูผลตรวจสุขภาพออนไลน์ของท่าน '
+                'ลิงก์จะหมดอายุภายใน 10 นาที:\n{}'
+            ).format(access_url, access_url)
+            email_html = render_template(
+                'comhealth/_online_results_access_email.html',
+                access_url=access_url,
+                customer_name=customer.fullname
+            )
+            mail.send(Message(
+                subject=email_subject,
+                body=email_body,
+                html=email_html,
+                recipients=[email]
+            ))
+
+        flash(
+            'If this email is registered, we have sent a one-time access link. '
+            '/ หากอีเมลนี้ลงทะเบียนไว้ ระบบได้ส่งลิงก์เข้าดูผลตรวจให้แล้ว',
+            'success'
+        )
+        return redirect(url_for('comhealth.online_results_general_public'))
+
+    return render_template('comhealth/online_results_general_public.html', form=form)
+
+
+@comhealth.route('/online-results/general-public/access')
+def online_results_general_public_access():
+    token = request.args.get('token')
+    serializer = TimedJSONWebSignatureSerializer(
+        current_app.config.get('SECRET_KEY'),
+        salt='comhealth-online-results-access'
+    )
+    try:
+        token_data = serializer.loads(token, max_age=600)
+        email = (token_data.get('email') or '').strip().lower()
+        if not email:
+            raise ValueError('Missing email in access token')
+    except Exception:
+        return render_template(
+            'comhealth/email_registration_verification_result.html',
+            status='danger',
+            title='Access link expired / ลิงก์หมดอายุ',
+            message=(
+                'This access link is invalid or has expired. Please request a new link.\n'
+                'ลิงก์นี้ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาขอลิงก์ใหม่'
+            )
+        ), 400
+
+    customer = ComHealthCustomer.query.filter(
+        db.func.lower(ComHealthCustomer.email) == email
+    ).first()
+    if not customer:
+        return render_template(
+            'comhealth/email_registration_verification_result.html',
+            status='danger',
+            title='Access link unavailable / ไม่สามารถเข้าดูผลตรวจได้',
+            message=(
+                'This access link is no longer available. Please request a new link.\n'
+                'ไม่สามารถใช้ลิงก์นี้ได้แล้ว กรุณาขอลิงก์ใหม่'
+            )
+        ), 400
+
+    _set_online_results_session(email, token_data.get('display_name') or customer.fullname)
+    return redirect(url_for('comhealth.customers_result_list'))
+
+
 @comhealth.route('/email-registration/mahidol-staff/search')
 @login_required
 def search_email_registration_mahidol_staff():
@@ -698,8 +850,7 @@ def online_results_mahidol_google_callback():
         )
         return redirect(url_for('comhealth.email_registration_landing'))
 
-    session['comhealth_online_results_email'] = email
-    session['comhealth_online_results_name'] = display_name
+    _set_online_results_session(email, display_name)
     return redirect(url_for('comhealth.customers_result_list'))
 
 

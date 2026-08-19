@@ -1873,6 +1873,9 @@ app.register_blueprint(docs_query_blueprint)
 from app.docs_query.commands import register_commands as register_docs_query_commands
 
 register_docs_query_commands(app)
+from app.staff.commands import register_commands as register_staff_commands
+
+register_staff_commands(app)
 
 from app.software_request.models import *
 

@@ -1003,10 +1003,39 @@ class StaffWorkLogin(db.Model):
     note = db.Column('note', db.Text())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     creator = db.relationship('StaffAccount', foreign_keys=[creator_id])
+    request_id = db.Column('request_id', db.ForeignKey('staff_request_work_logins.id'), nullable=True)
+    approved_by_id = db.Column('approved_by_id', db.ForeignKey('staff_account.id'), nullable=True)
+    approved_by = db.relationship('StaffAccount', foreign_keys=[approved_by_id])
 
     @staticmethod
     def generate_date_id(date):
         return date.strftime('%Y%m%d')
+
+
+class StaffDailyAttendance(db.Model):
+    __tablename__ = 'staff_daily_attendance'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
+    attendance_date = db.Column('attendance_date', db.Date(), nullable=False)
+    status = db.Column('status', db.String(32), nullable=False)
+    first_checkin_at = db.Column('first_checkin_at', db.DateTime(timezone=True), nullable=True)
+    last_checkout_at = db.Column('last_checkout_at', db.DateTime(timezone=True), nullable=True)
+    source = db.Column('source', db.String(30), nullable=True)
+    source_record_id = db.Column('source_record_id', db.Integer(), nullable=True)
+    created_by_id = db.Column('created_by_id', db.ForeignKey('staff_account.id'), nullable=True)
+    approved_by_id = db.Column('approved_by_id', db.ForeignKey('staff_account.id'), nullable=True)
+    calculated_at = db.Column('calculated_at', db.DateTime(timezone=True), nullable=False)
+    note = db.Column('note', db.Text(), nullable=True)
+
+    staff = db.relationship('StaffAccount', foreign_keys=[staff_id],
+                            backref=db.backref('daily_attendance', lazy='dynamic'))
+    created_by = db.relationship('StaffAccount', foreign_keys=[created_by_id])
+    approved_by = db.relationship('StaffAccount', foreign_keys=[approved_by_id])
+
+    __table_args__ = (
+        db.UniqueConstraint('staff_id', 'attendance_date', name='uq_staff_daily_attendance_staff_date'),
+        db.Index('ix_staff_daily_attendance_date_status', 'attendance_date', 'status'),
+    )
 
 
 class StaffRequestWorkLogin(db.Model):

@@ -3028,6 +3028,60 @@ def get_hr_login_summary_report_summary():
     })
 
 
+@staff.route('/api/for-hr/daily-absences')
+@hr_permission.require()
+@login_required
+def get_hr_daily_absences():
+    requested_date = request.args.get('date')
+    staff_type = request.args.get('staff_type', 'all')
+    if staff_type not in {'all', 'academic', 'non_academic'}:
+        return jsonify({'error': 'Invalid staff_type.'}), 400
+    if requested_date:
+        attendance_date = datetime.strptime(requested_date, '%Y-%m-%d').date()
+    else:
+        attendance_date = datetime.now(tz).date() - timedelta(days=1)
+
+    snapshots_query = StaffDailyAttendance.query.filter_by(
+        attendance_date=attendance_date,
+        status='absent',
+    ).join(StaffAccount, StaffDailyAttendance.staff_id == StaffAccount.id).join(
+        StaffPersonalInfo,
+        StaffAccount.personal_id == StaffPersonalInfo.id,
+    ).filter(
+        StaffPersonalInfo.retirement_date.is_(None),
+        StaffPersonalInfo.resignation_date.is_(None),
+        or_(
+            StaffPersonalInfo.retired.is_(False),
+            StaffPersonalInfo.retired.is_(None),
+        ),
+    )
+    if staff_type == 'academic':
+        snapshots_query = snapshots_query.filter(StaffPersonalInfo.academic_staff.is_(True))
+    elif staff_type == 'non_academic':
+        snapshots_query = snapshots_query.filter(or_(
+            StaffPersonalInfo.academic_staff.is_(False),
+            StaffPersonalInfo.academic_staff.is_(None),
+        ))
+    snapshots = snapshots_query.all()
+    snapshots.sort(key=lambda snapshot: snapshot.staff.fullname)
+    return jsonify({
+        'date': attendance_date.isoformat(),
+        'staff_type': staff_type,
+        'count': len(snapshots),
+        'absences': [
+            {
+                'staff_id': snapshot.staff_id,
+                'name': snapshot.staff.fullname,
+                'email': snapshot.staff.email,
+                'department': getattr(getattr(snapshot.staff.personal_info, 'org', None), 'name', None),
+                'status': snapshot.status,
+                'calculated_at': snapshot.calculated_at.isoformat() if snapshot.calculated_at else None,
+            }
+            for snapshot in snapshots
+        ],
+    })
+
+
 @staff.route('/api/for-hr/wfh-report')
 @hr_permission.require()
 @login_required
@@ -3493,6 +3547,7 @@ def hr_manual_checkin():
         )
         db.session.add(record)
         db.session.commit()
+        _refresh_daily_attendance_after_record(record)
         flash('บันทึกการเข้างานเรียบร้อยแล้ว', 'success')
         return redirect(url_for(
             'staff.hr_manual_checkin',
@@ -3733,6 +3788,8 @@ def approved_for_clockin_clockout(request_id):
                 start_datetime=clock_request.work_datetime,
                 record_source='approved_request',
                 correction_type='checkin' if clock_request.is_checkin else 'checkout',
+                request_id=clock_request.id,
+                approved_by_id=current_user.id,
             )
             db.session.add(approval)
             db.session.commit()
@@ -3740,6 +3797,8 @@ def approved_for_clockin_clockout(request_id):
             clock_request.cancelled_at = datetime.now(pytz.utc)
         db.session.add(clock_request)
         db.session.commit()
+        if approved == 'yes':
+            _refresh_daily_attendance_after_record(approval)
         flash_message = (
             'อนุมัติคำขอรับรองการทำงานเรียบร้อยแล้ว'
             if approved == 'yes'
@@ -3920,6 +3979,136 @@ def _get_holiday_for_date(target_date):
     return Holidays.query.filter(cast(Holidays.holiday_date, Date) == target_date).first()
 
 
+def refresh_daily_attendance(target_date, staff_ids=None):
+    """Rebuild the derived attendance status for one local calendar date."""
+    target_date = target_date if isinstance(target_date, date) else target_date.date()
+    active_accounts = StaffAccount.get_active_accounts()
+    if staff_ids is not None:
+        staff_ids = set(staff_ids)
+        active_accounts = [account for account in active_accounts if account.id in staff_ids]
+
+    if not active_accounts:
+        return {'date': target_date.isoformat(), 'processed_count': 0, 'absent_count': 0}
+
+    account_ids = {account.id for account in active_accounts}
+    records = StaffWorkLogin.query.filter(
+        StaffWorkLogin.date_id == target_date.strftime('%Y%m%d'),
+        StaffWorkLogin.staff_id.in_(account_ids),
+    ).all()
+    records_by_staff = defaultdict(list)
+    for record in records:
+        if record.start_datetime is not None and record.correction_type != 'checkout':
+            records_by_staff[record.staff_id].append(record)
+
+    day_start = tz.localize(datetime.combine(target_date, datetime.min.time()))
+    day_end = tz.localize(datetime.combine(target_date, datetime.max.time()))
+    leave_staff_ids = {
+        leave_request.staff_account_id
+        for leave_request in StaffLeaveRequest.query.filter(
+            StaffLeaveRequest.start_datetime <= day_end,
+            StaffLeaveRequest.end_datetime >= day_start,
+            StaffLeaveRequest.cancelled_at.is_(None),
+        ).all()
+        if leave_request.staff_account_id in account_ids and leave_request.get_approved
+    }
+    wfh_staff_ids = {
+        wfh_request.staff_account_id
+        for wfh_request in StaffWorkFromHomeRequest.query.filter(
+            StaffWorkFromHomeRequest.start_datetime <= day_end,
+            StaffWorkFromHomeRequest.end_datetime >= day_start,
+            StaffWorkFromHomeRequest.cancelled_at.is_(None),
+        ).all()
+        if wfh_request.staff_account_id in account_ids and wfh_request.get_approved
+    }
+    holiday = _get_holiday_for_date(target_date)
+    calculated_at = datetime.now(pytz.utc)
+    absent_count = 0
+
+    for staff_account in active_accounts:
+        staff_records = sorted(
+            records_by_staff.get(staff_account.id, []),
+            key=lambda record: record.start_datetime,
+        )
+        first_record = staff_records[0] if staff_records else None
+        last_checkout = max(
+            (record.end_datetime for record in staff_records if record.end_datetime is not None),
+            default=None,
+        )
+        if first_record:
+            status = 'present'
+            source = first_record.record_source or 'scan'
+            note = first_record.note
+            source_record_id = first_record.id
+            created_by_id = first_record.creator_id
+            approved_by_id = first_record.approved_by_id
+        elif holiday:
+            status = 'holiday'
+            source = 'holiday'
+            note = holiday.holiday_name
+            source_record_id = None
+            created_by_id = None
+            approved_by_id = None
+        elif staff_account.id in leave_staff_ids:
+            status = 'leave'
+            source = 'leave_request'
+            note = 'Approved leave'
+            source_record_id = None
+            created_by_id = None
+            approved_by_id = None
+        elif staff_account.id in wfh_staff_ids:
+            status = 'work_from_home'
+            source = 'wfh_request'
+            note = 'Approved work from home'
+            source_record_id = None
+            created_by_id = None
+            approved_by_id = None
+        else:
+            status = 'absent'
+            source = 'attendance_reconciliation'
+            note = 'No check-in record found'
+            source_record_id = None
+            created_by_id = None
+            approved_by_id = None
+            absent_count += 1
+
+        snapshot = StaffDailyAttendance.query.filter_by(
+            staff_id=staff_account.id,
+            attendance_date=target_date,
+        ).first()
+        if snapshot is None:
+            snapshot = StaffDailyAttendance(
+                staff_id=staff_account.id,
+                attendance_date=target_date,
+            )
+        snapshot.status = status
+        snapshot.first_checkin_at = first_record.start_datetime if first_record else None
+        snapshot.last_checkout_at = last_checkout
+        snapshot.source = source
+        snapshot.source_record_id = source_record_id
+        snapshot.created_by_id = created_by_id
+        snapshot.approved_by_id = approved_by_id
+        snapshot.calculated_at = calculated_at
+        snapshot.note = note
+        db.session.add(snapshot)
+
+    db.session.flush()
+    return {
+        'date': target_date.isoformat(),
+        'processed_count': len(active_accounts),
+        'absent_count': absent_count,
+    }
+
+
+def _refresh_daily_attendance_after_record(record):
+    attendance_datetime = record.start_datetime
+    if attendance_datetime is None:
+        return
+    if attendance_datetime.tzinfo is not None:
+        attendance_datetime = attendance_datetime.astimezone(tz)
+    refresh_daily_attendance(attendance_datetime.date(), staff_ids=[record.staff_id])
+    db.session.commit()
+
+
 def _is_valid_checkin_scheduler_request():
     configured_token = os.environ.get('JOB_TOKEN')
     if not configured_token:
@@ -4010,6 +4199,29 @@ def _line_remind_missing_checkin_impl():
 @wraps(_line_remind_missing_checkin_impl)
 def line_remind_missing_checkin():
     return _line_remind_missing_checkin_impl()
+
+
+@csrf.exempt
+@staff.route('/admin/reconcile-daily-attendance', methods=['GET', 'POST'])
+def reconcile_daily_attendance():
+    if not _is_valid_checkin_scheduler_request():
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not admin_permission.can():
+            abort(403)
+
+    requested_date = request.values.get('date')
+    if requested_date:
+        target_date = datetime.strptime(requested_date, '%Y-%m-%d').date()
+    else:
+        target_date = datetime.now(tz).date() - timedelta(days=1)
+    days = max(1, min(request.values.get('days', 14, type=int), 31))
+
+    summaries = []
+    for offset in range(days):
+        summaries.append(refresh_daily_attendance(target_date - timedelta(days=offset)))
+    db.session.commit()
+    return jsonify({'message': 'success', 'summaries': summaries})
 
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
