@@ -136,6 +136,11 @@
         background: rgba(125, 91, 158, 0.13);
         color: #68458a;
     }
+
+    .attendance-status-tag.is-weekend {
+        background: rgba(102, 112, 125, 0.14);
+        color: #5b626b;
+    }
 </style>
 
 <section class="section daily-attendance-detail">
@@ -185,6 +190,7 @@
                                 {% elif record.status == 'leave' %}Leave
                                 {% elif record.status == 'work_from_home' %}Work from home
                                 {% elif record.status == 'holiday' %}Holiday
+                                {% elif record.status == 'weekend' %}Weekend
                                 {% else %}{{ record.status }}{% endif %}
                                 </span>
                             </td>

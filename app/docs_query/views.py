@@ -1259,6 +1259,7 @@ def index():
     query = None
     search_results = []
     related_documents = []
+    short_answer = None
     answer = None
     search_id = None
     search_error = None
@@ -1296,8 +1297,18 @@ def index():
                         )
                 if not search_results:
                     flash('ไม่พบเอกสารที่ตรงกับคำค้น', 'info')
-                elif summary_results:
-                    answer = _call_typhoon_document_answer(query, summary_results)
+                else:
+                    try:
+                        generated_short_answer = _call_typhoon_short_answer(query, search_results)
+                        if generated_short_answer.strip() != 'ไม่พบข้อมูลที่ตอบคำถามได้อย่างชัดเจน':
+                            short_answer = generated_short_answer
+                    except Exception:
+                        current_app.logger.warning(
+                            'Could not generate Docs Query short answer.',
+                            exc_info=True,
+                        )
+                    if summary_results:
+                        answer = _call_typhoon_document_answer(query, summary_results)
                 _update_search_response_time(
                     search,
                     round((time.perf_counter() - started_at) * 1000),
@@ -1311,6 +1322,7 @@ def index():
                     'docs_query/samaritan_results.html',
                     query=query,
                     related_documents=related_documents,
+                    short_answer=short_answer,
                     answer=answer,
                     search_error=search_error,
                 )
@@ -1318,6 +1330,7 @@ def index():
                 'docs_query/search_results.html',
                 query=query,
                 related_documents=related_documents,
+                short_answer=short_answer,
                 answer=answer,
                 search_error=search_error,
             )
@@ -1336,6 +1349,7 @@ def index():
         query=query,
         search_results=search_results,
         related_documents=related_documents,
+        short_answer=short_answer,
         answer=answer,
         search_id=search_id,
         statistics=statistics,
