@@ -12,6 +12,14 @@
                     <span class="tag is-info is-light">พบเอกสารที่อาจเกี่ยวข้อง {{ related_documents|length }} รายการ</span>
                 {% endif %}
             </div>
+            {% if short_answer %}
+                <article class="docs-query-answer docs-query-short-answer">
+                    <div class="docs-query-answer-heading">
+                        <span class="docs-query-answer-label">SHORT ANSWER</span>
+                    </div>
+                    <div class="docs-query-answer-body">{{ short_answer }}</div>
+                </article>
+            {% endif %}
             {% if answer %}
                 <article class="docs-query-answer">
                     <div class="docs-query-answer-heading">

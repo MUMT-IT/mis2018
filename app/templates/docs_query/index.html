@@ -128,6 +128,14 @@
                                         <span class="tag is-info is-light">พบเอกสารที่อาจเกี่ยวข้อง {{ related_documents|length }} รายการ</span>
                                     {% endif %}
                                 </div>
+                                {% if short_answer %}
+                                    <article class="docs-query-answer docs-query-short-answer">
+                                        <div class="docs-query-answer-heading">
+                                            <span class="docs-query-answer-label">SHORT ANSWER</span>
+                                        </div>
+                                        <div class="docs-query-answer-body">{{ short_answer }}</div>
+                                    </article>
+                                {% endif %}
                                 {% if answer %}
                                     <article class="docs-query-answer">
                                         <div class="docs-query-answer-heading">
@@ -341,13 +349,22 @@
             top: .72rem;
         }
 
+        .docs-query-short-answer {
+            background: #102c2d;
+            border-color: #2bbbad;
+        }
+
+        .docs-query-short-answer::before { background: #1b5b5b; }
+        .docs-query-short-answer .docs-query-answer-label { color: #8df0d6; }
+        .docs-query-short-answer .docs-query-answer-body { color: #e2fff8; }
+
         .docs-query-answer-heading {
             align-items: center;
             color: #b9d7ff;
             display: flex;
             font-size: .82rem;
             font-weight: 800;
-            justify-content: space-between;
+            justify-content: flex-end;
             letter-spacing: .02em;
             margin-bottom: .9rem;
             position: relative;
