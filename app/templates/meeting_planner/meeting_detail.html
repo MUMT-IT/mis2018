@@ -66,7 +66,7 @@
                             <td id="checkin-{{ invite.id }}">
                                 <a class="button is-light"
                                         hx-target="#checkin-{{ invite.id }}"
-                                        hx-put="{{ url_for('meeting_planner.checkin_member', invite_id=invite.id) }}">
+                                        hx-patch="{{ url_for('meeting_planner.checkin_member', invite_id=invite.id) }}">
                                     <span class="icon">
                                         <i class="fa-solid fa-user-clock"></i>
                                     </span>

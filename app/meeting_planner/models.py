@@ -45,7 +45,8 @@ class MeetingEvent(db.Model):
 
     @property
     def rooms(self):
-        return f'ห้อง {", ".join([e.room.number for e in self.meeting_events])}'
+        room_names = f'ห้อง {", ".join([e.room.number for e in self.meeting_events])}' if self.meeting_events else 'ไม่มี'
+        return room_names
 
     def to_dict(self):
         return {
