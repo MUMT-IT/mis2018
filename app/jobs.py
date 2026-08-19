@@ -1,6 +1,8 @@
 import logging
 import os
 import smtplib
+import subprocess
+import sys
 import traceback
 from datetime import datetime, timezone
 from email.message import EmailMessage
@@ -385,6 +387,57 @@ def send_checkin_reminder():
     _run_job(job_name, _job)
 
 
+def run_docs_query_backfill():
+    job_name = 'run_docs_query_backfill'
+
+    def _job():
+        command = [
+            sys.executable,
+            '-m',
+            'flask',
+            '--app',
+            'app.main:app',
+            'docs-query',
+            'backfill',
+        ]
+        timeout = int(os.getenv('DOCS_QUERY_BACKFILL_TIMEOUT_SECONDS', '21600'))
+        logger.info(
+            'job_checkpoint job=%s step=cli_start command=%s timeout_seconds=%s',
+            job_name,
+            ' '.join(command),
+            timeout,
+        )
+        result = subprocess.run(
+            command,
+            check=False,
+            cwd=os.getcwd(),
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+        if result.stdout:
+            logger.info(
+                'job_checkpoint job=%s step=cli_stdout output=%s',
+                job_name,
+                _safe_text(result.stdout, 10000),
+            )
+        if result.stderr:
+            logger.warning(
+                'job_checkpoint job=%s step=cli_stderr output=%s',
+                job_name,
+                _safe_text(result.stderr, 10000),
+            )
+        if result.returncode != 0:
+            raise subprocess.CalledProcessError(
+                result.returncode,
+                command,
+                output=result.stdout,
+                stderr=result.stderr,
+            )
+
+    _run_job(job_name, _job)
+
+
 scheduler = BlockingScheduler()
 scheduler.add_job(send_event_notification,
                   'cron', day_of_week='mon-fri',
@@ -445,5 +498,10 @@ scheduler.add_job(send_checkin_reminder,
                   'cron', day_of_week='mon-fri',
                   hour='8',
                   minute='29',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(run_docs_query_backfill,
+                  'cron',
+                  hour='0',
+                  minute='00',
                   timezone='Asia/Bangkok')
 scheduler.start()
