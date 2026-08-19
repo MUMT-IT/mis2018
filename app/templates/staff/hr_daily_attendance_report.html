@@ -295,6 +295,7 @@
                         <th>ลา</th>
                         <th>ทำงานที่บ้าน</th>
                         <th>วันหยุด</th>
+                        <th>เสาร์-อาทิตย์</th>
                         <th>รวม</th>
                     </tr>
                 </thead>
@@ -314,10 +315,11 @@
                             <td>{{ '{:,}'.format(row.leave) }}</td>
                             <td>{{ '{:,}'.format(row.work_from_home) }}</td>
                             <td>{{ '{:,}'.format(row.holiday) }}</td>
+                            <td>{{ '{:,}'.format(row.weekend) }}</td>
                             <td>{{ '{:,}'.format(row.total) }}</td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="10">ไม่พบข้อมูล snapshot ตามเงื่อนไขที่เลือก</td></tr>
+                        <tr><td colspan="11">ไม่พบข้อมูล snapshot ตามเงื่อนไขที่เลือก</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

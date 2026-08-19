@@ -3238,13 +3238,14 @@ def hr_daily_attendance_report():
         .all()
     )
 
-    status_order = ('present', 'absent', 'leave', 'work_from_home', 'holiday')
+    status_order = ('present', 'absent', 'leave', 'work_from_home', 'holiday', 'weekend')
     status_labels = {
         'present': 'ลงเวลาปกติ',
         'absent': 'ไม่พบการลงเวลา',
         'leave': 'ลา',
         'work_from_home': 'ทำงานที่บ้าน',
         'holiday': 'วันหยุด',
+        'weekend': 'เสาร์-อาทิตย์',
     }
     counts_by_date = defaultdict(lambda: defaultdict(int))
     totals = defaultdict(int)
@@ -3288,6 +3289,7 @@ def hr_daily_attendance_report():
             'leave': 0,
             'work_from_home': 0,
             'holiday': 0,
+            'weekend': 0,
             'total': 0,
         })
         row['total'] += 1
@@ -4261,10 +4263,17 @@ def refresh_daily_attendance(target_date, staff_ids=None):
             source_record_id = first_record.id
             created_by_id = first_record.creator_id
             approved_by_id = first_record.approved_by_id
-        elif holiday or is_weekend:
+        elif holiday:
             status = 'holiday'
             source = 'holiday'
-            note = holiday.holiday_name if holiday else 'Weekend'
+            note = holiday.holiday_name
+            source_record_id = None
+            created_by_id = None
+            approved_by_id = None
+        elif is_weekend:
+            status = 'weekend'
+            source = 'weekend'
+            note = 'Weekend'
             source_record_id = None
             created_by_id = None
             approved_by_id = None
