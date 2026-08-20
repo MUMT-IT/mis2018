@@ -1047,6 +1047,16 @@ def index():
     return render_template('complaint_tracker/index.html', categories=categories)
 
 
+@complaint_tracker.route('/request/index')
+def repair_request_landing():
+    topics = ComplaintTopic.query.filter(ComplaintTopic.code.in_(['room', 'runied'])).all()
+    topic_ids = {topic.code: topic.id for topic in topics}
+    room_id = topic_ids.get('room')
+    procurement_id = topic_ids.get('runied')
+    return render_template('complaint_tracker/repair_request_landing.html', room_id=room_id,
+                           procurement_id=procurement_id)
+
+
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
