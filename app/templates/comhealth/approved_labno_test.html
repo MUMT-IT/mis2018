@@ -187,6 +187,10 @@
             <div class="lab-test-panel physical-exam-panel">
                 <div class="lab-test-section-title">
                     <span>Physical Exam</span>
+                    <label class="approve-all-label">
+                        <input id="approve-all-physical" type="checkbox" disabled>
+                        <span>Approved ทั้งหมด</span>
+                    </label>
                 </div>
                 <div class="lab-test-summary">
                     <span><strong>ชื่อผู้รับบริการ:</strong> <span id="patient-name">{{ patient_name or '-' }}</span></span>
@@ -211,7 +215,7 @@
                 <div class="lab-test-section-title">
                     <span>Lab Test</span>
                     <label class="approve-all-label">
-                        <input id="approve-all-lab" type="checkbox">
+                        <input id="approve-all-lab" type="checkbox" disabled>
                         <span>Approved ทั้งหมด</span>
                     </label>
                 </div>
@@ -239,6 +243,10 @@
             <div class="lab-test-panel xray-panel">
                 <div class="lab-test-section-title">
                     <span>X-ray</span>
+                    <label class="approve-all-label">
+                        <input id="approve-all-xray" type="checkbox" disabled>
+                        <span>Approved ทั้งหมด</span>
+                    </label>
                 </div>
                 <div id="xray-loading-state" class="lab-test-state">
                     <span class="icon is-large"><i class="fas fa-spinner fa-spin fa-2x"></i></span>
@@ -288,6 +296,8 @@
             const physicalExamsApiUrl = {{ url_for('comhealth.physical_exams_api') | tojson }};
             const xraysApiUrl = {{ url_for('comhealth.xrays_api') | tojson }};
             const labApprovalsApiUrl = {{ url_for('comhealth.save_lab_approvals_api') | tojson }};
+            const physicalApprovalApiUrl = {{ url_for('comhealth.save_physical_exam_approval_api') | tojson }};
+            const xrayApprovalApiUrl = {{ url_for('comhealth.save_xray_approval_api') | tojson }};
             const serviceNo = {{ service_no | default('', true) | tojson }};
             const customerEmail = {{ customer_email | default('', true) | tojson }};
             const serviceDate = {{ service_date | default('', true) | tojson }};
@@ -308,12 +318,18 @@
             const errorDetails = document.getElementById('error-details');
             const copyErrorButton = document.getElementById('copy-error');
             const approveAllLab = document.getElementById('approve-all-lab');
+            const approveAllPhysical = document.getElementById('approve-all-physical');
+            const approveAllXray = document.getElementById('approve-all-xray');
             const approveEverySection = document.getElementById('approve-every-section');
             const approvalChangeCount = document.getElementById('approval-change-count');
             const cancelApprovalChanges = document.getElementById('cancel-approval-changes');
             const saveApprovalButton = document.getElementById('save-approval');
             let labRows = [];
             let originalLabApprovalStates = [];
+            let physicalRows = [];
+            let xrayRows = [];
+            let originalPhysicalApprovalState = false;
+            let originalXrayApprovalState = false;
             const physicalStates = {
                 loading: document.getElementById('physical-loading-state'),
                 error: document.getElementById('physical-error-state'),
@@ -407,11 +423,35 @@
                 return String(value);
             }
 
+            function formatDateTime(value) {
+                const matchedDateTime = String(value).match(
+                    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+                );
+                if (!matchedDateTime) return formatDate(value);
+                const seconds = matchedDateTime[6] ? `:${matchedDateTime[6]}` : '';
+                return `${matchedDateTime[3]}/${matchedDateTime[2]}/${matchedDateTime[1]} `
+                    + `${matchedDateTime[4]}:${matchedDateTime[5]}${seconds}`;
+            }
+
             function displayValue(value, column) {
                 if (value === null || value === undefined || value === '') return '-';
                 const columnName = String(column || '').toLowerCase();
-                if (columnName.includes('date') || columnName.includes('time')) return formatDate(value);
+                if (columnName.includes('time')) return formatDateTime(value);
+                if (columnName.includes('date')) return formatDate(value);
                 return typeof value === 'object' ? JSON.stringify(value) : String(value);
+            }
+
+            function columnValue(item, column) {
+                if (!item || typeof item !== 'object') return undefined;
+                if (item[column] !== undefined) return item[column];
+                const aliases = {
+                    LastApprovedTime: ['lastApprovedTime', 'lastapprovedtime'],
+                    ApprovedBy: ['approvedBy', 'Approvedby', 'approvedby']
+                };
+                for (const alias of aliases[column] || []) {
+                    if (item[alias] !== undefined) return item[alias];
+                }
+                return undefined;
             }
 
             function numericParts(value) {
@@ -470,8 +510,13 @@
                     'previousResult2',
                     'unit',
                     'refBookTh',
-                    'Approvedby'
+                    'ApprovedBy',
+                    'LastApprovedTime'
                 ];
+                const approvalColumnNames = new Set([
+                    'ApprovedBy', 'approvedBy', 'Approvedby', 'approvedby',
+                    'LastApprovedTime', 'lastApprovedTime', 'lastapprovedtime'
+                ]);
                 const hiddenColumns = [
                     'serviceNo',
                     'previousServiceNo1',
@@ -486,9 +531,14 @@
                     'isProfile'
                 ];
                 const columns = preferredColumns.filter(function (column) {
-                    return column === 'isApproved' || apiColumns.includes(column);
+                    return column === 'isApproved'
+                        || column === 'ApprovedBy'
+                        || column === 'LastApprovedTime'
+                        || apiColumns.includes(column);
                 }).concat(apiColumns.filter(function (column) {
-                    return !preferredColumns.includes(column) && !hiddenColumns.includes(column);
+                    return !preferredColumns.includes(column)
+                        && !hiddenColumns.includes(column)
+                        && !approvalColumnNames.has(column);
                 }));
                 const previousResultHeaders = {
                     previousResult1: rows.find(function (item) { return item.previousServiceNo1; })?.previousServiceNo1,
@@ -510,7 +560,7 @@
                     }
                     row.classList.add(`department-color-${departmentColors.get(department)}`);
                     columns.forEach(function (column) {
-                        appendCell(row, 'td', item[column], column, maxFractionLength, rowIndex);
+                        appendCell(row, 'td', columnValue(item, column), column, maxFractionLength, rowIndex);
                     });
                     tableBody.appendChild(row);
                 });
@@ -518,6 +568,13 @@
 
             function isApprovedValue(value) {
                 return value === true || value === 1 || String(value).toLowerCase() === 'true';
+            }
+
+            function rowApprovalValue(item) {
+                if (!item || typeof item !== 'object') return false;
+                return isApprovedValue(
+                    item.isApproved !== undefined ? item.isApproved : item.IsApproved
+                );
             }
 
             function changedLabRows() {
@@ -538,7 +595,12 @@
             }
 
             function updateLabApprovalUi() {
-                const changedCount = changedLabRows().length;
+                const changedLabCount = changedLabRows().length;
+                const physicalChanged = physicalRows.length > 0
+                    && approveAllPhysical.checked !== originalPhysicalApprovalState;
+                const xrayChanged = xrayRows.length > 0
+                    && approveAllXray.checked !== originalXrayApprovalState;
+                const changedCount = changedLabCount + Number(physicalChanged) + Number(xrayChanged);
                 const approvedCount = labRows.filter(function (item) {
                     return isApprovedValue(item.isApproved);
                 }).length;
@@ -551,8 +613,14 @@
             }
 
             function updateEverySectionUi() {
-                approveEverySection.checked = approveAllLab.checked;
-                approveEverySection.indeterminate = approveAllLab.indeterminate;
+                const sectionStates = [];
+                if (labRows.length) sectionStates.push({ checked: approveAllLab.checked, partial: approveAllLab.indeterminate });
+                if (physicalRows.length) sectionStates.push({ checked: approveAllPhysical.checked, partial: false });
+                if (xrayRows.length) sectionStates.push({ checked: approveAllXray.checked, partial: false });
+                const checkedCount = sectionStates.filter(function (state) { return state.checked; }).length;
+                approveEverySection.checked = sectionStates.length > 0 && checkedCount === sectionStates.length;
+                approveEverySection.indeterminate = sectionStates.some(function (state) { return state.partial; })
+                    || (checkedCount > 0 && checkedCount < sectionStates.length);
             }
 
             tableBody.addEventListener('change', function (event) {
@@ -570,9 +638,14 @@
                 updateLabApprovalUi();
             });
 
+            approveAllPhysical.addEventListener('change', updateLabApprovalUi);
+            approveAllXray.addEventListener('change', updateLabApprovalUi);
+
             approveEverySection.addEventListener('change', function () {
                 const isApproved = approveEverySection.checked;
                 approveAllLab.checked = isApproved;
+                approveAllPhysical.checked = isApproved;
+                approveAllXray.checked = isApproved;
                 labRows.forEach(function (item) { item.isApproved = isApproved; });
                 document.querySelectorAll(
                     '#physical-table-body input[type="checkbox"], '
@@ -591,13 +664,20 @@
                 tableBody.querySelectorAll('input[type="checkbox"][data-row-index]').forEach(function (checkbox) {
                     checkbox.checked = originalLabApprovalStates[Number(checkbox.dataset.rowIndex)];
                 });
+                approveAllPhysical.checked = originalPhysicalApprovalState;
+                approveAllXray.checked = originalXrayApprovalState;
                 updateLabApprovalUi();
             });
 
             saveApprovalButton.addEventListener('click', async function () {
                 const changedItems = changedLabRows();
-                if (!changedItems.length) return;
-                const payload = {
+                const physicalChanged = physicalRows.length > 0
+                    && approveAllPhysical.checked !== originalPhysicalApprovalState;
+                const xrayChanged = xrayRows.length > 0
+                    && approveAllXray.checked !== originalXrayApprovalState;
+                const changedSectionCount = Number(physicalChanged) + Number(xrayChanged);
+                if (!changedItems.length && !changedSectionCount) return;
+                const labPayload = {
                     serviceNo: serviceNo,
                     customerEmail: customerEmail,
                     serviceDate: serviceDate,
@@ -607,38 +687,68 @@
                     staffAccount: staffAccount,
                     items: changedItems
                 };
-                if (!window.confirm(`ยืนยันบันทึกการอนุมัติ Lab ${changedItems.length} รายการหรือไม่`)) return;
+                const changeLabels = [];
+                if (changedItems.length) changeLabels.push(`Lab ${changedItems.length} รายการ`);
+                if (physicalChanged) changeLabels.push('Physical Exam');
+                if (xrayChanged) changeLabels.push('X-ray');
+                if (!window.confirm(`ยืนยันบันทึกการอนุมัติ ${changeLabels.join(', ')} หรือไม่`)) return;
 
                 saveApprovalButton.disabled = true;
                 cancelApprovalChanges.disabled = true;
                 saveApprovalButton.classList.add('is-loading');
                 try {
-                    const response = await fetch(labApprovalsApiUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify(payload)
-                    });
-                    const responseText = await response.text();
-                    let responseBody = responseText;
-                    if (responseText) {
-                        try { responseBody = JSON.parse(responseText); } catch (parseError) {}
+                    async function postApproval(url, payload, sectionName) {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify(payload)
+                        });
+                        const responseText = await response.text();
+                        let responseBody = responseText;
+                        if (responseText) {
+                            try { responseBody = JSON.parse(responseText); } catch (parseError) {}
+                        }
+                        if (!response.ok) {
+                            const apiMessage = responseBody && typeof responseBody === 'object'
+                                ? responseBody.error || responseBody.message || responseBody.detail
+                                : responseText;
+                            throw new Error(`${sectionName}: API ตอบกลับด้วยสถานะ ${response.status}${apiMessage ? `: ${apiMessage}` : ''}`);
+                        }
+                        return responseBody;
                     }
-                    if (!response.ok) {
-                        throw new Error(`API ตอบกลับด้วยสถานะ ${response.status}`);
+
+                    let labResponseBody = null;
+                    if (changedItems.length) {
+                        labResponseBody = await postApproval(labApprovalsApiUrl, labPayload, 'Lab');
                     }
+                    if (physicalChanged) {
+                        await postApproval(physicalApprovalApiUrl, {
+                            serviceNo: serviceNo,
+                            isApproved: approveAllPhysical.checked
+                        }, 'Physical Exam');
+                    }
+                    if (xrayChanged) {
+                        await postApproval(xrayApprovalApiUrl, {
+                            serviceNo: serviceNo,
+                            isApproved: approveAllXray.checked
+                        }, 'X-ray');
+                    }
+
                     if (window.showToastAlert) {
-                        const notification = responseBody && responseBody.emailNotification;
-                        const emailMessage = notification && notification.sent
-                            ? ` และส่งลิงก์ผลตรวจไปที่ ${notification.recipient} แล้ว`
-                            : ' แต่ยังไม่ได้ส่งอีเมล กรุณาตรวจสอบอีเมลผู้รับบริการ';
-                        showToastAlert('success', `บันทึกการอนุมัติ Lab สำเร็จ ${changedItems.length} รายการ${emailMessage}`);
+                        const notification = labResponseBody && labResponseBody.emailNotification;
+                        const emailMessage = changedItems.length
+                            ? (notification && notification.sent
+                                ? ` และส่งลิงก์ผลตรวจไปที่ ${notification.recipient} แล้ว`
+                                : ' แต่ยังไม่ได้ส่งอีเมล กรุณาตรวจสอบอีเมลผู้รับบริการ')
+                            : '';
+                        showToastAlert('success', `บันทึกการอนุมัติ ${changeLabels.join(', ')} สำเร็จ${emailMessage}`);
                     }
-                    await loadTestDetails();
+                    await Promise.all([loadPhysicalExams(), loadTestDetails(), loadXrays()]);
                 } catch (error) {
                     if (window.showToastAlert) showToastAlert('error', `บันทึกไม่สำเร็จ: ${error.message}`);
                 } finally {
@@ -656,7 +766,9 @@
                     'height',
                     'heartRate',
                     'systolic',
-                    'comment'
+                    'comment',
+                    'ApprovedBy',
+                    'LastApprovedTime'
                 ];
                 columns.forEach(function (column) {
                     appendCell(physicalTableHead, 'th', column);
@@ -664,7 +776,7 @@
                 rows.forEach(function (item) {
                     const row = document.createElement('tr');
                     columns.forEach(function (column) {
-                        appendCell(row, 'td', item[column], column);
+                        appendCell(row, 'td', columnValue(item, column), column);
                     });
                     physicalTableBody.appendChild(row);
                 });
@@ -674,7 +786,7 @@
                 xrayTableHead.replaceChildren();
                 xrayTableBody.replaceChildren();
                 const hiddenColumns = ['serviceNo', 'custId', 'xRayCarId', 'cmsCode'];
-                const columns = Array.from(rows.reduce(function (keys, row) {
+                const apiColumns = Array.from(rows.reduce(function (keys, row) {
                     if (row && typeof row === 'object' && !Array.isArray(row)) {
                         Object.keys(row).forEach(function (key) { keys.add(key); });
                     }
@@ -682,13 +794,21 @@
                 }, new Set())).filter(function (column) {
                     return !hiddenColumns.includes(column);
                 });
+                const approvalColumnNames = new Set([
+                    'LastApprovedTime', 'lastApprovedTime', 'lastapprovedtime',
+                    'ApprovedBy', 'approvedBy', 'Approvedby', 'approvedby'
+                ]);
+                const columns = apiColumns.filter(function (column) {
+                    return !approvalColumnNames.has(column);
+                });
+                columns.push('ApprovedBy', 'LastApprovedTime');
                 columns.forEach(function (column) {
                     appendCell(xrayTableHead, 'th', column);
                 });
                 rows.forEach(function (item) {
                     const row = document.createElement('tr');
                     columns.forEach(function (column) {
-                        appendCell(row, 'td', item[column], column);
+                        appendCell(row, 'td', columnValue(item, column), column);
                     });
                     xrayTableBody.appendChild(row);
                 });
@@ -712,10 +832,19 @@
                     }
                     const rows = getRows(await response.json());
                     if (!rows.length) {
+                        xrayRows = [];
+                        approveAllXray.checked = false;
+                        approveAllXray.disabled = true;
+                        updateLabApprovalUi();
                         showXrayState('empty');
                         return;
                     }
+                    xrayRows = rows;
+                    originalXrayApprovalState = rowApprovalValue(rows[0]);
+                    approveAllXray.checked = originalXrayApprovalState;
+                    approveAllXray.disabled = false;
                     renderXrayTable(rows);
+                    updateLabApprovalUi();
                     showXrayState('table');
                 } catch (error) {
                     xrayStates.error.textContent = `ไม่สามารถโหลดข้อมูล X-ray ได้: ${error.message}`;
@@ -741,10 +870,19 @@
                     }
                     const rows = getRows(await response.json());
                     if (!rows.length) {
+                        physicalRows = [];
+                        approveAllPhysical.checked = false;
+                        approveAllPhysical.disabled = true;
+                        updateLabApprovalUi();
                         showPhysicalState('empty');
                         return;
                     }
+                    physicalRows = rows;
+                    originalPhysicalApprovalState = rowApprovalValue(rows[0]);
+                    approveAllPhysical.checked = originalPhysicalApprovalState;
+                    approveAllPhysical.disabled = false;
                     renderPhysicalTable(rows);
+                    updateLabApprovalUi();
                     showPhysicalState('table');
                 } catch (error) {
                     physicalStates.error.textContent = `ไม่สามารถโหลดข้อมูล Physical Exam ได้: ${error.message}`;
@@ -799,10 +937,16 @@
                     const payload = await response.json();
                     const rows = getRows(payload);
                     if (!rows.length) {
+                        labRows = [];
+                        originalLabApprovalStates = [];
+                        approveAllLab.checked = false;
+                        approveAllLab.disabled = true;
+                        updateLabApprovalUi();
                         showState('empty');
                         return;
                     }
                     labRows = rows;
+                    approveAllLab.disabled = false;
                     originalLabApprovalStates = rows.map(function (item) {
                         return isApprovedValue(item.isApproved);
                     });

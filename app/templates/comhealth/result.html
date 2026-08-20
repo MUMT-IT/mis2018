@@ -88,6 +88,7 @@
             .summary-value { color: #92400e !important; }
             .lab-header { color: var(--primary-medical) !important; }
             .has-text-grey { color: #64748b !important; }
+            .issue-card > .box { background-color: #f8fafc !important; color: #1e293b !important; }
         }
 
         body {
@@ -216,7 +217,7 @@
 
         .vitals-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1rem;
             margin-bottom: 2rem;
         }
@@ -347,6 +348,40 @@
             font-weight: 700;
         }
 
+        /* Keep related-video cards light even when the browser/OS uses dark mode. */
+        .issue-card > .box {
+            background-color: #f8fafc !important;
+            color: #1e293b !important;
+            border: 1px solid #e2e8f0;
+            box-shadow: none;
+        }
+
+        .issue-card > .box .title {
+            color: #1e293b !important;
+        }
+
+        .related-video-link {
+            height: auto !important;
+            min-height: 2.5rem;
+            padding-top: 0.6rem;
+            padding-bottom: 0.6rem;
+            white-space: normal !important;
+            text-align: left;
+        }
+
+        .related-video-link .icon {
+            flex: 0 0 auto;
+            align-self: flex-start;
+            margin-top: 0.1rem;
+        }
+
+        .related-video-title {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.35;
+        }
+
         .risk-icon {
             width: 1.6rem;
             height: 1.6rem;
@@ -436,6 +471,33 @@
             display: none;
         }
 
+        .result-section-menu {
+            max-width: 720px;
+            margin: 0 auto 1rem;
+            padding: 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 1rem;
+            background: #f8fafc;
+        }
+
+        .result-section-menu .select,
+        .result-section-menu select {
+            width: 100%;
+        }
+
+        .result-section-menu select {
+            color-scheme: light !important;
+            background-color: #ffffff !important;
+            color: #1e293b !important;
+            border-color: #cbd5e1 !important;
+        }
+
+        .result-section-menu select option {
+            color-scheme: light !important;
+            background-color: #ffffff !important;
+            color: #1e293b !important;
+        }
+
         .section-shell {
             min-height: 120px;
         }
@@ -523,6 +585,18 @@
         .status-badge.is-warning { background: #fef3c7; color: #92400e; }
         .status-badge.is-danger { background: #fee2e2; color: #991b1b; }
         .status-badge.is-dark { background: #e2e8f0; color: #334155; }
+
+        .lab-pending-approval {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 999px;
+            background-color: #e5e7eb;
+            color: #4b5563;
+            font-size: 0.7rem;
+            font-weight: 500;
+            line-height: 1.35;
+            white-space: nowrap;
+        }
 
         .interpretation-box {
             background: #f8fafc;
@@ -623,6 +697,32 @@
         }
 
         @media (max-width: 768px) {
+            .issue-card > .box {
+                padding: 0.9rem;
+                overflow: hidden;
+            }
+
+            .related-video-link {
+                align-items: flex-start !important;
+                font-size: 0.9rem;
+            }
+
+            .vitals-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.75rem;
+            }
+
+            .vital-box {
+                min-width: 0;
+                min-height: 140px;
+                padding: 1rem 0.6rem;
+            }
+
+            .vital-unit,
+            .reference-text {
+                overflow-wrap: anywhere;
+            }
+
             .lab-table-card,
             .evidence-table-wrap {
                 overflow-x: auto;
@@ -636,6 +736,12 @@
                 left: 0;
                 position: sticky;
                 z-index: 2;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .vitals-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -705,7 +811,7 @@
                     <h2 class="title is-4 mb-0" style="color: #334155;">{{ ui.physical_exam_title }}</h2>
                 </div>
 
-                <div class="vitals-grid mb-4">
+                <div class="vitals-grid">
                     <div class="vital-box">
                         <div class="vital-icon"><i class="fa-solid fa-arrows-up-down"></i></div>
                         <div class="vital-value"><span id="height">Loading</span></div>
@@ -721,9 +827,6 @@
                         <div class="vital-value"><span id="heartrate">Loading</span></div>
                         <div class="vital-unit">bpm ({{ 'Heart rate' if is_english else 'ชีพจร' }})</div>
                     </div>
-                </div>
-
-                <div class="vitals-grid">
                     <div class="vital-box">
                         <div class="vital-icon"><i class="fa-solid fa-gauge-high"></i></div>
                         <div class="vital-value"><span id="systolic">Loading</span></div>
@@ -798,16 +901,26 @@
                 </div>
             </section>
 
-            <div class="has-text-centered mb-5">
-                <button id="toggle-report-button" type="button" class="button is-rounded is-primary is-medium">
-                    <span class="icon"><i class="fa-solid fa-up-down"></i></span>
-                    <span>{{ ui.toggle_all_results }}</span>
-                </button>
+            <div class="result-section-menu no-print">
+                <label class="label" for="result-section-select">
+                    {{ 'Select a test section' if is_english else 'เลือกหมวดผลการตรวจ' }}
+                </label>
+                <div class="select is-fullwidth is-medium">
+                    <select id="result-section-select">
+                        <option value="">{{ '-- Select a section --' if is_english else '-- เลือกหมวดที่ต้องการเปิด --' }}</option>
+                        <option value="section-blood-chemistry">{{ 'Blood Chemistry' if is_english else 'การตรวจทางเคมี (Blood Chemistry)' }}</option>
+                        <option value="section-cbc">{{ 'Complete Blood Count (CBC)' if is_english else 'ความสมบูรณ์ของเลือด (CBC - COMPLETE BLOOD COUNT)' }}</option>
+                        <option value="section-urinalysis">{{ 'Urinalysis' if is_english else 'การตรวจปัสสาวะ (URINALYSIS)' }}</option>
+                        <option value="section-stool">{{ 'Stool Examination' if is_english else 'ตรวจอุจจาระ (STOOL EXAMINATION)' }}</option>
+                        <option value="section-xray">{{ 'Chest X-ray' if is_english else 'เอกซเรย์ปอด (CHEST X-RAY)' }}</option>
+                        <option value="section-special-test">{{ 'Special Test' if is_english else 'รายการตรวจพิเศษ (Special Test)' }}</option>
+                    </select>
+                </div>
             </div>
 
             <div id="report-collapse-target" class="report-collapsible is-hidden">
             <!-- Section 2: Blood Chemistry Group -->
-            <div class="mb-6">
+            <div id="section-blood-chemistry" class="mb-6 result-test-section">
                 <div class="main-section-title">
                     <span class="icon is-medium has-text-primary"><i class="fa-solid fa-flask-vial fa-lg"></i></span>
                     <h2 class="title is-4 mb-0" style="color: #334155;">{{ ui.blood_chemistry_title }}</h2>
@@ -1048,7 +1161,7 @@
             </div>
 
             <!-- Section 3: CBC (Pink Theme) -->
-            <div class="mb-6">
+            <div id="section-cbc" class="mb-6 result-test-section">
                 <div class="main-section-title cbc-title">
                     <span class="icon is-medium" style="color: var(--cbc-primary);"><i class="fa-solid fa-microscope fa-lg"></i></span>
                     <h2 class="title is-4 mb-0" style="color: var(--cbc-primary);">{{ '3. Complete Blood Count (CBC)' if is_english else '3. ความสมบูรณ์ของเลือด (CBC - COMPLETE BLOOD COUNT)' }}</h2>
@@ -1284,7 +1397,7 @@
             </div>
 
             <!-- Section 4: URINALYSIS (Orange-Yellow Theme) -->
-            <div class="mb-6">
+            <div id="section-urinalysis" class="mb-6 result-test-section">
                 <div class="main-section-title ua-title">
                     <span class="icon is-medium" style="color: var(--ua-primary);"><i class="fa-solid fa-vial-virus fa-lg"></i></span>
                     <h2 class="title is-4 mb-0" style="color: var(--ua-primary);">{{ '4. Urinalysis' if is_english else '4. การตรวจปัสสาวะ (URINALYSIS)' }}</h2>
@@ -1407,7 +1520,7 @@
             </div>
 
             <!-- Section 5: STOOL EXAMINATION -->
-            <div class="mb-6">
+            <div id="section-stool" class="mb-6 result-test-section">
                 <div class="main-section-title stool-title">
                     <span class="icon is-medium" style="color: var(--stool-primary);"><i class="fa-solid fa-poop fa-lg"></i></span>
                     <h2 class="title is-4 mb-0" style="color: var(--stool-primary);">{{ '5. Stool Examination' if is_english else '5. ตรวจอุจจาระ (STOOL EXAMINATION)' }}</h2>
@@ -1452,7 +1565,7 @@
             </div>
 
             <!-- Section 6: CHEST X-RAY -->
-            <div class="mb-6">
+            <div id="section-xray" class="mb-6 result-test-section">
                 <div class="main-section-title xray-title">
                     <span class="icon is-medium" style="color: var(--xray-primary);"><i class="fa-solid fa-x-ray fa-lg"></i></span>
                     <h2 class="title is-4 mb-0" style="color: var(--xray-primary);">{{ '6. Chest X-ray' if is_english else '6. เอกซเรย์ปอด (CHEST X-RAY)' }}</h2>
@@ -1482,7 +1595,7 @@
             </div>
 
             <!-- Section 7: Special Test -->
-            <div class="mb-6">
+            <div id="section-special-test" class="mb-6 result-test-section">
                 <div class="main-section-title special-title">
                     <span class="icon is-medium" style="color: var(--special-primary);"><i class="fa-solid fa-star fa-lg"></i></span>
                     <h2 class="title is-4 mb-0" style="color: var(--special-primary);">{{ '7. Special Test' if is_english else '7. รายการตรวจพิเศษ (Special Test)' }}</h2>
@@ -1642,12 +1755,30 @@ document.addEventListener("DOMContentLoaded", function () {
         swap: "none"
     });
 
-    const toggleButton = document.getElementById("toggle-report-button");
     const reportTarget = document.getElementById("report-collapse-target");
-    if (toggleButton && reportTarget) {
-        toggleButton.addEventListener("click", function () {
-            const isHidden = reportTarget.classList.toggle("is-hidden");
-            toggleButton.setAttribute("aria-expanded", String(!isHidden));
+    const sectionSelect = document.getElementById("result-section-select");
+
+    if (sectionSelect && reportTarget) {
+        sectionSelect.addEventListener("change", function () {
+            const testSections = reportTarget.querySelectorAll(".result-test-section");
+            testSections.forEach(function (section) {
+                section.classList.add("is-hidden");
+            });
+
+            if (!this.value) {
+                reportTarget.classList.add("is-hidden");
+                return;
+            }
+
+            reportTarget.classList.remove("is-hidden");
+
+            const selectedSection = document.getElementById(this.value);
+            if (selectedSection) {
+                selectedSection.classList.remove("is-hidden");
+                window.requestAnimationFrame(function () {
+                    selectedSection.scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+            }
         });
     }
 });

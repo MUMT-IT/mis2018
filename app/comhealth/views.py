@@ -600,6 +600,44 @@ def xrays_api():
     )
 
 
+def _save_service_section_approval(api_path):
+    payload = request.get_json(silent=True) or {}
+    service_no = str(payload.get('serviceNo') or '').strip()
+    if not service_no or not re.fullmatch(r'[A-Za-z0-9_-]+', service_no):
+        return {'error': 'Invalid serviceNo'}, 400
+
+    is_approved = payload.get('isApproved')
+    if not isinstance(is_approved, bool):
+        return {'error': 'isApproved must be a boolean'}, 400
+
+    approval_payload = {
+        'isApproved': is_approved,
+        'approvedBy': str(current_user.fullname or '')[:50],
+    }
+    response = _online_results_api_request(
+        'POST',
+        f'{api_path}/{service_no}',
+        json=approval_payload,
+    )
+    return (
+        response.content,
+        response.status_code,
+        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+    )
+
+
+@comhealth.route('/api/physical-exams/approval', methods=['POST'])
+@login_required
+def save_physical_exam_approval_api():
+    return _save_service_section_approval('/PhysicalExams/approval')
+
+
+@comhealth.route('/api/xrays/approval', methods=['POST'])
+@login_required
+def save_xray_approval_api():
+    return _save_service_section_approval('/XRays/approval')
+
+
 @comhealth.route('/api/lab-approvals', methods=['POST'])
 @login_required
 def save_lab_approvals_api():
@@ -4973,6 +5011,37 @@ def employee_physical(serviceNo):
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
 
+    current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    approval_value = physical.get('isApproved', physical.get('IsApproved'))
+    physical_values = [
+        physical.get('weight'),
+        physical.get('height'),
+        physical.get('heartRate'),
+        physical.get('systolic'),
+        physical.get('waistline'),
+    ]
+    has_pending_value = any(
+        str(value or '').strip().lower() == 'pending approval'
+        for value in physical_values
+    )
+    is_not_approved = (
+        approval_value is False
+        or str(approval_value).strip().lower() in {'false', '0'}
+    )
+    if is_not_approved or has_pending_value:
+        pending_html = render_lab_result_value('Pending approval', current_lang)
+        return (
+            f'<span id="weight" hx-swap-oob="true">{pending_html}</span>'
+            f'<span id="height" hx-swap-oob="true">{pending_html}</span>'
+            f'<span id="heartrate" hx-swap-oob="true">{pending_html}</span>'
+            f'<span id="systolic" hx-swap-oob="true" class="has-text-dark">{pending_html}</span>'
+            f'<span id="waistline" hx-swap-oob="true">{pending_html}</span>'
+            f'<span id="bmi" hx-swap-oob="true" class="has-text-dark">{pending_html}</span>'
+            f'<span id="bmi_inp" hx-swap-oob="true">{pending_html}</span>'
+            f'<span id="comment" hx-swap-oob="true">{pending_html}</span>'
+            f'<span id="bp_inp" hx-swap-oob="true">{pending_html}</span>'
+        )
+
     try:
         reponse_waist = _online_results_api_request('GET', f'/Questionares/waistline/{serviceNo}')
         question = reponse_waist.json()
@@ -4984,11 +5053,10 @@ def employee_physical(serviceNo):
     heartrate = physical.get("heartRate","")
     systolic = physical.get("systolic","")
     comment = physical.get("comment","")
-    waistline  = question.get("waistline","")
+    waistline = physical.get("waistline") or question.get("waistline", "")
     if not waistline:
         waistline = '-'
 
-    current_lang = (request.args.get('lang', 'th') or 'th').lower()
     interpret_cache = _localized_interpret_cache(load_all_interpret(), current_lang)
     condition_cache = load_all_conditions()
 
@@ -5126,6 +5194,7 @@ def employee_lab(serviceNo, age, gender):
                 previous_result2=escape(row.get("previousResult2") or "-"),
                 previous_date1=format_service_no_date(row.get("previousServiceNo1")),
                 previous_date2=format_service_no_date(row.get("previousServiceNo2")),
+                current_lang=current_lang,
             )
     html += xray_result(serviceNo, current_lang)
     html += f'<div id="loader-overlay" class="hidden" hx-swap-oob="true"></div>'
@@ -5544,12 +5613,15 @@ def testspecial(serviceNo, gender, age):
             result_flag = lab_result_flag_from_reference(value, ref_value, gender)
             result_flag_html = render_lab_result_flag(result_flag)
 
+            value_html = render_lab_result_value(value, current_lang)
+            previous_result1_html = render_lab_result_value(previous_result1, current_lang)
+            previous_result2_html = render_lab_result_value(previous_result2, current_lang)
             rows += f'''
                 <tr>
                     <td>{testname}</td>
-                    <td class="text-center">{value}{result_flag_html}</td>
-                    <td class="text-center has-text-grey">{previous_result1}</td>
-                    <td class="text-center has-text-grey">{previous_result2}</td>
+                    <td class="text-center">{value_html}{result_flag_html}</td>
+                    <td class="text-center has-text-grey">{previous_result1_html}</td>
+                    <td class="text-center has-text-grey">{previous_result2_html}</td>
                     <td>{ref}</td>
                     <td>{unit}</td>
                 </tr>
@@ -5729,16 +5801,28 @@ def render_lab_result_flag(result_flag):
     return ''
 
 
+def render_lab_result_value(value, current_lang='en'):
+    """Render the API's pending marker as a compact neutral badge."""
+    value_text = str(value or '')
+    if value_text.strip().lower() == 'pending approval':
+        pending_label = 'รอตรวจสอบ' if str(current_lang).lower().startswith('th') else 'Pending approval'
+        return f'<span class="lab-pending-approval">{pending_label}</span>'
+    return value_text
+
+
 def render_lab_oob(tcode, value, ref, testname, unit, color,
                    result_flag='',
                    previous_result1='-', previous_result2='-',
-                   previous_date1='-', previous_date2='-'):
+                   previous_date1='-', previous_date2='-', current_lang='en'):
     result_flag_html = render_lab_result_flag(result_flag)
+    value_html = render_lab_result_value(value, current_lang)
+    previous_result1_html = render_lab_result_value(previous_result1, current_lang)
+    previous_result2_html = render_lab_result_value(previous_result2, current_lang)
     return (
         f'<span id="{tcode}_name" hx-swap-oob="true">{testname}</span>'
-        f'<span id="{tcode}_result" hx-swap-oob="true" class="{color}">{value}{result_flag_html}</span>'
-        f'<span id="{tcode}_previous1" hx-swap-oob="true">{previous_result1}</span>'
-        f'<span id="{tcode}_previous2" hx-swap-oob="true">{previous_result2}</span>'
+        f'<span id="{tcode}_result" hx-swap-oob="true" class="{color}">{value_html}{result_flag_html}</span>'
+        f'<span id="{tcode}_previous1" hx-swap-oob="true">{previous_result1_html}</span>'
+        f'<span id="{tcode}_previous2" hx-swap-oob="true">{previous_result2_html}</span>'
         f'<span id="lab_previous_date1" hx-swap-oob="innerHTML">{previous_date1}</span>'
         f'<span id="lab_previous_date2" hx-swap-oob="innerHTML">{previous_date2}</span>'
         f'<span id="{tcode}_ref" hx-swap-oob="true">{ref}</span>'

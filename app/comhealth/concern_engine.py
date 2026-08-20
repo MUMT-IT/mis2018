@@ -303,7 +303,26 @@ def _evidence_from_row(rule, row):
     return row.get("testResult")
 
 
-def _build_evidence_item(rule, row, value, gender, copy, derived=False):
+def _reference_range_for_language(row, rule, lang):
+    row = row or {}
+    if str(lang).lower().startswith("en"):
+        return (
+            row.get("refBookEng")
+            or row.get("RefBookEng")
+            or row.get("refBookTh")
+            or row.get("RefBookTh")
+            or _format_range(rule)
+        )
+    return (
+        row.get("refBookTh")
+        or row.get("RefBookTh")
+        or row.get("refBookEng")
+        or row.get("RefBookEng")
+        or _format_range(rule)
+    )
+
+
+def _build_evidence_item(rule, row, value, gender, copy, lang="en", derived=False):
     status = _evaluate_metric(rule, value, gender)
     score = _evidence_status_to_score(status)
     if rule.get("role") == "modifier" and status not in {"missing", "normal"}:
@@ -316,7 +335,7 @@ def _build_evidence_item(rule, row, value, gender, copy, derived=False):
         "label": copy["evidence_label"].get(rule["key"], rule["label"]),
         "value": _format_value(value if value is not None else "-"),
         "unit": (row or {}).get("unit", "") if row else "",
-        "reference_range": (row or {}).get("refBookTh") or _format_range(rule),
+        "reference_range": _reference_range_for_language(row, rule, lang),
         "status": status,
         "score": score,
         "role": rule.get("role", "core"),
@@ -327,18 +346,18 @@ def _build_evidence_item(rule, row, value, gender, copy, derived=False):
     }
 
 
-def _evidence_from_source(rule, rows, physical, age, gender, copy):
+def _evidence_from_source(rule, rows, physical, age, gender, copy, lang):
     source = rule.get("source")
     if source == "bmi":
         bmi = _calculate_bmi(physical)
-        return _build_evidence_item(rule, {"unit": "kg/m2", "refBookTh": "18.5 - 22.9"}, bmi, gender, copy, derived=True)
+        return _build_evidence_item(rule, {"unit": "kg/m2", "refBookTh": "18.5 - 22.9", "refBookEng": "18.5 - 22.9"}, bmi, gender, copy, lang, derived=True)
     if source == "blood_pressure":
-        return _build_evidence_item(rule, {"unit": "mmHg", "refBookTh": "< 130/80"}, physical.get("systolic"), gender, copy, derived=True)
+        return _build_evidence_item(rule, {"unit": "mmHg", "refBookTh": "< 130/80", "refBookEng": "< 130/80"}, physical.get("systolic"), gender, copy, lang, derived=True)
     if source == "egfr":
         creatinine_row = _match_row(rows, {"aliases": ["CRE", "CREATININE"]})
         creatinine_value = creatinine_row.get("testResult") if creatinine_row else physical.get("creatinine")
         egfr_value = _calculate_egfr(creatinine_value, age, gender)
-        return _build_evidence_item(rule, {"unit": "mL/min/1.73m2", "refBookTh": ">= 90"}, egfr_value, gender, copy, derived=True)
+        return _build_evidence_item(rule, {"unit": "mL/min/1.73m2", "refBookTh": ">= 90", "refBookEng": ">= 90"}, egfr_value, gender, copy, lang, derived=True)
     if source == "triglycerides_hdl_ratio":
         triglycerides_row = _match_row(rows, {"aliases": ["TG", "TRIGLYCERIDE", "TRIGLYCERIDES"]})
         hdl_row = _match_row(rows, {"aliases": ["HDLC", "HDL", "HDL-C", "HDL CHOLESTEROL"]})
@@ -350,21 +369,22 @@ def _evidence_from_source(rule, rows, physical, age, gender, copy):
         synthetic_row = {
             "unit": "",
             "refBookTh": "< 2.0",
+            "refBookEng": "< 2.0",
             "tcode": "TG/HDL",
             "testNamePrintResult": "Triglycerides / HDL ratio",
         }
-        return _build_evidence_item(rule, synthetic_row, ratio_value, gender, copy, derived=True)
-    return _build_evidence_item(rule, None, None, gender, copy)
+        return _build_evidence_item(rule, synthetic_row, ratio_value, gender, copy, lang, derived=True)
+    return _build_evidence_item(rule, None, None, gender, copy, lang)
 
 
-def _build_evidence(rule, rows, physical, question, age, gender, copy):
+def _build_evidence(rule, rows, physical, question, age, gender, copy, lang):
     if rule.get("source"):
-        return _evidence_from_source(rule, rows, physical, age, gender, copy)
+        return _evidence_from_source(rule, rows, physical, age, gender, copy, lang)
 
     row = _match_row(rows, rule)
     if not row:
-        return _build_evidence_item(rule, None, None, gender, copy)
-    return _build_evidence_item(rule, row, _evidence_from_row(rule, row), gender, copy)
+        return _build_evidence_item(rule, None, None, gender, copy, lang)
+    return _build_evidence_item(rule, row, _evidence_from_row(rule, row), gender, copy, lang)
 
 
 def _score_issue(issue_rule, evidence_items, trigger_severity=0):
@@ -401,7 +421,7 @@ def build_health_risk_report(rows, physical, question, age, gender, trigger_over
 
     for issue_rule in ISSUE_RULES:
         evidence_items = [
-            _build_evidence(evidence_rule, rows, physical, question, age, gender, copy)
+            _build_evidence(evidence_rule, rows, physical, question, age, gender, copy, lang)
             for evidence_rule in issue_rule["evidence"]
         ]
         missing_evidence = [
