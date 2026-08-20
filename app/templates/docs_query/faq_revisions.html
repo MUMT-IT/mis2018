@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% include "docs_query/nav.html" %}
+{% block title %}MUMT-MIS: ประวัติ FAQ{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="level mb-5">
+                <div>
+                    <p class="is-size-7 has-text-weight-semibold has-text-info">ประวัติการเปลี่ยนแปลง</p>
+                    <h1 class="title is-3 mb-2">ประวัติ FAQ</h1>
+                    <p class="subtitle is-5 has-text-grey">{{ faq.question }}</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('docs_query.faq') }}">
+                    <span class="icon"><i class="fas fa-arrow-left" aria-hidden="true"></i></span>
+                    <span>กลับไปจัดการ FAQ</span>
+                </a>
+            </div>
+
+            {% if revisions %}
+                {% for revision in revisions %}
+                    <article class="box mb-4">
+                        <div class="level is-mobile mb-4">
+                            <div>
+                                <span class="tag is-{{ revision.operation_class }}">{{ revision.operation_label }}</span>
+                                <span class="has-text-weight-semibold ml-2">ครั้งที่ {{ revision.version }}</span>
+                            </div>
+                            <p class="is-size-7 has-text-grey">
+                                {{ revision.editor_name }} · {{ revision.edit_datetime.strftime('%d/%m/%Y %H:%M') }}
+                            </p>
+                        </div>
+                        <div class="content">
+                            <p class="has-text-weight-semibold mb-2">คำถาม</p>
+                            <p style="white-space: pre-line;">{{ revision.question }}</p>
+                            <p class="has-text-weight-semibold mb-2">คำตอบ</p>
+                            <p style="white-space: pre-line;">{{ revision.answer }}</p>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="notification is-light">ยังไม่มีประวัติการเปลี่ยนแปลง</div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

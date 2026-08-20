@@ -9,7 +9,8 @@ from datetime import date, datetime, timedelta, timezone
 import fitz
 import requests
 from flask import abort, current_app, flash, jsonify, redirect, render_template, request, url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
+from sqlalchemy_continuum import Operation, version_class
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
@@ -20,7 +21,15 @@ from app.main import db
 from app.roles import admin_permission
 
 from . import docs_query
-from .models import DocsQueryChunk, DocsQueryClick, DocsQueryDocument, DocsQuerySearch, DocsQueryTag
+from .models import (
+    BANGKOK_TZ,
+    DocsQueryChunk,
+    DocsQueryClick,
+    DocsQueryDocument,
+    DocsQueryFaq,
+    DocsQuerySearch,
+    DocsQueryTag,
+)
 
 FOLDER_ID = '1PI7ZN5V1W_NxUGRteg8cXvnJMzF2nHOd'
 ALLOWED_EXTENSIONS = {'pdf'}
@@ -30,6 +39,10 @@ EMBEDDING_MODEL = os.getenv('DOCS_QUERY_EMBEDDING_MODEL', 'cohere-embed-multilin
 EMBEDDING_DIMENSIONS = 1024
 EMBEDDING_MAX_BYTES = 2048
 OCR_TRIGGER_CHAR_COUNT = 50
+
+
+def _current_user_name():
+    return getattr(current_user, 'fullname', None) or current_user.email
 
 
 def _semantic_min_similarity():
@@ -478,6 +491,115 @@ def _semantic_search_chunks(query, limit=50):
         for row in rows
         if row['id'] in chunks_by_id
     ]
+
+
+def _store_faq_embedding(faq):
+    """Store a question embedding when the vector service and PostgreSQL exist."""
+    if not _embedding_configured() or db.engine.dialect.name != 'postgresql':
+        return False
+    embedding = _embed_texts([faq.question], 'search_document')[0]
+    db.session.execute(
+        sqlalchemy_text(
+            'UPDATE docs_query_faqs '
+            'SET embedding = CAST(:embedding AS vector) '
+            'WHERE id = :id'
+        ),
+        {'embedding': _vector_literal(embedding), 'id': faq.id},
+    )
+    return True
+
+
+def embed_faqs(faqs=None):
+    """Generate embeddings for FAQ questions and return the number updated."""
+    if not _embedding_configured() or db.engine.dialect.name != 'postgresql':
+        return 0
+    faq_entries = list(faqs if faqs is not None else DocsQueryFaq.query.all())
+    if not faq_entries:
+        return 0
+    embeddings = _embed_texts(
+        [faq.question for faq in faq_entries],
+        'search_document',
+    )
+    db.session.execute(
+        sqlalchemy_text(
+            'UPDATE docs_query_faqs '
+            'SET embedding = CAST(:embedding AS vector) '
+            'WHERE id = :id'
+        ),
+        [
+            {'embedding': _vector_literal(embedding), 'id': faq.id}
+            for faq, embedding in zip(faq_entries, embeddings)
+        ],
+    )
+    return len(embeddings)
+
+
+def _keyword_search_faqs(query, limit=5):
+    escaped_query = (query.replace('\\', '\\\\')
+                     .replace('%', '\\%')
+                     .replace('_', '\\_'))
+    pattern = '%{}%'.format(escaped_query)
+    return [
+        {'faq': faq, 'similarity': None}
+        for faq in DocsQueryFaq.query
+        .filter(DocsQueryFaq.question.ilike(pattern, escape='\\'))
+        .order_by(DocsQueryFaq.edit_datetime.desc())
+        .limit(limit)
+        .all()
+    ]
+
+
+def _semantic_search_faqs(query, limit=5):
+    if not _embedding_configured() or db.engine.dialect.name != 'postgresql':
+        return []
+    query_embedding = _embed_texts([query], 'search_query')[0]
+    rows = db.session.execute(
+        sqlalchemy_text(
+            'SELECT id, 1 - (embedding <=> CAST(:embedding AS vector)) AS similarity '
+            'FROM docs_query_faqs '
+            'WHERE embedding IS NOT NULL '
+            'AND 1 - (embedding <=> CAST(:embedding AS vector)) >= :min_similarity '
+            'ORDER BY embedding <=> CAST(:embedding AS vector) '
+            'LIMIT :limit'
+        ),
+        {
+            'embedding': _vector_literal(query_embedding),
+            'min_similarity': _semantic_min_similarity(),
+            'limit': limit,
+        },
+    ).mappings().all()
+    if not rows:
+        return []
+    faq_by_id = {
+        faq.id: faq
+        for faq in DocsQueryFaq.query.filter(
+            DocsQueryFaq.id.in_([row['id'] for row in rows])
+        ).all()
+    }
+    return [
+        {'faq': faq_by_id[row['id']], 'similarity': float(row['similarity'])}
+        for row in rows
+        if row['id'] in faq_by_id
+    ]
+
+
+def search_faqs(query, limit=5):
+    try:
+        semantic_results = _semantic_search_faqs(query, limit=limit)
+    except Exception:
+        current_app.logger.exception('Semantic FAQ search failed; using keyword search.')
+        semantic_results = []
+    keyword_results = _keyword_search_faqs(query, limit=limit)
+    combined = semantic_results[:limit]
+    seen_ids = {result['faq'].id for result in combined}
+    for result in keyword_results:
+        if result['faq'].id in seen_ids:
+            continue
+        combined.append(result)
+        seen_ids.add(result['faq'].id)
+        if len(combined) >= limit:
+            break
+    return combined
 
 
 def search_chunks(query, limit=50, return_metadata=False):
@@ -1258,6 +1380,7 @@ def list_pdf_files():
 def index():
     query = None
     search_results = []
+    faq_results = []
     related_documents = []
     short_answer = None
     answer = None
@@ -1272,6 +1395,9 @@ def index():
             started_at = time.perf_counter()
             try:
                 search_results, search_method = search_chunks(query, return_metadata=True)
+                faq_results = search_faqs(query)
+                if faq_results:
+                    search_method = 'faq+{}'.format(search_method)
                 related_documents = _build_related_documents(search_results)
                 related_document_ids = {
                     related['document'].id for related in related_documents
@@ -1282,7 +1408,7 @@ def index():
                 ]
                 search = _record_search(
                     query,
-                    len(search_results),
+                    len(search_results) + len(faq_results),
                     len(related_documents),
                     search_method,
                     round((time.perf_counter() - started_at) * 1000),
@@ -1295,9 +1421,9 @@ def index():
                             search_id=search.id,
                             file_id=related['document'].drive_file_id,
                         )
-                if not search_results:
+                if not search_results and not faq_results:
                     flash('ไม่พบเอกสารที่ตรงกับคำค้น', 'info')
-                else:
+                elif search_results:
                     try:
                         generated_short_answer = _call_typhoon_short_answer(query, search_results)
                         if generated_short_answer.strip() != 'ไม่พบข้อมูลที่ตอบคำถามได้อย่างชัดเจน':
@@ -1322,6 +1448,7 @@ def index():
                     'docs_query/samaritan_results.html',
                     query=query,
                     related_documents=related_documents,
+                    faq_results=faq_results,
                     short_answer=short_answer,
                     answer=answer,
                     search_error=search_error,
@@ -1330,6 +1457,7 @@ def index():
                 'docs_query/search_results.html',
                 query=query,
                 related_documents=related_documents,
+                faq_results=faq_results,
                 short_answer=short_answer,
                 answer=answer,
                 search_error=search_error,
@@ -1348,6 +1476,7 @@ def index():
         'docs_query/index.html',
         query=query,
         search_results=search_results,
+        faq_results=faq_results,
         related_documents=related_documents,
         short_answer=short_answer,
         answer=answer,
@@ -1419,6 +1548,122 @@ def admin():
     return render_template(
         'docs_query/admin.html',
         statistics=statistics,
+    )
+
+
+@docs_query.route('/faq', methods=['GET', 'POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def faq():
+    question = ''
+    answer = ''
+    if request.method == 'POST':
+        question = (request.form.get('question') or '').strip()
+        answer = (request.form.get('answer') or '').strip()
+        if not question or not answer:
+            flash('กรุณาระบุคำถามและคำตอบให้ครบถ้วน', 'warning')
+        else:
+            creator_name = _current_user_name()
+            faq_entry = DocsQueryFaq(
+                question=question,
+                answer=answer,
+                creator_name=creator_name,
+                editor_name=creator_name,
+            )
+            db.session.add(faq_entry)
+            db.session.commit()
+            try:
+                _store_faq_embedding(faq_entry)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception('Could not generate FAQ question embedding.')
+            flash('เพิ่ม FAQ เรียบร้อยแล้ว', 'success')
+            return redirect(url_for('docs_query.faq'))
+
+    faqs = DocsQueryFaq.query.order_by(DocsQueryFaq.edit_datetime.desc()).all()
+    return render_template(
+        'docs_query/faq.html',
+        faqs=faqs,
+        question=question,
+        answer=answer,
+        can_manage_documents=admin_permission.can(),
+    )
+
+
+@docs_query.route('/faq/<int:faq_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def edit_faq(faq_id):
+    faq_entry = DocsQueryFaq.query.get_or_404(faq_id)
+    if request.method == 'POST':
+        question = (request.form.get('question') or '').strip()
+        answer = (request.form.get('answer') or '').strip()
+        if not question or not answer:
+            flash('กรุณาระบุคำถามและคำตอบให้ครบถ้วน', 'warning')
+        else:
+            faq_entry.question = question
+            faq_entry.answer = answer
+            faq_entry.editor_name = _current_user_name()
+            faq_entry.edit_datetime = datetime.now(BANGKOK_TZ)
+            db.session.commit()
+            try:
+                _store_faq_embedding(faq_entry)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception('Could not refresh FAQ question embedding.')
+            flash('แก้ไข FAQ เรียบร้อยแล้ว', 'success')
+            return redirect(url_for('docs_query.faq'))
+
+    return render_template(
+        'docs_query/faq.html',
+        faqs=DocsQueryFaq.query.order_by(DocsQueryFaq.edit_datetime.desc()).all(),
+        question=faq_entry.question,
+        answer=faq_entry.answer,
+        editing_faq=faq_entry,
+        can_manage_documents=admin_permission.can(),
+    )
+
+
+@docs_query.route('/faq/<int:faq_id>/revisions')
+@login_required
+@admin_permission.require(http_exception=403)
+def faq_revisions(faq_id):
+    faq_entry = DocsQueryFaq.query.get_or_404(faq_id)
+    faq_version_class = version_class(DocsQueryFaq)
+    versions = (
+        db.session.query(faq_version_class)
+        .filter(faq_version_class.id == faq_entry.id)
+        .order_by(faq_version_class.transaction_id.desc())
+        .all()
+    )
+    operation_labels = {
+        Operation.INSERT: ('สร้าง', 'success'),
+        Operation.UPDATE: ('แก้ไข', 'info'),
+        Operation.DELETE: ('ลบ', 'danger'),
+    }
+    revision_rows = []
+    for index, revision in enumerate(versions):
+        operation_label, operation_class = operation_labels.get(
+            revision.operation_type,
+            ('ไม่ทราบ', 'light'),
+        )
+        revision_rows.append({
+            'version': len(versions) - index,
+            'operation_label': operation_label,
+            'operation_class': operation_class,
+            'editor_name': revision.editor_name,
+            'edit_datetime': revision.edit_datetime,
+            'question': revision.question,
+            'answer': revision.answer,
+            'transaction_id': revision.transaction_id,
+        })
+    return render_template(
+        'docs_query/faq_revisions.html',
+        faq=faq_entry,
+        revisions=revision_rows,
+        can_manage_documents=admin_permission.can(),
     )
 
 

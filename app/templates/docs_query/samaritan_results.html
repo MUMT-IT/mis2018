@@ -37,4 +37,16 @@
             })();
         </script>
     {% endif %}
+
+        {% if faq_results %}
+            <div class="samaritan-document-links">
+                <div class="samaritan-results-label">FAQ ANSWERS</div>
+                {% for result in faq_results %}
+                    <div class="samaritan-answer mb-4">
+                        <strong>{{ result.faq.question }}</strong>
+                        <div style="white-space: pre-line;">{{ result.faq.answer }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
 {% endif %}

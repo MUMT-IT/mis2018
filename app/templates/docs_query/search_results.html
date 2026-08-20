@@ -20,17 +20,19 @@
                     <div class="docs-query-answer-body">{{ short_answer }}</div>
                 </article>
             {% endif %}
-            {% if answer %}
-                <article class="docs-query-answer">
-                    <div class="docs-query-answer-heading">
-                    <span class="docs-query-answer-label">AI SUMMARY</span>
-                    </div>
-                    <div class="docs-query-answer-body">{{ answer }}</div>
-                    <p class="docs-query-ai-warning">
-                        <i class="fas fa-shield-halved" aria-hidden="true"></i>
-                        กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
-                    </p>
-                </article>
+            {% if faq_results %}
+                <div class="mb-5">
+                    <h3 class="title is-5 mb-1">คำตอบจาก FAQ</h3>
+                    {% for result in faq_results %}
+                        <article class="docs-query-answer docs-query-faq-answer">
+                            <div class="docs-query-answer-heading">
+                                <span class="docs-query-answer-label">FAQ</span>
+                            </div>
+                            <h4 class="title is-6 mb-2">{{ result.faq.question }}</h4>
+                            <div class="docs-query-answer-body" style="white-space: pre-line;">{{ result.faq.answer }}</div>
+                        </article>
+                    {% endfor %}
+                </div>
             {% endif %}
             {% if related_documents %}
                 <div class="mb-3">
@@ -76,8 +78,20 @@
                         </tbody>
                     </table>
                 </div>
-            {% else %}
+            {% elif not faq_results %}
                 <div class="notification is-light">ไม่พบเอกสาร</div>
+            {% endif %}
+            {% if answer %}
+                <article class="docs-query-answer">
+                    <div class="docs-query-answer-heading">
+                    <span class="docs-query-answer-label">AI SUMMARY</span>
+                    </div>
+                    <div class="docs-query-answer-body">{{ answer }}</div>
+                    <p class="docs-query-ai-warning">
+                        <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                        กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
+                    </p>
+                </article>
             {% endif %}
         </div>
     </div>

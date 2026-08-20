@@ -8,7 +8,7 @@ import pandas
 import pandas as pd
 import requests
 from sqlalchemy import or_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import configure_mappers, joinedload
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
@@ -38,6 +38,7 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import base64
 from pytz import timezone, utc
+from sqlalchemy_continuum import make_versioned
 
 # from app.besttime.models import BestTimePoll, BestTimeDateTimeSlot, BestTimeMasterDateTimeSlot, BestTimePollVote, \
 #     BestTimePollMessage
@@ -103,6 +104,9 @@ ModelView = AdminOnlyModelView
 
 load_dotenv()
 
+# Register SQLAlchemy-Continuum before application models are imported below.
+# Individual models opt in with a ``__versioned__`` attribute.
+make_versioned(user_cls=None)
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
@@ -1924,6 +1928,10 @@ admin.add_views(ModelView(CERegisterPaymentReceipt, db.session, category='Contin
 admin.add_views(ModelView(CERegisterPayment, db.session, category='Continuing Education'))
 admin.add_views(ModelView(CEEventSpeaker, db.session, category='Continuing Education'))
 admin.add_views(ModelView(CEEventAgenda, db.session, category='Continuing Education'))
+
+# SQLAlchemy-Continuum builds version mappers after all application models have
+# been imported. This also makes them available to Flask-Migrate autogenerate.
+configure_mappers()
 admin.add_views(ModelView(CEEventMaterial, db.session, category='Continuing Education'))
 admin.add_views(ModelView(CEEventRegistrationFee, db.session, category='Continuing Education'))
 admin.add_views(ModelView(CEEventEditor, db.session, category='Continuing Education'))
