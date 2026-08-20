@@ -144,11 +144,15 @@ class DocsQueryFaq(db.Model):
     embedding = db.Column(VectorType(1024))
     creator_name = db.Column(db.String(255), nullable=False)
     editor_name = db.Column(db.String(255), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), nullable=True)
+    editor_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), nullable=True)
     create_datetime = db.Column(db.DateTime(timezone=True), nullable=False,
                                  default=lambda: datetime.now(BANGKOK_TZ))
     edit_datetime = db.Column(db.DateTime(timezone=True), nullable=False,
                                default=lambda: datetime.now(BANGKOK_TZ),
                                onupdate=lambda: datetime.now(BANGKOK_TZ))
+    creator = db.relationship('StaffAccount', foreign_keys=[creator_id])
+    editor = db.relationship('StaffAccount', foreign_keys=[editor_id])
 
 
 class DocsQueryClick(db.Model):

@@ -52,6 +52,13 @@ def _semantic_min_similarity():
         return 0.35
 
 
+def _faq_min_similarity():
+    try:
+        return float(os.getenv('DOCS_QUERY_FAQ_MIN_SIMILARITY', '0.60'))
+    except ValueError:
+        return 0.60
+
+
 THAI_MONTHS = {
     'มกราคม': 1, 'ม.ค.': 1,
     'กุมภาพันธ์': 2, 'ก.พ.': 2,
@@ -564,7 +571,7 @@ def _semantic_search_faqs(query, limit=5):
         ),
         {
             'embedding': _vector_literal(query_embedding),
-            'min_similarity': _semantic_min_similarity(),
+            'min_similarity': _faq_min_similarity(),
             'limit': limit,
         },
     ).mappings().all()
@@ -587,6 +594,7 @@ def search_faqs(query, limit=5):
     try:
         semantic_results = _semantic_search_faqs(query, limit=limit)
     except Exception:
+        db.session.rollback()
         current_app.logger.exception('Semantic FAQ search failed; using keyword search.')
         semantic_results = []
     keyword_results = _keyword_search_faqs(query, limit=limit)
@@ -607,6 +615,7 @@ def search_chunks(query, limit=50, return_metadata=False):
     try:
         semantic_results = _semantic_search_chunks(query, limit=limit)
     except Exception:
+        db.session.rollback()
         current_app.logger.exception('Semantic document search failed; using keyword search.')
         semantic_results = []
     keyword_results = _keyword_search_chunks(query, limit=limit)
@@ -1440,6 +1449,7 @@ def index():
                     round((time.perf_counter() - started_at) * 1000),
                 )
             except Exception as exc:
+                db.session.rollback()
                 search_error = 'การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc)
                 flash('การค้นหาเอกสารหรือการสร้างคำตอบล้มเหลว: {}'.format(exc), 'danger')
         if request.headers.get('HX-Request') == 'true':
@@ -1569,6 +1579,8 @@ def faq():
                 answer=answer,
                 creator_name=creator_name,
                 editor_name=creator_name,
+                creator_id=current_user.id,
+                editor_id=current_user.id,
             )
             db.session.add(faq_entry)
             db.session.commit()
@@ -1605,6 +1617,7 @@ def edit_faq(faq_id):
             faq_entry.question = question
             faq_entry.answer = answer
             faq_entry.editor_name = _current_user_name()
+            faq_entry.editor_id = current_user.id
             faq_entry.edit_datetime = datetime.now(BANGKOK_TZ)
             db.session.commit()
             try:

@@ -30,6 +30,16 @@
                             </div>
                             <h4 class="title is-6 mb-2">{{ result.faq.question }}</h4>
                             <div class="docs-query-answer-body" style="white-space: pre-line;">{{ result.faq.answer }}</div>
+                            {% set faq_credit_name = result.faq.editor_name if result.faq.editor_name and result.faq.editor_name != result.faq.creator_name else result.faq.creator_name %}
+                            {% set faq_credit_account = result.faq.editor if result.faq.editor_id else result.faq.creator %}
+                            {% set faq_name_parts = faq_credit_name.split() %}
+                            {% set faq_initials = faq_name_parts[0][:1] ~ (faq_name_parts[-1][:1] if faq_name_parts|length > 1 else '') %}
+                            <p class="docs-query-faq-credit">
+                                <span class="docs-query-faq-avatar" aria-hidden="true">
+                                    {% if faq_credit_account and faq_credit_account.personal_info and faq_credit_account.personal_info.image_url %}<img src="{{ faq_credit_account.personal_info.image_url }}" alt="">{% else %}{{ faq_initials }}{% endif %}
+                                </span>
+                                <span>{% if result.faq.editor_name and result.faq.editor_name != result.faq.creator_name %}แก้ไขล่าสุดโดย{% else %}ให้ข้อมูลโดย{% endif %} {{ faq_credit_name }}</span>
+                            </p>
                         </article>
                     {% endfor %}
                 </div>
@@ -39,6 +49,18 @@
                     <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
                     <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
                 </div>
+                {% if answer %}
+                    <article class="docs-query-answer docs-query-ai-summary">
+                        <div class="docs-query-answer-heading">
+                        <span class="docs-query-answer-label">AI SUMMARY</span>
+                        </div>
+                        <div class="docs-query-answer-body">{{ answer }}</div>
+                        <p class="docs-query-ai-warning">
+                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                            กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
+                        </p>
+                    </article>
+                {% endif %}
                 <div class="table-container docs-query-related-table-container">
                     <table class="table is-fullwidth is-hoverable docs-query-related-table">
                         <thead>
@@ -80,18 +102,6 @@
                 </div>
             {% elif not faq_results %}
                 <div class="notification is-light">ไม่พบเอกสาร</div>
-            {% endif %}
-            {% if answer %}
-                <article class="docs-query-answer">
-                    <div class="docs-query-answer-heading">
-                    <span class="docs-query-answer-label">AI SUMMARY</span>
-                    </div>
-                    <div class="docs-query-answer-body">{{ answer }}</div>
-                    <p class="docs-query-ai-warning">
-                        <i class="fas fa-shield-halved" aria-hidden="true"></i>
-                        กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
-                    </p>
-                </article>
             {% endif %}
         </div>
     </div>

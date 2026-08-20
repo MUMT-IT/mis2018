@@ -24,8 +24,12 @@
                                 <span class="tag is-{{ revision.operation_class }}">{{ revision.operation_label }}</span>
                                 <span class="has-text-weight-semibold ml-2">ครั้งที่ {{ revision.version }}</span>
                             </div>
-                            <p class="is-size-7 has-text-grey">
-                                {{ revision.editor_name }} · {{ revision.edit_datetime.strftime('%d/%m/%Y %H:%M') }}
+                            <p class="is-size-7 has-text-grey docs-query-revision-credit">
+                                <span class="docs-query-revision-avatar" aria-hidden="true">
+                                    {% set revision_name_parts = revision.editor_name.split() %}
+                                    {{ revision_name_parts[0][:1] }}{{ revision_name_parts[-1][:1] if revision_name_parts|length > 1 else '' }}
+                                </span>
+                                <span>{{ revision.editor_name }} · {{ revision.edit_datetime.strftime('%d/%m/%Y %H:%M') }}</span>
                             </p>
                         </div>
                         <div class="content">
@@ -41,4 +45,9 @@
             {% endif %}
         </div>
     </section>
+    <style>
+        .docs-query-revision-credit { align-items: center; display: inline-flex; gap: .4rem; }
+        .docs-query-revision-avatar { align-items: center; background: #f2c94c; border-radius: 50%; color: #5f4300; display: inline-flex; font-size: .65rem; font-weight: 800; height: 1.5rem; justify-content: center; overflow: hidden; width: 1.5rem; }
+        .docs-query-revision-avatar img { height: 100%; object-fit: cover; width: 100%; }
+    </style>
 {% endblock %}

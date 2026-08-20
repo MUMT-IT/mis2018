@@ -57,7 +57,7 @@
                                         <h3 class="title is-5 mb-2">{{ item.question }}</h3>
                                         <p class="has-text-grey-dark" style="white-space: pre-line;">{{ item.answer }}</p>
                                         <p class="is-size-7 has-text-grey">
-                                            สร้างโดย {{ item.creator_name }} เมื่อ {{ item.create_datetime.strftime('%d/%m/%Y %H:%M') }}
+                                            ให้ข้อมูลโดย {{ item.creator_name }} เมื่อ {{ item.create_datetime.strftime('%d/%m/%Y %H:%M') }}
                                             · แก้ไขโดย {{ item.editor_name }} เมื่อ {{ item.edit_datetime.strftime('%d/%m/%Y %H:%M') }}
                                         </p>
                                         <a class="button is-small is-light mt-2" href="{{ url_for('docs_query.edit_faq', faq_id=item.id) }}">
