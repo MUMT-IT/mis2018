@@ -74,29 +74,31 @@ class SoftwareRequestDetail(db.Model):
     activity = db.relationship(StrategyActivity, backref=db.backref('software_requests', cascade='all, delete-orphan'))
     priority = db.Column('priority', db.String(), info={'label': 'ระดับความสำคัญ',
                                                         'choices': [('', 'กรุณาเลือกระดับความสำคัญ'),
-                                                                    ('สูง', 'สูง'),
-                                                                    ('กลาง', 'กลาง'),
-                                                                    ('ต่ำ', 'ต่ำ')
+                                                                    ('3', 'สูง'),
+                                                                    ('2', 'กลาง'),
+                                                                    ('1', 'ต่ำ')
                                                                     ]})
     urgency = db.Column('urgency', db.String(), info={'label': 'ความเร่งด่วน',
                                                         'choices': [('', 'กรุณาเลือกระดับความเร่งด่วน'),
-                                                                    ('ไม่เร่งด่วน', 'ไม่เร่งด่วน'),
-                                                                    ('ค่อนข้างเร่งด่วน', 'ค่อนข้างเร่งด่วน'),
-                                                                    ('เร่งด่วน', 'เร่งด่วน')
+                                                                    ('1', 'ไม่เร่งด่วน'),
+                                                                    ('2', 'ค่อนข้างเร่งด่วน'),
+                                                                    ('3', 'เร่งด่วนมาก')
                                                                     ]})
     frequency = db.Column('frequency', db.String(), info={'label': 'ความถี่การใช้งาน',
-                                                          'choices': [('None', 'กรุณาเลือกความถี่การใช้งาน'),
+                                                          'choices': [('', 'กรุณาเลือกความถี่การใช้งาน'),
                                                                       ('รายวัน', 'รายวัน'),
                                                                       ('รายสัปดาห์', 'รายสัปดาห์'),
                                                                       ('รายเดือน', 'รายเดือน'),
-                                                                      ('เป็นครั้งคราว', 'เป็นครั้งคราว'),
-                                                                      ('ใช้ครั้งเดียว'), ('ใช้ครั้งเดียว')]})
+                                                                      ('ตามวงรอบ', 'ตามวงรอบ'),
+                                                                      ('เป็นครั้งคราว', 'เป็นครั้งคราว')
+                                                                      ]})
     user_group = db.Column('user_group', db.String(), info={'label': 'กลุ่มผู้ใช้งาน',
                                                             'choices': [('หน่วยงานภายใน', ' หน่วยงานภายใน'),
                                                                         ('หน่วยงานภายนอก', 'หน่วยงานภายนอก'),
                                                                         ('บุคคลทั่วไป', ' บุคคลทั่วไป'),
-                                                                        ('คู่ค้า', ' คู่ค้า'),
-                                                                        ('นักศึกษา', 'นักศึกษา')]})
+                                                                        ('ผู้รับบริการ', 'ผู้รับบริการ'),
+                                                                        ('นักศึกษา', 'นักศึกษา')
+                                                                        ]})
     required_information = db.Column('required_information', db.Text())
     suggestion = db.Column('suggestion', db.Text())
     reason = db.Column('reason', db.Text())
