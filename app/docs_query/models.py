@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
+from pytz import timezone as pytz_timezone
 
 from app.main import db
+
+
+BANGKOK_TZ = pytz_timezone('Asia/Bangkok')
 from sqlalchemy.types import TypeDecorator, UserDefinedType
 
 
@@ -128,6 +132,27 @@ class DocsQuerySearch(db.Model):
     response_time_ms = db.Column(db.Integer)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False,
                             default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class DocsQueryFaq(db.Model):
+    __tablename__ = 'docs_query_faqs'
+    __versioned__ = {'exclude': ['embedding']}
+
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.Text, nullable=False)
+    answer = db.Column(db.Text, nullable=False)
+    embedding = db.Column(VectorType(1024))
+    creator_name = db.Column(db.String(255), nullable=False)
+    editor_name = db.Column(db.String(255), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), nullable=True)
+    editor_id = db.Column(db.Integer, db.ForeignKey('staff_account.id'), nullable=True)
+    create_datetime = db.Column(db.DateTime(timezone=True), nullable=False,
+                                 default=lambda: datetime.now(BANGKOK_TZ))
+    edit_datetime = db.Column(db.DateTime(timezone=True), nullable=False,
+                               default=lambda: datetime.now(BANGKOK_TZ),
+                               onupdate=lambda: datetime.now(BANGKOK_TZ))
+    creator = db.relationship('StaffAccount', foreign_keys=[creator_id])
+    editor = db.relationship('StaffAccount', foreign_keys=[editor_id])
 
 
 class DocsQueryClick(db.Model):

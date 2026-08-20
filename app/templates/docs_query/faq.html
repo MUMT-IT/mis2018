@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% include "docs_query/nav.html" %}
+{% block title %}MUMT-MIS: จัดการ FAQ{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="level mb-5">
+                <div>
+                    <p class="is-size-7 has-text-weight-semibold has-text-info">สำหรับผู้ดูแลระบบ</p>
+                    <h1 class="title is-2 mb-2">จัดการ FAQ</h1>
+                    <p class="subtitle is-5 has-text-grey">เพิ่มคำถามที่พบบ่อยพร้อมคำตอบสำหรับคลังความรู้</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('docs_query.index') }}">
+                    <span class="icon"><i class="fas fa-search" aria-hidden="true"></i></span>
+                    <span>ค้นหาเอกสาร</span>
+                </a>
+            </div>
+
+            <div class="columns is-variable is-6 is-multiline">
+                <div class="column is-5">
+                    <div class="box">
+                        <h2 class="title is-4">{{ 'แก้ไข FAQ' if editing_faq else 'เพิ่ม FAQ ใหม่' }}</h2>
+                        <p class="has-text-grey mb-5">กรอกคำถามและคำตอบที่ต้องการบันทึก</p>
+                        <form method="post" action="{{ url_for('docs_query.edit_faq', faq_id=editing_faq.id) if editing_faq else url_for('docs_query.faq') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label" for="question">คำถาม</label>
+                                <div class="control">
+                                    <textarea class="textarea" id="question" name="question" rows="4" required>{{ question }}</textarea>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="answer">คำตอบ</label>
+                                <div class="control">
+                                    <textarea class="textarea" id="answer" name="answer" rows="7" required>{{ answer }}</textarea>
+                                </div>
+                            </div>
+                            <button class="button is-info is-fullwidth mt-4" type="submit">
+                                <span class="icon"><i class="fas {{ 'fa-save' if editing_faq else 'fa-plus' }}" aria-hidden="true"></i></span>
+                                <span>{{ 'บันทึกการแก้ไข' if editing_faq else 'เพิ่ม FAQ' }}</span>
+                            </button>
+                            {% if editing_faq %}
+                                <a class="button is-light is-fullwidth mt-2" href="{{ url_for('docs_query.faq') }}">ยกเลิก</a>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+
+                <div class="column is-7">
+                    <div class="box">
+                        <h2 class="title is-4">FAQ ที่บันทึกไว้</h2>
+                        {% if faqs %}
+                            <div class="content">
+                                {% for item in faqs %}
+                                    <article class="mb-5">
+                                        <h3 class="title is-5 mb-2">{{ item.question }}</h3>
+                                        <p class="has-text-grey-dark" style="white-space: pre-line;">{{ item.answer }}</p>
+                                        <p class="is-size-7 has-text-grey">
+                                            ให้ข้อมูลโดย {{ item.creator_name }} เมื่อ {{ item.create_datetime.strftime('%d/%m/%Y %H:%M') }}
+                                            · แก้ไขโดย {{ item.editor_name }} เมื่อ {{ item.edit_datetime.strftime('%d/%m/%Y %H:%M') }}
+                                        </p>
+                                        <a class="button is-small is-light mt-2" href="{{ url_for('docs_query.edit_faq', faq_id=item.id) }}">
+                                            <span class="icon"><i class="fas fa-edit" aria-hidden="true"></i></span>
+                                            <span>แก้ไข</span>
+                                        </a>
+                                        <a class="button is-small is-light mt-2" href="{{ url_for('docs_query.faq_revisions', faq_id=item.id) }}" title="ดูประวัติการแก้ไข" aria-label="ดูประวัติการแก้ไข">
+                                            <span class="icon"><i class="fas fa-history" aria-hidden="true"></i></span>
+                                            <span>ประวัติ</span>
+                                        </a>
+                                    </article>
+                                    {% if not loop.last %}<hr>{% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="has-text-grey">ยังไม่มี FAQ</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

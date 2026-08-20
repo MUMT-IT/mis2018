@@ -4,8 +4,9 @@ from flask.cli import with_appcontext
 
 from app.main import db
 
-from .models import DocsQueryDocument
+from .models import DocsQueryDocument, DocsQueryFaq
 from .views import (
+    embed_faqs,
     extract_date_for_document,
     generate_document_summary,
     list_pdf_files,
@@ -17,6 +18,22 @@ def register_commands(app):
     @app.cli.group('docs-query')
     def docs_query_cli():
         """Commands for the Docs Query application."""
+
+    @docs_query_cli.command('backfill-faq-embeddings')
+    @with_appcontext
+    def backfill_faq_embeddings():
+        """Generate missing semantic-search embeddings for FAQ questions."""
+        faqs = DocsQueryFaq.query.filter(DocsQueryFaq.embedding.is_(None)).all()
+        if not faqs:
+            click.echo('No FAQ embeddings need backfilling.')
+            return
+        try:
+            count = embed_faqs(faqs)
+            db.session.commit()
+        except Exception as exc:
+            db.session.rollback()
+            raise click.ClickException('FAQ embedding backfill failed: {}'.format(exc))
+        click.echo('Generated embeddings for {} FAQ(s).'.format(count))
 
     @docs_query_cli.command('backfill')
     @click.option('--limit', type=click.IntRange(min=0), default=0, show_default=True,

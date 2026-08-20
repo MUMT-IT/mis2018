@@ -136,23 +136,47 @@
                                         <div class="docs-query-answer-body">{{ short_answer }}</div>
                                     </article>
                                 {% endif %}
-                                {% if answer %}
-                                    <article class="docs-query-answer">
-                                        <div class="docs-query-answer-heading">
-                                            <span class="docs-query-answer-label">AI SUMMARY</span>
-                                        </div>
-                                        <div class="docs-query-answer-body">{{ answer }}</div>
-                                        <p class="docs-query-ai-warning">
-                                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
-                                            กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
-                                        </p>
-                                    </article>
+                                {% if faq_results %}
+                                    <div class="mb-5">
+                                        <h3 class="title is-5 mb-1">คำตอบจาก FAQ</h3>
+                                        {% for result in faq_results %}
+                                            <article class="docs-query-answer docs-query-faq-answer">
+                                                <div class="docs-query-answer-heading">
+                                                    <span class="docs-query-answer-label">FAQ</span>
+                                                </div>
+                                                <h4 class="title is-6 mb-2">{{ result.faq.question }}</h4>
+                                                <div class="docs-query-answer-body" style="white-space: pre-line;">{{ result.faq.answer }}</div>
+                                                {% set faq_credit_name = result.faq.editor_name if result.faq.editor_name and result.faq.editor_name != result.faq.creator_name else result.faq.creator_name %}
+                                                {% set faq_credit_account = result.faq.editor if result.faq.editor_id else result.faq.creator %}
+                                                {% set faq_name_parts = faq_credit_name.split() %}
+                                                {% set faq_initials = faq_name_parts[0][:1] ~ (faq_name_parts[-1][:1] if faq_name_parts|length > 1 else '') %}
+                                                <p class="docs-query-faq-credit">
+                                                    <span class="docs-query-faq-avatar" aria-hidden="true">
+                                                        {% if faq_credit_account and faq_credit_account.personal_info and faq_credit_account.personal_info.image_url %}<img src="{{ faq_credit_account.personal_info.image_url }}" alt="">{% else %}{{ faq_initials }}{% endif %}
+                                                    </span>
+                                                    <span>{% if result.faq.editor_name and result.faq.editor_name != result.faq.creator_name %}แก้ไขล่าสุดโดย{% else %}ให้ข้อมูลโดย{% endif %} {{ faq_credit_name }}</span>
+                                                </p>
+                                            </article>
+                                        {% endfor %}
+                                    </div>
                                 {% endif %}
                                 {% if related_documents %}
                                     <div class="mb-3">
                                         <h3 class="title is-5 mb-1">เอกสารที่อาจเกี่ยวข้อง</h3>
                                         <p class="has-text-grey is-size-7">เอกสารเหล่านี้พบจากการค้นหาและอาจเกี่ยวข้องกับคำค้นของคุณ</p>
                                     </div>
+                                    {% if answer %}
+                                        <article class="docs-query-answer docs-query-ai-summary">
+                                            <div class="docs-query-answer-heading">
+                                                <span class="docs-query-answer-label">AI SUMMARY</span>
+                                            </div>
+                                            <div class="docs-query-answer-body">{{ answer }}</div>
+                                            <p class="docs-query-ai-warning">
+                                                <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                                                กรุณาตรวจสอบจากเอกสารอ้างอิงก่อนนำไปใช้งาน
+                                            </p>
+                                        </article>
+                                    {% endif %}
                                     <div class="table-container docs-query-related-table-container">
                                         <table class="table is-fullwidth is-hoverable docs-query-related-table">
                                             <thead>
@@ -194,7 +218,7 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                {% else %}
+                                {% elif not faq_results %}
                                     <div class="notification is-light">
                                         ไม่พบเอกสาร
                                     </div>
@@ -357,6 +381,52 @@
         .docs-query-short-answer::before { background: #1b5b5b; }
         .docs-query-short-answer .docs-query-answer-label { color: #8df0d6; }
         .docs-query-short-answer .docs-query-answer-body { color: #e2fff8; }
+
+        .docs-query-faq-answer {
+            background: #fff8d6;
+            border-color: #f2c94c;
+            color: #24324a;
+        }
+
+        .docs-query-faq-answer::before { background: #f2c94c; }
+        .docs-query-faq-answer .docs-query-answer-label { color: #8a5a00; }
+        .docs-query-faq-answer .docs-query-answer-body { color: #24324a; }
+
+        .docs-query-ai-summary {
+            background: #eef6ff;
+            border-color: #8bbaf0;
+            color: #243b5a;
+        }
+
+        .docs-query-ai-summary::before { background: #8bbaf0; }
+        .docs-query-ai-summary .docs-query-answer-label { color: #2f67a5; }
+        .docs-query-ai-summary .docs-query-answer-body { color: #243b5a; }
+        .docs-query-ai-summary .docs-query-ai-warning { color: #56708f; }
+        .docs-query-faq-credit {
+            align-items: center;
+            color: #6b5b27;
+            display: inline-flex;
+            font-size: .75rem;
+            gap: .45rem;
+            margin-top: .85rem;
+        }
+
+        .docs-query-faq-avatar {
+            align-items: center;
+            background: #f2c94c;
+            border-radius: 50%;
+            color: #5f4300;
+            display: inline-flex;
+            flex: 0 0 1.7rem;
+            font-size: .7rem;
+            font-weight: 800;
+            height: 1.7rem;
+            justify-content: center;
+            overflow: hidden;
+            width: 1.7rem;
+        }
+
+        .docs-query-faq-avatar img { height: 100%; object-fit: cover; width: 100%; }
 
         .docs-query-answer-heading {
             align-items: center;
@@ -765,9 +835,10 @@
         .docs-query-popular-label {
             background: transparent;
             border: 0;
-            color: inherit;
+            color: #284b85;
             display: block;
             font: inherit;
+            font-weight: 600;
             min-width: 0;
             overflow: hidden;
             padding: 0;

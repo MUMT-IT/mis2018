@@ -6,7 +6,8 @@
 ] %}
 {% if can_manage_documents %}
     {% set docs_query_links = docs_query_links + [
-        {'href': url_for('docs_query.admin'), 'label': 'จัดการเอกสาร', 'icon': 'fas fa-folder-open'}
+        {'href': url_for('docs_query.admin'), 'label': 'จัดการเอกสาร', 'icon': 'fas fa-folder-open'},
+        {'href': url_for('docs_query.faq'), 'label': 'จัดการ FAQ', 'icon': 'fas fa-circle-question'}
     ] %}
 {% endif %}
 
