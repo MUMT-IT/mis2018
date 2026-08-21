@@ -1458,6 +1458,7 @@ def update_request(detail_id):
     required_information = detail.required_information
     suggestion = detail.suggestion
     old_created_by = detail.created_by
+    old_staffs = list(detail.staffs)
     SoftwareRequestDetailForm = create_request_form(detail_id=detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
@@ -1471,6 +1472,8 @@ def update_request(detail_id):
             flash('กรุณาเลือกผู้ส่งคำขอ', 'danger')
             return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
                                    file_url=file_url, appointment_date=appointment_date)
+        if 'staffs' not in request.form:
+            detail.staffs = old_staffs
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
         detail.approver_id = current_user.id
         detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime if form.appointment_date.data else None
