@@ -102,6 +102,8 @@ class SoftwareRequestDetail(db.Model):
     required_information = db.Column('required_information', db.Text())
     suggestion = db.Column('suggestion', db.Text())
     reason = db.Column('reason', db.Text())
+    expected_benefit = db.Column('expected_benefit', db.Text(),  info={'label': 'ประโยชน์ที่คาดว่าจะได้รับ'})
+    usage_date = db.Column('usage_date', db.Date(), info={'label': 'วันที่ต้องการใช้งาน'})
     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
     room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
     room = db.relationship(RoomResource, backref=db.backref('software_requests'))
