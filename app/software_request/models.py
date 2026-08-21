@@ -131,6 +131,14 @@ class SoftwareRequestDetail(db.Model):
         return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' and timeline.status != 'เสร็จสิ้น'])
 
     @property
+    def assessment_score(self):
+        if self.priority and self.urgency:
+            score = self.urgency * self.priority
+        else:
+            score = 'ไม่มีคะแนนการประเมิน'
+        return score
+
+    @property
     def is_requester_completed_testing(self):
         return all(test_result.status for test_result in self.test_results)
 
@@ -141,9 +149,9 @@ class SoftwareRequestDetail(db.Model):
     @property
     def urgency_status_color(self):
         if self.urgency:
-            if self.urgency == 'เร่งด่วน':
+            if self.urgency == '3':
                 color = 'is-danger'
-            elif self.urgency == 'ค่อนข้างเร่งด่วน':
+            elif self.urgency == '2':
                 color = 'is-warning'
             else:
                 color = 'is-success'
@@ -154,9 +162,9 @@ class SoftwareRequestDetail(db.Model):
     @property
     def priority_status_color(self):
         if self.priority:
-            if self.priority == 'สูง':
+            if self.priority == '3':
                  color = 'is-danger'
-            elif self.priority == 'กลาง':
+            elif self.priority == '2':
                 color = 'is-warning'
             else:
                 color = 'is-success'

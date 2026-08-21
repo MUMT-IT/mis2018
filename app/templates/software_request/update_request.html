@@ -107,13 +107,7 @@
                                         </div>
                                     {% else %}
                                         <div class="control">
-                                            {% if detail.priority %}
-                                                <span class="tag {{ detail.priority_status_color }} is-light is-rounded">
-                                                    {{ detail.priority }}
-                                                </span>
-                                            {% else %}
-                                                ไม่มีระดับความสำคัญ
-                                            {% endif %}
+                                            {{ detail.priority or 'ไม่มีระดับความสำคัญ' }}
                                         </div>
                                     {% endif %}
                                 </div>
@@ -131,13 +125,7 @@
                                          </div>
                                     {% else %}
                                         <div class="cotrol">
-                                            {% if detail.urgency %}
-                                                <span class="tag {{ detail.urgency_status_color }} is-light is-rounded">
-                                                    {{ detail.urgency }}
-                                                </span>
-                                            {% else %}
-                                                ไม่มีความเร่งด่วน
-                                            {% endif %}
+                                            {{ detail.urgency or 'ไม่มีความเร่งด่วน' }}
                                         </div>
                                     {% endif %}
                                 </div>
