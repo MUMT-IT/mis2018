@@ -93,7 +93,8 @@ class SoftwareRequestDetail(db.Model):
                                                                       ('เป็นครั้งคราว', 'เป็นครั้งคราว')
                                                                       ]})
     user_group = db.Column('user_group', db.String(), info={'label': 'กลุ่มผู้ใช้งาน',
-                                                            'choices': [('หน่วยงานภายใน', ' หน่วยงานภายใน'),
+                                                            'choices': [('', 'กรุณาเลือกกลุ่มผู้ใช้งาน'),
+                                                                        ('หน่วยงานภายใน', ' หน่วยงานภายใน'),
                                                                         ('หน่วยงานภายนอก', 'หน่วยงานภายนอก'),
                                                                         ('บุคคลทั่วไป', ' บุคคลทั่วไป'),
                                                                         ('ผู้รับบริการ', 'ผู้รับบริการ'),
@@ -132,6 +133,10 @@ class SoftwareRequestDetail(db.Model):
     @property
     def is_requester_completed_testing(self):
         return all(test_result.status for test_result in self.test_results)
+
+    @property
+    def is_active(self):
+        return self.status not in ['เสร็จสิ้น', 'ไม่อนุมัติ', 'ยกเลิก']
 
     @property
     def urgency_status_color(self):
