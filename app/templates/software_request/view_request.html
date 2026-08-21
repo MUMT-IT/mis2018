@@ -145,7 +145,7 @@
                                     <div class="control">
                                         {% if detail.priority %}
                                             <span class="tag {{ detail.priority_status_color }} is-light is-rounded">
-                                                {{ detail.priority }}
+                                                {{ detail.priority_text }}
                                             </span>
                                         {% else %}
                                             ไม่มีข้อมูล
@@ -163,7 +163,7 @@
                                     <div class="control">
                                         {% if detail.urgency %}
                                             <span class="tag {{ detail.urgency_status_color }} is-light is-rounded">
-                                                {{ detail.urgency }}
+                                                {{ detail.urgency_text }}
                                             </span>
                                         {% else %}
                                             ไม่มีข้อมูล
