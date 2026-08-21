@@ -970,6 +970,7 @@ def view_request(detail_id):
 
 @software_request.route('/request/add', methods=['GET', 'POST'])
 def create_request():
+    date_now = arrow.now('Asia/Bangkok').date()
     SoftwareRequestDetailForm = create_request_form(detail_id=None)
     form = SoftwareRequestDetailForm()
     if form.validate_on_submit():
@@ -997,6 +998,7 @@ def create_request():
             detail.system_id = system.id
         detail.status = 'ส่งคำขอแล้ว'
         detail.created_date = arrow.now('Asia/Bangkok').datetime
+        detail.usage_date = arrow.get(form.usage_date.data, 'Asia/Bangkok').date()
         detail.created_id = current_user.id
         db.session.add(detail)
         db.session.commit()
@@ -1005,7 +1007,7 @@ def create_request():
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('software_request/create_request.html', form=form)
+    return render_template('software_request/create_request.html', form=form, date_now=date_now)
 
 
 @software_request.route('/api/system', methods=['GET'])
