@@ -627,7 +627,7 @@
         }
 
         $(document).ready(function () {
-             $('.js-example-basic-single').select2({
+            $('.js-example-basic-single').select2({
                 placeholder: 'กรุณาเลือกผู้ส่งคำขอ'
             })
             $('.js-example-basic-multiple').select2({
@@ -637,9 +637,6 @@
             moment.locale('th');
             $('input[name="appointment_date"]').daterangepicker({
                 singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
                 showDropdowns: true,
                 autoUpdateInput: false,
                 {% if form.appointment_date.data %}
