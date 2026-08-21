@@ -247,10 +247,19 @@ def handle_message(event):
         return
 
     try:
-        from app.docs_query.views import _call_typhoon_short_answer, search_chunks
+        from app.docs_query.views import _call_typhoon_short_answer, search_chunks, search_faqs
 
-        search_results = search_chunks(query, limit=20)
-        answer = _call_typhoon_short_answer(query, search_results)
+        try:
+            faq_results = search_faqs(query, limit=1)
+        except Exception:
+            app.logger.exception('Could not search Docs Query FAQs for LINE message.')
+            faq_results = []
+
+        if faq_results:
+            answer = faq_results[0]['faq'].answer
+        else:
+            search_results = search_chunks(query, limit=20)
+            answer = _call_typhoon_short_answer(query, search_results)
     except Exception:
         app.logger.exception('Could not answer LINE message with Docs Query.')
         answer = 'ขออภัย ไม่สามารถค้นหาคำตอบได้ในขณะนี้'
