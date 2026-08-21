@@ -481,6 +481,7 @@ class Process(db.Model):
     is_expired = db.Column('is_expired', db.Boolean(), default=False)
     expired_at = db.Column('expired_at', db.DateTime(timezone=True))
     expired_by_account_id = db.Column('expired_by_account_id', db.ForeignKey('staff_account.id'))
+    expired_reason = db.Column('expired_reason', db.String(255))
     def __str__(self):
         return self.name
 
