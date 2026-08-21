@@ -819,7 +819,13 @@ def _build_admin_request_listing_query(base_query):
         SoftwareIssues.software_request_detail_id.label('request_id'),
         func.sum(
             case(
-                [(SoftwareIssues.closed_at.is_(None), 1)],
+                [(
+                    and_(
+                        SoftwareIssues.closed_at.is_(None),
+                        SoftwareIssues.cancelled_at.is_(None),
+                    ),
+                    1,
+                )],
                 else_=0
             )
         ).label('open_issues')
