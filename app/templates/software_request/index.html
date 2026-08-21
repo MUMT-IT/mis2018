@@ -58,8 +58,8 @@
                         <thead>
                             <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
-{#                            <th>ระดับความสำคัญ</th>#}
-{#                            <th>ความเร่งด่วน</th>#}
+                            <th>ระดับความสำคัญ</th>
+                            <th>ความเร่งด่วน</th>
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
@@ -93,28 +93,30 @@
                 columns: [
                     {data: 'title'},
                     {data: 'type'},
-                    {#{#}
-                    {#    data: 'priority',#}
-                    {#    render: function (data, type, row) {#}
-                    {#        if (data != null) {#}
-                    {#            return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +#}
-                    {#                        data +#}
-                    {#                    '</span>'#}
-                    {#        } else {#}
-                    {#            return ''#}
-                    {#        }#}
-                    {#    }#}
-                    {#{#}
-                    {#    data: 'urgency',#}
-                    {#    render: function (data, type, row) {#}
-                    {#        if (data != null) {#}
-                    {#            return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +#}
-                    {#                        data +#}
-                    {#                    '</span>'#}
-                    {#        } else {#}
-                    {#            return ''#}
-                    {#        }#}
-                    {#    }#}
+                    {
+                        data: 'priority_text',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +
+                                    data +
+                                    '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'urgency_text',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +
+                                    data +
+                                    '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'description',
                         width: "230px"
