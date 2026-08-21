@@ -136,8 +136,8 @@
                                 <tr>
                                     <th>โครงการ/ระบบ</th>
                                     <th>ประเภทคำขอ</th>
-{#                                    <th>ระดับความสำคัญ</th>#}
-{#                                    <th>ความเร่งด่วน</th>#}
+                                    <th>ระดับความสำคัญ</th>
+                                    <th>ความเร่งด่วน</th>
                                     <th>รายละเอียด</th>
                                     <th>ผู้ส่งคำขอ</th>
                                     <th>สังกัด</th>
@@ -217,7 +217,6 @@
         $(document).ready(function () {
             $.fn.dataTable.moment('lll');
             $('#request').DataTable({
-                // This endpoint is paginated server-side; enabling serverSide avoids client-side reprocessing.
                 processing: true,
                 serverSide: true,
                 deferRender: true,
@@ -229,28 +228,30 @@
                 columns: [
                     {data: 'title'},
                     {data: 'type'},
-                    {#{#}
-                    {#    data: 'priority',#}
-                    {#    render: function (data, type, row) {#}
-                    {#        if (data != null) {#}
-                    {#            return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +#}
-                    {#                        data +#}
-                    {#                    '</span>'#}
-                    {#        } else {#}
-                    {#            return ''#}
-                    {#        }#}
-                    {#    }#}
-                    {#{#}
-                    {#    data: 'urgency',#}
-                    {#    render: function (data, type, row) {#}
-                    {#        if (data != null) {#}
-                    {#            return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +#}
-                    {#                        data +#}
-                    {#                    '</span>'#}
-                    {#        } else {#}
-                    {#            return ''#}
-                    {#        }#}
-                    {#    }#}
+                    {
+                        data: 'priority_text',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +
+                                            data +
+                                        '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'urgency_text',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +
+                                    data +
+                                    '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'description',
                         width: "230px"
