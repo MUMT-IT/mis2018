@@ -138,7 +138,7 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ detail.assessment_score }} คะแนน
+                                        <span id="assessment_score">{{ detail.assessment_score }}</span> คะแนน
                                     </div>
                                 </div>
                             </div>
@@ -658,6 +658,21 @@
                 info: false
             })
         });
+    </script>
+    <script>
+        function calculateAssessmentScore() {
+            const priority = document.getElementById("priority");
+            const urgency = document.getElementById("urgency");
+            const assessmentScore = document.getElementById("assessment_score");
+            const priorityValue = parseInt(priority.value);
+            const urgencyValue = parseInt(urgency.value);
+
+            if (priorityValue && urgencyValue) {
+                assessmentScore.textContent = priorityValue * urgencyValue;
+            }
+        }
+        document.getElementById("priority").addEventListener("change", calculateAssessmentScore);
+        document.getElementById("urgency").addEventListener("change", calculateAssessmentScore);
     </script>
     <script>
         function setStatus(status) {

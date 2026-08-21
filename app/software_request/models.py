@@ -133,7 +133,7 @@ class SoftwareRequestDetail(db.Model):
     @property
     def assessment_score(self):
         if self.priority and self.urgency:
-            score = self.urgency * self.priority
+            score = int(self.urgency) * int(self.priority)
         else:
             score = 'ไม่มีคะแนนการประเมิน'
         return score
