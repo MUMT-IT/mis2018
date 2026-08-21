@@ -95,42 +95,54 @@
                                 </div>
                             </div>
                         </div>
-{#                        <div class="field is-horizontal">#}
-{#                            <div class="field-label">#}
-{#                                <label class="label">ระดับความสำคัญ</label>#}
-{#                            </div>#}
-{#                            <div class="field-body">#}
-{#                                <div class="field">#}
-{#                                    <div class="control">#}
-{#                                        {% if detail.priority %}#}
-{#                                            <span class="tag {{ detail.priority_status_color }} is-light is-rounded">#}
-{#                                                {{ detail.priority }}#}
-{#                                            </span>#}
-{#                                        {% else %}#}
-{#                                            ไม่มีระดับความสำคัญ#}
-{#                                        {% endif %}#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="field is-horizontal">#}
-{#                            <div class="field-label">#}
-{#                                <label class="label">ความเร่งด่วน</label>#}
-{#                            </div>#}
-{#                            <div class="field-body">#}
-{#                                <div class="field">#}
-{#                                    <div class="control">#}
-{#                                        {% if detail.urgency %}#}
-{#                                            <span class="tag {{ detail.urgency_status_color }} is-light is-rounded">#}
-{#                                                {{ detail.urgency }}#}
-{#                                            </span>#}
-{#                                        {% else %}#}
-{#                                            ไม่มีความเร่งด่วน#}
-{#                                        {% endif %}#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        </div>#}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ระดับความสำคัญ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    {% if detail.is_active %}
+                                        <div class="select">
+                                            {{ form.priority() }}
+                                        </div>
+                                    {% else %}
+                                        <div class="control">
+                                            {% if detail.priority %}
+                                                <span class="tag {{ detail.priority_status_color }} is-light is-rounded">
+                                                    {{ detail.priority }}
+                                                </span>
+                                            {% else %}
+                                                ไม่มีระดับความสำคัญ
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label">ความเร่งด่วน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    {% if detail.is_active %}
+                                         <div class="select">
+                                            {{ form.urgency() }}
+                                         </div>
+                                    {% else %}
+                                        <div class="cotrol">
+                                            {% if detail.urgency %}
+                                                <span class="tag {{ detail.urgency_status_color }} is-light is-rounded">
+                                                    {{ detail.urgency }}
+                                                </span>
+                                            {% else %}
+                                                ไม่มีความเร่งด่วน
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                         <div class="field is-horizontal">
                             <div class="field-label">
                                 <label class="label">เหตุผลและความจำเป็น</label>
@@ -166,7 +178,11 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.required_information(class='textarea') }}
+                                        {% if detail.is_active %}
+                                            {{ form.required_information(class='textarea') }}
+                                        {% else %}
+                                            {{ detail.required_information or 'ไม่มีข้อมูลที่ต้องการเพิ่มติมจากผู้ส่งคำขอ' }}
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -178,7 +194,11 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.suggestion(class='textarea') }}
+                                        {% if detail.is_active %}
+                                            {{ form.suggestion(class='textarea') }}
+                                        {% else %}
+                                            {{ detail.suggestion or 'ไม่มีข้อเสนอแนะจากหน่วย IT' }}
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -191,14 +211,25 @@
                                 <div class="field">
                                     <label class="label">วันนัดหมาย</label>
                                     <div class="control">
-                                        {{ form.appointment_date(class='input') }}
+                                        {% if detail.is_active %}
+                                            {{ form.appointment_date(class='input') }}
+                                        {% else %}
+                                            {{ detail.appointment_date|localdatetime or 'ไม่มีวันนัดหมาย' }}
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div class="field">
                                     <label class="label">สถานที่</label>
-                                    <div class="select">
-                                        {{ form.room() }}
-                                    </div>
+                                    {% if detail.is_active %}
+                                        <div class="select">
+                                            {{ form.room() }}
+                                        </div>
+                                    {% else %}
+                                        <div class="control">
+                                            {{ detail.room or 'ไม่มีสถานที่' }}
+                                        </div>
+                                    {% endif %}
+
                                 </div>
                             </div>
                         </div>
@@ -209,7 +240,17 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ form.staffs(class='js-example-basic-multiple', multiple='multiple') }}
+                                        {% if detail.is_active %}
+                                            {{ form.staffs(class='js-example-basic-multiple', multiple='multiple') }}
+                                        {% else %}
+                                            {% if detail.staffs %}
+                                                {% for staff in detail.staffs %}
+                                                    {{ staff.fullname }}{% if not loop.last %}, {% endif %}
+                                                {% endfor %}
+                                            {% else %}
+                                                ไม่มีผู้รับผิดชอบ
+                                            {% endif %}
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -637,6 +678,9 @@
             moment.locale('th');
             $('input[name="appointment_date"]').daterangepicker({
                 singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
                 showDropdowns: true,
                 autoUpdateInput: false,
                 {% if form.appointment_date.data %}
