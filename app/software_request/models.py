@@ -135,7 +135,7 @@ class SoftwareRequestDetail(db.Model):
         if self.priority and self.urgency:
             score = int(self.urgency) * int(self.priority)
         else:
-            score = 'ไม่มีคะแนนการประเมิน'
+            score = 0
         return score
 
     @property
@@ -145,6 +145,19 @@ class SoftwareRequestDetail(db.Model):
     @property
     def is_active(self):
         return self.status not in ['เสร็จสิ้น', 'ไม่อนุมัติ', 'ยกเลิก']
+
+    @property
+    def urgency_text(self):
+        if self.urgency:
+            if self.urgency == '3':
+                text = 'เร่งด่วนมาก'
+            elif self.urgency == '2':
+                text = 'ค่อนข้างเร่งด่วน'
+            else:
+                text = 'ไม่เร่งด่วน'
+        else:
+            text = ''
+        return text
 
     @property
     def urgency_status_color(self):
@@ -158,6 +171,19 @@ class SoftwareRequestDetail(db.Model):
         else:
             color = ''
         return color
+
+    @property
+    def priority_text(self):
+        if self.priority:
+            if self.priority == '3':
+                text = 'สูง'
+            elif self.priority == '2':
+                text = 'กลาง'
+            else:
+                text = 'ต่ำ'
+        else:
+            text = ''
+        return text
 
     @property
     def priority_status_color(self):
@@ -279,8 +305,10 @@ class SoftwareRequestDetail(db.Model):
             'type': self.type,
             'description': self.description,
             'priority': self.priority if self.priority else None,
+            'priority_text': self.priority_text if self.priority_text else None,
             'priority_status_color': self.priority_status_color if self.priority_status_color else None,
             'urgency': self.urgency if self.urgency else None,
+            'urgency_text': self.urgency_text if self.urgency_text else None,
             'urgency_status_color': self.urgency_status_color if self.urgency_status_color else None,
             'has_timeline': has_timeline,
             'created_by': self.created_by.fullname if self.created_by else None,
