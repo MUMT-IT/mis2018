@@ -121,7 +121,7 @@ class SoftwareRequestDetail(db.Model):
 
     @property
     def num_open_issues(self):
-        return len([issue for issue in self.issues.all() if issue.status != 'Closed'])
+        return len([issue for issue in self.issues.all() if issue.status not in ['Closed', 'Cancelled']])
 
     @property
     def num_timelines(self):
