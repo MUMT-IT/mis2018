@@ -1020,6 +1020,7 @@ class StaffDailyAttendance(db.Model):
     status = db.Column('status', db.String(32), nullable=False)
     first_checkin_at = db.Column('first_checkin_at', db.DateTime(timezone=True), nullable=True)
     last_checkout_at = db.Column('last_checkout_at', db.DateTime(timezone=True), nullable=True)
+    worked_minutes = db.Column('worked_minutes', db.Integer(), nullable=True)
     source = db.Column('source', db.String(30), nullable=True)
     source_record_id = db.Column('source_record_id', db.Integer(), nullable=True)
     created_by_id = db.Column('created_by_id', db.ForeignKey('staff_account.id'), nullable=True)

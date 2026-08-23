@@ -260,6 +260,12 @@
                 <span class="daily-attendance-report-stat-label">รายการ snapshot ทั้งหมด</span>
                 <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(snapshot_rows) }}</strong>
             </div>
+            <div class="daily-attendance-report-stat">
+                <span class="daily-attendance-report-stat-label">ชั่วโมงทำงานรวม</span>
+                <strong class="daily-attendance-report-stat-value">
+                    {{ total_worked_minutes // 60 }} ชม. {{ '%02d'|format(total_worked_minutes % 60) }} นาที
+                </strong>
+            </div>
         </div>
 
         <div class="daily-attendance-report-summary">

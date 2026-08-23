@@ -3343,6 +3343,14 @@ def hr_daily_attendance_report():
         .filter(*snapshot_filters)
         .scalar()
     ) or 0
+    total_worked_minutes = int(
+        db.session.query(func.coalesce(func.sum(StaffDailyAttendance.worked_minutes), 0))
+        .join(StaffAccount, StaffDailyAttendance.staff_id == StaffAccount.id)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(*snapshot_filters)
+        .scalar()
+        or 0
+    )
 
     return render_template(
         'staff/hr_daily_attendance_report.html',
@@ -3357,6 +3365,7 @@ def hr_daily_attendance_report():
         source_counts=source_counts,
         snapshot_rows=snapshot_rows,
         staff_count=staff_count,
+        total_worked_minutes=total_worked_minutes,
         staff_rows=staff_rows,
         daily_rows=daily_rows,
     )
@@ -4256,6 +4265,11 @@ def refresh_daily_attendance(target_date, staff_ids=None):
             (record.end_datetime for record in staff_records if record.end_datetime is not None),
             default=None,
         )
+        worked_minutes = sum(
+            max(0, round((record.end_datetime - record.start_datetime).total_seconds() / 60))
+            for record in staff_records
+            if record.start_datetime is not None and record.end_datetime is not None
+        ) or None
         if first_record:
             status = 'present'
             source = first_record.record_source or 'scan'
@@ -4312,6 +4326,7 @@ def refresh_daily_attendance(target_date, staff_ids=None):
         snapshot.status = status
         snapshot.first_checkin_at = first_record.start_datetime if first_record else None
         snapshot.last_checkout_at = last_checkout
+        snapshot.worked_minutes = worked_minutes
         snapshot.source = source
         snapshot.source_record_id = source_record_id
         snapshot.created_by_id = created_by_id
