@@ -1,0 +1,33 @@
+{% if owned_records %}
+    <div class="table-container mb-5">
+        <table class="table is-fullwidth is-hoverable is-striped">
+            <thead>
+                <tr>
+                    <th>บุคลากร</th>
+                    <th>วันและเวลา</th>
+                    <th>หมายเหตุ</th>
+                    <th class="has-text-right">การดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in owned_records %}
+                    <tr>
+                        <td>{{ record.staff.fullname if record.staff else 'ไม่ระบุ' }}</td>
+                        <td>{{ record.start_datetime|localdatetime if record.start_datetime else '—' }}</td>
+                        <td>{{ record.note or '—' }}</td>
+                        <td class="has-text-right">
+                            <a class="button is-small is-info is-light"
+                               href="{{ url_for('staff.hr_manual_checkin', edit_record_id=record.id, staff_id=record.staff.personal_info.id, month=record.start_datetime.strftime('%Y-%m')) }}">แก้ไข</a>
+                            <form class="hr-manual-checkin-delete-form" method="post" action="{{ url_for('staff.hr_manual_checkin_delete', record_id=record.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="button is-small is-danger is-light">ลบ</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="notification is-light mb-5">ยังไม่มีรายการ manual check-in ที่คุณบันทึก</div>
+{% endif %}

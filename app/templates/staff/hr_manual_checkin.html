@@ -307,6 +307,36 @@
         text-align: center;
     }
 
+    .hr-manual-checkin-delete-form.is-deleting {
+        animation: hr-manual-checkin-delete-fade 1s ease forwards;
+        background: rgba(184, 67, 63, 0.18);
+        border-radius: 8px;
+        pointer-events: none;
+    }
+
+    @keyframes hr-manual-checkin-delete-fade {
+        0% { opacity: 1; }
+        25% { opacity: 1; background: rgba(184, 67, 63, 0.34); }
+        100% { opacity: 0; background: rgba(184, 67, 63, 0.08); }
+    }
+
+    .hr-manual-checkin-edit-form {
+        border-radius: 18px;
+        padding: 1rem;
+        animation: hr-manual-checkin-edit-pulse 2s ease-out;
+    }
+
+    @keyframes hr-manual-checkin-edit-pulse {
+        0% {
+            background: rgba(46, 139, 87, 0.24);
+            box-shadow: 0 0 0 4px rgba(46, 139, 87, 0.14);
+        }
+        100% {
+            background: transparent;
+            box-shadow: 0 0 0 0 transparent;
+        }
+    }
+
     @media screen and (max-width: 768px) {
         .hr-manual-checkin-card-inner {
             padding: 1rem;
@@ -337,23 +367,26 @@
             <div class="column is-12-tablet is-11-desktop">
                 <div class="hr-manual-checkin-card">
                     <div class="hr-manual-checkin-card-inner">
-                        <form method="post">
+                        <form{% if editing_record %} class="hr-manual-checkin-edit-form"{% endif %} method="post" action="{% if editing_record %}{{ url_for('staff.hr_manual_checkin_edit', record_id=editing_record.id) }}{% else %}{{ request.path }}{% endif %}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="field">
-                                <label class="label">บุคลากร</label>
+                                <label class="label">บุคลากร{% if editing_record %} (กำลังแก้ไข){% endif %}</label>
                                 <div class="control">
                                     <select
                                         id="staffSelect"
                                         name="staffname"
                                         class="hr-manual-checkin-select"
                                         data-placeholder="ค้นหาด้วยชื่อหรือสังกัด"
-                                        required>
+                                        required{% if editing_record %} disabled{% endif %}>
                                         {% if selected_staff_id %}
                                             <option value="{{ selected_staff_id }}" selected data-fullname="{{ selected_staff_name }}" data-org="">{{ selected_staff_name }}</option>
                                         {% else %}
                                             <option value=""></option>
                                         {% endif %}
-                                    </select>
+                                </select>
+                                {% if editing_record %}
+                                    <input type="hidden" name="staffname" value="{{ selected_staff_id }}">
+                                {% endif %}
                                 </div>
                                 <p class="help">ค้นหาด้วยชื่อหรือสังกัด</p>
                             </div>
@@ -386,8 +419,11 @@
                             <div class="hr-manual-checkin-actions">
                                 <button type="submit" class="button is-info is-rounded">
                                     <span class="icon"><i class="fas fa-save" aria-hidden="true"></i></span>
-                                    <span>บันทึกเข้างาน</span>
+                                    <span>{% if editing_record %}บันทึกการแก้ไข{% else %}บันทึกเข้างาน{% endif %}</span>
                                 </button>
+                                {% if editing_record %}
+                                    <a href="{{ url_for('staff.hr_manual_checkin', staff_id=selected_staff_id, month=selected_month) }}" class="button is-light is-rounded">ยกเลิกการแก้ไข</a>
+                                {% endif %}
                                 <a href="{{ url_for('staff.hr_login_summary_report') }}" class="button is-light is-rounded">
                                     ย้อนกลับ
                                 </a>
@@ -397,6 +433,15 @@
                 </div>
 
                 <div class="hr-manual-checkin-calendar-shell">
+                    <div class="level mb-3">
+                        <div>
+                            <p class="title is-5 mb-1">รายการที่คุณบันทึก</p>
+                            <p class="subtitle is-7 mb-0">แก้ไขหรือลบรายการ manual check-in ของคุณได้จากรายการนี้</p>
+                        </div>
+                    </div>
+                    <div id="ownedRecordsList">
+                        {% include "staff/partials/hr_manual_checkin_owned_records.html" %}
+                    </div>
                     <div class="staff-login-calendar-head">
                         <div class="staff-login-calendar-head-copy">
                             <p class="staff-login-calendar-label" id="calendarTitle">กำลังโหลดปฏิทิน...</p>
@@ -422,6 +467,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 </section>
 {% endblock %}
@@ -434,6 +480,7 @@
     moment.locale('th');
 
     const manualCheckinCalendarApiUrl = {{ url_for('staff.hr_manual_checkin_calendar_data')|tojson|safe }};
+    const ownedRecordsListUrl = {{ url_for('staff.hr_manual_checkin_owned_records')|tojson|safe }};
     const initialStaffId = {{ selected_staff_id|tojson|safe }};
     const initialStaffName = {{ selected_staff_name|tojson|safe }};
     const initialMonth = {{ selected_month|tojson|safe }};
@@ -464,6 +511,13 @@
             return;
         }
         $('#loginCalendar').fullCalendar('refetchEvents');
+    }
+
+    function refreshOwnedRecordsList(month) {
+        htmx.ajax('GET', ownedRecordsListUrl + '?month=' + encodeURIComponent(month), {
+            target: '#ownedRecordsList',
+            swap: 'innerHTML'
+        });
     }
 
     $(function() {
@@ -551,8 +605,6 @@
         });
         $('#calendarToday').on('click', function() {
             $('#loginCalendar').fullCalendar('today');
-            window.manualCheckinState.month = moment().format('YYYY-MM');
-            refreshManualCheckinCalendar();
         });
         $('#calendarNext').on('click', function() {
             $('#loginCalendar').fullCalendar('next');
@@ -621,6 +673,7 @@
                 const month = moment(view.intervalStart).format('YYYY-MM');
                 if (window.manualCheckinState.month !== month) {
                     window.manualCheckinState.month = month;
+                    refreshOwnedRecordsList(month);
                 }
                 $('#calendarTitle').text(view.title);
                 $('#calendarSubtitle').text(view.intervalStart.format('dddd, D MMMM YYYY'));
@@ -635,6 +688,25 @@
         if (initialCheckinValue) {
             $('#manualCheckinDatetime').val(initialCheckinValue);
         }
+
+        $(document).on('submit', '.hr-manual-checkin-delete-form', function(event) {
+            const form = this;
+            if (form.dataset.deleting === 'true') {
+                return;
+            }
+            if (!window.confirm('ต้องการลบรายการนี้หรือไม่?')) {
+                event.preventDefault();
+                return;
+            }
+            event.preventDefault();
+            form.dataset.deleting = 'true';
+            form.classList.add('is-deleting');
+            $(form).find('button').prop('disabled', true);
+            window.setTimeout(function() {
+                form.submit();
+            }, 1000);
+        });
+
     });
 </script>
 {% endblock %}
