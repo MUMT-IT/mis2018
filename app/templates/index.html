@@ -1352,6 +1352,7 @@
                 </div>
             </div> #}
 
+            {% if current_user.is_authenticated %}
             <section class="home-hero">
                 <div class="columns is-variable is-6 m-0">
                     <div class="column is-7-desktop p-6">
@@ -1511,6 +1512,7 @@
                     </div>
                 </div>
             </section>
+            {% endif %}
 
             <div class="modal home-ai-policy-modal" id="ai-policy-modal" data-ai-policy-modal role="dialog" aria-modal="true" aria-labelledby="ai-policy-modal-title" aria-hidden="true">
                 <div class="modal-background" data-ai-policy-close></div>
