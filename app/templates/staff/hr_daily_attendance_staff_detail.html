@@ -176,6 +176,7 @@
                         <th>Source</th>
                         <th>First check-in</th>
                         <th>Last checkout</th>
+                        <th>Work hours</th>
                         <th>Note</th>
                     </tr>
                 </thead>
@@ -197,10 +198,17 @@
                             <td>{% if record.source == 'attendance_reconciliation' %}{% elif record.source %}{{ record.source }}{% else %}—{% endif %}</td>
                             <td>{{ record.first_checkin_at|localdatetime if record.first_checkin_at else '—' }}</td>
                             <td>{{ record.last_checkout_at|localdatetime if record.last_checkout_at else '—' }}</td>
+                            <td>
+                                {% if record.worked_minutes is not none %}
+                                    {{ record.worked_minutes // 60 }} hr {{ '%02d'|format(record.worked_minutes % 60) }} min
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
                             <td>{% if record.note == 'No check-in record found' %}{% elif record.note %}{{ record.note }}{% else %}—{% endif %}</td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="6">No snapshot records found for the selected period.</td></tr>
+                        <tr><td colspan="7">No snapshot records found for the selected period.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

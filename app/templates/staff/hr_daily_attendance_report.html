@@ -256,36 +256,6 @@
                 <span class="daily-attendance-report-stat-label">บุคลากรที่พบใน snapshot</span>
                 <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(staff_count) }}</strong>
             </div>
-            <div class="daily-attendance-report-stat">
-                <span class="daily-attendance-report-stat-label">รายการ snapshot ทั้งหมด</span>
-                <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(snapshot_rows) }}</strong>
-            </div>
-            <div class="daily-attendance-report-stat">
-                <span class="daily-attendance-report-stat-label">ชั่วโมงทำงานรวม</span>
-                <strong class="daily-attendance-report-stat-value">
-                    {{ total_worked_minutes // 60 }} ชม. {{ '%02d'|format(total_worked_minutes % 60) }} นาที
-                </strong>
-            </div>
-        </div>
-
-        <div class="daily-attendance-report-summary">
-            {% for status in status_order %}
-                <div class="daily-attendance-report-stat">
-                    <span class="daily-attendance-report-stat-label">{{ status_labels[status] }}</span>
-                    <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(totals.get(status, 0)) }}</strong>
-                </div>
-            {% endfor %}
-        </div>
-
-        <div class="daily-attendance-report-summary">
-            <div class="daily-attendance-report-stat">
-                <span class="daily-attendance-report-stat-label">อนุมัติคำขอรับรองเวลา</span>
-                <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(source_counts.get('approved_request', 0)) }}</strong>
-            </div>
-            <div class="daily-attendance-report-stat">
-                <span class="daily-attendance-report-stat-label">บันทึกโดย HR</span>
-                <strong class="daily-attendance-report-stat-value">{{ '{:,}'.format(source_counts.get('hr_manual', 0)) }}</strong>
-            </div>
         </div>
 
         <div class="daily-attendance-report-table-wrap">
@@ -301,7 +271,6 @@
                         <th>ลา</th>
                         <th>ทำงานที่บ้าน</th>
                         <th>วันหยุด</th>
-                        <th>เสาร์-อาทิตย์</th>
                         <th>รวม</th>
                     </tr>
                 </thead>
@@ -321,11 +290,10 @@
                             <td>{{ '{:,}'.format(row.leave) }}</td>
                             <td>{{ '{:,}'.format(row.work_from_home) }}</td>
                             <td>{{ '{:,}'.format(row.holiday) }}</td>
-                            <td>{{ '{:,}'.format(row.weekend) }}</td>
                             <td>{{ '{:,}'.format(row.total) }}</td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="11">ไม่พบข้อมูล snapshot ตามเงื่อนไขที่เลือก</td></tr>
+                        <tr><td colspan="10">ไม่พบข้อมูล snapshot ตามเงื่อนไขที่เลือก</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
