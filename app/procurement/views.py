@@ -309,7 +309,87 @@ def landing():
 @procurement.route('/planning')
 @login_required
 def procurement_planning_landing():
-    return render_template('procurement/procurement_planning_landing.html')
+    return render_template('procurement/procurement_planning_landing.html', active_page='dashboard')
+
+
+@procurement.route('/planning/funding-sources', methods=['GET', 'POST'])
+@login_required
+def procurement_funding_sources():
+    form = ProcurementFundingSourceForm()
+    if form.validate_on_submit():
+        duplicate = ProcurementFundingSource.query.filter(
+            (ProcurementFundingSource.code == form.code.data.strip()) |
+            (ProcurementFundingSource.name == form.name.data.strip())
+        ).first()
+        if duplicate:
+            if duplicate.code == form.code.data.strip():
+                form.code.errors.append(u'รหัสแหล่งงบประมาณนี้มีอยู่แล้ว')
+            if duplicate.name == form.name.data.strip():
+                form.name.errors.append(u'ชื่อแหล่งงบประมาณนี้มีอยู่แล้ว')
+        else:
+            source = ProcurementFundingSource(
+                code=form.code.data.strip(),
+                name=form.name.data.strip(),
+                description=form.description.data,
+                is_active=form.is_active.data,
+            )
+            db.session.add(source)
+            db.session.commit()
+            flash(u'เพิ่มแหล่งงบประมาณเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('procurement.procurement_funding_sources'))
+
+    sources = ProcurementFundingSource.query.order_by(
+        ProcurementFundingSource.is_active.desc(),
+        ProcurementFundingSource.code.asc()
+    ).all()
+    return render_template('procurement/funding_sources.html', form=form, sources=sources,
+                           active_page='funding_sources')
+
+
+@procurement.route('/planning/funding-sources/<int:source_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_procurement_funding_source(source_id):
+    source = ProcurementFundingSource.query.get_or_404(source_id)
+    form = ProcurementFundingSourceForm(obj=source)
+    if form.validate_on_submit():
+        duplicate = ProcurementFundingSource.query.filter(
+            ProcurementFundingSource.id != source.id,
+            (ProcurementFundingSource.code == form.code.data.strip()) |
+            (ProcurementFundingSource.name == form.name.data.strip())
+        ).first()
+        if duplicate:
+            if duplicate.code == form.code.data.strip():
+                form.code.errors.append(u'รหัสแหล่งงบประมาณนี้มีอยู่แล้ว')
+            if duplicate.name == form.name.data.strip():
+                form.name.errors.append(u'ชื่อแหล่งงบประมาณนี้มีอยู่แล้ว')
+        else:
+            source.code = form.code.data.strip()
+            source.name = form.name.data.strip()
+            source.description = form.description.data
+            source.is_active = form.is_active.data
+            db.session.commit()
+            flash(u'แก้ไขแหล่งงบประมาณเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('procurement.procurement_funding_sources'))
+
+    sources = ProcurementFundingSource.query.order_by(
+        ProcurementFundingSource.is_active.desc(),
+        ProcurementFundingSource.code.asc()
+    ).all()
+    return render_template('procurement/funding_sources.html', form=form, sources=sources,
+                           active_page='funding_sources', editing_source=source)
+
+
+@procurement.route('/planning/funding-sources/<int:source_id>/delete', methods=['POST'])
+@login_required
+def delete_procurement_funding_source(source_id):
+    source = ProcurementFundingSource.query.get_or_404(source_id)
+    if source.procurement_plans.count() > 0:
+        flash(u'ไม่สามารถลบแหล่งงบประมาณที่ถูกใช้งานในแผนการจัดซื้อจัดจ้างแล้วได้', 'warning')
+    else:
+        db.session.delete(source)
+        db.session.commit()
+        flash(u'ลบแหล่งงบประมาณเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.procurement_funding_sources'))
 
 
 @procurement.route('/official/for-committee/login')

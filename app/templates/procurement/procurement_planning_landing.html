@@ -33,18 +33,25 @@
     {% include "nav.html" %}
 
     <main class="container procurement-planning-shell">
-        <section class="procurement-planning-hero">
-            <p class="is-size-7 has-text-weight-semibold is-uppercase">Experimental</p>
-            <h1 class="title is-2">แผนการจัดซื้อจัดจ้าง</h1>
-            <p class="subtitle is-5 mb-0">ระบบติดตามแผนและความคืบหน้าการใช้จ่ายงบประมาณประจำปี</p>
-        </section>
+        <div class="columns is-variable is-5">
+            <aside class="column is-3">
+                {% include "procurement/planning_sidebar.html" %}
+            </aside>
+            <section class="column is-9">
+                <section class="procurement-planning-hero">
+                    <p class="is-size-7 has-text-weight-semibold is-uppercase">Experimental</p>
+                    <h1 class="title is-2">แผนการจัดซื้อจัดจ้าง</h1>
+                    <p class="subtitle is-5 mb-0">ระบบติดตามแผนและความคืบหน้าการใช้จ่ายงบประมาณประจำปี</p>
+                </section>
 
-        <section class="box procurement-planning-card">
-            <h2 class="title is-4">แดชบอร์ดภาพรวม</h2>
-            <p class="subtitle is-6">พื้นที่สำหรับสรุปภาพรวมแผนการจัดซื้อจัดจ้าง จะเปิดใช้งานในขั้นตอนถัดไป</p>
-            <div class="notification is-info is-light">
-                กำลังเตรียมข้อมูลแผนการจัดซื้อจัดจ้างและตัวกรองตามปีงบประมาณ แหล่งงบประมาณ และศูนย์ต้นทุน
+                <section class="box procurement-planning-card">
+                    <h2 class="title is-4">แดชบอร์ดภาพรวม</h2>
+                    <p class="subtitle is-6">พื้นที่สำหรับสรุปภาพรวมแผนการจัดซื้อจัดจ้าง จะเปิดใช้งานในขั้นตอนถัดไป</p>
+                    <div class="notification is-info is-light">
+                        กำลังเตรียมข้อมูลแผนการจัดซื้อจัดจ้างและตัวกรองตามปีงบประมาณ แหล่งงบประมาณ และศูนย์ต้นทุน
+                    </div>
+                </section>
             </div>
-        </section>
+        </div>
     </main>
 {% endblock %}

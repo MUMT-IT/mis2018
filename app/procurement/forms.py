@@ -9,9 +9,13 @@ from wtforms import (SelectMultipleField,
                      SelectField,
                      FieldList,
                      FormField,
-                     Field
+                     Field,
+                     StringField,
+                     TextAreaField,
+                     BooleanField,
+                     SubmitField
                      )
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Length, Optional
 from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
@@ -30,6 +34,14 @@ class ModelForm(BaseModelForm):
     @classmethod
     def get_session(self):
         return db.session
+
+
+class ProcurementFundingSourceForm(FlaskForm):
+    code = StringField(u'รหัสแหล่งงบประมาณ', validators=[DataRequired(), Length(max=64)])
+    name = StringField(u'ชื่อแหล่งงบประมาณ', validators=[DataRequired(), Length(max=255)])
+    description = TextAreaField(u'รายละเอียด', validators=[Optional()])
+    is_active = BooleanField(u'ใช้งาน', default=True)
+    submit = SubmitField(u'บันทึก')
 
 
 class ProcurementRecordForm(ModelForm):
