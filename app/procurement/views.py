@@ -306,6 +306,12 @@ def landing():
     return render_template('procurement/landing.html')
 
 
+@procurement.route('/planning')
+@login_required
+def procurement_planning_landing():
+    return render_template('procurement/procurement_planning_landing.html')
+
+
 @procurement.route('/official/for-committee/login')
 @login_required
 @procurement_committee_permission.require()

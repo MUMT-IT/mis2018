@@ -23,6 +23,122 @@ s3 = boto3.client(
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
 
+
+class ProcurementFundingSource(db.Model):
+    """Configurable source of funds for an annual procurement plan."""
+    __tablename__ = 'procurement_funding_sources'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    code = db.Column('code', db.String(64), nullable=False, unique=True,
+                     info={'label': u'รหัสแหล่งงบประมาณ'})
+    name = db.Column('name', db.String(255), nullable=False, unique=True,
+                     info={'label': u'ชื่อแหล่งงบประมาณ'})
+    description = db.Column('description', db.Text(), info={'label': u'รายละเอียด'})
+    is_active = db.Column('is_active', db.Boolean(), nullable=False, default=True,
+                          info={'label': u'ใช้งาน'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+    def __str__(self):
+        return u'{}: {}'.format(self.code, self.name)
+
+
+class ProcurementVendor(db.Model):
+    """Reusable vendor/contracting-company master data."""
+    __tablename__ = 'procurement_vendors'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String(255), nullable=False,
+                     info={'label': u'ชื่อบริษัทคู่สัญญา'})
+    tax_id = db.Column('tax_id', db.String(32), unique=True,
+                       info={'label': u'เลขประจำตัวผู้เสียภาษี'})
+    branch_name = db.Column('branch_name', db.String(255),
+                            info={'label': u'สาขา'})
+    contact_name = db.Column('contact_name', db.String(255),
+                             info={'label': u'ชื่อผู้ติดต่อ'})
+    phone = db.Column('phone', db.String(64), info={'label': u'เบอร์โทรศัพท์'})
+    email = db.Column('email', db.String(255), info={'label': u'อีเมล'})
+    address = db.Column('address', db.Text(), info={'label': u'ที่อยู่'})
+    is_active = db.Column('is_active', db.Boolean(), nullable=False, default=True,
+                          info={'label': u'ใช้งาน'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+    def __str__(self):
+        return self.name
+
+
+class ProcurementPlan(db.Model):
+    """An item planned for procurement during a fiscal year."""
+    __tablename__ = 'procurement_plans'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    fiscal_year = db.Column('fiscal_year', db.Integer(), nullable=False,
+                            info={'label': u'ปีงบประมาณ'})
+    funding_source_id = db.Column('funding_source_id',
+                                  db.ForeignKey('procurement_funding_sources.id'), nullable=False)
+    funding_source = db.relationship('ProcurementFundingSource',
+                                     backref=db.backref('procurement_plans', lazy='dynamic'))
+    output_project_report = db.Column('output_project_report', db.Text(), nullable=False,
+                                      info={'label': u'ผลผลิต/โครงการ/รายงาน'})
+    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'), nullable=False,
+                               info={'label': u'ศูนย์ต้นทุน'})
+    cost_center = db.relationship('CostCenter', backref=db.backref('procurement_plans', lazy='dynamic'))
+    procurement_method = db.Column('procurement_method', db.String(255), nullable=False,
+                                   info={'label': u'วิธีการจัดซื้อจัดจ้าง'})
+    amount = db.Column('amount', db.Numeric(14, 2), nullable=False,
+                       info={'label': u'จำนวนเงิน'})
+    fund_code = db.Column('fund_code', db.String(64), info={'label': u'รหัสทุน'})
+    responsible_staff_id = db.Column('responsible_staff_id', db.ForeignKey('staff_account.id'), nullable=False)
+    responsible_staff = db.relationship('StaffAccount', foreign_keys=[responsible_staff_id],
+                                         backref=db.backref('procurement_plans', lazy='dynamic'))
+    vendor_id = db.Column('vendor_id', db.ForeignKey('procurement_vendors.id'))
+    vendor = db.relationship('ProcurementVendor',
+                             backref=db.backref('procurement_plans', lazy='dynamic'))
+    procurement_detail_id = db.Column('procurement_detail_id', db.ForeignKey('procurement_details.id'))
+    procurement_detail = db.relationship('ProcurementDetail',
+                                         backref=db.backref('procurement_plans', lazy='dynamic'))
+    principle_approval_date = db.Column('principle_approval_date', db.Date(),
+                                        info={'label': u'วันที่อนุมัติหลักการ'})
+    tor_completed_date = db.Column('tor_completed_date', db.Date(),
+                                   info={'label': u'วันที่จัดทำ TOR แล้วเสร็จ'})
+    quotation_submission_date = db.Column('quotation_submission_date', db.Date(),
+                                          info={'label': u'วันที่ยื่นเสนอราคา'})
+    contract_signed_date = db.Column('contract_signed_date', db.Date(),
+                                     info={'label': u'วันที่ลงนามสัญญา'})
+    inspection_date = db.Column('inspection_date', db.Date(), info={'label': u'วันที่ตรวจรับ'})
+    status = db.Column('status', db.String(64), nullable=False, default='planned',
+                       info={'label': u'สถานะ'})
+    note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+    def __str__(self):
+        return u'{}: {}'.format(self.fiscal_year, self.output_project_report[:80])
+
+    @property
+    def latest_activity(self):
+        return self.activities.order_by(ProcurementPlanActivity.activity_date.desc(),
+                                        ProcurementPlanActivity.id.desc()).first()
+
+
+class ProcurementPlanActivity(db.Model):
+    """Audit-friendly movement history for a procurement plan item."""
+    __tablename__ = 'procurement_plan_activities'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    plan_id = db.Column('plan_id', db.ForeignKey('procurement_plans.id'), nullable=False)
+    plan = db.relationship('ProcurementPlan',
+                           backref=db.backref('activities', lazy='dynamic',
+                                              cascade='all, delete-orphan'))
+    activity_type = db.Column('activity_type', db.String(128), nullable=False,
+                              info={'label': u'ประเภทความเคลื่อนไหว'})
+    activity_date = db.Column('activity_date', db.Date(), nullable=False,
+                              info={'label': u'วันที่ความเคลื่อนไหว'})
+    description = db.Column('description', db.Text(), info={'label': u'รายละเอียด'})
+    updated_by_id = db.Column('updated_by_id', db.ForeignKey('staff_account.id'))
+    updated_by = db.relationship('StaffAccount', foreign_keys=[updated_by_id])
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+
+    def __str__(self):
+        return u'{}: {}'.format(self.activity_date, self.activity_type)
+
 class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
