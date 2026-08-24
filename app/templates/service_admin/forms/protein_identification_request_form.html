@@ -211,7 +211,16 @@
         });
     </script>
     <script>
-        $(document).ready(function () {
+        function renumberItems() {
+            const items = document.querySelectorAll('#condition-field .condition-item');
+            items.forEach(function (item, index) {
+                const label = item.querySelector('p strong');
+                if (label) {
+                    label.textContent = `รายการที่ ${index + 1}`;
+                }
+            });
+        }
+        function initSubforms() {
             $('#condition-field div[id]').each(function () {
                 const proteinIdentification = $('input[type="checkbox"][name$="protein_identification"]');
 
@@ -234,6 +243,16 @@
                 validateProteinIdentificationInput();
                 proteinIdentification.on('change', validateProteinIdentificationInput);
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initSubforms();
+            renumberItems();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            initSubforms();
+            renumberItems();
         });
     </script>
 {% endblock %}
