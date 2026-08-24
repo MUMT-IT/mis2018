@@ -4547,7 +4547,7 @@ def add_protein_identification_condition_item():
     item_form = form.protein_identification_condition_field[-1]
     index = len(form.protein_identification_condition_field)
     template = """
-        <div id="{}">
+        <div id="{}" class="condition-item">
             <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
@@ -4563,9 +4563,20 @@ def add_protein_identification_condition_item():
                     </th>
                 </thead>
                 <tbody>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
+                    <tr>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none">
+                            <a class="button is-danger is-outlined"
+                                hx-delete="{}" 
+                                hx-target="closest .condition-item"
+                                hx-swap="outerHTML"
+                            >
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </a>
+                        </td>
+                    </tr>    
                 </tbody>
             </table>
         </div>
@@ -4577,7 +4588,9 @@ def add_protein_identification_condition_item():
                            item_form.protein_identification.label,
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
-                           item_form.protein_identification()
+                           item_form.protein_identification(),
+                           url_for('service_admin.remove_protein_identification_condition_item',
+                                   name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
