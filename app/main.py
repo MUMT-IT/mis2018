@@ -3051,6 +3051,22 @@ def generate_s3_asset_url(key, fallback_filename=None, expiration=3600):
     return ''
 
 
+@app.get('/s3-assets/<path:key>')
+def s3_asset_proxy(key):
+    """Redirect asset requests to a freshly signed S3 URL.
+
+    Keeping presigned URLs out of rendered HTML prevents cached pages from
+    retaining an expired URL and intermittently breaking images or videos.
+    """
+    fallback_filename = request.args.get('fallback') or None
+    asset_url = generate_s3_asset_url(key, fallback_filename)
+    if not asset_url:
+        return abort(404)
+    response = redirect(asset_url)
+    response.headers['Cache-Control'] = 'no-store, max-age=0'
+    return response
+
+
 @app.template_filter('s3_asset')
 def s3_asset_filter(key, fallback_filename=None, expiration=3600):
     """Return a presigned S3 asset URL with an optional local static fallback.
@@ -3061,6 +3077,8 @@ def s3_asset_filter(key, fallback_filename=None, expiration=3600):
     """
     if not key:
         return ''
+    if S3_BUCKET_NAME:
+        return url_for('s3_asset_proxy', key=key, fallback=fallback_filename)
     return generate_s3_asset_url(key, fallback_filename, expiration)
 
 # Allowed file extensions for upload

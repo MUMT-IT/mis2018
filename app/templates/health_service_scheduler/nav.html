@@ -7,7 +7,7 @@
     start_links=[
         {'href': url_for('health_service_scheduler.index'), 'label': 'หน้าหลัก', 'icon': 'fas fa-house', 'primary': True}
     ],
-    user_display=current_user.email,
+    user_display=current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else current_user.email,
     account_href=url_for('auth.account'),
     logout_href=url_for('auth.logout'),
     close_href='/',

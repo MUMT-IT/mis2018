@@ -249,6 +249,23 @@
                 </a>
             </nav>
             {% endif %}
+            {% if has_work_approval_access %}
+            <nav class="panel staff-role-panel staff-role-panel--manager">
+                <p class="panel-heading"><i class="fas fa-user-check mr-2" aria-hidden="true"></i>สำหรับผู้อนุมัติการขอปฏิบัติงาน WFH และลงชื่อเข้าปฏิบัติงาน</p>
+                <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fas fa-house-laptop"></i>
+                    </span>
+                    <span class="is-size-5">อนุมัติการขอปฏิบัติงาน WFH</span>
+                </a>
+                <a href="{{ url_for('staff.login_summary') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fas fa-clock"></i>
+                    </span>
+                    <span class="is-size-5">อนุมัติคำขอรับรองเวลาลงชื่อเข้าปฏิบัติงาน</span>
+                </a>
+            </nav>
+            {% endif %}
             {% if event_staff_permission.can() %}
             <nav class="panel staff-role-panel staff-role-panel--event">
                 <p class="panel-heading"><i class="fas fa-users mr-2" aria-hidden="true"></i>สำหรับผู้จัดงาน</p>

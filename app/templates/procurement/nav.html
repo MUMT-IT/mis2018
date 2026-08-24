@@ -10,7 +10,7 @@
                 {'href': url_for('procurement.landing'), 'label': 'จัดการครุภัณฑ์', 'icon': 'fas fa-boxes-stacked', 'primary': True},
                 {'href': '/', 'label': 'หน้าหลัก', 'icon': 'fas fa-house'}
             ],
-            user_display=current_user.email if current_user.is_authenticated else None,
+    user_display=current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else current_user.email if current_user.is_authenticated else None,
             account_href=url_for('auth.account') if current_user.is_authenticated else None,
             logout_href=url_for('auth.logout') if current_user.is_authenticated else None,
             login_href=url_for('auth.login') if not current_user.is_authenticated else None,

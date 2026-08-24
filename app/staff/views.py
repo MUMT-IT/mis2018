@@ -77,6 +77,25 @@ manager_or_secretary_permission = manager_permission.union(secretary_permission)
 login_summary_permission = manager_or_secretary_permission.union(head_permission)
 
 
+def _has_login_summary_access(account_id):
+    return (
+        login_summary_permission.can()
+        or _has_work_approval_access(account_id)
+    )
+
+
+def _has_work_approval_access(account_id):
+    return StaffWorkFromHomeApprover.query.filter_by(
+        approver_account_id=account_id,
+        is_active=True,
+    ).first() is not None
+
+
+def _require_login_summary_access():
+    if not _has_login_summary_access(current_user.id):
+        abort(403)
+
+
 def _is_external_account():
     if not current_user.is_authenticated:
         return False
@@ -773,6 +792,13 @@ def _calculate_work_hours(start_dt, end_dt):
     return min(8.0, worked_hours)
 
 
+def _work_hours_display_and_status(worked_hours):
+    if worked_hours is None:
+        return None, False
+    displayed_hours = float(f'{worked_hours:.1f}')
+    return f'{displayed_hours:.1f} hrs.', displayed_hours < 8.0
+
+
 def _work_login_event_style(is_late, hours_is_negative, has_checkout):
     class_names = []
     if is_late:
@@ -944,7 +970,10 @@ def index():
                            new_leave_requests=new_leave_requests,
                            new_wfh_requests=new_wfh_requests,
                            secretary_permission=secretary_permission,
-                           manager_permission=manager_permission, event_staff_permission=event_staff_permission
+                           manager_permission=manager_permission,
+                           event_staff_permission=event_staff_permission,
+                           has_login_summary_access=_has_login_summary_access(current_user.id),
+                           has_work_approval_access=_has_work_approval_access(current_user.id),
                            )
 
 
@@ -3343,6 +3372,14 @@ def hr_daily_attendance_report():
         .filter(*snapshot_filters)
         .scalar()
     ) or 0
+    total_worked_minutes = int(
+        db.session.query(func.coalesce(func.sum(StaffDailyAttendance.worked_minutes), 0))
+        .join(StaffAccount, StaffDailyAttendance.staff_id == StaffAccount.id)
+        .join(StaffPersonalInfo, StaffAccount.personal_id == StaffPersonalInfo.id)
+        .filter(*snapshot_filters)
+        .scalar()
+        or 0
+    )
 
     return render_template(
         'staff/hr_daily_attendance_report.html',
@@ -3357,6 +3394,7 @@ def hr_daily_attendance_report():
         source_counts=source_counts,
         snapshot_rows=snapshot_rows,
         staff_count=staff_count,
+        total_worked_minutes=total_worked_minutes,
         staff_rows=staff_rows,
         daily_rows=daily_rows,
     )
@@ -3642,8 +3680,7 @@ def hr_manual_checkin_calendar_data():
         if not start_dt:
             continue
         worked_hours = _calculate_work_hours(start_dt, end_dt)
-        hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
-        worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+        worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
         is_late = bool(start_dt and start_dt.time() > office_start_time)
         text_color, background_color, border_color, class_names = _work_login_event_style(
             is_late, hours_is_negative, bool(end_dt)
@@ -3695,11 +3732,32 @@ def hr_manual_checkin_calendar_data():
 @hr_permission.require()
 @login_required
 def hr_manual_checkin():
+    edit_record_id = request.args.get('edit_record_id', type=int)
+
     def _render_page(*, selected_staff=None, checkin_value=None, note_value='', selected_month=None):
         selected_staff_id = selected_staff.id if selected_staff else ''
         selected_staff_name = selected_staff.fullname if selected_staff else ''
         checkin_value = checkin_value or datetime.now(tz).strftime('%Y-%m-%dT%H:%M')
         selected_month = selected_month or checkin_value[:7]
+        month_start = tz.localize(datetime.strptime(selected_month + '-01', '%Y-%m-%d'))
+        next_month_start = (
+            month_start.replace(year=month_start.year + 1, month=1)
+            if month_start.month == 12
+            else month_start.replace(month=month_start.month + 1)
+        )
+        owned_records = (
+            StaffWorkLogin.query
+            .filter_by(creator_id=current_user.id, record_source='hr_manual')
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= month_start)
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) < next_month_start)
+            .order_by(StaffWorkLogin.start_datetime.desc(), StaffWorkLogin.id.desc())
+            .limit(100)
+            .all()
+        )
+        editing_record = (
+            _owned_hr_manual_record_or_404(edit_record_id)
+            if edit_record_id else None
+        )
         return render_template(
             'staff/hr_manual_checkin.html',
             selected_staff=selected_staff,
@@ -3708,12 +3766,21 @@ def hr_manual_checkin():
             default_checkin_datetime=checkin_value,
             selected_month=selected_month,
             note_value=note_value,
+            owned_records=owned_records,
+            editing_record=editing_record,
         )
 
     staff_id = request.args.get('staff_id', type=int)
     checkin_arg = (request.args.get('checkin_datetime') or '').strip()
     month_arg = (request.args.get('month') or '').strip()
+    note_arg = ''
     selected_staff = StaffPersonalInfo.query.get(staff_id) if staff_id else None
+    if edit_record_id:
+        editing_record = _owned_hr_manual_record_or_404(edit_record_id)
+        selected_staff = editing_record.staff.personal_info
+        if not checkin_arg and editing_record.start_datetime:
+            checkin_arg = _to_bangkok(editing_record.start_datetime).strftime('%Y-%m-%dT%H:%M')
+        note_arg = editing_record.note or ''
     if checkin_arg and not month_arg and len(checkin_arg) >= 7:
         month_arg = checkin_arg[:7]
 
@@ -3779,7 +3846,97 @@ def hr_manual_checkin():
 
     if not month_arg:
         month_arg = checkin_arg[:7] if checkin_arg else datetime.now(tz).strftime('%Y-%m')
-    return _render_page(selected_staff=selected_staff, checkin_value=checkin_arg or None, selected_month=month_arg)
+    return _render_page(
+        selected_staff=selected_staff,
+        checkin_value=checkin_arg or None,
+        note_value=note_arg,
+        selected_month=month_arg,
+    )
+
+
+@staff.route('/for-hr/login-report/manual-check-in/owned-records')
+@hr_permission.require()
+@login_required
+def hr_manual_checkin_owned_records():
+    month_value = (request.args.get('month') or '').strip()
+    try:
+        month_start = tz.localize(datetime.strptime(month_value + '-01', '%Y-%m-%d'))
+    except ValueError:
+        month_start = tz.localize(datetime.now(tz).replace(day=1, hour=0, minute=0, second=0, microsecond=0))
+    next_month_start = (
+        month_start.replace(year=month_start.year + 1, month=1)
+        if month_start.month == 12
+        else month_start.replace(month=month_start.month + 1)
+    )
+    owned_records = (
+        StaffWorkLogin.query
+        .filter_by(creator_id=current_user.id, record_source='hr_manual')
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= month_start)
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) < next_month_start)
+        .order_by(StaffWorkLogin.start_datetime.desc(), StaffWorkLogin.id.desc())
+        .limit(100)
+        .all()
+    )
+    return render_template(
+        'staff/partials/hr_manual_checkin_owned_records.html',
+        owned_records=owned_records,
+    )
+
+
+def _owned_hr_manual_record_or_404(record_id):
+    return StaffWorkLogin.query.filter_by(
+        id=record_id,
+        creator_id=current_user.id,
+        record_source='hr_manual',
+    ).first_or_404()
+
+
+@staff.route('/for-hr/login-report/manual-check-in/<int:record_id>/edit', methods=['POST'])
+@hr_permission.require()
+@login_required
+def hr_manual_checkin_edit(record_id):
+    record = _owned_hr_manual_record_or_404(record_id)
+    checkin_raw = (request.form.get('checkin_datetime') or '').strip()
+    note = (request.form.get('note') or '').strip()
+    try:
+        checkin_dt = tz.localize(datetime.strptime(checkin_raw, '%Y-%m-%dT%H:%M'))
+    except (TypeError, ValueError):
+        flash('รูปแบบวันและเวลาไม่ถูกต้อง', 'warning')
+        return redirect(url_for('staff.hr_manual_checkin', staff_id=record.staff.personal_info.id))
+
+    old_date = _to_bangkok(record.start_datetime).date() if record.start_datetime else None
+    record.start_datetime = checkin_dt
+    record.date_id = StaffWorkLogin.generate_date_id(checkin_dt)
+    record.note = note or 'บันทึกโดย HR'
+    db.session.commit()
+    if old_date and old_date != checkin_dt.date():
+        refresh_daily_attendance(old_date, staff_ids=[record.staff_id])
+    refresh_daily_attendance(checkin_dt.date(), staff_ids=[record.staff_id])
+    db.session.commit()
+    flash('แก้ไขรายการเข้างานเรียบร้อยแล้ว', 'success')
+    return redirect(url_for(
+        'staff.hr_manual_checkin',
+        staff_id=record.staff.personal_info.id,
+        checkin_datetime=checkin_dt.strftime('%Y-%m-%dT%H:%M'),
+        month=checkin_dt.strftime('%Y-%m'),
+    ))
+
+
+@staff.route('/for-hr/login-report/manual-check-in/<int:record_id>/delete', methods=['POST'])
+@hr_permission.require()
+@login_required
+def hr_manual_checkin_delete(record_id):
+    record = _owned_hr_manual_record_or_404(record_id)
+    staff_id = record.staff_id
+    staff_person_id = record.staff.personal_info.id
+    record_date = _to_bangkok(record.start_datetime).date() if record.start_datetime else None
+    db.session.delete(record)
+    db.session.commit()
+    if record_date:
+        refresh_daily_attendance(record_date, staff_ids=[staff_id])
+        db.session.commit()
+    flash('ลบรายการเข้างานเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('staff.hr_manual_checkin', staff_id=staff_person_id))
 
 
 def _handle_login_scan_request(template_name, *, note):
@@ -4256,6 +4413,11 @@ def refresh_daily_attendance(target_date, staff_ids=None):
             (record.end_datetime for record in staff_records if record.end_datetime is not None),
             default=None,
         )
+        worked_minutes = sum(
+            max(0, round((record.end_datetime - record.start_datetime).total_seconds() / 60))
+            for record in staff_records
+            if record.start_datetime is not None and record.end_datetime is not None
+        ) or None
         if first_record:
             status = 'present'
             source = first_record.record_source or 'scan'
@@ -4312,6 +4474,7 @@ def refresh_daily_attendance(target_date, staff_ids=None):
         snapshot.status = status
         snapshot.first_checkin_at = first_record.start_datetime if first_record else None
         snapshot.last_checkout_at = last_checkout
+        snapshot.worked_minutes = worked_minutes
         snapshot.source = source
         snapshot.source_record_id = source_record_id
         snapshot.created_by_id = created_by_id
@@ -4654,8 +4817,7 @@ def send_summary_data():
                 start_dt = parser.isoparse(row['start']) if row['start'] else None
                 end_dt = parser.isoparse(end) if end else None
                 worked_hours = _calculate_work_hours(start_dt, end_dt)
-                hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
-                worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+                worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
                 is_late = bool(start_dt and start_dt.time() > office_start_time)
                 text_color, bg_color, border_color, class_names = _work_login_event_style(
                     is_late, hours_is_negative, bool(end)
@@ -4815,9 +4977,9 @@ def summary_index():
 
 
 @staff.route('/summary/logins')
-@login_summary_permission.require()
 @login_required
 def login_summary():
+    _require_login_summary_access()
     today = datetime.today().date()
     start_date = date(today.year, today.month, 1)
     end_date = today
@@ -4827,13 +4989,16 @@ def login_summary():
                            curr_dept_id=current_user.personal_info.org.id,
                            summary_start_date=start_date.strftime('%d/%m/%Y'),
                            summary_end_date=end_date.strftime('%d/%m/%Y'),
+                           show_login_dashboard=(
+                               head_permission.can() or secretary_permission.can()
+                           ),
                            pending_clockin_requests=pending_clockin_requests)
 
 
 @staff.route('/api/login-summary/request/<int:request_id>/history')
-@login_summary_permission.require()
 @login_required
 def get_login_request_history(request_id):
+    _require_login_summary_access()
     clock_request = StaffRequestWorkLogin.query.get_or_404(request_id)
     if clock_request.approver_id != current_user.id:
         abort(403)
@@ -4860,9 +5025,9 @@ def get_login_request_history(request_id):
 
 
 @staff.route('/api/login-summary')
-@login_summary_permission.require()
 @login_required
 def get_login_summary_data():
+    _require_login_summary_access()
     dept_id = request.args.get('dept_id', type=int) or current_user.personal_info.org.id
     today = datetime.today().date()
     default_start = date(today.year, today.month, 1)
@@ -4874,9 +5039,9 @@ def get_login_summary_data():
 
 
 @staff.route('/summary/logins/export', methods=['POST'])
-@login_summary_permission.require()
 @login_required
 def export_login_summary():
+    _require_login_summary_access()
     start_date, end_date = request.form.get('datePicker').split('-')
     start_date = datetime.strptime(start_date.strip(), '%d/%m/%Y')
     end_date = datetime.strptime(end_date.lstrip(), '%d/%m/%Y')
@@ -6403,8 +6568,7 @@ def send_time_report_data():
         worked_hours_display = None
         worked_hours = _calculate_work_hours(start_dt, end_dt)
         if worked_hours is not None:
-            hours_is_negative = worked_hours < 8.0
-            worked_hours_display = '{:.1f} hrs.'.format(worked_hours)
+            worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
 
         is_late = bool(start_dt and start_dt.time() > office_start_time)
         text_color, bg_color, border_color, class_names = _work_login_event_style(

@@ -7,7 +7,7 @@
     start_links=[
         {'href': url_for('s3_storage_management_index'), 'label': 'ไฟล์', 'icon': 'fas fa-folder-open', 'primary': True}
     ],
-    user_display=current_user.email,
+    user_display=current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else current_user.email,
     account_href=url_for('auth.account'),
     logout_href=url_for('auth.logout'),
     close_href=url_for('index'),
