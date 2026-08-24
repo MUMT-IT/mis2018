@@ -312,6 +312,69 @@ def procurement_planning_landing():
     return render_template('procurement/procurement_planning_landing.html', active_page='dashboard')
 
 
+def _procurement_plan_query():
+    query = ProcurementPlan.query.order_by(ProcurementPlan.fiscal_year.desc(), ProcurementPlan.id.desc())
+    fiscal_year = request.args.get('fiscal_year', type=int)
+    funding_source_id = request.args.get('funding_source_id', type=int)
+    if fiscal_year:
+        query = query.filter(ProcurementPlan.fiscal_year == fiscal_year)
+    if funding_source_id:
+        query = query.filter(ProcurementPlan.funding_source_id == funding_source_id)
+    return query
+
+
+@procurement.route('/planning/plans')
+@login_required
+def procurement_plans():
+    plans = _procurement_plan_query().all()
+    status = request.args.get('status')
+    if status:
+        plans = [plan for plan in plans if plan.status == status]
+    funding_sources = ProcurementFundingSource.query.filter_by(is_active=True).order_by(
+        ProcurementFundingSource.code.asc()
+    ).all()
+    return render_template('procurement/plans.html', plans=plans, funding_sources=funding_sources,
+                           active_page='plans', selected_fiscal_year=request.args.get('fiscal_year', ''),
+                           selected_status=request.args.get('status', ''),
+                           selected_funding_source_id=request.args.get('funding_source_id', ''))
+
+
+@procurement.route('/planning/plans/new', methods=['GET', 'POST'])
+@login_required
+def new_procurement_plan():
+    form = ProcurementPlanForm()
+    if form.validate_on_submit():
+        plan = ProcurementPlan()
+        form.populate_obj(plan)
+        db.session.add(plan)
+        db.session.commit()
+        flash(u'เพิ่มแผนการจัดซื้อจัดจ้างเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('procurement.procurement_plans'))
+    return render_template('procurement/plan_form.html', form=form, active_page='plans',
+                           page_title=u'เพิ่มแผนการจัดซื้อจัดจ้าง')
+
+
+@procurement.route('/planning/plans/<int:plan_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_procurement_plan(plan_id):
+    plan = ProcurementPlan.query.get_or_404(plan_id)
+    form = ProcurementPlanForm(obj=plan)
+    if form.validate_on_submit():
+        form.populate_obj(plan)
+        db.session.commit()
+        flash(u'แก้ไขแผนการจัดซื้อจัดจ้างเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('procurement.procurement_plan_detail', plan_id=plan.id))
+    return render_template('procurement/plan_form.html', form=form, plan=plan, active_page='plans',
+                           page_title=u'แก้ไขแผนการจัดซื้อจัดจ้าง')
+
+
+@procurement.route('/planning/plans/<int:plan_id>')
+@login_required
+def procurement_plan_detail(plan_id):
+    plan = ProcurementPlan.query.get_or_404(plan_id)
+    return render_template('procurement/plan_detail.html', plan=plan, active_page='plans')
+
+
 @procurement.route('/planning/funding-sources', methods=['GET', 'POST'])
 @login_required
 def procurement_funding_sources():

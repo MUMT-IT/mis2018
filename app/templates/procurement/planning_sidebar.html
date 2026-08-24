@@ -10,4 +10,9 @@
         <span class="panel-icon"><i class="fa-solid fa-coins"></i></span>
         จัดการแหล่งงบประมาณ
     </a>
+    <a class="panel-block {% if active_page == 'plans' %}is-active{% endif %}"
+       href="{{ url_for('procurement.procurement_plans') }}">
+        <span class="panel-icon"><i class="fa-solid fa-list-check"></i></span>
+        จัดการแผนจัดซื้อจัดจ้าง
+    </a>
 </nav>

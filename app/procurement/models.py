@@ -76,6 +76,7 @@ class ProcurementPlan(db.Model):
                                   db.ForeignKey('procurement_funding_sources.id'), nullable=False)
     funding_source = db.relationship('ProcurementFundingSource',
                                      backref=db.backref('procurement_plans', lazy='dynamic'))
+    item = db.Column('item', db.String(255), info={'label': u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง'})
     output_project_report = db.Column('output_project_report', db.Text(), nullable=False,
                                       info={'label': u'ผลผลิต/โครงการ/รายงาน'})
     cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'), nullable=False,
@@ -104,14 +105,51 @@ class ProcurementPlan(db.Model):
     contract_signed_date = db.Column('contract_signed_date', db.Date(),
                                      info={'label': u'วันที่ลงนามสัญญา'})
     inspection_date = db.Column('inspection_date', db.Date(), info={'label': u'วันที่ตรวจรับ'})
-    status = db.Column('status', db.String(64), nullable=False, default='planned',
-                       info={'label': u'สถานะ'})
     note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
 
     def __str__(self):
         return u'{}: {}'.format(self.fiscal_year, self.output_project_report[:80])
+
+    @property
+    def status_date(self):
+        milestones = [
+            (self.principle_approval_date, 1, 'principle_approved'),
+            (self.tor_completed_date, 2, 'tor_completed'),
+            (self.quotation_submission_date, 3, 'quotation_submitted'),
+            (self.contract_signed_date, 4, 'contract_signed'),
+            (self.inspection_date, 5, 'completed'),
+        ]
+        completed = [milestone for milestone in milestones if milestone[0]]
+        if not completed:
+            return None
+        return max(completed, key=lambda milestone: (milestone[0], milestone[1]))[0]
+
+    @property
+    def status(self):
+        milestones = [
+            (self.principle_approval_date, 1, 'principle_approved'),
+            (self.tor_completed_date, 2, 'tor_completed'),
+            (self.quotation_submission_date, 3, 'quotation_submitted'),
+            (self.contract_signed_date, 4, 'contract_signed'),
+            (self.inspection_date, 5, 'completed'),
+        ]
+        completed = [milestone for milestone in milestones if milestone[0]]
+        if not completed:
+            return 'planned'
+        return max(completed, key=lambda milestone: (milestone[0], milestone[1]))[2]
+
+    @property
+    def status_label(self):
+        return {
+            'planned': u'วางแผนแล้ว',
+            'principle_approved': u'อนุมัติหลักการแล้ว',
+            'tor_completed': u'จัดทำ TOR แล้ว',
+            'quotation_submitted': u'ยื่นเสนอราคาแล้ว',
+            'contract_signed': u'ลงนามสัญญาแล้ว',
+            'completed': u'ตรวจรับแล้ว',
+        }[self.status]
 
     @property
     def latest_activity(self):

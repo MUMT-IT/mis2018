@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}รายละเอียดแผนจัดซื้อจัดจ้าง{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .procurement-planning-shell { padding: 2rem 1rem 4rem; }
+        .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
+        .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
+        .plan-detail-card { border-radius: 1rem; }
+        .plan-detail-label { color: #6b7280; font-size: .8rem; margin-bottom: .2rem; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "nav.html" %}
+    <main class="container procurement-planning-shell">
+        <div class="columns is-variable is-5">
+            <aside class="column is-3">{% include "procurement/planning_sidebar.html" %}</aside>
+            <section class="column is-9">
+                <div class="level mb-5">
+                    <div><p class="heading">Procurement Planning</p><h1 class="title is-3 mb-2">รายละเอียดแผนจัดซื้อจัดจ้าง</h1></div>
+                    <div><a class="button is-info is-light" href="{{ url_for('procurement.edit_procurement_plan', plan_id=plan.id) }}">แก้ไข</a> <a class="button is-light" href="{{ url_for('procurement.procurement_plans') }}">กลับรายการ</a></div>
+                </div>
+                <div class="box plan-detail-card">
+                    <div class="columns is-multiline">
+                        <div class="column is-one-quarter"><p class="plan-detail-label">ปีงบประมาณ</p><p class="is-size-5 has-text-weight-semibold">{{ plan.fiscal_year }}</p></div>
+                        <div class="column is-one-quarter"><p class="plan-detail-label">แหล่งงบประมาณ</p><p>{{ plan.funding_source }}</p></div>
+                        <div class="column is-one-quarter"><p class="plan-detail-label">ศูนย์ต้นทุน</p><p>{{ plan.cost_center_id }}</p></div>
+                        <div class="column is-one-quarter"><p class="plan-detail-label">จำนวนเงิน</p><p class="is-size-5 has-text-weight-semibold">{{ "{:,.2f}".format(plan.amount) }} บาท</p></div>
+                        <div class="column is-full"><p class="plan-detail-label">ผลผลิต/โครงการ/รายงาน</p><p>{{ plan.output_project_report }}</p></div>
+                        <div class="column is-full"><p class="plan-detail-label">รายการพัสดุ/รายการจัดซื้อจัดจ้าง</p><p>{{ plan.item or '-' }}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">วิธีการจัดซื้อจัดจ้าง</p><p>{{ plan.procurement_method }}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">รหัสทุน</p><p>{{ plan.fund_code or '-' }}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">สถานะ</p><p><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span>{% if plan.status_date %}<br><small>อัปเดตจากวันที่ {{ plan.status_date }}</small>{% endif %}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">ผู้รับผิดชอบ</p><p>{{ plan.responsible_staff.fullname }}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">บริษัทคู่สัญญา</p><p>{{ plan.vendor.name if plan.vendor else '-' }}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">วันที่ตรวจรับ</p><p>{{ plan.inspection_date or '-' }}</p></div>
+                    </div>
+                    <hr>
+                    <h2 class="title is-5">กำหนดการดำเนินงาน</h2>
+                    <div class="table-container"><table class="table is-fullwidth"><tbody>
+                        <tr><th>อนุมัติหลักการ</th><td>{{ plan.principle_approval_date or '-' }}</td><th>จัดทำ TOR แล้วเสร็จ</th><td>{{ plan.tor_completed_date or '-' }}</td></tr>
+                        <tr><th>ยื่นเสนอราคา</th><td>{{ plan.quotation_submission_date or '-' }}</td><th>ลงนามสัญญา</th><td>{{ plan.contract_signed_date or '-' }}</td></tr>
+                    </tbody></table></div>
+                    {% if plan.note %}<hr><h2 class="title is-5">หมายเหตุ</h2><p>{{ plan.note }}</p>{% endif %}
+                </div>
+                <div class="box plan-detail-card">
+                    <h2 class="title is-5">ความเคลื่อนไหวล่าสุด</h2>
+                    {% if plan.latest_activity %}<p><strong>{{ plan.latest_activity.activity_type }}</strong> — {{ plan.latest_activity.activity_date }}</p><p>{{ plan.latest_activity.description or '-' }}</p>
+                    {% else %}<p class="has-text-grey">ยังไม่มีการบันทึกความเคลื่อนไหว</p>{% endif %}
+                </div>
+            </section>
+        </div>
+    </main>
+{% endblock %}
