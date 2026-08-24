@@ -94,30 +94,42 @@
                             <hr style="background-color: gainsboro">
                             <div id="condition-field" class="field">
                                 {% for item_form in form.protein_identification_condition_field %}
-                                    <div id="{{ item_form.id }}">
+                                    <div id="{{ item_form.id }}" class="condition-item">
                                         <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
                                         <table class="table is-fullwidth ">
                                             <thead>
-                                            <th style="border: none">
-                                                {{ item_form.sample_name.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </th>
-                                            <th style="border: none">{{ item_form.clean_up.label }}</th>
-                                            <th style="border: none">
-                                                {{ item_form.protein_identification.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </th>
+                                                <th style="border: none">
+                                                    {{ item_form.sample_name.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">{{ item_form.clean_up.label }}</th>
+                                                <th style="border: none">
+                                                    {{ item_form.protein_identification.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
                                             </thead>
                                             <tbody>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.sample_name(class='input') }}
-                                            </td>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.clean_up() }}
-                                            </td>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.protein_identification() }}
-                                            </td>
+                                                <tr>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.sample_name(class='input') }}
+                                                    </td>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.clean_up() }}
+                                                    </td>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.protein_identification() }}
+                                                    </td>
+                                                    <td style="border: none">
+                                                        <a class="button is-danger is-outlined"
+                                                           hx-delete="{{ url_for('service_admin.remove_protein_identification_condition_item',
+                                                           name=item_form.name) }}"
+                                                           hx-target="closest .condition-item"
+                                                           hx-swap="outerHTML"
+                                                        >
+                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                        </a>
+                                                    </td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                         {% if not loop.last %}
@@ -220,29 +232,30 @@
                 }
             });
         }
+        function validateProteinIdentificationInput() {
+            const proteinIdentification = $('input[type="checkbox"][name$="protein_identification"]');
+            const checkedCount = proteinIdentification.filter(':checked').length;
+            const message = 'Please select at least 1 item.';
+
+            if (checkedCount === 0) {
+                proteinIdentification.prop('required', true);
+                proteinIdentification.each(function () {
+                    this.setCustomValidity(message);
+                });
+            } else {
+                proteinIdentification.prop('required', false);
+                proteinIdentification.each(function () {
+                    this.setCustomValidity('');
+                });
+            }
+        }
+
         function initSubforms() {
-            $('#condition-field div[id]').each(function () {
-                const proteinIdentification = $('input[type="checkbox"][name$="protein_identification"]');
-
-                function validateProteinIdentificationInput() {
-                    const checkedCount = proteinIdentification.filter(':checked').length;
-
-                    if (checkedCount === 0) {
-                        proteinIdentification.prop('required', true);
-                        proteinIdentification.each(function () {
-                            this.setCustomValidity('Please select at least 1 item.');
-                        });
-                    } else {
-                        proteinIdentification.prop('required', false);
-                        proteinIdentification.each(function () {
-                            this.setCustomValidity('');
-                        });
-                    }
-                }
-
-                validateProteinIdentificationInput();
-                proteinIdentification.on('change', validateProteinIdentificationInput);
-            });
+            validateProteinIdentificationInput();
+            $(document)
+                .off('change.proteinIdentification', 'input[type="checkbox"][name$="protein_identification"]')
+                .on('change.proteinIdentification', 'input[type="checkbox"][name$="protein_identification"]',
+                    validateProteinIdentificationInput);
         }
 
         document.addEventListener('DOMContentLoaded', function () {
