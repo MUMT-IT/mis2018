@@ -3423,8 +3423,7 @@ def create_sds_page_request(request_id=None):
             url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
-        for er in form.errors:
-            flash(f'{er} {form.errors[er]}', 'danger')
+        flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
     return render_template('academic_services/forms/sds_page_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
