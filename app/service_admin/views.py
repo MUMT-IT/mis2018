@@ -4534,7 +4534,8 @@ def create_protein_identification_request(request_id=None):
             url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
-        flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+        for _ in form.errors:
+            flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
     return render_template('service_admin/forms/protein_identification_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
@@ -4643,7 +4644,8 @@ def create_sds_page_request(request_id=None):
             url_for('service_admin.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
-        flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+        for _ in form.errors:
+            flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
     return render_template('service_admin/forms/sds_page_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
