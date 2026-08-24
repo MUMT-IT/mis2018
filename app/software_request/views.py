@@ -848,6 +848,24 @@ def _build_admin_request_listing_query(base_query):
     )
 
 
+def _priority_text_expression():
+    return case(
+        (SoftwareRequestDetail.priority == '3', 'สูง'),
+        (SoftwareRequestDetail.priority == '2', 'กลาง'),
+        (SoftwareRequestDetail.priority == '1', 'ต่ำ'),
+        else_='',
+    )
+
+
+def _urgency_text_expression():
+    return case(
+        (SoftwareRequestDetail.urgency == '3', 'เร่งด่วนมาก'),
+        (SoftwareRequestDetail.urgency == '2', 'ค่อนข้างเร่งด่วน'),
+        (SoftwareRequestDetail.urgency == '1', 'ไม่เร่งด่วน'),
+        else_='',
+    )
+
+
 @software_request.route('/')
 @login_required
 def index():
@@ -868,8 +886,10 @@ def index():
             query = query.filter(or_(
                 SoftwareRequestDetail.title.ilike(search_term),
                 SoftwareRequestDetail.type.ilike(search_term),
+                _priority_text_expression().ilike(search_term),
+                _urgency_text_expression().ilike(search_term),
                 SoftwareRequestDetail.description.ilike(search_term),
-                SoftwareRequestDetail.status.ilike(search_term)
+                SoftwareRequestDetail.status.ilike(search_term),
             ))
 
         start = request.args.get('start', type=int)
@@ -1049,6 +1069,8 @@ def admin_index():
             query = query.filter(or_(
                 SoftwareRequestDetail.title.ilike(search_term),
                 SoftwareRequestDetail.type.ilike(search_term),
+                _priority_text_expression().ilike(search_term),
+                _urgency_text_expression().ilike(search_term),
                 SoftwareRequestDetail.description.ilike(search_term),
                 SoftwareRequestDetail.status.ilike(search_term)
             ))
@@ -1056,7 +1078,6 @@ def admin_index():
         start = request.args.get('start', type=int)
         length = request.args.get('length', type=int)
         total_filtered = query.count()
-        # Apply pagination after building the enriched query used by DataTables.
         query = _build_admin_request_listing_query(query)
 
         sort_columns = {
