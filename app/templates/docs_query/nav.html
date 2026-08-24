@@ -16,7 +16,7 @@
     subtitle='ระบบค้นหาเอกสารด้วย AI',
     brand_href=url_for('docs_query.index'),
     start_links=docs_query_links,
-    user_display=current_user.email,
+    user_display=current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else current_user.email,
     account_href=url_for('auth.account'),
     logout_href=url_for('auth.logout'),
     close_href='/',

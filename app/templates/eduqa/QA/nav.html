@@ -8,7 +8,7 @@
         {'href': '/', 'label': 'หน้าหลัก', 'icon': 'fas fa-house'},
         {'href': url_for('eduqa.index'), 'label': 'เมนูหลัก', 'icon': 'fas fa-bars', 'primary': True}
     ],
-    user_display=current_user.email if current_user.is_authenticated else None,
+    user_display=current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else current_user.email if current_user.is_authenticated else None,
     account_href=url_for('auth.account') if current_user.is_authenticated else None,
     logout_href=url_for('auth.logout') if current_user.is_authenticated else None,
     close_href=None,

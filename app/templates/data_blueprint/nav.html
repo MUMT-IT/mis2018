@@ -8,7 +8,7 @@
         {'href': url_for('data_bp.index'), 'label': 'Data Blueprint', 'icon': 'fas fa-diagram-project', 'primary': True},
         {'href': url_for('data_bp.datacatalog'), 'label': 'Data Catalog', 'icon': 'fas fa-table-list'}
     ],
-    user_display=current_user.email,
+    user_display=current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else current_user.email,
     account_href=url_for('auth.account'),
     logout_href=url_for('auth.logout'),
     close_href='/',

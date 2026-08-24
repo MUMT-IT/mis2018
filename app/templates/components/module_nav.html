@@ -9,7 +9,7 @@
     </a>
 {%- endmacro %}
 
-{% macro render_module_nav(title='MUMT MIS', subtitle='Internal Information System', brand_href='/', start_links=[], end_links=[], user_display=None, account_href=None, logout_href=None, close_href=None, support_href=None, login_href=None, menu_id='moduleNavbarMenu') -%}
+{% macro render_module_nav(title='MUMT MIS', subtitle='Internal Information System', brand_href='/', start_links=[], end_links=[], user_display=None, account_href=None, staff_href=None, logout_href=None, close_href=None, support_href=None, login_href=None, menu_id='moduleNavbarMenu') -%}
     <div class="app-navbar-wrap">
         <nav class="navbar app-navbar">
             <div class="container is-fluid">
@@ -61,6 +61,12 @@
                                         <a class="navbar-item app-navbar-dropdown-link" href="{{ account_href }}">
                                             <span class="icon"><i class="fas fa-id-card"></i></span>
                                             <span>ข้อมูลส่วนตัว</span>
+                                        </a>
+                                    {% endif %}
+                                    {% if staff_href %}
+                                        <a class="navbar-item app-navbar-dropdown-link" href="{{ staff_href }}">
+                                            <span class="icon"><i class="fas fa-users"></i></span>
+                                            <span>บุคลากร</span>
                                         </a>
                                     {% endif %}
                                     <a class="navbar-item app-navbar-dropdown-link" href="{{ url_for('staff.show_time_report') }}">
