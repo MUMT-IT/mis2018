@@ -10,6 +10,7 @@
         .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
         .plans-card { border-radius: 1rem; }
         .plans-table td, .plans-table th { vertical-align: middle; }
+        .committee-summary { font-size: .68rem; line-height: 1.25; }
     </style>
 {% endblock %}
 
@@ -47,7 +48,7 @@
                     <div class="level"><h2 class="title is-5">รายการแผน ({{ plans|length }})</h2></div>
                     <div class="table-container">
                         <table class="table is-fullwidth is-hoverable plans-table">
-                    <thead><tr><th>ปี</th><th>รายการ</th><th>ผลผลิต/โครงการ/รายงาน</th><th>แหล่งงบประมาณ</th><th>ศูนย์ต้นทุน</th><th class="has-text-right">จำนวนเงิน</th><th>สถานะ</th><th></th></tr></thead>
+                            <thead><tr><th>ปี</th><th>รายการ</th><th>ผลผลิต/โครงการ/รายงาน</th><th>แหล่งงบประมาณ</th><th>ศูนย์ต้นทุน</th><th class="has-text-right">จำนวนเงิน</th><th>สถานะ</th><th>คณะกรรมการ</th><th></th></tr></thead>
                             <tbody>
                                 {% for plan in plans %}
                             <tr>
@@ -58,9 +59,16 @@
                                         <td>{{ plan.cost_center_id }}</td>
                                         <td class="has-text-right">{{ "{:,.2f}".format(plan.amount) }}</td>
                                         <td><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span></td>
+                                        <td>
+                                            {% for member in plan.committee_members.all() %}
+                                                <div class="committee-summary"><strong>{{ member.role_label }}:</strong> {{ member.staff.fullname }}</div>
+                                            {% else %}
+                                                <small class="has-text-grey committee-summary">ยังไม่มี</small>
+                                            {% endfor %}
+                                        </td>
                                         <td class="has-text-right"><a class="button is-small is-info is-light" href="{{ url_for('procurement.edit_procurement_plan', plan_id=plan.id) }}">แก้ไข</a></td>
                                     </tr>
-                                {% else %}<tr><td colspan="8" class="has-text-centered has-text-grey">ยังไม่มีรายการแผน</td></tr>{% endfor %}
+                                {% else %}<tr><td colspan="9" class="has-text-centered has-text-grey">ยังไม่มีรายการแผน</td></tr>{% endfor %}
                             </tbody>
                         </table>
                     </div>

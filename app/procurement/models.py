@@ -177,6 +177,42 @@ class ProcurementPlanActivity(db.Model):
     def __str__(self):
         return u'{}: {}'.format(self.activity_date, self.activity_type)
 
+
+class ProcurementPlanCommitteeMember(db.Model):
+    """A staff member assigned to a procurement plan committee."""
+    __tablename__ = 'procurement_plan_committee_members'
+    __table_args__ = (
+        db.UniqueConstraint('plan_id', 'staff_id', name='uq_procurement_plan_committee_member'),
+    )
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    plan_id = db.Column('plan_id', db.ForeignKey('procurement_plans.id'), nullable=False)
+    plan = db.relationship('ProcurementPlan',
+                           backref=db.backref('committee_members', lazy='dynamic',
+                                              cascade='all, delete-orphan'))
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
+    staff = db.relationship('StaffAccount', foreign_keys=[staff_id])
+    role = db.Column('role', db.String(32), nullable=False,
+                     info={'label': u'บทบาท', 'choices': [
+                         ('chairman', u'ประธาน'),
+                         ('committee', u'กรรมการ'),
+                         ('secretary', u'เลขานุการ'),
+                     ]})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+    ROLE_LABELS = {
+        'chairman': u'ประธาน',
+        'committee': u'กรรมการ',
+        'secretary': u'เลขานุการ',
+    }
+
+    @property
+    def role_label(self):
+        return self.ROLE_LABELS.get(self.role, self.role)
+
+    def __str__(self):
+        return u'{} ({})'.format(self.staff.fullname, self.role_label)
+
 class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

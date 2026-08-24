@@ -372,7 +372,57 @@ def edit_procurement_plan(plan_id):
 @login_required
 def procurement_plan_detail(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
-    return render_template('procurement/plan_detail.html', plan=plan, active_page='plans')
+    committee_form = ProcurementPlanCommitteeMemberForm()
+    return render_template('procurement/plan_detail.html', plan=plan, committee_form=committee_form,
+                           active_page='plans')
+
+
+@procurement.route('/planning/plans/<int:plan_id>/committee', methods=['POST'])
+@login_required
+def add_procurement_plan_committee_member(plan_id):
+    plan = ProcurementPlan.query.get_or_404(plan_id)
+    form = ProcurementPlanCommitteeMemberForm()
+    if not plan.principle_approval_date:
+        flash(u'ต้องระบุวันที่อนุมัติหลักการก่อนจึงจะเพิ่มคณะกรรมการได้', 'warning')
+        return redirect(url_for('procurement.procurement_plan_detail', plan_id=plan.id))
+    if form.validate_on_submit():
+        existing_member = ProcurementPlanCommitteeMember.query.filter_by(
+            plan_id=plan.id, staff_id=form.staff.data.id
+        ).first()
+        existing_role = ProcurementPlanCommitteeMember.query.filter_by(
+            plan_id=plan.id, role=form.role.data
+        ).first()
+        if existing_member:
+            flash(u'บุคลากรคนนี้อยู่ในคณะกรรมการของแผนนี้แล้ว', 'warning')
+        elif form.role.data in ('chairman', 'secretary') and existing_role:
+            flash(u'แผนนี้มี{}แล้ว'.format(existing_role.role_label), 'warning')
+        else:
+            committee_member = ProcurementPlanCommitteeMember(
+                plan=plan,
+                staff=form.staff.data,
+                role=form.role.data,
+            )
+            db.session.add(committee_member)
+            db.session.commit()
+            flash(u'เพิ่มกรรมการเรียบร้อยแล้ว', 'success')
+    else:
+        for field_name, errors in form.errors.items():
+            field = getattr(form, field_name)
+            for error in errors:
+                flash(u'{}: {}'.format(field.label.text, error), 'danger')
+    return redirect(url_for('procurement.procurement_plan_detail', plan_id=plan.id))
+
+
+@procurement.route('/planning/plans/<int:plan_id>/committee/<int:member_id>/delete', methods=['POST'])
+@login_required
+def delete_procurement_plan_committee_member(plan_id, member_id):
+    member = ProcurementPlanCommitteeMember.query.filter_by(
+        id=member_id, plan_id=plan_id
+    ).first_or_404()
+    db.session.delete(member)
+    db.session.commit()
+    flash(u'นำบุคลากรออกจากคณะกรรมการเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.procurement_plan_detail', plan_id=plan_id))
 
 
 @procurement.route('/planning/funding-sources', methods=['GET', 'POST'])

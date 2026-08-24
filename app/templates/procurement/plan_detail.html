@@ -4,18 +4,21 @@
 
 {% block head %}
     {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
     <style>
         .procurement-planning-shell { padding: 2rem 1rem 4rem; }
         .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
         .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
         .plan-detail-card { border-radius: 1rem; }
         .plan-detail-label { color: #6b7280; font-size: .8rem; margin-bottom: .2rem; }
+        .committee-form .select2-container { width: 100% !important; }
     </style>
 {% endblock %}
 
 {% block page_content %}
     {% include "nav.html" %}
     <main class="container procurement-planning-shell">
+        {% include "messages.html" %}
         <div class="columns is-variable is-5">
             <aside class="column is-3">{% include "procurement/planning_sidebar.html" %}</aside>
             <section class="column is-9">
@@ -51,7 +54,74 @@
                     {% if plan.latest_activity %}<p><strong>{{ plan.latest_activity.activity_type }}</strong> — {{ plan.latest_activity.activity_date }}</p><p>{{ plan.latest_activity.description or '-' }}</p>
                     {% else %}<p class="has-text-grey">ยังไม่มีการบันทึกความเคลื่อนไหว</p>{% endif %}
                 </div>
+                <div class="box plan-detail-card">
+                    <div class="level">
+                        <div>
+                            <h2 class="title is-5 mb-1">คณะกรรมการ</h2>
+                            <p class="is-size-7 has-text-grey">เพิ่มคณะกรรมการได้หลังจากระบุวันที่อนุมัติหลักการแล้ว</p>
+                        </div>
+                    </div>
+                    {% if plan.principle_approval_date %}
+                        <form method="post" action="{{ url_for('procurement.add_procurement_plan_committee_member', plan_id=plan.id) }}" class="mb-5 committee-form">
+                            {{ committee_form.hidden_tag() }}
+                            <div class="columns is-vcentered">
+                                <div class="column">
+                                    <div class="field">
+                                        {{ committee_form.staff.label(class="label") }}
+                                        <div class="control">{{ committee_form.staff(class="employee-search") }}</div>
+                                    </div>
+                                </div>
+                                <div class="column is-one-quarter">
+                                    <div class="field">
+                                        {{ committee_form.role.label(class="label") }}
+                                        <div class="select is-fullwidth">{{ committee_form.role() }}</div>
+                                    </div>
+                                </div>
+                                <div class="column is-narrow">
+                                    <div class="field"><label class="label">&nbsp;</label>{{ committee_form.submit(class="button is-primary") }}</div>
+                                </div>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="notification is-warning is-light">ยังไม่สามารถเพิ่มคณะกรรมการได้ เนื่องจากยังไม่ได้ระบุวันที่อนุมัติหลักการ</div>
+                    {% endif %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth">
+                            <thead><tr><th>บทบาท</th><th>บุคลากร</th><th class="has-text-right">การจัดการ</th></tr></thead>
+                            <tbody>
+                                {% for member in plan.committee_members.all() %}
+                                    <tr>
+                                        <td><span class="tag is-info is-light">{{ member.role_label }}</span></td>
+                                        <td>{{ member.staff.fullname }}</td>
+                                        <td class="has-text-right">
+                                            <form method="post" action="{{ url_for('procurement.delete_procurement_plan_committee_member', plan_id=plan.id, member_id=member.id) }}" onsubmit="return confirm('ต้องการนำบุคลากรออกจากคณะกรรมการหรือไม่');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="button is-small is-danger is-light">ลบ</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="3" class="has-text-centered has-text-grey">ยังไม่มีคณะกรรมการ</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
         </div>
     </main>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(function () {
+            $('.employee-search').select2({
+                allowClear: true,
+                placeholder: 'ค้นหาบุคลากร...',
+                width: '100%'
+            });
+        });
+    </script>
 {% endblock %}

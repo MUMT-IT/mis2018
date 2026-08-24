@@ -132,6 +132,25 @@ class ProcurementPlanForm(FlaskForm):
     submit = SubmitField(u'บันทึก')
 
 
+class ProcurementPlanCommitteeMemberForm(FlaskForm):
+    staff = QuerySelectField(
+        u'บุคลากร',
+        query_factory=lambda: StaffAccount.get_active_accounts(),
+        get_label='fullname',
+        allow_blank=False,
+    )
+    role = SelectField(
+        u'บทบาท',
+        choices=[
+            ('chairman', u'ประธาน'),
+            ('committee', u'กรรมการ'),
+            ('secretary', u'เลขานุการ'),
+        ],
+        validators=[DataRequired()],
+    )
+    submit = SubmitField(u'เพิ่มกรรมการ')
+
+
 class ProcurementDetailForm(ModelForm):
     class Meta:
         model = ProcurementDetail
