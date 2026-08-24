@@ -3426,6 +3426,11 @@ def hr_daily_attendance_staff_detail(staff_id):
         .filter(StaffAccount.id == staff_id, *_active_staff_filters())
         .first_or_404()
     )
+    current_date = start_date
+    while current_date <= end_date:
+        refresh_daily_attendance(current_date, staff_ids=[staff_id])
+        current_date += timedelta(days=1)
+    db.session.commit()
     records = (
         StaffDailyAttendance.query
         .filter(
@@ -3621,17 +3626,29 @@ def get_hr_login_records():
     def isoformat(value):
         return _to_bangkok(value).isoformat() if value else None
 
-    data = [{
-        'id': record.id,
-        'staff_name': (
-            record.staff.fullname
-            if record.staff and record.staff.personal_info else 'ไม่ระบุ'
-        ),
-        'checkin': isoformat(record.start_datetime),
-        'checkout': isoformat(record.end_datetime),
-        'record_source': record.record_source or '',
-        'note': record.note or '',
-    } for record in records]
+    data = []
+    for record in records:
+        # Regular scans and approved checkout requests are stored as a new
+        # record with their event time in start_datetime, rather than as an
+        # end_datetime on the preceding check-in record.
+        checkout_datetime = record.end_datetime
+        if checkout_datetime is None and (
+            record.correction_type == 'checkout'
+            or (record.record_source == 'scan' and (record.num_scans or 0) > 1)
+        ):
+            checkout_datetime = record.start_datetime
+
+        data.append({
+            'id': record.id,
+            'staff_name': (
+                record.staff.fullname
+                if record.staff and record.staff.personal_info else 'ไม่ระบุ'
+            ),
+            'checkin': isoformat(record.start_datetime),
+            'checkout': isoformat(checkout_datetime),
+            'record_source': record.record_source or '',
+            'note': record.note or '',
+        })
 
     return jsonify({
         'draw': draw,
@@ -3718,6 +3735,29 @@ def hr_manual_checkin_calendar_data():
             'hours_is_negative': hours_is_negative,
             'className': class_names,
             'type': 'login'
+        })
+
+    holidays = Holidays.query.filter(
+        cast(Holidays.holiday_date, Date).between(
+            month_start.date(),
+            (next_month_start - timedelta(days=1)).date(),
+        )
+    ).all()
+    for holiday in holidays:
+        holiday_day = _to_bangkok(holiday.holiday_date).date() if holiday.holiday_date else None
+        if not holiday_day:
+            continue
+        events.append({
+            'id': f'holiday-{holiday.id}',
+            'start': holiday_day.isoformat(),
+            'end': (holiday_day + timedelta(days=1)).isoformat(),
+            'title': holiday.holiday_name or 'วันหยุด',
+            'type': 'holiday',
+            'allDay': True,
+            'backgroundColor': '#ff9f1a',
+            'borderColor': '#ffffff',
+            'textColor': '#ffffff',
+            'className': ['holiday-event'],
         })
 
     return jsonify({
@@ -4375,7 +4415,7 @@ def refresh_daily_attendance(target_date, staff_ids=None):
     ).all()
     records_by_staff = defaultdict(list)
     for record in records:
-        if record.start_datetime is not None and record.correction_type != 'checkout':
+        if record.start_datetime is not None or record.end_datetime is not None:
             records_by_staff[record.staff_id].append(record)
 
     day_start = tz.localize(datetime.combine(target_date, datetime.min.time()))
@@ -4406,18 +4446,35 @@ def refresh_daily_attendance(target_date, staff_ids=None):
     for staff_account in active_accounts:
         staff_records = sorted(
             records_by_staff.get(staff_account.id, []),
-            key=lambda record: record.start_datetime,
+            key=lambda record: record.start_datetime or record.end_datetime,
         )
-        first_record = staff_records[0] if staff_records else None
+        checkin_records = [
+            record for record in staff_records
+            if record.start_datetime is not None and record.correction_type != 'checkout'
+        ]
+        first_record = checkin_records[0] if checkin_records else None
+        checkout_datetimes = [
+            record.end_datetime
+            for record in staff_records
+            if record.end_datetime is not None
+        ]
+        checkout_datetimes.extend(
+            record.start_datetime
+            for record in staff_records
+            if record.start_datetime is not None and (
+                record.correction_type == 'checkout'
+                or (record is staff_records[-1] and len(staff_records) > 1)
+            )
+        )
         last_checkout = max(
-            (record.end_datetime for record in staff_records if record.end_datetime is not None),
+            checkout_datetimes,
             default=None,
         )
-        worked_minutes = sum(
-            max(0, round((record.end_datetime - record.start_datetime).total_seconds() / 60))
-            for record in staff_records
-            if record.start_datetime is not None and record.end_datetime is not None
-        ) or None
+        worked_hours = (
+            _calculate_work_hours(first_record.start_datetime, last_checkout)
+            if first_record and last_checkout else None
+        )
+        worked_minutes = round(worked_hours * 60) if worked_hours is not None else None
         if first_record:
             status = 'present'
             source = first_record.record_source or 'scan'

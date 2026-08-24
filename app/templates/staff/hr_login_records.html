@@ -33,14 +33,17 @@
     }
 
     .hr-login-records-table-wrap {
-        overflow-x: auto;
+        overflow-x: visible;
     }
 
     #hrLoginRecordsTable {
-        min-width: 52rem;
+        min-width: 0;
+        table-layout: fixed;
+        width: 100% !important;
     }
 
     #hrLoginRecordsTable tbody td {
+        overflow-wrap: anywhere;
         vertical-align: middle;
     }
 
