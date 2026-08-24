@@ -77,6 +77,25 @@ manager_or_secretary_permission = manager_permission.union(secretary_permission)
 login_summary_permission = manager_or_secretary_permission.union(head_permission)
 
 
+def _has_login_summary_access(account_id):
+    return (
+        login_summary_permission.can()
+        or _has_work_approval_access(account_id)
+    )
+
+
+def _has_work_approval_access(account_id):
+    return StaffWorkFromHomeApprover.query.filter_by(
+        approver_account_id=account_id,
+        is_active=True,
+    ).first() is not None
+
+
+def _require_login_summary_access():
+    if not _has_login_summary_access(current_user.id):
+        abort(403)
+
+
 def _is_external_account():
     if not current_user.is_authenticated:
         return False
@@ -773,6 +792,13 @@ def _calculate_work_hours(start_dt, end_dt):
     return min(8.0, worked_hours)
 
 
+def _work_hours_display_and_status(worked_hours):
+    if worked_hours is None:
+        return None, False
+    displayed_hours = float(f'{worked_hours:.1f}')
+    return f'{displayed_hours:.1f} hrs.', displayed_hours < 8.0
+
+
 def _work_login_event_style(is_late, hours_is_negative, has_checkout):
     class_names = []
     if is_late:
@@ -944,7 +970,10 @@ def index():
                            new_leave_requests=new_leave_requests,
                            new_wfh_requests=new_wfh_requests,
                            secretary_permission=secretary_permission,
-                           manager_permission=manager_permission, event_staff_permission=event_staff_permission
+                           manager_permission=manager_permission,
+                           event_staff_permission=event_staff_permission,
+                           has_login_summary_access=_has_login_summary_access(current_user.id),
+                           has_work_approval_access=_has_work_approval_access(current_user.id),
                            )
 
 
@@ -3651,8 +3680,7 @@ def hr_manual_checkin_calendar_data():
         if not start_dt:
             continue
         worked_hours = _calculate_work_hours(start_dt, end_dt)
-        hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
-        worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+        worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
         is_late = bool(start_dt and start_dt.time() > office_start_time)
         text_color, background_color, border_color, class_names = _work_login_event_style(
             is_late, hours_is_negative, bool(end_dt)
@@ -4789,8 +4817,7 @@ def send_summary_data():
                 start_dt = parser.isoparse(row['start']) if row['start'] else None
                 end_dt = parser.isoparse(end) if end else None
                 worked_hours = _calculate_work_hours(start_dt, end_dt)
-                hours_is_negative = bool(worked_hours is not None and worked_hours < 8.0)
-                worked_hours_display = '{:.1f} hrs.'.format(worked_hours) if worked_hours is not None else None
+                worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
                 is_late = bool(start_dt and start_dt.time() > office_start_time)
                 text_color, bg_color, border_color, class_names = _work_login_event_style(
                     is_late, hours_is_negative, bool(end)
@@ -4950,9 +4977,9 @@ def summary_index():
 
 
 @staff.route('/summary/logins')
-@login_summary_permission.require()
 @login_required
 def login_summary():
+    _require_login_summary_access()
     today = datetime.today().date()
     start_date = date(today.year, today.month, 1)
     end_date = today
@@ -4962,13 +4989,16 @@ def login_summary():
                            curr_dept_id=current_user.personal_info.org.id,
                            summary_start_date=start_date.strftime('%d/%m/%Y'),
                            summary_end_date=end_date.strftime('%d/%m/%Y'),
+                           show_login_dashboard=(
+                               head_permission.can() or secretary_permission.can()
+                           ),
                            pending_clockin_requests=pending_clockin_requests)
 
 
 @staff.route('/api/login-summary/request/<int:request_id>/history')
-@login_summary_permission.require()
 @login_required
 def get_login_request_history(request_id):
+    _require_login_summary_access()
     clock_request = StaffRequestWorkLogin.query.get_or_404(request_id)
     if clock_request.approver_id != current_user.id:
         abort(403)
@@ -4995,9 +5025,9 @@ def get_login_request_history(request_id):
 
 
 @staff.route('/api/login-summary')
-@login_summary_permission.require()
 @login_required
 def get_login_summary_data():
+    _require_login_summary_access()
     dept_id = request.args.get('dept_id', type=int) or current_user.personal_info.org.id
     today = datetime.today().date()
     default_start = date(today.year, today.month, 1)
@@ -5009,9 +5039,9 @@ def get_login_summary_data():
 
 
 @staff.route('/summary/logins/export', methods=['POST'])
-@login_summary_permission.require()
 @login_required
 def export_login_summary():
+    _require_login_summary_access()
     start_date, end_date = request.form.get('datePicker').split('-')
     start_date = datetime.strptime(start_date.strip(), '%d/%m/%Y')
     end_date = datetime.strptime(end_date.lstrip(), '%d/%m/%Y')
@@ -6538,8 +6568,7 @@ def send_time_report_data():
         worked_hours_display = None
         worked_hours = _calculate_work_hours(start_dt, end_dt)
         if worked_hours is not None:
-            hours_is_negative = worked_hours < 8.0
-            worked_hours_display = '{:.1f} hrs.'.format(worked_hours)
+            worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
 
         is_late = bool(start_dt and start_dt.time() > office_start_time)
         text_color, bg_color, border_color, class_names = _work_login_event_style(
