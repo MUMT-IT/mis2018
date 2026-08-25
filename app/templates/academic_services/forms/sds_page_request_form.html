@@ -232,7 +232,7 @@
 {#        });#}
 {#    </script>#}
     <script>
-        function renumberSdsPageItems() {
+        function renumberItems() {
             const items = document.querySelectorAll('#condition-field .condition-item');
             items.forEach(function (item, index) {
                 const label = item.querySelector('p strong');
@@ -277,12 +277,12 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             initSubforms();
-            renumberSdsPageItems();
+            renumberItems();
         });
 
         document.body.addEventListener('htmx:afterSwap', function () {
             initSubforms();
-            renumberSdsPageItems();
+            renumberItems();
         });
     </script>
 {% endblock %}
