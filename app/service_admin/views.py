@@ -4880,7 +4880,7 @@ def add_metabolomic_condition_item():
     index = len(form.metabolomic_condition_field)
     template = """
         <div id="{}">
-            <hr style="background-color: #F3F3F3">
+            <hr style="background-color: #F3F3F3" class="condition-item">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
                 <thead>
@@ -4893,10 +4893,21 @@ def add_metabolomic_condition_item():
                     <th style="border: none">{}</th>
                 </thead>
                 <tbody>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
+                    <tr>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none">
+                            <a class="button is-danger is-outlined"
+                                hx-delete="{}" 
+                                hx-target="closest .condition-item"
+                                hx-swap="outerHTML"
+                            >
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </a>
+                        </td>
+                    </tr>    
                 </tbody>
             </table>
         </div>
@@ -4910,7 +4921,8 @@ def add_metabolomic_condition_item():
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
                            item_form.untargeted_metabolomic(),
-                           item_form.quantitative_metabolomic()
+                           item_form.quantitative_metabolomic(),
+                           url_for('service_admin.remove_metabolomic_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
