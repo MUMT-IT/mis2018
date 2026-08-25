@@ -3620,7 +3620,7 @@ def add_quantitative_condition_item():
     item_form = form.quantitative_condition_field[-1]
     index = len(form.quantitative_condition_field)
     template = """
-        <div id="{}">
+        <div id="{}" class="condition-item">
             <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
@@ -3639,9 +3639,20 @@ def add_quantitative_condition_item():
                     </th>
                 </thead>
                 <tbody>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
+                    <tr>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none">
+                            <a class="button is-danger is-outlined"
+                                hx-delete="{}" 
+                                hx-target="closest .condition-item"
+                                hx-swap="outerHTML"
+                            >
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </a>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -3653,7 +3664,8 @@ def add_quantitative_condition_item():
                            item_form.quantitative_method.label,
                            item_form.sample_name(class_='input'),
                            item_form.protein_concentration(class_='input'),
-                           item_form.quantitative_method()
+                           item_form.quantitative_method(),
+                           url_for('academic_services.remove_quantitative_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
