@@ -3674,50 +3674,66 @@ def add_quantitative_condition_item():
 @academic_services.route('/api/request/quantitative/item/remove', methods=['DELETE'])
 @login_required
 def remove_quantitative_condition_item():
+    field_name = request.args.get('name')
     form = QuantitativeRequestForm()
-    form.quantitative_condition_field.pop_entry()
-    resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
-        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
-        template = """
-            <div id="{}">
-                {}
-                <p><strong>รายการที่ {}</strong></p>
-                <table class="table is-fullwidth ">
-                    <thead>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                    </thead>
-                    <tbody>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                    </tbody>
-                </table>
-            </div>
-        """
-        resp += template.format(item_form.id,
-                                hr,
-                                i,
-                                item_form.sample_name.label,
-                                item_form.protein_concentration.label,
-                                item_form.quantitative_method.label,
-                                item_form.sample_name(class_='input'),
-                                item_form.protein_concentration(class_='input'),
-                                item_form.quantitative_method()
-                                )
-    resp = make_response(resp)
-    return resp
+    temp_entries = []
+    for entry in form.quantitative_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.quantitative_condition_field) > 0:
+        form.quantitative_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.quantitative_condition_field.append_entry(entry)
+    return ""
+
+
+# @academic_services.route('/api/request/quantitative/item/remove', methods=['DELETE'])
+# @login_required
+# def remove_quantitative_condition_item():
+#     form = QuantitativeRequestForm()
+#     form.quantitative_condition_field.pop_entry()
+#     resp = ''
+#     for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+#         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
+#         template = """
+#             <div id="{}">
+#                 {}
+#                 <p><strong>รายการที่ {}</strong></p>
+#                 <table class="table is-fullwidth ">
+#                     <thead>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                     </thead>
+#                     <tbody>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                     </tbody>
+#                 </table>
+#             </div>
+#         """
+#         resp += template.format(item_form.id,
+#                                 hr,
+#                                 i,
+#                                 item_form.sample_name.label,
+#                                 item_form.protein_concentration.label,
+#                                 item_form.quantitative_method.label,
+#                                 item_form.sample_name(class_='input'),
+#                                 item_form.protein_concentration(class_='input'),
+#                                 item_form.quantitative_method()
+#                                 )
+#     resp = make_response(resp)
+#     return resp
 
 
 @academic_services.route('/request/metabolomic/add', methods=['GET', 'POST'])
