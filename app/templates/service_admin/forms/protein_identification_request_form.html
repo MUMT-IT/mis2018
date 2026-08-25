@@ -232,30 +232,30 @@
                 }
             });
         }
-        function validateProteinIdentificationInput() {
-            const proteinIdentification = $('input[type="checkbox"][name$="protein_identification"]');
-            const checkedCount = proteinIdentification.filter(':checked').length;
-            const message = 'Please select at least 1 item.';
-
-            if (checkedCount === 0) {
-                proteinIdentification.prop('required', true);
-                proteinIdentification.each(function () {
-                    this.setCustomValidity(message);
-                });
-            } else {
-                proteinIdentification.prop('required', false);
-                proteinIdentification.each(function () {
-                    this.setCustomValidity('');
-                });
-            }
-        }
 
         function initSubforms() {
-            validateProteinIdentificationInput();
-            $(document)
-                .off('change.proteinIdentification', 'input[type="checkbox"][name$="protein_identification"]')
-                .on('change.proteinIdentification', 'input[type="checkbox"][name$="protein_identification"]',
-                    validateProteinIdentificationInput);
+            $('#condition-field div[id]').each(function () {
+                const proteinIdentification = $('input[type="checkbox"][name$="protein_identification"]');
+
+                function validateProteinIdentificationInput() {
+                    const checkedCount = proteinIdentification.filter(':checked').length;
+
+                    if (checkedCount === 0) {
+                        proteinIdentification.prop('required', true);
+                        proteinIdentification.each(function () {
+                            this.setCustomValidity('Please select at least 1 item.');
+                        });
+                    } else {
+                        proteinIdentification.prop('required', false);
+                        proteinIdentification.each(function () {
+                            this.setCustomValidity('');
+                        });
+                    }
+                }
+
+                validateProteinIdentificationInput();
+                proteinIdentification.on('change', validateProteinIdentificationInput);
+            });
         }
 
         document.addEventListener('DOMContentLoaded', function () {
