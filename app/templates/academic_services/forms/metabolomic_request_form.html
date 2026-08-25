@@ -133,4 +133,23 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        function renumberItems() {
+            const items = document.querySelectorAll('#condition-field .condition-item');
+            items.forEach(function (item, index) {
+                const label = item.querySelector('p strong');
+                if (label) {
+                    label.textContent = `รายการที่ ${index + 1}`;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            renumberItems();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            renumberItems();
+        });
+    </script>
 {% endblock %}
