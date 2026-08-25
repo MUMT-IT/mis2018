@@ -4879,8 +4879,8 @@ def add_metabolomic_condition_item():
     item_form = form.metabolomic_condition_field[-1]
     index = len(form.metabolomic_condition_field)
     template = """
-        <div id="{}">
-            <hr style="background-color: #F3F3F3" class="condition-item">
+        <div id="{}" class="condition-item">
+            <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
                 <thead>
