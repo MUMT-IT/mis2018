@@ -960,7 +960,10 @@ def index():
 @room.route('/ai-room-search')
 @login_required
 def ai_room_search():
-    return render_template('scheduler/ai_room_search.html')
+    return render_template(
+        'scheduler/ai_room_search.html',
+        initial_message=request.args.get('message', ''),
+    )
 
 
 @room.route('/api/ai-room-search', methods=['POST'])

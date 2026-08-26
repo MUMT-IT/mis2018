@@ -1013,7 +1013,7 @@ def procurement_budget_plan_detail(plan_id):
         fiscal_year=current_fiscal_year,
         responsible_org_id=organization.id,
     ).first_or_404()
-    from app.procurement.views import _procurement_plan_gantt_data
+    from app.procurement.views import _can_create_plan_poll, _procurement_plan_gantt_data
     from app.procurement.forms import ProcurementPlanCommitteeMemberForm
     return render_template(
         'procurement/plan_detail.html',
@@ -1022,6 +1022,7 @@ def procurement_budget_plan_detail(plan_id):
         active_page='plans',
         gantt_data=_procurement_plan_gantt_data(plan),
         can_manage_procurement=False,
+        can_create_plan_poll=_can_create_plan_poll(plan),
         back_url=url_for('staff.procurement_budget_tracking'),
     )
 

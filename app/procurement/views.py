@@ -9,7 +9,7 @@ import pandas as pd
 from pandas import read_excel,isna
 from dateutil import parser
 import pytz
-from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, abort, \
     make_response, current_app
 from flask_login import current_user, login_required
 from flask_mail import Message
@@ -26,7 +26,7 @@ from sqlalchemy.sql import func
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pytz import timezone
 from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
 from reportlab.lib import colors
@@ -443,6 +443,14 @@ def _procurement_plan_gantt_data(plan):
     }
 
 
+def _can_create_plan_poll(plan):
+    return procurement_permission.can() or ProcurementPlanCommitteeMember.query.filter_by(
+        plan_id=plan.id,
+        staff_id=current_user.id,
+        role='chairman',
+    ).first() is not None
+
+
 @procurement.route('/planning/plans/<int:plan_id>')
 @login_required
 def procurement_plan_detail(plan_id):
@@ -450,7 +458,123 @@ def procurement_plan_detail(plan_id):
     committee_form = ProcurementPlanCommitteeMemberForm()
     return render_template('procurement/plan_detail.html', plan=plan, committee_form=committee_form,
                            active_page='plans', gantt_data=_procurement_plan_gantt_data(plan),
-                           can_manage_procurement=procurement_permission.can())
+                           can_manage_procurement=procurement_permission.can(),
+                           can_create_plan_poll=_can_create_plan_poll(plan))
+
+
+@procurement.route('/planning/plans/<int:plan_id>/polls/new')
+@login_required
+@procurement_permission.require()
+def new_procurement_plan_poll(plan_id):
+    plan = ProcurementPlan.query.get_or_404(plan_id)
+    if not _can_create_plan_poll(plan):
+        abort(403)
+    from app.besttime.forms import BestTimePollForm
+
+    form = BestTimePollForm()
+    committee_members = plan.committee_members.all()
+    chairman = next((member.staff for member in committee_members
+                     if member.role == 'chairman'), None)
+    invitees = [member.staff for member in committee_members
+                if member.role != 'chairman']
+    today = date.today()
+    form.title.data = u'ประชุมคณะกรรมการจัดซื้อจัดจ้าง: {}'.format(
+        plan.item or plan.output_project_report
+    )
+    form.vote_start_date.data = today
+    form.vote_end_date.data = today + timedelta(days=7)
+    form.desc.data = u'''รายการจัดซื้อจัดจ้าง: {}
+ผลผลิต/โครงการ/รายงาน: {}
+ปีงบประมาณ: {}
+จำนวนเงิน: {:,.2f} บาท'''.format(
+        plan.item or '-',
+        plan.output_project_report or '-',
+        plan.fiscal_year,
+        plan.amount or 0,
+    )
+    form.chairman.data = chairman
+    form.invitees.data = invitees
+
+    return render_template(
+        'besttime/poll-setup-form.html',
+        form=form,
+        poll_id=None,
+        tab='voter',
+        form_action=url_for('besttime.add_poll', procurement_plan_id=plan.id,
+                            return_to_plan=plan.id),
+        cancel_url=url_for('procurement.procurement_plan_detail', plan_id=plan.id),
+        procurement_plan=plan,
+    )
+
+
+@procurement.route('/planning/plans/<int:plan_id>/polls/<int:poll_id>')
+@login_required
+def procurement_plan_poll_results(plan_id, poll_id):
+    plan = ProcurementPlan.query.get_or_404(plan_id)
+    from app.besttime.models import BestTimeDateTimeSlot, BestTimePoll
+
+    poll = BestTimePoll.query.filter_by(
+        id=poll_id,
+        procurement_plan_id=plan.id,
+    ).first_or_404()
+    slots = BestTimeDateTimeSlot.query.filter_by(poll_id=poll.id).order_by(
+        BestTimeDateTimeSlot.start.asc()
+    )
+    selected_slot = BestTimeDateTimeSlot.query.filter_by(
+        poll_id=poll.id,
+        is_best=True,
+    ).first()
+    return render_template(
+        'procurement/plan_poll_results.html',
+        plan=plan,
+        poll=poll,
+        slots=slots,
+        selected_slot=selected_slot,
+        tab='voter',
+        can_select_best_slot=poll.has_admin_role(current_user) or _can_create_plan_poll(plan),
+        back_url=url_for('procurement.procurement_plan_detail', plan_id=plan.id),
+    )
+
+
+@procurement.route('/planning/plans/<int:plan_id>/polls/<int:poll_id>/vote')
+@login_required
+def procurement_plan_poll_vote(plan_id, poll_id):
+    plan = ProcurementPlan.query.get_or_404(plan_id)
+    from app.besttime.forms import BestTimePollMessageForm, BestTimePollVoteForm
+    from app.besttime.models import BestTimePoll, BestTimePollVote
+    from app.besttime.views import _populate_vote_form
+
+    poll = BestTimePoll.query.filter_by(
+        id=poll_id,
+        procurement_plan_id=plan.id,
+    ).first_or_404()
+    today = arrow.now('Asia/Bangkok').date()
+    if today < poll.vote_start_date or today > poll.vote_end_date:
+        flash(u'ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของแบบสำรวจ', 'danger')
+        return redirect(url_for('procurement.procurement_plan_poll_results',
+                                plan_id=plan.id, poll_id=poll.id))
+    if poll.closed_at:
+        flash(u'แบบสำรวจนี้ปิดการโหวตแล้ว', 'warning')
+        return redirect(url_for('procurement.procurement_plan_poll_results',
+                                plan_id=plan.id, poll_id=poll.id))
+    vote = BestTimePollVote.query.filter_by(
+        poll_id=poll.id,
+        voter=current_user,
+    ).first()
+    form = BestTimePollVoteForm()
+    _populate_vote_form(form, poll, vote)
+    return render_template(
+        'besttime/poll-form.html',
+        form=form,
+        poll=poll,
+        tab='voter',
+        message_form=BestTimePollMessageForm(),
+        form_action=url_for('besttime.vote_poll', poll_id=poll.id,
+                            tab='voter', return_to_plan=plan.id),
+        cancel_url=url_for('procurement.procurement_plan_poll_results',
+                           plan_id=plan.id, poll_id=poll.id),
+        procurement_plan=plan,
+    )
 
 
 @procurement.route('/planning/plans/<int:plan_id>/committee', methods=['POST'])

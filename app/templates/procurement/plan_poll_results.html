@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}ผลการสำรวจวันและเวลาประชุม{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .procurement-planning-shell { padding: 2rem 1rem 4rem; }
+        .plan-detail-card { border-radius: 1rem; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "nav.html" %}
+    <main class="container procurement-planning-shell">
+        {% include "messages.html" %}
+        <div class="level mb-5">
+            <div>
+                <p class="heading">Procurement Planning</p>
+                <h1 class="title is-3 mb-2">ผลการสำรวจวันและเวลาประชุม</h1>
+                <p class="has-text-grey">{{ plan.item or '-' }}</p>
+            </div>
+            <a class="button is-light" href="{{ back_url }}">กลับรายละเอียดแผน</a>
+        </div>
+
+        <div class="box plan-detail-card">
+            <h2 class="title is-5">{{ poll.title }}</h2>
+            <div class="columns is-multiline">
+                <div class="column is-one-quarter">
+                    <p class="heading">ผู้สร้าง</p>
+                    <p>{{ poll.creator.fullname if poll.creator else '-' }}</p>
+                </div>
+                <div class="column is-one-quarter">
+                    <p class="heading">ช่วงเวลาโหวต</p>
+                    <p>{{ poll.vote_date_span }}</p>
+                </div>
+                <div class="column is-one-quarter">
+                    <p class="heading">ความก้าวหน้า</p>
+                    <p>{{ poll.voted|length }}/{{ poll.invitations.count() }} คน</p>
+                </div>
+                <div class="column is-one-quarter">
+                    <p class="heading">สถานะ</p>
+                    {% if poll.closed_at %}
+                        <span class="tag is-light">ปิดแล้ว</span>
+                    {% else %}
+                        <span class="tag is-success is-light">เปิดอยู่</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if poll.desc %}<div class="content"><pre style="white-space: pre-wrap; font-family: inherit;">{{ poll.desc }}</pre></div>{% endif %}
+            {% if not poll.closed_at and poll.invitations.filter_by(voter_id=current_user.id).first() %}
+                <a class="button is-success" href="{{ url_for('procurement.procurement_plan_poll_vote', plan_id=plan.id, poll_id=poll.id) }}">ไปโหวตวันและเวลา</a>
+            {% endif %}
+            {% if selected_slot %}
+                <a class="button is-link" href="{{ url_for('room.ai_room_search', message='ค้นหาห้องประชุมวันที่ ' ~ selected_slot.start.strftime('%d/%m/%Y') ~ ' เวลา ' ~ selected_slot.start.strftime('%H:%M') ~ ' ถึง ' ~ selected_slot.end.strftime('%H:%M') ~ ' สำหรับกรรมการจำนวน ' ~ poll.invitations.count() ~ ' คน') }}">
+                    <span class="icon"><i class="fa-solid fa-door-open"></i></span>
+                    <span>ค้นหาห้องประชุม</span>
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="box plan-detail-card">
+            <h2 class="title is-5">ตารางการสำรวจวัน-เวลาประชุม</h2>
+            <div class="table-container">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                        <tr><th>วันและเวลา</th><th class="has-text-centered">จำนวนกรรมการโหวต</th><th>รายชื่อกรรมการโหวต</th><th class="has-text-centered">ครบองค์ประชุม</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for slot in slots %}
+                            <tr>
+                                <td>
+                                    {{ slot }}
+                                    {% if slot.is_best %}<span class="tag is-success">วันสรุป</span>{% endif %}
+                                </td>
+                                <td class="has-text-centered"><span class="tag is-info is-light">{{ slot.poll_votes|length }} คน</span></td>
+                                <td>{{ slot.get_voter_names()|join(', ') }}</td>
+                                <td class="has-text-centered">
+                                    {% if slot.has_valid_committee %}
+                                        <span class="icon"><i class="fa-solid fa-circle-check has-text-success"></i></span>
+                                    {% else %}
+                                        <span class="icon"><i class="fa-solid fa-circle-xmark has-text-danger"></i></span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if can_select_best_slot and not poll.closed_at and slot.poll_votes|length > 0 %}
+                                        <a class="button is-small is-success" hx-confirm="ท่านแน่ใจว่าจะเลือกตัวเลือกนี้เป็นวันประชุมและแจ้งกรรมการทุกคนหรือไม่" hx-swap="innerHTML" hx-target="#mail-form" hx-get="{{ url_for('besttime.send_mail_to_committee', slot_id=slot.id, tab=tab) }}">เลือกเป็นวันประชุมและแจ้งกรรมการ</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="5" class="has-text-centered has-text-grey">ยังไม่มีตัวเลือกวันและเวลา</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div id="mail-form"></div>
+        </div>
+    </main>
+{% endblock %}

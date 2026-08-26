@@ -58,6 +58,16 @@ class BestTimeMasterDateTimeSlot(db.Model):
 class BestTimePoll(db.Model):
     __tablename__ = 'besttime_polls'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    procurement_plan_id = db.Column(
+        'procurement_plan_id',
+        db.ForeignKey('procurement_plans.id'),
+        nullable=True,
+        info={'label': 'แผนจัดซื้อจัดจ้าง'},
+    )
+    procurement_plan = db.relationship(
+        'ProcurementPlan',
+        backref=db.backref('besttime_polls', lazy='dynamic'),
+    )
     title = db.Column(db.String(), nullable=False, info={'label': 'ชื่อแบบสำรวจ'})
     start_date = db.Column(db.Date(), nullable=True, info={'label': 'วันที่ตัวเลือกเริ่มต้น'})
     end_date = db.Column(db.Date(), nullable=True, info={'label': 'วันที่ตัวเลือกสุดท้าย'})

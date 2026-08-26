@@ -318,7 +318,7 @@
     <div class="ai-room-shell">
         <div class="ai-room-panel ai-room-hero">
             <span class="ai-room-kicker">AI Room Finder</span>
-            <h1 class="title is-3">ทดลองระบบหาห้องอัจฉริยะด้วย AI alpha version</h1>
+            <h1 class="title is-3">ระบบหาห้องอัจฉริยะด้วย AI alpha version</h1>
             <p class="subtitle is-5">พิมพ์ความต้องการเป็นภาษาธรรมชาติ แล้วระบบจะใช้ Typhoon ช่วยตีความเป็นเงื่อนไขค้นหาห้อง</p>
             <div class="content">
                 <p class="ai-room-hero-note">รองรับการระบุวัตถุประสงค์ จำนวนคน วันที่ เวลา และสถานที่ หากไม่ระบุสถานที่ ระบบจะใช้ <strong>ศาลายา</strong> เป็นค่าเริ่มต้น</p>
@@ -579,6 +579,13 @@
                 messageInput.focus();
             });
         });
+
+        const initialMessage = {{ initial_message|default('')|tojson }};
+        if (initialMessage) {
+            messageInput.value = initialMessage;
+            messageInput.value = '';
+            submitMessage(initialMessage);
+        }
     </script>
 </section>
 {% endblock page_content %}

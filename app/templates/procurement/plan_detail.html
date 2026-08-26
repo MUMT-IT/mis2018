@@ -200,6 +200,46 @@
                         </table>
                     </div>
                 </div>
+                <div class="box plan-detail-card">
+                    <div class="level mb-4">
+                        <h2 class="title is-5 mb-0">แบบสำรวจวันและเวลาประชุม</h2>
+                        {% if can_create_plan_poll %}
+                            <a class="button is-primary" href="{{ url_for('procurement.new_procurement_plan_poll', plan_id=plan.id) }}">
+                                <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                                <span>สร้างแบบสำรวจใหม่</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-hoverable">
+                            <thead>
+                                <tr><th>ชื่อแบบสำรวจ</th><th>ผู้สร้าง</th><th>ช่วงเวลาโหวต</th><th>ความก้าวหน้า</th><th>สถานะ</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                {% for poll in plan.besttime_polls.all() %}
+                                    <tr>
+                                        <td>{{ poll.title }}</td>
+                                        <td>{{ poll.creator.fullname if poll.creator else '-' }}</td>
+                                        <td>{{ poll.vote_date_span }}</td>
+                                        <td>{{ poll.voted|length }}/{{ poll.invitations.count() }} คน</td>
+                                        <td>
+                                            {% if poll.closed_at %}
+                                                <span class="tag is-light">ปิดแล้ว</span>
+                                            {% else %}
+                                                <span class="tag is-success is-light">เปิดอยู่</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="has-text-right">
+                                            <a class="button is-small is-info is-light" href="{{ url_for('procurement.procurement_plan_poll_results', plan_id=plan.id, poll_id=poll.id) }}">ดูผลสำรวจ</a>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="6" class="has-text-centered has-text-grey">ยังไม่มีแบบสำรวจที่เชื่อมโยงกับแผนนี้</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
         </div>
     </main>

@@ -21,7 +21,7 @@
         <h2 class="title has-text-centered">สร้างแบบสำรวจใหม่</h2>
     {% endif %}
     <p class="subtitle has-text-centered is-6 has-text-grey">กรอกรายละเอียดเพื่อกำหนดวันโหวตและผู้รับผิดชอบ</p>
-    <form method="post">
+    <form method="post" action="{{ form_action or '' }}">
         {{form.hidden_tag()}}
         <div class="columns is-centered">
             <div class="column is-three-fifths box">
@@ -155,7 +155,7 @@
                             </div>
                         {% endif %}
                         <div class="control">
-                            <a id="cancelButton" class="button is-light" href="{{url_for('besttime.index', tab=tab)}}">Back</a>
+                            <a id="cancelButton" class="button is-light" href="{{ cancel_url or url_for('besttime.index', tab=tab) }}">Back</a>
                         </div>
                     </div>
                 </div>
