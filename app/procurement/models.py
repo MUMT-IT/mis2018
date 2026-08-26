@@ -67,6 +67,17 @@ class ProcurementVendor(db.Model):
         return self.name
 
 
+class ProcurementOutputProjectReport(db.Model):
+    """Reusable output, project, or report options for procurement plans."""
+    __tablename__ = 'procurement_output_project_reports'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column('name', db.Text(), nullable=False, unique=True,
+                     info={'label': u'ผลผลิต/โครงการ/รายงาน'})
+
+    def __str__(self):
+        return self.name
+
+
 class ProcurementPlan(db.Model):
     """An item planned for procurement during a fiscal year."""
     __tablename__ = 'procurement_plans'
@@ -78,8 +89,15 @@ class ProcurementPlan(db.Model):
     funding_source = db.relationship('ProcurementFundingSource',
                                      backref=db.backref('procurement_plans', lazy='dynamic'))
     item = db.Column('item', db.String(255), info={'label': u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง'})
-    output_project_report = db.Column('output_project_report', db.Text(), nullable=False,
-                                      info={'label': u'ผลผลิต/โครงการ/รายงาน'})
+    output_project_report_id = db.Column(
+        'output_project_report_id',
+        db.ForeignKey('procurement_output_project_reports.id'),
+        nullable=False,
+    )
+    output_project_report = db.relationship(
+        'ProcurementOutputProjectReport',
+        backref=db.backref('procurement_plans', lazy='dynamic'),
+    )
     cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'), nullable=False,
                                info={'label': u'ศูนย์ต้นทุน'})
     cost_center = db.relationship('CostCenter', backref=db.backref('procurement_plans', lazy='dynamic'))
@@ -116,7 +134,7 @@ class ProcurementPlan(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
 
     def __str__(self):
-        return u'{}: {}'.format(self.fiscal_year, self.output_project_report[:80])
+        return u'{}: {}'.format(self.fiscal_year, str(self.output_project_report)[:80])
 
     @property
     def status_date(self):

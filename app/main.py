@@ -1298,6 +1298,7 @@ admin.add_views(ModelView(ProcurementPurchasingType, db.session, category='Procu
 admin.add_views(ModelView(ProcurementFundingSource, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementVendor, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementPlan, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementOutputProjectReport, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementPlanActivity, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementPlanCommitteeMember, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementPlanTORReminder, db.session, category='Procurement'))

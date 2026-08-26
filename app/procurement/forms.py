@@ -88,7 +88,14 @@ class ProcurementPlanForm(FlaskForm):
         allow_blank=False,
     )
     item = StringField(u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง', validators=[DataRequired(), Length(max=255)])
-    output_project_report = TextAreaField(u'ผลผลิต/โครงการ/รายงาน', validators=[DataRequired()])
+    output_project_report = QuerySelectField(
+        u'ผลผลิต/โครงการ/รายงาน',
+        query_factory=lambda: ProcurementOutputProjectReport.query.order_by(
+            ProcurementOutputProjectReport.name.asc()
+        ).all(),
+        get_label='name',
+        allow_blank=False,
+    )
     cost_center = QuerySelectField(
         u'ศูนย์ต้นทุน',
         query_factory=lambda: CostCenter.query.order_by(CostCenter.id.asc()).all(),

@@ -53,7 +53,7 @@
                         </div>
                         <div class="field">
                             {{ form.output_project_report.label(class="label") }}
-                            <div class="control">{{ form.output_project_report(class="textarea", rows="2") }}</div>
+                            <div class="select is-fullwidth">{{ form.output_project_report() }}</div>
                             {% for error in form.output_project_report.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
                         </div>
                         <div class="columns">
