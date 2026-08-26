@@ -10,6 +10,11 @@
         <span class="panel-icon"><i class="fa-solid fa-coins"></i></span>
         จัดการแหล่งงบประมาณ
     </a>
+    <a class="panel-block {% if active_page == 'output_project_reports' %}is-active{% endif %}"
+       href="{{ url_for('procurement.procurement_output_project_reports') }}">
+        <span class="panel-icon"><i class="fa-solid fa-layer-group"></i></span>
+        จัดการผลผลิต/โครงการ/รายงาน
+    </a>
     <a class="panel-block {% if active_page == 'plans' %}is-active{% endif %}"
        href="{{ url_for('procurement.procurement_plans') }}">
         <span class="panel-icon"><i class="fa-solid fa-list-check"></i></span>

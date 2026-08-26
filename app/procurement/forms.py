@@ -46,6 +46,11 @@ class ProcurementFundingSourceForm(FlaskForm):
     submit = SubmitField(u'บันทึก')
 
 
+class ProcurementOutputProjectReportForm(FlaskForm):
+    name = TextAreaField(u'ผลผลิต/โครงการ/รายงาน', validators=[DataRequired()])
+    submit = SubmitField(u'บันทึก')
+
+
 class ProcurementRecordForm(ModelForm):
     class Meta:
         model = ProcurementRecord

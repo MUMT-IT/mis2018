@@ -664,6 +664,67 @@ def edit_procurement_funding_source(source_id):
                            active_page='funding_sources', editing_source=source)
 
 
+@procurement.route('/planning/output-project-reports', methods=['GET', 'POST'])
+@login_required
+def procurement_output_project_reports():
+    form = ProcurementOutputProjectReportForm()
+    if form.validate_on_submit():
+        name = form.name.data.strip()
+        duplicate = ProcurementOutputProjectReport.query.filter_by(name=name).first()
+        if duplicate:
+            form.name.errors.append(u'ผลผลิต/โครงการ/รายงานนี้มีอยู่แล้ว')
+        else:
+            db.session.add(ProcurementOutputProjectReport(name=name))
+            db.session.commit()
+            flash(u'เพิ่มผลผลิต/โครงการ/รายงานเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('procurement.procurement_output_project_reports'))
+
+    reports = ProcurementOutputProjectReport.query.order_by(
+        ProcurementOutputProjectReport.name.asc()
+    ).all()
+    return render_template('procurement/output_project_reports.html', form=form, reports=reports,
+                           active_page='output_project_reports')
+
+
+@procurement.route('/planning/output-project-reports/<int:report_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_procurement_output_project_report(report_id):
+    report = ProcurementOutputProjectReport.query.get_or_404(report_id)
+    form = ProcurementOutputProjectReportForm(obj=report)
+    if form.validate_on_submit():
+        name = form.name.data.strip()
+        duplicate = ProcurementOutputProjectReport.query.filter(
+            ProcurementOutputProjectReport.id != report.id,
+            ProcurementOutputProjectReport.name == name,
+        ).first()
+        if duplicate:
+            form.name.errors.append(u'ผลผลิต/โครงการ/รายงานนี้มีอยู่แล้ว')
+        else:
+            report.name = name
+            db.session.commit()
+            flash(u'แก้ไขผลผลิต/โครงการ/รายงานเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('procurement.procurement_output_project_reports'))
+
+    reports = ProcurementOutputProjectReport.query.order_by(
+        ProcurementOutputProjectReport.name.asc()
+    ).all()
+    return render_template('procurement/output_project_reports.html', form=form, reports=reports,
+                           editing_report=report, active_page='output_project_reports')
+
+
+@procurement.route('/planning/output-project-reports/<int:report_id>/delete', methods=['POST'])
+@login_required
+def delete_procurement_output_project_report(report_id):
+    report = ProcurementOutputProjectReport.query.get_or_404(report_id)
+    if report.procurement_plans.count():
+        flash(u'ไม่สามารถลบรายการนี้ได้ เนื่องจากมีแผนจัดซื้อจัดจ้างใช้งานอยู่', 'warning')
+    else:
+        db.session.delete(report)
+        db.session.commit()
+        flash(u'ลบผลผลิต/โครงการ/รายงานเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.procurement_output_project_reports'))
+
+
 @procurement.route('/planning/funding-sources/<int:source_id>/delete', methods=['POST'])
 @login_required
 def delete_procurement_funding_source(source_id):
