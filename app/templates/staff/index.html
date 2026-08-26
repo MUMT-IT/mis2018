@@ -230,6 +230,10 @@
                     <span class="is-size-5">ประเมิน PA IDP FC</span>
                     <span class="tag is-rounded is-success">New</span>
                 </a>
+                <a class="panel-block" href="{{ url_for('staff.procurement_budget_tracking') }}">
+                    <span class="panel-icon"><i class="fas fa-chart-line"></i></span>
+                    <span class="is-size-5">ติดตามการใช้งบประมาณจัดซื้อครุภัณฑ์ตามแผน</span>
+                </a>
             </nav>
             {% endif %}
             {% if secretary_permission.can() or manager_permission.can() %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}ติดตามการใช้งบประมาณจัดซื้อครุภัณฑ์ตามแผน{% endblock %}
+
+{% block page_content %}
+    {% include "staff/nav.html" %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <div class="level mb-5">
+                <div>
+                    <p class="heading">สำหรับหัวหน้าส่วนงาน</p>
+                    <h1 class="title is-3 mb-2">ติดตามการใช้งบประมาณจัดซื้อครุภัณฑ์ตามแผน</h1>
+                    <p class="subtitle is-6 mb-0">หน่วยงาน: {{ organization.display_name }} | ปีงบประมาณ {{ fiscal_year }}</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('staff.index') }}">กลับหน้าบุคลากร</a>
+            </div>
+
+            <div class="columns">
+                <div class="column is-one-quarter">
+                    <div class="box">
+                        <p class="heading">จำนวนแผน</p>
+                        <p class="title is-4">{{ plans|length }}</p>
+                    </div>
+                </div>
+                <div class="column is-one-quarter">
+                    <div class="box">
+                        <p class="heading">วงเงินตามแผน</p>
+                        <p class="title is-4">{{ "{:,.2f}".format(total_amount) }} บาท</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="table-container">
+                    <table class="table is-fullwidth is-hoverable">
+                        <thead>
+                            <tr>
+                                <th>รายการ</th>
+                                <th>ผลผลิต/โครงการ/รายงาน</th>
+                                <th>แหล่งงบประมาณ</th>
+                                <th>วิธีการจัดซื้อจัดจ้าง</th>
+                                <th class="has-text-right">จำนวนเงิน</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for plan in plans %}
+                                <tr>
+                                    <td><a href="{{ url_for('staff.procurement_budget_plan_detail', plan_id=plan.id) }}"><strong>{{ plan.item or '-' }}</strong></a></td>
+                                    <td>{{ plan.output_project_report }}</td>
+                                    <td>{{ plan.funding_source }}</td>
+                                    <td>{{ plan.procurement_method }}</td>
+                                    <td class="has-text-right">{{ "{:,.2f}".format(plan.amount) }}</td>
+                                    <td><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span></td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="6" class="has-text-centered has-text-grey">ยังไม่มีแผนจัดซื้อครุภัณฑ์ของหน่วยงานในปีงบประมาณนี้</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
