@@ -112,7 +112,8 @@ class ProcurementPlanForm(FlaskForm):
         u'เจ้าหน้าที่พัสดุที่รับผิดชอบ',
         query_factory=lambda: StaffAccount.get_active_accounts(),
         get_label='fullname',
-        allow_blank=False,
+        allow_blank=True,
+        blank_text='ยังไม่ระบุ',
     )
     responsible_org = QuerySelectField(
         u'หน่วยงานผู้รับผิดชอบ',

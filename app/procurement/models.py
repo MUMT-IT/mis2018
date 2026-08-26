@@ -88,7 +88,7 @@ class ProcurementPlan(db.Model):
     amount = db.Column('amount', db.Numeric(14, 2), nullable=False,
                        info={'label': u'จำนวนเงิน'})
     fund_code = db.Column('fund_code', db.String(64), info={'label': u'รหัสทุน'})
-    responsible_staff_id = db.Column('responsible_staff_id', db.ForeignKey('staff_account.id'), nullable=False)
+    responsible_staff_id = db.Column('responsible_staff_id', db.ForeignKey('staff_account.id'), nullable=True)
     responsible_staff = db.relationship('StaffAccount', foreign_keys=[responsible_staff_id],
                                          backref=db.backref('procurement_plans', lazy='dynamic'))
     responsible_org_id = db.Column('responsible_org_id', db.ForeignKey('orgs.id'))

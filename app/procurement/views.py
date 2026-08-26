@@ -359,6 +359,7 @@ def new_procurement_plan():
 
 @procurement.route('/planning/plans/<int:plan_id>/edit', methods=['GET', 'POST'])
 @login_required
+@procurement_permission.require()
 def edit_procurement_plan(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     form = ProcurementPlanForm(obj=plan)
@@ -448,11 +449,13 @@ def procurement_plan_detail(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     committee_form = ProcurementPlanCommitteeMemberForm()
     return render_template('procurement/plan_detail.html', plan=plan, committee_form=committee_form,
-                           active_page='plans', gantt_data=_procurement_plan_gantt_data(plan))
+                           active_page='plans', gantt_data=_procurement_plan_gantt_data(plan),
+                           can_manage_procurement=procurement_permission.can())
 
 
 @procurement.route('/planning/plans/<int:plan_id>/committee', methods=['POST'])
 @login_required
+@procurement_permission.require()
 def add_procurement_plan_committee_member(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     form = ProcurementPlanCommitteeMemberForm()
@@ -489,6 +492,7 @@ def add_procurement_plan_committee_member(plan_id):
 
 @procurement.route('/planning/plans/<int:plan_id>/committee/<int:member_id>/delete', methods=['POST'])
 @login_required
+@procurement_permission.require()
 def delete_procurement_plan_committee_member(plan_id, member_id):
     member = ProcurementPlanCommitteeMember.query.filter_by(
         id=member_id, plan_id=plan_id
@@ -521,6 +525,7 @@ def _procurement_plan_committee_email_defaults(plan, due_date=None):
 
 @procurement.route('/planning/plans/<int:plan_id>/tor-reminder/email', methods=['GET', 'POST'])
 @login_required
+@procurement_permission.require()
 def send_procurement_plan_tor_reminder(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     if plan.tor_completed_date:
