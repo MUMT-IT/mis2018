@@ -96,6 +96,13 @@
                             </div>
                             <div class="column">
                                 <div class="field">
+                                    {{ form.responsible_org.label(class="label") }}
+                                    <div class="select is-fullwidth">{{ form.responsible_org() }}</div>
+                                    {% for error in form.responsible_org.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
                                     {{ form.vendor.label(class="label") }}
                                     <div class="select is-fullwidth">{{ form.vendor() }}</div>
                                     {% for error in form.vendor.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
@@ -105,7 +112,7 @@
 
                         <h2 class="title is-5 mt-5">กำหนดการดำเนินงาน</h2>
                         <div class="columns is-multiline">
-                            {% for field in [form.principle_approval_date, form.tor_completed_date, form.quotation_submission_date, form.contract_signed_date, form.inspection_date] %}
+                            {% for field in [form.principle_approval_date, form.tor_due_date, form.tor_completed_date, form.quotation_submission_date, form.contract_signed_date, form.inspection_date] %}
                                 <div class="column is-one-third">
                                     <div class="field">
                                         {{ field.label(class="label") }}
@@ -139,6 +146,17 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(function () {
+            function setDefaultTorDueDate() {
+                const fiscalYear = parseInt($('#fiscal_year').val(), 10);
+                const torDueDate = $('#tor_due_date');
+                if (fiscalYear && !torDueDate.val()) {
+                    torDueDate.val('31/12/' + fiscalYear);
+                }
+            }
+
+            $('#fiscal_year').on('change', setDefaultTorDueDate);
+            setDefaultTorDueDate();
+
             $('.date-field').each(function () {
                 const input = $(this);
                 const currentValue = input.val();

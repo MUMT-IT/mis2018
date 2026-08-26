@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}ส่งอีเมลแจ้งคณะกรรมการ{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <style>
+        .procurement-planning-shell { padding: 2rem 1rem 4rem; }
+        .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
+        .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
+        .email-form-card { border-radius: 1rem; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "nav.html" %}
+    <main class="container procurement-planning-shell">
+        {% include "messages.html" %}
+        <div class="columns is-variable is-5">
+            <aside class="column is-3">{% include "procurement/planning_sidebar.html" %}</aside>
+            <section class="column is-9">
+                <p class="heading">Procurement Planning</p>
+                <h1 class="title is-3">ส่งอีเมลแจ้งคณะกรรมการ</h1>
+                <p class="subtitle is-6">รายการ: {{ plan.item }}</p>
+
+                <div class="box email-form-card">
+                    <form method="post" hx-boost="true" hx-indicator="#send-email-button">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            {{ form.title.label(class="label") }}
+                            <div class="control">{{ form.title(class="input") }}</div>
+                            {% for error in form.title.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                        </div>
+                        <div class="field">
+                            {{ form.message.label(class="label") }}
+                            <div class="control">{{ form.message(class="textarea", rows="12") }}</div>
+                            {% for error in form.message.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                        </div>
+                        <div class="field">
+                            {{ form.tor_due_date.label(class="label") }}
+                            <div class="control">{{ form.tor_due_date(class="input date-field") }}</div>
+                            <p class="help">วันที่นี้จะถูกบันทึกเป็นกำหนดจัดทำ TOR ของแผนเมื่อส่งอีเมล</p>
+                            {% for error in form.tor_due_date.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                        </div>
+                        <div class="field is-grouped mt-5">
+                            <div class="control">
+                                {{ form.submit(class="button is-warning", id="send-email-button") }}
+                            </div>
+                            <div class="control"><a class="button is-light" href="{{ url_for('procurement.procurement_plan_detail', plan_id=plan.id) }}">ยกเลิก</a></div>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </main>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(function () {
+            $('.date-field').each(function () {
+                const input = $(this);
+                const currentValue = input.val();
+                const options = {
+                    singleDatePicker: true,
+                    autoUpdateInput: false,
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        applyLabel: 'เลือก',
+                        cancelLabel: 'ล้าง',
+                        daysOfWeek: ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'],
+                        monthNames: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
+                        firstDay: 1
+                    }
+                };
+                if (currentValue) {
+                    options.startDate = moment(currentValue, 'DD/MM/YYYY');
+                }
+                input.daterangepicker(options);
+                input.val(currentValue);
+                input.on('apply.daterangepicker', function (event, picker) {
+                    $(this).val(picker.startDate.format('DD/MM/YYYY'));
+                });
+                input.on('cancel.daterangepicker', function () {
+                    $(this).val('');
+                });
+            });
+        });
+    </script>
+{% endblock %}

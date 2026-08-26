@@ -12,6 +12,23 @@
         .plan-detail-card { border-radius: 1rem; }
         .plan-detail-label { color: #6b7280; font-size: .8rem; margin-bottom: .2rem; }
         .committee-form .select2-container { width: 100% !important; }
+        .send-tor-email-button {
+            box-shadow: 0 8px 18px rgba(202, 168, 74, .28);
+            font-weight: 700;
+        }
+        .procurement-timeline { overflow-x: auto; }
+        .timeline-scale { min-width: 760px; padding-left: 4rem; padding-right: 8rem; }
+        .timeline-axis { position: relative; height: 2rem; }
+        .timeline-axis span { color: #6b7280; font-size: .72rem; position: absolute; transform: translateX(-50%); white-space: nowrap; }
+        .timeline-track { background: repeating-linear-gradient(to right, #f4f6fa 0, #f4f6fa calc(8.333% - 1px), #dfe5ef calc(8.333% - 1px), #dfe5ef 8.333%); border-radius: 999px; height: 1.4rem; margin-bottom: 3.5rem; position: relative; }
+        .timeline-quarter-marker { border-left: 1px dashed rgba(107, 114, 128, .35); bottom: -.2rem; position: absolute; top: -.2rem; z-index: 0; }
+        .timeline-quarter-label { color: #9ca3af; font-size: .64rem; left: .25rem; position: absolute; top: 1.65rem; white-space: nowrap; }
+        .timeline-connection { background: #2e8b57; height: .35rem; position: absolute; top: .525rem; }
+        .timeline-connection-days { color: #2e8b57; font-size: .68rem; left: 50%; position: absolute; top: -1.35rem; transform: translateX(-50%); white-space: nowrap; }
+        .timeline-marker { background: #2e8b57; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px #2e8b57; display: block; height: 1rem; position: absolute; top: .2rem; transform: translateX(-50%); width: 1rem; }
+        .timeline-marker-label { color: #374151; font-size: .7rem; left: 50%; position: absolute; top: 1.5rem; transform: translateX(-50%) rotate(-25deg); transform-origin: top center; white-space: nowrap; }
+        .timeline-boundary-marker { background: #f59e0b; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px #f59e0b; display: block; height: 1rem; position: absolute; top: .2rem; transform: translateX(-50%); width: 1rem; z-index: 2; }
+        .timeline-boundary-marker .timeline-marker-label { color: #b45309; font-weight: 700; }
     </style>
 {% endblock %}
 
@@ -38,15 +55,77 @@
                         <div class="column is-one-third"><p class="plan-detail-label">รหัสทุน</p><p>{{ plan.fund_code or '-' }}</p></div>
                         <div class="column is-one-third"><p class="plan-detail-label">สถานะ</p><p><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span>{% if plan.status_date %}<br><small>อัปเดตจากวันที่ {{ plan.status_date }}</small>{% endif %}</p></div>
                         <div class="column is-one-third"><p class="plan-detail-label">ผู้รับผิดชอบ</p><p>{{ plan.responsible_staff.fullname }}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">หน่วยงานผู้รับผิดชอบ</p><p>{{ plan.responsible_org.display_name if plan.responsible_org else '-' }}</p></div>
                         <div class="column is-one-third"><p class="plan-detail-label">บริษัทคู่สัญญา</p><p>{{ plan.vendor.name if plan.vendor else '-' }}</p></div>
                         <div class="column is-one-third"><p class="plan-detail-label">วันที่ตรวจรับ</p><p>{{ plan.inspection_date or '-' }}</p></div>
                     </div>
                     <hr>
                     <h2 class="title is-5">กำหนดการดำเนินงาน</h2>
                     <div class="table-container"><table class="table is-fullwidth"><tbody>
-                        <tr><th>อนุมัติหลักการ</th><td>{{ plan.principle_approval_date or '-' }}</td><th>จัดทำ TOR แล้วเสร็จ</th><td>{{ plan.tor_completed_date or '-' }}</td></tr>
-                        <tr><th>ยื่นเสนอราคา</th><td>{{ plan.quotation_submission_date or '-' }}</td><th>ลงนามสัญญา</th><td>{{ plan.contract_signed_date or '-' }}</td></tr>
+                        <tr><th>อนุมัติหลักการ</th><td>{{ plan.principle_approval_date or '-' }}</td><th>กำหนดจัดทำ TOR</th><td>{{ plan.tor_due_date or '-' }}</td></tr>
+                        <tr><th>จัดทำ TOR แล้วเสร็จ</th><td>{{ plan.tor_completed_date or '-' }}</td><th>ยื่นเสนอราคา</th><td>{{ plan.quotation_submission_date or '-' }}</td></tr>
+                        <tr><th>ลงนามสัญญา</th><td>{{ plan.contract_signed_date or '-' }}</td><th>ตรวจรับ</th><td>{{ plan.inspection_date or '-' }}</td></tr>
                     </tbody></table></div>
+                    <h2 class="title is-5 mt-5">แผนภูมิ Gantt ความคืบหน้าการจัดซื้อจัดจ้าง</h2>
+                    <p class="is-size-7 has-text-grey">ช่วงปีงบประมาณ {{ gantt_data.start_label }} - {{ gantt_data.end_label }}</p>
+                    {% if gantt_data.activities %}
+                        <div class="procurement-timeline">
+                            <div class="timeline-scale">
+                                <div class="timeline-axis">
+                                    <span style="left: 0%">1 ต.ค.</span>
+                                    <span style="left: 25%">1 ม.ค.</span>
+                                    <span style="left: 50%">1 เม.ย.</span>
+                                    <span style="left: 75%">1 ก.ค.</span>
+                                    <span style="left: 100%">30 ก.ย.</span>
+                                </div>
+                                <div class="timeline-track">
+                                    {% for quarter in gantt_data.quarter_markers %}
+                                        <span class="timeline-quarter-marker" style="left: {{ quarter.position }}%;" title="{{ quarter.label }}">
+                                            <span class="timeline-quarter-label">{{ quarter.label }}</span>
+                                        </span>
+                                    {% endfor %}
+                                    {% for boundary in gantt_data.boundary_markers %}
+                                        <span class="timeline-boundary-marker" style="left: {{ boundary.position }}%;" title="{{ boundary.label }}: {{ boundary.date }}">
+                                            <span class="timeline-marker-label">{{ boundary.label }}</span>
+                                        </span>
+                                    {% endfor %}
+                                    {% for connection in gantt_data.connections %}
+                                        <span class="timeline-connection" style="left: {{ connection.left }}%; width: {{ connection.width }}%;">
+                                            <span class="timeline-connection-days">{{ connection.days }} วัน</span>
+                                        </span>
+                                    {% endfor %}
+                                    {% for activity in gantt_data.activities %}
+                                        <span class="timeline-marker" style="left: {{ activity.position }}%;" title="{{ activity.label }}: {{ activity.date }}">
+                                            <span class="timeline-marker-label">{{ activity.label }}</span>
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="has-text-grey is-size-7">ยังไม่มีข้อมูลกิจกรรมที่ดำเนินการเสร็จสิ้น</p>
+                    {% endif %}
+                    <h2 class="title is-5 mt-5">ประวัติการส่งอีเมลแจ้งเตือน</h2>
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-hoverable">
+                            <thead>
+                                <tr><th>วันที่ส่ง</th><th>ผู้ส่ง</th><th>ผู้รับ</th><th>กำหนด TOR</th><th>หัวข้ออีเมล</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for reminder in plan.tor_reminders.all() %}
+                                    <tr>
+                                        <td>{{ reminder.sent_at.strftime('%d/%m/%Y %H:%M') if reminder.sent_at else '-' }}</td>
+                                        <td>{{ reminder.sent_by.fullname if reminder.sent_by else '-' }}</td>
+                                        <td>{{ reminder.recipients_count }} ราย</td>
+                                        <td>{{ reminder.tor_due_date }}</td>
+                                        <td>{{ reminder.subject }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="5" class="has-text-centered has-text-grey">ยังไม่มีประวัติการส่งอีเมล</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                     {% if plan.note %}<hr><h2 class="title is-5">หมายเหตุ</h2><p>{{ plan.note }}</p>{% endif %}
                 </div>
                 <div class="box plan-detail-card">
@@ -60,6 +139,14 @@
                             <h2 class="title is-5 mb-1">คณะกรรมการ</h2>
                             <p class="is-size-7 has-text-grey">เพิ่มคณะกรรมการได้หลังจากระบุวันที่อนุมัติหลักการแล้ว</p>
                         </div>
+                        {% if not plan.tor_completed_date %}
+                            <a class="button is-warning is-medium send-tor-email-button" href="{{ url_for('procurement.send_procurement_plan_tor_reminder', plan_id=plan.id) }}">
+                                <span class="icon"><i class="fa-solid fa-envelope"></i></span><span>ส่งอีเมลแจ้งคณะกรรมการ</span>
+                            </a>
+                        {% endif %}
+                        {% if plan.tor_reminder_count %}
+                            <p class="is-size-7 has-text-grey mt-2">ส่งการแจ้งเตือนแล้ว {{ plan.tor_reminder_count }} ครั้ง</p>
+                        {% endif %}
                     </div>
                     {% if plan.principle_approval_date %}
                         <form method="post" action="{{ url_for('procurement.add_procurement_plan_committee_member', plan_id=plan.id) }}" class="mb-5 committee-form">

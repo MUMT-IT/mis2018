@@ -7,6 +7,7 @@ from sqlalchemy import func
 from wtforms.validators import DataRequired
 
 from app.main import db
+from app.models import Org
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
@@ -90,6 +91,9 @@ class ProcurementPlan(db.Model):
     responsible_staff_id = db.Column('responsible_staff_id', db.ForeignKey('staff_account.id'), nullable=False)
     responsible_staff = db.relationship('StaffAccount', foreign_keys=[responsible_staff_id],
                                          backref=db.backref('procurement_plans', lazy='dynamic'))
+    responsible_org_id = db.Column('responsible_org_id', db.ForeignKey('orgs.id'))
+    responsible_org = db.relationship('Org', foreign_keys=[responsible_org_id],
+                                       backref=db.backref('procurement_plans', lazy='dynamic'))
     vendor_id = db.Column('vendor_id', db.ForeignKey('procurement_vendors.id'))
     vendor = db.relationship('ProcurementVendor',
                              backref=db.backref('procurement_plans', lazy='dynamic'))
@@ -100,6 +104,8 @@ class ProcurementPlan(db.Model):
                                         info={'label': u'วันที่อนุมัติหลักการ'})
     tor_completed_date = db.Column('tor_completed_date', db.Date(),
                                    info={'label': u'วันที่จัดทำ TOR แล้วเสร็จ'})
+    tor_due_date = db.Column('tor_due_date', db.Date(),
+                             info={'label': u'กำหนดจัดทำ TOR'})
     quotation_submission_date = db.Column('quotation_submission_date', db.Date(),
                                           info={'label': u'วันที่ยื่นเสนอราคา'})
     contract_signed_date = db.Column('contract_signed_date', db.Date(),
@@ -155,6 +161,10 @@ class ProcurementPlan(db.Model):
     def latest_activity(self):
         return self.activities.order_by(ProcurementPlanActivity.activity_date.desc(),
                                         ProcurementPlanActivity.id.desc()).first()
+
+    @property
+    def tor_reminder_count(self):
+        return self.tor_reminders.count()
 
 
 class ProcurementPlanActivity(db.Model):
@@ -212,6 +222,25 @@ class ProcurementPlanCommitteeMember(db.Model):
 
     def __str__(self):
         return u'{} ({})'.format(self.staff.fullname, self.role_label)
+
+
+class ProcurementPlanTORReminder(db.Model):
+    """Audit log for successfully sent TOR reminder emails."""
+    __tablename__ = 'procurement_plan_tor_reminders'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    plan_id = db.Column('plan_id', db.ForeignKey('procurement_plans.id'), nullable=False)
+    plan = db.relationship('ProcurementPlan',
+                           backref=db.backref('tor_reminders', lazy='dynamic',
+                                              cascade='all, delete-orphan'))
+    sent_at = db.Column('sent_at', db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    sent_by_id = db.Column('sent_by_id', db.ForeignKey('staff_account.id'))
+    sent_by = db.relationship('StaffAccount', foreign_keys=[sent_by_id])
+    recipients_count = db.Column('recipients_count', db.Integer(), nullable=False)
+    subject = db.Column('subject', db.String(255), nullable=False)
+    tor_due_date = db.Column('tor_due_date', db.Date(), nullable=False)
+
+    def __str__(self):
+        return u'{}: {} recipients'.format(self.sent_at, self.recipients_count)
 
 class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'

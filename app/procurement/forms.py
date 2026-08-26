@@ -109,10 +109,17 @@ class ProcurementPlanForm(FlaskForm):
     amount = DecimalField(u'จำนวนเงิน', places=2, validators=[DataRequired()])
     fund_code = StringField(u'รหัสทุน', validators=[Optional(), Length(max=64)])
     responsible_staff = QuerySelectField(
-        u'ผู้รับผิดชอบ',
+        u'เจ้าหน้าที่พัสดุที่รับผิดชอบ',
         query_factory=lambda: StaffAccount.get_active_accounts(),
         get_label='fullname',
         allow_blank=False,
+    )
+    responsible_org = QuerySelectField(
+        u'หน่วยงานผู้รับผิดชอบ',
+        query_factory=lambda: Org.query.order_by(Org.name.asc()).all(),
+        get_label='display_name',
+        allow_blank=True,
+        blank_text='ยังไม่ระบุ',
     )
     vendor = QuerySelectField(
         u'บริษัทคู่สัญญา',
@@ -125,6 +132,7 @@ class ProcurementPlanForm(FlaskForm):
     )
     principle_approval_date = DatePickerField(u'วันที่อนุมัติหลักการ')
     tor_completed_date = DatePickerField(u'วันที่จัดทำ TOR แล้วเสร็จ')
+    tor_due_date = DatePickerField(u'กำหนดจัดทำ TOR')
     quotation_submission_date = DatePickerField(u'วันที่ยื่นเสนอราคา')
     contract_signed_date = DatePickerField(u'วันที่ลงนามสัญญา')
     inspection_date = DatePickerField(u'วันที่ตรวจรับ')
@@ -149,6 +157,13 @@ class ProcurementPlanCommitteeMemberForm(FlaskForm):
         validators=[DataRequired()],
     )
     submit = SubmitField(u'เพิ่มกรรมการ')
+
+
+class ProcurementPlanCommitteeEmailForm(FlaskForm):
+    title = StringField(u'หัวข้ออีเมล', validators=[DataRequired(), Length(max=255)])
+    message = TextAreaField(u'ข้อความอีเมล', validators=[DataRequired()])
+    tor_due_date = DatePickerField(u'กำหนดจัดทำ TOR', validators=[DataRequired()])
+    submit = SubmitField(u'ส่งอีเมลแจ้งคณะกรรมการ')
 
 
 class ProcurementDetailForm(ModelForm):

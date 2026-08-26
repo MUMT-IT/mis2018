@@ -12,6 +12,7 @@ import pytz
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
     make_response, current_app
 from flask_login import current_user, login_required
+from flask_mail import Message
 from pandas import DataFrame
 from reportlab.lib.units import mm
 from app.linebot_compat import LineBotApiError, TextSendMessage
@@ -34,7 +35,7 @@ from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from app.google_credential_utils import load_google_credentials_json
 
-from ..main import csrf
+from ..main import csrf, mail
 from ..roles import procurement_committee_permission, procurement_permission, finance_permission, \
     center_standardization_product_validation_permission
 
@@ -344,6 +345,8 @@ def procurement_plans():
 def new_procurement_plan():
     form = ProcurementPlanForm()
     if form.validate_on_submit():
+        if not form.tor_due_date.data:
+            form.tor_due_date.data = date(form.fiscal_year.data, 12, 31)
         plan = ProcurementPlan()
         form.populate_obj(plan)
         db.session.add(plan)
@@ -360,6 +363,8 @@ def edit_procurement_plan(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     form = ProcurementPlanForm(obj=plan)
     if form.validate_on_submit():
+        if not form.tor_due_date.data:
+            form.tor_due_date.data = date(form.fiscal_year.data, 12, 31)
         form.populate_obj(plan)
         db.session.commit()
         flash(u'แก้ไขแผนการจัดซื้อจัดจ้างเรียบร้อยแล้ว', 'success')
@@ -368,13 +373,82 @@ def edit_procurement_plan(plan_id):
                            page_title=u'แก้ไขแผนการจัดซื้อจัดจ้าง')
 
 
+def _procurement_plan_gantt_data(plan):
+    """Build completed milestone markers for the plan's fiscal-year timeline."""
+    milestones = [
+        ('principle_approval_date', u'อนุมัติหลักการ', 1),
+        ('tor_completed_date', u'จัดทำ TOR', 2),
+        ('quotation_submission_date', u'ยื่นเสนอราคา', 3),
+        ('contract_signed_date', u'ลงนามสัญญา', 4),
+        ('inspection_date', u'ตรวจรับ', 5),
+    ]
+    completed_dates = [getattr(plan, field_name) for field_name, _, _ in milestones]
+    completed_dates = [completed_date for completed_date in completed_dates if completed_date]
+    fiscal_year = plan.fiscal_year
+    # The form commonly stores Buddhist fiscal years (e.g. 2569), while
+    # database date values may be Gregorian (e.g. 2026). Use one calendar
+    # consistently so marker positions line up with the displayed dates.
+    if fiscal_year > 2400 and not any(completed_date.year > 2400 for completed_date in completed_dates):
+        fiscal_year -= 543
+    fiscal_start = date(fiscal_year - 1, 10, 1)
+    fiscal_end = date(fiscal_year, 9, 30)
+    total_days = (fiscal_end - fiscal_start).days + 1
+    activities = []
+    for field_name, label, _ in milestones:
+        completed_date = getattr(plan, field_name)
+        if not completed_date:
+            continue
+        position = ((completed_date - fiscal_start).days / total_days) * 100
+        activities.append({
+            'id': field_name,
+            'label': label,
+            'date': completed_date.strftime('%d/%m/%Y'),
+            'position': round(min(max(position, 0), 100), 3),
+            '_date_value': completed_date,
+        })
+    activities.sort(key=lambda activity: activity['_date_value'])
+    connections = []
+    if activities:
+        first_activity = activities[0]
+        connections.append({
+            'left': 0,
+            'width': first_activity['position'],
+            'days': (first_activity['_date_value'] - fiscal_start).days,
+        })
+    for previous, current in zip(activities, activities[1:]):
+        connections.append({
+            'left': previous['position'],
+            'width': round(max(current['position'] - previous['position'], 0), 3),
+            'days': (current['_date_value'] - previous['_date_value']).days,
+        })
+    for activity in activities:
+        del activity['_date_value']
+    return {
+        'start': fiscal_start.strftime('%Y-%m-%d'),
+        'start_label': fiscal_start.strftime('%d/%m/%Y'),
+        'end': fiscal_end.strftime('%Y-%m-%d'),
+        'end_label': fiscal_end.strftime('%d/%m/%Y'),
+        'activities': activities,
+        'connections': connections,
+        'boundary_markers': [
+            {'position': 0, 'label': u'วันเริ่มปีงบ', 'date': fiscal_start.strftime('%d/%m/%Y')},
+            {'position': 100, 'label': u'วันสิ้นสุดปีงบ', 'date': fiscal_end.strftime('%d/%m/%Y')},
+        ],
+        'quarter_markers': [
+            {'position': 25, 'label': u'ไตรมาส 2'},
+            {'position': 50, 'label': u'ไตรมาส 3'},
+            {'position': 75, 'label': u'ไตรมาส 4'},
+        ],
+    }
+
+
 @procurement.route('/planning/plans/<int:plan_id>')
 @login_required
 def procurement_plan_detail(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     committee_form = ProcurementPlanCommitteeMemberForm()
     return render_template('procurement/plan_detail.html', plan=plan, committee_form=committee_form,
-                           active_page='plans')
+                           active_page='plans', gantt_data=_procurement_plan_gantt_data(plan))
 
 
 @procurement.route('/planning/plans/<int:plan_id>/committee', methods=['POST'])
@@ -423,6 +497,99 @@ def delete_procurement_plan_committee_member(plan_id, member_id):
     db.session.commit()
     flash(u'นำบุคลากรออกจากคณะกรรมการเรียบร้อยแล้ว', 'success')
     return redirect(url_for('procurement.procurement_plan_detail', plan_id=plan_id))
+
+
+def _procurement_plan_committee_email_defaults(plan, due_date=None):
+    due_date = due_date or plan.tor_due_date or date(plan.fiscal_year, 12, 31)
+    short_item = plan.item if len(plan.item) <= 100 else '{}...'.format(plan.item[:97])
+    title = u'แจ้งคณะกรรมการจัดทำ TOR: {}'.format(short_item)
+    message = u'''เรียน คณะกรรมการ
+
+เนื่องจากท่านได้รับการแต่งตั้งให้เป็นคณะกรรมการจัดซื้อจัดจ้างสำหรับรายการ {}
+ผลผลิต/โครงการ/รายงาน: {}
+ปีงบประมาณ: {}
+
+ขอเรียนแจ้งว่าท่านต้องดำเนินการจัดทำ TOR ภายในวันที่ {}
+กรุณาดำเนินการและเตรียมข้อมูลที่เกี่ยวข้องภายในกำหนดเวลา
+
+ขอแสดงความนับถือ
+หน่วยงานผู้รับผิดชอบ'''.format(
+        plan.item, plan.output_project_report, plan.fiscal_year, due_date.strftime('%d/%m/%Y')
+    )
+    return title, message, due_date
+
+
+@procurement.route('/planning/plans/<int:plan_id>/tor-reminder/email', methods=['GET', 'POST'])
+@login_required
+def send_procurement_plan_tor_reminder(plan_id):
+    plan = ProcurementPlan.query.get_or_404(plan_id)
+    if plan.tor_completed_date:
+        flash(u'แผนนี้จัดทำ TOR แล้ว ไม่จำเป็นต้องส่งการแจ้งเตือน', 'warning')
+        return redirect(url_for('procurement.procurement_plan_detail', plan_id=plan.id))
+
+    default_title, default_message, default_due_date = _procurement_plan_committee_email_defaults(plan)
+    form = ProcurementPlanCommitteeEmailForm()
+    if request.method == 'GET':
+        form.title.data = default_title
+        form.message.data = default_message
+        form.tor_due_date.data = default_due_date
+    elif form.validate_on_submit():
+        members = plan.committee_members.all()
+        recipients = []
+        for member in members:
+            email = member.staff.email
+            if email:
+                recipients.append(email if '@' in email else '{}@mahidol.ac.th'.format(email))
+        recipients = sorted(set(recipients))
+        if not recipients:
+            flash(u'ไม่พบอีเมลของคณะกรรมการสำหรับส่งการแจ้งเตือน', 'danger')
+        else:
+            # Keep the generated body synchronized with a changed due date,
+            # but preserve the body when the sender has customized it.
+            _, default_message, _ = _procurement_plan_committee_email_defaults(plan)
+            message = form.message.data
+            if message == default_message:
+                _, message, _ = _procurement_plan_committee_email_defaults(
+                    plan, due_date=form.tor_due_date.data
+                )
+            try:
+                subject = form.title.data.strip()
+                if current_app.debug:
+                    print('\n--- Procurement TOR reminder (debug; not sent) ---')
+                    print('Recipients: {}'.format(', '.join(recipients)))
+                    print('Subject: {}'.format(subject))
+                    print('Message:\n{}'.format(message))
+                    print('--- End procurement TOR reminder ---\n')
+                else:
+                    mail.send(Message(subject=subject, body=message, recipients=recipients))
+                plan.tor_due_date = form.tor_due_date.data
+                if not current_app.debug:
+                    db.session.add(ProcurementPlanTORReminder(
+                        plan=plan,
+                        sent_by=current_user,
+                        recipients_count=len(recipients),
+                        subject=subject,
+                        tor_due_date=form.tor_due_date.data,
+                    ))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception('Failed to send procurement TOR reminder for plan %s', plan.id)
+                flash(u'ไม่สามารถส่งอีเมลแจ้งเตือนได้ กรุณาตรวจสอบการตั้งค่าอีเมล', 'danger')
+            else:
+                if current_app.debug:
+                    flash(u'โหมด debug: แสดงรายละเอียดอีเมลใน terminal แล้ว ไม่มีการส่งอีเมล', 'info')
+                else:
+                    flash(u'ส่งอีเมลแจ้งเตือนไปยังคณะกรรมการแล้ว {} ราย'.format(len(recipients)), 'success')
+                return redirect(url_for('procurement.procurement_plan_detail', plan_id=plan.id))
+    else:
+        for field_name, errors in form.errors.items():
+            field = getattr(form, field_name)
+            for error in errors:
+                flash(u'{}: {}'.format(field.label.text, error), 'danger')
+
+    return render_template('procurement/tor_reminder_email_form.html', plan=plan, form=form,
+                           active_page='plans')
 
 
 @procurement.route('/planning/funding-sources', methods=['GET', 'POST'])
