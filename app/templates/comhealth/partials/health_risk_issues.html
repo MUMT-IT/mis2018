@@ -47,9 +47,9 @@
                         <ul style="list-style:none; margin-left:0; display:grid; gap:0.75rem;">
                             {% for video in related_videos %}
                                 <li>
-                                    <a class="button is-link is-light is-rounded is-fullwidth is-justify-content-flex-start" href="{{ video.youtube_url }}" target="_blank" rel="noopener noreferrer">
+                                    <a class="button related-video-link is-link is-light is-rounded is-fullwidth is-justify-content-flex-start" href="{{ video.youtube_url }}" target="_blank" rel="noopener noreferrer">
                                         <span class="icon is-small"><i class="fa-solid fa-play"></i></span>
-                                        <span>{{ video.title }}</span>
+                                        <span class="related-video-title">{{ video.title }}</span>
                                     </a>
                                 </li>
                             {% endfor %}
@@ -108,7 +108,7 @@
                                                 {% elif item.status == 'abnormal' %}
                                                     <span class="badge is-danger">{{ ui.status.abnormal }}</span>
                                                 {% elif item.status == 'critical' %}
-                                                    <span class="badge is-dark">{{ ui.status.critical }}</span>
+                                                    <span class="badge is-critical">{{ ui.status.critical }}</span>
                                                 {% else %}
                                                     <span class="badge is-dark">{{ ui.status.missing }}</span>
                                                 {% endif %}
@@ -165,7 +165,7 @@
                                         {% elif item.status == 'abnormal' %}
                                             <span class="badge is-danger">{{ ui.status.abnormal }}</span>
                                         {% elif item.status == 'critical' %}
-                                            <span class="badge is-dark">{{ ui.status.critical }}</span>
+                                            <span class="badge is-critical">{{ ui.status.critical }}</span>
                                         {% else %}
                                             <span class="badge is-dark">{{ ui.status.missing }}</span>
                                         {% endif %}
