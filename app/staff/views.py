@@ -433,6 +433,8 @@ def _pending_clockin_requests_for(approver_id):
         approver_id=approver_id,
         approved_at=None,
         cancelled_at=None,
+    ).filter(
+        StaffRequestWorkLogin.staff_account_id != approver_id,
     ).order_by(StaffRequestWorkLogin.requested_at.desc()).all()
 
 
@@ -4234,7 +4236,11 @@ def cancel_clockin_clockout_request(request_id):
 @staff.route('/clockin-clockout/request-list')
 @login_required
 def list_for_clockin_clockout():
-    all_requests = StaffRequestWorkLogin.query.filter_by(approver_id=current_user.id).all()
+    all_requests = StaffRequestWorkLogin.query.filter_by(
+        approver_id=current_user.id,
+    ).filter(
+        StaffRequestWorkLogin.staff_account_id != current_user.id,
+    ).all()
     return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
 
 
@@ -4244,6 +4250,8 @@ def approved_for_clockin_clockout(request_id):
     clock_request = StaffRequestWorkLogin.query.filter_by(
         id=request_id,
         approver_id=current_user.id,
+    ).filter(
+        StaffRequestWorkLogin.staff_account_id != current_user.id,
     ).first_or_404()
     approved = request.form.get('approved') if request.method == 'POST' else request.args.get('approved')
     if approved:
@@ -4698,6 +4706,112 @@ def _line_remind_missing_checkin_impl():
 @wraps(_line_remind_missing_checkin_impl)
 def line_remind_missing_checkin():
     return _line_remind_missing_checkin_impl()
+
+
+def _overdue_checkin_requests(cutoff=None):
+    if cutoff is None:
+        cutoff = datetime.now(pytz.utc) - timedelta(days=3)
+    return StaffRequestWorkLogin.query.filter(
+        StaffRequestWorkLogin.requested_at < cutoff,
+        StaffRequestWorkLogin.approved_at.is_(None),
+        StaffRequestWorkLogin.cancelled_at.is_(None),
+    ).order_by(StaffRequestWorkLogin.requested_at.asc()).all()
+
+
+def send_overdue_checkin_request_reminders(cutoff=None):
+    """Send one LINE digest to each approver with requests older than three days."""
+    requests_by_approver = defaultdict(list)
+    for checkin_request in _overdue_checkin_requests(cutoff=cutoff):
+        if (
+            checkin_request.approver_id
+            and checkin_request.approver
+            and checkin_request.staff_account_id != checkin_request.approver_id
+        ):
+            requests_by_approver[checkin_request.approver_id].append(checkin_request)
+
+    sent_count = 0
+    failed_count = 0
+    skipped_count = 0
+    for checkin_requests in requests_by_approver.values():
+        approver = checkin_requests[0].approver
+        if not approver.line_id:
+            skipped_count += 1
+            continue
+
+        request_lines = []
+        login_summary_url = url_for(
+            'staff.login_summary',
+            _external=True,
+            _scheme='https',
+        )
+        for checkin_request in checkin_requests:
+            work_datetime = checkin_request.work_datetime
+            if work_datetime.tzinfo is None:
+                work_datetime = pytz.utc.localize(work_datetime)
+            request_lines.append(
+                '- {}: {} ({})'.format(
+                    checkin_request.staff.fullname,
+                    'เข้างาน' if checkin_request.is_checkin else 'กลับบ้าน',
+                    work_datetime.astimezone(tz).strftime('%d/%m/%Y %H:%M'),
+                )
+            )
+        message = (
+            'มีคำขอรับรองการลงชื่อเข้าปฏิบัติงานที่ยังไม่ได้อนุมัติจำนวน {} รายการ\n\n{}\n\n'
+            'กรุณาตรวจสอบและดำเนินการที่:\n{}\n\n'
+            'หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'
+        ).format(len(checkin_requests), '\n'.join(request_lines), login_summary_url)
+        try:
+            line_bot_api.push_message(
+                to=approver.line_id,
+                messages=TextSendMessage(text=message),
+            )
+            sent_count += 1
+        except LineBotApiError:
+            failed_count += 1
+
+    return {
+        'request_count': sum(len(items) for items in requests_by_approver.values()),
+        'approver_count': len(requests_by_approver),
+        'sent_count': sent_count,
+        'failed_count': failed_count,
+        'skipped_count': skipped_count,
+    }
+
+
+def _line_remind_overdue_checkin_requests_impl():
+    scheduler_request = _is_valid_checkin_scheduler_request()
+    if not scheduler_request:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login', next=request.url))
+        if not admin_permission.can():
+            abort(403)
+
+    cutoff = datetime.now(pytz.utc) - timedelta(days=3)
+    overdue_requests = _overdue_checkin_requests(cutoff=cutoff)
+    if request.method == 'GET':
+        return jsonify({
+            'message': 'preview',
+            'request_count': len(overdue_requests),
+            'requests': [
+                {
+                    'request_id': item.id,
+                    'staff_name': item.staff.fullname,
+                    'approver_name': item.approver.fullname if item.approver else None,
+                }
+                for item in overdue_requests
+            ],
+        })
+
+    summary = send_overdue_checkin_request_reminders(cutoff=cutoff)
+    summary['message'] = 'success'
+    return jsonify(summary)
+
+
+@csrf.exempt
+@staff.route('/admin/line-remind-overdue-checkin-requests', methods=['GET', 'POST'])
+@wraps(_line_remind_overdue_checkin_requests_impl)
+def line_remind_overdue_checkin_requests():
+    return _line_remind_overdue_checkin_requests_impl()
 
 
 @csrf.exempt

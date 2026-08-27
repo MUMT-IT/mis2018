@@ -65,6 +65,20 @@ def test_jobs_registers_weekday_checkin_reminder(monkeypatch):
     assert scheduler.started is True
 
 
+def test_jobs_registers_daily_overdue_checkin_request_reminder(monkeypatch):
+    jobs = _import_jobs(monkeypatch)
+
+    added = [entry for entry in jobs.scheduler.added_jobs
+             if entry[0] is jobs.send_overdue_checkin_request_reminder]
+
+    assert added
+    _, args, kwargs = added[0]
+    assert args[0] == 'cron'
+    assert kwargs['hour'] == '10'
+    assert kwargs['minute'] == '00'
+    assert kwargs['timezone'] == 'Asia/Bangkok'
+
+
 def test_jobs_registers_docs_query_backfill_at_midnight(monkeypatch):
     jobs = _import_jobs(monkeypatch)
 
@@ -169,4 +183,27 @@ def test_send_checkin_reminder_posts_tokenized_request(monkeypatch):
     assert captured['method'] == 'POST'
     assert captured['url'] == 'https://example.test/staff/admin/line-remind-missing-checkin'
     assert 'date' in captured['params']
+    assert captured['params']['job_token'] == 'test-job-token'
+
+
+def test_send_overdue_checkin_request_reminder_posts_tokenized_request(monkeypatch):
+    monkeypatch.setenv('JOB_TOKEN', 'test-job-token')
+    monkeypatch.setenv('JOBS_BASE_URL', 'https://example.test')
+    captured = {}
+
+    def request(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(status_code=200, url=kwargs['url'], text='ok')
+
+    jobs = _import_jobs(monkeypatch, requests_module=_module(
+        'requests',
+        request=request,
+        get=lambda url, **kwargs: SimpleNamespace(status_code=200, url=url, text='ok'),
+        HTTPError=RuntimeError,
+    ))
+
+    jobs.send_overdue_checkin_request_reminder()
+
+    assert captured['method'] == 'POST'
+    assert captured['url'] == 'https://example.test/staff/admin/line-remind-overdue-checkin-requests'
     assert captured['params']['job_token'] == 'test-job-token'

@@ -387,6 +387,24 @@ def send_checkin_reminder():
     _run_job(job_name, _job)
 
 
+def send_overdue_checkin_request_reminder():
+    job_name = 'send_overdue_checkin_request_reminder'
+
+    def _job():
+        params = {}
+        if JOB_TOKEN:
+            params['job_token'] = JOB_TOKEN
+        _request_or_raise(
+            job_name,
+            'POST',
+            f'{BASE_URL}/staff/admin/line-remind-overdue-checkin-requests',
+            params=params or None,
+            timeout=90,
+        )
+
+    _run_job(job_name, _job)
+
+
 def _run_flask_cli(job_name, arguments, timeout):
     command = [
         sys.executable,
@@ -514,6 +532,11 @@ scheduler.add_job(send_checkin_reminder,
                   'cron', day_of_week='mon-fri',
                   hour='8',
                   minute='29',
+                  timezone='Asia/Bangkok')
+scheduler.add_job(send_overdue_checkin_request_reminder,
+                  'cron',
+                  hour='10',
+                  minute='00',
                   timezone='Asia/Bangkok')
 scheduler.add_job(run_docs_query_backfill,
                   'cron',
