@@ -78,8 +78,8 @@ class BestTimePoll(db.Model):
     modified_at = db.Column(db.DateTime(timezone=True))
     closed_at = db.Column(db.DateTime(timezone=True))
     admins = db.relationship(StaffAccount, secondary=poll_admin_assoc_table, backref=db.backref('besttime_poll_admins'))
-    vote_start_date = db.Column('vote_start_date', db.Date(), nullable=False, info={'label': 'วันเริ่มการโหวต'})
-    vote_end_date = db.Column('vote_end_date', db.Date(), nullable=False, info={'label': 'วันสิ้นสุดการโหวต'})
+    vote_start_date = db.Column('vote_start_date', db.Date(), nullable=False, info={'label': 'วันเปิดการโหวต'})
+    vote_end_date = db.Column('vote_end_date', db.Date(), nullable=False, info={'label': 'วันปิดการโหวต'})
 
 
     def __str__(self):
