@@ -1,0 +1,23 @@
+<nav class="panel planning-sidebar">
+    <p class="panel-heading">จัดการแผนการจัดซื้อจัดจ้าง</p>
+    <a class="panel-block {% if active_page == 'dashboard' %}is-active{% endif %}"
+       href="{{ url_for('procurement.procurement_planning_landing') }}">
+        <span class="panel-icon"><i class="fa-solid fa-chart-line"></i></span>
+        แดชบอร์ดภาพรวม
+    </a>
+    <a class="panel-block {% if active_page == 'funding_sources' %}is-active{% endif %}"
+       href="{{ url_for('procurement.procurement_funding_sources') }}">
+        <span class="panel-icon"><i class="fa-solid fa-coins"></i></span>
+        จัดการแหล่งงบประมาณ
+    </a>
+    <a class="panel-block {% if active_page == 'output_project_reports' %}is-active{% endif %}"
+       href="{{ url_for('procurement.procurement_output_project_reports') }}">
+        <span class="panel-icon"><i class="fa-solid fa-layer-group"></i></span>
+        จัดการผลผลิต/โครงการ/รายงาน
+    </a>
+    <a class="panel-block {% if active_page == 'plans' %}is-active{% endif %}"
+       href="{{ url_for('procurement.procurement_plans') }}">
+        <span class="panel-icon"><i class="fa-solid fa-list-check"></i></span>
+        จัดการแผนจัดซื้อจัดจ้าง
+    </a>
+</nav>

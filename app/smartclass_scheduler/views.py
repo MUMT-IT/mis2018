@@ -22,7 +22,8 @@ def index():
 
 @smartclass.route('/resources/<int:resource_type_id>')
 def list_resources(resource_type_id):
-    accounts = SmartClassOnlineAccount.query.filter_by(resource_type_id=resource_type_id)
+    accounts = SmartClassOnlineAccount.query.filter_by(resource_type_id=resource_type_id) \
+        .filter(SmartClassOnlineAccount.is_retired.isnot(True))
     return render_template('smartclass_scheduler/online_accounts.html',
                            accounts=accounts,
                            resource_type_id=resource_type_id)
@@ -38,7 +39,10 @@ def get_events(resource_type_id):
     if end:
         end = dateutil.parser.isoparse(end)
     events = SmartClassOnlineAccountEvent.query.filter(
-        SmartClassOnlineAccountEvent.account.has(resource_type_id=resource_type_id))\
+        SmartClassOnlineAccountEvent.account.has(and_(
+            SmartClassOnlineAccount.resource_type_id == resource_type_id,
+            SmartClassOnlineAccount.is_retired.isnot(True),
+        )))\
             .filter(SmartClassOnlineAccountEvent.start >= start).filter(SmartClassOnlineAccountEvent.end <= end)
     event_data = []
     for evt in events:
@@ -59,7 +63,8 @@ def get_events(resource_type_id):
 @smartclass.route('/api/resources/<int:resource_type_id>')
 def get_resources(resource_type_id):
     accounts = SmartClassOnlineAccount.query\
-                    .filter_by(resource_type_id=resource_type_id)
+                    .filter_by(resource_type_id=resource_type_id)\
+                    .filter(SmartClassOnlineAccount.is_retired.isnot(True))
     account_data = []
     for a in accounts:
         account_data.append({

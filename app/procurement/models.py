@@ -7,6 +7,7 @@ from sqlalchemy import func
 from wtforms.validators import DataRequired
 
 from app.main import db
+from app.models import Org
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
@@ -22,6 +23,242 @@ s3 = boto3.client(
     aws_access_key_id=AWS_ACCESS_KEY_ID,
     aws_secret_access_key=AWS_SECRET_ACCESS_KEY
 )
+
+
+class ProcurementFundingSource(db.Model):
+    """Configurable source of funds for an annual procurement plan."""
+    __tablename__ = 'procurement_funding_sources'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    code = db.Column('code', db.String(64), nullable=False, unique=True,
+                     info={'label': u'รหัสแหล่งงบประมาณ'})
+    name = db.Column('name', db.String(255), nullable=False, unique=True,
+                     info={'label': u'ชื่อแหล่งงบประมาณ'})
+    description = db.Column('description', db.Text(), info={'label': u'รายละเอียด'})
+    is_active = db.Column('is_active', db.Boolean(), nullable=False, default=True,
+                          info={'label': u'ใช้งาน'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+    def __str__(self):
+        return u'{}: {}'.format(self.code, self.name)
+
+
+class ProcurementVendor(db.Model):
+    """Reusable vendor/contracting-company master data."""
+    __tablename__ = 'procurement_vendors'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String(255), nullable=False,
+                     info={'label': u'ชื่อบริษัทคู่สัญญา'})
+    tax_id = db.Column('tax_id', db.String(32), unique=True,
+                       info={'label': u'เลขประจำตัวผู้เสียภาษี'})
+    branch_name = db.Column('branch_name', db.String(255),
+                            info={'label': u'สาขา'})
+    contact_name = db.Column('contact_name', db.String(255),
+                             info={'label': u'ชื่อผู้ติดต่อ'})
+    phone = db.Column('phone', db.String(64), info={'label': u'เบอร์โทรศัพท์'})
+    email = db.Column('email', db.String(255), info={'label': u'อีเมล'})
+    address = db.Column('address', db.Text(), info={'label': u'ที่อยู่'})
+    is_active = db.Column('is_active', db.Boolean(), nullable=False, default=True,
+                          info={'label': u'ใช้งาน'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+    def __str__(self):
+        return self.name
+
+
+class ProcurementOutputProjectReport(db.Model):
+    """Reusable output, project, or report options for procurement plans."""
+    __tablename__ = 'procurement_output_project_reports'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column('name', db.Text(), nullable=False, unique=True,
+                     info={'label': u'ผลผลิต/โครงการ/รายงาน'})
+
+    def __str__(self):
+        return self.name
+
+
+class ProcurementPlan(db.Model):
+    """An item planned for procurement during a fiscal year."""
+    __tablename__ = 'procurement_plans'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    fiscal_year = db.Column('fiscal_year', db.Integer(), nullable=False,
+                            info={'label': u'ปีงบประมาณ'})
+    funding_source_id = db.Column('funding_source_id',
+                                  db.ForeignKey('procurement_funding_sources.id'), nullable=False)
+    funding_source = db.relationship('ProcurementFundingSource',
+                                     backref=db.backref('procurement_plans', lazy='dynamic'))
+    item = db.Column('item', db.String(255), info={'label': u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง'})
+    output_project_report_id = db.Column(
+        'output_project_report_id',
+        db.ForeignKey('procurement_output_project_reports.id'),
+        nullable=False,
+    )
+    output_project_report = db.relationship(
+        'ProcurementOutputProjectReport',
+        backref=db.backref('procurement_plans', lazy='dynamic'),
+    )
+    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'), nullable=False,
+                               info={'label': u'ศูนย์ต้นทุน'})
+    cost_center = db.relationship('CostCenter', backref=db.backref('procurement_plans', lazy='dynamic'))
+    procurement_method = db.Column('procurement_method', db.String(255), nullable=False,
+                                   info={'label': u'วิธีการจัดซื้อจัดจ้าง'})
+    amount = db.Column('amount', db.Numeric(14, 2), nullable=False,
+                       info={'label': u'จำนวนเงิน'})
+    fund_code = db.Column('fund_code', db.String(64), info={'label': u'รหัสทุน'})
+    responsible_staff_id = db.Column('responsible_staff_id', db.ForeignKey('staff_account.id'), nullable=True)
+    responsible_staff = db.relationship('StaffAccount', foreign_keys=[responsible_staff_id],
+                                         backref=db.backref('procurement_plans', lazy='dynamic'))
+    responsible_org_id = db.Column('responsible_org_id', db.ForeignKey('orgs.id'))
+    responsible_org = db.relationship('Org', foreign_keys=[responsible_org_id],
+                                       backref=db.backref('procurement_plans', lazy='dynamic'))
+    vendor_id = db.Column('vendor_id', db.ForeignKey('procurement_vendors.id'))
+    vendor = db.relationship('ProcurementVendor',
+                             backref=db.backref('procurement_plans', lazy='dynamic'))
+    procurement_detail_id = db.Column('procurement_detail_id', db.ForeignKey('procurement_details.id'))
+    procurement_detail = db.relationship('ProcurementDetail',
+                                         backref=db.backref('procurement_plans', lazy='dynamic'))
+    principle_approval_date = db.Column('principle_approval_date', db.Date(),
+                                        info={'label': u'วันที่อนุมัติหลักการ'})
+    tor_completed_date = db.Column('tor_completed_date', db.Date(),
+                                   info={'label': u'วันที่จัดทำ TOR แล้วเสร็จ'})
+    tor_due_date = db.Column('tor_due_date', db.Date(),
+                             info={'label': u'กำหนดจัดทำ TOR'})
+    quotation_submission_date = db.Column('quotation_submission_date', db.Date(),
+                                          info={'label': u'วันที่ยื่นเสนอราคา'})
+    contract_signed_date = db.Column('contract_signed_date', db.Date(),
+                                     info={'label': u'วันที่ลงนามสัญญา'})
+    inspection_date = db.Column('inspection_date', db.Date(), info={'label': u'วันที่ตรวจรับ'})
+    note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+    def __str__(self):
+        return u'{}: {}'.format(self.fiscal_year, str(self.output_project_report)[:80])
+
+    @property
+    def status_date(self):
+        milestones = [
+            (self.principle_approval_date, 1, 'principle_approved'),
+            (self.tor_completed_date, 2, 'tor_completed'),
+            (self.quotation_submission_date, 3, 'quotation_submitted'),
+            (self.contract_signed_date, 4, 'contract_signed'),
+            (self.inspection_date, 5, 'completed'),
+        ]
+        completed = [milestone for milestone in milestones if milestone[0]]
+        if not completed:
+            return None
+        return max(completed, key=lambda milestone: (milestone[0], milestone[1]))[0]
+
+    @property
+    def status(self):
+        milestones = [
+            (self.principle_approval_date, 1, 'principle_approved'),
+            (self.tor_completed_date, 2, 'tor_completed'),
+            (self.quotation_submission_date, 3, 'quotation_submitted'),
+            (self.contract_signed_date, 4, 'contract_signed'),
+            (self.inspection_date, 5, 'completed'),
+        ]
+        completed = [milestone for milestone in milestones if milestone[0]]
+        if not completed:
+            return 'planned'
+        return max(completed, key=lambda milestone: (milestone[0], milestone[1]))[2]
+
+    @property
+    def status_label(self):
+        return {
+            'planned': u'วางแผนแล้ว',
+            'principle_approved': u'อนุมัติหลักการแล้ว',
+            'tor_completed': u'จัดทำ TOR แล้ว',
+            'quotation_submitted': u'ยื่นเสนอราคาแล้ว',
+            'contract_signed': u'ลงนามสัญญาแล้ว',
+            'completed': u'ตรวจรับแล้ว',
+        }[self.status]
+
+    @property
+    def latest_activity(self):
+        return self.activities.order_by(ProcurementPlanActivity.activity_date.desc(),
+                                        ProcurementPlanActivity.id.desc()).first()
+
+    @property
+    def tor_reminder_count(self):
+        return self.tor_reminders.count()
+
+
+class ProcurementPlanActivity(db.Model):
+    """Audit-friendly movement history for a procurement plan item."""
+    __tablename__ = 'procurement_plan_activities'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    plan_id = db.Column('plan_id', db.ForeignKey('procurement_plans.id'), nullable=False)
+    plan = db.relationship('ProcurementPlan',
+                           backref=db.backref('activities', lazy='dynamic',
+                                              cascade='all, delete-orphan'))
+    activity_type = db.Column('activity_type', db.String(128), nullable=False,
+                              info={'label': u'ประเภทความเคลื่อนไหว'})
+    activity_date = db.Column('activity_date', db.Date(), nullable=False,
+                              info={'label': u'วันที่ความเคลื่อนไหว'})
+    description = db.Column('description', db.Text(), info={'label': u'รายละเอียด'})
+    updated_by_id = db.Column('updated_by_id', db.ForeignKey('staff_account.id'))
+    updated_by = db.relationship('StaffAccount', foreign_keys=[updated_by_id])
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+
+    def __str__(self):
+        return u'{}: {}'.format(self.activity_date, self.activity_type)
+
+
+class ProcurementPlanCommitteeMember(db.Model):
+    """A staff member assigned to a procurement plan committee."""
+    __tablename__ = 'procurement_plan_committee_members'
+    __table_args__ = (
+        db.UniqueConstraint('plan_id', 'staff_id', name='uq_procurement_plan_committee_member'),
+    )
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    plan_id = db.Column('plan_id', db.ForeignKey('procurement_plans.id'), nullable=False)
+    plan = db.relationship('ProcurementPlan',
+                           backref=db.backref('committee_members', lazy='dynamic',
+                                              cascade='all, delete-orphan'))
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
+    staff = db.relationship('StaffAccount', foreign_keys=[staff_id])
+    role = db.Column('role', db.String(32), nullable=False,
+                     info={'label': u'บทบาท', 'choices': [
+                         ('chairman', u'ประธาน'),
+                         ('committee', u'กรรมการ'),
+                         ('secretary', u'เลขานุการ'),
+                     ]})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+    ROLE_LABELS = {
+        'chairman': u'ประธาน',
+        'committee': u'กรรมการ',
+        'secretary': u'เลขานุการ',
+    }
+
+    @property
+    def role_label(self):
+        return self.ROLE_LABELS.get(self.role, self.role)
+
+    def __str__(self):
+        return u'{} ({})'.format(self.staff.fullname, self.role_label)
+
+
+class ProcurementPlanTORReminder(db.Model):
+    """Audit log for successfully sent TOR reminder emails."""
+    __tablename__ = 'procurement_plan_tor_reminders'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    plan_id = db.Column('plan_id', db.ForeignKey('procurement_plans.id'), nullable=False)
+    plan = db.relationship('ProcurementPlan',
+                           backref=db.backref('tor_reminders', lazy='dynamic',
+                                              cascade='all, delete-orphan'))
+    sent_at = db.Column('sent_at', db.DateTime(timezone=True), nullable=False, server_default=func.now())
+    sent_by_id = db.Column('sent_by_id', db.ForeignKey('staff_account.id'))
+    sent_by = db.relationship('StaffAccount', foreign_keys=[sent_by_id])
+    recipients_count = db.Column('recipients_count', db.Integer(), nullable=False)
+    subject = db.Column('subject', db.String(255), nullable=False)
+    tor_due_date = db.Column('tor_due_date', db.Date(), nullable=False)
+
+    def __str__(self):
+        return u'{}: {} recipients'.format(self.sent_at, self.recipients_count)
 
 class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'

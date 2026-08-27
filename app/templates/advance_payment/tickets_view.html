@@ -1,0 +1,285 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}รายการสัญญาเงินยืมเงินทดรองจ่าย | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+<!-- Header Section -->
+<header class="mb-4 pb-2 border-bottom">
+  <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
+  <h1 class="fw-bold display-6 mb-2">รายการสัญญาเงินยืมเงินทดรองจ่าย</h1>
+  <p class="text-muted mb-0">ตรวจสอบ ค้นหา และคัดกรองรายการสัญญาเงินยืมเงินทดรองจ่ายทั้งหมดในระบบ</p>
+</header>
+
+<!-- Filter Controls Section -->
+<section class="p-4 border rounded-4 bg-white shadow-sm mb-4">
+  <div class="row g-3">
+    <!-- Search Box -->
+    <div class="col-md-5">
+      <label for="searchQuery" class="form-label fw-bold text-secondary small">ค้นหาข้อความ</label>
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" id="searchQuery" class="form-control border-start-0 ps-0" 
+               placeholder="ค้นหา เลขที่ บย., ชื่อผู้ประสานงาน, หรือชื่อโครงการ..." 
+               onkeyup="filterTicketsTable()" style="border-radius: 0 6px 6px 0;">
+      </div>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="col-md-3">
+      <label for="statusFilter" class="form-label fw-bold text-secondary small">กรองตามสถานะ</label>
+      <select id="statusFilter" class="form-select style-select" onchange="filterTicketsTable()">
+        <option value="all">แสดงสถานะทั้งหมด</option>
+        <option value="กำลังส่งคำขอ">กำลังส่งคำขอ</option>
+        <option value="อนุมัติจ่ายเงิน">อนุมัติจ่ายเงิน</option>
+        <option value="มียอดคงค้าง">มียอดคงค้าง</option>
+        <option value="เคลียร์ยอดแล้ว">เคลียร์ยอดแล้ว</option>
+        <option value="ปฏิเสธ">ปฏิเสธ</option>
+      </select>
+    </div>
+
+    <!-- Sorting -->
+    <div class="col-md-4">
+      <label for="sortOrder" class="form-label fw-bold text-secondary small">จัดเรียงตามลำดับ</label>
+      <select id="sortOrder" class="form-select style-select" onchange="sortTicketsTable()">
+        <option value="id_desc">รายการล่าสุด → เก่าสุด</option>
+        <option value="id_asc">รายการเก่าสุด → ล่าสุด</option>
+        <option value="due_asc">วันครบกำหนดใกล้สุด → ไกลสุด</option>
+        <option value="budget_desc">ยอดเงินยืมมากสุด → น้อยสุด</option>
+      </select>
+    </div>
+  </div>
+</section>
+{% if active_filter == 'near_due' %}
+  <div class="alert alert-warning d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <strong>แสดงรายการ:</strong> สัญญาเงินยืมใกล้ครบกำหนด (15 วัน)
+    </div>
+    <a href="{{ url_for('advance_payment.tickets_view') }}" class="btn btn-sm btn-outline-dark bg-white">
+      <i class="bi bi-x-circle me-1"></i> แสดงรายการสัญญาทั้งหมด
+    </a>
+  </div>
+{% elif active_filter == 'overdue' %}
+  <div class="alert alert-danger d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <i class="bi bi-exclamation-octagon-fill me-2"></i>
+      <strong>แสดงรายการ:</strong> สัญญาเงินยืมที่เลยกำหนดส่ง
+    </div>
+    <a href="{{ url_for('advance_payment.tickets_view') }}" class="btn btn-sm btn-outline-danger bg-white">
+      <i class="bi bi-x-circle me-1"></i> แสดงรายการสัญญาทั้งหมด
+    </a>
+  </div>
+{% elif active_filter == 'pending_debt' %}
+  <div class="alert alert-info d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <i class="bi bi-info-circle-fill me-2"></i>
+      <strong>แสดงรายการ:</strong> ยอดหนี้คงค้างทั้งหมด
+    </div>
+    <a href="{{ url_for('advance_payment.tickets_view') }}" class="btn btn-sm btn-outline-info bg-white">
+      <i class="bi bi-x-circle me-1"></i> แสดงรายการสัญญาทั้งหมด
+    </a>
+  </div>
+{% endif %}
+<!-- Tickets Table Section -->
+<div class="table-responsive">
+  <table class="table table-hover align-middle" id="ticketsTable">
+    <thead class="table-light">
+      <tr>
+        <th scope="col" class="small fw-bold text-secondary">เลขที่ บย. / โครงการ</th>
+        {% if dashboard_role == "Finance" %}
+          <th scope="col" class="small fw-bold text-secondary">ผู้ประสานงาน</th>
+        {% endif %}
+        <th scope="col" class="small fw-bold text-secondary text-end">ยอดเงินยืม</th>
+        <th scope="col" class="small fw-bold text-secondary text-center">สถานะสัญญา</th>
+        <th scope="col" class="small fw-bold text-secondary text-center">วันครบกำหนด</th>
+        <th scope="col" class="small fw-bold text-secondary text-center">วันที่เคลียร์ยอด</th>
+        <th scope="col" class="small fw-bold text-secondary text-end pe-3" style="min-width: 150px;">จัดการข้อมูล</th>
+      </tr>
+    </thead>
+    <tbody id="ticketsTableBody">
+      {% if tickets %}
+        {% for borrowing_ticket in tickets %}
+          {% set badge_class = 'bg-warning text-dark' %}
+          {% set display_status = borrowing_ticket.status %}
+          {% if borrowing_ticket.status|lower == 'กำลังส่งคำขอ' %}
+            {% set display_status = 'กำลังส่งคำขอ' %}
+          {% elif borrowing_ticket.status|lower in ['อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ'] %}
+            {% set badge_class = 'bg-primary text-white' %}
+            {% set display_status = 'อนุมัติจ่ายเงิน' if borrowing_ticket.status|lower == 'อนุมัติจ่ายเงิน' else 'ผ่านการตรวจสอบ' %}
+          {% elif borrowing_ticket.status|lower == 'เคลียร์ยอดแล้ว' %}
+            {% set badge_class = 'bg-success text-white' %}
+            {% set display_status = 'เคลียร์ยอดแล้ว' %}
+          {% elif borrowing_ticket.status|lower == 'มียอดคงค้าง' %}
+            {% set badge_class = 'bg-info text-dark' %}
+            {% set display_status = 'มียอดคงค้าง' %}
+          {% elif borrowing_ticket.status|lower in ['ปฏิเสธ'] %}
+            {% set badge_class = 'bg-danger text-white' %}
+            {% set display_status = 'ปฏิเสธ' %}
+          {% endif %}
+
+          <tr class="ticket-row align-top"
+              data-id="{{ borrowing_ticket.id or 0 }}"
+              data-number="{{ borrowing_ticket.number if borrowing_ticket.number else '' }}"
+              data-project="{{ borrowing_ticket.borrowing_ticket_purpose if borrowing_ticket.borrowing_ticket_purpose else '' }}" 
+              data-borrower="{{ borrowing_ticket.borrower_name if dashboard_role == 'Finance' else '' }}"
+              data-email="{{ borrowing_ticket.borrower_email if borrowing_ticket.borrower_email else '' }}"
+              data-status="{{ display_status }}" 
+              data-budget="{{ borrowing_ticket.required_budget or 0 }}" 
+              data-duedate="{{ borrowing_ticket.due_date.strftime('%Y-%m-%d') if borrowing_ticket.due_date else '9999-12-31' }}">
+            
+            <!-- เลขที่ บย. & โครงการ -->
+            <td>
+              <div class="fw-bold text-dark">
+                {% if borrowing_ticket.number %}บย. {{ borrowing_ticket.number }}{% else %}-{% endif %}
+              </div>
+              <small class="text-muted d-block text-wrap" style="max-width: 280px;">
+                {{ borrowing_ticket.borrowing_ticket_purpose or '-' }}
+              </small>
+            </td>
+
+            <!-- ผู้ประสานงาน (Finance view) -->
+            {% if dashboard_role == "Finance" %}
+              <td>
+                <span class="text-dark d-block fw-medium">{{ borrowing_ticket.borrower_name or '-' }}</span>
+                {% if borrowing_ticket.borrower_email %}
+                  <small class="text-muted">{{ borrowing_ticket.borrower_email }}</small>
+                {% endif %}
+              </td>
+            {% endif %}
+
+            <!-- ยอดเงินยืม -->
+            <td class="text-end fw-bold text-primary">
+              {{ "{:,.2f}".format(borrowing_ticket.required_budget|float) if borrowing_ticket.required_budget else '0.00' }}
+            </td>
+
+            <!-- สถานะ -->
+            <td class="text-center">
+              <span class="badge {{ badge_class }} px-2 py-1">{{ display_status }}</span>
+            </td>
+
+            <!-- วันครบกำหนด -->
+            <td class="text-center small text-secondary">
+            {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
+                <div>{{ borrowing_ticket.due_date|thai_date }}</div>
+                
+                {# แสดงเตือนเฉพาะสัญญาที่ยังไม่ปิด/เคลียร์ยอด #}
+                {% if borrowing_ticket.status not in ['เอกสารตั้งฎีกา', 'เคลียร์ยอดแล้ว'] %}
+                {% if borrowing_ticket.calculated_overdue_days is not none and borrowing_ticket.calculated_overdue_days > 0 %}
+                    <small class="text-danger fw-bold d-block">(เกินมา {{ borrowing_ticket.calculated_overdue_days }} วัน)</small>
+                {% elif borrowing_ticket.calculated_days_remaining is not none and 0 <= borrowing_ticket.calculated_days_remaining <= 15 %}
+                    <small class="text-warning fw-bold d-block">(เหลือ {{ borrowing_ticket.calculated_days_remaining }} วัน)</small>
+                {% endif %}
+                {% endif %}
+
+            {% else %}
+                -
+            {% endif %}
+            </td>
+
+            <!-- วันที่เคลียร์ยอด -->
+            <td class="text-center small text-secondary">
+              {% if borrowing_ticket.closed_date %}
+                {{ borrowing_ticket.closed_date|thai_date }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+
+            <!-- จัดการข้อมูล -->
+            <td class="text-end pe-3">
+              <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" 
+                 class="btn btn-outline-primary btn-sm px-2 py-1" style="border-radius: 6px;">
+                <i class="bi bi-search me-1"></i> ตรวจสอบสัญญา
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr id="noDataRow">
+          <td colspan="7" class="text-center py-5 text-muted">
+            <i class="bi bi-folder-x fs-2 d-block mb-2"></i>
+            ไม่มีรายการสัญญาเงินยืมในระบบ
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- JavaScript Logic -->
+<script>
+  function filterTicketsTable() {
+    const q = document.getElementById("searchQuery").value.toLowerCase().trim();
+    const status = document.getElementById("statusFilter").value.toLowerCase();
+    const rows = document.querySelectorAll(".ticket-row");
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const number = (row.getAttribute("data-number") || "").toLowerCase();
+      const project = (row.getAttribute("data-project") || "").toLowerCase();
+      const borrower = (row.getAttribute("data-borrower") || "").toLowerCase();
+      const email = (row.getAttribute("data-email") || "").toLowerCase();
+      const rStatus = (row.getAttribute("data-status") || "").toLowerCase();
+
+      const matchesSearch = number.includes(q) || project.includes(q) || borrower.includes(q) || email.includes(q);
+      const matchesStatus = (status === "all") || (rStatus === status);
+
+      if (matchesSearch && matchesStatus) {
+        row.style.display = "";
+        visibleCount++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+
+    // แสดงข้อความเมื่อค้นหาไม่พบข้อมูล
+    let noResultsEl = document.getElementById("noResultsRow");
+    if (visibleCount === 0 && rows.length > 0) {
+      if (!noResultsEl) {
+        const tbody = document.getElementById("ticketsTableBody");
+        noResultsEl = document.createElement("tr");
+        noResultsEl.id = "noResultsRow";
+        noResultsEl.innerHTML = `<td colspan="7" class="text-center py-4 text-muted"><i class="bi bi-exclamation-circle me-1"></i> ไม่พบข้อมูลสัญญาเงินยืมที่ตรงกับการค้นหา</td>`;
+        tbody.appendChild(noResultsEl);
+      } else {
+        noResultsEl.style.display = "";
+      }
+    } else if (noResultsEl) {
+      noResultsEl.style.display = "none";
+    }
+  }
+
+  function sortTicketsTable() {
+    const sortMode = document.getElementById("sortOrder").value;
+    const body = document.getElementById("ticketsTableBody");
+    const rows = Array.from(body.querySelectorAll(".ticket-row"));
+
+    rows.sort((a, b) => {
+      const aId = parseInt(a.getAttribute("data-id") || "0");
+      const bId = parseInt(b.getAttribute("data-id") || "0");
+      const aBudget = parseFloat(a.getAttribute("data-budget") || "0");
+      const bBudget = parseFloat(b.getAttribute("data-budget") || "0");
+      const aDue = a.getAttribute("data-duedate") || "9999-12-31";
+      const bDue = b.getAttribute("data-duedate") || "9999-12-31";
+
+      if (sortMode === "id_desc") {
+        return bId - aId;
+      } else if (sortMode === "id_asc") {
+        return aId - bId;
+      } else if (sortMode === "due_asc") {
+        return new Date(aDue) - new Date(bDue);
+      } else if (sortMode === "budget_desc") {
+        return bBudget - aBudget;
+      }
+      return 0;
+    });
+
+    rows.forEach(row => body.appendChild(row));
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    filterTicketsTable();
+    sortTicketsTable();
+  });
+</script>
+{% endblock %}

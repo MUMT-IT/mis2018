@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการแผนจัดซื้อจัดจ้าง{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .procurement-planning-shell { padding: 2rem 1rem 4rem; }
+        .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
+        .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
+        .plans-card { border-radius: 1rem; }
+        .plans-table td, .plans-table th { vertical-align: middle; }
+        .committee-summary { font-size: .68rem; line-height: 1.25; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "nav.html" %}
+    <main class="container procurement-planning-shell">
+        <div class="columns is-variable is-5">
+            <aside class="column is-3">{% include "procurement/planning_sidebar.html" %}</aside>
+            <section class="column is-9">
+                <div class="level mb-5">
+                    <div>
+                        <p class="heading">Procurement Planning</p>
+                        <h1 class="title is-3 mb-2">จัดการแผนจัดซื้อจัดจ้าง</h1>
+                        <p class="subtitle is-6 mb-0">รายการแผนการจัดซื้อจัดจ้างประจำปีงบประมาณ</p>
+                    </div>
+                    <a class="button is-primary" href="{{ url_for('procurement.new_procurement_plan') }}">
+                        <span class="icon"><i class="fa-solid fa-plus"></i></span><span>เพิ่มแผน</span>
+                    </a>
+                </div>
+
+                <form class="box plans-card mb-5" method="get">
+                    <div class="columns is-vcentered">
+                        <div class="column is-one-quarter"><input class="input" name="fiscal_year" value="{{ selected_fiscal_year }}" placeholder="ปีงบประมาณ"></div>
+                        <div class="column is-one-quarter">
+                            <div class="select is-fullwidth"><select name="funding_source_id"><option value="">ทุกแหล่งงบประมาณ</option>{% for source in funding_sources %}<option value="{{ source.id }}" {% if selected_funding_source_id|string == source.id|string %}selected{% endif %}>{{ source }}</option>{% endfor %}</select></div>
+                        </div>
+                        <div class="column is-one-quarter">
+                            <div class="select is-fullwidth"><select name="status"><option value="">ทุกสถานะ</option><option value="planned" {% if selected_status == 'planned' %}selected{% endif %}>วางแผนแล้ว</option><option value="in_progress" {% if selected_status == 'in_progress' %}selected{% endif %}>อยู่ระหว่างดำเนินการ</option><option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>ดำเนินการเสร็จสิ้น</option><option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>ยกเลิก</option></select></div>
+                        </div>
+                        <div class="column"><button class="button is-info" type="submit">กรองข้อมูล</button> <a class="button is-light" href="{{ url_for('procurement.procurement_plans') }}">ล้างตัวกรอง</a></div>
+                    </div>
+                </form>
+
+                <div class="box plans-card">
+                    <div class="level"><h2 class="title is-5">รายการแผน ({{ plans|length }})</h2></div>
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-hoverable plans-table">
+                            <thead><tr><th>ปี</th><th>รายการ</th><th>ผลผลิต/โครงการ/รายงาน</th><th>แหล่งงบประมาณ</th><th>ศูนย์ต้นทุน</th><th class="has-text-right">จำนวนเงิน</th><th>สถานะ</th><th>กำหนด TOR</th><th>คณะกรรมการ</th><th></th></tr></thead>
+                            <tbody>
+                                {% for plan in plans %}
+                            <tr>
+                                        <td>{{ plan.fiscal_year }}</td>
+                                        <td><a href="{{ url_for('procurement.procurement_plan_detail', plan_id=plan.id) }}"><strong>{{ plan.item or '-' }}</strong></a><br><small>{{ plan.procurement_method }}</small></td>
+                                        <td>{{ plan.output_project_report }}</td>
+                                        <td>{{ plan.funding_source }}</td>
+                                        <td>{{ plan.cost_center_id }}</td>
+                                        <td class="has-text-right">{{ "{:,.2f}".format(plan.amount) }}</td>
+                                        <td><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span></td>
+                                        <td>{{ plan.tor_due_date or '-' }}</td>
+                                        <td>
+                                            {% for member in plan.committee_members.all() %}
+                                                <div class="committee-summary"><strong>{{ member.role_label }}:</strong> {{ member.staff.fullname }}</div>
+                                            {% else %}
+                                                <small class="has-text-grey committee-summary">ยังไม่มี</small>
+                                            {% endfor %}
+                                        </td>
+                                        <td class="has-text-right"><a class="button is-small is-info is-light" href="{{ url_for('procurement.edit_procurement_plan', plan_id=plan.id) }}">แก้ไข</a></td>
+                                    </tr>
+                                {% else %}<tr><td colspan="10" class="has-text-centered has-text-grey">ยังไม่มีรายการแผน</td></tr>{% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+{% endblock %}

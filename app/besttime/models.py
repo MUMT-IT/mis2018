@@ -58,6 +58,16 @@ class BestTimeMasterDateTimeSlot(db.Model):
 class BestTimePoll(db.Model):
     __tablename__ = 'besttime_polls'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    procurement_plan_id = db.Column(
+        'procurement_plan_id',
+        db.ForeignKey('procurement_plans.id'),
+        nullable=True,
+        info={'label': 'แผนจัดซื้อจัดจ้าง'},
+    )
+    procurement_plan = db.relationship(
+        'ProcurementPlan',
+        backref=db.backref('besttime_polls', lazy='dynamic'),
+    )
     title = db.Column(db.String(), nullable=False, info={'label': 'ชื่อแบบสำรวจ'})
     start_date = db.Column(db.Date(), nullable=True, info={'label': 'วันที่ตัวเลือกเริ่มต้น'})
     end_date = db.Column(db.Date(), nullable=True, info={'label': 'วันที่ตัวเลือกสุดท้าย'})
@@ -68,8 +78,8 @@ class BestTimePoll(db.Model):
     modified_at = db.Column(db.DateTime(timezone=True))
     closed_at = db.Column(db.DateTime(timezone=True))
     admins = db.relationship(StaffAccount, secondary=poll_admin_assoc_table, backref=db.backref('besttime_poll_admins'))
-    vote_start_date = db.Column('vote_start_date', db.Date(), nullable=False, info={'label': 'วันเริ่มการโหวต'})
-    vote_end_date = db.Column('vote_end_date', db.Date(), nullable=False, info={'label': 'วันสิ้นสุดการโหวต'})
+    vote_start_date = db.Column('vote_start_date', db.Date(), nullable=False, info={'label': 'วันเปิดการโหวต'})
+    vote_end_date = db.Column('vote_end_date', db.Date(), nullable=False, info={'label': 'วันปิดการโหวต'})
 
 
     def __str__(self):

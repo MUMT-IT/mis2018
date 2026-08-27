@@ -9,14 +9,20 @@ from wtforms import (SelectMultipleField,
                      SelectField,
                      FieldList,
                      FormField,
-                     Field
+                     Field,
+                     StringField,
+                     TextAreaField,
+                     BooleanField,
+                     SubmitField,
+                     IntegerField,
+                     DecimalField
                      )
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Length, Optional
 from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
 from ..models import Org, CostCenter
-from ..staff.models import StaffPersonalInfo
+from ..staff.models import StaffPersonalInfo, StaffAccount
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -30,6 +36,19 @@ class ModelForm(BaseModelForm):
     @classmethod
     def get_session(self):
         return db.session
+
+
+class ProcurementFundingSourceForm(FlaskForm):
+    code = StringField(u'รหัสแหล่งงบประมาณ', validators=[DataRequired(), Length(max=64)])
+    name = StringField(u'ชื่อแหล่งงบประมาณ', validators=[DataRequired(), Length(max=255)])
+    description = TextAreaField(u'รายละเอียด', validators=[Optional()])
+    is_active = BooleanField(u'ใช้งาน', default=True)
+    submit = SubmitField(u'บันทึก')
+
+
+class ProcurementOutputProjectReportForm(FlaskForm):
+    name = TextAreaField(u'ผลผลิต/โครงการ/รายงาน', validators=[DataRequired()])
+    submit = SubmitField(u'บันทึก')
 
 
 class ProcurementRecordForm(ModelForm):
@@ -61,6 +80,103 @@ class DatePickerField(Field):
             self.data = datetime.datetime.strptime(value[0], '%d/%m/%Y')
         else:
             self.data = None
+
+
+class ProcurementPlanForm(FlaskForm):
+    fiscal_year = IntegerField(u'ปีงบประมาณ', validators=[DataRequired()])
+    funding_source = QuerySelectField(
+        u'แหล่งงบประมาณ',
+        query_factory=lambda: ProcurementFundingSource.query.filter_by(is_active=True).order_by(
+            ProcurementFundingSource.code.asc()
+        ).all(),
+        get_label=lambda source: str(source),
+        allow_blank=False,
+    )
+    item = StringField(u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง', validators=[DataRequired(), Length(max=255)])
+    output_project_report = QuerySelectField(
+        u'ผลผลิต/โครงการ/รายงาน',
+        query_factory=lambda: ProcurementOutputProjectReport.query.order_by(
+            ProcurementOutputProjectReport.name.asc()
+        ).all(),
+        get_label='name',
+        allow_blank=False,
+    )
+    cost_center = QuerySelectField(
+        u'ศูนย์ต้นทุน',
+        query_factory=lambda: CostCenter.query.order_by(CostCenter.id.asc()).all(),
+        get_label='id',
+        allow_blank=False,
+    )
+    procurement_method = SelectField(
+        u'วิธีการจัดซื้อจัดจ้าง',
+        choices=[
+            (u'ประกาศเชิญชวนทั่วไป(E-Bidding)', u'ประกาศเชิญชวนทั่วไป(E-Bidding)'),
+            (u'วิธีคัดเลือก', u'วิธีคัดเลือก'),
+            (u'วิธีเฉพาะเจาะจง', u'วิธีเฉพาะเจาะจง'),
+            (u'รับบริจาค/รับโอน', u'รับบริจาค/รับโอน'),
+            (u'อื่นๆ', u'อื่นๆ'),
+        ],
+        validators=[DataRequired()],
+    )
+    amount = DecimalField(u'จำนวนเงิน', places=2, validators=[DataRequired()])
+    fund_code = StringField(u'รหัสทุน', validators=[Optional(), Length(max=64)])
+    responsible_staff = QuerySelectField(
+        u'เจ้าหน้าที่พัสดุที่รับผิดชอบ',
+        query_factory=lambda: StaffAccount.get_active_accounts(),
+        get_label='fullname',
+        allow_blank=True,
+        blank_text='ยังไม่ระบุ',
+    )
+    responsible_org = QuerySelectField(
+        u'หน่วยงานผู้รับผิดชอบ',
+        query_factory=lambda: Org.query.order_by(Org.name.asc()).all(),
+        get_label='display_name',
+        allow_blank=True,
+        blank_text='ยังไม่ระบุ',
+    )
+    vendor = QuerySelectField(
+        u'บริษัทคู่สัญญา',
+        query_factory=lambda: ProcurementVendor.query.filter_by(is_active=True).order_by(
+            ProcurementVendor.name.asc()
+        ).all(),
+        get_label='name',
+        allow_blank=True,
+        blank_text='ยังไม่ระบุ',
+    )
+    principle_approval_date = DatePickerField(u'วันที่อนุมัติหลักการ')
+    tor_completed_date = DatePickerField(u'วันที่จัดทำ TOR แล้วเสร็จ')
+    tor_due_date = DatePickerField(u'กำหนดจัดทำ TOR')
+    quotation_submission_date = DatePickerField(u'วันที่ยื่นเสนอราคา')
+    contract_signed_date = DatePickerField(u'วันที่ลงนามสัญญา')
+    inspection_date = DatePickerField(u'วันที่ตรวจรับ')
+    note = TextAreaField(u'หมายเหตุ', validators=[Optional()])
+    submit = SubmitField(u'บันทึก')
+
+
+class ProcurementPlanCommitteeMemberForm(FlaskForm):
+    staff = QuerySelectField(
+        u'บุคลากร',
+        query_factory=lambda: StaffAccount.get_active_accounts(),
+        get_label='fullname',
+        allow_blank=False,
+    )
+    role = SelectField(
+        u'บทบาท',
+        choices=[
+            ('chairman', u'ประธาน'),
+            ('committee', u'กรรมการ'),
+            ('secretary', u'เลขานุการ'),
+        ],
+        validators=[DataRequired()],
+    )
+    submit = SubmitField(u'เพิ่มกรรมการ')
+
+
+class ProcurementPlanCommitteeEmailForm(FlaskForm):
+    title = StringField(u'หัวข้ออีเมล', validators=[DataRequired(), Length(max=255)])
+    message = TextAreaField(u'ข้อความอีเมล', validators=[DataRequired()])
+    tor_due_date = DatePickerField(u'กำหนดจัดทำ TOR', validators=[DataRequired()])
+    submit = SubmitField(u'ส่งอีเมลแจ้งคณะกรรมการ')
 
 
 class ProcurementDetailForm(ModelForm):

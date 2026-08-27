@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <style>
+        .procurement-planning-shell { padding: 2rem 1rem 4rem; }
+        .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
+        .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
+        .plan-form-card { border-radius: 1rem; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "nav.html" %}
+    <main class="container procurement-planning-shell">
+        <div class="columns is-variable is-5">
+            <aside class="column is-3">{% include "procurement/planning_sidebar.html" %}</aside>
+            <section class="column is-9">
+                <div class="level mb-5">
+                    <div>
+                        <p class="heading">Procurement Planning</p>
+                        <h1 class="title is-3 mb-2">{{ page_title }}</h1>
+                        <p class="subtitle is-6 mb-0">บันทึกรายการแผนการจัดซื้อจัดจ้างประจำปีงบประมาณ</p>
+                    </div>
+                </div>
+
+                <div class="box plan-form-card">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="columns">
+                            <div class="column is-one-third">
+                                <div class="field">
+                                    {{ form.fiscal_year.label(class="label") }}
+                                    <div class="control">{{ form.fiscal_year(class="input", placeholder="เช่น 2569") }}</div>
+                                    {% for error in form.fiscal_year.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.funding_source.label(class="label") }}
+                                    <div class="select is-fullwidth">{{ form.funding_source() }}</div>
+                                    {% for error in form.funding_source.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            {{ form.item.label(class="label") }}
+                            <div class="control">{{ form.item(class="input", placeholder="ระบุรายการพัสดุหรือรายการจัดซื้อจัดจ้าง") }}</div>
+                            {% for error in form.item.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                        </div>
+                        <div class="field">
+                            {{ form.output_project_report.label(class="label") }}
+                            <div class="select is-fullwidth">{{ form.output_project_report() }}</div>
+                            {% for error in form.output_project_report.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.cost_center.label(class="label") }}
+                                    <div class="select is-fullwidth">{{ form.cost_center() }}</div>
+                                    {% for error in form.cost_center.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.procurement_method.label(class="label") }}
+                                    <div class="select is-fullwidth">{{ form.procurement_method() }}</div>
+                                    {% for error in form.procurement_method.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.amount.label(class="label") }}
+                                    <div class="control">{{ form.amount(class="input", step="0.01", min="0") }}</div>
+                                    {% for error in form.amount.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.fund_code.label(class="label") }}
+                                    <div class="control">{{ form.fund_code(class="input") }}</div>
+                                    {% for error in form.fund_code.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 class="title is-5 mt-5">สำหรับเจ้าหน้าที่พัสดุ</h2>
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.responsible_staff.label(class="label") }}
+                                    <div class="select is-fullwidth">{{ form.responsible_staff() }}</div>
+                                    {% for error in form.responsible_staff.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.responsible_org.label(class="label") }}
+                                    <div class="select is-fullwidth">{{ form.responsible_org() }}</div>
+                                    {% for error in form.responsible_org.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.vendor.label(class="label") }}
+                                    <div class="select is-fullwidth">{{ form.vendor() }}</div>
+                                    {% for error in form.vendor.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="columns is-multiline">
+                            {% for field in [form.principle_approval_date, form.tor_due_date, form.tor_completed_date, form.quotation_submission_date, form.contract_signed_date, form.inspection_date] %}
+                                <div class="column is-one-third">
+                                    <div class="field">
+                                        {{ field.label(class="label") }}
+                                        <div class="control">{{ field(class="input date-field", placeholder="วว/ดด/ปปปป") }}</div>
+                                        {% for error in field.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    {{ form.note.label(class="label") }}
+                                    <div class="control">{{ form.note(class="textarea", rows="2") }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped mt-5">
+                            <div class="control">{{ form.submit(class="button is-primary") }}</div>
+                            <div class="control"><a class="button is-light" href="{{ url_for('procurement.procurement_plans') }}">ยกเลิก</a></div>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </div>
+    </main>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(function () {
+            function setDefaultTorDueDate() {
+                const fiscalYear = parseInt($('#fiscal_year').val(), 10);
+                const torDueDate = $('#tor_due_date');
+                if (fiscalYear && !torDueDate.val()) {
+                    torDueDate.val('31/12/' + fiscalYear);
+                }
+            }
+
+            $('#fiscal_year').on('change', setDefaultTorDueDate);
+            setDefaultTorDueDate();
+
+            $('.date-field').each(function () {
+                const input = $(this);
+                const currentValue = input.val();
+                const options = {
+                    singleDatePicker: true,
+                    autoUpdateInput: false,
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        applyLabel: 'เลือก',
+                        cancelLabel: 'ล้าง',
+                        daysOfWeek: ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'],
+                        monthNames: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
+                        firstDay: 1
+                    }
+                };
+
+                if (currentValue) {
+                    options.startDate = moment(currentValue, 'DD/MM/YYYY');
+                }
+
+                input.daterangepicker(options);
+                input.val(currentValue);
+                input.on('apply.daterangepicker', function (event, picker) {
+                    $(this).val(picker.startDate.format('DD/MM/YYYY'));
+                });
+                input.on('cancel.daterangepicker', function () {
+                    $(this).val('');
+                });
+            });
+        });
+    </script>
+{% endblock %}

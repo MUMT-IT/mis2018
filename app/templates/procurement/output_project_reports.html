@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการผลผลิต/โครงการ/รายงาน{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .procurement-planning-shell { padding: 2rem 1rem 4rem; }
+        .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
+        .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
+        .master-data-card { border-radius: 1rem; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "nav.html" %}
+    <main class="container procurement-planning-shell">
+        {% include "messages.html" %}
+        <div class="columns is-variable is-5">
+            <aside class="column is-3">{% include "procurement/planning_sidebar.html" %}</aside>
+            <section class="column is-9">
+                <div class="level mb-5">
+                    <div>
+                        <p class="heading">Procurement Planning</p>
+                        <h1 class="title is-3 mb-2">จัดการผลผลิต/โครงการ/รายงาน</h1>
+                        <p class="subtitle is-6 mb-0">รายการที่สามารถนำไปใช้กับแผนจัดซื้อจัดจ้าง</p>
+                    </div>
+                </div>
+
+                <div class="box master-data-card mb-5">
+                    <h2 class="title is-5">{% if editing_report %}แก้ไขผลผลิต/โครงการ/รายงาน{% else %}เพิ่มผลผลิต/โครงการ/รายงาน{% endif %}</h2>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            {{ form.name.label(class="label") }}
+                            <div class="control">{{ form.name(class="textarea", rows="2") }}</div>
+                            {% for error in form.name.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                        </div>
+                        <div class="field is-grouped mt-4">
+                            <div class="control">{{ form.submit(class="button is-primary") }}</div>
+                            {% if editing_report %}<div class="control"><a class="button is-light" href="{{ url_for('procurement.procurement_output_project_reports') }}">ยกเลิก</a></div>{% endif %}
+                        </div>
+                    </form>
+                </div>
+
+                <div class="box master-data-card">
+                    <h2 class="title is-5">รายการทั้งหมด ({{ reports|length }})</h2>
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-hoverable">
+                            <thead><tr><th>ผลผลิต/โครงการ/รายงาน</th><th>จำนวนแผนที่ใช้งาน</th><th class="has-text-right">การจัดการ</th></tr></thead>
+                            <tbody>
+                                {% for report in reports %}
+                                    <tr>
+                                        <td>{{ report.name }}</td>
+                                        <td>{{ report.procurement_plans.count() }}</td>
+                                        <td class="has-text-right">
+                                            <a class="button is-small is-info is-light" href="{{ url_for('procurement.edit_procurement_output_project_report', report_id=report.id) }}">แก้ไข</a>
+                                            <form method="post" action="{{ url_for('procurement.delete_procurement_output_project_report', report_id=report.id) }}" class="is-inline-block" onsubmit="return confirm('ต้องการลบผลผลิต/โครงการ/รายงานนี้หรือไม่');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="button is-small is-danger is-light">ลบ</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="3" class="has-text-centered has-text-grey">ยังไม่มีผลผลิต/โครงการ/รายงาน</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+{% endblock %}

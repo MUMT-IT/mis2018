@@ -1,0 +1,40 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}ลงทะเบียน | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+  <header class="mb-4">
+    <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">ระบบเงินยืมทดรองจ่าย</p>
+    <h1 class="fw-bold display-6 mb-2">สร้างบัญชีผู้ประสานงาน</h1>
+    <p class="text-muted col-lg-8 p-0">
+      ระบบเปิดให้ลงทะเบียนสำหรับบัญชีผู้ประสานงานเท่านั้นในแอปพลิเคชันเริ่มต้นนี้
+    </p>
+  </header>
+
+  {% if success_message %}
+    <div class="alert alert-success mb-4" role="alert">{{ success_message }}</div>
+  {% endif %}
+
+  <form method="post">
+    <div class="mb-3">
+      <label for="email" class="form-label fw-bold">อีเมล</label>
+      <input id="email" name="email" type="email" value="{{ form.email.data or '' }}" autocomplete="username" class="form-control form-control-lg" placeholder="you@example.com" style="border-radius: 12px;">
+      {% for error in form.email.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="mb-4">
+      <label for="password" class="form-label fw-bold">รหัสผ่าน</label>
+      <input id="password" name="password" type="password" autocomplete="new-password" class="form-control form-control-lg" placeholder="กำหนดรหัสผ่านของคุณ" style="border-radius: 12px;">
+      {% for error in form.password.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+      {% endfor %}
+    </div>
+
+    <div class="d-flex flex-column flex-sm-row gap-2">
+      <button class="btn btn-primary btn-lg px-4 fw-bold" type="submit" style="border-radius: 12px;">ลงทะเบียน</button>
+      <a class="btn btn-outline-secondary btn-lg px-4" href="{{ url_for('advance_payment.login') }}" style="border-radius: 12px;">กลับสู่หน้าเข้าสู่ระบบ</a>
+    </div>
+  </form>
+{% endblock %}

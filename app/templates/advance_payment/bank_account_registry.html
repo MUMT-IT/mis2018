@@ -1,0 +1,160 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}ข้อมูลบัญชีธนาคาร | ระบบเงินสดย่อยและเงินยืม{% endblock %}
+
+{% block content %}
+<header class="mb-4 pb-2 border-bottom">
+  <a href="{{ url_for('advance_payment.finance_dashboard') }}" title="กลับไปยังแดชบอร์ด">
+    <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
+  </a>
+  <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
+  <h1 class="fw-bold display-6 mb-2">ข้อมูลบัญชีธนาคาร</h1>
+  <p class="text-muted mb-0">
+    แสดงผลแบบอ่านอย่างเดียวเป็นหลัก และเปิดให้แก้ไขได้เมื่อกดปุ่มแก้ไขข้อมูลบัญชีธนาคาร
+  </p>
+</header>
+
+<div class="card shadow-sm border rounded-4 bg-white">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h5 class="fw-bold text-primary mb-0">
+        <i class="bi bi-bank me-2"></i>ตารางข้อมูลบัญชีธนาคาร
+      </h5>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-warning btn-sm fw-bold" onclick="toggleEditMode()">
+          <i class="bi bi-pencil-square me-1"></i>
+          <span id="editToggleLabel">แก้ไขข้อมูลบัญชีธนาคาร</span>
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm fw-bold d-none" id="addRowButton" onclick="addBankAccountRow()">
+          <i class="bi bi-plus-circle me-1"></i>เพิ่มแถว
+        </button>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('advance_payment.finance_bank_account_registry') }}" id="bankAccountForm">
+      <input type="hidden" name="edit_mode" id="editModeInput" value="{% if show_editor %}1{% else %}0{% endif %}">
+
+      <div class="table-responsive mb-3">
+        <table class="table table-hover align-middle border mb-0">
+          <thead class="table-light small fw-bold">
+            <tr>
+              <th class="text-center" style="width: 160px;">ประเภท</th>
+              <th>ชื่อภาษาไทย</th>
+              <th>ชื่อภาษาอังกฤษ</th>
+              <th class="text-end" style="width: 220px;">เลขที่บัญชี</th>
+            </tr>
+          </thead>
+          <tbody id="bankAccountsBody">
+            {% for row in edit_rows %}
+            <tr data-record-id="{{ row.id }}">
+              <td class="text-center">
+                <input type="hidden" name="record_id[]" value="{{ row.id }}">
+                <span class="view-mode badge rounded-pill {% if row.record_type == 'petty_cash' %}text-bg-success{% else %}text-bg-primary{% endif %}">
+                  {{ bank_account_type_labels.get(row.record_type, row.record_type) }}
+                </span>
+                <select name="record_type[]" class="form-select form-select-sm edit-mode d-none">
+                  <option value="">เลือกประเภทข้อมูล</option>
+                  {% for value, label in form.record_type.choices %}
+                    <option value="{{ value }}" {% if row.record_type == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <span class="view-mode fw-bold text-dark">{{ row.thai_name }}</span>
+                <input type="text" name="thai_name[]" class="form-control form-control-sm edit-mode d-none" value="{{ row.thai_name or '' }}" placeholder="เช่น เงินสดย่อย งานคลังและพัสดุ">
+              </td>
+              <td>
+                <span class="view-mode text-dark">{{ row.english_name }}</span>
+                <input type="text" name="english_name[]" class="form-control form-control-sm edit-mode d-none" value="{{ row.english_name or '' }}" placeholder="Faculty of Medical Technology">
+              </td>
+              <td class="text-end">
+                <span class="view-mode"><code>{{ row.account_number }}</code></span>
+                <input type="text" name="account_number[]" class="form-control form-control-sm text-end edit-mode d-none" value="{{ row.account_number or '' }}" placeholder="123-4-56789-0">
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-light fw-bold d-none" id="cancelEditButton" onclick="toggleEditMode()">
+          ยกเลิก
+        </button>
+        <button type="submit" class="btn btn-primary px-4 fw-bold d-none" id="saveChangesButton">
+          <i class="bi bi-save me-2"></i>บันทึกการเปลี่ยนแปลง
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<template id="bankAccountRowTemplate">
+  <tr data-record-id="">
+    <td class="text-center">
+      <input type="hidden" name="record_id[]" value="">
+      <span class="view-mode badge rounded-pill text-bg-secondary">รายการใหม่</span>
+      <select name="record_type[]" class="form-select form-select-sm edit-mode d-none">
+        <option value="">เลือกประเภทข้อมูล</option>
+        {% for value, label in form.record_type.choices %}
+          <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td>
+      <span class="view-mode fw-bold text-dark"></span>
+      <input type="text" name="thai_name[]" class="form-control form-control-sm edit-mode d-none" placeholder="เช่น เงินสดย่อย งานคลังและพัสดุ">
+    </td>
+    <td>
+      <span class="view-mode text-dark"></span>
+      <input type="text" name="english_name[]" class="form-control form-control-sm edit-mode d-none" placeholder="Faculty of Medical Technology">
+    </td>
+    <td class="text-end">
+      <span class="view-mode"><code></code></span>
+      <input type="text" name="account_number[]" class="form-control form-control-sm text-end edit-mode d-none" placeholder="123-4-56789-0">
+    </td>
+  </tr>
+</template>
+
+<script>
+  let bankAccountEditMode = {{ 'true' if show_editor else 'false' }};
+
+  function setBankAccountEditMode(enabled) {
+    bankAccountEditMode = enabled;
+
+    document.querySelectorAll('.view-mode').forEach((el) => {
+      el.classList.toggle('d-none', enabled);
+    });
+
+    document.querySelectorAll('.edit-mode').forEach((el) => {
+      el.classList.toggle('d-none', !enabled);
+    });
+
+    document.getElementById('addRowButton').classList.toggle('d-none', !enabled);
+    document.getElementById('cancelEditButton').classList.toggle('d-none', !enabled);
+    document.getElementById('saveChangesButton').classList.toggle('d-none', !enabled);
+    document.getElementById('editModeInput').value = enabled ? '1' : '0';
+    document.getElementById('editToggleLabel').textContent = enabled ? 'กำลังแก้ไขข้อมูล' : 'แก้ไขข้อมูลบัญชีธนาคาร';
+  }
+
+  function toggleEditMode() {
+    setBankAccountEditMode(!bankAccountEditMode);
+  }
+
+  function addBankAccountRow() {
+    if (!bankAccountEditMode) {
+      return;
+    }
+
+    const template = document.getElementById('bankAccountRowTemplate');
+    const tbody = document.getElementById('bankAccountsBody');
+    const clone = template.content.cloneNode(true);
+    tbody.appendChild(clone);
+    setBankAccountEditMode(true);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    setBankAccountEditMode(bankAccountEditMode);
+  });
+</script>
+{% endblock %}

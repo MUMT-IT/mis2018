@@ -28,7 +28,7 @@
     </div>
     <div class="columns">
         <div class="column is-one-third is-offset-2">
-            <form method="post">
+            <form method="post" action="{{ form_action or '' }}">
                 {{ form.hidden_tag() }}
                 {% for field in form.date_time_slots %}
                     <div class="field has-thin-border">
@@ -46,7 +46,7 @@
                         <button class="button is-success" type="submit">บันทึก</button>
                     </div>
                     <div class="control">
-                        <a class="button is-light" href="{{url_for('besttime.index', tab=tab)}}">ยกเลิก</a>
+                        <a class="button is-light" href="{{ cancel_url or url_for('besttime.index', tab=tab) }}">ยกเลิก</a>
                     </div>
                 </div>
             </form>

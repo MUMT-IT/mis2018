@@ -44,6 +44,7 @@ from app.auth.views import _normalize_staff_email
 from app.google_credential_utils import load_google_credentials_json
 
 from app.comhealth.views import allowed_file
+from app.procurement.models import ProcurementPlan
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'}
 
@@ -975,6 +976,55 @@ def index():
                            has_login_summary_access=_has_login_summary_access(current_user.id),
                            has_work_approval_access=_has_work_approval_access(current_user.id),
                            )
+
+
+@staff.route('/procurement-budget-tracking')
+@login_required
+def procurement_budget_tracking():
+    organization = current_user.personal_info.org
+    if not organization or organization.head != current_user.email:
+        abort(403)
+
+    current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
+    plans = ProcurementPlan.query.filter_by(
+        fiscal_year=current_fiscal_year,
+        responsible_org_id=organization.id,
+    ).order_by(ProcurementPlan.id.asc()).all()
+    total_amount = sum((plan.amount or 0 for plan in plans), 0)
+    return render_template(
+        'staff/procurement_budget_tracking.html',
+        organization=organization,
+        fiscal_year=current_fiscal_year,
+        plans=plans,
+        total_amount=total_amount,
+    )
+
+
+@staff.route('/procurement-budget-tracking/plans/<int:plan_id>')
+@login_required
+def procurement_budget_plan_detail(plan_id):
+    organization = current_user.personal_info.org
+    if not organization or organization.head != current_user.email:
+        abort(403)
+
+    current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
+    plan = ProcurementPlan.query.filter_by(
+        id=plan_id,
+        fiscal_year=current_fiscal_year,
+        responsible_org_id=organization.id,
+    ).first_or_404()
+    from app.procurement.views import _can_create_plan_poll, _procurement_plan_gantt_data
+    from app.procurement.forms import ProcurementPlanCommitteeMemberForm
+    return render_template(
+        'procurement/plan_detail.html',
+        plan=plan,
+        committee_form=ProcurementPlanCommitteeMemberForm(),
+        active_page='plans',
+        gantt_data=_procurement_plan_gantt_data(plan),
+        can_manage_procurement=False,
+        can_create_plan_poll=_can_create_plan_poll(plan),
+        back_url=url_for('staff.procurement_budget_tracking'),
+    )
 
 
 @staff.route('/employee-search')

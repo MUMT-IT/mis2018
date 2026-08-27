@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}แผนการจัดซื้อจัดจ้าง{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .procurement-planning-shell {
+            padding: 2rem 1rem 4rem;
+        }
+
+        .procurement-planning-hero {
+            background: linear-gradient(135deg, #122754, #1a3d7c);
+            border-radius: 1.25rem;
+            color: #fff;
+            padding: 2.5rem 2rem;
+        }
+
+        .procurement-planning-hero .title,
+        .procurement-planning-hero .subtitle {
+            color: #fff;
+        }
+
+        .procurement-planning-card {
+            border-radius: 1rem;
+            margin-top: 1.5rem;
+            padding: 2rem;
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "nav.html" %}
+
+    <main class="container procurement-planning-shell">
+        <div class="columns is-variable is-5">
+            <aside class="column is-3">
+                {% include "procurement/planning_sidebar.html" %}
+            </aside>
+            <section class="column is-9">
+                <section class="procurement-planning-hero">
+                    <p class="is-size-7 has-text-weight-semibold is-uppercase">Experimental</p>
+                    <h1 class="title is-2">แผนการจัดซื้อจัดจ้าง</h1>
+                    <p class="subtitle is-5 mb-0">ระบบติดตามแผนและความคืบหน้าการใช้จ่ายงบประมาณประจำปี</p>
+                </section>
+
+                <section class="box procurement-planning-card">
+                    <h2 class="title is-4">แดชบอร์ดภาพรวม</h2>
+                    <p class="subtitle is-6">พื้นที่สำหรับสรุปภาพรวมแผนการจัดซื้อจัดจ้าง จะเปิดใช้งานในขั้นตอนถัดไป</p>
+                    <div class="notification is-info is-light">
+                        กำลังเตรียมข้อมูลแผนการจัดซื้อจัดจ้างและตัวกรองตามปีงบประมาณ แหล่งงบประมาณ และศูนย์ต้นทุน
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+{% endblock %}

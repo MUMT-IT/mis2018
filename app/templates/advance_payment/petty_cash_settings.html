@@ -1,0 +1,398 @@
+﻿{% extends "advance_payment/base.html" %}
+
+{% block title %}การจัดการเงินสดย่อย | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+<header class="mb-4 pb-2 border-bottom">
+  <a href="{{ url_for('advance_payment.finance_dashboard') }}" title="กลับไปยังแดชบอร์ด">
+    <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
+  </a>
+  <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
+  <h1 class="fw-bold display-6 mb-2">การจัดการเงินสดย่อย</h1>
+  <p class="text-muted mb-0">ตรวจสอบงบประมาณตั้งต้น ยอดคงเหลือ และประวัติรวมทุกหน่วยงาน</p>
+</header>
+
+<style>
+  .petty-cash-settings-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+  }
+
+  .petty-cash-settings-tabs .nav-link:hover {
+    background-color: #f1f3f5;
+  }
+
+  .petty-cash-settings-tabs .nav-link.active {
+    background-color: #ffffff !important;
+  }
+
+  #tab-pending-claims.active {
+    border-bottom-color: #0d6efd !important;
+  }
+
+  #tab-current-budget.active {
+    border-bottom-color: #198754 !important;
+  }
+
+</style>
+
+<div class="card shadow-sm border rounded-4 bg-white mb-4">
+  <div class="card-header bg-white border-bottom p-0">
+    <ul class="nav nav-tabs nav-fill border-bottom-0 petty-cash-settings-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold py-3 text-primary nav-item-tab" id="tab-pending-claims" type="button" data-settings-tab="pending-claims">
+          <i class="bi bi-hourglass-split me-1 text-primary"></i>รายการขอเบิกเงินสดย่อยที่รอการตรวจสอบ
+          <span class="badge bg-primary rounded-pill ms-1">{{ claim_details|length }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold py-3 text-success nav-item-tab" id="tab-current-budget" type="button" data-settings-tab="current-budget">
+          <i class="bi bi-bank me-1 text-success"></i>ตารางแสดงงบประมาณประจำปีปัจจุบัน
+          <span class="badge bg-success rounded-pill ms-1">{{ settings|length }}</span>
+        </button>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<section class="mb-5" id="pending-claims-section">
+  <div class="card mb-5 border shadow-sm" id="proofed-claims">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+      <h5 class="fw-bold text-primary mb-0">
+        <i class="bi bi-hourglass-split me-2"></i>รายการขอเบิกเงินสดย่อยรอการตรวจสอบ
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small fw-bold">
+            <tr>
+              <th class="text-center" style="width: 80px;">ID</th>
+              <th>วันที่ยื่นเรื่อง</th>
+              <th>หน่วยงาน</th>
+              <th>ผู้ขอเบิก</th>
+              <th class="text-end">จำนวนเงินรวม (บาท)</th>
+              <th class="text-center">สถานะ</th>
+              <th class="text-center">หมายเลขฎีกา</th>
+              <th class="text-center">วันที่ตั้งฎีกา</th>
+              <th class="text-center" style="width: 140px;">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for claim in claim_details %}
+            <tr>
+              <td class="text-center fw-bold">
+                {% if claim.fund_request and claim.fund_request.ticket_number %}
+                  {{ claim.fund_request.ticket_number }}
+                {% else %}
+                  PC-{{ claim.id }}
+                {% endif %}
+              </td>
+              <td>{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
+              <td class="fw-semibold text-dark">{{ claim.setting.department_name if claim.setting else (claim.user.department if claim.user else 'ไม่ระบุ') }}</td>
+              <td>{{ claim.user.name if claim.user else '-' }}</td>
+              <td class="text-end fw-bold text-primary">{{ '{:,.2f}'.format(claim.total_amount or claim.amount or 0.0) }}</td>
+              <td class="text-center">
+                {% if claim.status == 'ผ่านการตรวจสอบ' %}
+                  <span class="badge bg-primary-subtle text-primary border">ผ่านการตรวจสอบ</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border">{{ claim.status }}</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if claim.closing_document %}
+                  <span class="text-dark d-block fw-medium">{{ claim.closing_document.document_number }}</span>
+                  {% if claim.old_closing_document_name %}
+                    <span class="text-muted small ms-2">(เลขฎีกาเก่า: {{ claim.old_closing_document_name }})</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted small">-</span>
+                {% endif %}
+              </td>
+              <td class="text-center small text-secondary">
+                {{ claim.closing_document.filing_date|thai_date if claim.closing_document and claim.closing_document.filing_date else '-' }}
+              </td>
+              <td class="text-center">
+                <a href="{{ url_for('advance_payment.petty_cash_claim_detail', claim_id=claim.id) }}"
+                   class="btn btn-sm btn-outline-primary fw-semibold shadow-sm"
+                   title="เปิดหน้า petty_cash_claim_detail.html">
+                  <i class="bi bi-file-earmark-text me-1"></i>ตรวจสอบ
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="9" class="text-center text-muted py-4">
+                <i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>
+                ไม่มีรายการขอเบิกเงินสดย่อยที่รอการอนุมัติในขณะนี้
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mb-5 d-none" id="current-budget-section">
+  <div class="row g-4 mb-4">
+    <div class="col-lg-12">
+      <div class="card shadow-sm border rounded-4 bg-white">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-primary mb-0">
+              <i class="bi bi-bank me-2"></i>ตารางงบประมาณและยอดคงเหลือประจำหน่วยงาน
+            </h5>
+            <button type="button" class="btn btn-warning btn-sm fw-bold" onclick="toggleEditSection()">
+              <i class="bi bi-pencil-square me-1"></i>แก้ไขการตั้งค่าตั้งต้น
+            </button>
+          </div>
+
+          <div class="table-responsive mb-5">
+            <table class="table table-hover align-middle border">
+              <thead class="table-light small fw-bold">
+                <tr>
+                  <th class="text-center">ปีงบประมาณ</th>
+                  <th>หน่วยงาน</th>
+                  <th>ผู้รักษาเงินสดย่อย</th>
+                  <th>เลขที่บัญชี</th>
+                  <th class="text-end">งบประมาณจัดตั้ง (บาท)</th>
+                  <th class="text-end">ยอดเบิกสะสม (บาท)</th>
+                  <th class="text-end">ยอดคงเหลือ (บาท)</th>
+                  <th class="text-center">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for setting in settings %}
+                {% set summary = dept_summary.get(setting.id, {}) %}
+                <tr>
+                  <td class="text-center fw-bold">{{ setting.fiscal_year }}</td>
+                  <td class="fw-bold text-dark">{{ setting.department_name }}</td>
+                  <td class="text-dark">{{ setting.custodian_name or '-' }}</td>
+                  <td class="fw-bold text-dark">
+                    {% if setting.bank_account_info %}
+                      <div>{{ setting.bank_account_info.account_number }}</div>
+                      <div class="small text-muted">{{ setting.bank_account_info.thai_name }}</div>
+                    {% else %}
+                      {{ setting.account_number or '-' }}
+                    {% endif %}
+                  </td>
+                  <td class="text-end">{{ '{:,.2f}'.format(setting.budget) }}</td>
+                  <td class="text-end text-danger">{{ '{:,.2f}'.format(summary.get('total_spent', 0.0)) }}</td>
+                  <td class="text-end text-success fw-bold">{{ '{:,.2f}'.format(summary.get('remaining_budget', setting.budget)) }}</td>
+                  <td class="text-center">
+                    {% if setting.valid %}
+                    <span class="badge bg-success-subtle text-success border rounded-pill">เปิดใช้งาน</span>
+                    {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">ปิดใช้งาน</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div id="editSettingSection" class="d-none border p-3 rounded-4 bg-light mt-4">
+            <h6 class="fw-bold text-dark mb-3">แก้ไขข้อมูลหน่วยงานและงบประมาณ</h6>
+            <form method="post" action="{{ url_for('advance_payment.petty_cash_settings') }}">
+              <template id="bank-account-options-template">
+                <option value="" disabled selected>โปรดเลือกเลขที่บัญชี</option>
+                {% for account in bank_account_options %}
+                  <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}">{{ account.label }}</option>
+                {% endfor %}
+              </template>
+              <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="addSettingRow()">
+                  <i class="bi bi-plus-circle me-1"></i>เพิ่มหน่วยงานใหม่
+                </button>
+              </div>
+
+              <div class="table-responsive mb-3">
+                <table class="table table-bordered align-middle bg-white" id="settingsTable">
+                  <thead class="table-light small fw-bold">
+                    <tr>
+                      <th style="width: 80px;" class="text-center">เปิดใช้งาน</th>
+                      <th style="width: 120px;">ปีงบประมาณ <span class="text-danger">*</span></th>
+                      <th>ชื่อหน่วยงาน <span class="text-danger">*</span></th>
+                      <th>ผู้ดูแลบัญชี/ผู้รักษาเงินสดย่อย</th>
+                      <th style="width: 200px;">งบประมาณตั้งต้น (บาท) <span class="text-danger">*</span></th>
+                      <th style="width: 200px;">เลขที่บัญชี <span class="text-danger">*</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="settingsBody">
+                    {% for setting in settings %}
+                    <tr>
+                      <td class="text-center">
+                        <input type="checkbox" name="valid_dept[]" value="{{ setting.department_name }}" class="form-check-input" {% if setting.valid %}checked{% endif %}>
+                      </td>
+                      <td>
+                        <input type="number" name="fiscal_year[]" class="form-control form-control-sm text-center" value="{{ setting.fiscal_year }}" required>
+                      </td>
+                      <td>
+                        <input type="text" name="dept_name[]" class="form-control form-control-sm dept-input" value="{{ setting.department_name }}" onblur="fetchCustodianSuggestion(this)" required>
+                      </td>
+                      <td>
+                        <input type="text" name="custodian_name[]" class="form-control form-control-sm custodian-input" value="{{ setting.custodian_name or '' }}" placeholder="ระบุผู้ดูแลบัญชี">
+                      </td>
+                      <td>
+                        <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" value="{{ '{:,.2f}'.format(setting.budget) }}" required>
+                      </td>
+                      <td>
+                        <select name="account_number[]" class="form-select form-select-sm bank-account-select" onchange="syncBankAccountInfo(this)" required>
+                          <option value="" disabled {% if not setting.account_number %}selected{% endif %}>โปรดเลือกเลขที่บัญชี</option>
+                          {% for account in bank_account_options %}
+                            <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}" {% if setting.account_number == account.value %}selected{% endif %}>{{ account.label }}</option>
+                          {% endfor %}
+                          {% if setting.account_number and setting.account_number not in bank_account_values %}
+                            <option value="{{ setting.account_number }}" selected>{{ setting.account_number }}</option>
+                          {% endif %}
+                        </select>
+                        <input type="hidden" name="bank_account_info_id[]" class="bank-account-info-id" value="{{ setting.bank_account_info_id or '' }}">
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="text-end">
+                <button type="button" class="btn btn-light me-2 fw-bold" onclick="toggleEditSection()">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                  <i class="bi bi-save me-2"></i>บันทึกการเปลี่ยนแปลง
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function fetchCustodianSuggestion(inputElem) {
+    const deptName = inputElem.value.trim();
+    if (!deptName) return;
+
+    const row = inputElem.closest('tr');
+    const custodianInput = row.querySelector('.custodian-input');
+
+    fetch(`/api/custodian/suggest?department_name=${encodeURIComponent(deptName)}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.custodian_name && custodianInput && !custodianInput.value) {
+          custodianInput.value = data.custodian_name;
+        }
+      })
+      .catch(err => console.error('Error fetching custodian:', err));
+  }
+
+  function addSettingRow() {
+    const tbody = document.getElementById('settingsBody');
+    const newRow = document.createElement('tr');
+    const currentYear = new Date().getFullYear() + 543;
+    const accountOptionsTemplate = document.getElementById('bank-account-options-template');
+
+    newRow.innerHTML = `
+      <td class="text-center">
+        <input type="checkbox" name="valid_dept[]" value="" class="form-check-input" checked>
+      </td>
+      <td>
+        <input type="number" name="fiscal_year[]" class="form-control form-control-sm text-center" value="${currentYear}" required>
+      </td>
+      <td>
+        <input type="text" name="dept_name[]" class="form-control form-control-sm dept-input" onblur="fetchCustodianSuggestion(this)" required>
+      </td>
+      <td>
+        <input type="text" name="custodian_name[]" class="form-control form-control-sm custodian-input" placeholder="ระบุผู้ดูแลบัญชี">
+      </td>
+      <td>
+        <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" value="0.00" required>
+      </td>
+      <td>
+        <select name="account_number[]" class="form-select form-select-sm bank-account-select" onchange="syncBankAccountInfo(this)" required>
+          ${accountOptionsTemplate ? accountOptionsTemplate.innerHTML : '<option value="" disabled selected>โปรดเลือกเลขที่บัญชี</option>'}
+        </select>
+        <input type="hidden" name="bank_account_info_id[]" class="bank-account-info-id" value="">
+      </td>
+    `;
+    tbody.appendChild(newRow);
+    const bankSelect = newRow.querySelector('.bank-account-select');
+    if (bankSelect) {
+      syncBankAccountInfo(bankSelect);
+    }
+  }
+
+  function toggleEditSection() {
+    const editSection = document.getElementById('editSettingSection');
+    editSection.classList.toggle('d-none');
+  }
+
+  function syncBankAccountInfo(selectElem) {
+    const row = selectElem.closest('tr');
+    if (!row) return;
+
+    const hiddenInput = row.querySelector('.bank-account-info-id');
+    if (!hiddenInput) return;
+
+    const selectedOption = selectElem.options[selectElem.selectedIndex];
+    hiddenInput.value = selectedOption && selectedOption.dataset.bankAccountId ? selectedOption.dataset.bankAccountId : '';
+  }
+
+  function filterClaims() {
+    const selectedDept = document.getElementById('filterDepartment').value.toLowerCase();
+    const selectedStatus = document.getElementById('filterStatus').value.toLowerCase();
+    const rows = document.querySelectorAll('.claim-row');
+
+    rows.forEach(row => {
+      const dept = (row.getAttribute('data-dept') || '').toLowerCase();
+      const status = (row.getAttribute('data-status') || '').toLowerCase();
+
+      const matchDept = !selectedDept || dept === selectedDept;
+      const matchStatus = !selectedStatus || status === selectedStatus;
+
+      if (matchDept && matchStatus) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  (function () {
+    const tabButtons = document.querySelectorAll('[data-settings-tab]');
+    const sections = {
+      'pending-claims': document.getElementById('pending-claims-section'),
+      'current-budget': document.getElementById('current-budget-section'),
+      'history': document.getElementById('history-section'),
+    };
+
+    function setActiveTab(tabKey) {
+      tabButtons.forEach((button) => {
+        button.classList.toggle('active', button.dataset.settingsTab === tabKey);
+      });
+
+      Object.entries(sections).forEach(([key, section]) => {
+        if (section) {
+          section.classList.toggle('d-none', key !== tabKey);
+        }
+      });
+    }
+
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => setActiveTab(button.dataset.settingsTab));
+    });
+
+    setActiveTab('pending-claims');
+
+    document.querySelectorAll('.bank-account-select').forEach((selectElem) => {
+      syncBankAccountInfo(selectElem);
+    });
+  })();
+</script>
+{% endblock %}

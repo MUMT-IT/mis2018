@@ -17,6 +17,7 @@ class SmartClassOnlineAccount(db.Model):
     __tablename__ = 'smartclass_scheduler_online_accounts'
     id = db.Column('id', db.Integer, primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(), nullable=False)
+    is_retired = db.Column('is_retired', db.Boolean(), nullable=True, default=None)
     resource_type_id = db.Column('resource_type_id',
                                  db.ForeignKey('smartclass_scheduler_resource_types.id'))
     resource_type = db.relationship(SmartClassResourceType,
@@ -48,4 +49,3 @@ class SmartClassOnlineAccountEvent(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
     note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
     account = db.relationship(SmartClassOnlineAccount, backref=db.backref('events'))
-

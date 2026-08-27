@@ -1295,6 +1295,13 @@ admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement')
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRequire, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementPurchasingType, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementFundingSource, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementVendor, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementPlan, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementOutputProjectReport, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementPlanActivity, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementPlanCommitteeMember, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementPlanTORReminder, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementCommitteeApproval, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementInfoComputer, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementInfoCPU, db.session, category='Procurement'))
@@ -1690,7 +1697,16 @@ from app.smartclass_scheduler.models import (SmartClassOnlineAccount,
                                              SmartClassResourceType,
                                              SmartClassOnlineAccountEvent)
 
-admin.add_view(ModelView(SmartClassOnlineAccount, db.session, category='Smartclass'))
+
+class SmartClassOnlineAccountModelView(ModelView):
+    # Keep the account admin page lightweight; events can be a large collection.
+    list_display_all_relations = False
+    column_list = ('id', 'name', 'is_retired', 'resource_type_id')
+    form_excluded_columns = ('resource_type', 'events')
+
+
+admin.add_view(SmartClassOnlineAccountModelView(SmartClassOnlineAccount, db.session,
+                                                category='Smartclass'))
 admin.add_view(ModelView(SmartClassResourceType, db.session, category='Smartclass'))
 admin.add_view(ModelView(SmartClassOnlineAccountEvent, db.session, category='Smartclass'))
 
@@ -1866,6 +1882,10 @@ admin.add_views(ModelView(ServiceReceiptItem, db.session, category='Academic Ser
 from app.academic_service_payment import academic_service_payment as academic_service_payment_blueprint
 
 app.register_blueprint(academic_service_payment_blueprint)
+
+from app.advance_payment import advance_payment as advance_payment_blueprint
+
+app.register_blueprint(advance_payment_blueprint)
 
 from app.software_request import software_request as software_request_blueprint
 
