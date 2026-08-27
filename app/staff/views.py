@@ -263,6 +263,26 @@ def _current_login_quota_period(reference_date=None, staff_personal_info=None):
     return quota_start, quota_end, quota_limit
 
 
+def _working_dates_between(start_date, end_date):
+    weekdays = set()
+    current_day = start_date
+    while current_day <= end_date:
+        if current_day.weekday() < 5:
+            weekdays.add(current_day)
+        current_day += timedelta(days=1)
+
+    holiday_dates = {
+        _to_bangkok(holiday.holiday_date).date()
+        if isinstance(holiday.holiday_date, datetime)
+        else holiday.holiday_date
+        for holiday in Holidays.query.filter(
+            cast(Holidays.holiday_date, Date).between(start_date, end_date)
+        ).all()
+        if holiday.holiday_date
+    }
+    return weekdays - holiday_dates
+
+
 def _build_login_quota_summary(staff_personal_info):
     quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
         staff_personal_info=staff_personal_info
@@ -278,8 +298,11 @@ def _build_login_quota_summary(staff_personal_info):
 
     rows = _daily_work_login_rows(records)
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    working_dates = _working_dates_between(quota_start_date, quota_end_date)
     quota_flagged_dates = set()
     for row in rows:
+        if row['date'] not in working_dates:
+            continue
         start_dt = parser.isoparse(row['start']) if row['start'] else None
         end_dt = parser.isoparse(row['end']) if row['end'] else None
         worked_hours = _calculate_work_hours(start_dt, end_dt)
@@ -310,7 +333,10 @@ def _build_login_quota_summary(staff_personal_info):
             'worked_hours': round(worked_hours, 1) if worked_hours is not None else None,
             'is_late': is_late_day,
             'is_short_hours': is_short_hours_day,
-            'counts_toward_quota': is_late_day or is_short_hours_day,
+            'counts_toward_quota': (
+                row['date'] in working_dates
+                and (is_late_day or is_short_hours_day)
+            ),
         })
 
     return {
@@ -586,6 +612,7 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
     }
     quota_start_date = min(period[0] for period in quota_periods.values())
     quota_end_date = max(period[1] for period in quota_periods.values())
+    quota_working_dates = _working_dates_between(quota_start_date, quota_end_date)
     quota_records_query = StaffWorkLogin.query.filter(
         cast(func.timezone('Asia/Bangkok', start_datetime_column), Date)
         .between(quota_start_date, quota_end_date)
@@ -708,7 +735,10 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
         quota_flagged_dates = set()
         quota_start_date, quota_end_date = quota_periods[staff_id]
         for row in quota_rows_by_staff.get(staff_id, []):
-            if not quota_start_date <= row['date'] <= quota_end_date:
+            if (
+                not quota_start_date <= row['date'] <= quota_end_date
+                or row['date'] not in quota_working_dates
+            ):
                 continue
             quota_start_dt = parser.isoparse(row['start']) if row['start'] else None
             quota_end_dt = parser.isoparse(row['end']) if row['end'] else None
@@ -4509,21 +4539,22 @@ def refresh_daily_attendance(target_date, staff_ids=None):
         checkin_records = [
             record for record in staff_records
             if record.start_datetime is not None and record.correction_type != 'checkout'
-        ]
+        ] if not holiday and not is_weekend else []
         first_record = checkin_records[0] if checkin_records else None
         checkout_datetimes = [
             record.end_datetime
             for record in staff_records
             if record.end_datetime is not None
-        ]
-        checkout_datetimes.extend(
-            record.start_datetime
-            for record in staff_records
-            if record.start_datetime is not None and (
-                record.correction_type == 'checkout'
-                or (record is staff_records[-1] and len(staff_records) > 1)
+        ] if not holiday and not is_weekend else []
+        if not holiday and not is_weekend:
+            checkout_datetimes.extend(
+                record.start_datetime
+                for record in staff_records
+                if record.start_datetime is not None and (
+                    record.correction_type == 'checkout'
+                    or (record is staff_records[-1] and len(staff_records) > 1)
+                )
             )
-        )
         last_checkout = max(
             checkout_datetimes,
             default=None,
