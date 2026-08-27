@@ -1,0 +1,373 @@
+﻿{% extends "advance_payment/base.html" %}
+
+{% block title %}ประวัติเอกสารส่งใช้เงินยืมและขอเบิกเงินสดย่อยทั้งหมด | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+<header class="mb-4 pb-2 border-bottom">
+  <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
+  <h1 class="fw-bold display-6 mb-2">ประวัติบันทึกเอกสารส่งใช้เงินยืมและขอเบิกเงินสดย่อยทั้งหมด</h1>
+  <p class="text-muted mb-0">รวบรวม ตรวจสอบ ค้นหา และคัดกรองข้อมูลประวัติเอกสารส่งใช้เงินยืมและรายการเบิกเงินสดย่อยทุกรายการในระบบ</p>
+</header>
+
+<!-- Section กรองและค้นหาข้อมูล -->
+<section class="p-4 border rounded-4 bg-white shadow-sm mb-4">
+  <div class="row g-3">
+    <!-- 1. ช่องค้นหา -->
+    <div class="col-md-5">
+      <label for="searchQuery" class="form-label fw-bold text-secondary small">ค้นหาข้อความ</label>
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" id="searchQuery" class="form-control border-start-0 ps-0" placeholder="ค้นหา เลขที่รายการ/ชื่อ/ผู้ยื่น/ฎีกา..." onkeyup="filterHistoryTable()" style="border-radius: 0 6px 6px 0;">
+      </div>
+    </div>
+
+    <!-- 2. Filter กรองตามสถานะ -->
+    <div class="col-md-3">
+      <label for="statusFilter" class="form-label fw-bold text-secondary small">กรองตามสถานะ</label>
+      <select id="statusFilter" class="form-select style-select" onchange="filterHistoryTable()">
+        <option value="all">แสดงสถานะทั้งหมด</option>
+        <option value="รอตรวจสอบ">รอการตรวจสอบ</option>
+        <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
+        <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ</option>
+        <option value="โอนเงินสดย่อยสำเร็จ">โอนเงินสดย่อยสำเร็จ</option>
+        <option value="เอกสารตั้งฎีกา">เอกสารตั้งฎีกา</option>
+        <option value="ล้างลูกหนี้เงินยืม">ล้างลูกหนี้เงินยืม</option>
+        <option value="ปฏิเสธ">ปฏิเสธ</option>
+      </select>
+    </div>
+
+    <!-- 3. จัดเรียงข้อมูล -->
+    <div class="col-md-4">
+      <label for="sortOrder" class="form-label fw-bold text-secondary small">จัดเรียงตามลำดับ</label>
+      <select id="sortOrder" class="form-select style-select" onchange="sortHistoryTable()">
+        <option value="created_desc">วันที่สร้างรายการล่าสุด → เก่าสุด</option>
+        <option value="created_asc">วันที่สร้างรายการเก่าสุด → ล่าสุด</option>
+        <option value="เอกสารตั้งฎีกา_desc">วันที่ปิดยอดล่าสุด → เก่าสุด</option>
+        <option value="amount_desc">จำนวนเงินมากสุด → น้อยสุด</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<!-- Table Section with Integrated Tab Switcher -->
+<section class="mb-5">
+  <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+    
+    <!-- Tab Switcher Header (ยึดติดกับส่วนบนของตาราง) -->
+    <div class="card-header bg-white border-bottom p-0">
+      <ul class="nav nav-tabs nav-fill border-bottom-0" id="historySystemTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-item-tab nav-link active py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">
+            <i class="bi bi-layers me-1 text-secondary"></i> ประวัติทั้งหมด
+            <span class="badge bg-secondary rounded-pill ms-1" id="tab-badge-all">0</span>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-item-tab nav-link py-3 fw-bold text-primary" id="tab-return" type="button" onclick="switchSystemTab('return')">
+            <i class="bi bi-arrow-return-left me-1 text-primary"></i> ส่งใช้เงินยืม
+            <span class="badge bg-primary rounded-pill ms-1" id="tab-badge-return">0</span>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-item-tab nav-link py-3 fw-bold text-success" id="tab-petty_cash" type="button" onclick="switchSystemTab('petty_cash')">
+            <i class="bi bi-receipt me-1 text-success"></i> เงินสดย่อย (Petty Cash)
+            <span class="badge bg-success rounded-pill ms-1" id="tab-badge-petty_cash">0</span>
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-item-tab nav-link py-3 fw-bold text-warning" id="tab-parcel_return" type="button" onclick="switchSystemTab('parcel_return')">
+            <i class="bi bi-box-seam me-1 text-warning"></i> ส่งคืนพัสดุ
+            <span class="badge bg-warning text-dark rounded-pill ms-1" id="tab-badge-parcel_return">0</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ตารางแสดงรายการประวัติ -->
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="historyTable">
+          <thead class="table-light">
+            <tr>
+              <th scope="col" class="small fw-bold text-secondary text-start ps-3" style="width: 140px;">เลขที่เอกสาร / บย.</th>
+              <th scope="col" class="small fw-bold text-secondary">ชื่อผู้ประสานงาน / ผู้เบิก</th>
+              <th scope="col" class="small fw-bold text-secondary text-center">ประเภทรายการ</th>
+              <th scope="col" class="small fw-bold text-secondary text-end">จำนวนเงิน</th>
+              <th scope="col" class="small fw-bold text-secondary text-center">วันที่สร้างรายการ</th>
+              <th scope="col" class="small fw-bold text-secondary text-center">สถานะ</th>
+              <th scope="col" class="small fw-bold text-secondary text-center">หมายเลขฎีกา</th>
+              <th scope="col" class="small fw-bold text-secondary text-center pe-3">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            {% for record in records %}
+            <tr class="record-row align-top"
+                data-ticket="{{ record.borrowing_ticket_name or '' }}"
+                data-borrower="{{ record.borrower_name or '' }}"
+                data-status="{{ record.status or '' }}"
+                data-type="{{ record.record_type or 'return' }}"
+                data-submitdate="{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else '-' }}"
+                data-เอกสารตั้งฎีกาdate="{{ record.เอกสารตั้งฎีกา_at.strftime('%Y-%m-%d') if record.เอกสารตั้งฎีกา_at else '-' }}"
+                data-closingdoc="{{ record.closing_document_name or '-' }}"
+                data-amount="{{ record.total_amount or record.amount_spent or 0 }}">
+              
+              <!-- 1. เลขที่เอกสาร / บย. -->
+              <td class="text-start ps-3">
+                <div class="text-dark fw-bold">{{ record.ticket_number }}</div>
+                {% if record.borrowing_ticket_name and record.borrowing_ticket_name != 'N/A' %}
+                  <small class="text-muted d-block text-truncate" style="max-width: 140px;" title="{{ record.borrowing_ticket_name }}">
+                    {{ record.borrowing_ticket_name }}
+                  </small>
+                {% endif %}
+              </td>
+
+              <!-- 2. ชื่อผู้ประสานงาน / ผู้เบิก -->
+              <td>
+                <span class="text-dark fw-medium">{{ record.borrower_name }}</span>
+              </td>
+
+              <!-- 3. ประเภทรายการ -->
+              <td class="text-center">
+                {% if record.record_type == 'petty_cash' %}
+                  <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2.5 py-1">
+                    <i class="bi bi-receipt-cutoff me-1"></i>ขอเบิกเงินสดย่อย
+                  </span>
+                {% elif record.record_type == 'parcel_return' %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1">
+                    <i class="bi bi-box me-1"></i>ส่งคืนพัสดุ
+                  </span>
+                {% else %}
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1">
+                    <i class="bi bi-arrow-return-left me-1"></i>ส่งใช้เงินยืม
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- 4. จำนวนเงิน -->
+              <td class="text-end fw-bold text-primary">
+                {{ "{:,.2f}".format(record.total_amount or record.amount_spent or 0) }}
+              </td>
+
+              <!-- 5. วันที่สร้างรายการ -->
+              <td class="text-center small text-secondary">
+                {{ record.created_at|thai_date if record.created_at else '-' }}
+              </td>
+
+              <!-- 6. แสดง Badge ตามสถานะ -->
+              <td class="text-center">
+                {% set st = record.status|lower %}
+                {% if st in ['รอตรวจสอบ', 'รอตรวจสอบ', 'รอการตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border">
+                    {% if record.record_type == 'parcel_return' %}พัสดุกำลังดำเนินการ{% else %}รอการตรวจสอบ{% endif %}
+                  </span>
+                {% elif st in ['กำลังตรวจสอบ', 'กำลังตรวจสอบ'] %}
+                  <span class="badge bg-info-subtle text-info-emphasis border">กำลังตรวจสอบ</span>
+                {% elif st in ['ผ่านการตรวจสอบ', 'ผ่านการตรวจสอบ', 'ได้รับเอกสารแล้ว', 'ได้รับเอกสารแล้ว'] %}
+                  <span class="badge bg-info text-dark">
+                    {% if record.record_type == 'parcel_return' %}ได้รับเอกสารแล้ว{% else %}ผ่านการตรวจสอบ{% endif %}
+                  </span>
+                {% elif st in ['โอนเงินสดย่อยสำเร็จ', 'โอนเงินสดย่อยสำเร็จ'] %}
+                  <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
+                {% elif st in ['เอกสารตั้งฎีกา', 'เอกสารตั้งฎีกา'] %}
+                  <span class="badge bg-secondary text-white">เอกสารตั้งฎีกา</span>
+                {% elif st in ['ล้างลูกหนี้เงินยืม', 'ล้างลูกหนี้เงินยืม', 'ได้รับเงินคืนแล้ว'] %}
+                  <span class="badge bg-success text-white">
+                    {% if record.record_type == 'petty_cash' %}ได้รับเงินคืนแล้ว{% else %}ล้างลูกหนี้เงินยืม{% endif %}
+                  </span>
+                {% elif st in ['ปฏิเสธed', 'ปฏิเสธ', 'ปฏิเสธ'] %}
+                  <span class="badge bg-danger text-white">ปฏิเสธ</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border">{{ record.status }}</span>
+                {% endif %}
+              </td>
+
+              <!-- 7. หมายเลขฎีกา -->
+              <td class="text-center">
+                {% if record.closing_document_name and record.closing_document_name != "-" %}
+                  <span class="text-dark d-block fw-medium">{{ record.closing_document_name }}</span>
+                {% else %}
+                  <span class="text-muted small">-</span>
+                {% endif %}
+                {% if record.old_document_number %}
+                  <span class="text-muted small d-block">(เก่า: {{ record.old_document_number }})</span>
+                {% endif %}
+              </td>
+
+              <!-- 8. การจัดการ -->
+              <td class="text-center pe-3">
+                <div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">
+                  {% if record.record_type == 'petty_cash' %}
+                    <a href="{{ url_for('advance_payment.petty_cash_claim_detail', claim_id=record.id)}}" 
+                       class="btn btn-sm btn-outline-primary px-2"
+                       title="เปิดหน้าตรวจเช็กรายการเบิกเงินสดย่อย">
+                      <i class="bi bi-search me-1"></i>ตรวจสอบหลักฐาน
+                    </a>
+                  {% elif record.record_type == 'parcel_return' %}
+                    {% if record.ticket_id %}
+                    <a class="btn btn-outline-primary btn-sm px-2" href="{{ url_for('advance_payment.verification_view', ticket_id=record.ticket_id) }}" title="ดูรายละเอียดพัสดุและสัญญา">
+                      <i class="bi bi-search me-1"></i>ตรวจสอบหลักฐาน
+                    </a>
+                    {% endif %}
+                    {% if record.fund_request_id %}
+                    <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=record.fund_request_id) }}" class="btn btn-outline-success btn-sm px-2">
+                      ตรวจสอบการส่งเบิก
+                    </a>
+                    {% endif %}
+                  {% else %}
+                    <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=record.id) }}" class="btn btn-outline-primary btn-sm px-2 py-1" style="border-radius: 6px;">
+                      <i class="bi bi-search me-1"></i>ตรวจสอบหลักฐาน
+                    </a>               
+                    {% if record.ticket_id %}
+                    <a class="btn btn-outline-secondary btn-sm px-2" href="{{ url_for('advance_payment.verification_view', ticket_id=record.ticket_id) }}" title="ดูรายละเอียดสัญญาเงินยืม">
+                      <i class="bi bi-file-text"></i> สัญญา
+                    </a>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                <i class="bi bi-inbox fs-3 d-block mb-2 text-muted"></i>
+                ไม่พบข้อมูลบันทึกประวัติเอกสารส่งใช้และส่งเบิก
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="noResults" class="p-4 text-center text-muted d-none">
+        ไม่พบข้อมูลประวัติที่ตรงกับเงื่อนไขการค้นหา
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  let currentSystemTab = 'all';
+
+  function switchSystemTab(tabKey) {
+    currentSystemTab = tabKey;
+    
+    // สลับคลาส active ของปุ่ม Tab
+    document.querySelectorAll('.nav-item-tab').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`tab-${tabKey}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    filterHistoryTable();
+  }
+
+  function updateTabBadges() {
+    const rows = document.querySelectorAll(".record-row");
+    let countAll = 0;
+    let countReturn = 0;
+    let countPetty = 0;
+    let countParcel = 0;
+
+    rows.forEach(row => {
+      const type = row.getAttribute("data-type") || "return";
+      countAll++;
+      if (type === "return") countReturn++;
+      else if (type === "petty_cash") countPetty++;
+      else if (type === "parcel_return") countParcel++;
+    });
+
+    if (document.getElementById("tab-badge-all")) document.getElementById("tab-badge-all").innerText = countAll;
+    if (document.getElementById("tab-badge-return")) document.getElementById("tab-badge-return").innerText = countReturn;
+    if (document.getElementById("tab-badge-petty_cash")) document.getElementById("tab-badge-petty_cash").innerText = countPetty;
+    if (document.getElementById("tab-badge-parcel_return")) document.getElementById("tab-badge-parcel_return").innerText = countParcel;
+  }
+
+  function filterHistoryTable() {
+    const q = document.getElementById("searchQuery").value.toLowerCase().trim();
+    const status = document.getElementById("statusFilter").value.toLowerCase();
+    const rows = document.querySelectorAll(".record-row");
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      const ticket = row.getAttribute("data-ticket").toLowerCase();
+      const borrower = row.getAttribute("data-borrower").toLowerCase();
+      const closingDoc = row.getAttribute("data-closingdoc").toLowerCase();
+      const rType = (row.getAttribute("data-type") || "return").toLowerCase();
+      
+      let rStatusRaw = row.getAttribute("data-status").toLowerCase();
+      let rStatus = rStatusRaw;
+
+      // Normalize สถานะสำหรับใช้เปรียบเทียบ
+      if (['รอตรวจสอบ', 'รอการตรวจสอบ', 'รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'].includes(rStatusRaw)) rStatus = 'รอตรวจสอบ';
+      else if (['กำลังตรวจสอบ', 'กำลังตรวจสอบ'].includes(rStatusRaw)) rStatus = 'กำลังตรวจสอบ';
+      else if (['ผ่านการตรวจสอบ', 'ผ่านการตรวจสอบ', 'ได้รับเอกสารแล้ว', 'ได้รับเอกสารแล้ว'].includes(rStatusRaw)) rStatus = 'ผ่านการตรวจสอบ';
+      else if (['โอนเงินสดย่อยสำเร็จ', 'โอนเงินสดย่อยสำเร็จ'].includes(rStatusRaw)) rStatus = 'โอนเงินสดย่อยสำเร็จ';
+      else if (['เอกสารตั้งฎีกา', 'เอกสารตั้งฎีกา'].includes(rStatusRaw)) rStatus = 'เอกสารตั้งฎีกา';
+      else if (['ล้างลูกหนี้เงินยืม', 'ล้างลูกหนี้เงินยืม', 'ได้รับเงินคืนแล้ว'].includes(rStatusRaw)) rStatus = 'ล้างลูกหนี้เงินยืม';
+      else if (['ปฏิเสธed', 'ปฏิเสธ', 'ปฏิเสธ'].includes(rStatusRaw)) rStatus = 'ปฏิเสธ';
+
+      // ตรวจสอบเงื่อนไขการกรอง (Tab + Search + Status)
+      const matchesTab = (currentSystemTab === "all") || (rType === currentSystemTab);
+      const matchesSearch = ticket.includes(q) || borrower.includes(q) || closingDoc.includes(q);
+      const matchesStatus = (status === "all") || (rStatus.toLowerCase() === status);
+
+      if (matchesTab && matchesSearch && matchesStatus) {
+        row.style.display = "";
+        visibleCount++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+
+    const noResults = document.getElementById("noResults");
+    if (noResults) {
+      noResults.classList.toggle("d-none", visibleCount > 0);
+    }
+  }
+
+  function sortHistoryTable() {
+    const sortMode = document.getElementById("sortOrder").value;
+    const body = document.getElementById("historyTableBody");
+    const rows = Array.from(body.querySelectorAll(".record-row"));
+
+    rows.sort((a, b) => {
+      const aSubmit = a.getAttribute("data-submitdate") || "-";
+      const bSubmit = b.getAttribute("data-submitdate") || "-";
+      const aClosed = a.getAttribute("data-เอกสารตั้งฎีกาdate") || "-";
+      const bClosed = b.getAttribute("data-เอกสารตั้งฎีกาdate") || "-";
+      const aAmount = parseFloat(a.getAttribute("data-amount") || "0");
+      const bAmount = parseFloat(b.getAttribute("data-amount") || "0");
+
+      if (sortMode === "created_desc") {
+        return new Date(bSubmit === "-" ? "1970-01-01" : bSubmit) - new Date(aSubmit === "-" ? "1970-01-01" : aSubmit);
+      } else if (sortMode === "created_asc") {
+        return new Date(aSubmit === "-" ? "1970-01-01" : aSubmit) - new Date(bSubmit === "-" ? "1970-01-01" : bSubmit);
+      } else if (sortMode === "เอกสารตั้งฎีกา_desc") {
+        return new Date(bClosed === "-" ? "1970-01-01" : bClosed) - new Date(aClosed === "-" ? "1970-01-01" : aClosed);
+      } else if (sortMode === "amount_desc") {
+        return bAmount - aAmount;
+      }
+      return 0;
+    });
+
+    rows.forEach(row => body.appendChild(row));
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateTabBadges();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let statusParam = urlParams.get('status');
+    let typeParam = urlParams.get('type');
+    
+    // ดึงค่าประเภทจาก URL Parameter เพื่อสั่งสลับ Tab อัตโนมัติ (ถ้ามี)
+    if (typeParam) {
+      typeParam = typeParam.toLowerCase();
+      if (['return', 'petty_cash', 'parcel_return'].includes(typeParam)) {
+        switchSystemTab(typeParam);
+      }
+    }
+    filterHistoryTable();
+    sortHistoryTable();
+  });
+</script>
+{% endblock %}
+

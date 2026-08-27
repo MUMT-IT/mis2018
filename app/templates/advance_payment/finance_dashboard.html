@@ -1,0 +1,662 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}{{ dashboard_title }} | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+  <header class="mb-4 pb-3 border-bottom">
+    <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับฝ่ายการเงิน</p>
+    <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
+    <p class="text-muted mb-0">{{ dashboard_description }}</p>
+  </header>
+
+  <!-- Summary Cards Section -->
+  <section class="mb-4">
+    <div class="row g-3">
+      <!-- สัญญาเงินยืมใกล้ครบกำหนด (15 วัน) -->
+      <div class="col-md-3">
+        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" 
+            onclick="navigateToTicketsView('near_due')" 
+            style="cursor: pointer;">
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>สัญญาเงินยืมใกล้ครบกำหนด (15 วัน)</span>
+            <i class="bi bi-exclamation-circle text-warning"></i>
+          </div>
+          <div class="fs-2 fw-bold text-warning mt-2" id="nearDueCount">{{ near_due_count or 0 }}</div>
+          <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
+        </div>
+      </div>
+
+      <!-- สัญญาเงินยืมที่เลยกำหนดส่ง -->
+      <div class="col-md-3">
+        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" 
+            onclick="navigateToTicketsView('overdue')" 
+            style="cursor: pointer;">
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>สัญญาเงินยืมที่เลยกำหนดส่ง</span>
+            <i class="bi bi-x-circle text-danger"></i>
+          </div>
+          <div class="fs-2 fw-bold text-danger mt-2" id="overdueCount">{{ overdue_count or 0 }}</div>
+          <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
+        </div>
+      </div>
+
+      <!-- ยอดหนี้คงค้างทั้งหมด -->
+      <div class="col-md-3">
+        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" 
+            onclick="navigateToTicketsView('pending_debt')" 
+            style="cursor: pointer;">
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>ยอดหนี้คงค้างทั้งหมด</span>
+            <i class="bi bi-wallet2 text-danger"></i>
+          </div>
+          <div class="fs-2 fw-bold text-danger mt-2" id="totalPendingDebt">
+            {{ "{:,.2f}".format(shadow_sum_debt or 0.00) }}
+          </div>
+          <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
+        </div>
+      </div>
+      
+      <div class="col-md-3"></div>
+
+      <!-- การ์ด 1: รายการที่รอการตรวจสอบ -->
+      <div class="col-md-3">
+        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" onclick="filterByPendingReview()" style="cursor: pointer;">
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>รายการที่รอการตรวจสอบ</span>
+            <i class="bi bi-clock-history text-warning"></i>
+          </div>
+          <div class="fs-2 fw-bold text-warning mt-2" id="pendingReviewCount">0</div>
+          <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
+        </div>
+      </div>
+
+      <!-- การ์ด 2: รายการที่รอการโอนคืน -->
+      <div class="col-md-3">
+        <a href="{{ url_for('advance_payment.petty_cash_settings') }}#proofed-claims" class="text-decoration-none text-dark">
+          <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" style="cursor: pointer;">
+            <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+              <span>รายการที่รอการโอนคืน</span>
+              <i class="bi bi-arrow-repeat text-info"></i>
+            </div>
+            <div class="fs-2 fw-bold text-info mt-2" id="claimProofedCount">0</div>
+            <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-3">
+        <a href="{{ url_for('advance_payment.closing_management', status='ผ่านการตรวจสอบ') }}" class="text-decoration-none text-dark">
+          <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" style="cursor: pointer;">
+            <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+              <span>รอการตั้งฎีกา</span>
+              <i class="bi bi-file-earmark-check text-primary"></i>
+            </div>
+            <div class="fs-2 fw-bold text-primary mt-2" id="proofedCount">{{ proofed_count or 0 }}</div>
+            <span class="text-primary small mt-1"><i class="bi bi-arrow-right-circle"></i> ไปดูรายการ</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-3">
+        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" 
+            data-bs-toggle="modal" 
+            data-bs-target="#interestTrackerModal" 
+            style="cursor: pointer;">
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>หน่วยงานค้างส่งดอกเบี้ย</span>
+            <i class="bi bi-bank text-danger"></i>
+          </div>
+          <div class="fs-2 fw-bold text-danger mt-2" id="pendingInterestCount">
+            {{ pending_interest_count or 0 }}
+          </div>
+          <span class="text-primary small mt-1">
+            <i class="bi bi-search"></i> คลิกเพื่อดูรายละเอียด
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section กรองและค้นหาข้อมูลแบบ Row -->
+  <section class="p-4 border rounded-4 bg-white shadow-sm mb-4">
+    <div class="row g-3">
+      <!-- 1. ช่องค้นหา -->
+      <div class="col-md-5">
+        <label for="searchQuery" class="form-label fw-bold text-secondary small">ค้นหาข้อความ</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" id="searchQuery" class="form-control border-start-0 ps-0" placeholder="ค้นหา เลขที่รายการ/ชื่อ/ผู้ยื่น/ฎีกา..." onkeyup="filterTable()" style="border-radius: 0 6px 6px 0;">
+        </div>
+      </div>
+
+      <!-- 2. Filter กรองตามสถานะ -->
+      <div class="col-md-3">
+        <label for="statusFilter" class="form-label fw-bold text-secondary small">กรองตามสถานะ</label>
+        <select id="statusFilter" class="form-select style-select" onchange="filterTable()">
+          <option value="all">แสดงสถานะทั้งหมด</option>
+          <option value="รอตรวจสอบ">รอการตรวจสอบ</option>
+          <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
+          <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ / รอการโอนคืน</option>
+        </select>
+      </div>
+
+      <!-- 3. จัดเรียงข้อมูล -->
+      <div class="col-md-4">
+        <label for="sortOrder" class="form-label fw-bold text-secondary small">จัดเรียงตามลำดับ</label>
+        <select id="sortOrder" class="form-select style-select" onchange="sortTicketsTable()">
+          <option value="created_desc">วันที่สร้างรายการล่าสุด → เก่าสุด</option>
+          <option value="created_asc">วันที่สร้างรายการเก่าสุด → ล่าสุด</option>
+          <option value="amount_desc">จำนวนเงินมากสุด → น้อยสุด</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal ติดตามการนำส่งดอกเบี้ยธนาคาร -->
+  <div class="modal fade" id="interestTrackerModal" tabindex="-1" aria-labelledby="interestTrackerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+        <div class="modal-header bg-white border-bottom-0 pt-4 px-4 pb-2">
+          <div>
+            <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em; font-size: 0.75rem;">
+              <i class="bi bi-bank me-1"></i> ติดตามเงินสดย่อย
+            </p>
+            <h5 class="modal-title fw-bold text-dark fs-5" id="interestTrackerModalLabel">
+              ติดตามการนำส่งดอกเบี้ยธนาคาร
+            </h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body px-4 pb-4 pt-2">
+          <p class="text-muted small mb-3">
+            แสดงรายการและสถานะการนำส่งดอกเบี้ยธนาคารของแต่ละหน่วยงาน
+          </p>
+
+          <div class="card border-0 rounded-4 shadow-sm bg-light overflow-hidden">
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="bg-white text-muted small text-uppercase" style="border-bottom: 2px solid #edf2f7;">
+                    <tr>
+                      <th class="ps-4 py-3 fw-bold">หน่วยงาน</th>
+                      <th class="py-3 fw-bold">ผู้รักษาเงินสดย่อย</th>
+                      <th class="py-3 fw-bold">สถานะนำส่งดอกเบี้ย</th>
+                      <th class="pe-4 py-3 fw-bold text-end">รอบที่ค้างชำระ</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white">
+                    {% if pending_interest_departments %}
+                      {% for item in pending_interest_departments %}
+                      <tr class="{% if not item.is_submitted %}table-danger-subtle bg-opacity-10{% endif %}">
+                        <td class="ps-4 py-3 fw-semibold text-dark">{{ item.department_name }}</td>
+                        <td class="py-3 text-muted font-monospace">{{ item.custodian_name or '-' }}</td>
+                        <td class="py-3">
+                          {% if item.is_submitted %}
+                            <span class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle">
+                              <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
+                            </span>
+                          {% else %}
+                            <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5 rounded-pill fw-semibold border border-danger-subtle">
+                              <i class="bi bi-x-circle-fill me-1"></i> มีดอกเบี้ยค้างส่ง
+                            </span>
+                          {% endif %}
+                        </td>
+                        <td class="pe-4 py-3 text-end {% if not item.is_submitted %}fw-bold text-danger{% else %}text-muted{% endif %} small">
+                          {{ item.pending_period if not item.is_submitted else '-' }}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                    {% else %}
+                      <tr>
+                        <td colspan="4" class="text-center text-muted py-4">
+                          ไม่มีรายการค้างส่งดอกเบี้ยธนาคาร
+                        </td>
+                      </tr>
+                    {% endif %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-top-0 px-4 pb-4 pt-0">
+          <button type="button" class="btn btn-light fw-bold px-4 py-2" data-bs-dismiss="modal" style="border-radius: 10px;">
+            ปิดหน้าต่าง
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Section with Tab Switcher directly connected -->
+  <section class="mb-5">
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+      
+      <!-- Tab Switcher Header (วางติดกับส่วนบนของตาราง) -->
+      <div class="card-header bg-white border-bottom p-0">
+        <ul class="nav nav-tabs nav-fill border-bottom-0" id="financeSystemTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-item-tab nav-link active py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">
+              <i class="bi bi-layers me-1 text-secondary"></i> รายการทั้งหมด
+              <span class="badge bg-secondary rounded-pill ms-1" id="tab-badge-all">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-item-tab nav-link py-3 fw-bold text-primary" id="tab-advance" type="button" onclick="switchSystemTab('advance')">
+              <i class="bi bi-cash-stack me-1 text-primary"></i> เงินทดรองจ่าย / ส่งใช้เงินยืม
+              <span class="badge bg-primary rounded-pill ms-1" id="tab-badge-advance">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-item-tab nav-link py-3 fw-bold text-success" id="tab-petty" type="button" onclick="switchSystemTab('petty')">
+              <i class="bi bi-receipt me-1 text-success"></i> เงินสดย่อย (Petty Cash)
+              <span class="badge bg-success rounded-pill ms-1" id="tab-badge-petty">0</span>
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-item-tab nav-link py-3 fw-bold text-warning" id="tab-parcel" type="button" onclick="switchSystemTab('parcel')">
+              <i class="bi bi-box-seam me-1 text-warning"></i> ส่งคืนพัสดุ
+              <span class="badge bg-warning text-dark rounded-pill ms-1" id="tab-badge-parcel">0</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- ตารางแสดงผลรายการ -->
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="ticketsTable">
+            <thead class="table-light">
+              <tr>
+                <th>เลขที่เอกสาร / บย.</th>
+                <th>ชื่อผู้ประสานงาน / ผู้เบิก</th>
+                <th>ประเภทรายการ</th>
+                <th class="text-end">จำนวนเงิน</th>
+                <th class="text-center">วันที่สร้างรายการ</th>
+                <th class="text-center">สถานะ</th>
+                <th class="text-center">การจัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="ticketsTableBody">
+              {% set state = namespace(has_pending=false) %}
+
+              <!-- 1. สัญญาเงินยืม (ticket status = pending / กำลังส่งคำขอ) -->
+              {% for borrowing_ticket in borrowing_tickets %}
+                {% if borrowing_ticket.status|lower in ['กำลังส่งคำขอ', 'รอตรวจสอบ'] %}
+                  {% set state.has_pending = true %}
+                  <tr class="ticket-row" 
+                      data-system="advance"
+                      data-type="สัญญา"
+                      data-number="{{ borrowing_ticket.number or '-' }}"
+                      data-borrower="{{ borrowing_ticket.borrower_name }}"
+                      data-status="{{ borrowing_ticket.status|lower }}"
+                      data-raw-status="{{ borrowing_ticket.status|lower }}"
+                      data-amount="{{ borrowing_ticket.required_budget|float if borrowing_ticket.required_budget else 0 }}"
+                      data-createdate="{{ borrowing_ticket.created_at.strftime('%Y-%m-%d') if borrowing_ticket.created_at else '' }}">
+                    <td><strong>{{ borrowing_ticket.number if borrowing_ticket.number else "-" }}</strong></td>
+                    <td>{{ borrowing_ticket.borrower_name }}</td>
+                    <td>
+                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1">
+                        <i class="bi bi-file-earmark-text me-1"></i>สัญญาเงินยืม
+                      </span>
+                    </td>
+                    <td class="fw-semibold text-end">{{ "{:,.2f}".format(borrowing_ticket.required_budget|float) if borrowing_ticket.required_budget else '0.00' }}</td>
+                    <td class="text-center">{{ borrowing_ticket.created_at|thai_date if borrowing_ticket.created_at else '-' }}</td>
+                    <td class="text-center"><span class="badge bg-warning text-dark">รออนุมัติสัญญา</span></td>
+                    <td class="text-center">
+                      <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-primary fw-bold" style="border-radius:6px;">
+                        ไปตรวจสอบ
+                      </a>
+                    </td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+
+              <!-- 2. เอกสารส่งใช้เงินยืม (return status = waiting, checking, รอตรวจสอบ, กำลังตรวจสอบ) -->
+              {% for return_item in return_details %}
+                {% if return_item.status|lower in ['รอตรวจสอบ', 'กำลังตรวจสอบ'] %}
+                  {% set state.has_pending = true %}
+                  <tr class="ticket-row" 
+                      data-system="advance"
+                      data-type="ส่งใช้เงินยืม"
+                      data-number="{{ return_item.borrowing_ticket.number if return_item.borrowing_ticket else '-' }}"
+                      data-borrower="{{ return_item.borrowing_ticket.borrower_name if return_item.borrowing_ticket else '-' }}"
+                      data-status="{{ return_item.status|lower }}"
+                      data-raw-status="{{ return_item.status|lower }}"
+                      data-amount="{{ return_item.amount_spent|float if return_item.amount_spent else 0 }}"
+                      data-createdate="{{ return_item.created_at.strftime('%Y-%m-%d') if return_item.created_at else '' }}">
+                    <td><strong>{{ return_item.borrowing_ticket.number if return_item.borrowing_ticket and return_item.borrowing_ticket.number else "-" }}</strong></td>
+                      <td>{{ return_item.borrowing_ticket.borrower_name if return_item.borrowing_ticket else "-" }}</td>
+                    <td>
+                      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2.5 py-1">
+                        <i class="bi bi-arrow-return-left me-1"></i>ส่งใช้เงินยืม
+                      </span>
+                    </td>
+                    <td class="fw-semibold text-end">{{ "{:,.2f}".format(return_item.amount_spent|float) if return_item.amount_spent else '0.00' }}</td>
+                    <td class="text-center">{{ return_item.created_at|thai_date if return_item.created_at else '-' }}</td>
+                    <td class="text-center">
+                      {% if return_item.status|lower in ['รอตรวจสอบ'] %}
+                        <span class="badge bg-warning text-dark">รอตรวจเอกสาร</span>
+                      {% else %}
+                        <span class="badge bg-info text-dark">กำลังตรวจสอบ</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_item.id) }}" class="btn btn-sm btn-primary fw-bold" style="border-radius:6px;">
+                        ไปตรวจสอบ
+                      </a>
+                    </td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+
+              <!-- 3. เอกสารส่งคืนพัสดุ (parcel_returns) -->
+              {% if parcel_returns %}
+                {% for parcel in parcel_returns %}
+                  {% if parcel.status|lower in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ', 'กำลังส่งคำขอ', 'กำลังตรวจสอบ'] %}
+                    {% set state.has_pending = true %}
+                      <tr class="ticket-row" 
+                        data-system="parcel"
+                        data-type="ส่งคืนพัสดุ"
+                        data-number="{{ parcel.display_ticket_number if parcel.display_ticket_number is defined else '-' }}"
+                        data-borrower="{{ parcel.display_borrower_name if parcel.display_borrower_name is defined else '-' }}"
+                        data-status="{{ parcel.status|lower }}"
+                        data-raw-status="{{ parcel.status|lower }}"
+                        data-amount="{{ parcel.amount_spent|float if parcel.amount_spent else 0 }}"
+                        data-createdate="{{ parcel.created_at.strftime('%Y-%m-%d') if parcel.created_at else '' }}">
+                      <td><strong>{{ parcel.display_ticket_number if parcel.display_ticket_number is defined else "-" }}</strong></td>
+                      <td>{{ parcel.display_borrower_name if parcel.display_borrower_name is defined else "-" }}</td>
+                      <td>
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1">
+                          <i class="bi bi-box me-1"></i>ส่งคืนพัสดุ
+                        </span>
+                      </td>
+                      <td class="fw-semibold text-end">{{ "{:,.2f}".format(parcel.amount_spent|float) if parcel.amount_spent else '0.00' }}</td>
+                      <td class="text-center">{{ parcel.created_at|thai_date if parcel.created_at else '-' }}</td>
+                      <td class="text-center">
+                        {% if parcel.status|lower in ['รอตรวจสอบ'] %}
+                          <span class="badge bg-warning text-dark">รอตรวจสอบ</span>
+                        {% elif parcel.status|lower in ['พัสดุกำลังดำเนินการ', 'กำลังตรวจสอบ'] %}
+                          <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
+                        {% elif parcel.status|lower in ['ได้รับเอกสารแล้ว', 'ผ่านการตรวจสอบ'] %}
+                          <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
+                        {% else %}
+                          <span class="badge bg-warning text-dark">{{ parcel.status }}</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        <div class="d-flex flex-wrap gap-2 justify-content-center">
+                          {% if parcel.display_ticket_id %}
+                          <a href="{{ url_for('advance_payment.verification_view', ticket_id=parcel.display_ticket_id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
+                            ไปตรวจสอบ
+                          </a>
+                          {% endif %}
+                          {% if parcel.fund_request_id %}
+                          <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=parcel.fund_request_id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
+                            ไปตรวจสอบ
+                          </a>
+                          {% endif %}
+                        </div>
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+
+              <!-- 4. เอกสารส่งเบิกเงินสดย่อย (claim status = waiting, checking, proofed) -->
+              {% if petty_cash_claims %}
+                {% for claim in petty_cash_claims %}
+                  {% if claim.status|lower in ['รอตรวจสอบ', 'กำลังตรวจสอบ'] %}
+                    {% set state.has_pending = true %}
+                    <tr class="ticket-row" 
+                        data-system="petty"
+                        data-type="ส่งเบิกเงินสดย่อย"
+                        data-number="{{ claim.fund_request.ticket_number or '-' if claim.fund_request else '-' }}"
+                        data-borrower="{{ claim.custodian_name or '-' }}"
+                        data-status="{{ claim.status|lower }}"
+                        data-raw-status="{{ claim.status|lower }}"
+                        data-amount="{{ claim.total_amount|float if claim.total_amount else 0 }}"
+                        data-createdate="{{ claim.created_at.strftime('%Y-%m-%d') if claim.created_at else '' }}">
+                      <td><strong>{{ claim.claim_number if claim.claim_number else "-" }}</strong></td>
+                      <td>{{ claim.requester_name or '-' }}</td>
+                      <td>
+                        <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2.5 py-1">
+                          <i class="bi bi-receipt-cutoff me-1"></i>ขอเบิกเงินสดย่อย
+                        </span>
+                      </td>
+                      <td class="fw-semibold text-end">{{ "{:,.2f}".format(claim.total_amount|float) if claim.total_amount else '0.00' }}</td>
+                      <td class="text-center">{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
+                      <td class="text-center">
+                        {% if claim.status|lower in ['รอตรวจสอบ'] %}
+                          <span class="badge bg-warning text-dark">รอตรวจเอกสาร</span>
+                        {% elif claim.status|lower in ['กำลังตรวจสอบ'] %}
+                          <span class="badge bg-info text-dark">กำลังตรวจสอบ</span>
+                        {% elif claim.status|lower in ['ผ่านการตรวจสอบ'] %}
+                          <span class="badge bg-success text-white">รอการโอนคืน</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        <div class="d-flex flex-wrap gap-2 justify-content-center">
+                          <a href="{{ url_for('advance_payment.petty_cash_claim_detail', claim_id=claim.id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
+                            ไปตรวจสอบ
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+
+        <div id="noResults" class="p-4 text-center text-muted {% if state.has_pending %}d-none{% endif %}">
+          ไม่มีรายการที่รอการตรวจสอบในขณะนี้
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    let currentSystemTab = 'all';
+
+    document.addEventListener("DOMContentLoaded", function() {
+      calculateSummaryCounts();
+      updateTabBadges();
+      filterTable();
+    });
+
+    function navigateToTicketsView(filterType) {
+      const url = "{{ url_for('advance_payment.tickets_view') }}?filter=" + encodeURIComponent(filterType);
+      window.location.href = url;
+    }
+
+    function switchSystemTab(tabKey) {
+      currentSystemTab = tabKey;
+      
+      // อัปเดต class active ของปุ่ม Tab
+      document.querySelectorAll('.nav-item-tab').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`tab-${tabKey}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      filterTable();
+    }
+    
+    function updateTabBadges() {
+      const rows = document.querySelectorAll(".ticket-row");
+      let countAll = 0;
+      let countAdvance = 0;
+      let countPetty = 0;
+      let countParcel = 0;
+
+      rows.forEach(row => {
+        const sys = row.getAttribute("data-system") || "";
+        countAll++;
+        if (sys === "advance") countAdvance++;
+        else if (sys === "petty") countPetty++;
+        else if (sys === "parcel") countParcel++;
+      });
+
+      if (document.getElementById("tab-badge-all")) document.getElementById("tab-badge-all").innerText = countAll;
+      if (document.getElementById("tab-badge-advance")) document.getElementById("tab-badge-advance").innerText = countAdvance;
+      if (document.getElementById("tab-badge-petty")) document.getElementById("tab-badge-petty").innerText = countPetty;
+      if (document.getElementById("tab-badge-parcel")) document.getElementById("tab-badge-parcel").innerText = countParcel;
+    }
+
+    function normalizeDashboardStatus(rawStatus) {
+      const status = (rawStatus || "").toLowerCase();
+
+      if (["รอตรวจสอบ"].includes(status)) {
+        return "รอตรวจสอบ";
+      }
+      if (["กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status)) {
+        return "กำลังตรวจสอบ";
+      }
+      if (["ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว"].includes(status)) {
+        return "ผ่านการตรวจสอบ";
+      }
+      if (["กำลังส่งคำขอ"].includes(status)) {
+        return "รอตรวจสอบ";
+      }
+
+      return status;
+    }
+
+    function isPendingReviewStatus(rawStatus) {
+      const status = (rawStatus || "").toLowerCase();
+      return ["กำลังส่งคำขอ", "รอตรวจสอบ", "กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status);
+    }
+
+    function calculateSummaryCounts() {
+      const rows = document.querySelectorAll(".ticket-row");
+      let pendingReviewCount = 0;
+      let claimProofedCount = 0;
+
+      rows.forEach(row => {
+          const rawStatus = row.getAttribute("data-raw-status") || "";
+          const system = row.getAttribute("data-system") || "";
+
+          if (isPendingReviewStatus(rawStatus)) {
+              pendingReviewCount++;
+          }
+
+          if (normalizeDashboardStatus(rawStatus) === 'ผ่านการตรวจสอบ') {
+              claimProofedCount++;
+          }
+      });
+
+      if(document.getElementById("pendingReviewCount")) {
+          document.getElementById("pendingReviewCount").innerText = pendingReviewCount;
+      }
+      if(document.getElementById("claimProofedCount")) {
+          document.getElementById("claimProofedCount").innerText = claimProofedCount;
+      }
+    }
+
+    function filterByPendingReview() {
+      resetFilters();
+      const rows = document.querySelectorAll(".ticket-row");
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+          const rawStatus = row.getAttribute("data-raw-status") || "";
+          const system = row.getAttribute("data-system") || "";
+          if (isPendingReviewStatus(rawStatus)) {
+              row.style.display = "";
+              visibleCount++;
+          } else {
+              row.style.display = "none";
+          }
+      });
+
+      toggleNoResults(visibleCount);
+    }
+
+    function filterByClaimProofed() {
+      resetFilters();
+      const rows = document.querySelectorAll(".ticket-row");
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+          const rawStatus = row.getAttribute("data-raw-status") || "";
+          if (normalizeDashboardStatus(rawStatus) === 'ผ่านการตรวจสอบ') {
+              row.style.display = "";
+              visibleCount++;
+          } else {
+              row.style.display = "none";
+          }
+      });
+
+      toggleNoResults(visibleCount);
+    }
+
+    function filterTable() {
+      const searchInput = document.getElementById("searchQuery").value.toLowerCase().trim();
+      const statusSelect = document.getElementById("statusFilter").value;
+      
+      const rows = document.querySelectorAll(".ticket-row");
+      let visibleRowsCount = 0;
+
+      rows.forEach(row => {
+          const system = row.getAttribute("data-system") || "";
+          const number = (row.getAttribute("data-number") || "").toLowerCase();
+          const borrower = (row.getAttribute("data-borrower") || "").toLowerCase();
+          const rawStatus = row.getAttribute("data-raw-status") || "";
+          const normStatus = normalizeDashboardStatus(rawStatus);
+
+          const matchesTab = (currentSystemTab === "all") || (system === currentSystemTab);
+          const matchesSearch = number.includes(searchInput) || borrower.includes(searchInput);
+          const matchesStatus = (statusSelect === "all") || (normStatus === statusSelect);
+
+          if (matchesTab && matchesSearch && matchesStatus) {
+              row.style.display = "";
+              visibleRowsCount++;
+          } else {
+              row.style.display = "none";
+          }
+      });
+
+      toggleNoResults(visibleRowsCount);
+      sortTicketsTable();
+    }
+
+    function sortTicketsTable() {
+      const sortMode = document.getElementById("sortOrder").value;
+      const body = document.getElementById("ticketsTableBody");
+      const rows = Array.from(body.querySelectorAll(".ticket-row"));
+
+      rows.sort((a, b) => {
+        const aDate = a.getAttribute("data-createdate") || "";
+        const bDate = b.getAttribute("data-createdate") || "";
+        const aAmount = parseFloat(a.getAttribute("data-amount") || "0");
+        const bAmount = parseFloat(b.getAttribute("data-amount") || "0");
+
+        if (sortMode === "created_desc") {
+          return new Date(bDate || "1970-01-01") - new Date(aDate || "1970-01-01");
+        } else if (sortMode === "created_asc") {
+          return new Date(aDate || "1970-01-01") - new Date(bDate || "1970-01-01");
+        } else if (sortMode === "amount_desc") {
+          return bAmount - aAmount;
+        }
+        return 0;
+      });
+
+      rows.forEach(row => body.appendChild(row));
+    }
+
+    function resetFilters() {
+      if(document.getElementById("searchQuery")) document.getElementById("searchQuery").value = "";
+      if(document.getElementById("statusFilter")) document.getElementById("statusFilter").value = "all";
+      switchSystemTab('all');
+    }
+
+    function toggleNoResults(count) {
+        const noResults = document.getElementById("noResults");
+        if(noResults) {
+            noResults.classList.toggle("d-none", count > 0);
+        }
+    }
+  </script>
+{% endblock %}

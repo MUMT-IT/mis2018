@@ -1,0 +1,713 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}สร้างใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
+
+{% block content %}
+  <header class="mb-4 pb-2 border-bottom">
+    <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
+      <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
+    </a>
+    <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
+    <h1 class="fw-bold display-6 mb-2">สร้างใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย</h1>
+    <p class="text-muted mb-0">กรอกข้อมูลเพื่อสร้างใบยืมเงินสดย่อยหรือใบเบิกเงินสดย่อย</p>
+  </header>
+
+  {% if not setting %}
+  <div class="alert alert-warning border rounded-4 py-4 text-center">
+    <i class="bi bi-exclamation-triangle fs-1 d-block mb-2"></i>
+    <h4 class="fw-bold">ไม่พบการเชื่อมโยงหน่วยงาน</h4>
+    <p class="mb-0 text-secondary">บัญชีผู้ดูแลนี้ยังไม่ได้ถูกจับคู่กับหน่วยงานใดๆ ในระบบ กรุณาติดต่อฝ่ายการเงิน</p>
+  </div>
+  {% else %}
+  <div class="row g-4 justify-content-center">
+    <div class="col-lg-10">
+      <div class="card shadow-sm border rounded-4 bg-white">
+        <div class="card-body p-4">
+          <form method="post" action="{{ url_for('advance_payment.staff_fund_request') }}" id="fundRequestForm" enctype="multipart/form-data">
+            
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-ruled me-2 text-primary"></i>เลือกประเภทและข้อมูลแบบฟอร์ม</h5>
+            <div class="mb-3">
+              <label class="form-label fw-bold mb-2">ประเภทแบบฟอร์ม <span class="text-danger">*</span></label>
+              <div class="d-flex gap-4 p-2 border rounded-3 bg-light">
+                <div class="form-check form-check-inline m-0 ms-2 py-1">
+                  <input class="form-check-input" type="radio" name="form_type" id="form_type_30" value="30" {% if selected_form_type != '31' and selected_form_type != '32' %}checked{% endif %}>
+                  <label class="form-check-label fw-bold text-primary" for="form_type_30">ขออนุมัติเบิกเงินสดย่อย</label>
+                </div>
+                <div class="form-check form-check-inline m-0 py-1">
+                  <input class="form-check-input" type="radio" name="form_type" id="form_type_31" value="31" {% if selected_form_type == '31' %}checked{% endif %}>
+                  <label class="form-check-label fw-bold text-primary" for="form_type_31">ขออนุมัติเบิกดอกเบี้ย</label>
+                </div>
+                <div class="form-check form-check-inline m-0 py-1">
+                  <input class="form-check-input" type="radio" name="form_type" id="form_type_32" value="32" {% if selected_form_type == '32' %}checked{% endif %}>
+                  <label class="form-check-label fw-bold text-primary" for="form_type_32">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- ข้อมูลผู้ประสานงาน -->
+            <div id="section_borrower_info">
+              <h5 class="fw-bold text-dark mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i>ข้อมูลผู้ประสานงาน</h5>
+              <div class="row g-3 mb-4 p-3 bg-light rounded-3 border mt-3">
+                <div class="col-md-6">
+                    <label for="requester_input" class="form-label fw-bold text-muted small">ชื่อ-นามสกุล ผู้ประสานงาน <span class="text-danger">*</span></label>
+                    <input type="text" name="requester_name" id="requester_input" list="borrower_list" class="form-control bg-white" placeholder="พิมพ์เพื่อค้นหา หรือเลือกพนักงาน..." autocomplete="off" required oninput="onBorrowerChange()">
+                    <datalist id="borrower_list">
+                      <!-- ตัวเลือกจะถูกสร้างผ่าน JavaScript -->
+                    </datalist>
+                </div>
+                <div class="col-md-6">
+                    <label for="requester_position_input" class="form-label fw-bold text-muted small">ตำแหน่ง</label>
+                    {{ form.requester_position(class="form-control bg-light", readonly=True, id="requester_position_input") }}
+                </div>
+
+                <div class="col-md-6 d-none">
+                    <label for="department_input" class="form-label fw-bold text-muted small">หน่วยงาน / ภาควิชา</label>
+                    {{ form.department(class="form-control", readonly=True, id="department_input") }}
+                </div>
+                <div class="col-md-6 d-none">
+                    <label for="account_number_input" class="form-label fw-bold text-muted small">เลขบัญชีหน่วยงาน</label>
+                    {{ form.account_number(class="form-control", readonly=True, id="account_number_input") }}
+                </div>
+              </div>
+            </div>
+
+            <!-- ช่องข้อมูลเฉพาะของ แบบฟอร์ม 30 --> 
+            <div id="section_form_30" class="p-3 border rounded-3 mb-4 bg-light-subtle">
+              <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับขออนุมัติเบิกเงินสดย่อย</h6>
+              <div class="mb-2">
+                <label for="purpose" class="form-label fw-bold">วัตถุประสงค์ในการเบิก <span class="text-danger">*</span></label>
+                {{ form.purpose(class="form-control", id="purpose", style="border-radius: 12px;") }}
+              </div>
+            </div>
+
+            <!-- ช่องข้อมูลเฉพาะของ แบบฟอร์ม 31 -->
+            <div id="section_form_31" class="p-3 border rounded-3 mb-4 bg-light-subtle" style="display: none;">
+              <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับขออนุมัติเบิกดอกเบี้ย</h6>
+              <div class="mb-2">
+                <label class="form-label fw-bold">งวดวันที่<span class="text-danger">*</span></label>
+                {% set current_year_th = form.period_year.data | int + 543 %}
+                <div class="d-flex gap-3 mt-1">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="period_year_radio" id="period_june" value="มิถุนายน พ.ศ. {{ current_year_th }}" checked>
+                    <label class="form-check-label fw-bold" for="period_june">
+                      มิถุนายน พ.ศ. {{ current_year_th }}
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="period_year_radio" id="period_december" value="ธันวาคม พ.ศ. {{ current_year_th }}">
+                    <label class="form-check-label fw-bold" for="period_december">
+                      ธันวาคม พ.ศ. {{ current_year_th }}
+                    </label>
+                  </div>
+                </div>
+                <input type="hidden" name="period_year" id="hidden_period_year" value="">
+              </div>
+              <div class="mb-2">
+                <div class="row g-3 align-items-end">
+                  <div class="col-lg-4">
+                    <label for="fund_in_date" class="form-label fw-bold">วันที่เงินเข้า</label>
+                    <input type="date" name="fund_in_date" id="fund_in_date" class="form-control">
+                  </div>
+                  <div class="col-lg-4">
+                    <label for="withdrawal_date" class="form-label fw-bold">วันที่ทำการเบิก</label>
+                    <input type="date" name="withdrawal_date" id="withdrawal_date" class="form-control">
+                  </div>
+                  <div class="col-lg-4">
+                    <label for="withdrawal_proof_file" class="form-label fw-bold">หลักฐานการเบิก</label>
+                    <input type="file" name="withdrawal_proof_file" id="withdrawal_proof_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif">
+                  </div>
+                  <div class="col-12 text-end">
+                    <small class="text-muted d-block mt-1">แนบเอกสารหลักฐานการเบิกได้ เช่น ไฟล์สแกนหรือรูปถ่าย</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="section_form_32" class="p-3 border rounded-3 mb-4 bg-light-subtle" style="display: none;">
+              <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-journal-text me-1"></i> ข้อมูลใบยืมเงินสำหรับเบิกผ่านบัญชีเงินสดย่อย</h6>
+              {% if approved_borrowing_tickets and approved_borrowing_tickets|length > 0 %}
+                <div class="mb-3">
+                  <label for="borrowing_ticket_id" class="form-label fw-bold">เลือกใบยืมเงิน <span class="text-danger">*</span></label>
+                  <select name="borrowing_ticket_id" id="borrowing_ticket_id" class="form-select">
+                    <option value="">-- เลือกใบยืมเงิน --</option>
+                    {% for ticket in approved_borrowing_tickets %}
+                      <option
+                        value="{{ ticket.id }}"
+                        {% if selected_borrowing_ticket_id and selected_borrowing_ticket_id == ticket.id %}selected{% endif %}
+                        data-borrower="{{ ticket.borrower_name or ticket.borrower_user.name if ticket.borrower_user else '' }}"
+                        data-position="{{ ticket.borrower_user.position if ticket.borrower_user and ticket.borrower_user.position else '' }}"
+                        data-department="{{ ticket.borrower_user.department if ticket.borrower_user and ticket.borrower_user.department else '' }}"
+                        data-account="{{ ticket.account_number or '' }}"
+                        data-amount="{{ '%.2f'|format(ticket.required_budget or 0) }}"
+                        data-purpose="เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {{ ticket.number or '-' }}"
+                        data-ticket-number="{{ ticket.number or '' }}"
+                        data-approved-at="{{ ticket.approved_at|thai_date if ticket.approved_at else '' }}">
+                        บ.ย. {{ ticket.number or '-' }} - {{ ticket.borrowing_ticket_purpose or 'ไม่ระบุชื่อโครงการ' }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <small class="text-muted d-block mt-1">ระบบจะดึงข้อมูลจากใบยืมเงินที่อนุมัติแล้วและมีเลขบัญชีตรงกับบัญชีเงินสดย่อยของหน่วยงาน</small>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold text-muted small">ชื่อ-นามสกุลผู้ยืม</label>
+                    <input type="text" class="form-control bg-light" id="borrowing_ticket_borrower_preview" readonly>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold text-muted small">ชื่อโครงการ/วัตถุประสงค์</label>
+                    <input type="text" class="form-control bg-light" id="borrowing_ticket_purpose_preview" readonly>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold text-muted small">เลขที่บัญชี</label>
+                    <input type="text" class="form-control bg-light" id="borrowing_ticket_account_preview" readonly>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-bold text-muted small">จำนวนเงิน</label>
+                    <input type="text" class="form-control bg-light text-end fw-bold" id="borrowing_ticket_amount_preview" readonly>
+                  </div>
+                </div>
+              {% else %}
+                <div class="alert alert-warning border mb-0">
+                  ไม่พบใบยืมเงินที่อนุมัติแล้วและผูกกับบัญชีเงินสดย่อยของหน่วยงานนี้
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- ตารางเพิ่มรายการและจำนวนเงิน -->
+            <div id="receiptTableContainer" class="mb-4 border rounded-3 p-3 bg-white shadow-sm">
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-list-ol me-2 text-primary"></i>รายการที่ขอเบิกเงินสดย่อย</h6>
+              <div class="table-responsive">
+                <table class="table table-bordered align-middle mb-0" id="receiptTable">
+                  <thead class="table-light small fw-bold">
+                    <tr>
+                      <th style="width: 70px;" class="text-center">ลำดับ</th>
+                      <th>หมวดหมู่รายจ่าย</th>
+                      <th style="width: 260px;">รายการ</th>
+                      <th style="width: 140px;" class="text-center">จำนวนเงิน (บาท)</th>
+                      <th style="width: 60px;" class="text-center">ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="receiptBody">
+                    <tr>
+                      <td class="text-center row-index fw-bold">1</td>
+                      <td>
+                        <select name="item_category[]" class="form-select form-select-sm" required>
+                          <option value="">เลือกหมวดหมู่</option>
+                          <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
+                          <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
+                          <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+                          <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
+                          <option value="5">อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
+                        </select>
+                      </td>
+                      <td>
+                        <textarea name="item_description[]" class="form-control form-control-sm" rows="1" style="resize: vertical;" required placeholder="ระบุรายละเอียดรายการ..."></textarea>
+                      </td>
+                      <td>
+                        <input type="text" name="item_amount[]" class="form-control form-control-sm text-end fw-bold item-amount-input" required placeholder="0.00" oninput="handleAmountInput(this)">
+                      </td>
+                      <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeReceiptRow(this)">
+                          <i class="bi bi-trash3-fill"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="d-flex align-items-center mt-3 p-2 bg-light rounded-3 gap-3">
+                <button type="button" class="btn btn-sm btn-primary text-white px-3 py-1.5 shadow-sm fw-bold" onclick="addReceiptRow()" style="border-radius: 6px;">
+                  + เพิ่มรายการ
+                </button>
+                <div class="ms-auto text-end">
+                  <span class="fw-bold text-dark me-2">เป็นเงินทั้งสิ้น:</span>
+                  <span class="fw-bold text-primary fs-5" id="sumAmountDisplay">0.00</span>
+                  <span class="fw-bold text-dark ms-1">บาท</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ส่วนกรอกจำนวนเงินและแสดงข้อความแจ้งเตือนข้อผิดพลาด (จัดชิดขวา) -->
+          <div class="row g-3 mb-4 justify-content-end align-items-end">
+            
+            <!-- ช่องกรอกจำนวนเงิน -->
+            <div class="col-md-5 col-lg-4 ms-auto text-end">
+              <label for="user_total_amount" class="form-label fw-bold d-block text-end">
+                จำนวนเงินที่ต้องการขอเบิก (บาท) <span class="text-danger">*</span>
+              </label>
+              <input type="text" name="amount" id="user_total_amount" class="form-control fw-bold text-primary text-end" placeholder="0.00" required style="border-radius: 12px; font-size: 1.1rem;" oninput="handleUserTotalInput(this)">
+              <div id="amount_mismatch_alert" class="text-danger small fw-bold mt-1 text-end" style="display: none;">
+                <i class="bi bi-exclamation-circle-fill me-1"></i> จำนวนเงินไม่ตรงกับยอดรวมของรายการด้านบน กรุณาตรวจสอบอีกครั้ง
+              </div>
+            </div>
+
+            <!-- ปุ่มบันทึก -->
+            <div class="col-md-auto text-end">
+              <button type="submit" class="btn btn-success btn-lg fw-bold mt-2 px-4" style="border-radius: 12px;">
+                <i class="bi bi-file-earmark-check me-2"></i> บันทึกและสร้างแบบฟอร์ม
+              </button>
+            </div>
+
+          </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let departmentEmployees = [];
+
+    function loadDepartmentEmployees() {
+      const deptInput = document.getElementById("department_input");
+      const deptName = deptInput ? deptInput.value : "";
+      if (!deptName) return;
+
+      fetch(`/api/employees/departments?department=${encodeURIComponent(deptName)}`)
+        .then(response => response.json())
+        .then(data => {
+          departmentEmployees = data;
+          const datalist = document.getElementById("borrower_list");
+          datalist.innerHTML = "";
+          
+          data.forEach(emp => {
+            const option = document.createElement("option");
+            option.value = emp.name;
+            option.label = `${emp.name} (${emp.position})`;
+            datalist.appendChild(option);
+          });
+
+          const defaultValue = "{{ form.requester_name.data or '' }}";
+          if (defaultValue) {
+            document.getElementById("requester_input").value = defaultValue;
+            onBorrowerChange();
+          }
+        })
+        .catch(err => console.error("Error fetching employees:", err));
+    }
+
+    function onBorrowerChange() {
+      const input = document.getElementById("requester_input");
+      const positionInput = document.getElementById("requester_position_input");
+      const matchedEmp = departmentEmployees.find(emp => emp.name === input.value);
+      
+      if (matchedEmp) {
+        positionInput.value = matchedEmp.position;
+      } else {
+        positionInput.value = "";
+      }
+    }
+
+    function formatInputNumberWithComma(element) {
+      let value = element.value.replace(/,/g, "").replace(/[^0-9.]/g, "");
+      const parts = value.split(".");
+      if (parts.length > 2) {
+        value = parts[0] + "." + parts.slice(1).join("");
+      }
+      if (parts[0]) {
+        let num = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        element.value = parts.length > 1 ? num + "." + parts[1] : num;
+      } else {
+        element.value = value;
+      }
+    }
+
+    function formatInputNumberOnBlur(element) {
+      let value = element.value.replace(/,/g, "").replace(/[^0-9.]/g, "");
+      const cleanNumber = parseFloat(value);
+      if (!isNaN(cleanNumber)) {
+        element.value = cleanNumber.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+    }
+
+    function handleAmountInput(element) {
+      formatInputNumberWithComma(element);
+      calculateTotalSpent();
+    }
+
+    function handleUserTotalInput(element) {
+      formatInputNumberWithComma(element);
+      validateAmountMatch();
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      loadDepartmentEmployees();
+
+      const radio30 = document.getElementById("form_type_30");
+      const radio31 = document.getElementById("form_type_31");
+      const radio32 = document.getElementById("form_type_32");
+      const section30 = document.getElementById("section_form_30");
+      const section31 = document.getElementById("section_form_31");
+      const section32 = document.getElementById("section_form_32");
+      const borrowerSection = document.getElementById("section_borrower_info");
+      const requesterInput = document.getElementById("requester_input");
+      const receiptContainer = document.getElementById("receiptTableContainer");
+      const borrowingTicketSelect = document.getElementById("borrowing_ticket_id");
+      const borrowingTicketBorrowerPreview = document.getElementById("borrowing_ticket_borrower_preview");
+      const borrowingTicketPurposePreview = document.getElementById("borrowing_ticket_purpose_preview");
+      const borrowingTicketAccountPreview = document.getElementById("borrowing_ticket_account_preview");
+      const borrowingTicketAmountPreview = document.getElementById("borrowing_ticket_amount_preview");
+      
+      const inputPurpose = document.getElementById("purpose");
+      const mainForm = document.getElementById("fundRequestForm");
+      const userTotalInput = document.getElementById("user_total_amount");
+      const receiptAddButton = receiptContainer.querySelector('button[onclick="addReceiptRow()"]');
+
+      function getBorrowingTicketOption() {
+        if (!borrowingTicketSelect) return null;
+        const option = borrowingTicketSelect.selectedOptions && borrowingTicketSelect.selectedOptions[0];
+        return option && option.value ? option : null;
+      }
+
+      function syncBorrowingTicketPreview() {
+        if (!borrowingTicketSelect) return;
+
+        const option = getBorrowingTicketOption();
+        const borrower = option ? (option.dataset.borrower || "") : "";
+        const purpose = option ? (option.dataset.purpose || "") : "";
+        const account = option ? (option.dataset.account || "") : "";
+        const amount = option ? (option.dataset.amount || "") : "";
+
+        if (borrowingTicketBorrowerPreview) borrowingTicketBorrowerPreview.value = borrower;
+        if (borrowingTicketPurposePreview) borrowingTicketPurposePreview.value = purpose;
+        if (borrowingTicketAccountPreview) borrowingTicketAccountPreview.value = account;
+        if (borrowingTicketAmountPreview) {
+          borrowingTicketAmountPreview.value = amount
+            ? parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : "";
+        }
+
+        if (radio32 && radio32.checked && option) {
+          if (requesterInput) requesterInput.value = borrower;
+          const requesterPositionInput = document.getElementById("requester_position_input");
+          if (requesterPositionInput) requesterPositionInput.value = option.dataset.position || "";
+          const departmentInput = document.getElementById("department_input");
+          if (departmentInput) departmentInput.value = option.dataset.department || "";
+          const accountNumberInput = document.getElementById("account_number_input");
+          if (accountNumberInput) accountNumberInput.value = account;
+          if (inputPurpose) inputPurpose.value = purpose;
+          if (userTotalInput) userTotalInput.value = amount
+            ? parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : "";
+
+          const firstRowCategory = receiptContainer.querySelector('#receiptBody select[name="item_category[]"]');
+          const firstRowDescription = receiptContainer.querySelector('#receiptBody textarea[name="item_description[]"]');
+          const firstRowAmount = receiptContainer.querySelector('#receiptBody .item-amount-input');
+          if (firstRowCategory) firstRowCategory.value = "5";
+          if (firstRowDescription) firstRowDescription.value = `เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. ${option.dataset.ticketNumber || "-"}`;
+          if (firstRowAmount) firstRowAmount.value = amount
+            ? parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : "";
+
+          calculateTotalSpent();
+        }
+      }
+
+      function setBorrowingTicketMode(isActive) {
+        const controls = receiptContainer.querySelectorAll("select, textarea, .item-amount-input");
+        controls.forEach(el => {
+          el.disabled = isActive;
+          if (isActive) {
+            el.removeAttribute("required");
+          }
+        });
+
+        if (receiptAddButton) {
+          receiptAddButton.classList.toggle("d-none", isActive);
+        }
+
+        const removeButtons = receiptContainer.querySelectorAll('button[onclick="removeReceiptRow(this)"]');
+        removeButtons.forEach(btn => {
+          btn.disabled = isActive;
+          btn.classList.toggle("d-none", isActive);
+        });
+      }
+
+      userTotalInput.addEventListener("blur", function() {
+        formatInputNumberOnBlur(this);
+        validateAmountMatch();
+      });
+
+      document.querySelectorAll(".item-amount-input").forEach(input => {
+        input.addEventListener("blur", function() {
+          formatInputNumberOnBlur(this);
+          calculateTotalSpent();
+        });
+      });
+
+      function toggleFormFields() {
+        const proofFileInput = document.getElementById("withdrawal_proof_file");
+        const isBorrowingTicketForm = radio32 && radio32.checked;
+
+        if (radio30.checked) {
+          section30.style.display = "block";
+          section31.style.display = "none";
+          if (section32) section32.style.display = "none";
+          borrowerSection.style.display = "block";
+          receiptContainer.style.display = "block";
+          
+          if (inputPurpose) inputPurpose.setAttribute("required", "required");
+          if (requesterInput) requesterInput.setAttribute("required", "required");
+          if (proofFileInput) proofFileInput.removeAttribute("required"); // Disable requirement for Form 30
+          
+          toggleTableRequired(true);
+          setBorrowingTicketMode(false);
+          calculateTotalSpent();
+        } else if (isBorrowingTicketForm) {
+          section30.style.display = "none";
+          section31.style.display = "none";
+          if (section32) section32.style.display = "block";
+          borrowerSection.style.display = "block";
+          receiptContainer.style.display = "block";
+
+          if (inputPurpose) inputPurpose.setAttribute("required", "required");
+          if (requesterInput) requesterInput.setAttribute("required", "required");
+          if (proofFileInput) proofFileInput.removeAttribute("required");
+
+          toggleTableRequired(false);
+          setBorrowingTicketMode(true);
+          syncBorrowingTicketPreview();
+          if (borrowingTicketSelect && !borrowingTicketSelect.value && borrowingTicketSelect.options.length > 1) {
+            borrowingTicketSelect.selectedIndex = 1;
+            syncBorrowingTicketPreview();
+          }
+          calculateTotalSpent();
+        } else if (radio31.checked) {
+          section30.style.display = "none";
+          section31.style.display = "block";
+          if (section32) section32.style.display = "none";
+          borrowerSection.style.display = "block";
+          receiptContainer.style.display = "none";
+          setBorrowingTicketMode(false);
+          
+          if (inputPurpose) inputPurpose.removeAttribute("required");
+          if (requesterInput) requesterInput.setAttribute("required", "required");
+          if (proofFileInput) proofFileInput.setAttribute("required", "required"); // Enable requirement for Form 31
+          
+          toggleTableRequired(false);
+          document.getElementById("amount_mismatch_alert").style.display = "none";
+        }
+      }
+
+      function toggleTableRequired(isRequired) {
+        const controls = receiptContainer.querySelectorAll("select, textarea, .item-amount-input");
+        controls.forEach(el => {
+          if (isRequired) {
+            el.setAttribute("required", "required");
+          } else {
+            el.removeAttribute("required");
+          }
+        });
+      }
+
+      radio30.addEventListener("change", toggleFormFields);
+      radio31.addEventListener("change", toggleFormFields);
+      if (radio32) {
+        radio32.addEventListener("change", toggleFormFields);
+      }
+      if (borrowingTicketSelect) {
+        borrowingTicketSelect.addEventListener("change", function() {
+          syncBorrowingTicketPreview();
+        });
+      }
+
+      // --- SUBMIT EVENT ---
+      mainForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        if (mainForm.dataset.popupConfirmed === "true") {
+          delete mainForm.dataset.popupConfirmed;
+        } else {
+          window.openAppPopup({
+            title: "ยืนยันการส่งแบบฟอร์ม",
+            message: "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาท\n\nหากอ่านและยอมรับเงื่อนไขนี้แล้ว กดตกลงเพื่อส่งแบบฟอร์ม",
+            targetFormId: mainForm.id,
+            confirmText: "ตกลงและส่งแบบฟอร์ม",
+            confirmClass: "btn-success",
+          });
+          return;
+        }
+
+        // 1. ตรวจสอบ Radio ประจำปี
+        const selectedRadio = document.querySelector('input[name="period_year_radio"]:checked');
+        if (selectedRadio && radio31.checked) {
+          document.getElementById("hidden_period_year").value = selectedRadio.value;
+        } else {
+          document.getElementById("hidden_period_year").value = "";
+        }
+
+        // 2. Validate ยอดเงิน (กรณีเลือก แบบ 30)
+        if (radio30.checked) {
+          const autoAmount = parseFloat(document.getElementById("sumAmountDisplay").innerText.replace(/,/g, "")) || 0;
+          const userAmount = parseFloat(userTotalInput.value.replace(/,/g, "")) || 0;
+          
+          if (autoAmount.toFixed(2) !== userAmount.toFixed(2)) {
+            alert("ไม่สามารถบันทึกได้: ยอดเงินรวมที่คุณระบุไม่ตรงกับผลรวมของรายการในตาราง");
+            userTotalInput.focus();
+            return false;
+          }
+
+          document.querySelectorAll(".item-amount-input").forEach(input => {
+            input.value = input.value.replace(/,/g, "");
+          });
+        }
+        if (radio32 && radio32.checked) {
+          if (!borrowingTicketSelect || !borrowingTicketSelect.value) {
+            alert("กรุณาเลือกใบยืมเงินก่อนบันทึกแบบฟอร์มนี้");
+            return false;
+          }
+        }
+
+        userTotalInput.value = userTotalInput.value.replace(/,/g, "");
+
+        // 3. Unlock input เพื่อให้ส่งค่าได้
+        const lockedInputs = mainForm.querySelectorAll("input[disabled], select[disabled], input[readonly], select[readonly]");
+        lockedInputs.forEach(input => {
+          input.removeAttribute("disabled");
+          input.removeAttribute("readonly");
+        });
+
+        // 4. ส่งข้อมูลแบบ Fetch (AJAX)
+        const formData = new FormData(mainForm);
+        const submitBtn = mainForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerText = "กำลังบันทึกและสร้าง PDF...";
+
+        fetch(mainForm.action, {
+          method: 'POST',
+          body: formData
+        })
+        .then(res => {
+          if (!res.ok) throw new Error('เกิดข้อผิดพลาดในการบันทึกเอกสาร');
+          return res.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'Fund_Request.pdf';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+
+          setTimeout(() => {
+            window.location.href = "{{ url_for('advance_payment.staff_fund_request_history') }}";
+          }, 300);
+        })
+        .catch(err => {
+          alert(err.message);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnText;
+        });
+      });
+      
+      calculateTotalSpent();
+      toggleFormFields(); 
+    });
+
+    function addReceiptRow() {
+      const tbody = document.getElementById("receiptBody");
+      const newRow = document.createElement("tr");
+      
+      newRow.innerHTML = `
+        <td class="text-center row-index fw-bold"></td>
+        <td>
+          <select name="item_category[]" class="form-select form-select-sm" required>
+            <option value="">เลือกหมวดหมู่</option>
+            <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
+            <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
+            <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+            <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
+            <option value="5">อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
+          </select>
+        </td>
+        <td>
+          <textarea name="item_description[]" class="form-control form-control-sm" rows="1" style="resize: vertical;" required placeholder="ระบุรายละเอียดรายการ..."></textarea>
+        </td>
+        <td>
+          <input type="text" name="item_amount[]" class="form-control form-control-sm text-end fw-bold item-amount-input" required placeholder="0.00" oninput="handleAmountInput(this)">
+        </td>
+        <td class="text-center">
+          <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeReceiptRow(this)">
+            <i class="bi bi-trash3-fill"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(newRow);
+      
+      const newAmountInput = newRow.querySelector(".item-amount-input");
+      newAmountInput.addEventListener("blur", function() {
+        formatInputNumberOnBlur(this);
+        calculateTotalSpent();
+      });
+
+      updateRowIndices();
+    }
+
+    function removeReceiptRow(button) {
+      const row = button.closest("tr");
+      const tbody = document.getElementById("receiptBody");
+      if (tbody.querySelectorAll("tr").length > 1) {
+        row.remove();
+        updateRowIndices();
+        calculateTotalSpent();
+      } else {
+        alert("ต้องมีรายการอย่างน้อย 1 รายการ");
+      }
+    }
+
+    function updateRowIndices() {
+      const rows = document.querySelectorAll("#receiptBody tr");
+      rows.forEach((row, index) => {
+        row.querySelector(".row-index").textContent = index + 1;
+      });
+    }
+
+    function calculateTotalSpent() {
+      let sum = 0;
+      const inputs = document.querySelectorAll(".item-amount-input");
+      inputs.forEach(input => {
+        const val = parseFloat(input.value.replace(/,/g, "")) || 0;
+        sum += val;
+      });
+      
+      document.getElementById("sumAmountDisplay").innerText = sum.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+
+      const userTotalInput = document.getElementById("user_total_amount");
+      if (userTotalInput) {
+        userTotalInput.value = sum.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      }
+
+      validateAmountMatch();
+    }
+
+    function validateAmountMatch() {
+      const radio30 = document.getElementById("form_type_30");
+      if (!radio30 || !radio30.checked) return;
+
+      const autoAmount = parseFloat(document.getElementById("sumAmountDisplay").innerText.replace(/,/g, "")) || 0;
+      const userAmountInput = document.getElementById("user_total_amount");
+      const userAmount = parseFloat(userAmountInput.value.replace(/,/g, "")) || 0;
+      const alertBox = document.getElementById("amount_mismatch_alert");
+
+      if (userAmountInput.value.trim() !== "" && autoAmount.toFixed(2) !== userAmount.toFixed(2)) {
+        alertBox.style.display = "block";
+      } else {
+        alertBox.style.display = "none";
+      }
+    }
+  </script>
+  {% endif %}
+{% endblock %}
+

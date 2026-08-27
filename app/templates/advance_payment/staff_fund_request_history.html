@@ -1,0 +1,314 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}ประวัติใบยืมและใบเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
+
+{% block content %}
+<header class="mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between">
+  <div>
+    <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
+    <h1 class="fw-bold display-6 mb-2">ประวัติใบยืมและใบเบิกเงินสดย่อย</h1>
+    <p class="text-muted mb-0">ติดตามและตรวจสอบสถานะรายการขอเบิกเงินสดย่อยทั้งหมดของหน่วยงาน</p>
+  </div>
+  <div>
+    <a href="{{ url_for('advance_payment.staff_fund_request') }}" class="btn btn-primary fw-bold" style="border-radius: 8px;">
+      <i class="bi bi-plus-circle me-2"></i>สร้างแบบฟอร์มใหม่
+    </a>
+  </div>
+</header>
+
+{% if not setting %}
+<div class="alert alert-warning border rounded-4 py-4 text-center">
+  <i class="bi bi-exclamation-triangle fs-1 d-block mb-2"></i>
+  <h4 class="fw-bold">ไม่พบการเชื่อมโยงหน่วยงาน</h4>
+  <p class="mb-0 text-secondary">บัญชีผู้ดูแลนี้ยังไม่ได้ถูกจับคู่กับหน่วยงานใดๆ ในระบบ กรุณาติดต่อฝ่ายการเงิน</p>
+</div>
+{% else %}
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="p-3 border rounded-4 bg-white shadow-sm text-center">
+      <span class="text-muted small d-block mb-1">งบประมาณประจำปี (บาท)</span>
+      <span class="fs-4 fw-bold text-dark">{{ '{:,.2f}'.format(setting.budget) }} บาท</span>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="p-3 border rounded-4 bg-white shadow-sm text-center">
+      <span class="text-muted small d-block mb-1">ยอดคงเหลือ (บาท)</span>
+      <span class="fs-4 fw-bold text-danger">
+        {% if dept_summary %}
+          {{ '{:,.2f}'.format(dept_summary.total_amount) }} บาท
+        {% else %}
+          0.00 บาท
+        {% endif %}
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border rounded-4 bg-white mb-4">
+  <div class="card-header bg-white border-bottom-0 p-0">
+    <ul class="nav nav-tabs nav-fill fund-history-tabs border-bottom-0" role="tablist">
+      {% set visible_claim_history = claim_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold py-3 text-primary" id="tab-fund-request" type="button" data-history-tab="fund-request">
+          <i class="bi bi-file-earmark-text me-1"></i>ประวัติใบยืมและใบเบิก
+          <span class="badge bg-primary rounded-pill ms-1">{{ fund_requests|length }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold py-3 text-success" id="tab-claim-history" type="button" data-history-tab="claim-history">
+          <i class="bi bi-clock-history me-1"></i>ประวัติการส่งเบิกเงินสดย่อย
+          <span class="badge bg-success rounded-pill ms-1">{{ visible_claim_history|length }}</span>
+        </button>
+      </li>
+    </ul>
+  </div>
+  <div class="card shadow-sm border rounded-4 bg-white mt-4" id="fund-request-section">
+    <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+      <h3 class="h4 fw-bold mb-0"><i class="bi bi-file-earmark-text me-2 text-primary"></i>ประวัติใบยืมและใบเบิก</h3>
+    </div>
+    <div class="card-body px-4 pb-4" id="fund-request-content">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small fw-bold">
+            <tr>
+              <th class="text-center">เลขที่ใบเบิก</th>
+              <th>วันที่ขอเบิก</th>
+              <th class="text-center">ชื่อผู้ขอเบิก</th>
+              <th class="text-center">ประเภทแบบฟอร์ม</th>
+              <th class="text-end">จำนวนเงิน (บาท)</th>
+              <th class="text-center">สถานะ</th>
+              <th class="text-center">อนุมัติ/ตรวจสอบหลักฐาน</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for request in fund_requests %}
+            <tr>
+              <td class="text-center fw-bold">
+                {{ request.ticket_number if request.ticket_number else '-' }}
+              </td>
+              <td>{{ request.request_date|thai_date if request.request_date else '-' }}</td>
+              <td class="text-center">{{ request.requester_name }}</td>
+              <td class="text-center">
+                {% if request.form_type == '30' %}
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกเงินสดย่อย</span>
+                {% elif request.form_type == '31' %}
+                  <span class="badge bg-info-subtle text-info border border-info-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกดอกเบี้ย</span>
+                {% elif request.form_type == '32' %}
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1.5 fw-bold">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 fw-bold">{{ request.form_type }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end fw-bold text-dark">{{ "{:,.2f}".format(request.amount) }}</td>
+              <td class="text-center">
+                {% if request.form_type == '30' %}
+                  {% if request.status == 'กำลังดำเนินการ' and session.get('user_role') == 'secretary' %}
+                    <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
+                  {% elif request.status == 'อนุมัติแล้ว' %}
+                    <span class="badge bg-primary text-white fw-bold px-3 py-2">อนุมัติแล้ว</span>
+                  {% elif request.status == 'ส่งเบิกแล้ว' %}
+                    <span class="badge bg-info text-white fw-bold px-3 py-2">ส่งเบิกแล้ว</span>
+                  {% elif request.status == 'เบิกเงินสำเร็จ' %}
+                    <span class="badge bg-success text-white fw-bold px-3 py-2">เบิกเงินสำเร็จ</span>
+                  {% elif request.status == 'ปฏิเสธ' %}
+                    <span class="badge bg-danger text-white fw-bold px-3 py-2">ปฏิเสธ</span>
+                  {% else %}
+                    <span class="badge bg-secondary text-white fw-bold px-3 py-2">{{ request.status }}</span>
+                  {% endif %}
+                {% elif request.form_type == '31' %}
+                  {% if request.status == 'กำลังดำเนินการ' %}
+                    <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
+                  {% elif request.status == 'เบิกเงินแล้ว' %}
+                    <span class="badge bg-success text-white fw-bold px-3 py-2">เบิกเงินแล้ว</span>
+                  {% elif request.status == 'ปฏิเสธ' %}
+                    <span class="badge bg-danger text-white fw-bold px-3 py-2">ปฏิเสธ</span>
+                  {% else %}
+                    <span class="badge bg-secondary text-white fw-bold px-3 py-2">{{ request.status }}</span>
+                  {% endif %}
+                {% elif request.form_type == '32' %}
+                  {% if request.status == 'กำลังดำเนินการ' %}
+                    <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
+                  {% elif request.status == 'อนุมัติแล้ว' %}
+                    <span class="badge bg-success text-white fw-bold px-3 py-2">อนุมัติแล้ว</span>
+                  {% elif request.status == 'ปฏิเสธ' %}
+                    <span class="badge bg-danger text-white fw-bold px-3 py-2">ปฏิเสธ</span>
+                  {% else %}
+                    <span class="badge bg-secondary text-white fw-bold px-3 py-2">{{ request.status }}</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <div class="d-flex justify-content-center align-items-center gap-2">
+                  {% if request.status == 'กำลังดำเนินการ' %}
+                    {% if session.get('user_role') == 'secretary' %}
+                      {% if request.form_type == '31' and request.withdrawal_proof_reference %}
+                        <a href="{{ url_for('static', filename=request.withdrawal_proof_reference) }}" class="btn btn-outline-primary btn-sm fw-bold" target="_blank">
+                          <i class="bi bi-paperclip me-1"></i>{{ request.withdrawal_proof_filename or 'หลักฐานการเบิก' }}
+                        </a>
+                      {% else %}
+                        <button type="button"
+                                class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
+                                data-popup-trigger="true"
+                                data-popup-title="ยืนยันการอนุมัติใบเบิก"
+                                data-popup-message="ระบบจะออกเลขที่ใบเบิกให้อัตโนมัติเมื่อยืนยันการอนุมัติ"
+                                data-popup-action="{{ url_for('advance_payment.approve_fund_request', request_id=request.id) }}"
+                                data-popup-confirm-text="ยืนยันการอนุมัติ"
+                                data-popup-confirm-class="btn-primary">
+                          อนุมัติใบเบิก
+                        </button>
+                        <button type="button"
+                                class="btn btn-danger btn-sm fw-bold px-3 py-1.5"
+                                data-popup-trigger="true"
+                                data-popup-title="สาเหตุของการปฏิเสธสัญญา"
+                                data-popup-message="กรุณาระบุเหตุผลสำหรับการปฏิเสธใบเบิก"
+                                data-popup-action="{{ url_for('advance_payment.reject_fund_request', request_id=request.id) }}"
+                                data-popup-confirm-text="ยืนยันการปฏิเสธ"
+                                data-popup-confirm-class="btn-danger"
+                                data-popup-input-type="textarea"
+                                data-popup-input-name="rejection_comment"
+                                data-popup-input-placeholder="ระบุเหตุผลที่ปฏิเสธเอกสารสัญญา..."
+                                data-popup-input-required="true"
+                                data-popup-input-rows="2">
+                          ปฏิเสธ
+                        </button>
+                      {% endif %}
+                    {% else %}
+                      <span class="text-muted small">รอผู้ดูแลเงินสดย่อยอนุมัติหรือปฏิเสธ</span>
+                    {% endif %}
+                  {% endif %}
+                  {% if request.form_type == '30' and request.status not in ['ปฏิเสธ', 'กำลังดำเนินการ'] %}
+                  <div class="d-flex justify-content-center align-items-center gap-1">
+                    <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=request.id) }}" 
+                      class="btn btn-sm btn-outline-primary">
+                      <i class="bi bi-file-earmark-plus"></i> ดูประวัติ/ส่งเบิกเงินสดย่อย
+                    </a>
+                  </div>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="bi bi-folder-x fs-1 d-block mb-2 text-secondary"></i>
+                ไม่มีประวัติการสร้างใบยืมหรือใบเบิกเงินสดย่อยในระบบ
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<!-- ส่วนแสดงรายละเอียดรายการเบิกเงินสดย่อย ด้านล่างแบบฟอร์ม -->
+<div class="card shadow-sm border rounded-4 bg-white mt-4 d-none" id="claim-history-section">
+  <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+    <h3 class="h4 fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>ประวัติรายละเอียดเอกสารส่งเบิกเงินสดย่อย</h3>
+  </div>
+  <div class="card-body px-4 pb-4">
+    {% if visible_claim_history and visible_claim_history|length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small fw-bold">
+            <tr>
+              <th class="text-center">เลขอว.</th>
+              <th>วันที่ยื่นเบิก</th>
+              <th class="text-center">ชื่อผู้ขอเบิก</th>
+              <th class="text-end">ยอดเงินรวม (บาท)</th>
+              <th class="text-center">สถานะ</th>
+              <th class="text-center">ตรวจสอบ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for claim in visible_claim_history %}
+              <tr>
+                <td class="text-center fw-bold">
+                  {{ claim.claim_number if claim.claim_number else '-' }}
+                </td>
+                <td>{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
+                  
+                <td class="text-center">{{ claim.user.name if claim.user_id else '-' }}</td>
+
+                <td class="text-end fw-bold text-primary">
+                  {{ "{:,.2f}".format(claim.amount or claim.total_amount or 0.0) }} บาท
+                </td>
+                
+                <td class="text-center">
+                  {% if claim.status|lower == 'รอตรวจสอบ' %}{% set r_badge = 'bg-warning text-dark' %}{% set r_status = 'รอตรวจสอบ' %}
+                  {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set r_badge = 'bg-warning text-dark' %}{% set r_status = 'กำลังตรวจสอบ' %}
+                  {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
+                  {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set r_badge = 'bg-primary text-white' %}{% set r_status = 'โอนเงินสดย่อยสำเร็จ' %}
+                  {% elif claim.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-secondary text-white' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
+                  {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'เสร็จสิ้นกระบวนการ' %}
+                  {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธ' %}{% endif %}
+                  
+                  <span class="badge {{ r_badge }}">{{ r_status }}</span>
+                </td>
+                  
+                <td class="col text-center gap-2">
+                  {% if not claim.claim_number %}
+                    <button type="button"
+                            class="btn btn-sm btn-outline-secondary"
+                            data-popup-trigger="true"
+                            data-popup-title="ใส่เลขอว."
+                            data-popup-message="กรุณาระบุเลขอว. สำหรับรายการนี้"
+                            data-popup-action="{{ url_for('advance_payment.update_petty_cash_claim_number', claim_id=claim.id) }}"
+                            data-popup-confirm-text="บันทึกเลขอว."
+                            data-popup-confirm-class="btn-primary"
+                            data-popup-input-type="text"
+                            data-popup-input-name="claim_number"
+                            data-popup-input-placeholder="โปรดระบุเลขอว."
+                            data-popup-input-value="{{ claim.claim_number or '' }}"
+                            data-popup-input-required="true">
+                      ใส่เลขอว.
+                    </button>
+                  {% endif %}
+                  <!-- ลิงก์ทดสอบไปยังหน้า petty_cash_claim_detail.html -->
+                  <a href="{{ url_for('advance_payment.petty_cash_claim_detail', claim_id=claim.id)}}" 
+                    class="btn btn-sm btn-outline-primary fw-semibold shadow-sm"
+                    title="เปิดหน้า petty_cash_claim_detail.html">
+                    <i class="bi bi-file-earmark-text me-1"></i>ตรวจสอบ
+                  </a>
+                </td>
+              </tr>
+
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted text-center my-4">ยังไม่มีประวัติการส่งเบิกเงินสดย่อยในระบบ</p>
+    {% endif %}
+  </div>
+</div>
+<script>
+  (function () {
+    const fundRequestSection = document.getElementById("fund-request-section");
+    const claimHistorySection = document.getElementById("claim-history-section");
+    const tabButtons = document.querySelectorAll("[data-history-tab]");
+
+    function setActiveTab(tabKey) {
+      tabButtons.forEach((button) => {
+        const isActive = button.dataset.historyTab === tabKey;
+        button.classList.toggle("active", isActive);
+      });
+
+      if (fundRequestSection) {
+        fundRequestSection.classList.toggle("d-none", tabKey !== "fund-request");
+      }
+
+      if (claimHistorySection) {
+        claimHistorySection.classList.toggle("d-none", tabKey !== "claim-history");
+      }
+    }
+
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", () => setActiveTab(button.dataset.historyTab));
+    });
+
+    setActiveTab("fund-request");
+  })();
+</script>
+{% endif %}
+{% endblock %}

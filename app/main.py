@@ -1883,6 +1883,10 @@ from app.academic_service_payment import academic_service_payment as academic_se
 
 app.register_blueprint(academic_service_payment_blueprint)
 
+from app.advance_payment import advance_payment as advance_payment_blueprint
+
+app.register_blueprint(advance_payment_blueprint)
+
 from app.software_request import software_request as software_request_blueprint
 
 app.register_blueprint(software_request_blueprint)

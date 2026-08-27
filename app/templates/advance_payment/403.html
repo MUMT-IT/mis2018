@@ -1,0 +1,18 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}ปฏิเสธการเข้าถึง | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+  <section class="hero text-center py-4">
+    <p class="eyebrow text-danger fw-bold text-uppercase" style="letter-spacing: 0.1em;">ปฏิเสธการเข้าถึง</p>
+    <h1 class="fw-bold mb-3">คุณไม่มีสิทธิ์ในการเข้าถึงหรือดูหน้านี้</h1>
+    <p class="lead text-muted">
+      โปรดเข้าสู่ระบบด้วยบัญชีผู้ใช้ที่มีบทบาทถูกต้องเพื่อดำเนินการต่อ
+    </p>
+  </section>
+
+  <div class="button-row d-flex justify-content-center gap-2 mt-3">
+    <a class="btn btn-primary btn-lg px-4" href="{{ url_for('advance_payment.login') }}" style="border-radius: 12px;">กลับสู่หน้าเข้าสู่ระบบ</a>
+    <a class="btn btn-outline-secondary btn-lg px-4" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 12px;">ล้างเซสชันการใช้งาน</a>
+  </div>
+{% endblock %}

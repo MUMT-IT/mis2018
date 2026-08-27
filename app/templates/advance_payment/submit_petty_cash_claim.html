@@ -1,0 +1,1038 @@
+﻿{% extends "advance_payment/base.html" %}
+
+{% block title %}แบบฟอร์มส่งเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
+
+{% block content %}
+<header class="mb-4 pb-2 border-bottom">
+  <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
+  <h1 class="fw-bold display-6 mb-2">บันทึกใบส่งเบิกเงินสดย่อย</h1>
+  <p class="text-muted mb-0">หน่วยงาน: {{ setting.department_name if setting else '-' }} | เลขที่บัญชี: {{ setting.account_number if setting else '-' }}</p>
+</header>
+
+{% set fund_request_status = selected_fund_request.status if selected_fund_request else (claim_detail.fund_request.status if claim_detail and claim_detail.fund_request else none) %}
+{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('user_role') in ['staff', 'secretary']) and fund_request_status not in ['ส่งเบิกแล้ว', 'เบิกเงินสำเร็จ'] %}
+{% if can_submit_claim %}
+<div class="card shadow-sm border rounded-4 bg-white mb-5">
+  <div class="card-body p-4">
+    <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm">
+      <input type="hidden"
+       name="fund_request_id"
+       id="fund_request_id"
+       value="{{ selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else '') }}">
+
+      <!-- Auto Save Status Indicator -->
+      <!-- <div class="d-flex justify-content-end align-items-center mb-3">
+        <span id="autoSaveStatus" class="badge bg-light text-muted fw-normal px-3 py-2 border">
+          <i class="bi bi-cloud-check me-1"></i> พร้อมบันทึกร่างอัตโนมัติ
+        </span>
+      </div> -->
+
+      <!-- 2. ส่วนแนบเอกสารประกาศประกอบ -->
+      <div class="mb-4 border rounded-3 p-3 bg-white">
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h5>
+        <div id="document-inputs-container">
+          {% if claim_detail and claim_detail.documents %}
+            {% for doc in claim_detail.documents %}
+              <div class="row g-2 mb-2 document-input-row align-items-center">
+                <div class="col-md-7 position-relative">
+                  <input type="hidden" name="announcement_ids[]" class="announcement-id-input" value="{{ doc.id }}">
+                  <input type="text" name="announcement_titles[]" 
+                        class="form-control form-control-sm announcement-input" 
+                        placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
+                        autocomplete="off"
+                        value="{{ doc.title }}"
+                        oninput="showSuggestions(this)">
+                  <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
+                </div>
+                <div class="col-md-5 d-flex gap-2 action-buttons-container">
+                  <a href="{{ doc.file_path or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.file_path %}d-none{% endif %}" target="_blank" download>
+                    <i class="bi bi-download me-1"></i> ดาวน์โหลด
+                  </a>
+                  <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
+                    <i class="bi bi-x-circle-fill"></i> ลบ
+                  </button>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="row g-2 mb-2 document-input-row align-items-center">
+              <div class="col-md-7 position-relative">
+                <input type="hidden" name="announcement_ids[]" class="announcement-id-input">
+                <input type="text" name="announcement_titles[]" 
+                      class="form-control form-control-sm announcement-input" 
+                      placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
+                      autocomplete="off"
+                      oninput="showSuggestions(this)">
+                <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
+              </div>
+              <div class="col-md-5 d-flex gap-2 action-buttons-container">
+                <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" download>
+                  <i class="bi bi-download me-1"></i> ดาวน์โหลด
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
+                  <i class="bi bi-x-circle-fill"></i> ลบ
+                </button>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addDocumentRow()">
+          + เพิ่มประกาศอื่น
+        </button>
+        <div class="col-md-12 mt-2">
+          <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบการเบิกเงินยืมด้วย *</small>
+        </div>
+      </div>
+
+      <h5 class="fw-bold text-dark mb-3"><i class="bi bi-receipt me-2 text-primary"></i>รายการหลักฐานใบเสร็จส่งเบิก</h5>
+      
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle" id="claimTable">
+          <thead class="table-light small fw-bold">
+            <tr>
+              <th style="width: 50px;" class="text-center">#</th>
+              <th style="width: 150px;">วันที่ตามใบเสร็จ</th>
+              <th style="width: 280px;">หมวดหมู่รายจ่าย</th>
+              <th>รายการ / รายละเอียด</th>
+              <th style="width: 160px;" class="text-end">จำนวนเงิน (บาท)</th>
+              <th style="width: 220px;">แนบไฟล์ใบเสร็จ</th>
+              <th style="width: 50px;" class="text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="claimBody">
+            {% if claim_detail and claim_detail.items %}
+              {% for item in claim_detail.items %}
+                <tr>
+                  <td class="text-center fw-bold row-index">{{ loop.index }}</td>
+                  <td>
+                    <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" 
+                          value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}" required>
+                    <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
+                  </td>
+                  <td>
+                    <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
+                      <option value="1" {% if item.category_type|string == '1' %}selected{% endif %}>ค่าตอบแทน (เช่น ค่าเบี้ยเลี้ยง, ค่าตอบแทนวิทยากร)</option>
+                      <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)</option>
+                      <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น เครื่องเขียน, วัสดุสำนักงาน, อุปกรณ์)</option>
+                      <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)</option>
+                      <option value="5" {% if item.category_type|string == '5' %}selected{% endif %}>อื่น ๆ (เช่น สัญญาเงินยืม)</option>
+                      <option value="6" {% if item.category_type|string == '6' %}selected{% endif %}>โอนคืนบัญชีหน่วย</option>
+                    </select>
+                    </td>
+                  <td>
+                    <input type="text" name="description[]" class="form-control form-control-sm" 
+                          value="{{ item.description or '' }}" placeholder="ระบุรายการ..." required>
+                  </td>
+                  <td>
+                    <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" 
+                          value="{{ '%.2f'|format(item.amount or 0) }}" placeholder="0.00" oninput="calculateTotal()" required>
+                  </td>
+                  <td>
+                    <input type="file" name="proof_file[]" class="form-control form-control-sm" accept="image/*,.pdf">
+                    {% if item.proof_files and item.proof_files[0] %}
+                      <input type="hidden" name="existing_proof_files[]" value="{{ item.proof_files[0].proof_reference }}">
+                      <input type="hidden" name="existing_proof_filenames[]" value="{{ item.proof_files[0].filename }}">
+                      <small class="text-success d-block mt-1">
+                        <i class="bi bi-file-earmark-check"></i> {{ item.proof_files[0].filename }}
+                      </small>
+                    {% else %}
+                      <input type="hidden" name="existing_proof_files[]" value="">
+                      <input type="hidden" name="existing_proof_filenames[]" value="">
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
+                      <i class="bi bi-trash3-fill"></i>
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+
+            {% elif selected_fund_request and selected_fund_request.items %}
+              {% for item in selected_fund_request.items %}
+                <tr>
+                  <td class="text-center fw-bold row-index">{{ loop.index }}</td>
+                  <td>
+                    <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
+                    <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
+                  </td>
+                  <td>
+                    <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
+                      <option value="1" {% if item.category_type|string == '1' %}selected{% endif %}>ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
+                      <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
+                      <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+                      <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
+                      <option value="5" {% if item.category_type|string == '5' %}selected{% endif %}>อื่น ๆ (เช่น สัญญาเงินยืม)</option>
+                      <option value="6" {% if item.category_type|string == '6' %}selected{% endif %}>โอนคืนบัญชีหน่วย</option>
+                    </select>
+                    </td>
+                  <td>
+                    <input type="text" name="description[]" class="form-control form-control-sm" 
+                          value="{{ item.description or '' }}" placeholder="ระบุรายการ..." required>
+                  </td>
+                  <td>
+                    <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" 
+                          value="{{ '%.2f'|format(item.amount or 0) }}" placeholder="0.00" oninput="calculateTotal()" required>
+                  </td>
+                  <td>
+                    <input type="file" name="proof_file[]" class="form-control form-control-sm" accept="image/*,.pdf">
+                    <input type="hidden" name="existing_proof_files[]" value="">
+                    <input type="hidden" name="existing_proof_filenames[]" value="">
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
+                      <i class="bi bi-trash3-fill"></i>
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-4">
+        <button type="button" class="btn btn-sm btn-success fw-bold" onclick="addRow()">
+          <i class="bi bi-plus-lg me-1"></i> เพิ่มรายการใบเสร็จ
+        </button>
+        <div class="d-flex gap-4 text-end align-items-center">
+          <!-- 1. วงเงินสดย่อยที่ขออนุมัติ (fund_request.amount) เพิ่มไว้หน้าสุด -->
+          <div>
+            <span class="d-block text-secondary small fw-bold">ยอดเงินที่ขอเบิกไป:</span>
+            <span class="fw-bold text-secondary fs-5">
+              {{ '%.2f'|format(selected_fund_request.amount if selected_fund_request and selected_fund_request.amount else (claim_detail.fund_request.amount if claim_detail and claim_detail.fund_request and claim_detail.fund_request.amount else 0)) }}
+            </span>
+            <span class="text-secondary small ms-1">บาท</span>
+          </div>
+
+          <div class="vr my-1"></div>
+
+          <!-- 2. ยอดรวมส่งเบิกทั้งสิ้น (เดิม) -->
+          <div>
+            <span class="d-block text-primary small fw-bold">ยอดรวมส่งเบิกทั้งสิ้น:</span>
+            <span class="fw-bold text-primary fs-4" id="totalAmountDisplay">0.00</span>
+            <span class="fw-bold text-primary ms-1">บาท</span>
+          </div>
+
+          <div class="vr my-1"></div>
+
+          <!-- 3. รวมเป็นเงิน (เดิม) -->
+          <div>
+            <span class="d-block text-muted small fw-bold">รวมเป็นเงิน:</span>
+            <span class="fw-bold text-dark fs-5" id="grandTotalDisplay">0.00</span>
+            <span class="text-muted small ms-1">บาท</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 justify-content-end">
+        <button type="submit" name="action" value="draft" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 8px;">
+          บันทึกฉบับร่าง
+        </button>
+        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;">
+          <i class="bi bi-send me-1"></i> ยืนยันส่งเบิกเงิน
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ส่วนยอดการคืนที่ส่งไปฝ่ายพัสดุ -->
+<div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
+  <h5 class="fw-bold text-dark mb-3"><i class="bi bi-box-seam me-2 text-primary"></i>ยอดการคืนที่ส่งไปฝ่ายพัสดุ</h5>
+  {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
+  {% if parcel_return_fund_request_id %}
+    <form method="post" action="{{ url_for('advance_payment.submit_fund_request_parcel_return', fund_request_id=parcel_return_fund_request_id) }}">
+      <input type="hidden" name="fund_request_id" value="{{ parcel_return_fund_request_id }}">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+          <input type="text" name="amount" id="parcel_amount" class="form-control parcel-amount-input" required placeholder="0.00">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
+          <input type="date" name="sent_date" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">รายการ</label>
+          <textarea name="items_description" class="form-control" placeholder="รายละเอียดรายการ..." required></textarea>
+        </div>
+      </div>
+      <div class="text-end mt-3">
+        <button type="submit" class="btn btn-primary fw-bold">บันทึกข้อมูลส่งฝ่ายพัสดุ</button>
+      </div>
+    </form>
+  {% else %}
+    <div class="alert alert-warning mb-0">
+      กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกการส่งคืนพัสดุได้
+    </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% set history_target = history_fund_request if history_fund_request is defined else (selected_fund_request if selected_fund_request else (claim_detail.fund_request if claim_detail and claim_detail.fund_request else none)) %}
+
+{% if history_target %}
+<section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h3 class="h4 fw-bold mb-0 py-3">ประวัติการส่งเบิกเงินสดย่อย</h3>
+      <p class="text-muted small mb-0 py-2">คำขอที่เลือก: {{ history_target.ticket_number or history_target.id }}  ({{ history_target.purpose }})</p>
+    </div>
+  </div>
+
+  <h5 class="fw-bold text-primary mb-2"><i class="bi bi-receipt me-2"></i>รายการส่งเบิกเงินสดย่อย</h5>
+  {% if claim_history %}
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-primary text-dark text-semibold">
+          <tr>
+            <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
+            <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
+            <th scope="col" style="width: 15%;" class="small fw-bold">ยอดที่ใช้จ่าย</th>
+            <th scope="col" style="width: 10%;" class="small fw-bold">สถานะ</th>
+            <th scope="col" style="width: 20%;" class="small fw-bold text-center">หมายเลขฎีกา</th>
+            <th scope="col" class="small fw-bold text-center">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for claim in claim_history %}
+          <tr class="align-top">
+            <td>{{ claim.created_at|thai_date }}</td>
+            <td>
+              {% if claim.items_description_summary %}
+                <span class="text-center">{{ claim.items_description_summary }}</span>
+              {% else %}
+                <span class="text-muted small">-</span>
+              {% endif %}
+            </td>
+            <td class="fw-semibold text-dark">{{ "{:,.2f}".format(claim.total_amount or 0) }}</td>
+            <td>
+              {% set c_badge = 'bg-warning text-dark' %}
+              {% set c_status = claim.status %}
+
+              {% if claim.status|lower == 'รอตรวจสอบ' %}{% set c_status = 'รอตรวจสอบ' %}
+              {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_badge = 'bg-warning text-dark' %}{% set c_status = 'กำลังตรวจสอบ' %}
+              {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_badge = 'bg-info text-dark' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
+              {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_badge = 'bg-success text-white' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
+              {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_badge = 'bg-secondary text-white' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
+              {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_badge = 'bg-danger text-white' %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
+
+              <span class="badge {{ c_badge }}">{{ c_status }}</span>
+            </td>
+            <td class="text-center">
+              {% if claim.closing_document_name %}
+                <span class="fw-semibold d-block text-dark">{{ claim.closing_document_name }}</span>
+              {% else %}
+                <span class="text-muted small">-</span>
+              {% endif %}
+              {% if claim.old_document_number %}
+                <span class="text-muted small d-block">(เลขเก่า: {{ claim.old_document_number }})</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <a href="{{ url_for('advance_payment.petty_cash_claim_detail', claim_id=claim.id) }}" class="text-primary fw-semibold text-decoration-none" target="_blank">
+                <i class="bi bi-search"></i> ตรวจสอบหลักฐาน
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted mb-4 ps-3">ยังไม่มีประวัติการส่งเบิกเงินสดย่อยสำหรับคำขอนี้</p>
+  {% endif %}
+
+  <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
+  {% if parcel_return_history %}
+    <div class="table-responsive mb-4">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-success text-dark">
+          <tr>
+            <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
+            <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
+            <th scope="col" style="width: 15%;" class="small fw-bold">ยอดที่ใช้จ่าย</th>
+            <th scope="col" style="width: 10%;" class="small fw-bold">สถานะ</th>
+            <th scope="col" style="width: 20%;" class="small fw-bold text-center">หมายเลขฎีกา</th>
+            <th scope="col" class="small fw-bold text-center">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pr in parcel_return_history %}
+          <tr class="align-top">
+            <td>{{ pr.sent_date|thai_date }}</td>
+            <td>{{ pr.items_description }}</td>
+            <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
+            <td>
+              {% if pr.status == 'รอตรวจสอบ' %}
+                <span class="badge bg-warning text-dark">รอตรวจสอบ</span>
+              {% elif pr.status == 'พัสดุกำลังดำเนินการ' %}
+                <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
+              {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
+                <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
+              {% elif pr.status|lower in ['ปฏิเสธ'] %}
+                <span class="badge bg-danger text-white">ถูกปฏิเสธ</span>
+              {% elif pr.status|lower == 'เอกสารตั้งฎีกา' %}
+                <span class="badge bg-secondary text-white">เอกสารตั้งฎีกา</span>
+              {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
+                <span class="badge bg-success text-white">ล้างลูกหนี้เงินยืม</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">{{ pr.status }}</span>
+              {% endif %}
+              {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
+                <div class="small text-danger mt-1 text-start">{{ pr.rejection_comment }}</div>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if pr.closing_document_name %}
+                <span class="fw-semibold d-block text-dark">{{ pr.closing_document_name }}</span>
+              {% else %}
+                <span class="text-muted small">-</span>
+              {% endif %}
+              {% if pr.old_document_number %}
+                <span class="text-muted small d-block">(เลขเก่า: {{ pr.old_document_number }})</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="d-flex flex-wrap gap-2 justify-content-center">
+                {% if session.get('user_role') == 'finance' and pr.status == 'รอตรวจสอบ' %}
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary fw-bold w-100"
+                      style="max-width: 150px;"
+                      data-popup-trigger="true"
+                      data-popup-title="ยืนยันการตรวจสอบเอกสารพัสดุ"
+                      data-popup-message="คุณต้องการเปลี่ยนสถานะรายการส่งคืนพัสดุนี้เป็น 'ยืนยันเอกสารแล้ว' ใช่หรือไม่?"
+                      data-popup-confirm-text="ยืนยันการตรวจสอบ"
+                      data-popup-confirm-class="btn-primary"
+                      data-popup-target-form-id="parcelProofedForm{{ pr.id }}">
+                      ยืนยันเอกสารแล้ว
+                    </button>
+                  </form>
+                {% elif session.get('user_role') == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-success fw-bold w-100"
+                      style="max-width: 150px;"
+                      data-popup-trigger="true"
+                      data-popup-title="ยืนยันการรับเอกสารพัสดุ"
+                      data-popup-message="คุณต้องการเปลี่ยนสถานะรายการส่งคืนพัสดุนี้เป็น 'ได้รับเอกสารแล้ว' ใช่หรือไม่?"
+                      data-popup-confirm-text="ยืนยันการรับเอกสาร"
+                      data-popup-confirm-class="btn-success"
+                      data-popup-target-form-id="parcelReceivedForm{{ pr.id }}">
+                      ได้รับเอกสารแล้ว
+                    </button>
+                  </form>
+                {% endif %}
+
+                {% if session.get('user_role') == 'finance' and pr.status in ['รอตรวจสอบ'] %}
+                  <button type="button" class="btn btn-sm btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#parcelRejectModal{{ pr.id }}" style="max-width: 150px;">
+                    ปฏิเสธ
+                  </button>
+                {% endif %}
+
+                {% if session.get('user_role') in ['staff', 'secretary'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                  <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#parcelEditModal{{ pr.id }}" style="max-width: 150px;">
+                    แก้ไข
+                  </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% for pr in parcel_return_history %}
+      {% if session.get('user_role') == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
+        <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <form method="post" action="{{ url_for('advance_payment.reject_parcel_return', parcel_return_id=pr.id) }}">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title fw-bold text-dark">สาเหตุของการปฏิเสธรายการส่งคืนพัสดุ</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-dark">
+                  <textarea name="rejection_comment" class="form-control" rows="3" placeholder="ระบุเหตุผลที่ปฏิเสธรายการส่งคืนพัสดุ..." required></textarea>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                  <button class="btn btn-danger btn-sm fw-bold">ยืนยันการปฏิเสธ</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if session.get('user_role') in ['staff', 'secretary'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+        <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <form method="post" action="{{ url_for('advance_payment.staff_parcel_return_edit', parcel_return_id=pr.id) }}">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title fw-bold text-dark">แก้ไขรายการส่งคืนพัสดุ</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-dark">
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
+                    <input type="date" name="sent_date" class="form-control" value="{{ pr.sent_date.strftime('%Y-%m-%d') if pr.sent_date else '' }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">รายการ</label>
+                    <input type="text" name="items_description" class="form-control" value="{{ pr.items_description }}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+                    <input type="text" name="amount" class="form-control" value="{{ '{:,.2f}'.format(pr.amount_spent or 0) }}" required>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                  <button class="btn btn-primary btn-sm fw-bold">บันทึกการแก้ไข</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <p class="text-muted mb-4 ps-3">ไม่มีรายการที่ส่งไปฝ่ายพัสดุ</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<script>
+let autoSaveTimer = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  calculateTotal();
+  bindReceiptAgeWarnings(document);
+  
+  document.querySelectorAll('.claim-amount').forEach(input => {
+    bindAmountEvents(input);
+  });
+
+  document.querySelectorAll('#claimBody tr').forEach(row => {
+    const selectEl = row.querySelector('select[name="category_type[]"]');
+    if (selectEl) {
+      handleCategoryChange(selectEl);
+    }
+  });
+
+  const claimForm = document.getElementById('claimForm');
+  if (claimForm) {
+    claimForm.addEventListener('submit', function(event) {
+      if (!validateClaimAmountLimit()) {
+        event.preventDefault();
+        return;
+      }
+
+      document.querySelectorAll('.claim-amount').forEach(input => {
+        input.value = input.value.replace(/,/g, '');
+      });
+    });
+
+    // ผูก Event ติดตามการเปลี่ยนแปลงข้อมูลเพื่อทำ Auto Save Draft
+    claimForm.addEventListener('input', triggerAutoSave);
+    claimForm.addEventListener('change', triggerAutoSave);
+  }
+
+  const fundReqSelect = document.getElementById('fund_request_id');
+  if (fundReqSelect) {
+    updateFundRequestInfo(fundReqSelect);
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll(".parcel-amount-input").forEach(input => {
+    if (input.value) {
+      formatInputNumberWithComma(input);
+    }
+
+    input.addEventListener("input", function() {
+      formatInputNumberWithComma(this);
+    });
+
+    input.addEventListener("blur", function() {
+      formatInputCurrency(this);
+    });
+
+    const parcelForm = input.closest("form");
+    if (parcelForm) {
+      parcelForm.addEventListener("submit", function() {
+        input.value = input.value.replace(/,/g, "");
+      });
+    }
+  });
+});
+
+// ฟังก์ชันสั่งการ Auto Save เมื่อหยุดพิมพ์/แก้ไข 2 วินาที (Debounce)
+function triggerAutoSave() {
+  const statusEl = document.getElementById('autoSaveStatus');
+  if (statusEl) {
+    statusEl.className = "badge bg-warning text-dark px-3 py-2 border";
+    statusEl.innerHTML = '<i class="bi bi-pencil-fill me-1"></i> กำลังรอการบันทึก...';
+  }
+
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(autoSavePettyCashDraft, 2000);
+}
+
+// ฟังก์ชันส่ง AJAX ไปบันทึกฉบับร่าง
+async function autoSavePettyCashDraft() {
+  const statusEl = document.getElementById('autoSaveStatus');
+  const claimForm = document.getElementById('claimForm');
+  if (!claimForm) return;
+
+  if (statusEl) {
+    statusEl.className = "badge bg-info text-white px-3 py-2 border";
+    statusEl.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> กำลังบันทึกร่าง...';
+  }
+
+  // รวบรวมข้อมูล รายการใบเสร็จ
+  const items = [];
+  document.querySelectorAll('#claimBody tr').forEach(row => {
+    const receiptDate = row.querySelector('input[name="receipt_date[]"]')?.value || '';
+    const categoryType = row.querySelector('select[name="category_type[]"]')?.value || '1';
+    const description = row.querySelector('input[name="description[]"]')?.value || '';
+    const amountVal = row.querySelector('.claim-amount')?.value.replace(/,/g, '') || '0';
+
+    items.push({
+      receipt_date: receiptDate,
+      category_type: categoryType,
+      description: description,
+      amount: parseFloat(amountVal) || 0
+    });
+  });
+
+  // รวบรวมข้อมูล เอกสารประกาศ
+  const announcements = [];
+  document.querySelectorAll('.announcement-input').forEach(input => {
+    if (input.value.trim()) {
+      announcements.push(input.value.trim());
+    }
+  });
+
+  const fundRequestId = document.getElementById('fund_request_id')?.value || '';
+
+  try {
+    const response = await fetch('/coordinator/petty-cash-claim/autosave-draft', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fund_request_id: fundRequestId,
+        items: items,
+        announcements: announcements
+      })
+    });
+
+    const result = await response.json();
+    if (response.ok && result.success) {
+      if (statusEl) {
+        statusEl.className = "badge bg-success text-white px-3 py-2 border";
+        statusEl.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> บันทึกร่างอัตโนมัติเมื่อ ${result.saved_at}`;
+      }
+    } else {
+      throw new Error(result.message || 'เกิดข้อผิดพลาดในการบันทึก');
+    }
+  } catch (err) {
+    console.error('AutoSave Error:', err);
+    if (statusEl) {
+      statusEl.className = "badge bg-danger text-white px-3 py-2 border";
+      statusEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> บันทึกร่างล้มเหลว';
+    }
+  }
+}
+
+function updateFundRequestInfo(selectElem) {
+  const selectedOption = selectElem.options[selectElem.selectedIndex];
+  const box = document.getElementById('fund-request-detail-box');
+  
+  if (selectElem.value) {
+    document.getElementById('fr-ticket').innerText = selectedOption.getAttribute('data-ticket');
+    document.getElementById('fr-date').innerText = selectedOption.getAttribute('data-date');
+    document.getElementById('fr-amount').innerText = selectedOption.getAttribute('data-amount');
+    document.getElementById('fr-purpose').innerText = selectedOption.getAttribute('data-purpose');
+    box.classList.remove('d-none');
+  } else {
+    box.classList.add('d-none');
+  }
+}
+
+function calculateTotal() {
+  let grandTotal = 0;
+  let financeTotal = 0;
+
+  document.querySelectorAll('#claimBody tr').forEach(row => {
+    const catSelect = row.querySelector('select[name="category_type[]"]');
+    const amountInput = row.querySelector('.claim-amount');
+    
+    if (amountInput) {
+      const amt = parseFloat(amountInput.value.replace(/,/g, '')) || 0;
+      grandTotal += amt;
+
+      if (catSelect && catSelect.value !== '6') {
+        financeTotal += amt;
+      }
+    }
+  });
+
+  const grandDisplayEl = document.getElementById('grandTotalDisplay');
+  if (grandDisplayEl) {
+    grandDisplayEl.textContent = grandTotal.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  const financeDisplayEl = document.getElementById('totalAmountDisplay');
+  if (financeDisplayEl) {
+    financeDisplayEl.textContent = financeTotal.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+}
+
+function validateClaimAmountLimit() {
+  const rows = document.querySelectorAll('#claimBody tr');
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    const catSelect = row.querySelector('select[name="category_type[]"]');
+    const amountInput = row.querySelector('.claim-amount');
+
+    if (!catSelect || !amountInput) {
+      continue;
+    }
+
+    const categoryType = (catSelect.value || '').trim();
+    const amount = parseFloat(amountInput.value.replace(/,/g, '')) || 0;
+
+    if (categoryType !== '6' && amount > 20000) {
+      alert(`รายการที่ ${index + 1} มียอดเกิน 20,000 บาท กรุณาแก้ไขก่อนส่งเบิก`);
+      amountInput.focus();
+      amountInput.select();
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function formatInputNumberWithComma(element) {
+  let value = element.value.replace(/,/g, "").replace(/[^0-9.]/g, "");
+  const parts = value.split(".");
+  if (parts.length > 2) {
+    value = parts[0] + "." + parts.slice(1).join("");
+  }
+  if (parts[0]) {
+    let num = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    element.value = parts.length > 1 ? num + "." + parts[1] : num;
+  } else {
+    element.value = value;
+  }
+}
+
+function formatInputCurrency(element) {
+  let value = element.value.replace(/,/g, "").replace(/[^0-9.]/g, "");
+  const cleanNumber = parseFloat(value);
+  if (!isNaN(cleanNumber) && cleanNumber > 0) {
+    element.value = cleanNumber.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  } else if (isNaN(cleanNumber)) {
+    element.value = '';
+  }
+}
+
+function getReceiptAgeWarningMessage(receiptDateValue) {
+  if (!receiptDateValue) {
+    return "";
+  }
+
+  const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
+  if (Number.isNaN(receiptDate.getTime())) {
+    return "";
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const ageInDays = Math.floor((today - receiptDate) / 86400000);
+  if (ageInDays > 10) {
+    return "ใบเสร็จมีอายุเกิน 10 วัน กรุณาจัดทำเอกสารขออนุมัติเบิกจ่ายล่าช้าเกิน 30 วัน";
+  }
+
+  return "";
+}
+
+function updateReceiptAgeWarning(input) {
+  const warning = input.closest("td")?.querySelector(".receipt-age-warning");
+  if (!warning) {
+    return;
+  }
+
+  const message = getReceiptAgeWarningMessage(input.value);
+  if (message) {
+    warning.textContent = message;
+    warning.classList.add("text-danger");
+    warning.classList.remove("d-none");
+  } else {
+    warning.textContent = "";
+    warning.classList.add("d-none");
+  }
+}
+
+function bindReceiptAgeWarnings(scope) {
+  const root = scope || document;
+  root.querySelectorAll('input[name="receipt_date[]"]').forEach(input => {
+    if (input.dataset.ageWarningBound === "1") {
+      return;
+    }
+
+    input.dataset.ageWarningBound = "1";
+    const syncWarning = () => updateReceiptAgeWarning(input);
+    input.addEventListener("input", syncWarning);
+    input.addEventListener("change", syncWarning);
+    syncWarning();
+  });
+}
+
+function bindAmountEvents(input) {
+  if (input.value) {
+    formatInputNumberWithComma(input);
+  }
+  input.addEventListener("input", function() {
+    formatInputNumberWithComma(this);
+    calculateTotal();
+  });
+  input.addEventListener("blur", function() {
+    formatInputCurrency(this);
+    calculateTotal();
+  });
+}
+
+function handleCategoryChange(selectEl) {
+  const row = selectEl.closest('tr');
+  const descInput = row.querySelector('input[name="description[]"]');
+  const customInput = row.querySelector('.custom-cat-input');
+
+  if (selectEl.value === '6') {
+    if (descInput) {
+      descInput.value = 'เงินโอนคงเหลือจากการยืมเงินสดย่อย';
+      descInput.setAttribute('readonly', 'readonly');
+    }
+    if (customInput) {
+      customInput.style.display = 'none';
+      customInput.removeAttribute('required');
+    }
+  } else if (selectEl.value === '5') {
+    if (descInput && descInput.hasAttribute('readonly')) {
+      descInput.removeAttribute('readonly');
+      descInput.value = '';
+    }
+    if (customInput) {
+      customInput.style.display = 'block';
+      customInput.setAttribute('required', 'required');
+    }
+  } else {
+    if (descInput && descInput.hasAttribute('readonly')) {
+      descInput.removeAttribute('readonly');
+      descInput.value = '';
+    }
+    if (customInput) {
+      customInput.style.display = 'none';
+      customInput.removeAttribute('required');
+    }
+  }
+
+  calculateTotal();
+}
+
+function addRow() {
+  const tbody = document.getElementById('claimBody');
+  const newRow = document.createElement('tr');
+  newRow.innerHTML = `
+    <td class="text-center fw-bold row-index"></td>
+    <td>
+      <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
+      <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
+    </td>
+    <td>
+      <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
+        <option value="">เลือกหมวดหมู่</option>
+        <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
+        <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
+        <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+        <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
+        <option value="5">อื่น ๆ (สัญญาเงินยืม)</option>
+        <option value="6">โอนคืนบัญชีหน่วย</option>
+      </select>
+    </td>
+    <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>
+    <td><input type="text" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" required></td>
+    <td>
+      <input type="file" name="proof_file[]" class="form-control form-control-sm" accept="image/*,.pdf" required>
+      <input type="hidden" name="existing_proof_files[]" value="">
+      <input type="hidden" name="existing_proof_filenames[]" value="">
+    </td>
+    <td class="text-center">
+      <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
+        <i class="bi bi-trash3-fill"></i>
+      </button>
+    </td>
+  `;
+  tbody.appendChild(newRow);
+  bindReceiptAgeWarnings(newRow);
+  
+  const newAmountInput = newRow.querySelector('.claim-amount');
+  bindAmountEvents(newAmountInput);
+  
+  updateIndices();
+  triggerAutoSave();
+}
+
+function removeRow(btn) {
+  const tbody = document.getElementById('claimBody');
+  if (tbody.querySelectorAll('tr').length > 1) {
+    btn.closest('tr').remove();
+    updateIndices();
+    calculateTotal();
+    triggerAutoSave();
+  } else {
+    alert("ต้องมีรายการอย่างน้อย 1 รายการ");
+  }
+}
+
+function updateIndices() {
+  document.querySelectorAll('#claimBody tr').forEach((row, idx) => {
+    row.querySelector('.row-index').textContent = idx + 1;
+  });
+}
+
+function addDocumentRow() {
+  const container = document.getElementById('document-inputs-container');
+  const row = document.createElement('div');
+  row.className = 'row g-2 mb-2 document-input-row align-items-center';
+  row.innerHTML = `
+    <div class="col-md-7 position-relative">
+      <input type="hidden" name="announcement_ids[]" class="announcement-id-input">
+      <input type="text" name="announcement_titles[]" 
+            class="form-control form-control-sm announcement-input" 
+            placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
+            autocomplete="off"
+            oninput="showSuggestions(this)">
+      <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
+    </div>
+    <div class="col-md-5 d-flex gap-2 action-buttons-container">
+      <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" download>
+        <i class="bi bi-download me-1"></i> ดาวน์โหลด
+      </a>
+      <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
+        <i class="bi bi-x-circle-fill"></i> ลบ
+      </button>
+    </div>
+  `;
+  container.appendChild(row);
+  triggerAutoSave();
+}
+
+function removeDocumentRow(btn) {
+  const row = btn.closest('.document-input-row');
+  const container = row.parentElement;
+  if (container.querySelectorAll('.document-input-row').length > 1) {
+    row.remove();
+  } else {
+    row.querySelector('.announcement-input').value = '';
+    if (row.querySelector('.announcement-id-input')) row.querySelector('.announcement-id-input').value = '';
+    row.querySelector('.download-btn').classList.add('d-none');
+  }
+  triggerAutoSave();
+}
+
+async function showSuggestions(inputElem) {
+  const query = inputElem.value.trim();
+  const row = inputElem.closest('.document-input-row');
+  const suggestionsBox = row.querySelector('.suggestions-box');
+  const downloadBtn = row.querySelector('.download-btn');
+  const idInput = row.querySelector('.announcement-id-input');
+
+  downloadBtn.classList.add('d-none');
+  if (idInput) idInput.value = '';
+
+  if (query.length === 0) {
+    suggestionsBox.classList.add('d-none');
+    suggestionsBox.innerHTML = '';
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/documents/suggest?q=${encodeURIComponent(query)}`);
+    const docs = await response.json();
+
+    if (docs.length === 0) {
+      suggestionsBox.innerHTML = `<div class="list-group-item list-group-item-action disabled small">ไม่พบข้อมูลประกาศ</div>`;
+      suggestionsBox.classList.remove('d-none');
+      return;
+    }
+
+    suggestionsBox.innerHTML = docs.map(doc => `
+      <button type="button" 
+              class="list-group-item list-group-item-action small text-start" 
+              onclick="selectAnnouncement(this, '${doc.id}', '${escapeHtml(doc.title)}', '${doc.file_path}')">
+        <i class="bi bi-file-earmark-pdf text-danger me-1"></i> ${escapeHtml(doc.title)}
+      </button>
+    `).join('');
+
+    suggestionsBox.classList.remove('d-none');
+  } catch (err) {
+    console.error('Error fetching announcements:', err);
+  }
+}
+
+function selectAnnouncement(itemElem, docId, docTitle, filePath) {
+  const row = itemElem.closest('.document-input-row');
+  const titleInput = row.querySelector('.announcement-input');
+  const idInput = row.querySelector('.announcement-id-input');
+  const downloadBtn = row.querySelector('.download-btn');
+  const suggestionsBox = row.querySelector('.suggestions-box');
+
+  titleInput.value = docTitle;
+  if (idInput) idInput.value = docId;
+
+  downloadBtn.href = filePath;
+  downloadBtn.classList.remove('d-none');
+
+  suggestionsBox.classList.add('d-none');
+  suggestionsBox.innerHTML = '';
+  triggerAutoSave();
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, function(m) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+  });
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.classList.contains('announcement-input')) {
+    document.querySelectorAll('.suggestions-box').forEach(box => {
+      box.classList.add('d-none');
+    });
+  }
+});
+</script>
+{% endblock %}
+
