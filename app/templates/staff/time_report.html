@@ -1052,7 +1052,8 @@
 
                 var name = $('<span/>').text(event.title || '').html();
                 var workedHours = event.worked_hours_display ? $('<span/>').text(event.worked_hours_display).html() : '';
-                var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / 8) * 100, 12), 100) : 0;
+                var requiredHours = event.required_hours || 8;
+                var meterWidth = event.worked_hours ? Math.min(Math.max((event.worked_hours / requiredHours) * 100, 12), 100) : 0;
                 var hoursClass = event.hours_is_negative ? 'is-negative' : '';
                 var meterClass = event.hours_is_negative ? 'is-negative' : (event.is_late ? 'is-late' : 'is-positive');
                 var correctionLabel = event.approved_checkin && event.approved_checkout

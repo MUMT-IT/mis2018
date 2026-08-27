@@ -283,6 +283,30 @@ def _working_dates_between(start_date, end_date):
     return weekdays - holiday_dates
 
 
+def _approved_half_day_leave_period(staff_account, target_date):
+    for leave_request in getattr(staff_account, 'leave_requests', []):
+        if leave_request.cancelled_at or not leave_request.get_approved:
+            continue
+        leave_start = leave_request.start_datetime
+        leave_end = leave_request.end_datetime
+        if leave_start and leave_start.tzinfo is None:
+            leave_start = tz.localize(leave_start)
+        else:
+            leave_start = _to_bangkok(leave_start)
+        if leave_end and leave_end.tzinfo is None:
+            leave_end = tz.localize(leave_end)
+        else:
+            leave_end = _to_bangkok(leave_end)
+        if not leave_start or not leave_end or not (leave_start.date() <= target_date <= leave_end.date()):
+            continue
+        if leave_start.date() == leave_end.date():
+            if leave_end.time() <= datetime.strptime('12:00', '%H:%M').time():
+                return 'morning'
+            if leave_start.time() >= datetime.strptime('13:00', '%H:%M').time():
+                return 'afternoon'
+    return None
+
+
 def _build_login_quota_summary(staff_personal_info):
     quota_start_date, quota_end_date, quota_limit = _current_login_quota_period(
         staff_personal_info=staff_personal_info
@@ -306,9 +330,13 @@ def _build_login_quota_summary(staff_personal_info):
         start_dt = parser.isoparse(row['start']) if row['start'] else None
         end_dt = parser.isoparse(row['end']) if row['end'] else None
         worked_hours = _calculate_work_hours(start_dt, end_dt)
-        is_late_day = bool(start_dt and start_dt.time() > office_start_time)
+        half_day_period = _approved_half_day_leave_period(staff_account, row['date'])
+        is_late_day = bool(
+            start_dt and start_dt.time() > office_start_time and half_day_period != 'morning'
+        )
+        required_hours = 3.5 if half_day_period else 8.0
         is_short_hours_day = bool(
-            start_dt and end_dt and worked_hours is not None and worked_hours < 8.0
+            start_dt and end_dt and worked_hours is not None and worked_hours < required_hours
         )
         if is_late_day or is_short_hours_day:
             quota_flagged_dates.add(row['date'])
@@ -322,9 +350,13 @@ def _build_login_quota_summary(staff_personal_info):
         start_dt = parser.isoparse(row['start']) if row['start'] else None
         end_dt = parser.isoparse(row['end']) if row['end'] else None
         worked_hours = _calculate_work_hours(start_dt, end_dt)
-        is_late_day = bool(start_dt and start_dt.time() > office_start_time)
+        half_day_period = _approved_half_day_leave_period(staff_account, row['date'])
+        is_late_day = bool(
+            start_dt and start_dt.time() > office_start_time and half_day_period != 'morning'
+        )
+        required_hours = 3.5 if half_day_period else 8.0
         is_short_hours_day = bool(
-            start_dt and end_dt and worked_hours is not None and worked_hours < 8.0
+            start_dt and end_dt and worked_hours is not None and worked_hours < required_hours
         )
         checkin_records.append({
             'date': row['date'].isoformat(),
@@ -382,7 +414,11 @@ def _build_login_history_snapshot(staff_personal_info):
     for row in rows:
         start_dt = parser.isoparse(row['start']) if row['start'] else None
         end_dt = parser.isoparse(row['end']) if row['end'] else None
-        if start_dt and start_dt.time() > office_start_time:
+        half_day_period = _approved_half_day_leave_period(
+            staff_personal_info.staff_account,
+            row['date'],
+        )
+        if start_dt and start_dt.time() > office_start_time and half_day_period != 'morning':
             late_days.append({
                 'date': row['date'].isoformat(),
                 'weekday': thai_weekdays[row['date'].weekday()],
@@ -726,7 +762,8 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
                 worked_hours_total += worked_hours
             if start_dt and end_dt:
                 complete_days += 1
-            if start_dt and start_dt.time() > office_start_time:
+            half_day_period = _approved_half_day_leave_period(employee.staff_account, row['date'])
+            if start_dt and start_dt.time() > office_start_time and half_day_period != 'morning':
                 late_checkins += 1
             if end_dt and end_dt.time() < office_end_time:
                 early_checkouts += 1
@@ -743,9 +780,18 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             quota_start_dt = parser.isoparse(row['start']) if row['start'] else None
             quota_end_dt = parser.isoparse(row['end']) if row['end'] else None
             quota_worked_hours = _calculate_work_hours(quota_start_dt, quota_end_dt)
-            is_late_quota_day = bool(quota_start_dt and quota_start_dt.time() > office_start_time)
+            half_day_period = _approved_half_day_leave_period(employee.staff_account, row['date'])
+            is_late_quota_day = bool(
+                quota_start_dt
+                and quota_start_dt.time() > office_start_time
+                and half_day_period != 'morning'
+            )
+            required_quota_hours = 3.5 if half_day_period else 8.0
             is_short_hours_quota_day = bool(
-                quota_start_dt and quota_end_dt and quota_worked_hours is not None and quota_worked_hours < 8.0
+                quota_start_dt
+                and quota_end_dt
+                and quota_worked_hours is not None
+                and quota_worked_hours < required_quota_hours
             )
             if is_late_quota_day or is_short_hours_quota_day:
                 quota_flagged_dates.add(row['date'])
@@ -5058,6 +5104,9 @@ def send_summary_data():
     seminars = []
     logins = []
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    calendar_start_date = cal_start.date() if cal_start else datetime.now(tz).date()
+    calendar_end_date = cal_end.date() if cal_end else calendar_start_date
+    calendar_working_dates = _working_dates_between(calendar_start_date, calendar_end_date)
     for emp in employees:
         if tab in ['login', 'all']:
             for row in _daily_work_login_rows(
@@ -5065,12 +5114,25 @@ def send_summary_data():
                 .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))
                 .all()
             ):
+                if row['date'] not in calendar_working_dates:
+                    continue
                 end = row['end']
                 start_dt = parser.isoparse(row['start']) if row['start'] else None
                 end_dt = parser.isoparse(end) if end else None
                 worked_hours = _calculate_work_hours(start_dt, end_dt)
-                worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
-                is_late = bool(start_dt and start_dt.time() > office_start_time)
+                half_day_period = _approved_half_day_leave_period(emp.staff_account, row['date'])
+                required_hours = 3.5 if half_day_period else 8.0
+                worked_hours_display = (
+                    f'{worked_hours:.1f} hrs.' if worked_hours is not None else None
+                )
+                hours_is_negative = bool(
+                    start_dt and end_dt and worked_hours is not None and worked_hours < required_hours
+                )
+                is_late = bool(
+                    start_dt
+                    and start_dt.time() > office_start_time
+                    and half_day_period != 'morning'
+                )
                 text_color, bg_color, border_color, class_names = _work_login_event_style(
                     is_late, hours_is_negative, bool(end)
                 )
@@ -5102,6 +5164,7 @@ def send_summary_data():
                     'hours_is_negative': hours_is_negative,
                     'worked_hours_display': worked_hours_display,
                     'worked_hours': worked_hours,
+                    'required_hours': required_hours,
                     'is_late': is_late,
                     'approved_checkin': row['approved_checkin'],
                     'approved_checkout': row['approved_checkout'],
@@ -6813,16 +6876,30 @@ def send_time_report_data():
     )
     records = []
     office_start_time = datetime.strptime('09:00', '%H:%M').time()
+    calendar_start_date = _to_bangkok(cal_start).date() if cal_start else datetime.now(tz).date()
+    calendar_end_date = _to_bangkok(cal_end).date() if cal_end else calendar_start_date
+    calendar_working_dates = _working_dates_between(calendar_start_date, calendar_end_date)
     for row in rows:
+        if row['date'] not in calendar_working_dates:
+            continue
         start_dt = parser.isoparse(row['start']) if row['start'] else None
         end_dt = parser.isoparse(row['end']) if row['end'] else None
         hours_is_negative = False
         worked_hours_display = None
         worked_hours = _calculate_work_hours(start_dt, end_dt)
+        half_day_period = _approved_half_day_leave_period(current_user, row['date'])
+        required_hours = 3.5 if half_day_period else 8.0
         if worked_hours is not None:
-            worked_hours_display, hours_is_negative = _work_hours_display_and_status(worked_hours)
+            worked_hours_display = f'{worked_hours:.1f} hrs.'
+            hours_is_negative = bool(
+                start_dt and end_dt and worked_hours < required_hours
+            )
 
-        is_late = bool(start_dt and start_dt.time() > office_start_time)
+        is_late = bool(
+            start_dt
+            and start_dt.time() > office_start_time
+            and half_day_period != 'morning'
+        )
         text_color, bg_color, border_color, class_names = _work_login_event_style(
             is_late, hours_is_negative, bool(row['end'])
         )
@@ -6836,6 +6913,7 @@ def send_time_report_data():
             'textColor': text_color,
             'worked_hours_display': worked_hours_display,
             'worked_hours': worked_hours,
+            'required_hours': required_hours,
             'hours_is_negative': hours_is_negative,
             'is_late': is_late,
             'approved_checkin': row['approved_checkin'],
