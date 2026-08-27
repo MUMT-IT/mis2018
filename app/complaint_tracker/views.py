@@ -1047,6 +1047,16 @@ def index():
     return render_template('complaint_tracker/index.html', categories=categories)
 
 
+@complaint_tracker.route('/request/index')
+def repair_request_landing():
+    topics = ComplaintTopic.query.filter(ComplaintTopic.code.in_(['room', 'runied'])).all()
+    topic_ids = {topic.code: topic.id for topic in topics}
+    room_id = topic_ids.get('room')
+    procurement_id = topic_ids.get('runied')
+    return render_template('complaint_tracker/repair_request_landing.html', room_id=room_id,
+                           procurement_id=procurement_id)
+
+
 @complaint_tracker.route('/issue/<int:topic_id>', methods=['GET', 'POST'])
 def new_record(topic_id, room=None, procurement=None):
     topic = ComplaintTopic.query.get(topic_id)
@@ -1069,6 +1079,11 @@ def new_record(topic_id, room=None, procurement=None):
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)
+        if topic.code == 'runied' and not procurement:
+            flash('กรุณาเพิ่มข้อมูลครุภัณฑ์ โดยสแกน QR Code หรือกรอกเลขครุภัณฑ์', 'danger')
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('comp_tracker.new_record', topic_id=topic_id)
+            return resp
         file = form.file_upload.data
         record.topic = topic
         record.created_at = arrow.now('Asia/Bangkok').datetime
@@ -1117,9 +1132,13 @@ def new_record(topic_id, room=None, procurement=None):
             else:
                 print('msg:', msg, 'line_id', [a.admin.line_id for a in topic.admins if a.is_supervisor == False])
             if current_user.is_authenticated:
-                return redirect(url_for('comp_tracker.complainant_index'))
+                resp = make_response()
+                resp.headers['HX-Redirect'] = url_for('comp_tracker.complainant_index')
+                return resp
             else:
-                return redirect(url_for('comp_tracker.closing_page'))
+                resp = make_response()
+                resp.headers['HX-Redirect'] = url_for('comp_tracker.closing_page')
+                return resp
         else:
             flash('กรุณากรอกชื่อ-นามสกุล และเบอร์โทรศัพท์ หรืออีเมล', 'danger')
     else:

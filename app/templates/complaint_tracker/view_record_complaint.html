@@ -168,6 +168,10 @@
                                                 <td>{{ procurement.erp_code }}</td>
                                             </tr>
                                             <tr>
+                                                <td><label class="label">Cost Center</label></td>
+                                                <td>{{ procurement.cost_center or '' }}</td>
+                                            </tr>
+                                            <tr>
                                                 <td><label class="label">ผู้ใช้งานหลัก</label></td>
                                                 {% if procurement.computer_info %}
                                                     <td>{{ procurement.computer_info.user.fullname }}</td>

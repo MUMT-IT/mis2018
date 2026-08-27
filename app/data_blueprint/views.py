@@ -44,10 +44,16 @@ def list_org_kpis(org_id):
     return render_template('data_blueprint/org_kpis.html', kpis=sorted_processes, org=org)
 
 
-@data_bp.route('/orgs/<int:org_id>/kpis/<int:process_id>/expired')
+@data_bp.route('/orgs/<int:org_id>/kpis/<int:process_id>/expired', methods=['GET', 'POST'])
 @login_required
 def make_expired_org_process(org_id, process_id):
     process = Process.query.filter_by(id=process_id).first()
+    if request.method == 'POST':
+        expired_reason = request.form.get('expired_reason', '').strip()
+        if not expired_reason:
+            flash(u'กรุณาระบุเหตุผลก่อนยกเลิกการใช้งาน', 'warning')
+            return redirect(url_for('data_bp.list_org_kpis', org_id=org_id))
+        process.expired_reason = expired_reason
     process.is_expired = True
     process.expired_at = arrow.now('Asia/Bangkok').datetime
     process.expired_by_account_id = current_user.id

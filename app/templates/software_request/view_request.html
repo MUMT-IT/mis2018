@@ -95,7 +95,7 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ detail.system or 'ไม่มีกระบวนการทำงาน' }}
+                                        {{ detail.system or 'ไม่มีข้อมูล' }}
                                     </div>
                                 </div>
                             </div>
@@ -107,47 +107,83 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ detail.activity or 'ไม่มีโครงการที่เกี่ยวข้อง' }}
+                                        {{ detail.activity or 'ไม่มีข้อมูล' }}
                                     </div>
                                 </div>
                             </div>
                         </div>
-{#                        <div class="field is-horizontal">#}
-{#                            <div class="field-label">#}
-{#                                <label class="label has-text-left">ระดับความสำคัญ</label>#}
-{#                            </div>#}
-{#                            <div class="field-body">#}
-{#                                <div class="field">#}
-{#                                    <div class="control">#}
-{#                                        {% if detail.priority %}#}
-{#                                            <span class="tag {{ detail.priority_status_color }} is-light is-rounded">#}
-{#                                                {{ detail.priority }}#}
-{#                                            </span>#}
-{#                                        {% else %}#}
-{#                                            ไม่มีระดับความสำคัญ#}
-{#                                        {% endif %}#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="field is-horizontal">#}
-{#                            <div class="field-label">#}
-{#                                <label class="label has-text-left">ความเร่งด่วน</label>#}
-{#                            </div>#}
-{#                            <div class="field-body">#}
-{#                                <div class="field">#}
-{#                                    <div class="control">#}
-{#                                        {% if detail.urgency %}#}
-{#                                            <span class="tag {{ detail.urgency_status_color }} is-light is-rounded">#}
-{#                                                {{ detail.urgency }}#}
-{#                                            </span>#}
-{#                                        {% else %}#}
-{#                                            ไม่มีความเร่งด่วน#}
-{#                                        {% endif %}#}
-{#                                    </div>#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        </div>#}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label has-text-left">ความถี่การใช้งาน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.frequency or 'ไม่มีข้อมูล' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label has-text-left">กลุ่มผู้ใช้งาน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.user_group or 'ไม่มีข้อมูล' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label has-text-left">ระดับความสำคัญ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {% if detail.priority %}
+                                            <span class="tag {{ detail.priority_status_color }} is-light is-rounded">
+                                                {{ detail.priority_text }}
+                                            </span>
+                                        {% else %}
+                                            ไม่มีข้อมูล
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label has-text-left">ความเร่งด่วน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {% if detail.urgency %}
+                                            <span class="tag {{ detail.urgency_status_color }} is-light is-rounded">
+                                                {{ detail.urgency_text }}
+                                            </span>
+                                        {% else %}
+                                            ไม่มีข้อมูล
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label class="label has-text-left">วันที่ต้องการใช้งาน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.usage_date|localdate or 'ไม่มีข้อมูล' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="field is-horizontal">
                             <div class="field-label has-text-left">
                                 <label class="label">เหตุผลและความจำเป็น</label>
@@ -162,6 +198,18 @@
                         </div>
                         <div class="field is-horizontal">
                             <div class="field-label">
+                                <label class="label has-text-left">ประโยชน์ที่คาดว่าจะได้รับ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ detail.expected_benefit or 'ไม่มีข้อมูล' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label">
                                 <label class="label has-text-left">เอกสารแนบ</label>
                             </div>
                             <div class="field-body">
@@ -170,7 +218,7 @@
                                         {% if file_url %}
                                             <a href="{{ file_url }}" target="_blank">{{ detail.file_name }}</a>
                                         {% else %}
-                                            ไม่มีเอกสารแนบ
+                                            ไม่มีข้อมูล
                                         {% endif %}
                                     </div>
                                 </div>
@@ -183,7 +231,7 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ detail.required_information or 'ไม่มีข้อมูลที่ต้องการเพิ่มติมจากผู้ส่งคำขอ' }}
+                                        {{ detail.required_information or 'ไม่มีข้อมูล' }}
                                     </div>
                                 </div>
                             </div>
@@ -195,7 +243,7 @@
                             <div class="field-body">
                                 <div class="field">
                                     <div class="control">
-                                        {{ detail.suggestion or 'ไม่มีข้อเสนอแนะจากหน่วย IT' }}
+                                        {{ detail.suggestion or 'ไม่มีข้อมูล' }}
                                     </div>
                                 </div>
                             </div>
@@ -208,7 +256,7 @@
                                 <div class="field-body">
                                     <div class="field">
                                         <div class="control">
-                                            {{ detail.reason or 'ไม่มีสาเหตุการยกเลิกคำขอ' }}
+                                            {{ detail.reason or 'ไม่มีข้อมูล' }}
                                         </div>
                                     </div>
                                 </div>

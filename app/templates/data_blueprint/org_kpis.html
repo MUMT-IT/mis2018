@@ -93,7 +93,7 @@
                                     {% endfor %}
                                 </td>
                                 <td>
-                                    <a class="button is-danger" @click="confirmCustomDelete({{ org.id }},
+                                    <a class="button is-danger" @click="openExpiredReasonModal({{ org.id }},
                                                                 {{ proc.id }})">
                                         <span class="icon">
                                             <i class="fas fa-warning"></i>
@@ -115,7 +115,7 @@
                 <div class="card-header">
                     <p class="card-header-title">กระบวนการทำงานที่ถูกยกเลิก</p>
                 </div>
-                <div class="card-content">
+    <div class="card-content">
                     <table class="table is-fullwidth">
                         <thead>
                         <th>ชื่อกระบวนการ</th>
@@ -184,6 +184,7 @@
                                 </td>
                                 <td>
                                     {{ proc.expired_at|localdate }}
+                                    {% if proc.expired_reason %}เหตุผล: {{ proc.expired_reason }}{% endif %}
                                 </td>
                             </tr>
                             {% endif %}
@@ -194,6 +195,35 @@
         </div>
     </div>
 </section>
+<div class="modal" id="expiredReasonModal" aria-hidden="true">
+    <div class="modal-background" data-close-expired-reason></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="expiredReasonModalTitle">
+        <header class="modal-card-head">
+            <p class="modal-card-title" id="expiredReasonModalTitle">ยกเลิก Process</p>
+            <button type="button" class="delete" aria-label="ปิด" data-close-expired-reason></button>
+        </header>
+        <section class="modal-card-body">
+            <p class="help mb-4">กรุณาระบุเหตุผลก่อนยกเลิกการใช้งาน</p>
+            <form method="post" id="expiredReasonForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field">
+                    <label class="label" for="expired_reason">เหตุผลการยกเลิก</label>
+                    <div class="control">
+                        <textarea class="textarea" id="expired_reason" name="expired_reason" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-right mt-5">
+                    <div class="control">
+                        <button type="button" class="button is-light" data-close-expired-reason>ยกเลิก</button>
+                    </div>
+                    <div class="control">
+                        <button type="submit" class="button is-danger">ยืนยันยกเลิก</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
@@ -202,19 +232,20 @@
         el: '#app',
         delimiters: ['<%', '%>'],
         methods: {
-            confirmCustomDelete: function(org_id, process_id) {
-                console.log(org_id, process_id);
-                this.$buefy.dialog.confirm({
-                    title: 'ยกเลิก Process',
-                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>Process นี้',
-                    confirmText: 'Delete this request',
-                    type: 'is-danger',
-                    hasIcon: true,
-                    onConfirm: () => window.location.href = "/data-blueprint/orgs/" + org_id + "/kpis/" + process_id + "/expired"
-                })
+            openExpiredReasonModal: function(org_id, process_id) {
+                var form = document.getElementById('expiredReasonForm');
+                form.action = "/data-blueprint/orgs/" + org_id + "/kpis/" + process_id + "/expired";
+                document.getElementById('expired_reason').value = '';
+                document.getElementById('expiredReasonModal').classList.add('is-active');
+                document.getElementById('expiredReasonModal').setAttribute('aria-hidden', 'false');
             }
         }
     });
+    document.querySelectorAll('[data-close-expired-reason]').forEach(function(element) {
+        element.addEventListener('click', function() {
+            document.getElementById('expiredReasonModal').classList.remove('is-active');
+            document.getElementById('expiredReasonModal').setAttribute('aria-hidden', 'true');
+        });
+    });
 </script>
 {% endblock %}
-

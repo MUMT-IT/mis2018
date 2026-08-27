@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .repair-request-hero {
+            background:
+                radial-gradient(circle at top right, rgba(26, 61, 124, 0.14), transparent 32%),
+                linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.94));
+            border: 1px solid rgba(58, 101, 184, 0.18);
+            border-radius: 24px;
+            box-shadow: 0 10px 24px rgba(18, 39, 84, 0.06);
+            margin: 0 auto 1.5rem;
+            max-width: 860px;
+            padding: 1.35rem 1.5rem;
+        }
+
+        .repair-request-hero .title {
+            color: #10264c;
+            margin-bottom: 0.65rem;
+        }
+
+        .repair-request-hero .subtitle {
+            color: #66738d;
+            margin-top: 0;
+        }
+
+        .repair-request-grid {
+            margin: 0 auto;
+            max-width: 860px;
+        }
+
+        .repair-request-option {
+            align-items: stretch;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(58, 101, 184, 0.16);
+            border-radius: 20px;
+            box-shadow: 0 8px 22px rgba(18, 39, 84, 0.06);
+            color: inherit;
+            display: flex;
+            height: 100%;
+            overflow: hidden;
+            padding: 1rem 1.15rem;
+            position: relative;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .repair-request-option:hover {
+            border-color: rgba(202, 168, 74, 0.28);
+            box-shadow: 0 14px 30px rgba(18, 39, 84, 0.1);
+            color: inherit;
+            transform: translateY(-2px);
+        }
+
+        .repair-request-option::before {
+            background: linear-gradient(180deg, #1a3d7c, #10264c);
+            content: "";
+            inset: 0 auto 0 0;
+            position: absolute;
+            width: 6px;
+        }
+
+        .repair-request-option__icon {
+            align-items: center;
+            background: rgba(238, 243, 255, 0.96);
+            border-radius: 18px;
+            color: #1a3d7c;
+            display: inline-flex;
+            flex: 0 0 3.25rem;
+            font-size: 1.1rem;
+            height: 3.25rem;
+            justify-content: center;
+            margin-right: 1rem;
+            margin-top: 0.1rem;
+        }
+
+        .repair-request-option__icon--alert {
+            background: rgba(255, 238, 238, 0.96);
+            color: #b8433f;
+        }
+
+        .repair-request-option__text {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .repair-request-option__title {
+            color: #10264c;
+            display: block;
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin-bottom: 0.3rem;
+        }
+
+        .repair-request-option__desc {
+            color: #66738d;
+            display: block;
+            font-size: 0.95rem;
+            line-height: 1.45;
+        }
+
+        .repair-request-option__chevron {
+            align-items: center;
+            color: #caa84a;
+            display: inline-flex;
+            flex: 0 0 auto;
+            font-size: 1rem;
+            margin-left: 0.8rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .repair-request-hero,
+            .repair-request-grid {
+                margin-left: 0.75rem;
+                margin-right: 0.75rem;
+            }
+
+            .repair-request-hero {
+                padding: 1.1rem 1rem;
+            }
+
+            .repair-request-option {
+                padding: 0.95rem 1rem;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+{% include "complaint_tracker/nav.html" %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            <div class="column is-12">
+                <div class="repair-request-hero has-text-centered">
+                    {% include 'complaint_tracker/title.html' %}
+                    <h1 class="subtitle has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+                </div>
+            </div>
+        </div>
+        <div class="columns is-centered repair-request-grid">
+            <div class="column is-6">
+                <a class="repair-request-option" href="{{ url_for('comp_tracker.new_record', topic_id=procurement_id) }}">
+                    <span class="repair-request-option__icon">
+                        <i class="fas fa-barcode" aria-hidden="true"></i>
+                    </span>
+                    <span class="repair-request-option__text">
+                        <span class="repair-request-option__title">แจ้งซ่อมครุภัณฑ์ที่มีเลขครุภัณฑ์</span>
+                        <span class="repair-request-option__desc">สำหรับรายการที่มีการติดเลขครุภัณฑ์หรือมีการติดQR Code ครุภัณฑ์</span>
+                    </span>
+                    <span class="repair-request-option__chevron" aria-hidden="true">
+                        <i class="fas fa-chevron-right"></i>
+                    </span>
+                </a>
+            </div>
+            <div class="column is-6">
+                <a class="repair-request-option" href="{{ url_for('comp_tracker.new_record', topic_id=room_id) }}">
+                    <span class="repair-request-option__icon repair-request-option__icon--alert">
+                        <i class="fas fa-ban" aria-hidden="true"></i>
+                    </span>
+                    <span class="repair-request-option__text">
+                        <span class="repair-request-option__title">แจ้งซ่อมครุภัณฑ์ที่ไม่มีเลขครุภัณฑ์</span>
+                        <span class="repair-request-option__desc">สำหรับรายการที่ยังไม่ได้ติดเลขครุภัณฑ์หรือไม่ทราบเลขครุภัณฑ์</span>
+                    </span>
+                    <span class="repair-request-option__chevron" aria-hidden="true">
+                        <i class="fas fa-chevron-right"></i>
+                    </span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

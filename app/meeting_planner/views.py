@@ -1,15 +1,16 @@
-import datetime
-from typing import Union
-
-import arrow
 import pytz
+import arrow
+from typing import Union
 from flask import (render_template, make_response, request,
                    redirect, url_for, flash, jsonify, current_app)
 from flask_login import login_required, current_user
+from psycopg2.extras import DateTimeRange
+from unicodedata import category
+
 from app.meeting_planner import meeting_planner
 from app.meeting_planner.forms import *
 from app.meeting_planner.models import *
-from app.room_scheduler.models import event_participant_assoc
+from app.room_scheduler.models import EventCategory
 from app.staff.models import StaffPersonalInfo
 from app.main import mail
 from flask_mail import Message
@@ -53,40 +54,55 @@ def create_meeting(poll_id=None):
         form.title.data = poll.poll_name
         form.participant.data = poll.participants
     if form.validate_on_submit():
-        participant = form.participant.data if poll_id else request.form.getlist('participants')
-        if not participant:
+        if poll_id:
+            participants = list(form.participant.data or [])
+        else:
+            participants = []
+            for staff_id in request.form.getlist('participants'):
+                personal_info = StaffPersonalInfo.query.get(int(staff_id))
+                if personal_info and personal_info.staff_account:
+                    participants.append(personal_info.staff_account)
+
+        participant_count = len(participants)
+        if not participants:
             flash('กรุณาเลือกรายชื่อผู้เข้าร่วม', 'danger')
             return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id, start=start
                                    , end=end)
-        form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
-        form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        startdatetime = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+        enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
         form.meeting_events.entries = [
             event_form for event_form in form.meeting_events.entries
             if event_form.room.data
         ]
 
-        for event_form in form.meeting_events:
-            event_form.start.data = form.start.data
-            event_form.end.data = form.end.data
-            event_form.title.data = f'ประชุม{form.title.data}'
         new_meeting = MeetingEvent()
         form.populate_obj(new_meeting)
+        for event in new_meeting.meeting_events:
+            event.start = startdatetime
+            event.end = enddatetime
+            event.title = f'ประชุม{form.title.data}'
+            event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
+            event.created_by = current_user.id
+            event.category = EventCategory.query.filter_by(category='ประชุมกลุ่มย่อย').first()
+            event.occupancy = participant_count
+            event.notify_participants = True
+            event.participants = participants
+            event.note = event.request
         if poll_id:
-            for staff_id in participant:
-                staff = StaffPersonalInfo.query.get(staff_id.id)
-                invitation = MeetingInvitation(staff_id=staff.staff_account.id,
+            for staff in participants:
+                invitation = MeetingInvitation(staff_id=staff.id,
                                                created_at=new_meeting.start,
                                                meeting=new_meeting)
                 new_meeting.poll_id = poll_id
                 db.session.add(invitation)
         else:
-            for staff_id in participant:
-                staff = StaffPersonalInfo.query.get(int(staff_id))
-                invitation = MeetingInvitation(staff_id=staff.staff_account.id,
+            for staff in participants:
+                invitation = MeetingInvitation(staff_id=staff.id,
                                                created_at=new_meeting.start,
                                                meeting=new_meeting)
                 db.session.add(invitation)
         new_meeting.creator = current_user
+        db.session.add(new_meeting)
         db.session.commit()
         if form.notify_participants.data:
             meeting_invitation_link = url_for('meeting_planner.show_invitation_detail',

@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block title %}รายชื่อผู้รับบริการ{% endblock %}
+{% include "comhealth/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .approved-lab-page { padding: 2rem 1.25rem 3rem; }
+        .approved-lab-shell { margin: 0 auto; max-width: 1280px; }
+        .approved-lab-header {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .approved-lab-panel {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid var(--theme-border);
+            border-radius: 18px;
+            box-shadow: var(--theme-shadow);
+            overflow: hidden;
+        }
+        .approved-lab-summary {
+            border-bottom: 1px solid var(--theme-border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            padding: 1rem 1.25rem;
+        }
+        .approved-lab-tabs { margin: 0; padding: 1rem 1rem 0; }
+        .approved-lab-search-bar {
+            align-items: center;
+            border-bottom: 1px solid var(--theme-border);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            padding: 0 1rem 1rem;
+        }
+        .approved-lab-search-control { max-width: 520px; width: 100%; }
+        .approved-lab-table-wrap { overflow-x: auto; }
+        .approved-lab-table { margin-bottom: 0 !important; white-space: nowrap; }
+        .approved-lab-table th { background: var(--theme-navy-soft); color: var(--theme-navy-deep); }
+        .approved-lab-table tbody tr[data-detail-url] { cursor: pointer; }
+        .approved-lab-table tbody tr[data-detail-url]:hover { background: var(--theme-navy-soft); }
+        .approved-status-some,
+        .approved-status-complete {
+            border-radius: 999px;
+            display: inline-block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin: 0.45rem 0.75rem;
+            padding: 0.3rem 0.75rem !important;
+        }
+        .approved-status-some {
+            background: #fff8dc;
+            border: 1px solid #d6a600;
+            color: #9a6d00;
+        }
+        .approved-status-complete {
+            background: #edf9f1;
+            border: 1px solid var(--theme-green);
+            color: var(--theme-green);
+        }
+        .approved-lab-pagination {
+            align-items: center;
+            border-top: 1px solid var(--theme-border);
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .approved-lab-state { padding: 3.5rem 1.5rem; text-align: center; }
+        @media (max-width: 768px) {
+            .approved-lab-header { align-items: flex-start; flex-direction: column; }
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    <section class="approved-lab-page">
+        <div class="approved-lab-shell">
+            <div class="approved-lab-header">
+                <div>
+                    <h1 class="title is-3 mb-2">
+                        รายชื่อผู้รับบริการ{% if customer_name %} — {{ customer_name }}{% endif %}
+                    </h1>
+                    <p class="subtitle is-6">รายการบริการของผู้รับบริการตามวันที่เลือก</p>
+                </div>
+                <a class="button is-light" href="{{ url_for('comhealth.schedules_lab') }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>กลับวันที่ตรวจ</span>
+                </a>
+            </div>
+
+            <div class="approved-lab-panel">
+                <div class="approved-lab-summary">
+                    <span><strong>หน่วยงาน:</strong> {{ customer_name or '-' }}</span>
+                    <span><strong>Customer ID:</strong> {{ cust_id or '-' }}</span>
+                    <span><strong>วันที่ตรวจ:</strong> <span id="service-date">{{ service_date_display or '-' }}</span></span>
+                </div>
+                <div class="tabs is-boxed approved-lab-tabs" aria-label="สถานะการอนุมัติผล Lab">
+                    <ul>
+                        <li class="is-active" data-status="pending">
+                            <a href="#pending">
+                                <span>ยังไม่ Approved</span>
+                                <span id="pending-count" class="tag is-light ml-2">0</span>
+                            </a>
+                        </li>
+                        <li data-status="some">
+                            <a href="#some">
+                                <span>บางส่วน Approved</span>
+                                <span id="some-count" class="tag is-warning is-light ml-2">0</span>
+                            </a>
+                        </li>
+                        <li data-status="complete">
+                            <a href="#complete">
+                                <span>ทุก Test Approved</span>
+                                <span id="complete-count" class="tag is-success is-light ml-2">0</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="approved-lab-search-bar">
+                    <div class="control has-icons-left approved-lab-search-control">
+                        <input id="service-search" class="input" type="search"
+                               placeholder="ค้นหา Service No, ชื่อ หรือนามสกุล">
+                        <span class="icon is-left"><i class="fas fa-search"></i></span>
+                    </div>
+                    <span id="search-result-count" class="tag is-light"></span>
+                </div>
+                <div id="loading-state" class="approved-lab-state">
+                    <span class="icon is-large"><i class="fas fa-spinner fa-spin fa-2x"></i></span>
+                    <p class="mt-3">กำลังโหลดข้อมูล...</p>
+                </div>
+                <div id="error-state" class="approved-lab-state has-text-danger is-hidden" role="alert"></div>
+                <div id="empty-state" class="approved-lab-state is-hidden">ไม่พบรายการผล Lab</div>
+                <div id="table-state" class="is-hidden">
+                    <div class="approved-lab-table-wrap">
+                        <table class="table is-fullwidth is-hoverable approved-lab-table">
+                            <thead><tr id="table-head"></tr></thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                    <nav class="approved-lab-pagination" aria-label="pagination">
+                        <button id="previous-page" class="button" type="button">หน้าก่อนหน้า</button>
+                        <span id="page-label">หน้า 1</span>
+                        <button id="next-page" class="button" type="button">หน้าถัดไป</button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const apiUrl = {{ url_for('comhealth.services_by_service_prefix_customer_api') | tojson }};
+            const labTestUrl = {{ url_for('comhealth.approved_labno_test') | tojson }};
+            const resultUrlTemplate = {{ url_for(
+                'comhealth.customer_result',
+                serviceNo=999999999,
+                email='EMAIL_PLACEHOLDER',
+                servicedate='DATE_PLACEHOLDER',
+                age='AGE_PLACEHOLDER'
+            ) | tojson }};
+            const customerAge = {{ customer_age | default('', true) | tojson }};
+            const serviceNoPrefix = {{ service_no_prefix | default('', true) | tojson }};
+            const custId = {{ cust_id | default('', true) | tojson }};
+            const pageSize = 50;
+            const states = {
+                loading: document.getElementById('loading-state'),
+                error: document.getElementById('error-state'),
+                empty: document.getElementById('empty-state'),
+                table: document.getElementById('table-state')
+            };
+            const tableHead = document.getElementById('table-head');
+            const tableBody = document.getElementById('table-body');
+            const previousPage = document.getElementById('previous-page');
+            const nextPage = document.getElementById('next-page');
+            const pageLabel = document.getElementById('page-label');
+            const serviceSearch = document.getElementById('service-search');
+            const searchResultCount = document.getElementById('search-result-count');
+            const serviceDate = document.getElementById('service-date');
+            const tabs = Array.from(document.querySelectorAll('.approved-lab-tabs li'));
+            const statusCounts = {
+                pending: document.getElementById('pending-count'),
+                some: document.getElementById('some-count'),
+                complete: document.getElementById('complete-count')
+            };
+            let allRows = [];
+            let activeStatus = 'pending';
+            let currentPage = 1;
+
+            function showState(name) {
+                Object.keys(states).forEach(function (state) {
+                    states[state].classList.toggle('is-hidden', state !== name);
+                });
+            }
+
+            function getRows(payload) {
+                if (Array.isArray(payload)) return payload;
+                for (const candidate of [payload.data, payload.items, payload.results, payload.services]) {
+                    if (Array.isArray(candidate)) return candidate;
+                }
+                return payload && typeof payload === 'object' ? [payload] : [];
+            }
+
+            function formatDate(value) {
+                const matchedDate = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+                if (matchedDate) return `${matchedDate[3]}/${matchedDate[2]}/${matchedDate[1]}`;
+
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return String(value);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                return `${day}/${month}/${date.getFullYear()}`;
+            }
+
+            function displayValue(value, column) {
+                if (value === null || value === undefined || value === '') return '-';
+                const columnName = String(column || '').toLowerCase();
+                if (columnName.includes('date') || columnName.includes('time')) {
+                    return formatDate(value);
+                }
+                return typeof value === 'object' ? JSON.stringify(value) : String(value);
+            }
+
+            function resultUrl(item) {
+                const serviceNo = item.serviceNo || item.serviceno || item.service_no;
+                const email = item.email || item.customerEmail || (item.customer && item.customer.email);
+                const serviceDateValue = item.serviceDate || item.servicedate || item.service_date;
+                const age = item.age || item.customerAge || customerAge || '-';
+                if (!serviceNo || !email || !serviceDateValue) return '';
+                return resultUrlTemplate
+                    .replace('999999999', encodeURIComponent(serviceNo))
+                    .replace('EMAIL_PLACEHOLDER', encodeURIComponent(email))
+                    .replace('DATE_PLACEHOLDER', encodeURIComponent(serviceDateValue))
+                    .replace('AGE_PLACEHOLDER', encodeURIComponent(age));
+            }
+
+            function appendCell(row, tagName, value, column, item) {
+                const cell = document.createElement(tagName);
+                if (tagName === 'td' && column === 'resultLink') {
+                    const url = resultUrl(item);
+                    if (url) {
+                        const link = document.createElement('a');
+                        link.className = 'button is-small is-link is-light';
+                        link.href = url;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.textContent = 'ผล online';
+                        cell.appendChild(link);
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    row.appendChild(cell);
+                    return;
+                }
+                const approvedStatus = String(value || '').trim().toLowerCase();
+                if (tagName === 'td' && column === 'approvedStatus' && approvedStatus === 'some') {
+                    const badge = document.createElement('span');
+                    badge.textContent = 'ส่งผลบางส่วน';
+                    badge.classList.add('approved-status-some');
+                    cell.appendChild(badge);
+                } else if (tagName === 'td' && column === 'approvedStatus' && approvedStatus === 'complete') {
+                    const badge = document.createElement('span');
+                    badge.textContent = 'ส่งผลครบถ้วน';
+                    badge.classList.add('approved-status-complete');
+                    cell.appendChild(badge);
+                } else {
+                    cell.textContent = displayValue(value, column);
+                }
+                row.appendChild(cell);
+            }
+
+            function renderTable(rows) {
+                tableHead.replaceChildren();
+                tableBody.replaceChildren();
+                const columns = Array.from(rows.reduce(function (keys, row) {
+                    Object.keys(row).forEach(function (key) { keys.add(key); });
+                    return keys;
+                }, new Set())).filter(function (column) {
+                    return !['custId', 'serviceDate'].includes(column);
+                });
+                const statusColumns = ['approvedStatus', 'lastApprovedTime'];
+                statusColumns.forEach(function (column) {
+                    const existingIndex = columns.indexOf(column);
+                    if (existingIndex !== -1) columns.splice(existingIndex, 1);
+                });
+                columns.push('resultLink');
+                columns.push(...statusColumns);
+                const headerLabels = { resultLink: 'ผล online' };
+                columns.forEach(function (column) {
+                    appendCell(tableHead, 'th', headerLabels[column] || column);
+                });
+                rows.forEach(function (item) {
+                    const row = document.createElement('tr');
+                    columns.forEach(function (column) {
+                        appendCell(row, 'td', item[column], column, item);
+                    });
+                    const serviceNo = item.serviceNo || item.serviceno || item.service_no;
+                    if (serviceNo) {
+                        const params = new URLSearchParams({
+                            serviceNo: serviceNo,
+                            age: item.age || item.customerAge || customerAge,
+                            email: item.email || item.customerEmail || (item.customer && item.customer.email) || '',
+                            serviceDate: item.serviceDate || item.servicedate || item.service_date || '',
+                            prename: item.prename || item.preName || '',
+                            fname: item.fname || item.firstName || '',
+                            lname: item.lname || item.lastName || ''
+                        });
+                        row.dataset.detailUrl = `${labTestUrl}?${params.toString()}`;
+                        row.tabIndex = 0;
+                        row.setAttribute('role', 'link');
+                        row.setAttribute('aria-label', `ดูรายละเอียด Test ของ Service No ${serviceNo}`);
+                    }
+                    tableBody.appendChild(row);
+                });
+            }
+
+            tableBody.addEventListener('click', function (event) {
+                if (event.target.closest('a')) return;
+                const row = event.target.closest('tr[data-detail-url]');
+                if (row) window.location.href = row.dataset.detailUrl;
+            });
+
+            tableBody.addEventListener('keydown', function (event) {
+                const row = event.target.closest('tr[data-detail-url]');
+                if (row && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    window.location.href = row.dataset.detailUrl;
+                }
+            });
+
+            function rowStatus(item) {
+                const status = String(item.approvedStatus || '').trim().toLowerCase();
+                if (status === 'some') return 'some';
+                if (status === 'complete') return 'complete';
+                return 'pending';
+            }
+
+            function updateStatusCounts() {
+                const counts = { pending: 0, some: 0, complete: 0 };
+                allRows.forEach(function (item) { counts[rowStatus(item)] += 1; });
+                Object.keys(counts).forEach(function (status) {
+                    statusCounts[status].textContent = counts[status];
+                });
+            }
+
+            function renderActiveTab() {
+                tabs.forEach(function (tab) {
+                    tab.classList.toggle('is-active', tab.dataset.status === activeStatus);
+                });
+                const keyword = serviceSearch.value.trim().toLocaleLowerCase('th');
+                const filteredRows = allRows.filter(function (item) {
+                    return rowStatus(item) === activeStatus;
+                }).filter(function (item) {
+                    if (!keyword) return true;
+                    const searchableValues = [
+                        item.serviceNo || item.serviceno || item.service_no,
+                        item.fname || item.firstName,
+                        item.lname || item.lastName
+                    ];
+                    return searchableValues.some(function (value) {
+                        return String(value || '').toLocaleLowerCase('th').includes(keyword);
+                    });
+                });
+                searchResultCount.textContent = `พบ ${filteredRows.length} รายการ`;
+                if (!filteredRows.length) {
+                    states.empty.textContent = 'ไม่พบรายการในสถานะนี้';
+                    showState('empty');
+                    return;
+                }
+                const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+                currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+                const startIndex = (currentPage - 1) * pageSize;
+                renderTable(filteredRows.slice(startIndex, startIndex + pageSize));
+                pageLabel.textContent = `หน้า ${currentPage} จาก ${totalPages}`;
+                previousPage.disabled = currentPage <= 1;
+                nextPage.disabled = currentPage >= totalPages;
+                showState('table');
+            }
+
+            tabs.forEach(function (tab) {
+                tab.querySelector('a').addEventListener('click', function (event) {
+                    event.preventDefault();
+                    activeStatus = tab.dataset.status;
+                    currentPage = 1;
+                    renderActiveTab();
+                });
+            });
+
+            previousPage.addEventListener('click', function () {
+                if (currentPage > 1) {
+                    currentPage -= 1;
+                    renderActiveTab();
+                }
+            });
+
+            nextPage.addEventListener('click', function () {
+                currentPage += 1;
+                renderActiveTab();
+            });
+
+            serviceSearch.addEventListener('input', function () {
+                currentPage = 1;
+                renderActiveTab();
+            });
+
+            async function loadServices() {
+                if (!serviceNoPrefix || !custId) {
+                    states.error.textContent = 'ข้อมูล startDate หรือ custId ไม่ครบถ้วน';
+                    showState('error');
+                    return;
+                }
+                try {
+                    const params = new URLSearchParams({ serviceNoPrefix: serviceNoPrefix, custId: custId });
+                    const response = await fetch(`${apiUrl}?${params.toString()}`, {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin'
+                    });
+                    if (!response.ok) throw new Error(`API ตอบกลับด้วยสถานะ ${response.status}`);
+                    allRows = getRows(await response.json());
+                    if (!allRows.length) {
+                        showState('empty');
+                        return;
+                    }
+                    const apiServiceDate = allRows.find(function (item) { return item.serviceDate; });
+                    if (apiServiceDate) serviceDate.textContent = formatDate(apiServiceDate.serviceDate);
+                    updateStatusCounts();
+                    renderActiveTab();
+                } catch (error) {
+                    states.error.textContent = `ไม่สามารถโหลดข้อมูลได้: ${error.message}`;
+                    showState('error');
+                }
+            }
+
+            loadServices();
+        });
+    </script>
+{% endblock %}
