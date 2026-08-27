@@ -3296,8 +3296,8 @@ def create_protein_identification_request(request_id=None):
             url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
-        for er in form.errors:
-            flash(f'{er} {form.errors[er]}', 'danger')
+        for _ in form.errors:
+            flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
     return render_template('academic_services/forms/protein_identification_request_form.html', code=code,
                            sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
@@ -3311,7 +3311,7 @@ def add_protein_identification_condition_item():
     item_form = form.protein_identification_condition_field[-1]
     index = len(form.protein_identification_condition_field)
     template = """
-        <div id="{}">
+        <div id="{}" class="condition-item">
             <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
@@ -3327,9 +3327,20 @@ def add_protein_identification_condition_item():
                     </th>
                 </thead>
                 <tbody>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
+                    <tr>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none">
+                            <a class="button is-danger is-outlined"
+                                hx-delete="{}" 
+                                hx-target="closest .condition-item"
+                                hx-swap="outerHTML"
+                            >
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </a>
+                        </td>
+                    </tr>    
                 </tbody>
             </table>
         </div>
@@ -3341,7 +3352,9 @@ def add_protein_identification_condition_item():
                            item_form.protein_identification.label,
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
-                           item_form.protein_identification()
+                           item_form.protein_identification(),
+                           url_for('academic_services.remove_protein_identification_condition_item',
+                                   name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
@@ -3350,47 +3363,63 @@ def add_protein_identification_condition_item():
 @academic_services.route('/api/request/protein_identification/item/remove', methods=['DELETE'])
 @login_required
 def remove_protein_identification_condition_item():
+    field_name = request.args.get('name')
     form = ProteinIdentificationRequestForm()
-    form.protein_identification_condition_field.pop_entry()
-    resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
-        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
-        template = """
-            <div id="{}">
-                {}  
-                <p><strong>รายการที่ {}</strong></p>
-                <table class="table is-fullwidth ">
-                    <thead>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                    </thead>
-                    <tbody>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                    </tbody>
-                </table>
-            </div>
-        """
-        resp += template.format(item_form.id,
-                                hr,
-                                i,
-                                item_form.sample_name.label,
-                                item_form.clean_up.label,
-                                item_form.protein_identification.label,
-                                item_form.sample_name(class_='input'),
-                                item_form.clean_up(),
-                                item_form.protein_identification()
-                                )
-    resp = make_response(resp)
-    return resp
+    temp_entries = []
+    for entry in form.protein_identification_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.protein_identification_condition_field) > 0:
+        form.protein_identification_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.protein_identification_condition_field.append_entry(entry)
+    return ""
+
+
+# @academic_services.route('/api/request/protein_identification/item/remove', methods=['DELETE'])
+# @login_required
+# def remove_protein_identification_condition_item():
+#     form = ProteinIdentificationRequestForm()
+#     form.protein_identification_condition_field.pop_entry()
+#     resp = ''
+#     for i, item_form in enumerate(form.protein_identification_condition_field, start=1):
+#         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
+#         template = """
+#             <div id="{}">
+#                 {}
+#                 <p><strong>รายการที่ {}</strong></p>
+#                 <table class="table is-fullwidth ">
+#                     <thead>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                         <th style="border: none">{}</th>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                     </thead>
+#                     <tbody>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                     </tbody>
+#                 </table>
+#             </div>
+#         """
+#         resp += template.format(item_form.id,
+#                                 hr,
+#                                 i,
+#                                 item_form.sample_name.label,
+#                                 item_form.clean_up.label,
+#                                 item_form.protein_identification.label,
+#                                 item_form.sample_name(class_='input'),
+#                                 item_form.clean_up(),
+#                                 item_form.protein_identification()
+#                                 )
+#     resp = make_response(resp)
+#     return resp
 
 
 @academic_services.route('/request/sds_page/add', methods=['GET', 'POST'])
@@ -3423,8 +3452,8 @@ def create_sds_page_request(request_id=None):
             url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
-        for er in form.errors:
-            flash(f'{er} {form.errors[er]}', 'danger')
+        for _ in form.errors:
+            flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
     return render_template('academic_services/forms/sds_page_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
@@ -3577,8 +3606,8 @@ def create_quantitative_request(request_id=None):
             url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
-        for er in form.errors:
-            flash(f'{er} {form.errors[er]}', 'danger')
+        for _ in form.errors:
+            flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
     return render_template('academic_services/forms/quantitative_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
@@ -3591,7 +3620,7 @@ def add_quantitative_condition_item():
     item_form = form.quantitative_condition_field[-1]
     index = len(form.quantitative_condition_field)
     template = """
-        <div id="{}">
+        <div id="{}" class="condition-item">
             <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
@@ -3610,9 +3639,20 @@ def add_quantitative_condition_item():
                     </th>
                 </thead>
                 <tbody>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
+                    <tr>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none">
+                            <a class="button is-danger is-outlined"
+                                hx-delete="{}" 
+                                hx-target="closest .condition-item"
+                                hx-swap="outerHTML"
+                            >
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </a>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -3624,7 +3664,8 @@ def add_quantitative_condition_item():
                            item_form.quantitative_method.label,
                            item_form.sample_name(class_='input'),
                            item_form.protein_concentration(class_='input'),
-                           item_form.quantitative_method()
+                           item_form.quantitative_method(),
+                           url_for('academic_services.remove_quantitative_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
@@ -3633,50 +3674,66 @@ def add_quantitative_condition_item():
 @academic_services.route('/api/request/quantitative/item/remove', methods=['DELETE'])
 @login_required
 def remove_quantitative_condition_item():
+    field_name = request.args.get('name')
     form = QuantitativeRequestForm()
-    form.quantitative_condition_field.pop_entry()
-    resp = ''
-    for i, item_form in enumerate(form.quantitative_condition_field, start=1):
-        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
-        template = """
-            <div id="{}">
-                {}
-                <p><strong>รายการที่ {}</strong></p>
-                <table class="table is-fullwidth ">
-                    <thead>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                    </thead>
-                    <tbody>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                    </tbody>
-                </table>
-            </div>
-        """
-        resp += template.format(item_form.id,
-                                hr,
-                                i,
-                                item_form.sample_name.label,
-                                item_form.protein_concentration.label,
-                                item_form.quantitative_method.label,
-                                item_form.sample_name(class_='input'),
-                                item_form.protein_concentration(class_='input'),
-                                item_form.quantitative_method()
-                                )
-    resp = make_response(resp)
-    return resp
+    temp_entries = []
+    for entry in form.quantitative_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.quantitative_condition_field) > 0:
+        form.quantitative_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.quantitative_condition_field.append_entry(entry)
+    return ""
+
+
+# @academic_services.route('/api/request/quantitative/item/remove', methods=['DELETE'])
+# @login_required
+# def remove_quantitative_condition_item():
+#     form = QuantitativeRequestForm()
+#     form.quantitative_condition_field.pop_entry()
+#     resp = ''
+#     for i, item_form in enumerate(form.quantitative_condition_field, start=1):
+#         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
+#         template = """
+#             <div id="{}">
+#                 {}
+#                 <p><strong>รายการที่ {}</strong></p>
+#                 <table class="table is-fullwidth ">
+#                     <thead>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                     </thead>
+#                     <tbody>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                     </tbody>
+#                 </table>
+#             </div>
+#         """
+#         resp += template.format(item_form.id,
+#                                 hr,
+#                                 i,
+#                                 item_form.sample_name.label,
+#                                 item_form.protein_concentration.label,
+#                                 item_form.quantitative_method.label,
+#                                 item_form.sample_name(class_='input'),
+#                                 item_form.protein_concentration(class_='input'),
+#                                 item_form.quantitative_method()
+#                                 )
+#     resp = make_response(resp)
+#     return resp
 
 
 @academic_services.route('/request/metabolomic/add', methods=['GET', 'POST'])
@@ -3709,8 +3766,8 @@ def create_metabolomic_request(request_id=None):
             url_for('academic_services.create_report_language', request_id=service_request.id, menu=menu,
                     code=code))
     else:
-        for er in form.errors:
-            flash(f'{er} {form.errors[er]}', 'danger')
+        for _ in form.errors:
+            flash(f'กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
     return render_template('academic_services/forms/metabolomic_request_form.html', code=code, sub_lab=sub_lab,
                            form=form, menu=menu, request_id=request_id)
 
@@ -3723,7 +3780,7 @@ def add_metabolomic_condition_item():
     item_form = form.metabolomic_condition_field[-1]
     index = len(form.metabolomic_condition_field)
     template = """
-        <div id="{}">
+        <div id="{}" class="condition-item">
             <hr style="background-color: #F3F3F3">
             <p><strong>รายการที่ {}</strong></p>
             <table class="table is-fullwidth ">
@@ -3737,10 +3794,21 @@ def add_metabolomic_condition_item():
                     <th style="border: none">{}</th>
                 </thead>
                 <tbody>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
-                    <td style="border: none" class="control">{}</td>
+                    <tr>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none" class="control">{}</td>
+                        <td style="border: none">
+                            <a class="button is-danger is-outlined"
+                                hx-delete="{}" 
+                                hx-target="closest .condition-item"
+                                hx-swap="outerHTML"
+                            >
+                                <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                            </a>
+                        </td>
+                    </tr>    
                 </tbody>
             </table>
         </div>
@@ -3754,7 +3822,8 @@ def add_metabolomic_condition_item():
                            item_form.sample_name(class_='input'),
                            item_form.clean_up(),
                            item_form.untargeted_metabolomic(),
-                           item_form.quantitative_metabolomic()
+                           item_form.quantitative_metabolomic(),
+                           url_for('academic_services.remove_metabolomic_condition_item', name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
@@ -3763,48 +3832,64 @@ def add_metabolomic_condition_item():
 @academic_services.route('/api/request/metabolomic/item/remove', methods=['DELETE'])
 @login_required
 def remove_metabolomic_condition_item():
+    field_name = request.args.get('name')
     form = MetabolomicRequestForm()
-    form.metabolomic_condition_field.pop_entry()
-    resp = ''
-    for i, item_form in enumerate(form.metabolomic_condition_field, start=1):
-        hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
-        template = """
-            <div id="{}">
-                {}
-                <p><strong>รายการที่ {}</strong></p>
-                <table class="table is-fullwidth ">
-                    <thead>
-                        <th style="border: none">
-                            {}
-                            <span class="has-text-danger">*</span>
-                        </th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
-                        <th style="border: none">{}</th>
-                    </thead>
-                    <tbody>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                        <td style="border: none" class="control">{}</td>
-                    </tbody>
-                </table>
-            </div>
-        """
-        resp += template.format(item_form.id,
-                                hr,
-                                i,
-                                item_form.sample_name.label,
-                                item_form.clean_up.label,
-                                item_form.untargeted_metabolomic.label,
-                                item_form.quantitative_metabolomic.label,
-                                item_form.sample_name(class_='input'),
-                                item_form.clean_up(),
-                                item_form.untargeted_metabolomic(),
-                                item_form.quantitative_metabolomic()
-                                )
-    resp = make_response(resp)
-    return resp
+    temp_entries = []
+    for entry in form.metabolomic_condition_field:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.metabolomic_condition_field) > 0:
+        form.metabolomic_condition_field.pop_entry()
+    for entry in temp_entries:
+        form.metabolomic_condition_field.append_entry(entry)
+    return ""
+
+
+# @academic_services.route('/api/request/metabolomic/item/remove', methods=['DELETE'])
+# @login_required
+# def remove_metabolomic_condition_item():
+#     form = MetabolomicRequestForm()
+#     form.metabolomic_condition_field.pop_entry()
+#     resp = ''
+#     for i, item_form in enumerate(form.metabolomic_condition_field, start=1):
+#         hr = '<hr style="background-color: #F3F3F3">' if i > 1 else ''
+#         template = """
+#             <div id="{}">
+#                 {}
+#                 <p><strong>รายการที่ {}</strong></p>
+#                 <table class="table is-fullwidth ">
+#                     <thead>
+#                         <th style="border: none">
+#                             {}
+#                             <span class="has-text-danger">*</span>
+#                         </th>
+#                         <th style="border: none">{}</th>
+#                         <th style="border: none">{}</th>
+#                         <th style="border: none">{}</th>
+#                     </thead>
+#                     <tbody>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                         <td style="border: none" class="control">{}</td>
+#                     </tbody>
+#                 </table>
+#             </div>
+#         """
+#         resp += template.format(item_form.id,
+#                                 hr,
+#                                 i,
+#                                 item_form.sample_name.label,
+#                                 item_form.clean_up.label,
+#                                 item_form.untargeted_metabolomic.label,
+#                                 item_form.quantitative_metabolomic.label,
+#                                 item_form.sample_name(class_='input'),
+#                                 item_form.clean_up(),
+#                                 item_form.untargeted_metabolomic(),
+#                                 item_form.quantitative_metabolomic()
+#                                 )
+#     resp = make_response(resp)
+#     return resp
 
 
 @academic_services.route("/request/sample_species_other")

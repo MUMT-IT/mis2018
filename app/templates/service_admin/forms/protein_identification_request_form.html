@@ -94,30 +94,42 @@
                             <hr style="background-color: gainsboro">
                             <div id="condition-field" class="field">
                                 {% for item_form in form.protein_identification_condition_field %}
-                                    <div id="{{ item_form.id }}">
+                                    <div id="{{ item_form.id }}" class="condition-item">
                                         <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
                                         <table class="table is-fullwidth ">
                                             <thead>
-                                            <th style="border: none">
-                                                {{ item_form.sample_name.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </th>
-                                            <th style="border: none">{{ item_form.clean_up.label }}</th>
-                                            <th style="border: none">
-                                                {{ item_form.protein_identification.label }}
-                                                <span class="has-text-danger">*</span>
-                                            </th>
+                                                <th style="border: none">
+                                                    {{ item_form.sample_name.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
+                                                <th style="border: none">{{ item_form.clean_up.label }}</th>
+                                                <th style="border: none">
+                                                    {{ item_form.protein_identification.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </th>
                                             </thead>
                                             <tbody>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.sample_name(class='input') }}
-                                            </td>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.clean_up() }}
-                                            </td>
-                                            <td style="border: none" class="control">
-                                                {{ item_form.protein_identification() }}
-                                            </td>
+                                                <tr>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.sample_name(class='input') }}
+                                                    </td>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.clean_up() }}
+                                                    </td>
+                                                    <td style="border: none" class="control">
+                                                        {{ item_form.protein_identification() }}
+                                                    </td>
+                                                    <td style="border: none">
+                                                        <a class="button is-danger is-outlined"
+                                                           hx-delete="{{ url_for('service_admin.remove_protein_identification_condition_item',
+                                                           name=item_form.name) }}"
+                                                           hx-target="closest .condition-item"
+                                                           hx-swap="outerHTML"
+                                                        >
+                                                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                        </a>
+                                                    </td>
+                                                </tr>
                                             </tbody>
                                         </table>
                                         {% if not loop.last %}
@@ -137,16 +149,16 @@
                                         <span>เพิ่ม</span>
                                     </a>
                                 </div>
-                                <div class="control">
-                                    <a class="button is-danger is-small is-light is-rounded"
-                                       hx-delete="{{ url_for('service_admin.remove_protein_identification_condition_item') }}"
-                                       hx-target="#condition-field" hx-swap="innerHTML">
-                                            <span class="icon">
-                                                <i class="far fa-trash-alt"></i>
-                                            </span>
-                                        <span class="">ลบ</span>
-                                    </a>
-                                </div>
+{#                                <div class="control">#}
+{#                                    <a class="button is-danger is-small is-light is-rounded"#}
+{#                                       hx-delete="{{ url_for('service_admin.remove_protein_identification_condition_item') }}"#}
+{#                                       hx-target="#condition-field" hx-swap="innerHTML">#}
+{#                                            <span class="icon">#}
+{#                                                <i class="far fa-trash-alt"></i>#}
+{#                                            </span>#}
+{#                                        <span class="">ลบ</span>#}
+{#                                    </a>#}
+{#                                </div>#}
                             </div>
                         </div>
                         <div class="field is-grouped is-justify-content-center">
@@ -211,7 +223,17 @@
         });
     </script>
     <script>
-        $(document).ready(function () {
+        function renumberItems() {
+            const items = document.querySelectorAll('#condition-field .condition-item');
+            items.forEach(function (item, index) {
+                const label = item.querySelector('p strong');
+                if (label) {
+                    label.textContent = `รายการที่ ${index + 1}`;
+                }
+            });
+        }
+
+        function initSubforms() {
             $('#condition-field div[id]').each(function () {
                 const proteinIdentification = $('input[type="checkbox"][name$="protein_identification"]');
 
@@ -234,6 +256,16 @@
                 validateProteinIdentificationInput();
                 proteinIdentification.on('change', validateProteinIdentificationInput);
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initSubforms();
+            renumberItems();
+        });
+
+        document.body.addEventListener('htmx:afterSwap', function () {
+            initSubforms();
+            renumberItems();
         });
     </script>
 {% endblock %}

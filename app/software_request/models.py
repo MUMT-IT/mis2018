@@ -74,32 +74,37 @@ class SoftwareRequestDetail(db.Model):
     activity = db.relationship(StrategyActivity, backref=db.backref('software_requests', cascade='all, delete-orphan'))
     priority = db.Column('priority', db.String(), info={'label': 'ระดับความสำคัญ',
                                                         'choices': [('', 'กรุณาเลือกระดับความสำคัญ'),
-                                                                    ('สูง', 'สูง'),
-                                                                    ('กลาง', 'กลาง'),
-                                                                    ('ต่ำ', 'ต่ำ')
+                                                                    ('3', 'สูง'),
+                                                                    ('2', 'กลาง'),
+                                                                    ('1', 'ต่ำ')
                                                                     ]})
     urgency = db.Column('urgency', db.String(), info={'label': 'ความเร่งด่วน',
                                                         'choices': [('', 'กรุณาเลือกระดับความเร่งด่วน'),
-                                                                    ('ไม่เร่งด่วน', 'ไม่เร่งด่วน'),
-                                                                    ('ค่อนข้างเร่งด่วน', 'ค่อนข้างเร่งด่วน'),
-                                                                    ('เร่งด่วน', 'เร่งด่วน')
+                                                                    ('1', 'ไม่เร่งด่วน'),
+                                                                    ('2', 'ค่อนข้างเร่งด่วน'),
+                                                                    ('3', 'เร่งด่วนมาก')
                                                                     ]})
     frequency = db.Column('frequency', db.String(), info={'label': 'ความถี่การใช้งาน',
-                                                          'choices': [('None', 'กรุณาเลือกความถี่การใช้งาน'),
+                                                          'choices': [('', 'กรุณาเลือกความถี่การใช้งาน'),
                                                                       ('รายวัน', 'รายวัน'),
                                                                       ('รายสัปดาห์', 'รายสัปดาห์'),
                                                                       ('รายเดือน', 'รายเดือน'),
-                                                                      ('เป็นครั้งคราว', 'เป็นครั้งคราว'),
-                                                                      ('ใช้ครั้งเดียว'), ('ใช้ครั้งเดียว')]})
+                                                                      ('ตามวงรอบ', 'ตามวงรอบ'),
+                                                                      ('เป็นครั้งคราว', 'เป็นครั้งคราว')
+                                                                      ]})
     user_group = db.Column('user_group', db.String(), info={'label': 'กลุ่มผู้ใช้งาน',
-                                                            'choices': [('หน่วยงานภายใน', ' หน่วยงานภายใน'),
+                                                            'choices': [('', 'กรุณาเลือกกลุ่มผู้ใช้งาน'),
+                                                                        ('หน่วยงานภายใน', ' หน่วยงานภายใน'),
                                                                         ('หน่วยงานภายนอก', 'หน่วยงานภายนอก'),
                                                                         ('บุคคลทั่วไป', ' บุคคลทั่วไป'),
-                                                                        ('คู่ค้า', ' คู่ค้า'),
-                                                                        ('นักศึกษา', 'นักศึกษา')]})
+                                                                        ('ผู้รับบริการ', 'ผู้รับบริการ'),
+                                                                        ('นักศึกษา', 'นักศึกษา')
+                                                                        ]})
     required_information = db.Column('required_information', db.Text())
     suggestion = db.Column('suggestion', db.Text())
     reason = db.Column('reason', db.Text())
+    expected_benefit = db.Column('expected_benefit', db.Text(),  info={'label': 'ประโยชน์ที่คาดว่าจะได้รับ'})
+    usage_date = db.Column('usage_date', db.Date(), info={'label': 'วันที่ต้องการใช้งาน'})
     appointment_date = db.Column('appointment_date', db.DateTime(timezone=True), info={'label': 'วันนัดหมาย'})
     room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
     room = db.relationship(RoomResource, backref=db.backref('software_requests'))
@@ -119,22 +124,47 @@ class SoftwareRequestDetail(db.Model):
 
     @property
     def num_open_issues(self):
-        return len([issue for issue in self.issues.all() if issue.status != 'Closed'])
+        return len([issue for issue in self.issues.all() if issue.status not in ['Closed', 'Cancelled']])
 
     @property
     def num_timelines(self):
         return len([timeline for timeline in self.timelines if timeline.status != 'ยกเลิกการพัฒนา' and timeline.status != 'เสร็จสิ้น'])
 
     @property
+    def assessment_score(self):
+        if self.priority and self.urgency:
+            score = int(self.urgency) * int(self.priority)
+        else:
+            score = 0
+        return score
+
+    @property
     def is_requester_completed_testing(self):
         return all(test_result.status for test_result in self.test_results)
 
     @property
+    def is_active(self):
+        return self.status not in ['เสร็จสิ้น', 'ไม่อนุมัติ', 'ยกเลิก']
+
+    @property
+    def urgency_text(self):
+        if self.urgency:
+            if self.urgency == '3':
+                text = 'เร่งด่วนมาก'
+            elif self.urgency == '2':
+                text = 'ค่อนข้างเร่งด่วน'
+            else:
+                text = 'ไม่เร่งด่วน'
+        else:
+            text = ''
+        return text
+
+    @property
     def urgency_status_color(self):
         if self.urgency:
-            if self.urgency == 'เร่งด่วน':
+            if self.urgency == '3':
                 color = 'is-danger'
-            elif self.urgency == 'ค่อนข้างเร่งด่วน':
+            elif self.urgency == '2':
                 color = 'is-warning'
             else:
                 color = 'is-success'
@@ -143,11 +173,24 @@ class SoftwareRequestDetail(db.Model):
         return color
 
     @property
+    def priority_text(self):
+        if self.priority:
+            if self.priority == '3':
+                text = 'สูง'
+            elif self.priority == '2':
+                text = 'กลาง'
+            else:
+                text = 'ต่ำ'
+        else:
+            text = ''
+        return text
+
+    @property
     def priority_status_color(self):
         if self.priority:
-            if self.priority == 'สูง':
+            if self.priority == '3':
                  color = 'is-danger'
-            elif self.priority == 'กลาง':
+            elif self.priority == '2':
                 color = 'is-warning'
             else:
                 color = 'is-success'
@@ -262,8 +305,10 @@ class SoftwareRequestDetail(db.Model):
             'type': self.type,
             'description': self.description,
             'priority': self.priority if self.priority else None,
+            'priority_text': self.priority_text if self.priority_text else None,
             'priority_status_color': self.priority_status_color if self.priority_status_color else None,
             'urgency': self.urgency if self.urgency else None,
+            'urgency_text': self.urgency_text if self.urgency_text else None,
             'urgency_status_color': self.urgency_status_color if self.urgency_status_color else None,
             'has_timeline': has_timeline,
             'created_by': self.created_by.fullname if self.created_by else None,

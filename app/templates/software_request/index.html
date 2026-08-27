@@ -40,10 +40,17 @@
                                             <td>{{ test_result.request.title }}</td>
                                             <td>{{ test_result.request.description }}</td>
                                             <td>
-                                                <a href="{{ url_for('software_request.view_request',
-                                                    detail_id=test_result.request_id) }}">
-                                                    <span class="icon"><i class="fas fa-eye"></i></span>
-                                                </a>
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <a class="button is-small is-info is-rounded"
+                                                           href="{{ url_for('software_request.view_request',
+                                                            detail_id=test_result.request_id) }}"
+                                                        >
+                                                            <span class="icon"><i class="fas fa-search"></i></span>
+                                                            <span>ทดสอบ</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     {% endif %}
@@ -58,8 +65,8 @@
                         <thead>
                             <th>โครงการ/ระบบ</th>
                             <th>ประเภทคำขอ</th>
-{#                            <th>ระดับความสำคัญ</th>#}
-{#                            <th>ความเร่งด่วน</th>#}
+                            <th>ระดับความสำคัญ</th>
+                            <th>ความเร่งด่วน</th>
                             <th>รายละเอียด</th>
                             <th>วันที่ส่งคำขอ</th>
                             <th>สถานะ</th>
@@ -93,28 +100,30 @@
                 columns: [
                     {data: 'title'},
                     {data: 'type'},
-                    {#{#}
-                    {#    data: 'priority',#}
-                    {#    render: function (data, type, row) {#}
-                    {#        if (data != null) {#}
-                    {#            return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +#}
-                    {#                        data +#}
-                    {#                    '</span>'#}
-                    {#        } else {#}
-                    {#            return ''#}
-                    {#        }#}
-                    {#    }#}
-                    {#{#}
-                    {#    data: 'urgency',#}
-                    {#    render: function (data, type, row) {#}
-                    {#        if (data != null) {#}
-                    {#            return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +#}
-                    {#                        data +#}
-                    {#                    '</span>'#}
-                    {#        } else {#}
-                    {#            return ''#}
-                    {#        }#}
-                    {#    }#}
+                    {
+                        data: 'priority_text',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.priority_status_color + ' is-light is-rounded">' +
+                                    data +
+                                    '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
+                    {
+                        data: 'urgency_text',
+                        render: function (data, type, row) {
+                            if (data != null) {
+                                return '<span class="tag ' + row.urgency_status_color + ' is-light is-rounded">' +
+                                    data +
+                                    '</span>'
+                            } else {
+                                return ''
+                            }
+                        }
+                    },
                     {
                         data: 'description',
                         width: "230px"

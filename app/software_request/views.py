@@ -147,31 +147,46 @@ def _get_pending_test_line_recipients(detail):
     recipients = set()
     account = detail.created_by
     if account and account.is_active and not account.is_retired:
-       if account.line_id:
+        if account.line_id:
             recipients.add(account.line_id)
     return sorted(recipients)
 
 
-def _build_pending_test_reminder(detail):
-    project_name = detail.title or 'โครงการ/ระบบที่ไม่ระบุชื่อ'
-    pending_test_details = [
-        test_result.issue.issue
-        for test_result in detail.test_results
-        if not test_result.status and test_result.issue and test_result.issue.issue
-    ]
-    test_detail_text = '\n'.join(f'- {item}' for item in pending_test_details) or '- ไม่ระบุรายละเอียด'
+def _summarize_pending_test_projects(details):
+    summaries = {}
+    for detail in details:
+        if detail.title:
+            title = detail.title.strip()
+        else:
+            title = 'โครงการ/ระบบที่ไม่ระบุชื่อ'
+        normalized_name = title.casefold()
+        if normalized_name not in summaries:
+            summaries[normalized_name] = {
+                'name': title,
+                'count': 0,
+            }
+        summaries[normalized_name]['count'] += 1
+    return list(summaries.values())
+
+
+def _build_pending_test_reminder(details):
+    request_count = len(details)
+    system_summaries = _summarize_pending_test_projects(details)
+    system_summary_text = '\n'.join(
+        f'- {item["name"]} : {item["count"]} รายการ'
+        for item in system_summaries
+    ) or '- ไม่ระบุข้อมูล'
     scheme = 'http' if current_app.debug else 'https'
     link = url_for(
-        'software_request.view_request',
-        detail_id=detail.id,
+        'software_request.index',
         _external=True,
-        _scheme=scheme,
+        _scheme=scheme
     )
-    subject = f'แจ้งเตือนให้ดำเนินการทดสอบของ {project_name}'
+    subject = 'แจ้งเตือนให้ดำเนินการทดสอบระบบ'
     body = (
-        f'ขณะนี้มีรายการทดสอบของ "{project_name}" ที่ยังไม่ได้ดำเนินการทดสอบ โดยมีรายละเอียดดังนี้\n'
-        f'{test_detail_text}\n'
-        f'กรุณาดำเนินการทดสอบและบันทึกผล โดยท่านสามารถดำเนินการได้ที่ลิงก์ด้านล่าง\n'
+        f'ขณะนี้มีรายการที่ยังไม่ได้ดำเนินการทดสอบทั้งหมด {request_count} รายการ โดยมีรายละเอียดดังนี้\n'
+        f'{system_summary_text}\n'
+        f'กรุณาดำเนินการทดสอบและบันทึกผลการทดสอบให้เรียบร้อย โดยสามารถดำเนินการได้ที่ลิงก์ด้านล่าง\n'
         f'{link}\n\n'
         f'ขอบคุณค่ะ\n'
         f'ระบบขอรับบริการพัฒนา Software\n'
@@ -819,7 +834,13 @@ def _build_admin_request_listing_query(base_query):
         SoftwareIssues.software_request_detail_id.label('request_id'),
         func.sum(
             case(
-                [(SoftwareIssues.closed_at.is_(None), 1)],
+                [(
+                    and_(
+                        SoftwareIssues.closed_at.is_(None),
+                        SoftwareIssues.cancelled_at.is_(None),
+                    ),
+                    1,
+                )],
                 else_=0
             )
         ).label('open_issues')
@@ -839,6 +860,24 @@ def _build_admin_request_listing_query(base_query):
     ).add_columns(
         func.coalesce(active_timeline_counts.c.num_timelines, 0).label('num_timelines'),
         func.coalesce(open_issue_counts.c.open_issues, 0).label('open_issues')
+    )
+
+
+def _priority_text_expression():
+    return case(
+        (SoftwareRequestDetail.priority == '3', 'สูง'),
+        (SoftwareRequestDetail.priority == '2', 'กลาง'),
+        (SoftwareRequestDetail.priority == '1', 'ต่ำ'),
+        else_='',
+    )
+
+
+def _urgency_text_expression():
+    return case(
+        (SoftwareRequestDetail.urgency == '3', 'เร่งด่วนมาก'),
+        (SoftwareRequestDetail.urgency == '2', 'ค่อนข้างเร่งด่วน'),
+        (SoftwareRequestDetail.urgency == '1', 'ไม่เร่งด่วน'),
+        else_='',
     )
 
 
@@ -862,8 +901,10 @@ def index():
             query = query.filter(or_(
                 SoftwareRequestDetail.title.ilike(search_term),
                 SoftwareRequestDetail.type.ilike(search_term),
+                _priority_text_expression().ilike(search_term),
+                _urgency_text_expression().ilike(search_term),
                 SoftwareRequestDetail.description.ilike(search_term),
-                SoftwareRequestDetail.status.ilike(search_term)
+                SoftwareRequestDetail.status.ilike(search_term),
             ))
 
         start = request.args.get('start', type=int)
@@ -873,11 +914,11 @@ def index():
         sort_columns = {
             0: SoftwareRequestDetail.title,
             1: SoftwareRequestDetail.type,
-            # 2: SoftwareRequestDetail.priority,
-            # 3: SoftwareRequestDetail.urgency,
-            2: SoftwareRequestDetail.description,
-            3: SoftwareRequestDetail.created_date,
-            4: SoftwareRequestDetail.status,
+            2: SoftwareRequestDetail.priority,
+            3: SoftwareRequestDetail.urgency,
+            4: SoftwareRequestDetail.description,
+            5: SoftwareRequestDetail.created_date,
+            6: SoftwareRequestDetail.status,
         }
         sort_column_index = request.args.get('order[0][column]', default=3, type=int)
         sort_direction = request.args.get('order[0][dir]', default='desc')
@@ -898,10 +939,10 @@ def index():
                 'id': item.id,
                 'title': item.title,
                 'type': item.type,
-                # 'priority': item.priority if item.priority else None,
-                # 'priority_status_color': item.priority_status_color if item.priority_status_color else None,
-                # 'urgency': item.urgency if item.urgency else None,
-                # 'urgency_status_color': item.urgency_status_color if item.urgency_status_color else None,
+                'priority_text': item.priority_text if item.priority_text else None,
+                'priority_status_color': item.priority_status_color if item.priority_status_color else None,
+                'urgency_text': item.urgency_text if item.urgency_text else None,
+                'urgency_status_color': item.urgency_status_color if item.urgency_status_color else None,
                 'description': item.description,
                 'created_date': item.created_date,
                 'status': item.status,
@@ -964,6 +1005,7 @@ def view_request(detail_id):
 
 @software_request.route('/request/add', methods=['GET', 'POST'])
 def create_request():
+    date_now = arrow.now('Asia/Bangkok').date()
     SoftwareRequestDetailForm = create_request_form(detail_id=None)
     form = SoftwareRequestDetailForm()
     if form.validate_on_submit():
@@ -991,6 +1033,7 @@ def create_request():
             detail.system_id = system.id
         detail.status = 'ส่งคำขอแล้ว'
         detail.created_date = arrow.now('Asia/Bangkok').datetime
+        detail.usage_date = arrow.get(form.usage_date.data, 'Asia/Bangkok').date()
         detail.created_id = current_user.id
         db.session.add(detail)
         db.session.commit()
@@ -999,7 +1042,7 @@ def create_request():
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('software_request/create_request.html', form=form)
+    return render_template('software_request/create_request.html', form=form, date_now=date_now)
 
 
 @software_request.route('/api/system', methods=['GET'])
@@ -1041,6 +1084,8 @@ def admin_index():
             query = query.filter(or_(
                 SoftwareRequestDetail.title.ilike(search_term),
                 SoftwareRequestDetail.type.ilike(search_term),
+                _priority_text_expression().ilike(search_term),
+                _urgency_text_expression().ilike(search_term),
                 SoftwareRequestDetail.description.ilike(search_term),
                 SoftwareRequestDetail.status.ilike(search_term)
             ))
@@ -1048,16 +1093,15 @@ def admin_index():
         start = request.args.get('start', type=int)
         length = request.args.get('length', type=int)
         total_filtered = query.count()
-        # Apply pagination after building the enriched query used by DataTables.
         query = _build_admin_request_listing_query(query)
 
         sort_columns = {
             0: SoftwareRequestDetail.title,
             1: SoftwareRequestDetail.type,
-            # 2: SoftwareRequestDetail.priority,
-            # 3: SoftwareRequestDetail.urgency,
-            2: SoftwareRequestDetail.description,
-            5: SoftwareRequestDetail.created_date,
+            2: SoftwareRequestDetail.priority,
+            3: SoftwareRequestDetail.urgency,
+            4: SoftwareRequestDetail.description,
+            7: SoftwareRequestDetail.created_date,
         }
         sort_column_index = request.args.get('order[0][column]', default=5, type=int)
         sort_direction = request.args.get('order[0][dir]', default='desc')
@@ -1265,21 +1309,31 @@ def email_pending_requester_tests():
 
     should_send = _request_flag('send')
     projects = _get_pending_requester_test_projects()
-    packages = []
+    recipient_packages = {}
     for detail in projects:
         recipients = _get_pending_test_recipient_emails(detail)
-        subject, body = _build_pending_test_reminder(detail)
+        if not recipients:
+            continue
+        for recipient in recipients:
+            package = recipient_packages.setdefault(recipient, {
+                'recipient': recipient,
+                'details': [],
+            })
+            package['details'].append(detail)
+    packages = []
+    for package in recipient_packages.values():
+        subject, body = _build_pending_test_reminder(package['details'])
         packages.append({
-            'project_id': detail.id,
-            'recipients': recipients,
+            'recipients': [package['recipient']],
             'subject': subject,
             'body': body,
+            'project_count': len(package['details']),
         })
 
     if not should_send:
         return jsonify({
             'sent': False,
-            'project_count': len(packages),
+            'project_count': len(projects),
             'emails': packages,
         })
 
@@ -1290,19 +1344,18 @@ def email_pending_requester_tests():
         if not package['recipients']:
             skipped_count += 1
             current_app.logger.warning(
-                'Skipped pending requester test reminder without recipients project_id=%s',
-                package['project_id'],
+                'Skipped pending requester test reminder without recipients recipient=%s',
+                package.get('recipient'),
             )
             continue
         try:
-            # Send separately for every project/system so recipients can follow up in context.
             send_mail(package['recipients'], package['subject'], package['body'])
             sent_count += 1
         except Exception:
             failed_count += 1
             current_app.logger.exception(
-                'Failed pending requester test reminder project_id=%s recipients=%s',
-                package['project_id'],
+                'Failed pending requester test reminder recipient=%s recipients=%s',
+                package.get('recipient'),
                 package['recipients'],
             )
 
@@ -1326,7 +1379,7 @@ def email_pending_requester_tests():
     status_code = 500 if failed_count else 200
     return jsonify({
         'sent': failed_count == 0,
-        'project_count': len(packages),
+        'project_count': len(projects),
         'email_count': sent_count,
         'skipped_count': skipped_count,
         'failed_count': failed_count,
@@ -1346,29 +1399,38 @@ def line_pending_requester_tests():
         return jsonify({'sent': False, 'message': 'Add send=true to trigger delivery.'}), 400
 
     projects = _get_pending_requester_test_projects()
+    recipient_packages = {}
+    for detail in projects:
+        line_ids = _get_pending_test_line_recipients(detail)
+        if not line_ids:
+            continue
+        for line_id in line_ids:
+            package = recipient_packages.setdefault(line_id, {
+                'recipient': line_id,
+                'details': [],
+            })
+            package['details'].append(detail)
+
     sent_count = 0
     skipped_count = 0
     failed_count = 0
-    for detail in projects:
-        line_ids = _get_pending_test_line_recipients(detail)
-        _, message = _build_pending_test_reminder(detail)
-        if not line_ids:
+    for package in recipient_packages.values():
+        if not package['details']:
             skipped_count += 1
             continue
-        for line_id in line_ids:
-            try:
-                line_bot_api.push_message(
-                    to=line_id,
-                    messages=TextSendMessage(text=message),
-                )
-                sent_count += 1
-            except LineBotApiError:
-                failed_count += 1
-                current_app.logger.exception(
-                    'Failed pending requester test LINE reminder project_id=%s line_id=%s',
-                    detail.id,
-                    _mask_line_id(line_id),
-                )
+        _, message = _build_pending_test_reminder(package['details'])
+        try:
+            line_bot_api.push_message(
+                to=package['recipient'],
+                messages=TextSendMessage(text=message),
+            )
+            sent_count += 1
+        except LineBotApiError:
+            failed_count += 1
+            current_app.logger.exception(
+                'Failed pending requester test LINE reminder line_id=%s',
+                _mask_line_id(package['recipient']),
+            )
 
     current_app.logger.info(
         'pending_requester_test_line_reminders projects=%s sent=%s skipped_projects=%s failed=%s',
@@ -1450,6 +1512,7 @@ def update_request(detail_id):
     required_information = detail.required_information
     suggestion = detail.suggestion
     old_created_by = detail.created_by
+    old_staffs = list(detail.staffs)
     SoftwareRequestDetailForm = create_request_form(detail_id=detail_id)
     form = SoftwareRequestDetailForm(obj=detail)
     if detail.url:
@@ -1463,6 +1526,8 @@ def update_request(detail_id):
             flash('กรุณาเลือกผู้ส่งคำขอ', 'danger')
             return render_template('software_request/update_request.html', form=form, tab=tab, detail=detail,
                                    file_url=file_url, appointment_date=appointment_date)
+        if 'staffs' not in request.form:
+            detail.staffs = old_staffs
         detail.updated_date = arrow.now('Asia/Bangkok').datetime
         detail.approver_id = current_user.id
         detail.appointment_date = arrow.get(form.appointment_date.data, 'Asia/Bangkok').datetime if form.appointment_date.data else None

@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -53,24 +54,33 @@
                                  {{ form.system(class='js-example-basic-single') }}
                              </div>
                         </div>
-{#                        <div class="field">#}
-{#                            <label class="label">#}
-{#                                {{ form.priority.label }}#}
-{#                                <span class="has-text-danger">*</span>#}
-{#                            </label>#}
-{#                            <div class="select">#}
-{#                                {{ form.priority(required=true) }}#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <div class="field">#}
-{#                            <label class="label">#}
-{#                                {{ form.urgency.label }}#}
-{#                                <span class="has-text-danger">*</span>#}
-{#                            </label>#}
-{#                            <div class="select">#}
-{#                                {{ form.urgency(required=true) }}#}
-{#                            </div>#}
-{#                        </div>#}
+                        <div class="field">
+                            <label class="label">
+                                {{ form.frequency.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="select">
+                                {{ form.frequency(required=true) }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.user_group.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="select">
+                                {{ form.user_group(required=true) }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.usage_date.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.usage_date(class='input', type='text', required=true) }}
+                            </div>
+                        </div>
                         <div class="field">
                             <label class="label">
                                 เหตุผลและความจำเป็น
@@ -78,6 +88,15 @@
                             </label>
                             <div class="control">
                                 {{ form.description(class="textarea", required=True)}}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">
+                                {{ form.expected_benefit.label }}
+                                <span class="has-text-danger">*</span>
+                            </label>
+                            <div class="control">
+                                {{ form.expected_benefit(class="textarea", required=True)}}
                             </div>
                         </div>
                         <div class="field" id="file_field">
@@ -112,6 +131,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $(document).ready(()=>{
             $('#filename').text('None');
@@ -120,6 +140,7 @@
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
         });
+
         $(document).ready(()=> {
             $('[id$="system"]').select2({
                 width: '100%',
@@ -133,8 +154,33 @@
             });
             $('[id$="activity"]').select2({
                 width: '100%'
+            });
+            moment.locale('th');
+            const DATE_FORMAT = 'YYYY-MM-DD'
+            $('input[name="usage_date"]').daterangepicker({
+                singleDatePicker: true,
+                showDropdowns: true,
+                autoUpdateInput: true,
+                {% if form.usage_date.data %}
+                    startDate: {{ form.usage_date.data.isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('day'),
+                {% endif %}
+                locale:
+                    {
+                        format: DATE_FORMAT
+                    }
+            });
+            $('input[name="usage_date"]').change(function () {
+                let usageDate = moment($('input[name="usage_date"]').val(), DATE_FORMAT);
+                let dateNow = moment('{{ date_now }}', DATE_FORMAT);
+                if (usageDate.format() < dateNow.format()) {
+                    alert('กรุณาตรวจสอบวันที่ต้องการใช้งานอีกครั้ง')
+                    $('input[name="usage_date"]').val(dateNow.format(DATE_FORMAT))
+                }
             })
         });
+
         function ShowField() {
             var type = document.querySelector('[name="type"]').value;
             var title = document.getElementById("title");
