@@ -1697,7 +1697,16 @@ from app.smartclass_scheduler.models import (SmartClassOnlineAccount,
                                              SmartClassResourceType,
                                              SmartClassOnlineAccountEvent)
 
-admin.add_view(ModelView(SmartClassOnlineAccount, db.session, category='Smartclass'))
+
+class SmartClassOnlineAccountModelView(ModelView):
+    # Keep the account admin page lightweight; events can be a large collection.
+    list_display_all_relations = False
+    column_list = ('id', 'name', 'is_retired', 'resource_type_id')
+    form_excluded_columns = ('resource_type', 'events')
+
+
+admin.add_view(SmartClassOnlineAccountModelView(SmartClassOnlineAccount, db.session,
+                                                category='Smartclass'))
 admin.add_view(ModelView(SmartClassResourceType, db.session, category='Smartclass'))
 admin.add_view(ModelView(SmartClassOnlineAccountEvent, db.session, category='Smartclass'))
 
