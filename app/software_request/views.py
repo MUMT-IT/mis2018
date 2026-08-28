@@ -226,7 +226,7 @@ def _serialize_software_request_item(detail):
 
 def _pick_software_request_group_label(detail):
     if detail.title:
-        return detail.titile
+        return detail.title
     return 'ไม่ระบุ'
 
 
