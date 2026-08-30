@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}จัดการหลักสูตร | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">จัดการหลักสูตร</h1>
+                    <p class="subtitle">เพิ่ม แก้ไข และปรับปรุงข้อมูลหลักสูตร</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-success" href="{{ url_for('eduqa.add_curriculum') }}">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่มหลักสูตร</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+        {% if programs %}
+        {% for program in programs %}
+        <div class="box">
+            <h2 class="title is-5">{{ program.name }}</h2>
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>ชื่อหลักสูตร</th>
+                        <th>ชื่อภาษาอังกฤษ</th>
+                        <th>ระดับ</th>
+                        <th>ปีที่ปรับปรุง</th>
+                        <th class="has-text-right">การดำเนินการ</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for curriculum in program.curriculums %}
+                    <tr>
+                        <td>{{ curriculum.th_name }}</td>
+                        <td>{{ curriculum.en_name }}</td>
+                        <td>{{ program.degree }}</td>
+                        <td>
+                            {% for revision in curriculum.revisions|sort(attribute='revision_year', reverse=true) %}
+                                <a class="tag is-link is-light"
+                                   href="{{ url_for('eduqa.edit_revision', curriculum_id=curriculum.id, revision_id=revision.id) }}">
+                                    {{ revision.revision_year.year + 543 }}
+                                </a>
+                            {% else %}
+                                <span class="has-text-grey">ยังไม่มีข้อมูล</span>
+                            {% endfor %}
+                        </td>
+                        <td class="has-text-right">
+                            <a class="button is-small is-info is-light"
+                               href="{{ url_for('eduqa.edit_curriculum', curriculum_id=curriculum.id) }}">
+                                <span class="icon"><i class="fas fa-edit"></i></span>
+                                <span>แก้ไข</span>
+                            </a>
+                            <a class="button is-small is-light"
+                               href="{{ url_for('eduqa.show_revisions', curriculum_id=curriculum.id) }}">
+                                <span class="icon"><i class="fas fa-list"></i></span>
+                                <span>ดูฉบับปรับปรุง</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="has-text-centered has-text-grey">ยังไม่มีข้อมูลหลักสูตร</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="notification is-light">ยังไม่มีข้อมูลโปรแกรมหรือหลักสูตร</div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

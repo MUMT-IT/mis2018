@@ -193,6 +193,13 @@ def show_curriculums():
     return render_template('eduqa/QA/curriculums.html', programs=programs)
 
 
+@edu.route('/qa/staff/curricula')
+@login_required
+def manage_curricula():
+    programs = EduQAProgram.query.order_by(EduQAProgram.name.asc()).all()
+    return render_template('eduqa/QA/staff/curriculum_management.html', programs=programs)
+
+
 @edu.route('/qa/curriculums/add', methods=['POST', 'GET'])
 @login_required
 def add_curriculum():
@@ -204,11 +211,30 @@ def add_curriculum():
             db.session.add(curriculum)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-            return redirect(url_for('eduqa.show_curriculums'))
+            return redirect(url_for('eduqa.manage_curricula'))
         else:
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('eduqa/QA/curriculumn_edit.html', form=form)
+
+
+@edu.route('/qa/curriculums/<int:curriculum_id>/edit', methods=['POST', 'GET'])
+@login_required
+def edit_curriculum(curriculum_id):
+    curriculum = EduQACurriculum.query.get_or_404(curriculum_id)
+    form = EduCurriculumnForm(obj=curriculum)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(curriculum)
+            db.session.add(curriculum)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.manage_curricula'))
+        else:
+            print(form.errors)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('eduqa/QA/curriculumn_edit.html', form=form,
+                           curriculum=curriculum)
 
 
 @edu.route('/qa/curriculums/list')
@@ -240,6 +266,7 @@ def backoffice_show_revisions(curriculum_id):
 @edu.route('/qa/curriculums/<int:curriculum_id>/revisions/add', methods=['GET', 'POST'])
 @login_required
 def add_revision(curriculum_id):
+    curriculum = EduQACurriculum.query.get_or_404(curriculum_id)
     form = EduCurriculumnRevisionForm()
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -252,7 +279,52 @@ def add_revision(curriculum_id):
         else:
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
-    return render_template('eduqa/QA/curriculum_revision_edit.html', form=form)
+    return render_template('eduqa/QA/curriculum_revision_edit.html', form=form,
+                           curriculum=curriculum,
+                           back_url=url_for('eduqa.show_revisions', curriculum_id=curriculum.id))
+
+
+@edu.route('/qa/curriculums/<int:curriculum_id>/revisions/<int:revision_id>/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_revision(curriculum_id, revision_id):
+    revision = EduQACurriculumnRevision.query.filter_by(
+        id=revision_id, curriculum_id=curriculum_id).first_or_404()
+    form = EduCurriculumnRevisionForm(obj=revision)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(revision)
+            db.session.add(revision)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.manage_curricula'))
+        else:
+            print(form.errors)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('eduqa/QA/curriculum_revision_edit.html',
+                           form=form, revision=revision,
+                           back_url=url_for('eduqa.manage_curricula'))
+
+
+@edu.route('/qa/curriculums/<int:curriculum_id>/revisions/<int:revision_id>/delete',
+           methods=['POST'])
+@login_required
+def delete_revision(curriculum_id, revision_id):
+    revision = EduQACurriculumnRevision.query.filter_by(
+        id=revision_id, curriculum_id=curriculum_id).first_or_404()
+
+    linked_courses = revision.courses.count()
+    linked_plos = len(revision.plos)
+    linked_staff = len(revision.staff)
+    if linked_courses or linked_plos or linked_staff:
+        flash(u'ไม่สามารถลบฉบับปรับปรุงที่มีข้อมูลเชื่อมโยงอยู่ได้', 'warning')
+        return redirect(url_for('eduqa.edit_revision', curriculum_id=curriculum_id,
+                                revision_id=revision_id))
+
+    db.session.delete(revision)
+    db.session.commit()
+    flash(u'ลบฉบับปรับปรุงเรียบร้อย', 'success')
+    return redirect(url_for('eduqa.manage_curricula'))
 
 
 @edu.route('/qa/backoffice/revisions/<int:revision_id>')

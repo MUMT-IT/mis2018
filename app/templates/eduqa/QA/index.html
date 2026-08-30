@@ -52,6 +52,11 @@
                 </nav>
                 <nav class="panel is-success">
                     <p class="panel-heading">สำหรับเจ้าหน้าที่</p>
+                    <a href="{{ url_for('eduqa.manage_curricula') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </span><span class="is-size-5">จัดการหลักสูตร</span>
+                    </a>
                     <a href="{{ url_for('eduqa.show_programs') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-tasks"></i>
