@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}เพิ่ม YLO | EduQA{% endblock %}
+{% block title %}{{ 'แก้ไข' if yearly_outcome else 'เพิ่ม' }} YLO | EduQA{% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
 <section class="section">
@@ -7,7 +7,7 @@
         <div class="level">
             <div class="level-left">
                 <div>
-                    <h1 class="title">เพิ่ม Yearly Learning Outcome</h1>
+                    <h1 class="title">{{ 'แก้ไข' if yearly_outcome else 'เพิ่ม' }} Yearly Learning Outcome</h1>
                     <p class="subtitle">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}</p>
                 </div>
             </div>

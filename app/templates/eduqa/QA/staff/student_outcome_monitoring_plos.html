@@ -12,10 +12,6 @@
                 </div>
             </div>
             <div class="level-right">
-                <a class="button is-info is-light mr-2" href="{{ url_for('eduqa.manage_student_outcome_skills', revision_id=revision.id) }}">
-                    <span class="icon"><i class="fas fa-cog"></i></span>
-                    <span>จัดการ Skills</span>
-                </a>
                 <a class="button is-light" href="{{ url_for('eduqa.student_outcome_monitoring') }}">
                     <span class="icon"><i class="fas fa-arrow-left"></i></span>
                     <span>ย้อนกลับ</span>
@@ -23,46 +19,6 @@
             </div>
         </div>
         {% include 'messages.html' %}
-
-        <div class="box">
-            <div class="level">
-                <div class="level-left">
-                    <h2 class="title is-5 mb-0">Yearly Learning Outcomes</h2>
-                </div>
-                <div class="level-right">
-                    <a class="button is-small is-success"
-                       href="{{ url_for('eduqa.add_student_outcome_yearly_outcome', revision_id=revision.id) }}">
-                        <span class="icon"><i class="fas fa-plus"></i></span>
-                        <span>เพิ่ม YLO</span>
-                    </a>
-                </div>
-            </div>
-            {% if yearly_outcomes %}
-            {% for yearly_outcome in yearly_outcomes %}
-            <div class="mb-5">
-                <h3 class="title is-6">ปี {{ yearly_outcome.year_level }}.{{ yearly_outcome.number }}</h3>
-                <p>{{ yearly_outcome.outcome }}</p>
-                <div class="tags mt-2">
-                    {% for plo in yearly_outcome.plos|sort(attribute='number') %}
-                    <span class="tag is-link is-light">PLO{{ plo.number }}</span>
-                    {% else %}
-                    <span class="has-text-grey">ยังไม่มี PLO ที่เชื่อมโยง</span>
-                    {% endfor %}
-                </div>
-                <div class="tags mt-2">
-                    <span class="has-text-weight-semibold mr-2">Skills:</span>
-                    {% for skill in yearly_outcome.skills %}
-                    <span class="tag is-success is-light">{{ skill.code }} · {{ skill.name }}</span>
-                    {% else %}
-                    <span class="has-text-grey">ยังไม่มี Skill ที่เชื่อมโยง</span>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
-            {% else %}
-            <p class="has-text-grey">ยังไม่มีข้อมูลผลลัพธ์การเรียนรู้รายปี</p>
-            {% endif %}
-        </div>
 
         <div class="box">
             <h2 class="title is-5">Program Learning Outcomes (PLOs)</h2>
@@ -121,6 +77,105 @@
             </table>
             {% else %}
             <p class="has-text-grey">ยังไม่มีข้อมูลผลลัพธ์การเรียนรู้ระดับหลักสูตร</p>
+            {% endif %}
+        </div>
+
+        <div class="box">
+            <div class="level">
+                <div class="level-left">
+                    <h2 class="title is-5 mb-0">Yearly Learning Outcomes</h2>
+                </div>
+                <div class="level-right">
+                    <a class="button is-small is-success"
+                       href="{{ url_for('eduqa.manage_student_outcome_yearly_outcomes', revision_id=revision.id) }}">
+                        <span class="icon"><i class="fas fa-cog"></i></span>
+                        <span>จัดการ YLOs</span>
+                    </a>
+                </div>
+            </div>
+            {% if yearly_outcomes %}
+            {% for yearly_outcome in yearly_outcomes %}
+            <div class="mb-5">
+                <h3 class="title is-6">ปี {{ yearly_outcome.year_level }}.{{ yearly_outcome.number }}</h3>
+                <p>{{ yearly_outcome.outcome }}</p>
+                <div class="tags mt-2">
+                    {% for plo in yearly_outcome.plos|sort(attribute='number') %}
+                    <span class="tag is-link is-light">PLO{{ plo.number }}</span>
+                    {% else %}
+                    <span class="has-text-grey">ยังไม่มี PLO ที่เชื่อมโยง</span>
+                    {% endfor %}
+                </div>
+                <div class="tags mt-2">
+                    <span class="has-text-weight-semibold mr-2">Skills:</span>
+                    {% for skill in yearly_outcome.skills %}
+                    <span class="tag is-success is-light">{{ skill.code }} · {{ skill.name }}</span>
+                    {% else %}
+                    <span class="has-text-grey">ยังไม่มี Skill ที่เชื่อมโยง</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีข้อมูลผลลัพธ์การเรียนรู้รายปี</p>
+            {% endif %}
+        </div>
+
+        <div class="box">
+            <div class="level">
+                <div class="level-left">
+                    <h2 class="title is-5 mb-0">Skills</h2>
+                </div>
+                <div class="level-right">
+                    <a class="button is-small is-info is-light"
+                       href="{{ url_for('eduqa.manage_student_outcome_skills', revision_id=revision.id) }}">
+                        <span class="icon"><i class="fas fa-cog"></i></span>
+                        <span>จัดการ Skills</span>
+                    </a>
+                </div>
+            </div>
+            {% if skills %}
+            <table class="table is-fullwidth is-hoverable">
+                <thead>
+                <tr>
+                    <th>รหัส</th>
+                    <th>Skill</th>
+                    <th>Skill domain</th>
+                    <th>สถานะ</th>
+                    <th>Related PLOs</th>
+                    <th>Related YLOs</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for skill in skills %}
+                <tr>
+                    <td>{{ skill.code }}</td>
+                    <td>
+                        <strong>{{ skill.name }}</strong>
+                        <br>
+                        <span class="is-size-7 has-text-grey">{{ skill.statement }}</span>
+                    </td>
+                    <td>{{ skill.category or '-' }}</td>
+                    <td><span class="tag is-light">{{ skill.status }}</span></td>
+                    <td>
+                        <div class="tags">
+                            {% for plo in skill.plos|sort(attribute='number') %}
+                            <span class="tag is-link is-light">PLO{{ plo.number }}</span>
+                            {% else %}-{% endfor %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="tags">
+                            {% for ylo in skill.ylos|sort(attribute='year_level') %}
+                            <span class="tag is-success is-light">ปี {{ ylo.year_level }}.{{ ylo.number }}</span>
+                            {% else %}-{% endfor %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีข้อมูล Skills</p>
             {% endif %}
         </div>
     </div>

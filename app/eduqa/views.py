@@ -90,6 +90,19 @@ def student_outcome_monitoring_plos(revision_id):
                            skills=skills)
 
 
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/yearly-outcomes')
+@login_required
+def manage_student_outcome_yearly_outcomes(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    yearly_outcomes = EduQAYearLearningOutcome.query.filter_by(
+        revision_id=revision.id).order_by(
+        EduQAYearLearningOutcome.year_level.asc(),
+        EduQAYearLearningOutcome.number.asc(),
+        EduQAYearLearningOutcome.id.asc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_yearly_outcomes.html',
+                           revision=revision, yearly_outcomes=yearly_outcomes)
+
+
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/yearly-outcomes/add',
            methods=['GET', 'POST'])
 @login_required
@@ -119,6 +132,27 @@ def add_student_outcome_yearly_outcome(revision_id):
                            form=form, revision=revision)
 
 
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/yearly-outcomes/<int:yearly_outcome_id>/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_student_outcome_yearly_outcome(revision_id, yearly_outcome_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    yearly_outcome = EduQAYearLearningOutcome.query.filter_by(
+        id=yearly_outcome_id, revision_id=revision.id).first_or_404()
+    OutcomeForm = create_year_learning_outcome_form(revision.id)
+    form = OutcomeForm(obj=yearly_outcome)
+    if form.validate_on_submit():
+        form.populate_obj(yearly_outcome)
+        yearly_outcome.year_level = int(form.year_level.data)
+        db.session.add(yearly_outcome)
+        db.session.commit()
+        flash(u'บันทึกผลลัพธ์การเรียนรู้รายปีเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.manage_student_outcome_yearly_outcomes',
+                                revision_id=revision.id))
+    return render_template('eduqa/QA/staff/student_outcome_yearly_outcome_edit.html',
+                           form=form, revision=revision, yearly_outcome=yearly_outcome)
+
+
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills')
 @login_required
 def manage_student_outcome_skills(revision_id):
@@ -127,6 +161,21 @@ def manage_student_outcome_skills(revision_id):
         EduQASkill.code.asc(), EduQASkill.id.asc()).all()
     return render_template('eduqa/QA/staff/student_outcome_skills.html',
                            revision=revision, skills=skills)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>')
+@login_required
+def view_student_outcome_skill(revision_id, skill_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    ylos = sorted(skill.ylos, key=lambda ylo: (ylo.year_level, ylo.number, ylo.id))
+    clos = sorted(
+        skill.clos,
+        key=lambda clo: (clo.course.en_code or '', clo.number or 0, clo.id),
+    )
+    return render_template('eduqa/QA/staff/student_outcome_skill.html',
+                           revision=revision, skill=skill,
+                           ylos=ylos, clos=clos)
 
 
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/add',
@@ -206,6 +255,19 @@ def edit_student_outcome_plo_clos(revision_id, plo_id):
                            revision=revision, plo=plo, courses=courses,
                            selected_clo_ids=selected_clo_ids,
                            total_clos=total_clos)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/plos/<int:plo_id>/clos')
+@login_required
+def student_outcome_plo_clos(revision_id, plo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    plo = EduQAPLO.query.filter_by(id=plo_id, revision_id=revision.id).first_or_404()
+    clos = sorted(
+        plo.clos.all(),
+        key=lambda clo: (clo.course.en_code or '', clo.number or 0, clo.id),
+    )
+    return render_template('eduqa/QA/staff/student_outcome_plo_clos.html',
+                           revision=revision, plo=plo, clos=clos)
 
 
 @edu.route('/qa/academic-staff/')

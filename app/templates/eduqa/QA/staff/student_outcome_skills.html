@@ -34,20 +34,33 @@
                         <th>Skill domain</th>
                         <th>Status</th>
                         <th>Linked PLOs</th>
+                        <th>Linked CLOs</th>
                         <th></th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for skill in skills %}
                     <tr>
-                        <td>{{ skill.code }}</td>
-                        <td><strong>{{ skill.name }}</strong><br><small>{{ skill.statement }}</small></td>
+                        <td>
+                            <a href="{{ url_for('eduqa.view_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">
+                                {{ skill.code }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('eduqa.view_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">
+                                <strong>{{ skill.name }}</strong>
+                            </a>
+                            <br><small>{{ skill.statement }}</small>
+                        </td>
                         <td>{{ skill.category or '-' }}</td>
                         <td><span class="tag is-light">{{ skill.status }}</span></td>
                         <td>
                             {% for plo in skill.plos %}
                             <span class="tag is-link is-light">PLO{{ plo.number }}</span>
                             {% else %}-{% endfor %}
+                        </td>
+                        <td>
+                            <span class="tag is-info is-light">{{ skill.clos|length }}</span>
                         </td>
                         <td class="has-text-right">
                             <a class="button is-small is-info is-light" href="{{ url_for('eduqa.edit_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">

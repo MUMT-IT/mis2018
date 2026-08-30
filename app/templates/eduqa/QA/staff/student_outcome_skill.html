@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ skill.code }} | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">{{ skill.code }} · {{ skill.name }}</h1>
+                    <p class="subtitle">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-info is-light mr-2"
+                   href="{{ url_for('eduqa.edit_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">
+                    <span class="icon"><i class="fas fa-edit"></i></span>
+                    <span>แก้ไข</span>
+                </a>
+                <a class="button is-light"
+                   href="{{ url_for('eduqa.manage_student_outcome_skills', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+
+        <div class="notification is-light">
+            <div class="columns is-multiline">
+                <div class="column is-half">
+                    <p class="heading">Skill domain</p>
+                    <p>{{ skill.category or '-' }}</p>
+                </div>
+                <div class="column is-half">
+                    <p class="heading">Status</p>
+                    <span class="tag is-light">{{ skill.status }}</span>
+                </div>
+            </div>
+            <p class="heading">Competency statement</p>
+            <p>{{ skill.statement }}</p>
+        </div>
+
+        <div class="box">
+            <h2 class="title is-5">Related PLOs</h2>
+            <div class="tags">
+                {% for plo in skill.plos|sort(attribute='number') %}
+                <span class="tag is-link is-light">{% if plo.parent_id %}Sub-PLO{% else %}PLO{% endif %}{{ plo.number }}</span>
+                {% else %}
+                <span class="has-text-grey">ยังไม่มี PLO ที่เชื่อมโยง</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="box">
+            <h2 class="title is-5">Related YLOs</h2>
+            {% if ylos %}
+            <div class="tags">
+                {% for ylo in ylos %}
+                <span class="tag is-success is-light">ปี {{ ylo.year_level }}.{{ ylo.number }} · {{ ylo.outcome }}</span>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มี YLO ที่เชื่อมโยง</p>
+            {% endif %}
+        </div>
+
+        <div class="box">
+            <h2 class="title is-5">Related CLOs</h2>
+            {% if clos %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead>
+                    <tr><th>รายวิชา</th><th>CLO</th><th>Summative assessment</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for clo in clos %}
+                    <tr>
+                        <td>
+                            <strong>{{ clo.course.en_code }}</strong><br>
+                            <span class="is-size-7">{{ clo.course.th_name }}</span><br>
+                            <span class="is-size-7 has-text-grey">
+                                ปีการศึกษา {{ clo.course.academic_year or '-' }} · ภาคเรียน {{ clo.course.semester or '-' }} · {{ clo.course.student_year or '-' }}
+                            </span>
+                        </td>
+                        <td><strong>CLO{{ clo.number }}</strong> {{ clo.detail }}</td>
+                        <td>
+                            {% if clo.learning_activity_assessment_pairs %}
+                            <ul>
+                                {% for pair in clo.learning_activity_assessment_pairs|sort(attribute='id') %}
+                                <li>
+                                    {{ pair.learning_activity_assessment.detail }}
+                                    {% if pair.score_weight is not none %}
+                                    <span class="is-size-7 has-text-grey">({{ pair.score_weight }}%)</span>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <span class="has-text-grey">ยังไม่มีการประเมินสรุปผล</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มี CLO ที่เชื่อมโยง</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

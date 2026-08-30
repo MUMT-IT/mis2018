@@ -291,6 +291,16 @@ class StudentUploadForm(FlaskForm):
 
 
 def create_skill_form(revision_id):
+    def clo_label(clo):
+        course = clo.course
+        course_context = 'ปีการศึกษา {} ภาคเรียน {} {}'.format(
+            course.academic_year or '-',
+            course.semester or '-',
+            course.student_year or '',
+        ).strip()
+        return '{} — {} — {} — CLO{} {}'.format(
+            course.en_code, course.th_name, course_context, clo.number, clo.detail)
+
     class EduQASkillForm(FlaskForm):
         name = StringField('Employer-facing name', validators=[InputRequired()])
         statement = TextAreaField('Competency statement', validators=[InputRequired()])
@@ -313,6 +323,19 @@ def create_skill_form(revision_id):
                       EduQAYearLearningOutcome.number.asc(),
                       EduQAYearLearningOutcome.id.asc()).all(),
             get_label=lambda ylo: str(ylo),
+            widget=widgets.ListWidget(prefix_label=False),
+            option_widget=widgets.CheckboxInput(),
+            validators=[Optional()],
+        )
+        clos = QuerySelectMultipleField(
+            'Related CLOs',
+            query_factory=lambda: EduQACourseLearningOutcome.query
+            .join(EduQACourse)
+            .filter(EduQACourse.revision_id == revision_id)
+            .order_by(EduQACourse.en_code.asc(),
+                      EduQACourseLearningOutcome.number.asc(),
+                      EduQACourseLearningOutcome.id.asc()).all(),
+            get_label=clo_label,
             widget=widgets.ListWidget(prefix_label=False),
             option_widget=widgets.CheckboxInput(),
             validators=[Optional()],

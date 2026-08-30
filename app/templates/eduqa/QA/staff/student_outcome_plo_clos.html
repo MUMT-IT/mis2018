@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}CLOs ของ PLO | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">CLOs ที่เชื่อมโยงกับ PLO</h1>
+                    <p class="subtitle">
+                        {% if plo.parent_id %}Sub-PLO{% else %}PLO{% endif %}{{ plo.number }}: {{ plo.outcome }}
+                    </p>
+                    <p class="is-size-6 has-text-grey">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-info is-light mr-2"
+                   href="{{ url_for('eduqa.edit_student_outcome_plo_clos', revision_id=revision.id, plo_id=plo.id) }}">
+                    <span class="icon"><i class="fas fa-cog"></i></span>
+                    <span>จัดการการเชื่อมโยง</span>
+                </a>
+                <a class="button is-light"
+                   href="{{ url_for('eduqa.student_outcome_monitoring_plos', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+
+        <div class="notification is-info is-light">
+            <p class="heading">CLO ที่เชื่อมโยงกับ PLO นี้</p>
+            <p class="title is-5">{{ clos|length }} รายการ</p>
+        </div>
+
+        <div class="box">
+            {% if clos %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>รายวิชา</th>
+                        <th>CLO</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for clo in clos %}
+                    <tr>
+                        <td>
+                            <strong>{{ clo.course.en_code }}</strong><br>
+                            <span class="is-size-7">{{ clo.course.th_name }}</span><br>
+                            <span class="is-size-7 has-text-grey">
+                                ปีการศึกษา {{ clo.course.academic_year or '-' }} · ภาคเรียน {{ clo.course.semester or '-' }} · {{ clo.course.student_year or '-' }}
+                            </span>
+                        </td>
+                        <td><strong>CLO{{ clo.number }}</strong> {{ clo.detail }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มี CLO ที่เชื่อมโยงกับ PLO นี้</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
