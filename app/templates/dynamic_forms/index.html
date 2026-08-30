@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Dynamic Forms{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section"><div class="container">
+    <div class="level">
+        <div class="level-left"><h1 class="title">Dynamic Forms</h1></div>
+        <div class="level-right">
+            <a class="button is-success mr-2" href="{{ url_for('dynamic_forms.create') }}">เพิ่ม Form</a>
+            <a class="button is-light" href="{{ request.args.get('return_url') if request.args.get('return_url', '').startswith('/') else url_for('eduqa.index') }}">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>ย้อนกลับ</span>
+            </a>
+        </div>
+    </div>
+    <div class="box">
+        {% if forms %}<table class="table is-fullwidth"><thead><tr><th>Name</th><th>Status</th><th>Latest version</th><th></th></tr></thead><tbody>
+        {% for dynamic_form in forms %}<tr><td>{{ dynamic_form.name }}<br><small>{{ dynamic_form.description or '' }}</small></td><td>{{ dynamic_form.status }}</td><td>{{ dynamic_form.versions[-1].version if dynamic_form.versions else '-' }}</td><td><a class="button is-small is-light mr-1" href="{{ url_for('dynamic_forms.edit', form_id=dynamic_form.id) }}">แก้ไข</a>{% if dynamic_form.versions %}<a class="button is-small is-info" href="{{ url_for('dynamic_forms.edit_version', version_id=dynamic_form.versions[-1].id) }}">ออกแบบ</a>{% endif %}</td></tr>{% endfor %}
+        </tbody></table>{% else %}<p class="has-text-grey">ยังไม่มี Dynamic Form</p>{% endif %}
+    </div>
+</div></section>
+{% endblock %}

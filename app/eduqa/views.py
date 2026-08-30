@@ -28,6 +28,8 @@ from app.eduqa.forms import *
 from app.room_scheduler.models import EventCategory
 from app.staff.models import StaffPersonalInfo
 from app.roles import education_permission
+from app.dynamic_forms.forms import create_assignment_form
+from app.dynamic_forms.models import DynamicForm, DynamicFormAssignment, DynamicFormVersion
 
 from pytz import timezone
 
@@ -248,8 +250,21 @@ def manage_student_outcome_skill_evidence(revision_id, skill_id, clo_id):
     evidence = EduQASkillEvidence.query.filter_by(
         skill_id=skill.id, clo_id=clo.id).order_by(
         EduQASkillEvidence.created_at.desc(), EduQASkillEvidence.id.desc()).all()
+    assignments = DynamicFormAssignment.query.filter_by(
+        subject_type='eduqa_skill_evidence').filter(
+        DynamicFormAssignment.subject_id.in_([item.id for item in evidence])).all()
+    assignments_by_evidence = {}
+    for assignment in assignments:
+        assignments_by_evidence.setdefault(assignment.subject_id, []).append(assignment)
+    assignment_form = create_assignment_form()()
+    available_form_versions = DynamicFormVersion.query.join(DynamicForm).filter(
+        DynamicForm.status != 'Archived').order_by(
+        DynamicForm.name.asc(), DynamicFormVersion.version.desc()).all()
     return render_template('eduqa/QA/staff/student_outcome_skill_evidence.html',
-                           revision=revision, skill=skill, clo=clo, evidence=evidence)
+                           revision=revision, skill=skill, clo=clo, evidence=evidence,
+                           assignments_by_evidence=assignments_by_evidence,
+                           assignment_form=assignment_form,
+                           available_form_versions=available_form_versions)
 
 
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/add',

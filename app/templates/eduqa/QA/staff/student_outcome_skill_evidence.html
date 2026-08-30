@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}จัดการหลักฐาน Skill | EduQA{% endblock %}
 {% include "eduqa/QA/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -15,6 +19,11 @@
                 </div>
             </div>
             <div class="level-right">
+                <a class="button is-info is-light mr-2"
+                   href="{{ url_for('dynamic_forms.index', return_url=request.path) }}">
+                    <span class="icon"><i class="fas fa-cog"></i></span>
+                    <span>จัดการแบบประเมิน</span>
+                </a>
                 <a class="button is-success mr-2"
                    href="{{ url_for('eduqa.add_student_outcome_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id) }}">
                     <span class="icon"><i class="fas fa-plus"></i></span>
@@ -48,6 +57,48 @@
                         {% endif %}
                     </div>
                 </div>
+            </div>
+            <div class="field mt-3">
+                <label class="label">Evaluation forms</label>
+                <div class="tags">
+                    {% for assignment in assignments_by_evidence.get(item.id, []) %}
+                    <span class="tag is-info is-light">
+                        {{ assignment.version.form.name }} · v{{ assignment.version.version }}
+                        <button type="submit" form="detach-assignment-{{ assignment.id }}"
+                                class="detach-assignment-button ml-1" aria-label="ถอดแบบประเมิน"
+                                style="background: transparent; border: 0; box-shadow: none; cursor: pointer; padding: 0;"
+                                title="ถอดแบบประเมิน">
+                            <span class="icon has-text-danger"><i class="fas fa-trash-alt"></i></span>
+                        </button>
+                    </span>
+                    <form id="detach-assignment-{{ assignment.id }}" method="post"
+                          action="{{ url_for('dynamic_forms.unassign', assignment_id=assignment.id) }}"
+                          onsubmit="return confirm('ต้องการถอดแบบประเมินนี้ออกจากหลักฐานหรือไม่')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                    {% else %}
+                    <span class="has-text-grey">ยังไม่มีแบบประเมิน</span>
+                    {% endfor %}
+                </div>
+                {% if available_form_versions %}
+                <form method="post" action="{{ url_for('dynamic_forms.assign', subject_type='eduqa_skill_evidence', subject_id=item.id) }}" class="is-flex" style="gap: 0.5rem;">
+                    {{ assignment_form.hidden_tag() }}
+                    <div>
+                        <div>
+                            <select name="version" id="version-{{ item.id }}" class="evaluation-form-select" required>
+                                <option value="">เลือกแบบประเมิน</option>
+                                {% for version in available_form_versions %}
+                                <option value="{{ version.id }}">{{ version.form.name }} · v{{ version.version }} ({{ version.status }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <button class="button is-small is-info is-light" type="submit">เพิ่มแบบประเมิน</button>
+                </form>
+                <p class="help">เลือกเวอร์ชันของแบบประเมินที่จะผูกกับหลักฐานนี้</p>
+                {% else %}
+                <p class="help">ยังไม่มี Dynamic Form ให้เลือก <a href="{{ url_for('dynamic_forms.index', return_url=request.path) }}">สร้างแบบประเมินก่อน</a></p>
+                {% endif %}
             </div>
             {% if item.description %}<p class="mb-3">{{ item.description }}</p>{% endif %}
             <h3 class="title is-6">Student evidence</h3>
@@ -91,4 +142,18 @@
         {% endif %}
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(function () {
+        $('.evaluation-form-select').select2({
+            width: '260px',
+            placeholder: 'ค้นหาแบบประเมิน...',
+            allowClear: true
+        });
+    });
+</script>
 {% endblock %}
