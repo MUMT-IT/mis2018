@@ -33,7 +33,7 @@
 {#                    </a>#}
 {#                </nav>#}
                 <nav class="panel is-success">
-                    <p class="panel-heading">มาตรฐานคุณวุฒิระดับอุดมศึกษา</p>
+                    <p class="panel-heading">สำหรับอาจารย์</p>
 {#                    <a href="#" class="panel-block">#}
 {#                        <span class="panel-icon">#}
 {#                            <i class="fas fa-tasks"></i>#}
@@ -48,6 +48,15 @@
                         <span class="panel-icon">
                             <i class="fas fa-tasks"></i>
                         </span><span class="is-size-5">มม.3</span>
+                    </a>
+                    <a href="{{ url_for('eduqa.student_outcome_monitoring') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tasks"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ติดตามผลลัพธ์การเรียนรู้ของนักศึกษา
+                            <span class="tag is-warning is-light ml-2">กำลังพัฒนา</span>
+                        </span>
                     </a>
                 </nav>
                 <nav class="panel is-success">

@@ -290,6 +290,25 @@ class StudentUploadForm(FlaskForm):
     student_year = SelectField('ชั้น', choices=[(c, c) for c in ('ปี 1', 'ปี 2', 'ปี 3', 'ปี 4')])
 
 
+def create_skill_form(revision_id):
+    class EduQASkillForm(FlaskForm):
+        name = StringField('Employer-facing name', validators=[InputRequired()])
+        statement = TextAreaField('Competency statement', validators=[InputRequired()])
+        category = StringField('Skill domain', validators=[Optional()])
+        status = SelectField('Status', choices=[('Draft', 'Draft'), ('Approved', 'Approved'), ('Retired', 'Retired')],
+                             validators=[InputRequired()])
+        plos = QuerySelectMultipleField(
+            'Linked PLOs',
+            query_factory=lambda: EduQAPLO.query.filter_by(revision_id=revision_id)
+            .order_by(EduQAPLO.number.asc(), EduQAPLO.id.asc()).all(),
+            get_label=lambda plo: str(plo),
+            widget=widgets.ListWidget(prefix_label=False),
+            option_widget=widgets.CheckboxInput(),
+            validators=[Optional()],
+        )
+    return EduQASkillForm
+
+
 class StudentGradeReportUploadForm(FlaskForm):
     upload_file = FileField('Excel File', validators=[FileRequired()])
 

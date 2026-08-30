@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import io
 import time
+from uuid import uuid4
 from collections import defaultdict
 
 import pandas as pd
@@ -53,6 +54,129 @@ def index():
 @login_required
 def criteria1_index():
     return render_template('eduqa/QA/mtc/criteria1.html')
+
+
+@edu.route('/qa/student-outcome-monitoring')
+@login_required
+def student_outcome_monitoring():
+    programs = EduQAProgram.query.order_by(EduQAProgram.name.asc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_monitoring.html',
+                           programs=programs)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/plos')
+@login_required
+def student_outcome_monitoring_plos(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    plos = EduQAPLO.query.filter_by(revision_id=revision.id).order_by(
+        EduQAPLO.number.asc(), EduQAPLO.id.asc()).all()
+    skills = EduQASkill.query.filter_by(revision_id=revision.id).order_by(
+        EduQASkill.code.asc(), EduQASkill.id.asc()).all()
+    plo_course_counts = {
+        plo.id: len({clo.course_id for clo in plo.clos.all()})
+        for plo in plos
+    }
+    yearly_outcomes = EduQAYearLearningOutcome.query.filter_by(
+        revision_id=revision.id).order_by(
+        EduQAYearLearningOutcome.year_level.asc(),
+        EduQAYearLearningOutcome.number.asc(),
+        EduQAYearLearningOutcome.id.asc()).all()
+    total_courses = revision.courses.count()
+    return render_template('eduqa/QA/staff/student_outcome_monitoring_plos.html',
+                           revision=revision, plos=plos,
+                           yearly_outcomes=yearly_outcomes,
+                           plo_course_counts=plo_course_counts,
+                           total_courses=total_courses,
+                           skills=skills)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills')
+@login_required
+def manage_student_outcome_skills(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skills = EduQASkill.query.filter_by(revision_id=revision.id).order_by(
+        EduQASkill.code.asc(), EduQASkill.id.asc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_skills.html',
+                           revision=revision, skills=skills)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/add',
+           methods=['GET', 'POST'])
+@login_required
+def add_student_outcome_skill(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    SkillForm = create_skill_form(revision.id)
+    form = SkillForm()
+    if form.validate_on_submit():
+        skill = EduQASkill(revision=revision, code=f'SKL-PENDING-{uuid4().hex}')
+        form.populate_obj(skill)
+        db.session.add(skill)
+        db.session.flush()
+        skill.code = f'SKL-{skill.id:03d}'
+        db.session.commit()
+        flash(u'บันทึกทักษะเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.manage_student_outcome_skills', revision_id=revision.id))
+    return render_template('eduqa/QA/staff/student_outcome_skill_edit.html',
+                           form=form, revision=revision)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_student_outcome_skill(revision_id, skill_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    SkillForm = create_skill_form(revision.id)
+    form = SkillForm(obj=skill)
+    if form.validate_on_submit():
+        form.populate_obj(skill)
+        db.session.add(skill)
+        db.session.commit()
+        flash(u'บันทึกทักษะเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.manage_student_outcome_skills', revision_id=revision.id))
+    return render_template('eduqa/QA/staff/student_outcome_skill_edit.html',
+                           form=form, revision=revision, skill=skill)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/plos/<int:plo_id>/clos/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_student_outcome_plo_clos(revision_id, plo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    plo = EduQAPLO.query.filter_by(id=plo_id, revision_id=revision.id).first_or_404()
+    courses = EduQACourse.query.filter_by(revision_id=revision.id).order_by(
+        EduQACourse.en_code.asc(), EduQACourse.id.asc()).all()
+    available_clos = [clo for course in courses for clo in sorted(
+        course.outcomes, key=lambda outcome: (outcome.number or 0, outcome.id))]
+    available_clo_ids = {clo.id for clo in available_clos}
+
+    if request.method == 'POST':
+        selected_clo_ids = set()
+        for value in request.form.getlist('clo_ids'):
+            try:
+                selected_clo_ids.add(int(value))
+            except (TypeError, ValueError):
+                continue
+        selected_clo_ids &= available_clo_ids
+        for clo in available_clos:
+            is_selected = clo.id in selected_clo_ids
+            is_linked = plo in clo.plos
+            if is_selected and not is_linked:
+                clo.plos.append(plo)
+            elif not is_selected and is_linked:
+                clo.plos.remove(plo)
+            db.session.add(clo)
+        db.session.commit()
+        flash(u'บันทึกความสัมพันธ์ระหว่าง PLO และ CLO เรียบร้อย', 'success')
+        return redirect(url_for('eduqa.student_outcome_monitoring_plos',
+                                revision_id=revision.id))
+
+    selected_clo_ids = {clo.id for clo in plo.clos.all()}
+    total_clos = sum(len(course.outcomes) for course in courses)
+    return render_template('eduqa/QA/staff/student_outcome_plo_clos_edit.html',
+                           revision=revision, plo=plo, courses=courses,
+                           selected_clo_ids=selected_clo_ids,
+                           total_clos=total_clos)
 
 
 @edu.route('/qa/academic-staff/')

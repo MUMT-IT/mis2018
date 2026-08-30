@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}ผลลัพธ์การเรียนรู้ระดับหลักสูตร | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">ผลลัพธ์การเรียนรู้ระดับหลักสูตร</h1>
+                    <p class="subtitle">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-info is-light mr-2" href="{{ url_for('eduqa.manage_student_outcome_skills', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-cog"></i></span>
+                    <span>จัดการ Skills</span>
+                </a>
+                <a class="button is-light" href="{{ url_for('eduqa.student_outcome_monitoring') }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+
+        <div class="box">
+            <h2 class="title is-5">Yearly Learning Outcomes</h2>
+            {% if yearly_outcomes %}
+            {% for yearly_outcome in yearly_outcomes %}
+            <div class="mb-5">
+                <h3 class="title is-6">ปี {{ yearly_outcome.year_level }}.{{ yearly_outcome.number }}</h3>
+                <p>{{ yearly_outcome.outcome }}</p>
+                <div class="tags mt-2">
+                    {% for plo in yearly_outcome.plos|sort(attribute='number') %}
+                    <span class="tag is-link is-light">PLO{{ plo.number }}</span>
+                    {% else %}
+                    <span class="has-text-grey">ยังไม่มี PLO ที่เชื่อมโยง</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีข้อมูลผลลัพธ์การเรียนรู้รายปี</p>
+            {% endif %}
+        </div>
+
+        <div class="box">
+            <h2 class="title is-5">Program Learning Outcomes (PLOs)</h2>
+            {% if plos %}
+            <table class="table is-fullwidth is-hoverable">
+                <thead>
+                <tr>
+                    <th>รหัส</th>
+                    <th>ผลลัพธ์การเรียนรู้</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for plo in plos %}
+                <tr{% if plo.parent_id %} class="has-background-light"{% endif %}>
+                    <td>
+                        {% if plo.parent_id %}Sub-PLO{% else %}PLO{% endif %}{{ plo.number }}
+                        <span class="tag is-info is-light ml-2">{{ plo_course_counts[plo.id] }} รายวิชา</span>
+                    </td>
+                    <td>
+                        {% if plo.parent_id %}<span class="ml-4"></span>{% endif %}{{ plo.outcome }}
+                        <div class="tags mt-2">
+                            {% for skill in skills if plo in skill.plos %}
+                            <span class="tag is-success is-light">{{ skill.code }} · {{ skill.name }}</span>
+                            {% else %}
+                            <span class="has-text-grey is-size-7">ยังไม่มี Skill ที่เชื่อมโยง</span>
+                            {% endfor %}
+                        </div>
+                        <div class="is-flex is-align-items-center mt-2" style="max-width: 420px; gap: 0.75rem;">
+                            <progress class="progress is-info mb-0" value="{{ plo_course_counts[plo.id] }}"
+                                      max="{{ total_courses or 1 }}"
+                                      aria-label="{{ plo_course_counts[plo.id] }} จาก {{ total_courses }} รายวิชา">
+                                {{ plo_course_counts[plo.id] }}
+                            </progress>
+                            <span class="is-size-7 has-text-grey is-nowrap">
+                                {{ plo_course_counts[plo.id] }}/{{ total_courses }}
+                            </span>
+                        </div>
+                        <div class="buttons are-small mt-2">
+                            <button type="button" class="button is-light"
+                                    data-plo-id="{{ plo.id }}" data-action="manage-ylo"
+                                    title="จัดการ YLOs ของ PLO นี้">
+                                <span class="icon"><i class="fas fa-cog"></i></span>
+                                <span>YLOs</span>
+                            </button>
+                            <a class="button is-light"
+                               href="{{ url_for('eduqa.edit_student_outcome_plo_clos', revision_id=revision.id, plo_id=plo.id) }}"
+                               title="จัดการ CLOs ของ PLO นี้">
+                                <span class="icon"><i class="fas fa-cog"></i></span>
+                                <span>CLOs</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีข้อมูลผลลัพธ์การเรียนรู้ระดับหลักสูตร</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

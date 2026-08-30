@@ -37,6 +37,22 @@ clo_plos = db.Table('eduqa_clo_plo_assoc',
                               db.ForeignKey('eduqa_plos.id')),
                     )
 
+year_learning_outcome_plos = db.Table(
+    'eduqa_year_learning_outcome_plo_assoc',
+    db.Column('year_learning_outcome_id', db.Integer,
+              db.ForeignKey('eduqa_year_learning_outcomes.id')),
+    db.Column('plo_id', db.Integer,
+              db.ForeignKey('eduqa_plos.id')),
+)
+
+skill_plos = db.Table(
+    'eduqa_skill_plo_assoc',
+    db.Column('skill_id', db.Integer,
+              db.ForeignKey('eduqa_skills.id')),
+    db.Column('plo_id', db.Integer,
+              db.ForeignKey('eduqa_plos.id')),
+)
+
 clo_sessions = db.Table('eduqa_clo_course_session_assoc',
                     db.Column('clo_id', db.Integer,
                               db.ForeignKey('eduqa_course_learning_outcomes.id')),
@@ -190,6 +206,52 @@ class EduQACurriculumnRevision(db.Model):
 
     def __str__(self):
         return u'{} ฉบับปรับปรุงปี {}'.format(self.curriculum, self.buddhist_year)
+
+
+class EduQAYearLearningOutcome(db.Model):
+    __tablename__ = 'eduqa_year_learning_outcomes'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    revision_id = db.Column(db.ForeignKey('eduqa_curriculum_revisions.id'), nullable=False)
+    year_level = db.Column(db.Integer, nullable=False)
+    number = db.Column(db.Integer, nullable=False)
+    outcome = db.Column(db.Text(), nullable=False)
+
+    revision = db.relationship(
+        EduQACurriculumnRevision,
+        backref=db.backref('year_learning_outcomes', order_by='EduQAYearLearningOutcome.year_level'),
+    )
+    plos = db.relationship(
+        EduQAPLO,
+        secondary=year_learning_outcome_plos,
+        backref=db.backref('year_learning_outcomes', lazy='dynamic'),
+    )
+
+    def __str__(self):
+        return f'Year {self.year_level}.{self.number} {self.outcome}'
+
+
+class EduQASkill(db.Model):
+    __tablename__ = 'eduqa_skills'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    revision_id = db.Column(db.ForeignKey('eduqa_curriculum_revisions.id'), nullable=False)
+    code = db.Column(db.String(64), nullable=False, unique=True)
+    name = db.Column(db.String(255), nullable=False)
+    statement = db.Column(db.Text(), nullable=False)
+    category = db.Column(db.String(128))
+    status = db.Column(db.String(32), nullable=False, default='Draft')
+
+    revision = db.relationship(
+        EduQACurriculumnRevision,
+        backref=db.backref('skills', order_by='EduQASkill.code'),
+    )
+    plos = db.relationship(
+        EduQAPLO,
+        secondary=skill_plos,
+        backref=db.backref('skills', lazy='dynamic'),
+    )
+
+    def __str__(self):
+        return f'{self.code} {self.name}'
 
 
 class EduQAAcademicStaff(db.Model):
