@@ -280,6 +280,44 @@ class EduQASkill(db.Model):
         return f'{self.code} {self.name}'
 
 
+class EduQASkillEvidence(db.Model):
+    __tablename__ = 'eduqa_skill_evidence'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    skill_id = db.Column(db.ForeignKey('eduqa_skills.id'), nullable=False)
+    clo_id = db.Column(db.ForeignKey('eduqa_course_learning_outcomes.id'), nullable=False)
+    assessment_pair_id = db.Column(
+        db.ForeignKey('eduqa_course_learning_activity_assessment_pairs.id'),
+    )
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text())
+    created_by_id = db.Column(db.ForeignKey('staff_account.id'), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    skill = db.relationship('EduQASkill', backref=db.backref('evidence', cascade='all, delete-orphan'))
+    clo = db.relationship('EduQACourseLearningOutcome', backref=db.backref('skill_evidence', cascade='all, delete-orphan'))
+    assessment_pair = db.relationship('EduQALearningActivityAssessmentPair')
+    created_by = db.relationship(StaffAccount, foreign_keys=[created_by_id])
+
+
+class EduQAStudentSkillEvidence(db.Model):
+    __tablename__ = 'eduqa_student_skill_evidence'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    evidence_id = db.Column(db.ForeignKey('eduqa_skill_evidence.id'), nullable=False)
+    student_id = db.Column(db.ForeignKey('eduqa_students.id'), nullable=False)
+    url = db.Column(db.String(1024))
+    created_by_id = db.Column(db.ForeignKey('staff_account.id'), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+    endorsed = db.Column(db.Boolean(), nullable=False, default=False)
+    endorsed_by_id = db.Column(db.ForeignKey('staff_account.id'))
+    endorsed_at = db.Column(db.DateTime(timezone=True))
+
+    evidence = db.relationship(EduQASkillEvidence,
+                               backref=db.backref('student_evidence', cascade='all, delete-orphan'))
+    student = db.relationship(EduQAStudent, backref=db.backref('student_skill_evidence', cascade='all, delete-orphan'))
+    created_by = db.relationship(StaffAccount, foreign_keys=[created_by_id])
+    endorsed_by = db.relationship(StaffAccount, foreign_keys=[endorsed_by_id])
+
+
 class EduQAAcademicStaff(db.Model):
     __tablename__ = 'eduqa_academic_staff'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

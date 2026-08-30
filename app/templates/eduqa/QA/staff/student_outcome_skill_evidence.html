@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}จัดการหลักฐาน Skill | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">จัดการหลักฐาน</h1>
+                    <p class="subtitle">{{ skill.code }} · {{ skill.name }}</p>
+                    <p class="is-size-6 has-text-grey">
+                        {{ clo.course.en_code }} · CLO{{ clo.number }}: {{ clo.detail }}
+                    </p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-success mr-2"
+                   href="{{ url_for('eduqa.add_student_outcome_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id) }}">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่มหลักฐาน</span>
+                </a>
+                <a class="button is-light"
+                   href="{{ url_for('eduqa.view_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+
+        <div class="notification is-info is-light">
+            <p class="heading">หลักฐานทั้งหมด</p>
+            <p class="title is-5">{{ evidence|length }} รายการ</p>
+        </div>
+
+        {% if evidence %}
+        {% for item in evidence %}
+        <div class="box">
+            <div class="level mb-3">
+                <div class="level-left">
+                    <div>
+                        <h2 class="title is-5 mb-1">{{ item.title }}</h2>
+                        {% if item.assessment_pair %}
+                        <p class="is-size-7 has-text-grey">
+                            Summative assessment: {{ item.assessment_pair.learning_activity_assessment.detail }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% if item.description %}<p class="mb-3">{{ item.description }}</p>{% endif %}
+            <h3 class="title is-6">Student evidence</h3>
+            {% if item.student_evidence %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead><tr><th>Student</th><th>Evidence URL</th><th>Status</th></tr></thead>
+                    <tbody>
+                    {% for submission in item.student_evidence %}
+                    <tr>
+                        <td>{{ submission.student.student_id }} — {{ submission.student.th_name }}</td>
+                        <td>
+                            {% if submission.url %}
+                            <a href="{{ submission.url }}" target="_blank" rel="noopener">เปิดหลักฐาน</a>
+                            {% else %}-{% endif %}
+                        </td>
+                        <td>
+                            {% if submission.endorsed %}
+                            <span class="tag is-success is-light">Endorsed</span>
+                            {% else %}
+                            <span class="tag is-light">รอรับรอง</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีหลักฐานของนักศึกษา</p>
+            {% endif %}
+            <a class="button is-small is-light mt-2"
+               href="{{ url_for('eduqa.add_student_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=item.id) }}">
+                <span class="icon"><i class="fas fa-user-plus"></i></span>
+                <span>เพิ่มหลักฐานของนักศึกษา</span>
+            </a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="box"><p class="has-text-grey">ยังไม่มีหลักฐานสำหรับ CLO นี้</p></div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

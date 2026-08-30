@@ -71,7 +71,7 @@
             <div class="table-container">
                 <table class="table is-fullwidth is-hoverable">
                     <thead>
-                    <tr><th>รายวิชา</th><th>CLO</th><th>Summative assessment</th></tr>
+                    <tr><th>รายวิชา</th><th>CLO</th><th>Summative assessment</th><th>Evidence</th></tr>
                     </thead>
                     <tbody>
                     {% for clo in clos %}
@@ -99,6 +99,24 @@
                             {% else %}
                             <span class="has-text-grey">ยังไม่มีการประเมินสรุปผล</span>
                             {% endif %}
+                        </td>
+                        <td>
+                            <a class="button is-small is-info is-light mb-2"
+                               href="{{ url_for('eduqa.manage_student_outcome_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id) }}">
+                                <span class="icon"><i class="fas fa-folder-open"></i></span>
+                                <span>จัดการหลักฐาน</span>
+                            </a>
+                            {% for evidence in skill.evidence if evidence.clo_id == clo.id %}
+                            <div class="mb-2">
+                                <strong>{{ evidence.title }}</strong><br>
+                                {% for student_evidence in evidence.student_evidence %}
+                                <span class="is-size-7">{{ student_evidence.student.student_id }} — {{ student_evidence.student.th_name }}</span>
+                                {% if student_evidence.url %}<br><a href="{{ student_evidence.url }}" target="_blank" rel="noopener">เปิดหลักฐาน</a>{% endif %}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="has-text-grey is-size-7">ยังไม่มีหลักฐาน</span>
+                            {% endfor %}
                         </td>
                     </tr>
                     {% endfor %}

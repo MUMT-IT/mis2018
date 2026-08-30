@@ -343,6 +343,39 @@ def create_skill_form(revision_id):
     return EduQASkillForm
 
 
+def create_skill_evidence_form(skill_id, clo_id):
+    class EduQASkillEvidenceForm(FlaskForm):
+        title = StringField('Evidence title', validators=[InputRequired()])
+        description = TextAreaField('Description', validators=[Optional()])
+        assessment_pair = QuerySelectField(
+            'Summative assessment',
+            query_factory=lambda: EduQALearningActivityAssessmentPair.query.filter_by(
+                clo_id=clo_id).order_by(EduQALearningActivityAssessmentPair.id.asc()).all(),
+            get_label=lambda pair: str(pair.learning_activity_assessment),
+            allow_blank=True,
+            blank_text='ไม่ผูกกับการประเมินสรุปผล',
+            validators=[Optional()],
+        )
+    return EduQASkillEvidenceForm
+
+
+def create_student_skill_evidence_form(course_id):
+    class EduQAStudentSkillEvidenceForm(FlaskForm):
+        student = QuerySelectField(
+            'Student',
+            query_factory=lambda: EduQAStudent.query
+            .join(EduQAEnrollment)
+            .filter(EduQAEnrollment.course_id == course_id)
+            .distinct()
+            .order_by(EduQAStudent.student_id.asc()).all(),
+            get_label=lambda student: '{} — {}'.format(student.student_id, student.th_name),
+            allow_blank=False,
+            validators=[InputRequired()],
+        )
+        url = StringField('Evidence URL', validators=[Optional()])
+    return EduQAStudentSkillEvidenceForm
+
+
 def create_year_learning_outcome_form(revision_id):
     class EduQAYearLearningOutcomeForm(FlaskForm):
         year_level = SelectField('Year level', choices=[(str(year), str(year)) for year in range(1, 11)],

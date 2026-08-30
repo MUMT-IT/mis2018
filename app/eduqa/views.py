@@ -178,6 +178,80 @@ def view_student_outcome_skill(revision_id, skill_id):
                            ylos=ylos, clos=clos)
 
 
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/add',
+           methods=['GET', 'POST'])
+@login_required
+def add_student_outcome_skill_evidence(revision_id, skill_id, clo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    EvidenceForm = create_skill_evidence_form(skill.id, clo.id)
+    form = EvidenceForm()
+    if form.validate_on_submit():
+        evidence = EduQASkillEvidence(
+            skill=skill,
+            clo=clo,
+            assessment_pair=form.assessment_pair.data,
+            title=form.title.data,
+            description=form.description.data,
+            created_by=current_user,
+        )
+        db.session.add(evidence)
+        db.session.commit()
+        flash(u'บันทึกหลักฐานเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.view_student_outcome_skill',
+                                revision_id=revision.id, skill_id=skill.id))
+    return render_template('eduqa/QA/staff/student_outcome_skill_evidence_edit.html',
+                           form=form, revision=revision, skill=skill, clo=clo)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/add',
+           methods=['GET', 'POST'])
+@login_required
+def add_student_skill_evidence(revision_id, skill_id, clo_id, evidence_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    EvidenceForm = create_student_skill_evidence_form(clo.course.id)
+    form = EvidenceForm()
+    if form.validate_on_submit():
+        student_evidence = EduQAStudentSkillEvidence(
+            evidence=evidence,
+            student=form.student.data,
+            url=form.url.data,
+            created_by=current_user,
+        )
+        db.session.add(student_evidence)
+        db.session.commit()
+        flash(u'บันทึกหลักฐานของนักศึกษาเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.manage_student_outcome_skill_evidence',
+                                revision_id=revision.id, skill_id=skill.id, clo_id=clo.id))
+    return render_template('eduqa/QA/staff/student_outcome_student_evidence_edit.html',
+                           form=form, revision=revision, skill=skill,
+                           clo=clo, evidence=evidence)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence')
+@login_required
+def manage_student_outcome_skill_evidence(revision_id, skill_id, clo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    evidence = EduQASkillEvidence.query.filter_by(
+        skill_id=skill.id, clo_id=clo.id).order_by(
+        EduQASkillEvidence.created_at.desc(), EduQASkillEvidence.id.desc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_skill_evidence.html',
+                           revision=revision, skill=skill, clo=clo, evidence=evidence)
+
+
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/add',
            methods=['GET', 'POST'])
 @login_required
