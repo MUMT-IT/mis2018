@@ -21,7 +21,7 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Image, TableStyle, Table, KeepTogether, Spacer
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy.orm import make_transient
-from sqlalchemy import extract, or_
+from sqlalchemy import extract, or_, func
 
 from . import eduqa_bp as edu
 from app.eduqa.forms import *
@@ -88,6 +88,35 @@ def student_outcome_monitoring_plos(revision_id):
                            plo_course_counts=plo_course_counts,
                            total_courses=total_courses,
                            skills=skills)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/yearly-outcomes/add',
+           methods=['GET', 'POST'])
+@login_required
+def add_student_outcome_yearly_outcome(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    OutcomeForm = create_year_learning_outcome_form(revision.id)
+    form = OutcomeForm()
+    if form.validate_on_submit():
+        year_level = int(form.year_level.data)
+        latest_number = db.session.query(func.max(EduQAYearLearningOutcome.number)).filter_by(
+            revision_id=revision.id,
+            year_level=year_level,
+        ).scalar()
+        yearly_outcome = EduQAYearLearningOutcome(
+            revision_id=revision.id,
+            year_level=year_level,
+            number=(latest_number or 0) + 1,
+        )
+        form.populate_obj(yearly_outcome)
+        yearly_outcome.year_level = year_level
+        db.session.add(yearly_outcome)
+        db.session.commit()
+        flash(u'บันทึกผลลัพธ์การเรียนรู้รายปีเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.student_outcome_monitoring_plos',
+                                revision_id=revision.id))
+    return render_template('eduqa/QA/staff/student_outcome_yearly_outcome_edit.html',
+                           form=form, revision=revision)
 
 
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills')

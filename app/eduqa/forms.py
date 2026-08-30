@@ -306,7 +306,35 @@ def create_skill_form(revision_id):
             option_widget=widgets.CheckboxInput(),
             validators=[Optional()],
         )
+        ylos = QuerySelectMultipleField(
+            'Related YLOs',
+            query_factory=lambda: EduQAYearLearningOutcome.query.filter_by(revision_id=revision_id)
+            .order_by(EduQAYearLearningOutcome.year_level.asc(),
+                      EduQAYearLearningOutcome.number.asc(),
+                      EduQAYearLearningOutcome.id.asc()).all(),
+            get_label=lambda ylo: str(ylo),
+            widget=widgets.ListWidget(prefix_label=False),
+            option_widget=widgets.CheckboxInput(),
+            validators=[Optional()],
+        )
     return EduQASkillForm
+
+
+def create_year_learning_outcome_form(revision_id):
+    class EduQAYearLearningOutcomeForm(FlaskForm):
+        year_level = SelectField('Year level', choices=[(str(year), str(year)) for year in range(1, 11)],
+                                 validators=[InputRequired()])
+        outcome = TextAreaField('Yearly learning outcome', validators=[InputRequired()])
+        plos = QuerySelectMultipleField(
+            'Linked PLOs',
+            query_factory=lambda: EduQAPLO.query.filter_by(revision_id=revision_id)
+            .order_by(EduQAPLO.number.asc(), EduQAPLO.id.asc()).all(),
+            get_label=lambda plo: str(plo),
+            widget=widgets.ListWidget(prefix_label=False),
+            option_widget=widgets.CheckboxInput(),
+            validators=[Optional()],
+        )
+    return EduQAYearLearningOutcomeForm
 
 
 class StudentGradeReportUploadForm(FlaskForm):

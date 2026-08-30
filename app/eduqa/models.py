@@ -53,6 +53,14 @@ skill_plos = db.Table(
               db.ForeignKey('eduqa_plos.id')),
 )
 
+skill_ylos = db.Table(
+    'eduqa_skill_ylo_assoc',
+    db.Column('skill_id', db.Integer,
+              db.ForeignKey('eduqa_skills.id')),
+    db.Column('year_learning_outcome_id', db.Integer,
+              db.ForeignKey('eduqa_year_learning_outcomes.id')),
+)
+
 clo_sessions = db.Table('eduqa_clo_course_session_assoc',
                     db.Column('clo_id', db.Integer,
                               db.ForeignKey('eduqa_course_learning_outcomes.id')),
@@ -247,6 +255,11 @@ class EduQASkill(db.Model):
     plos = db.relationship(
         EduQAPLO,
         secondary=skill_plos,
+        backref=db.backref('skills', lazy='dynamic'),
+    )
+    ylos = db.relationship(
+        EduQAYearLearningOutcome,
+        secondary=skill_ylos,
         backref=db.backref('skills', lazy='dynamic'),
     )
 
