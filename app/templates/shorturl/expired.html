@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}MUMT-MIS: ลิงค์หมดอายุ{% endblock %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="shorturl-expired-card">
+                <span class="icon is-large shorturl-expired-icon">
+                    <i class="fas fa-hourglass-end" aria-hidden="true"></i>
+                </span>
+                <h1 class="title is-3 mt-4">ลิงค์นี้หมดอายุแล้ว</h1>
+                <p class="has-text-grey">
+                    ขออภัย ลิงค์ย่อนี้ไม่สามารถใช้งานได้อีกต่อไป
+                </p>
+                {% if mapping.expires_at %}
+                    <p class="is-size-7 has-text-grey mt-3">
+                        หมดอายุเมื่อ {{ to_bangkok(mapping.expires_at).strftime('%d/%m/%Y %H:%M') }} น.
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .shorturl-expired-card {
+            background: #fff;
+            border: 1px solid rgba(50, 115, 220, .14);
+            border-radius: 22px;
+            box-shadow: 0 14px 35px rgba(18, 39, 84, .08);
+            margin: 2rem auto;
+            max-width: 38rem;
+            padding: 3.5rem 2rem;
+            text-align: center;
+        }
+
+        .shorturl-expired-icon {
+            color: #f59e0b;
+        }
+    </style>
+{% endblock %}

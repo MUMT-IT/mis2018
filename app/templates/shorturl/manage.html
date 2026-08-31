@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% include "nav.html" %}
+
+{% block title %}MUMT-MIS: จัดการลิงค์{% endblock %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="level is-mobile mb-5">
+                <div class="level-left">
+                    <div>
+                        <p class="shorturl-kicker">Short URL</p>
+                        <h1 class="title is-3 mb-2">จัดการลิงค์</h1>
+                        <p class="has-text-grey">รายการลิงค์ย่อที่คุณสร้างไว้</p>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <a class="button is-info" href="{{ url_for('shorturl.index') }}">สร้างลิงค์ย่อ</a>
+                </div>
+            </div>
+
+            <div class="box">
+                {% if mappings %}
+                    <div class="shorturl-media-list">
+                        {% for mapping in mappings %}
+                            <article class="media shorturl-media-item">
+                                <figure class="media-left">
+                                    <a href="{{ mapping.long_url }}" target="_blank" rel="noopener noreferrer" class="shorturl-thumbnail-link">
+                                        <img class="shorturl-thumbnail"
+                                             src="https://image.thum.io/get/width/240/crop/160/allowJPG/?url={{ mapping.long_url|urlencode }}"
+                                             alt="ตัวอย่างหน้าเว็บของ {{ mapping.long_url }}"
+                                             loading="lazy"
+                                             onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                                        <span class="shorturl-thumbnail-fallback" hidden>
+                                            <span class="icon is-large"><i class="fas fa-link" aria-hidden="true"></i></span>
+                                        </span>
+                                    </a>
+                                </figure>
+                                <div class="media-content">
+                                    <p class="heading mb-1">Short URL</p>
+                                    <p>
+                                        <a class="shorturl-link" href="{{ url_for('shorturl.redirect_short_url', short_code=mapping.short_code, _external=True) }}" target="_blank" rel="noopener noreferrer">
+                                            {{ url_for('shorturl.redirect_short_url', short_code=mapping.short_code, _external=True) }}
+                                        </a>
+                                    </p>
+                                    <p class="is-size-7 has-text-grey mt-2 shorturl-long-url">{{ mapping.long_url }}</p>
+                                    <div class="tags mt-2 mb-1">
+                                            <span class="tag is-info is-light">
+                                                <span class="icon is-small"><i class="fas fa-mouse-pointer" aria-hidden="true"></i></span>
+                                                <span>{{ mapping.click_count }} คลิก</span>
+                                            </span>
+                                        {% if mapping.expires_at %}
+                                            <span class="tag is-warning is-light">
+                                                <span class="icon is-small"><i class="fas fa-clock" aria-hidden="true"></i></span>
+                                                <span>หมดอายุ {{ to_bangkok(mapping.expires_at).strftime('%d/%m/%Y %H:%M') }} น.</span>
+                                            </span>
+                                        {% else %}
+                                            <span class="tag is-success is-light">ไม่มีวันหมดอายุ</span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="is-size-7 has-text-grey">สร้างเมื่อ {{ mapping.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                                </div>
+                                <div class="media-right">
+                                    <button class="button is-small is-info is-light js-edit-shorturl"
+                                            type="button" data-target="edit-shorturl-{{ mapping.id }}">
+                                        <span class="icon is-small"><i class="fas fa-edit" aria-hidden="true"></i></span>
+                                        <span>แก้ไขลิงค์</span>
+                                    </button>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="has-text-centered py-6">
+                        <p class="has-text-grey mb-4">ยังไม่มีลิงค์ย่อที่สร้างไว้</p>
+                        <a class="button is-info" href="{{ url_for('shorturl.index') }}">สร้างลิงค์ย่อ</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    {% for mapping in mappings %}
+        <div id="edit-shorturl-{{ mapping.id }}" class="modal">
+            <div class="modal-background js-close-shorturl-modal"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">แก้ไขลิงค์ย่อ</p>
+                    <button class="delete js-close-shorturl-modal" type="button" aria-label="ปิด"></button>
+                </header>
+                <form id="edit-form-{{ mapping.id }}" method="post" action="{{ url_for('shorturl.edit_mapping', mapping_id=mapping.id) }}">
+                    <section class="modal-card-body">
+                        <p class="is-size-7 has-text-grey mb-4">{{ mapping.long_url }}</p>
+                        <div class="field">
+                            <label class="label" for="expiration-date-{{ mapping.id }}">Expiration date</label>
+                            <div class="control">
+                                <input class="input expiration-date-picker" type="text" id="expiration-date-{{ mapping.id }}"
+                                       name="expiration_date"
+                                       value="{{ to_bangkok(mapping.expires_at).strftime('%Y-%m-%d %H:%M') if mapping.expires_at else '' }}">
+                            </div>
+                            <p class="help">เว้นว่างไว้หากต้องการให้ลิงก์ไม่มีวันหมดอายุ</p>
+                        </div>
+                    </section>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
+                <footer class="modal-card-foot is-justify-content-flex-end">
+                    <button class="button is-info" type="submit" form="edit-form-{{ mapping.id }}">บันทึก</button>
+                    <form method="post" action="{{ url_for('shorturl.delete_mapping', mapping_id=mapping.id) }}"
+                          onsubmit="return confirm('คุณต้องการลบลิงค์นี้ใช่หรือไม่?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="button is-danger is-light" type="submit">
+                            <span class="icon is-small"><i class="fas fa-trash" aria-hidden="true"></i></span>
+                            <span>ลบ</span>
+                        </button>
+                    </form>
+                </footer>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <style>
+        .shorturl-kicker {
+            color: var(--theme-navy);
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            margin-bottom: .6rem;
+            text-transform: uppercase;
+        }
+
+        .shorturl-media-item {
+            align-items: flex-start;
+            border-bottom: 1px solid #edf1f7;
+            padding: 1rem 0;
+        }
+
+        .shorturl-media-item:first-child {
+            padding-top: 0;
+        }
+
+        .shorturl-media-item:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .shorturl-thumbnail-link,
+        .shorturl-thumbnail-fallback {
+            align-items: center;
+            background: #f4f7fb;
+            border: 1px solid #e5ebf4;
+            border-radius: 12px;
+            display: flex;
+            height: 100px;
+            justify-content: center;
+            overflow: hidden;
+            width: 150px;
+        }
+
+        .shorturl-thumbnail {
+            display: block;
+            height: 100%;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .shorturl-thumbnail-fallback {
+            color: #8a99ad;
+        }
+
+        .shorturl-long-url {
+            overflow-wrap: anywhere;
+        }
+
+        @media screen and (max-width: 768px) {
+            .shorturl-media-item {
+                display: block;
+            }
+
+            .shorturl-media-item .media-left {
+                margin-bottom: .75rem;
+                margin-right: 0;
+            }
+
+            .shorturl-thumbnail-link,
+            .shorturl-thumbnail-fallback {
+                height: 140px;
+                width: 100%;
+            }
+
+            .shorturl-media-item .media-right {
+                margin-top: .75rem;
+            }
+        }
+
+        .modal-card {
+            max-width: 34rem;
+            width: calc(100% - 2rem);
+        }
+
+        .modal-card-foot form {
+            margin: 0;
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.js-edit-shorturl').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    document.getElementById(button.dataset.target).classList.add('is-active');
+                });
+            });
+            document.querySelectorAll('.js-close-shorturl-modal').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    button.closest('.modal').classList.remove('is-active');
+                });
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $('.expiration-date-picker').each(function () {
+            const input = $(this);
+            input.daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: false,
+                timePicker: true,
+                timePicker24Hour: true,
+                timePickerIncrement: 5,
+                minDate: moment(),
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm',
+                    cancelLabel: 'ล้าง'
+                }
+            });
+            input.on('apply.daterangepicker', function (event, picker) {
+                input.val(picker.startDate.format('YYYY-MM-DD HH:mm'));
+            });
+            input.on('cancel.daterangepicker', function () {
+                input.val('');
+            });
+        });
+    </script>
+{% endblock %}
