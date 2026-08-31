@@ -1,0 +1,5 @@
+{% if summary %}
+    <p class="home-announcement-copy">{{ summary|truncate(160) }}</p>
+{% else %}
+    <p class="home-announcement-copy">ไม่พบเอกสารใหม่ในช่วงเวลานี้</p>
+{% endif %}

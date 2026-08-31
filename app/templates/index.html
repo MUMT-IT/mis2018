@@ -77,6 +77,73 @@
             text-align: center;
         }
 
+        .home-new-system-cards {
+            margin: 1.25rem 0 0;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+        }
+
+        .home-new-system-card {
+            background: rgba(255, 255, 255, .72);
+            border: 1px solid rgba(50, 115, 220, .14);
+            border-radius: 18px;
+            color: var(--theme-navy-deep);
+            display: block;
+            height: 100%;
+            overflow: hidden;
+            padding: 0;
+            transition: box-shadow 180ms ease, transform 180ms ease;
+        }
+
+        .home-new-system-card:hover,
+        .home-new-system-card:focus-visible {
+            box-shadow: 0 12px 26px rgba(18, 39, 84, .12);
+            color: var(--theme-navy-deep);
+            transform: translateY(-2px);
+        }
+
+        .home-new-system-card-icon {
+            align-items: center;
+            background: rgba(50, 115, 220, .1);
+            border-radius: 14px;
+            color: var(--theme-navy);
+            display: flex;
+            flex: 0 0 3rem;
+            font-size: 1.35rem;
+            height: 3rem;
+            justify-content: center;
+            width: 3rem;
+        }
+
+        .home-new-system-card-image {
+            aspect-ratio: 16 / 9;
+            display: block;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .home-new-system-card-body {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            padding: 1.25rem;
+        }
+
+        .home-new-system-card-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin-bottom: .25rem;
+        }
+
+        .home-new-system-card-description {
+            color: var(--theme-navy);
+            display: block;
+            font-size: .98rem;
+            font-weight: 600;
+            line-height: 1.55;
+        }
+
         .docs-query-home-banner:hover,
         .docs-query-home-banner:focus-visible {
             box-shadow: 0 16px 34px rgba(18, 39, 84, 0.16);
@@ -370,6 +437,29 @@
             color: rgba(255, 255, 255, 0.96);
             line-height: 1.6;
             margin: 0;
+        }
+
+        .home-announcement--docs-query {
+            background: rgba(239, 246, 255, 0.96);
+            border-color: rgba(23, 47, 94, 0.14);
+            box-shadow: 0 6px 18px rgba(18, 39, 84, 0.06);
+            color: var(--theme-navy-deep);
+            padding: 0.85rem 1rem;
+        }
+
+        .home-announcement--docs-query .icon {
+            color: var(--theme-navy);
+        }
+
+        .home-announcement--docs-query .home-announcement-title {
+            color: var(--theme-navy-deep);
+            letter-spacing: 0.08em;
+        }
+
+        .home-announcement--docs-query .home-announcement-copy {
+            color: var(--theme-muted);
+            font-size: 0.75rem;
+            line-height: 1.5;
         }
 
         .home-top-panels {
@@ -1285,6 +1375,10 @@
             .home-services-grid {
                 grid-template-columns: 1fr;
             }
+
+            .home-new-system-cards {
+                width: 100%;
+            }
         }
 
         @media screen and (max-width: 768px) {
@@ -1339,19 +1433,6 @@
         <div class="container">
             {% include "messages.html" %}
 
-            {# Temporarily hidden; retain the banner markup for easy restoration. #}
-            {# <div class="home-announcement">
-                <span class="icon is-medium">
-                    <i class="fa-solid fa-bullhorn"></i>
-                </span>
-                <div>
-                    <p class="home-announcement-title">Announcement</p>
-                    <p class="home-announcement-copy">
-                        ตั้งแต่วันที่ 1 มิถุนายน 2569 เป็นต้นไป ระบบจะปิดการลงชื่อเข้าใช้งาน (log in) ด้วย username, password ขอให้บุคลากรทุกท่าน log in เข้าระบบด้วย Google หรือ Line เพื่อเพิ่มความปลอดภัย
-                    </p>
-                </div>
-            </div> #}
-
             {% if current_user.is_authenticated %}
             <section class="home-hero">
                 <div class="columns is-variable is-6 m-0">
@@ -1386,6 +1467,15 @@
                         {% endif %}
                         <div class="home-summary-grid">
                             <div class="home-summary-stack">
+                                <div class="home-stat home-week-ai-summary"
+                                     hx-get="{{ url_for('home_week_events_summary') }}"
+                                     hx-trigger="load"
+                                     hx-swap="outerHTML">
+                                    <div class="home-week-ai-summary-loading">
+                                        <span class="icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                                        <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
+                                    </div>
+                                </div>
                                 {% if today_calendar %}
                                     <div class="home-stat home-today-calendar">
                                         <div class="home-today-calendar-head">
@@ -1419,15 +1509,6 @@
                                 {% endif %}
                             </div>
                             <div class="home-summary-stack">
-                                <div class="home-stat home-week-ai-summary"
-                                     hx-get="{{ url_for('home_week_events_summary') }}"
-                                     hx-trigger="load"
-                                     hx-swap="outerHTML">
-                                    <div class="home-week-ai-summary-loading">
-                                        <span class="icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
-                                        <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
-                                    </div>
-                                </div>
                                 <a class="home-stat home-summary-link home-summary-link--staff-search" href="{{ url_for('staff.employee_search') }}">
                                     <span class="home-summary-link-copy">
                                         <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
@@ -1446,6 +1527,25 @@
                                     </span>
                                     <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
                                 </a>
+                                {% if recent_docs_query_documents %}
+                                <div class="home-announcement home-announcement--docs-query">
+                                    <span class="icon is-medium">
+                                        <i class="fa-solid fa-bullhorn"></i>
+                                    </span>
+                                    <div>
+                                        <p class="home-announcement-title">DocsIQ update</p>
+                                        <p class="home-announcement-copy">มีเอกสารใหม่เพิ่มเติมในระบบ</p>
+                                        <div hx-get="{{ url_for('home_docs_query_summary') }}"
+                                             hx-trigger="load"
+                                             hx-swap="innerHTML">
+                                            <p class="home-announcement-copy">กำลังสรุปเอกสารใหม่...</p>
+                                        </div>
+                                        <a class="button is-small is-info is-light is-rounded mt-2" href="{{ url_for('docs_query.index') }}">
+                                            เปิด DocsIQ
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -1568,7 +1668,8 @@
             </div>
 
             <section class="home-panel docs-query-home-card">
-                {% set docs_query_banner = 'ui-assets/docsIQ_banner.webp'|s3_asset('img/docsIQ_banner.webp') %}
+                {% set docs_query_card_image = 'ui-assets/Gemini_Generated_Image_j2laudj2laudj2la.png'|s3_asset('ui-assets/Gemini_Generated_Image_j2laudj2laudj2la.png') %}
+                {% set shorturl_card_image = 'ui-assets/Gemini_Generated_Image_etnx36etnx36etnx.png'|s3_asset('ui-assets/Gemini_Generated_Image_etnx36etnx36etnx.png') %}
                 <div class="home-panel-header">
                     <div>
                         <p class="home-panel-title">
@@ -1577,19 +1678,37 @@
                         </p>
                     </div>
                 </div>
-                <p class="home-panel-subtitle">ขอเชิญบุคลากรทุกท่านร่วมเปิดประสบการณ์ใหม่ ทดลองใช้งานระบบคลังเอกสารความรู้ที่พัฒนาโดยหน่วยไอที พร้อมค้นหาและเข้าถึงองค์ความรู้ได้ง่ายยิ่งขึ้น ตั้งแต่วันนี้เป็นต้นไป</p>
-            <a class="docs-query-home-banner"
-               href="{{ url_for('docs_query.index') }}"
-               aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
-                {% if docs_query_banner %}
-                    <picture>
-                        <source srcset="{{ docs_query_banner }}" type="image/webp">
-                        <img src="{{ docs_query_banner }}"
-                             alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
-                             decoding="async">
-                    </picture>
-                {% endif %}
-            </a>
+                <p class="home-panel-subtitle">ขอเชิญบุคลากรทุกท่านทดลองใช้งานระบบใหม่จากหน่วยไอที เพื่อช่วยให้การค้นหาและจัดการข้อมูลสะดวกยิ่งขึ้น</p>
+                <div class="home-new-system-cards">
+                    <div class="columns is-variable is-4 is-centered">
+                        <div class="column is-6">
+                            <a class="home-new-system-card" href="{{ url_for('docs_query.index') }}" aria-label="เปิดระบบ Docs IQ">
+                                <img class="home-new-system-card-image" src="{{ docs_query_card_image }}" alt="Docs IQ" loading="lazy">
+                                <span class="home-new-system-card-body">
+                                    <span class="home-new-system-card-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
+                                    <span>
+                                        <span class="home-new-system-card-title">Docs IQ</span>
+                                        <span class="home-new-system-card-description">ค้นหาและเข้าถึงองค์ความรู้จากคลังเอกสารของคณะ</span>
+                                    </span>
+                                    <span class="icon ml-auto" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="column is-6">
+                            <a class="home-new-system-card" href="{{ url_for('shorturl.index') }}" aria-label="เปิดระบบ URL Shortener">
+                                <img class="home-new-system-card-image" src="{{ shorturl_card_image }}" alt="URL Shortener" loading="lazy">
+                                <span class="home-new-system-card-body">
+                                    <span class="home-new-system-card-icon" aria-hidden="true"><i class="fas fa-link"></i></span>
+                                    <span>
+                                        <span class="home-new-system-card-title">URL Shortener</span>
+                                        <span class="home-new-system-card-description">สร้างลิงก์สั้นพร้อม QR Code และจัดการลิงก์ของคุณ</span>
+                                    </span>
+                                    <span class="icon ml-auto" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             {% if current_user.is_authenticated %}
