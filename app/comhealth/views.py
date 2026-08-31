@@ -5642,7 +5642,7 @@ def xray_result(serviceNo, current_lang=None):
     access_response = _require_online_results_access()
     if access_response:
         return access_response
-    reponse_xray = _online_results_api_request('GET', f'/XRays/{serviceNo}')
+    reponse_xray = _online_results_api_request('GET', f'/xray-approved/{serviceNo}')
     xray =  reponse_xray.json()
     status = xray.get("status")
     chest = xray.get("chest")

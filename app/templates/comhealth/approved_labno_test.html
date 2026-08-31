@@ -846,7 +846,7 @@
                     updateLabApprovalUi();
                     showXrayState('table');
                 } catch (error) {
-                    xrayStates.error.textContent = `ไม่สามารถโหลดข้อมูล X-ray ได้: ${error.message}`;
+                    xrayStates.error.textContent = 'ไม่แสดงข้อมูล X-ray';
                     showXrayState('error');
                 }
             }
