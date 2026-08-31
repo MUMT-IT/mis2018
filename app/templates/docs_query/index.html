@@ -27,6 +27,30 @@
                     </div>
                 </section>
             </div>
+            {% if recent_documents %}
+                <section class="docs-query-recent-card" aria-labelledby="docs-query-recent-title">
+                    <h2 id="docs-query-recent-title" class="docs-query-recent-heading">
+                        เอกสารที่เพิ่มล่าสุดในช่วง 2 สัปดาห์
+                    </h2>
+                    <div class="docs-query-recent-list">
+                        {% for document in recent_documents %}
+                            {% set document_description = document.summary or document.note or document.document_type or 'เอกสารใหม่ใน Docs-Query' %}
+                            <div class="docs-query-recent-item">
+                                <i class="fas fa-file-lines" aria-hidden="true"></i>
+                                <div>
+                                    <a href="https://drive.google.com/file/d/{{ document.drive_file_id }}/view" target="_blank" rel="noopener noreferrer">
+                                        {{ document.document_title or document.filename or 'เอกสารไม่มีชื่อ' }}
+                                    </a>
+                                    <span class="docs-query-recent-description">{{ document_description|striptags|truncate(160) }}</span>
+                                    {% if document.created_at %}
+                                        <span class="docs-query-recent-date">เพิ่มเมื่อ {{ document.created_at.strftime('%d/%m/%Y') }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
             <div class="columns is-centered">
                 <div class="column is-10-tablet is-9-desktop is-12-widescreen docs-query-page-column">
                     {% include "messages.html" %}
@@ -278,6 +302,15 @@
         .docs-query-ai-ready { animation: docs-query-ready-blink 1.8s ease-in-out infinite; color: var(--theme-green); font-size: .65rem; }
         .docs-query-ai-ready i { color: var(--theme-green); font-size: .5rem; }
         @keyframes docs-query-ready-blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+        .docs-query-recent-card { background: rgba(239, 246, 255, .7); border: 1px solid rgba(50, 115, 220, .14); border-radius: 16px; margin: 0 auto 1.25rem; padding: .9rem 1rem; width: 80%; }
+        .docs-query-recent-heading { color: var(--theme-navy-deep); font-size: .78rem; font-weight: 800; margin-bottom: .55rem; }
+        .docs-query-recent-list { display: grid; gap: .45rem; margin: 0; }
+        .docs-query-recent-item { align-items: flex-start; background: rgba(255, 255, 255, .72); border-radius: 10px; display: flex; gap: .55rem; padding: .55rem .65rem; }
+        .docs-query-recent-item i { color: #3273dc; font-size: .72rem; margin-top: .25rem; }
+        .docs-query-recent-item a { color: var(--theme-navy-deep); font-size: .78rem; font-weight: 700; }
+        .docs-query-recent-item a:hover { color: #3273dc; }
+        .docs-query-recent-description { color: var(--theme-muted); display: block; font-size: .7rem; font-weight: 400; line-height: 1.4; margin-top: .12rem; }
+        .docs-query-recent-date { color: var(--theme-muted); display: block; font-size: .62rem; font-weight: 400; margin-top: .15rem; }
         .docs-query-ai-label { color: var(--theme-navy-deep); display: block; font-size: .85rem; font-weight: 800; margin-bottom: .55rem; }
 
         .docs-query-query-frame {
@@ -584,6 +617,7 @@
 
         @media screen and (max-width: 1023px) {
             .docs-query-ai-shell { margin-left: 0; margin-right: 0; width: 100%; }
+            .docs-query-recent-card { width: 100%; }
         }
 
         @media screen and (max-width: 768px) {

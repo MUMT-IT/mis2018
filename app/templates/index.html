@@ -372,6 +372,29 @@
             margin: 0;
         }
 
+        .home-announcement--docs-query {
+            background: rgba(239, 246, 255, 0.96);
+            border-color: rgba(23, 47, 94, 0.14);
+            box-shadow: 0 6px 18px rgba(18, 39, 84, 0.06);
+            color: var(--theme-navy-deep);
+            padding: 0.85rem 1rem;
+        }
+
+        .home-announcement--docs-query .icon {
+            color: var(--theme-navy);
+        }
+
+        .home-announcement--docs-query .home-announcement-title {
+            color: var(--theme-navy-deep);
+            letter-spacing: 0.08em;
+        }
+
+        .home-announcement--docs-query .home-announcement-copy {
+            color: var(--theme-muted);
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+
         .home-top-panels {
             display: grid;
             gap: 1rem;
@@ -1339,19 +1362,6 @@
         <div class="container">
             {% include "messages.html" %}
 
-            {# Temporarily hidden; retain the banner markup for easy restoration. #}
-            {# <div class="home-announcement">
-                <span class="icon is-medium">
-                    <i class="fa-solid fa-bullhorn"></i>
-                </span>
-                <div>
-                    <p class="home-announcement-title">Announcement</p>
-                    <p class="home-announcement-copy">
-                        ตั้งแต่วันที่ 1 มิถุนายน 2569 เป็นต้นไป ระบบจะปิดการลงชื่อเข้าใช้งาน (log in) ด้วย username, password ขอให้บุคลากรทุกท่าน log in เข้าระบบด้วย Google หรือ Line เพื่อเพิ่มความปลอดภัย
-                    </p>
-                </div>
-            </div> #}
-
             {% if current_user.is_authenticated %}
             <section class="home-hero">
                 <div class="columns is-variable is-6 m-0">
@@ -1428,6 +1438,25 @@
                                         <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
                                     </div>
                                 </div>
+                                {% if recent_docs_query_documents %}
+                                <div class="home-announcement home-announcement--docs-query">
+                                    <span class="icon is-medium">
+                                        <i class="fa-solid fa-bullhorn"></i>
+                                    </span>
+                                    <div>
+                                        <p class="home-announcement-title">Docs-Query update</p>
+                                        <p class="home-announcement-copy">มีเอกสารใหม่เพิ่มเติมในระบบ</p>
+                                        <div hx-get="{{ url_for('home_docs_query_summary') }}"
+                                             hx-trigger="load"
+                                             hx-swap="innerHTML">
+                                            <p class="home-announcement-copy">กำลังสรุปเอกสารใหม่...</p>
+                                        </div>
+                                        <a class="button is-small is-info is-light is-rounded mt-2" href="{{ url_for('docs_query.index') }}">
+                                            เปิด Docs-Query
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endif %}
                                 <a class="home-stat home-summary-link home-summary-link--staff-search" href="{{ url_for('staff.employee_search') }}">
                                     <span class="home-summary-link-copy">
                                         <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
