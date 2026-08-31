@@ -77,6 +77,73 @@
             text-align: center;
         }
 
+        .home-new-system-cards {
+            margin: 1.25rem 0 0;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+        }
+
+        .home-new-system-card {
+            background: rgba(255, 255, 255, .72);
+            border: 1px solid rgba(50, 115, 220, .14);
+            border-radius: 18px;
+            color: var(--theme-navy-deep);
+            display: block;
+            height: 100%;
+            overflow: hidden;
+            padding: 0;
+            transition: box-shadow 180ms ease, transform 180ms ease;
+        }
+
+        .home-new-system-card:hover,
+        .home-new-system-card:focus-visible {
+            box-shadow: 0 12px 26px rgba(18, 39, 84, .12);
+            color: var(--theme-navy-deep);
+            transform: translateY(-2px);
+        }
+
+        .home-new-system-card-icon {
+            align-items: center;
+            background: rgba(50, 115, 220, .1);
+            border-radius: 14px;
+            color: var(--theme-navy);
+            display: flex;
+            flex: 0 0 3rem;
+            font-size: 1.35rem;
+            height: 3rem;
+            justify-content: center;
+            width: 3rem;
+        }
+
+        .home-new-system-card-image {
+            aspect-ratio: 16 / 9;
+            display: block;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .home-new-system-card-body {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            padding: 1.25rem;
+        }
+
+        .home-new-system-card-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin-bottom: .25rem;
+        }
+
+        .home-new-system-card-description {
+            color: var(--theme-navy);
+            display: block;
+            font-size: .98rem;
+            font-weight: 600;
+            line-height: 1.55;
+        }
+
         .docs-query-home-banner:hover,
         .docs-query-home-banner:focus-visible {
             box-shadow: 0 16px 34px rgba(18, 39, 84, 0.16);
@@ -1308,6 +1375,10 @@
             .home-services-grid {
                 grid-template-columns: 1fr;
             }
+
+            .home-new-system-cards {
+                width: 100%;
+            }
         }
 
         @media screen and (max-width: 768px) {
@@ -1444,7 +1515,7 @@
                                         <i class="fa-solid fa-bullhorn"></i>
                                     </span>
                                     <div>
-                                        <p class="home-announcement-title">Docs-Query update</p>
+                                        <p class="home-announcement-title">DocsIQ update</p>
                                         <p class="home-announcement-copy">มีเอกสารใหม่เพิ่มเติมในระบบ</p>
                                         <div hx-get="{{ url_for('home_docs_query_summary') }}"
                                              hx-trigger="load"
@@ -1452,7 +1523,7 @@
                                             <p class="home-announcement-copy">กำลังสรุปเอกสารใหม่...</p>
                                         </div>
                                         <a class="button is-small is-info is-light is-rounded mt-2" href="{{ url_for('docs_query.index') }}">
-                                            เปิด Docs-Query
+                                            เปิด DocsIQ
                                         </a>
                                     </div>
                                 </div>
@@ -1597,7 +1668,8 @@
             </div>
 
             <section class="home-panel docs-query-home-card">
-                {% set docs_query_banner = 'ui-assets/docsIQ_banner.webp'|s3_asset('img/docsIQ_banner.webp') %}
+                {% set docs_query_card_image = 'ui-assets/Gemini_Generated_Image_j2laudj2laudj2la.png'|s3_asset('ui-assets/Gemini_Generated_Image_j2laudj2laudj2la.png') %}
+                {% set shorturl_card_image = 'ui-assets/Gemini_Generated_Image_etnx36etnx36etnx.png'|s3_asset('ui-assets/Gemini_Generated_Image_etnx36etnx36etnx.png') %}
                 <div class="home-panel-header">
                     <div>
                         <p class="home-panel-title">
@@ -1606,19 +1678,37 @@
                         </p>
                     </div>
                 </div>
-                <p class="home-panel-subtitle">ขอเชิญบุคลากรทุกท่านร่วมเปิดประสบการณ์ใหม่ ทดลองใช้งานระบบคลังเอกสารความรู้ที่พัฒนาโดยหน่วยไอที พร้อมค้นหาและเข้าถึงองค์ความรู้ได้ง่ายยิ่งขึ้น ตั้งแต่วันนี้เป็นต้นไป</p>
-            <a class="docs-query-home-banner"
-               href="{{ url_for('docs_query.index') }}"
-               aria-label="เปิดระบบค้นหาประกาศและเอกสาร">
-                {% if docs_query_banner %}
-                    <picture>
-                        <source srcset="{{ docs_query_banner }}" type="image/webp">
-                        <img src="{{ docs_query_banner }}"
-                             alt="DocsIQ ระบบค้นหาประกาศและเอกสาร"
-                             decoding="async">
-                    </picture>
-                {% endif %}
-            </a>
+                <p class="home-panel-subtitle">ขอเชิญบุคลากรทุกท่านทดลองใช้งานระบบใหม่จากหน่วยไอที เพื่อช่วยให้การค้นหาและจัดการข้อมูลสะดวกยิ่งขึ้น</p>
+                <div class="home-new-system-cards">
+                    <div class="columns is-variable is-4 is-centered">
+                        <div class="column is-6">
+                            <a class="home-new-system-card" href="{{ url_for('docs_query.index') }}" aria-label="เปิดระบบ Docs IQ">
+                                <img class="home-new-system-card-image" src="{{ docs_query_card_image }}" alt="Docs IQ" loading="lazy">
+                                <span class="home-new-system-card-body">
+                                    <span class="home-new-system-card-icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
+                                    <span>
+                                        <span class="home-new-system-card-title">Docs IQ</span>
+                                        <span class="home-new-system-card-description">ค้นหาและเข้าถึงองค์ความรู้จากคลังเอกสารของคณะ</span>
+                                    </span>
+                                    <span class="icon ml-auto" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                                </span>
+                            </a>
+                        </div>
+                        <div class="column is-6">
+                            <a class="home-new-system-card" href="{{ url_for('shorturl.index') }}" aria-label="เปิดระบบ URL Shortener">
+                                <img class="home-new-system-card-image" src="{{ shorturl_card_image }}" alt="URL Shortener" loading="lazy">
+                                <span class="home-new-system-card-body">
+                                    <span class="home-new-system-card-icon" aria-hidden="true"><i class="fas fa-link"></i></span>
+                                    <span>
+                                        <span class="home-new-system-card-title">URL Shortener</span>
+                                        <span class="home-new-system-card-description">สร้างลิงก์สั้นพร้อม QR Code และจัดการลิงก์ของคุณ</span>
+                                    </span>
+                                    <span class="icon ml-auto" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             {% if current_user.is_authenticated %}

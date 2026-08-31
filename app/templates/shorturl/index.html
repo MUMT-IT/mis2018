@@ -7,6 +7,7 @@
 {% block page_content %}
     <section class="section">
         <div class="container">
+            {% include "messages.html" %}
             <div class="columns is-variable is-5">
                 <div class="column is-6-desktop">
                     <div class="box shorturl-card shorturl-form-card">
@@ -21,6 +22,13 @@
                                 <div class="control">
                                     <textarea class="textarea" id="long-url" name="long_url" rows="8"
                                               placeholder="https://example.com/a/very/long/url" required>{{ long_url or '' }}</textarea>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="shorturl-note">Note</label>
+                                <div class="control">
+                                    <textarea class="textarea" id="shorturl-note" name="note" rows="2"
+                                              placeholder="รายละเอียดเพิ่มเติมของลิงก์นี้">{{ note or '' }}</textarea>
                                 </div>
                             </div>
                             <div class="field">

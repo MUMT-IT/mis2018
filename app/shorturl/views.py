@@ -52,6 +52,7 @@ def _parse_expiration_date(value):
 def index():
     """Render the form for creating a short URL."""
     long_url = request.form.get('long_url', '') if request.method == 'POST' else ''
+    note = request.form.get('note', '') if request.method == 'POST' else ''
     expiration_date = request.form.get('expiration_date', '') if request.method == 'POST' else ''
     short_url = None
     expires_at = None
@@ -72,6 +73,7 @@ def index():
                 mapping = ShortUrlMapping(
                     short_code=short_code,
                     long_url=long_url,
+                    note=note.strip() or None,
                     staff_account_id=current_user.id,
                     expires_at=expires_at,
                 )
@@ -79,12 +81,14 @@ def index():
                 db.session.commit()
                 short_url = url_for('shorturl.redirect_short_url', short_code=short_code, _external=True)
                 long_url = ''
+                note = ''
                 expiration_date = ''
                 flash('สร้างลิงก์ย่อเรียบร้อยแล้ว', 'success')
 
     return render_template(
         'shorturl/index.html',
         long_url=long_url,
+        note=note,
         expiration_date=expiration_date,
         short_url=short_url,
         expires_at=expires_at,
@@ -119,6 +123,7 @@ def edit_mapping(mapping_id):
         id=mapping_id,
         staff_account_id=current_user.id,
     ).first_or_404()
+    mapping.note = request.form.get('note', '').strip() or None
     expiration_date = request.form.get('expiration_date', '').strip()
 
     try:

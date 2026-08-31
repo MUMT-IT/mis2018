@@ -9,6 +9,7 @@ class ShortUrlMapping(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     short_code = db.Column(db.String(32), nullable=False, unique=True)
     long_url = db.Column(db.Text, nullable=False)
+    note = db.Column(db.Text, nullable=True)
     click_count = db.Column(db.Integer, nullable=False, default=0, server_default='0')
     created_at = db.Column(
         db.DateTime(timezone=True),

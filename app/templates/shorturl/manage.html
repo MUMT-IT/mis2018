@@ -7,6 +7,7 @@
 {% block page_content %}
     <section class="section">
         <div class="container">
+            {% include "messages.html" %}
             <div class="level is-mobile mb-5">
                 <div class="level-left">
                     <div>
@@ -45,6 +46,9 @@
                                         </a>
                                     </p>
                                     <p class="is-size-7 has-text-grey mt-2 shorturl-long-url">{{ mapping.long_url }}</p>
+                                    {% if mapping.note %}
+                                        <p class="is-size-7 mt-2"><strong>Note:</strong> {{ mapping.note }}</p>
+                                    {% endif %}
                                     <div class="tags mt-2 mb-1">
                                             <span class="tag is-info is-light">
                                                 <span class="icon is-small"><i class="fas fa-mouse-pointer" aria-hidden="true"></i></span>
@@ -92,6 +96,12 @@
                 <form id="edit-form-{{ mapping.id }}" method="post" action="{{ url_for('shorturl.edit_mapping', mapping_id=mapping.id) }}">
                     <section class="modal-card-body">
                         <p class="is-size-7 has-text-grey mb-4">{{ mapping.long_url }}</p>
+                        <div class="field">
+                            <label class="label" for="note-{{ mapping.id }}">Note</label>
+                            <div class="control">
+                                <textarea class="textarea" id="note-{{ mapping.id }}" name="note" rows="2">{{ mapping.note or '' }}</textarea>
+                            </div>
+                        </div>
                         <div class="field">
                             <label class="label" for="expiration-date-{{ mapping.id }}">Expiration date</label>
                             <div class="control">
