@@ -1467,6 +1467,15 @@
                         {% endif %}
                         <div class="home-summary-grid">
                             <div class="home-summary-stack">
+                                <div class="home-stat home-week-ai-summary"
+                                     hx-get="{{ url_for('home_week_events_summary') }}"
+                                     hx-trigger="load"
+                                     hx-swap="outerHTML">
+                                    <div class="home-week-ai-summary-loading">
+                                        <span class="icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                                        <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
+                                    </div>
+                                </div>
                                 {% if today_calendar %}
                                     <div class="home-stat home-today-calendar">
                                         <div class="home-today-calendar-head">
@@ -1500,15 +1509,24 @@
                                 {% endif %}
                             </div>
                             <div class="home-summary-stack">
-                                <div class="home-stat home-week-ai-summary"
-                                     hx-get="{{ url_for('home_week_events_summary') }}"
-                                     hx-trigger="load"
-                                     hx-swap="outerHTML">
-                                    <div class="home-week-ai-summary-loading">
-                                        <span class="icon"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
-                                        <span class="home-today-calendar-date">กำลังสร้างสรุปกิจกรรมสัปดาห์นี้ด้วย AI...</span>
-                                    </div>
-                                </div>
+                                <a class="home-stat home-summary-link home-summary-link--staff-search" href="{{ url_for('staff.employee_search') }}">
+                                    <span class="home-summary-link-copy">
+                                        <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
+                                        <span>
+                                            <span class="home-stat-value">ค้นหาบุคลากร</span>
+                                        </span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
+                                <a class="home-stat home-summary-link" href="{{ url_for('comhealth.landing') }}">
+                                    <span class="home-summary-link-copy">
+                                        <span class="icon is-medium"><i class="fa-solid fa-heart-pulse"></i></span>
+                                        <span>
+                                            <span class="home-stat-value">ระบบงานบริการสุขภาพชุมชน</span>
+                                        </span>
+                                    </span>
+                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
+                                </a>
                                 {% if recent_docs_query_documents %}
                                 <div class="home-announcement home-announcement--docs-query">
                                     <span class="icon is-medium">
@@ -1528,24 +1546,6 @@
                                     </div>
                                 </div>
                                 {% endif %}
-                                <a class="home-stat home-summary-link home-summary-link--staff-search" href="{{ url_for('staff.employee_search') }}">
-                                    <span class="home-summary-link-copy">
-                                        <span class="icon is-medium"><i class="fa-solid fa-users"></i></span>
-                                        <span>
-                                            <span class="home-stat-value">ค้นหาบุคลากร</span>
-                                        </span>
-                                    </span>
-                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
-                                </a>
-                                <a class="home-stat home-summary-link" href="{{ url_for('comhealth.landing') }}">
-                                    <span class="home-summary-link-copy">
-                                        <span class="icon is-medium"><i class="fa-solid fa-heart-pulse"></i></span>
-                                        <span>
-                                            <span class="home-stat-value">ระบบงานบริการสุขภาพชุมชน</span>
-                                        </span>
-                                    </span>
-                                    <span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
-                                </a>
                             </div>
                         </div>
                     </div>
