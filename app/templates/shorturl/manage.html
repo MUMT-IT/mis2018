@@ -66,11 +66,19 @@
                                     <p class="is-size-7 has-text-grey">สร้างเมื่อ {{ mapping.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
                                 </div>
                                 <div class="media-right">
-                                    <button class="button is-small is-info is-light js-edit-shorturl"
-                                            type="button" data-target="edit-shorturl-{{ mapping.id }}">
-                                        <span class="icon is-small"><i class="fas fa-edit" aria-hidden="true"></i></span>
-                                        <span>แก้ไขลิงค์</span>
-                                    </button>
+                                    <div class="buttons are-small">
+                                        <button class="button is-info is-light js-edit-shorturl"
+                                                type="button" data-target="edit-shorturl-{{ mapping.id }}">
+                                            <span class="icon is-small"><i class="fas fa-edit" aria-hidden="true"></i></span>
+                                            <span>แก้ไขลิงค์</span>
+                                        </button>
+                                        <a class="button is-info is-light"
+                                           href="{{ qrcode(url_for('shorturl.redirect_short_url', short_code=mapping.short_code, _external=True), box_size=6) }}"
+                                           download="short-url-{{ mapping.short_code }}.png">
+                                            <span class="icon is-small"><i class="fas fa-download" aria-hidden="true"></i></span>
+                                            <span>ดาวน์โหลด QR</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </article>
                         {% endfor %}
