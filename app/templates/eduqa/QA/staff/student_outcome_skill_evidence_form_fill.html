@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}กรอกผลการประเมิน | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">กรอกผลการประเมิน</h1>
+                    <p class="subtitle">{{ assignment.version.form.name }} · v{{ assignment.version.version }}</p>
+                    <p class="is-size-6 has-text-grey">{{ student.student_id }} — {{ student.th_name }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.student_skill_evidence_students', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, assignment_id=assignment.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span><span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+        {% if assignment.version.form.description %}<div class="notification is-info is-light">{{ assignment.version.form.description }}</div>{% endif %}
+        <form method="post" class="box">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% for field in assignment.version.fields %}
+            {% set value = existing_answers.get(field.id) %}
+            <div class="field">
+                <label class="label" for="field-{{ field.id }}">{{ field.label }}{% if field.required %} <span class="has-text-danger">*</span>{% endif %}</label>
+                {% if field.field_type == 'textarea' %}
+                <div class="control"><textarea class="textarea" id="field-{{ field.id }}" name="field_{{ field.id }}" {% if field.required %}required{% endif %}>{{ value or '' }}</textarea></div>
+                {% elif field.field_type == 'select' %}
+                <div class="control"><div class="select is-fullwidth"><select id="field-{{ field.id }}" name="field_{{ field.id }}" {% if field.required %}required{% endif %}><option value="">เลือกคำตอบ</option>{% for option in field.options %}<option value="{{ option.value }}" {% if value == option.value %}selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
+                {% elif field.field_type == 'multiselect' %}
+                <div class="control">{% for option in field.options %}<label class="checkbox mr-4"><input type="checkbox" name="field_{{ field.id }}" value="{{ option.value }}" {% if value and option.value in value %}checked{% endif %}> {{ option.label }}</label>{% endfor %}</div>
+                {% elif field.field_type == 'boolean' %}
+                <div class="control"><label class="radio mr-4"><input type="radio" name="field_{{ field.id }}" value="true" {% if value is sameas true %}checked{% endif %} {% if field.required %}required{% endif %}> ใช่</label><label class="radio"><input type="radio" name="field_{{ field.id }}" value="false" {% if value is sameas false %}checked{% endif %}> ไม่ใช่</label></div>
+                {% else %}
+                <div class="control"><input class="input" id="field-{{ field.id }}" type="{{ 'number' if field.field_type in ['number', 'rating'] else field.field_type }}" name="field_{{ field.id }}" value="{{ value or '' }}" {% if field.field_type == 'rating' %}min="1" max="5"{% endif %} {% if field.required %}required{% endif %}></div>
+                {% endif %}
+                {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+            </div>
+            {% endfor %}
+            {% if not assignment.version.fields %}<p class="has-text-grey mb-4">แบบประเมินนี้ยังไม่มีคำถาม</p>{% endif %}
+            <button type="submit" class="button is-success" {% if not assignment.version.fields %}disabled{% endif %}>
+                <span class="icon"><i class="fas fa-save"></i></span><span>บันทึกผลประเมิน</span>
+            </button>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -105,7 +105,7 @@
             {% if item.student_evidence %}
             <div class="table-container">
                 <table class="table is-fullwidth is-hoverable">
-                    <thead><tr><th>Student</th><th>Evidence URL</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Student</th><th>Evidence URL</th><th>Status</th><th></th></tr></thead>
                     <tbody>
                     {% for submission in item.student_evidence %}
                     <tr>
@@ -114,6 +114,13 @@
                             {% if submission.url %}
                             <a href="{{ submission.url }}" target="_blank" rel="noopener">เปิดหลักฐาน</a>
                             {% else %}-{% endif %}
+                        </td>
+                        <td class="has-text-right">
+                            <a class="button is-small is-info is-light"
+                               href="{{ url_for('eduqa.view_student_skill_evidence_results', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=item.id, student_id=submission.student.id) }}">
+                                <span class="icon"><i class="fas fa-chart-bar"></i></span>
+                                <span>ผลการประเมิน</span>
+                            </a>
                         </td>
                         <td>
                             {% if submission.endorsed %}
@@ -131,9 +138,9 @@
             <p class="has-text-grey">ยังไม่มีหลักฐานของนักศึกษา</p>
             {% endif %}
             <a class="button is-small is-light mt-2"
-               href="{{ url_for('eduqa.add_student_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=item.id) }}">
+               href="{{ url_for('eduqa.student_skill_evidence_forms', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=item.id) }}">
                 <span class="icon"><i class="fas fa-user-plus"></i></span>
-                <span>เพิ่มหลักฐานของนักศึกษา</span>
+                <span>เพิ่มผลการประเมินของนักศึกษา</span>
             </a>
         </div>
         {% endfor %}

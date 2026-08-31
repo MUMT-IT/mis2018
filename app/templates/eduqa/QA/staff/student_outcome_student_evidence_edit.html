@@ -10,6 +10,7 @@
                     <h1 class="title">เพิ่มหลักฐานของนักศึกษา</h1>
                     <p class="subtitle">{{ evidence.title }}</p>
                     <p class="is-size-6 has-text-grey">{{ skill.code }} · CLO{{ clo.number }}: {{ clo.detail }}</p>
+                    {% if assignment %}<p class="is-size-7 has-text-grey">แบบประเมิน: {{ assignment.version.form.name }} · v{{ assignment.version.version }}</p>{% endif %}
                 </div>
             </div>
             <div class="level-right">
@@ -22,8 +23,8 @@
         {% include 'messages.html' %}
         <form method="post" class="box">
             {{ form.hidden_tag() }}
-            {% for field in [form.student, form.url] %}
-            <div class="field">
+                    {% for field in [form.student, form.url] %}
+                    <div class="field">
                 <label class="label">{{ field.label }}</label>
                 <div class="control">
                     {% if field.name == 'student' %}
