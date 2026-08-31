@@ -4895,7 +4895,7 @@ def _load_health_risk_bundle(serviceNo, email, servicedate, age, current_lang):
         lab_payload = {"data": []}
 
     try:
-        response_physical = _online_results_api_request('GET', f'/PhysicalExams/{serviceNo}')
+        response_physical = _online_results_api_request('GET', f'/physical-approved/{serviceNo}')
         physical = response_physical.json()
     except Exception:
         physical = {}
@@ -5006,7 +5006,7 @@ def employee_physical(serviceNo):
         return access_response
     'phyical น้ำหนัก ส่วนสูง'
     try:
-        reponse_physical = _online_results_api_request('GET', f'/PhysicalExams/{serviceNo}')
+        reponse_physical = _online_results_api_request('GET', f'/physical-approved/{serviceNo}')
         physical = reponse_physical.json()
     except:
         return '<tr><td colspan="4">Error loading data</td></tr>'
@@ -5650,16 +5650,33 @@ def xray_result(serviceNo, current_lang=None):
 
     if current_lang is None:
         current_lang = (request.args.get('lang', 'th') or 'th').lower()
+    status_is_pending = str(status or '').strip().lower() == 'pending approval'
+    chest_is_pending = str(chest or '').strip().lower() == 'pending approval'
     if status == 404:
         status = 'No X-ray examination' if current_lang.startswith('en') else 'ไม่ X-ray'
         chest = ''
+        status_is_pending = False
+        chest_is_pending = False
         status_class = "has-text-black"
+    elif status_is_pending:
+        status_class = "has-text-dark"
     else:
         status_class = "has-text-warning" if str(isnormal).lower() == "false" else "has-text-success"
 
+    status_html = (
+        render_lab_result_value('Pending approval', current_lang)
+        if status_is_pending
+        else status
+    )
+    chest_html = (
+        render_lab_result_value('Pending approval', current_lang)
+        if chest_is_pending
+        else chest
+    )
+
     return (
-        f'<span id="xray_status" hx-swap-oob="true" class="{status_class}">{status}</span>'
-        f'<span id="xray_chest" hx-swap-oob="true">{chest}</span>'
+        f'<span id="xray_status" hx-swap-oob="true" class="{status_class}">{status_html}</span>'
+        f'<span id="xray_chest" hx-swap-oob="true">{chest_html}</span>'
     )
 
 
