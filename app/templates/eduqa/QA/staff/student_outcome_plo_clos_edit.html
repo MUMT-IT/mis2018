@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}จัดการความสัมพันธ์ PLO และ CLO | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">จัดการความสัมพันธ์ PLO และ CLO</h1>
+                    <p class="subtitle">
+                        {% if plo.parent_id %}Sub-PLO{% else %}PLO{% endif %}{{ plo.number }}: {{ plo.outcome }}
+                    </p>
+                    <p class="is-size-6 has-text-grey">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.student_outcome_monitoring_plos', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+
+        <div class="notification is-info is-light">
+            <div class="columns is-mobile is-multiline">
+                <div class="column is-half-mobile is-one-quarter-tablet">
+                    <p class="heading">PLO</p>
+                    <p class="title is-5">{% if plo.parent_id %}Sub-PLO{% else %}PLO{% endif %}{{ plo.number }}</p>
+                </div>
+                <div class="column is-half-mobile is-one-quarter-tablet">
+                    <p class="heading">รายวิชา</p>
+                    <p class="title is-5">{{ courses|length }}</p>
+                </div>
+                <div class="column is-half-mobile is-one-quarter-tablet">
+                    <p class="heading">CLO ทั้งหมด</p>
+                    <p class="title is-5">{{ total_clos }}</p>
+                </div>
+                <div class="column is-half-mobile is-one-quarter-tablet">
+                    <p class="heading">CLO ที่เชื่อมโยง</p>
+                    <p class="title is-5">{{ selected_clo_ids|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if courses %}
+            {% for course in courses %}
+            <div class="box">
+                <h2 class="title is-5">{{ course.en_code }} — {{ course.th_name }}</h2>
+                {% if course.outcomes %}
+                {% for clo in course.outcomes|sort(attribute='number') %}
+                <label class="checkbox is-block mb-3">
+                    <input type="checkbox" name="clo_ids" value="{{ clo.id }}"
+                           {% if clo.id in selected_clo_ids %}checked{% endif %}>
+                    <strong>CLO{{ clo.number }}</strong> {{ clo.detail }}
+                </label>
+                {% endfor %}
+                {% else %}
+                <p class="has-text-grey">รายวิชานี้ยังไม่มี CLO</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="notification is-light">ฉบับปรับปรุงนี้ยังไม่มีรายวิชา</div>
+            {% endif %}
+            <div class="field is-grouped">
+                <div class="control">
+                    <button type="submit" class="button is-success">
+                        <span class="icon"><i class="fas fa-save"></i></span>
+                        <span>บันทึก</span>
+                    </button>
+                </div>
+                <div class="control">
+                    <a class="button is-light" href="{{ url_for('eduqa.student_outcome_monitoring_plos', revision_id=revision.id) }}">ยกเลิก</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

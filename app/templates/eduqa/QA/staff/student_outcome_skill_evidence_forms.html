@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}เลือกแบบประเมิน | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block head %}
+{{ super() }}
+<style>
+    .evaluator-hero { border-left: 5px solid #3273dc; }
+    .evaluation-form-card { height: 100%; display: flex; flex-direction: column; transition: transform .15s ease, box-shadow .15s ease; }
+    .evaluation-form-card:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(10, 10, 10, .12); }
+    .evaluation-form-card .form-card-action { margin-top: auto; }
+</style>
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">ประเมินทักษะนักศึกษา</h1>
+                    <p class="subtitle">เลือกแบบประเมินเพื่อเริ่มบันทึกผล</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.manage_student_outcome_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span><span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+        <div class="notification is-link is-light mb-5">
+            <div class="columns is-mobile is-vcentered">
+                <div class="column">
+                    <p class="has-text-weight-semibold mb-1"><span class="icon"><i class="fas fa-route"></i></span> ขั้นตอนการทำงาน</p>
+                    <p class="is-size-7">เลือกแบบประเมิน → เลือกนักศึกษา → กรอกและบันทึกผลการประเมิน</p>
+                </div>
+                <div class="column is-narrow"><span class="tag is-link">ขั้นตอนที่ 1 จาก 3</span></div>
+            </div>
+        </div>
+        <div class="box evaluator-hero">
+            <div class="level mb-4">
+                <div class="level-left">
+                    <div>
+                        <p class="heading mb-1"><span class="icon"><i class="fas fa-lightbulb"></i></span> ทักษะที่กำลังประเมิน</p>
+                        <h2 class="title is-4 mb-1">{{ skill.code }} · {{ skill.name }}</h2>
+                        {% if skill.category %}<span class="tag is-info is-light">{{ skill.category }}</span>{% endif %}
+                    </div>
+                </div>
+                <div class="level-right has-text-right">
+                    <div>
+                        <p class="heading mb-1"><span class="icon"><i class="fas fa-user-check"></i></span> ผู้ประเมินขณะนี้</p>
+                        <p class="has-text-weight-semibold">{{ current_user.fullname }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="content mb-4">
+                <p class="heading mb-1"><span class="icon"><i class="fas fa-align-left"></i></span> ทักษะนี้หมายถึง</p>
+                <p>{{ skill.statement }}</p>
+            </div>
+            <div class="columns is-variable is-6 mb-0">
+                <div class="column">
+                    <p class="heading mb-1"><span class="icon"><i class="fas fa-graduation-cap"></i></span> หลักสูตรและรายวิชา</p>
+                    <p class="has-text-weight-semibold">{{ revision.curriculum.th_name if revision.curriculum else '-' }}</p>
+                    <p class="is-size-7 has-text-grey">{{ clo.course.en_code }} · {{ clo.course.th_name or clo.course.en_name }}</p>
+                </div>
+                <div class="column">
+                    <p class="heading mb-1"><span class="icon"><i class="fas fa-bullseye"></i></span> ผลลัพธ์การเรียนรู้รายวิชา (CLO)</p>
+                    <p>CLO{{ clo.number }}: {{ clo.detail }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="box">
+            <div class="notification is-info is-light mb-5">
+                <div class="level mb-2">
+                    <div class="level-left"><div><p class="heading mb-1"><span class="icon"><i class="fas fa-file-alt"></i></span> หลักฐานที่ใช้ประเมิน</p><h2 class="title is-5 mb-0">{{ evidence.title }}</h2></div></div>
+                    <div class="level-right"><span class="tag is-success is-light"><span class="icon"><i class="fas fa-clipboard-check"></i></span><span>พร้อมประเมิน</span></span></div>
+                </div>
+                {% if evidence.description %}<p class="is-size-7 mb-2">{{ evidence.description }}</p>{% endif %}
+                {% if evidence.assessment_pair %}<p class="is-size-7 has-text-grey mb-0"><strong>การประเมินสรุปผล:</strong> {{ evidence.assessment_pair.learning_activity_assessment.detail }}</p>{% endif %}
+            </div>
+            <div class="level mb-4">
+                <div class="level-left"><div><h2 class="title is-5 mb-1"><span class="icon has-text-link"><i class="fas fa-clipboard-list"></i></span> เลือกแบบประเมินสำหรับหลักฐานนี้</h2><p class="is-size-7 has-text-grey"><span class="icon"><i class="fas fa-info-circle"></i></span> แบบประเมินด้านล่างจะใช้บันทึกผลของนักศึกษาแต่ละคน</p></div></div>
+                <div class="level-right"><span class="tag is-light">{{ assignments|length }} แบบประเมิน</span></div>
+            </div>
+            {% if assignments %}
+            <div class="columns is-multiline">
+                {% for assignment in assignments %}
+                <div class="column is-half">
+                    <div class="box has-background-light evaluation-form-card">
+                        <div>
+                            <p class="title is-6 mb-2">{{ assignment.version.form.name }}</p>
+                            <div class="tags mb-3"><span class="tag is-info is-light"><span class="icon"><i class="fas fa-code-branch"></i></span><span>เวอร์ชัน {{ assignment.version.version }}</span></span><span class="tag {{ 'is-success' if assignment.version.status == 'Published' else 'is-warning' }} is-light"><span class="icon"><i class="fas {{ 'fa-check-circle' if assignment.version.status == 'Published' else 'fa-pencil-alt' }}"></i></span><span>{{ assignment.version.status }}</span></span></div>
+                            {% if assignment.version.form.description %}<p class="is-size-7 mb-4">{{ assignment.version.form.description }}</p>{% endif %}
+                        </div>
+                        <div class="form-card-action">
+                            <a class="button is-link is-fullwidth" href="{{ url_for('eduqa.student_skill_evidence_students', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, assignment_id=assignment.id) }}">
+                                <span class="icon"><i class="fas fa-play-circle"></i></span><span>เลือกแบบประเมินนี้</span><span class="icon"><i class="fas fa-arrow-right"></i></span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีแบบประเมินที่ผูกกับหลักฐานนี้</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

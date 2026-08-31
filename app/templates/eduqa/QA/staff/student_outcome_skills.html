@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}จัดการ Skills | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">จัดการ Skills</h1>
+                    <p class="subtitle">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-success mr-2" href="{{ url_for('eduqa.add_student_outcome_skill', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่ม Skill</span>
+                </a>
+                <a class="button is-light" href="{{ url_for('eduqa.student_outcome_monitoring_plos', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+        <div class="box">
+            {% if skills %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Skill</th>
+                        <th>Skill domain</th>
+                        <th>Status</th>
+                        <th>Linked PLOs</th>
+                        <th>Linked CLOs</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for skill in skills %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('eduqa.view_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">
+                                {{ skill.code }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('eduqa.view_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">
+                                <strong>{{ skill.name }}</strong>
+                            </a>
+                            <br><small>{{ skill.statement }}</small>
+                        </td>
+                        <td>{{ skill.category or '-' }}</td>
+                        <td><span class="tag is-light">{{ skill.status }}</span></td>
+                        <td>
+                            {% for plo in skill.plos %}
+                            <span class="tag is-link is-light">PLO{{ plo.number }}</span>
+                            {% else %}-{% endfor %}
+                        </td>
+                        <td>
+                            <span class="tag is-info is-light">{{ skill.clos|length }}</span>
+                        </td>
+                        <td class="has-text-right">
+                            <a class="button is-small is-info is-light" href="{{ url_for('eduqa.edit_student_outcome_skill', revision_id=revision.id, skill_id=skill.id) }}">
+                                <span class="icon"><i class="fas fa-edit"></i></span>
+                                <span>แก้ไข</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มี Skill ในฉบับปรับปรุงนี้</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

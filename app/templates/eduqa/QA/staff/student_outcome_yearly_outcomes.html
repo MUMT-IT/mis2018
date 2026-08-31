@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}จัดการ YLOs | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">จัดการ Yearly Learning Outcomes</h1>
+                    <p class="subtitle">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-success mr-2"
+                   href="{{ url_for('eduqa.add_student_outcome_yearly_outcome', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่ม YLO</span>
+                </a>
+                <a class="button is-light"
+                   href="{{ url_for('eduqa.student_outcome_monitoring_plos', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+        <div class="box">
+            {% if yearly_outcomes %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th>ผลลัพธ์การเรียนรู้</th>
+                        <th>Linked PLOs</th>
+                        <th>Related Skills</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for yearly_outcome in yearly_outcomes %}
+                    <tr>
+                        <td>ปี {{ yearly_outcome.year_level }}.{{ yearly_outcome.number }}</td>
+                        <td>{{ yearly_outcome.outcome }}</td>
+                        <td>
+                            {% for plo in yearly_outcome.plos|sort(attribute='number') %}
+                            <span class="tag is-link is-light">PLO{{ plo.number }}</span>
+                            {% else %}-{% endfor %}
+                        </td>
+                        <td>
+                            {% for skill in yearly_outcome.skills %}
+                            <span class="tag is-success is-light">{{ skill.code }} · {{ skill.name }}</span>
+                            {% else %}-{% endfor %}
+                        </td>
+                        <td class="has-text-right">
+                            <a class="button is-small is-info is-light"
+                               href="{{ url_for('eduqa.edit_student_outcome_yearly_outcome', revision_id=revision.id, yearly_outcome_id=yearly_outcome.id) }}">
+                                <span class="icon"><i class="fas fa-edit"></i></span>
+                                <span>แก้ไข</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มี YLO ในฉบับปรับปรุงนี้</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

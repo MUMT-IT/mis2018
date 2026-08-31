@@ -11,7 +11,19 @@
         </div>
         <div class="columns">
             <div class="column is-two-thirds is-offset-2">
-                <h1 class="title has-text-centered">New Curriculum Revision</h1>
+                <div class="level">
+                    <div class="level-left">
+                        <h1 class="title mb-0">
+                            {% if revision %}Edit Curriculum Revision{% else %}New Curriculum Revision{% endif %}
+                        </h1>
+                    </div>
+                    <div class="level-right">
+                        <a class="button is-light" href="{{ back_url }}">
+                            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                            <span>ย้อนกลับ</span>
+                        </a>
+                    </div>
+                </div>
                 <form method="post" class="box">
                     {{ form.hidden_tag() }}
                     <div class="field">
@@ -34,6 +46,54 @@
                         </div>
                     </div>
                 </form>
+                {% if revision %}
+                <form method="post"
+                      action="{{ url_for('eduqa.delete_revision', curriculum_id=revision.curriculum_id, revision_id=revision.id) }}"
+                      onsubmit="return confirm('ยืนยันการลบฉบับปรับปรุงนี้หรือไม่?');">
+                    {{ form.hidden_tag() }}
+                    <button type="submit" class="button is-danger is-light">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                        <span>ลบฉบับปรับปรุง</span>
+                    </button>
+                </form>
+
+                <div class="box mt-5">
+                    <h2 class="title is-5">รายวิชาที่อยู่ในฉบับปรับปรุงนี้</h2>
+                    {% if revision.courses.count() %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-hoverable">
+                            <thead>
+                            <tr>
+                                <th>รหัสวิชา</th>
+                                <th>ชื่อวิชา</th>
+                                <th>ชั้นปี</th>
+                                <th>ภาคการศึกษา</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for course in revision.courses %}
+                            <tr>
+                                <td>{{ course.th_code }}{% if course.en_code %} ({{ course.en_code }}){% endif %}</td>
+                                <td>{{ course.th_name }}{% if course.en_name %}<br><small>{{ course.en_name }}</small>{% endif %}</td>
+                                <td>{{ course.student_year or '-' }}</td>
+                                <td>{{ course.semester or '-' }}</td>
+                                <td class="has-text-right">
+                                    <a class="button is-small is-light"
+                                       href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
+                                        ดูรายวิชา
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="has-text-grey">ยังไม่มีรายวิชาที่เชื่อมโยงกับฉบับปรับปรุงนี้</p>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

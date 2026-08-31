@@ -1578,8 +1578,11 @@ admin.add_views(ProductCodeAdminModel(models.ProductCode, db.session, category='
 
 from app.eduqa import eduqa_bp as eduqa_blueprint
 from app.eduqa.models import *
+from app.dynamic_forms import dynamic_forms_bp
+from app.dynamic_forms.models import *
 
 app.register_blueprint(eduqa_blueprint, url_prefix='/eduqa')
+app.register_blueprint(dynamic_forms_bp, url_prefix='/dynamic-forms')
 admin.add_view(ModelView(EduQACourseCategory, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourse, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAProgram, db.session, category='EduQA'))

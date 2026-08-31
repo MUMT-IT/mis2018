@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ 'แก้ไข' if yearly_outcome else 'เพิ่ม' }} YLO | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">{{ 'แก้ไข' if yearly_outcome else 'เพิ่ม' }} Yearly Learning Outcome</h1>
+                    <p class="subtitle">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.student_outcome_monitoring_plos', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+
+        <form method="post" class="box">
+            {{ form.hidden_tag() }}
+            <div class="field">
+                <label class="label">{{ form.year_level.label }}</label>
+                <div class="control">
+                    <div class="select is-fullwidth">{{ form.year_level() }}</div>
+                </div>
+            </div>
+            <p class="help mb-4">ระบบจะกำหนดลำดับผลลัพธ์การเรียนรู้ให้อัตโนมัติตามชั้นปี</p>
+            <div class="field">
+                <label class="label">{{ form.outcome.label }}</label>
+                <div class="control">{{ form.outcome(class="textarea") }}</div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.plos.label }}</label>
+                <div class="box">{{ form.plos() }}</div>
+                <p class="help">เลือก PLO ที่ YLO นี้สนับสนุน</p>
+            </div>
+            <button type="submit" class="button is-success">
+                <span class="icon"><i class="fas fa-save"></i></span>
+                <span>บันทึก</span>
+            </button>
+        </form>
+    </div>
+</section>
+{% endblock %}
