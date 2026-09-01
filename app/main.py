@@ -1931,7 +1931,46 @@ admin.add_view(ModelView(PAItemCategory, db.session, category='PA'))
 admin.add_view(ModelView(PAKPIJobPosition, db.session, category='PA'))
 admin.add_view(ModelView(PAKPIItemJobPosition, db.session, category='PA'))
 admin.add_view(ModelView(PARequest, db.session, category='PA'))
-admin.add_view(ModelView(PAScoreSheet, db.session, category='PA'))
+
+
+class PAScoreSheetAdminModelView(ModelView):
+    """Keep the PAScoreSheet admin form from expanding its relationship graph.
+
+    Flask-Admin normally creates a select field for every relationship.  A
+    score sheet is connected to the PA agreement, staff member, committee,
+    score items, competency scores, and approval records; loading those
+    relationship fields makes the edit page unnecessarily expensive and can
+    terminate the request on installations with a large PA data set.
+
+    The foreign-key columns remain available as integer fields, so an admin
+    can still correct links without loading every related object into a
+    dropdown.
+    """
+
+    _scalar_columns = (
+        'id',
+        'pa_id',
+        'staff_id',
+        'committee_id',
+        'is_consolidated',
+        'is_final',
+        'is_appproved',
+        'updated_at',
+        'confirm_at',
+        'strengths',
+        'weaknesses',
+    )
+
+    column_list = _scalar_columns
+    form_columns = _scalar_columns[1:]
+    column_labels = {
+        'pa_id': 'PA agreement ID',
+        'staff_id': 'Staff account ID',
+        'committee_id': 'Committee ID',
+    }
+
+
+admin.add_view(PAScoreSheetAdminModelView(PAScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
 admin.add_view(ModelView(PAApprovedScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyItem, db.session, category='PA'))
