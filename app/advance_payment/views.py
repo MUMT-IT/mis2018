@@ -986,6 +986,7 @@ def _get_or_create_document(title=None, source_document=None):
         return None
 
     document = db.session.query(Document).filter_by(title=cleaned_title).first()
+    # TODO: รอหาโซลูชั่นใหม่
     if document is None:
         dummy_file_path = f"/static/dummy_documents/{secure_filename(cleaned_title)}.pdf"
         document = Document(
@@ -1977,26 +1978,6 @@ def finance_dashboard():
         pending_interest_departments=pending_interest_departments,
         pending_interest_count=pending_interest_count
     )
-
-
-@bp.route("/finance/documents", methods=["GET"])
-@login_required(role="finance")
-def cash_mng_documents():
-    search_query = (request.args.get("q") or "").strip()
-    documents = _list_cash_mng_documents(search_query=search_query)
-
-    document_statistics = {
-        "total": len(documents),
-        "processed": sum(1 for document in documents if document.get("status") == "processed"),
-        "expired": sum(1 for document in documents if document.get("is_expired")),
-    }
-    return render_template(
-        "cash_mng_documents.html",
-        documents=documents,
-        document_statistics=document_statistics,
-        search_query=search_query,
-    )
-
 
 @bp.route("/finance/documents/<file_id>/download", methods=["GET"])
 @login_required(role="finance")
