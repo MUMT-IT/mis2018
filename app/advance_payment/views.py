@@ -277,7 +277,17 @@ def _serialize_org_department(org):
         )
 
     controller = _org_account_controller(org)
-    head_name = getattr(org, "head", None) or ""
+    head_account = None
+    head_identifier = (getattr(org, "head", None) or "").strip()
+    if head_identifier:
+        head_account = StaffAccount.query.filter_by(email=head_identifier).first()
+
+    head_name = (
+        getattr(head_account, "name", None)
+        or getattr(head_account, "fullname", None)
+        or head_identifier
+    )
+    head_position = getattr(head_account, "position", None) or "หัวหน้าหน่วยงาน"
     return {
         "org_id": org.id,
         "department_code": getattr(org, "en_name", None) or f"ORG-{org.id}",
@@ -285,7 +295,7 @@ def _serialize_org_department(org):
         "telephone_number": getattr(org, "phone_number", None) or "",
         "head_of_department": {
             "name": head_name or ".......................................................",
-            "position": "หัวหน้าหน่วยงาน",
+            "position": head_position,
             "email": "",
         },
         "account_controller": controller or {

@@ -440,6 +440,7 @@
           messageElement.textContent = "";
           fieldWrapElement.innerHTML = "";
           acknowledgementWrapElement.innerHTML = "";
+          acknowledgementWrapElement.classList.add("d-none");
           confirmButton.textContent = "ยืนยัน";
           setConfirmButtonClass("btn-primary");
           confirmButton.type = "button";
@@ -458,6 +459,7 @@
           messageElement.textContent = config.message || "";
           fieldWrapElement.innerHTML = buildField(config);
           acknowledgementWrapElement.innerHTML = buildAcknowledgement(config);
+          acknowledgementWrapElement.classList.toggle("d-none", !config.requireAcknowledgement);
           formElement.action = config.action || "";
           formElement.method = (config.method || "post").toLowerCase();
           confirmButton.textContent = config.confirmText || "ยืนยัน";

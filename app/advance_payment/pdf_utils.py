@@ -356,7 +356,7 @@ def generate_fnar02_pdf(ticket):
     เงินเหลือจ่าย (ถ้ามี) ส่งใช้ภายในกำหนด 15 วัน หลังจากเสร็จสิ้นภารกิจ คือวันที่ &nbsp;{due_date_thai}&nbsp; ถ้าข้าพเจ้าไม่ส่งตามกำหนด ข้าพเจ้ายินยอมให้หักเงินเดือน ค่าจ้าง เบี้ยหวัด บำเหน็จ บำนาญหรือเงินอื่นใด ที่ข้าพเจ้าพึงได้รับจาก
     มหาวิทยาลัยมหิดล ชดใช้จำนวนเงินที่ยืมไปจนครบถ้วนได้ทันที<br/><br/>
     ลงชื่อ ............................................................................. ผู้ยืม &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; วันที่...................................................................<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( .................................................................... ) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( {borrower_name} ) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     """
     p_agreement = Paragraph(agreement_html, styles['ThaiNormal'])
 
@@ -370,7 +370,7 @@ def generate_fnar02_pdf(ticket):
     p_box3 = Paragraph(box3_html, styles['ThaiNormal'])
 
     p_title_box4 = Paragraph("<b>คำอนุมัติ</b>", styles['ThaiCenterBold'])
-    
+
     box4_content_html = f"""
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;อนุมัติให้ยืมตามเงื่อนไขข้างต้นได้ เป็นจำนวนเงิน {amount_numeric} บาท ( {amount_text} )<br/><br/>
     ลงชื่อผู้อนุมัติ .................................................................... &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; วันที่...................................................................<br/>
@@ -381,11 +381,11 @@ def generate_fnar02_pdf(ticket):
     p_box4 = [p_title_box4, p_content_box4]
 
     p_title_box5 = Paragraph("<b>ใบรับเงิน</b>", styles['ThaiCenterBold'])
-    
+
     box5_content_html = f"""
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ได้รับเงินยืมจำนวนเงิน {amount_numeric} บาท ( {amount_text} ) ไว้เป็นการถูกต้องแล้ว<br/><br/>
     ลายมือชื่อ ..................................................................... ผู้รับเงิน &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; วันที่...................................................................<br/>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( .............................................................. )<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( {borrower_name} )<br/>
     """
     p_content_box5 = Paragraph(box5_content_html, styles['ThaiNormal'])
     p_box5 = [p_title_box5, p_content_box5]
