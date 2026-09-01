@@ -185,6 +185,16 @@
       .app-popup-field label {
         font-weight: 600;
       }
+      .app-popup-acknowledgement {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 0.9rem 1rem;
+      }
+      .app-popup-acknowledgement .form-check-label {
+        font-weight: 600;
+        color: #334155;
+      }
       .fund-history-tabs .nav-link {
         border: none;
         border-bottom: 3px solid transparent;
@@ -360,6 +370,7 @@
           <div class="modal-body px-4 py-3">
             <div id="appPopupModalMessage" class="app-popup-message text-secondary"></div>
             <div id="appPopupModalFieldWrap" class="app-popup-field mt-3"></div>
+            <div id="appPopupModalAcknowledgementWrap" class="app-popup-acknowledgement mt-3 d-none"></div>
           </div>
           <div class="modal-footer px-4 pb-4 pt-2">
             <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
@@ -378,10 +389,12 @@
         const titleElement = document.getElementById("appPopupModalTitle");
         const messageElement = document.getElementById("appPopupModalMessage");
         const fieldWrapElement = document.getElementById("appPopupModalFieldWrap");
+        const acknowledgementWrapElement = document.getElementById("appPopupModalAcknowledgementWrap");
         const confirmButton = document.getElementById("appPopupModalConfirm");
         let currentTargetFormId = "";
         let lastTriggerElement = null;
         let currentPopupIsAlertOnly = false;
+        let currentAcknowledgementCheckbox = null;
 
         function setConfirmButtonClass(className) {
           confirmButton.className = "btn fw-bold";
@@ -405,17 +418,35 @@
           return `${label}<input id="appPopupModalInput" type="${config.inputType}" name="${config.inputName || "value"}" class="form-control" ${placeholder} ${required}>`;
         }
 
+        function buildAcknowledgement(config) {
+          if (!config.requireAcknowledgement) {
+            return "";
+          }
+
+          const checkboxId = "appPopupModalAcknowledge";
+          const label = config.acknowledgementLabel || "ข้าพเจ้าได้อ่านและรับทราบข้อความข้างต้นแล้ว";
+          return `
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="${checkboxId}">
+              <label class="form-check-label" for="${checkboxId}">${label}</label>
+            </div>
+          `;
+        }
+
         function resetModal() {
           formElement.action = "";
           formElement.method = "post";
           titleElement.textContent = "";
           messageElement.textContent = "";
           fieldWrapElement.innerHTML = "";
+          acknowledgementWrapElement.innerHTML = "";
           confirmButton.textContent = "ยืนยัน";
           setConfirmButtonClass("btn-primary");
           confirmButton.type = "button";
+          confirmButton.disabled = false;
           currentTargetFormId = "";
           currentPopupIsAlertOnly = false;
+          currentAcknowledgementCheckbox = null;
         }
 
         function openPopup(config) {
@@ -426,6 +457,7 @@
           titleElement.textContent = config.title || "ยืนยันการทำรายการ";
           messageElement.textContent = config.message || "";
           fieldWrapElement.innerHTML = buildField(config);
+          acknowledgementWrapElement.innerHTML = buildAcknowledgement(config);
           formElement.action = config.action || "";
           formElement.method = (config.method || "post").toLowerCase();
           confirmButton.textContent = config.confirmText || "ยืนยัน";
@@ -433,6 +465,10 @@
           currentTargetFormId = config.targetFormId || "";
           lastTriggerElement = config.triggerElement || null;
           currentPopupIsAlertOnly = config.alertOnly === true;
+          currentAcknowledgementCheckbox = config.requireAcknowledgement
+            ? document.getElementById("appPopupModalAcknowledge")
+            : null;
+          confirmButton.disabled = !!currentAcknowledgementCheckbox;
           confirmButton.type = currentPopupIsAlertOnly || currentTargetFormId ? "button" : "submit";
           if (currentPopupIsAlertOnly && !config.confirmText) {
             confirmButton.textContent = "ตกลง";
@@ -452,6 +488,12 @@
                 input.focus();
               }
             }, 150);
+          }
+
+          if (currentAcknowledgementCheckbox) {
+            currentAcknowledgementCheckbox.addEventListener("change", function () {
+              confirmButton.disabled = !currentAcknowledgementCheckbox.checked;
+            });
           }
 
           modalInstance.show();
@@ -479,6 +521,10 @@
           }
 
           if (!currentTargetFormId) {
+            return;
+          }
+
+          if (currentAcknowledgementCheckbox && !currentAcknowledgementCheckbox.checked) {
             return;
           }
 
@@ -528,6 +574,8 @@
             inputLabel: trigger.dataset.popupInputLabel,
             inputRows: trigger.dataset.popupInputRows,
             inputRequired: trigger.dataset.popupInputRequired === "true",
+            requireAcknowledgement: trigger.dataset.popupRequireAcknowledgement === "true",
+            acknowledgementLabel: trigger.dataset.popupAcknowledgementLabel,
             targetFormId: trigger.dataset.popupTargetFormId,
             alertOnly: trigger.dataset.popupAlertOnly === "true",
             triggerElement: trigger,
