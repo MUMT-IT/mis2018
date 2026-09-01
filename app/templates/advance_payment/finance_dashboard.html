@@ -9,113 +9,178 @@
     <p class="text-muted mb-0">{{ dashboard_description }}</p>
   </header>
 
-  <!-- Summary Cards Section -->
-  <section class="mb-4">
-    <div class="row g-3">
-      <!-- สัญญาเงินยืมใกล้ครบกำหนด (15 วัน) -->
-      <div class="col-md-3">
-        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" 
-            onclick="navigateToTicketsView('near_due')" 
-            style="cursor: pointer;">
-          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
-            <span>สัญญาเงินยืมใกล้ครบกำหนด (15 วัน)</span>
-            <i class="bi bi-exclamation-circle text-warning"></i>
-          </div>
-          <div class="fs-2 fw-bold text-warning mt-2" id="nearDueCount">{{ near_due_count or 0 }}</div>
-          <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
+<!-- Summary Cards Section -->
+<section class="mb-4">
+  <div class="row g-3">
+
+    <!-- 1. สัญญาเงินยืมใกล้ครบกำหนด (15 วัน) -->
+    <div class="col-md-4">
+      <div
+        class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+        onclick="navigateToTicketsView('near_due')"
+        style="cursor: pointer;"
+      >
+        <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+          <span>สัญญาเงินยืมใกล้ครบกำหนด (15 วัน)</span>
+          <i class="bi bi-exclamation-circle text-warning"></i>
         </div>
-      </div>
 
-      <!-- สัญญาเงินยืมที่เลยกำหนดส่ง -->
-      <div class="col-md-3">
-        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" 
-            onclick="navigateToTicketsView('overdue')" 
-            style="cursor: pointer;">
-          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
-            <span>สัญญาเงินยืมที่เลยกำหนดส่ง</span>
-            <i class="bi bi-x-circle text-danger"></i>
-          </div>
-          <div class="fs-2 fw-bold text-danger mt-2" id="overdueCount">{{ overdue_count or 0 }}</div>
-          <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
+        <div class="fs-2 fw-bold text-warning mt-2" id="nearDueCount">
+          {{ near_due_count or 0 }}
         </div>
-      </div>
 
-      <!-- ยอดหนี้คงค้างทั้งหมด -->
-      <div class="col-md-3">
-        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" 
-            onclick="navigateToTicketsView('pending_debt')" 
-            style="cursor: pointer;">
-          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
-            <span>ยอดหนี้คงค้างทั้งหมด</span>
-            <i class="bi bi-wallet2 text-danger"></i>
-          </div>
-          <div class="fs-2 fw-bold text-danger mt-2" id="totalPendingDebt">
-            {{ "{:,.2f}".format(shadow_sum_debt or 0.00) }}
-          </div>
-          <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
-        </div>
-      </div>
-      
-      <div class="col-md-3"></div>
-
-      <!-- การ์ด 1: รายการที่รอการตรวจสอบ -->
-      <div class="col-md-3">
-        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" onclick="filterByPendingReview()" style="cursor: pointer;">
-          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
-            <span>รายการที่รอการตรวจสอบ</span>
-            <i class="bi bi-clock-history text-warning"></i>
-          </div>
-          <div class="fs-2 fw-bold text-warning mt-2" id="pendingReviewCount">0</div>
-          <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
-        </div>
-      </div>
-
-      <!-- การ์ด 2: รายการที่รอการโอนคืน -->
-      <div class="col-md-3">
-        <a href="{{ url_for('advance_payment.petty_cash_settings') }}#proofed-claims" class="text-decoration-none text-dark">
-          <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" style="cursor: pointer;">
-            <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
-              <span>รายการที่รอการโอนคืน</span>
-              <i class="bi bi-arrow-repeat text-info"></i>
-            </div>
-            <div class="fs-2 fw-bold text-info mt-2" id="claimProofedCount">0</div>
-            <span class="text-primary small mt-1"><i class="bi bi-search"></i> คลิกเพื่อดูรายการ</span>
-          </div>
-        </a>
-      </div>
-
-      <div class="col-md-3">
-        <a href="{{ url_for('advance_payment.closing_management', status='ผ่านการตรวจสอบ') }}" class="text-decoration-none text-dark">
-          <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" style="cursor: pointer;">
-            <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
-              <span>รอการตั้งฎีกา</span>
-              <i class="bi bi-file-earmark-check text-primary"></i>
-            </div>
-            <div class="fs-2 fw-bold text-primary mt-2" id="proofedCount">{{ proofed_count or 0 }}</div>
-            <span class="text-primary small mt-1"><i class="bi bi-arrow-right-circle"></i> ไปดูรายการ</span>
-          </div>
-        </a>
-      </div>
-
-      <div class="col-md-3">
-        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card" 
-            data-bs-toggle="modal" 
-            data-bs-target="#interestTrackerModal" 
-            style="cursor: pointer;">
-          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
-            <span>หน่วยงานค้างส่งดอกเบี้ย</span>
-            <i class="bi bi-bank text-danger"></i>
-          </div>
-          <div class="fs-2 fw-bold text-danger mt-2" id="pendingInterestCount">
-            {{ pending_interest_count or 0 }}
-          </div>
-          <span class="text-primary small mt-1">
-            <i class="bi bi-search"></i> คลิกเพื่อดูรายละเอียด
-          </span>
-        </div>
+        <span class="text-primary small mt-1">
+          <i class="bi bi-search"></i> คลิกเพื่อดูรายการ
+        </span>
       </div>
     </div>
-  </section>
+
+    <!-- 2. สัญญาเงินยืมที่เลยกำหนดส่ง -->
+    <div class="col-md-4">
+      <div
+        class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+        onclick="navigateToTicketsView('overdue')"
+        style="cursor: pointer;"
+      >
+        <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+          <span>สัญญาเงินยืมที่เลยกำหนดส่ง</span>
+          <i class="bi bi-x-circle text-danger"></i>
+        </div>
+
+        <div class="fs-2 fw-bold text-danger mt-2" id="overdueCount">
+          {{ overdue_count or 0 }}
+        </div>
+
+        <span class="text-primary small mt-1">
+          <i class="bi bi-search"></i> คลิกเพื่อดูรายการ
+        </span>
+      </div>
+    </div>
+
+    <!-- 3. ยอดหนี้คงค้างทั้งหมด -->
+    <div class="col-md-4">
+      <div
+        class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+        onclick="navigateToTicketsView('pending_debt')"
+        style="cursor: pointer;"
+      >
+        <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+          <span>ยอดหนี้คงค้างทั้งหมด</span>
+          <i class="bi bi-wallet2 text-danger"></i>
+        </div>
+
+        <div class="fs-2 fw-bold text-danger mt-2" id="totalPendingDebt">
+          {{ "{:,.2f}".format(shadow_sum_debt or 0.00) }}
+        </div>
+
+        <span class="text-primary small mt-1">
+          <i class="bi bi-search"></i> คลิกเพื่อดูรายการ
+        </span>
+      </div>
+    </div>
+
+    <!-- 4. รายการเงินสดย่อยที่รอการโอนคืน -->
+    <div class="col-md-4">
+      <a
+        href="{{ url_for('advance_payment.petty_cash_settings') }}#proofed-claims"
+        class="text-decoration-none text-dark d-block h-100"
+      >
+        <div
+          class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+          style="cursor: pointer;"
+        >
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>รายการเงินสดย่อยที่รอการโอนคืน</span>
+            <i class="bi bi-arrow-repeat text-info"></i>
+          </div>
+
+          <div class="fs-2 fw-bold text-info mt-2" id="claimProofedCount">
+            0
+          </div>
+
+          <span class="text-primary small mt-1">
+            <i class="bi bi-search"></i> คลิกเพื่อดูรายการ
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <!-- บังคับให้การ์ดใบที่ 5 เริ่มแถวใหม่ -->
+    <div class="w-100 d-none d-md-block"></div>
+
+    <!-- 5. รายการที่รอการตรวจสอบ -->
+    <div class="col-md-4">
+      <div
+        class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+        onclick="filterByPendingReview()"
+        style="cursor: pointer;"
+      >
+        <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+          <span>รายการที่รอการตรวจสอบ</span>
+          <i class="bi bi-clock-history text-warning"></i>
+        </div>
+
+        <div class="fs-2 fw-bold text-warning mt-2" id="pendingReviewCount">
+          0
+        </div>
+
+        <span class="text-primary small mt-1">
+          <i class="bi bi-search"></i> คลิกเพื่อดูรายการ
+        </span>
+      </div>
+    </div>
+
+    <!-- 6. รอการตั้งฎีกา -->
+    <div class="col-md-4">
+      <a
+        href="{{ url_for('advance_payment.closing_management', status='ผ่านการตรวจสอบ') }}"
+        class="text-decoration-none text-dark d-block h-100"
+      >
+        <div
+          class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+          style="cursor: pointer;"
+        >
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>รอการตั้งฎีกา</span>
+            <i class="bi bi-file-earmark-check text-primary"></i>
+          </div>
+
+          <div class="fs-2 fw-bold text-primary mt-2" id="proofedCount">
+            {{ proofed_count or 0 }}
+          </div>
+
+          <span class="text-primary small mt-1">
+            <i class="bi bi-arrow-right-circle"></i> ไปดูรายการ
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <!-- 7. หน่วยงานค้างส่งดอกเบี้ย -->
+    <div class="col-md-4">
+      <div
+        class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+        data-bs-toggle="modal"
+        data-bs-target="#interestTrackerModal"
+        style="cursor: pointer;"
+      >
+        <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+          <span>หน่วยงานค้างส่งดอกเบี้ย</span>
+          <i class="bi bi-bank text-danger"></i>
+        </div>
+
+        <div class="fs-2 fw-bold text-danger mt-2" id="pendingInterestCount">
+          {{ pending_interest_count or 0 }}
+        </div>
+
+        <span class="text-primary small mt-1">
+          <i class="bi bi-search"></i> คลิกเพื่อดูรายละเอียด
+        </span>
+      </div>
+    </div>
+
+  </div>
+</section>
 
   <!-- Section กรองและค้นหาข้อมูลแบบ Row -->
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-4">

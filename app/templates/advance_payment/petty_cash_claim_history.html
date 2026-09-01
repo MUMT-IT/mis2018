@@ -1,12 +1,12 @@
-﻿{% extends "advance_payment/base.html" %}
+{% extends "advance_payment/base.html" %}
 
-{% block title %}ประวัติบันทึกเอกสารส่งใช้เงินยืมทั้งหมด | ระบบเงินยืมทดรองจ่าย{% endblock %}
+{% block title %}ประวัติบันทึกเอกสารขอเบิกเงินสดย่อยทั้งหมด | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom">
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
-  <h1 class="fw-bold display-6 mb-2">ประวัติบันทึกเอกสารส่งใช้เงินยืมทั้งหมด</h1>
-  <p class="text-muted mb-0">รวบรวม ตรวจสอบ ค้นหา และคัดกรองข้อมูลประวัติเอกสารส่งใช้เงินยืมและรายการส่งคืนพัสดุที่ผูกกับใบยืมเงินในระบบ</p>
+  <h1 class="fw-bold display-6 mb-2">ประวัติบันทึกเอกสารขอเบิกเงินสดย่อยทั้งหมด</h1>
+  <p class="text-muted mb-0">รวบรวม ตรวจสอบ ค้นหา และคัดกรองข้อมูลประวัติเอกสารขอเบิกเงินสดย่อยและรายการส่งคืนพัสดุที่ผูกกับเงินสดย่อยในระบบ</p>
 </header>
 
 <!-- Section กรองและค้นหาข้อมูล -->
@@ -63,9 +63,9 @@
           </button>
         </li>
         <li class="nav-item" role="presentation">
-          <button class="nav-item-tab nav-link py-3 fw-bold text-primary" id="tab-return" type="button" onclick="switchSystemTab('return')">
-            <i class="bi bi-arrow-return-left me-1 text-primary"></i> ส่งใช้เงินยืม
-            <span class="badge bg-primary rounded-pill ms-1" id="tab-badge-return">0</span>
+          <button class="nav-item-tab nav-link py-3 fw-bold text-success" id="tab-petty_cash" type="button" onclick="switchSystemTab('petty_cash')">
+            <i class="bi bi-receipt me-1 text-success"></i> เงินสดย่อย (Petty Cash)
+            <span class="badge bg-success rounded-pill ms-1" id="tab-badge-petty_cash">0</span>
           </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -99,7 +99,7 @@
                 data-ticket="{{ record.borrowing_ticket_name or '' }}"
                 data-borrower="{{ record.borrower_name or '' }}"
                 data-status="{{ record.status or '' }}"
-                data-type="{{ record.record_type or 'return' }}"
+                data-type="{{ record.record_type or 'petty_cash' }}"
                 data-submitdate="{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else '-' }}"
                 data-เอกสารตั้งฎีกาdate="{{ record.เอกสารตั้งฎีกา_at.strftime('%Y-%m-%d') if record.เอกสารตั้งฎีกา_at else '-' }}"
                 data-closingdoc="{{ record.closing_document_name or '-' }}"
@@ -224,7 +224,7 @@
             <tr>
               <td colspan="8" class="text-center py-4 text-muted">
                 <i class="bi bi-inbox fs-3 d-block mb-2 text-muted"></i>
-                ไม่พบข้อมูลบันทึกประวัติเอกสารส่งใช้เงินยืม
+                ไม่พบข้อมูลบันทึกประวัติเอกสารขอเบิกเงินสดย่อย
               </td>
             </tr>
             {% endfor %}
@@ -256,18 +256,18 @@
   function updateTabBadges() {
     const rows = document.querySelectorAll(".record-row");
     let countAll = 0;
-    let countReturn = 0;
+    let countPetty = 0;
     let countParcel = 0;
 
     rows.forEach(row => {
-      const type = row.getAttribute("data-type") || "return";
+      const type = row.getAttribute("data-type") || "petty_cash";
       countAll++;
-      if (type === "return") countReturn++;
+      if (type === "petty_cash") countPetty++;
       else if (type === "parcel_return") countParcel++;
     });
 
     if (document.getElementById("tab-badge-all")) document.getElementById("tab-badge-all").innerText = countAll;
-    if (document.getElementById("tab-badge-return")) document.getElementById("tab-badge-return").innerText = countReturn;
+    if (document.getElementById("tab-badge-petty_cash")) document.getElementById("tab-badge-petty_cash").innerText = countPetty;
     if (document.getElementById("tab-badge-parcel_return")) document.getElementById("tab-badge-parcel_return").innerText = countParcel;
   }
 
@@ -281,7 +281,7 @@
       const ticket = row.getAttribute("data-ticket").toLowerCase();
       const borrower = row.getAttribute("data-borrower").toLowerCase();
       const closingDoc = row.getAttribute("data-closingdoc").toLowerCase();
-      const rType = (row.getAttribute("data-type") || "return").toLowerCase();
+      const rType = (row.getAttribute("data-type") || "petty_cash").toLowerCase();
       
       let rStatusRaw = row.getAttribute("data-status").toLowerCase();
       let rStatus = rStatusRaw;
@@ -352,7 +352,7 @@
     // ดึงค่าประเภทจาก URL Parameter เพื่อสั่งสลับ Tab อัตโนมัติ (ถ้ามี)
     if (typeParam) {
       typeParam = typeParam.toLowerCase();
-      if (['return', 'parcel_return'].includes(typeParam)) {
+      if (['petty_cash', 'parcel_return'].includes(typeParam)) {
         switchSystemTab(typeParam);
       }
     }
@@ -361,4 +361,3 @@
   });
 </script>
 {% endblock %}
-

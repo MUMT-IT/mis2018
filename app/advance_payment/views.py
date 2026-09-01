@@ -759,14 +759,14 @@ def recheck_overdue_and_upcoming_statuses():
             is_upcoming = not is_overdue
 
             _send_notification_email(ticket, extra_ctx={
-                "is_overdue": is_overdue, 
+                "is_overdue": is_overdue,
                 "is_upcoming": is_upcoming,
                 "days_remaining": days_remaining
             })
 
             ticket.last_notified_type = notification_type
             ticket.last_notified_date = today
-            
+
     try:
         db.session.commit()
     except Exception as e:
@@ -1158,11 +1158,11 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
             or target_object.borrower_email
             or "ผู้รับบริการ"
         )
-        
+
         totals = _calculate_ticket_return_totals(target_object.id)
         extra_ctx["remaining_amount"] = totals["remaining_amount"]
         extra_ctx["is_overdue"] = target_object.due_date < datetime.now().date() if target_object.due_date else False
-        
+
     elif object_type == "return":
         ticket = db.session.query(BorrowingTicket).filter_by(id=target_object.ticket_id).first()
         extra_ctx["ticket"] = ticket
@@ -1229,7 +1229,7 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
             )
 
     email_data = generate_notification_email_content(target_object, object_type=object_type, extra_ctx=extra_ctx)
-    
+
     try:
         current_app.logger.info(
             f"ส่งข้อความไปยัง: {', '.join(email_data['to_emails']) or 'ไม่พบอีเมลผู้รับ'}"
@@ -1247,10 +1247,10 @@ def mark_return_checking(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
         abort(404)
-    
+
     return_detail.status = "กำลังตรวจสอบ"
     db.session.commit()
-    
+
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
     _send_notification_email(return_detail, object_type="return")
     flash("เปลี่ยนสถานะเป็น 'กำลังตรวจสอบ' เรียบร้อยแล้ว")
@@ -1262,12 +1262,12 @@ def mark_return_received(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
         abort(404)
-    
+
     return_detail.status = "ล้างลูกหนี้เงินยืม"
     db.session.commit()
-    
+
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
-    
+
 
     flash("เปลี่ยนสถานะเป็น 'ได้รับเงินแล้ว' และสิ้นสุดกระบวนการเรียบร้อย")
     return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
@@ -1348,7 +1348,7 @@ def bulk_receive_closing_doc(closing_doc_id):
     closing_doc = db.session.query(ClosingDocument).get(closing_doc_id)
     if not closing_doc:
         abort(404)
-        
+
     returns_in_doc = db.session.query(ReturnDetail).filter(
         ReturnDetail.closing_document_id == closing_doc.id,
         ReturnDetail.status != "ล้างลูกหนี้เงินยืม"
@@ -1358,16 +1358,16 @@ def bulk_receive_closing_doc(closing_doc_id):
         ParcelReturnDetail.closing_document_id == closing_doc.id,
         ParcelReturnDetail.status != "ได้รับเอกสารแล้ว"
     ).all()
-    
+
     petty_in_doc = db.session.query(PettyCashClaimDetail).filter(
         PettyCashClaimDetail.closing_document_id == closing_doc.id,
         PettyCashClaimDetail.status != "เสร็จสิ้นกระบวนการ"
     ).all()
-    
+
     if not returns_in_doc and not petty_in_doc and not parcel_in_doc:
         flash("ไม่มีรายการเอกสารส่งใช้เงินยืม พัสดุ หรือเงินสดย่อยที่ต้องล้างลูกหนี้ในฎีกานี้เพิ่มเติม", "info")
         return redirect(url_for("advance_payment.closing_management", search_closing_number=closing_doc.document_number))
-        
+
     updated_tickets = set()
     for ret in returns_in_doc:
         ret.status = "ล้างลูกหนี้เงินยืม"
@@ -1376,15 +1376,15 @@ def bulk_receive_closing_doc(closing_doc_id):
     for pr in parcel_in_doc:
         pr.status = "ล้างลูกหนี้เงินยืม"
         updated_tickets.add(pr.ticket_id)
-        
+
     for petty in petty_in_doc:
         petty.status = "เสร็จสิ้นกระบวนการ"
-        
+
     for ticket_id in updated_tickets:
         _recalculate_borrowing_ticket_status(ticket_id)
 
     closing_doc.status = "ล้างลูกหนี้เงินยืม"
-        
+
     db.session.commit()
     flash(f"เปลี่ยนสถานะรายการทั้งหมดรวมถึงเงินสดย่อยในฎีกา {closing_doc.document_number} เป็น 'ล้างลูกหนี้เงินยืม' เรียบร้อยแล้ว", "success")
     return redirect(url_for("advance_payment.closing_management", search_closing_number=closing_doc.document_number))
@@ -1522,21 +1522,21 @@ def _recalculate_borrowing_ticket_status(ticket_id):
     budget_covered = float(cumulative_total) >= float(budget) and float(budget) > 0
 
     new_status = old_status
-    
+
     if budget_covered:
         new_status = "เคลียร์ยอดแล้ว"
         borrowing_ticket.closed_date = datetime.now().date()
-        
+
     elif float(cumulative_total) > 0:
         new_status = "มียอดคงค้าง"
-        
+
     else:
         if old_status in {"กำลังส่งคำขอ", "อนุมัติจ่ายเงิน", "ปฏิเสธ"}:
             new_status = old_status
 
     borrowing_ticket.status = new_status
     db.session.commit()
-        
+
     _send_notification_email(borrowing_ticket)
 
     return borrowing_ticket.status
@@ -1891,12 +1891,12 @@ def export_ticket_pdf(ticket_id):
     ticket = db.session.query(BorrowingTicket).get(ticket_id)
     if not ticket:
         abort(404)
-        
+
     if _is_coordinator_role(session.get("user_role")) and ticket.creator_id != session.get("user_id"):
         abort(403)
-        
+
     pdf_bytes = generate_fnar02_pdf(ticket)
-    
+
     response = current_app.response_class(pdf_bytes, mimetype='application/pdf')
     response.headers['Content-Disposition'] = f'attachment; filename=FNAR02_Ticket_{ticket_id}.pdf'
     return response
@@ -1916,7 +1916,7 @@ def finance_dashboard():
         .order_by(ParcelReturnDetail.id.desc())
         .all()
     )
-    
+
     # -------------------------------------------------------------
     # เพิ่ม: ดึงข้อมูลรายการเบิกเงินสดย่อย (Petty Cash Claims)
     # -------------------------------------------------------------
@@ -1925,7 +1925,7 @@ def finance_dashboard():
         .order_by(PettyCashClaimDetail.id.desc())
         .all()
     )
-    
+
     proofed_return_count = db.session.query(ReturnDetail).filter(ReturnDetail.status == "ผ่านการตรวจสอบ").count()
     proofed_parcel_count = db.session.query(ParcelReturnDetail).filter(ParcelReturnDetail.status == "ได้รับเอกสารแล้ว").count()
     proofed_claim_count = db.session.query(PettyCashClaimDetail).filter(PettyCashClaimDetail.status == "ผ่านการตรวจสอบ").count()
@@ -1933,7 +1933,7 @@ def finance_dashboard():
 
     for parcel in parcel_returns:
         _attach_parcel_return_context(parcel)
-    
+
     return_details_by_ticket = {}
     for item in return_details:
         return_details_by_ticket.setdefault(item.ticket_id, []).append(item)
@@ -1974,12 +1974,12 @@ def finance_dashboard():
             or (fund_request.ticket_number if fund_request and fund_request.ticket_number else None)
             or f"PC-{claim.id}"
         )
-        
+
     close_ticket_ready = {
         ticket.id: ticket.status == "เคลียร์ยอดแล้ว" and bool(return_details_by_ticket.get(ticket.id)) and all(item.status == "เอกสารตั้งฎีกา" for item in return_details_by_ticket.get(ticket.id, []))
         for ticket in borrowing_tickets
     }
-    
+
     today_date = datetime.now().date()
     shadow_sum_debt = 0.0
 
@@ -2006,7 +2006,7 @@ def finance_dashboard():
         ticket.status = normalized_status
         ticket.calculated_days_remaining = None
         ticket.calculated_overdue_days = None
-        
+
         if ticket.due_date:
             if today_date > ticket.due_date:
                 ticket.calculated_overdue_days = (today_date - ticket.due_date).days
@@ -2018,10 +2018,10 @@ def finance_dashboard():
                 # ถ้าเหลือวันน้อยกว่าหรือเท่ากับ 15 วัน และยังไม่ปิดสัญญา
                 if 0 <= ticket.calculated_days_remaining <= 15 and raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "รอตรวจสอบ"]:
                     near_due_count += 1
-        
+
         totals = _calculate_ticket_return_totals(ticket.id)
         ticket_remaining = totals["remaining_amount"]
-        
+
         if raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "รอตรวจสอบ"]:
             shadow_sum_debt += float(ticket_remaining if ticket_remaining > 0 else 0.0)
 
@@ -2251,14 +2251,14 @@ def tickets_view():
         ]
     else:
         tickets = query.all()
-    
+
     # =========================================================================
     # เพิ่มส่วนนี้: คำนวณวันคงเหลือ / วันเกินกำหนด สำหรับทุก ticket ที่นำไปแสดงผล
     # =========================================================================
     for ticket in tickets:
         ticket.calculated_days_remaining = None
         ticket.calculated_overdue_days = None
-        
+
         if ticket.due_date:
             if today_date > ticket.due_date:
                 ticket.calculated_overdue_days = (today_date - ticket.due_date).days
@@ -2322,7 +2322,7 @@ def verification_view(ticket_id):
 
     summary = _calculate_ticket_return_totals(ticket_id)
     notifications = None
-    
+
     proof_files = (
         db.session.query(ReturnProofFile)
         .join(ReturnDetail, ReturnDetail.id == ReturnProofFile.return_detail_id)
@@ -2552,7 +2552,7 @@ def update_parcel_return(parcel_return_id):
     current_status = (parcel_return.status or "").strip()
     if current_status not in {"รอตรวจสอบ", "ปฏิเสธ"}:
         flash("สามารถแก้ไขรายการส่งคืนพัสดุได้เฉพาะก่อนฝ่ายการเงินตรวจสอบ หรือหลังถูกปฏิเสธเท่านั้น", "warning")
-        return _redirect_back_or("advance_payment.return_records_history")
+        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     amount = request.form.get("amount", "0").replace(",", "")
     items_description = request.form.get("items_description", "").strip()
@@ -2560,13 +2560,13 @@ def update_parcel_return(parcel_return_id):
 
     if not items_description or not sent_date_str:
         flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน", "danger")
-        return _redirect_back_or("advance_payment.return_records_history")
+        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     try:
         parsed_amount = float(amount or 0)
     except (TypeError, ValueError):
         flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
-        return _redirect_back_or("advance_payment.return_records_history")
+        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     ticket_totals = _calculate_ticket_return_totals_with_parcel(parcel_return.ticket_id, exclude_parcel_return_id=parcel_return.id)
     projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
@@ -2579,7 +2579,7 @@ def update_parcel_return(parcel_return_id):
             ),
             "danger",
         )
-        return _redirect_back_or("advance_payment.return_records_history")
+        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     if parcel_return.fund_request_id:
         fund_totals = _calculate_fund_request_totals(parcel_return.fund_request_id, exclude_parcel_return_id=parcel_return.id)
@@ -2593,7 +2593,7 @@ def update_parcel_return(parcel_return_id):
                 ),
                 "danger",
             )
-            return _redirect_back_or("advance_payment.return_records_history")
+            return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
@@ -2607,7 +2607,7 @@ def update_parcel_return(parcel_return_id):
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
 
     flash("แก้ไขรายการส่งคืนพัสดุเรียบร้อยแล้ว", "success")
-    return _redirect_back_or("advance_payment.return_records_history")
+    return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/proofed", methods=["POST"])
 @login_required(role="finance")
@@ -2619,11 +2619,11 @@ def mark_parcel_proofed(parcel_return_id):
     current_status = (parcel_return.status or "").strip()
     if current_status in {"ได้รับเอกสารแล้ว", "เอกสารตั้งฎีกา"}:
         flash("รายการนี้ผ่านขั้นตอนตรวจสอบแล้ว", "warning")
-        return _redirect_back_or("advance_payment.return_records_history")
+        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     if current_status not in {"รอตรวจสอบ", "กำลังตรวจสอบ"}:
         flash("ต้องอยู่ในสถานะรอตรวจสอบก่อนจึงจะยืนยันการมีอยู่ของเอกสารพัสดุได้", "warning")
-        return _redirect_back_or("advance_payment.return_records_history")
+        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     parcel_return.status = "พัสดุกำลังดำเนินการ"
     db.session.commit()
@@ -2633,7 +2633,7 @@ def mark_parcel_proofed(parcel_return_id):
 
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
     flash("ยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุเรียบร้อยแล้ว", "success")
-    return _redirect_back_or("advance_payment.return_records_history")
+    return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/received", methods=["POST"])
@@ -2642,22 +2642,22 @@ def mark_parcel_received(parcel_return_id):
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
         abort(404)
-    
+
     current_status = (parcel_return.status or "").strip()
     if current_status not in {"พัสดุกำลังดำเนินการ", "กำลังตรวจสอบ"}:
         flash("ต้องยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุก่อนรับเอกสารจริง", "danger")
-        return _redirect_back_or("advance_payment.return_records_history")
+        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     parcel_return.status = "ได้รับเอกสารแล้ว"
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
         _recalculate_fund_request_submission_status(parcel_return.fund_request_id)
-    
+
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
-    
+
     flash("เปลี่ยนสถานะพัสดุเป็น 'ได้รับเอกสารแล้ว' เรียบร้อย")
-    return _redirect_back_or("advance_payment.return_records_history")
+    return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/reject", methods=["POST"])
@@ -2670,7 +2670,7 @@ def reject_parcel_return(parcel_return_id):
     current_status = (parcel_return.status or "").strip()
     if current_status in {"ได้รับเอกสารแล้ว", "เอกสารตั้งฎีกา"}:
         flash("ไม่สามารถปฏิเสธรายการที่รับเอกสารแล้วหรือปิดรายการแล้วได้", "warning")
-        return _redirect_back_or("advance_payment.return_records_history")
+        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
     new_comment = request.form.get("rejection_comment", "").strip()
 
@@ -2696,7 +2696,7 @@ def reject_parcel_return(parcel_return_id):
 
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
     flash("ปฏิเสธรายการส่งคืนพัสดุเรียบร้อยแล้ว", "success")
-    return _redirect_back_or("advance_payment.return_records_history")
+    return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
 @bp.route("/api/documents/suggest", methods=["GET"])
 @login_required()
@@ -2822,7 +2822,7 @@ def submit_return_details():
         )
         db.session.add(return_detail)
         db.session.flush()
-    
+
     return_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
     db.session.flush()
 
@@ -2851,7 +2851,7 @@ def submit_return_details():
             clean_store_name = re.sub(r'[^\u0e00-\u0e7fa-zA-Z0-9\s_-]', '', receipt_obj.store_name or "receipt").strip().replace(" ", "_")
             timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             new_filename = f"{clean_store_name or 'receipt'}_{timestamp_str}{ext}"
-            
+
             upload_folder = os.path.join(_upload_root(), str(ticket_id))
             os.makedirs(upload_folder, exist_ok=True)
             proof_path = f"uploads/{ticket_id}/{new_filename}"
@@ -2978,13 +2978,13 @@ def edit_receipt_item_inline(file_id):
     # 4. ดึงข้อมูล Master และตรวจสอบสิทธิ์/สถานะ
     if is_claim:
         claim_detail_id = (
-            getattr(receipt_item, 'claim_id', None) or 
-            getattr(receipt_item, 'claim_detail_id', None) or 
+            getattr(receipt_item, 'claim_id', None) or
+            getattr(receipt_item, 'claim_detail_id', None) or
             (receipt_item.claim_detail.id if hasattr(receipt_item, 'claim_detail') and receipt_item.claim_detail else None)
         ) if receipt_item else getattr(proof_file, 'claim_id', getattr(proof_file, 'claim_detail_id', None))
-                
+
         claim_detail = db.session.query(PettyCashClaimDetail).get(claim_detail_id)
-        
+
         if not claim_detail:
             abort(404)
 
@@ -2997,7 +2997,7 @@ def edit_receipt_item_inline(file_id):
     else:
         return_detail_id = receipt_item.return_detail_id if receipt_item else proof_file.return_detail_id
         return_detail = db.session.query(ReturnDetail).get(return_detail_id)
-        
+
         if not return_detail:
             abort(404)
 
@@ -3030,7 +3030,7 @@ def edit_receipt_item_inline(file_id):
         if receipt_date_str:
             parsed_date = _coerce_date(receipt_date_str)
             receipt_item.receipt_date = parsed_date
-            
+
             # --- [เพิ่มส่วนการตรวจสอบอายุใบเสร็จ] ---
             if _receipt_requires_additional_document(parsed_date):
                 receipt_is_old = True
@@ -3106,11 +3106,11 @@ def edit_receipt_item_inline(file_id):
         claim_detail.total_amount = total_spent_for_claim
 
         db.session.commit()
-        
+
         # แจ้งเตือนเรื่องใบเสร็จเกิน 10 วัน (ถ้ามี)
         if receipt_is_old:
             flash("ใบเสร็จมีอายุเกิน 10 วัน กรุณาจัดทำเอกสารขออนุมัติเบิกจ่ายล่าช้าประกอบการยื่นเพิ่มเติม", "warning")
-            
+
         flash("แก้ไขข้อมูลรายการเบิกเงินสดย่อยสำเร็จเรียบร้อยแล้ว", "success")
         return redirect(url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_detail.id))
     else:
@@ -3148,14 +3148,14 @@ def autosave_return_draft(ticket_id):
         return_detail = ReturnDetail(ticket_id=ticket_id, proof_reference="Itemized Details Stored", status="ฉบับร่าง")
         db.session.add(return_detail)
         db.session.flush()
-    
+
     db.session.commit()
 
     # บันทึกรายการใบเสร็จใหม่
     for item in items:
         r_date = _coerce_date(item.get("receipt_date"))
         amt = float(item.get("amount") or 0.0)
-        
+
         receipt_obj = ReturnReceiptItem(
             return_detail_id=return_detail.id,
             receipt_date=r_date,
@@ -3169,7 +3169,7 @@ def autosave_return_draft(ticket_id):
     _replace_return_detail_documents(return_detail, announcements)
 
     db.session.commit()
-    
+
     saved_time = datetime.now().strftime("%H:%M:%S")
     return jsonify({"success": True, "saved_at": saved_time})
 
@@ -3276,9 +3276,9 @@ def approve_borrowing_ticket(ticket_id):
     borrowing_ticket.approved_at = datetime.now()
     borrowing_ticket.finance_verified = True
     db.session.commit()
-    
+
     _send_notification_email(borrowing_ticket)
-    
+
     flash("อนุมัติสัญญาเงินยืมเงินทดรองจ่ายและส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว")
 
     return redirect(url_for("advance_payment.finance_dashboard"))
@@ -3343,12 +3343,12 @@ def reject_borrowing_ticket(ticket_id):
 def return_records_history():
     # 1. ดึงข้อมูลประวัติหลักฐานเอกสารส่งใช้เงินยืม (ReturnDetail)
     return_records = db.session.query(ReturnDetail).filter(ReturnDetail.status != "ฉบับร่าง").all()
-    
+
     processed_records = []
     for record in return_records:
         ticket = db.session.query(BorrowingTicket).filter_by(id=record.ticket_id).first()
         closing_document = _get_closing_document(record.closing_document_id)
-        
+
         processed_records.append({
             "record_type": "return",
             "id": record.id,
@@ -3367,7 +3367,13 @@ def return_records_history():
         })
 
     # 2. ดึงข้อมูลรายการส่งคืนพัสดุ (ParcelReturnDetail)
-    parcel_records = db.session.query(ParcelReturnDetail).all()
+    #    เฉพาะรายการที่ผูกกับ borrowing_ticket เท่านั้น
+    parcel_records = (
+        db.session.query(ParcelReturnDetail)
+        .filter(ParcelReturnDetail.fund_request_id.is_(None))
+        .order_by(ParcelReturnDetail.id.desc())
+        .all()
+    )
     for record in parcel_records:
         _attach_parcel_return_context(record)
         closing_document = _get_closing_document(record.closing_document_id)
@@ -3394,7 +3400,17 @@ def return_records_history():
             "old_document_number": record.old_closing_document_name or ""
         })
 
-    # 3. ดึงข้อมูลรายการขอเบิกเงินสดย่อย (PettyCashClaimDetail)
+    return render_template(
+        "advance_payment/return_records_history.html",
+        records=processed_records,
+        history_mode="return",
+    )
+
+
+@bp.route("/finance/petty-cash-claim-records", methods=["GET"])
+@login_required(role="finance")
+def petty_cash_claim_history():
+    # 1. ดึงข้อมูลรายการขอเบิกเงินสดย่อย (PettyCashClaimDetail)
     claim_details = (
         db.session.query(PettyCashClaimDetail)
         .filter(PettyCashClaimDetail.status != "ฉบับร่าง")
@@ -3413,7 +3429,7 @@ def return_records_history():
             else (_get_staff_department_name(claim.user, "ไม่ระบุ") if claim.user else "ไม่ระบุ")
         )
         borrower_name = claim.user.name if claim.user else '-'
-        
+
         processed_claims.append({
             "record_type": "petty_cash",
             "id": claim.id,
@@ -3432,10 +3448,51 @@ def return_records_history():
             "old_document_number": claim.old_closing_document_name or ""
         })
 
-    # 4. รวมข้อมูลทั้ง 3 ชุด
-    all_combined_records = processed_records + processed_claims
+    # 2. ดึงข้อมูลรายการส่งคืนพัสดุที่ผูกกับ fund_request
+    parcel_records = (
+        db.session.query(ParcelReturnDetail)
+        .filter(ParcelReturnDetail.fund_request_id.isnot(None))
+        .order_by(ParcelReturnDetail.id.desc())
+        .all()
+    )
 
-    return render_template("advance_payment/return_records_history.html", records=all_combined_records)
+    for record in parcel_records:
+        _attach_parcel_return_context(record)
+        closing_document = _get_closing_document(record.closing_document_id)
+
+        processed_claims.append({
+            "record_type": "parcel_return",
+            "id": record.id,
+            "ticket_id": record.ticket_id,
+            "fund_request_id": record.fund_request_id,
+            "ticket_number": (
+                f"บย. {record.display_ticket_number}"
+                if record.ticket_id and record.display_ticket_number not in {None, "-", "N/A"}
+                else (record.display_ticket_number or "N/A")
+            ),
+            "borrowing_ticket_name": record.display_subject_name if getattr(record, "display_subject_name", None) else "N/A",
+            "borrower_name": record.display_borrower_name if getattr(record, "display_borrower_name", None) else "N/A",
+            "amount_spent": float(record.amount_spent or 0),
+            "total_amount": float(record.amount_spent or 0),
+            "status": record.status,
+            "created_at": record.created_at if hasattr(record, 'created_at') else None,
+            "closed_at": closing_document.filing_date if closing_document else None,
+            "closing_document_id": record.closing_document_id or "-",
+            "closing_document_name": closing_document.document_number if closing_document else "-",
+            "old_document_number": record.old_closing_document_name or ""
+        })
+
+    return render_template(
+        "advance_payment/petty_cash_claim_history.html",
+        records=processed_claims,
+        history_mode="petty_cash",
+    )
+
+
+def _parcel_return_history_fallback(parcel_return):
+    if getattr(parcel_return, "fund_request_id", None):
+        return "advance_payment.petty_cash_claim_history"
+    return "advance_payment.return_records_history"
 
 @bp.route("/finance/petty-cash-settings", methods=["GET", "POST"])
 @login_required(role="finance")
@@ -3450,7 +3507,7 @@ def petty_cash_settings():
         budgets = request.form.getlist("budget[]")
         acc_numbers = request.form.getlist("account_number[]")
         bank_account_info_ids = request.form.getlist("bank_account_info_id[]")
-        valid_dept_names = request.form.getlist("valid_dept[]") 
+        valid_dept_names = request.form.getlist("valid_dept[]")
 
         for i in range(len(dept_names)):
             name = dept_names[i].strip()
@@ -3466,7 +3523,7 @@ def petty_cash_settings():
             bank_account_info_id = selected_bank_account.id if selected_bank_account else None
             if selected_bank_account and selected_bank_account.account_number:
                 acc = selected_bank_account.account_number
-            is_valid = name in valid_dept_names 
+            is_valid = name in valid_dept_names
 
             if name and bg_str and acc and fy_str:
                 existing = db.session.query(PettyCashSetting).filter_by(department_name=name).first()
@@ -3489,25 +3546,25 @@ def petty_cash_settings():
                         created_at=datetime.now(),
                     )
                     db.session.add(new_setting)
-        
+
         try:
             db.session.commit()
             flash("บันทึกข้อมูลตั้งต้นเงินสดย่อยเรียบร้อยแล้ว", "success")
         except Exception as e:
             db.session.rollback()
             flash(f"เกิดข้อผิดพลาดในการบันทึก: {str(e)}", "danger")
-        
+
         return redirect(url_for("advance_payment.petty_cash_settings"))
 
     settings = db.session.query(PettyCashSetting).all()
-    
+
     claim_details = (
         db.session.query(PettyCashClaimDetail)
         .filter(PettyCashClaimDetail.status == "ผ่านการตรวจสอบ")
         .order_by(PettyCashClaimDetail.created_at.desc())
         .all()
     )
-    
+
     dept_summary = {}
     for s in settings:
         summary = _calculate_petty_cash_balance_summary(s)
@@ -3572,7 +3629,7 @@ def api_petty_cash_options():
     query = db.session.query(PettyCashSetting).filter(PettyCashSetting.valid == True)
     if q:
         query = query.filter(PettyCashSetting.department_name.contains(q))
-    
+
     settings = query.all()
     results = [
         {
@@ -3717,7 +3774,7 @@ def closing_management():
         document_number = request.form.get("document_number", "").strip()
         filing_date_str = request.form.get("filing_date", "").strip()
         total_amount_input = request.form.get("total_amount", "0").strip()
-        
+
         return_ids = request.form.getlist("return_ids[]")
         parcel_return_ids = request.form.getlist("parcel_return_ids[]")
         petty_claim_ids = request.form.getlist("petty_claim_ids[]")  # รับเฉพาะ ID ของรายการเงินสดย่อยที่ถูกเลือก
@@ -3764,7 +3821,7 @@ def closing_management():
                 claim.closing_document_id = new_closing_doc.id
 
         updated_ticket_ids = set()
-        
+
         if return_ids:
             records = db.session.query(ReturnDetail).filter(
                 ReturnDetail.id.in_([int(r_id) for r_id in return_ids]),
@@ -4002,7 +4059,7 @@ def staff_fund_request():
     user = db.session.query(StaffAccount).filter_by(id=session["user_id"]).first()
     if not user:
         abort(404)
-        
+
     setting = _resolve_petty_cash_setting(user)
     _attach_petty_cash_setting_people(setting)
     approved_borrowing_tickets = _get_approved_borrowing_tickets_for_setting(setting)
@@ -4012,7 +4069,7 @@ def staff_fund_request():
     for ticket in approved_borrowing_tickets:
         _attach_borrowing_ticket_people(ticket)
     form = FundRequestForm(request.form)
-    
+
     if request.method == "GET":
         form.requester_name.data = user.name if user else ""
         form.requester_position.data = user.position if hasattr(user, 'position') else "เจ้าหน้าที่"
@@ -4024,16 +4081,16 @@ def staff_fund_request():
 
         if setting:
             form.account_number.data = setting.account_number
-            
+
         form.period_year.data = str(datetime.now().year)
-        
+
     if request.method == "POST" and form.validate():
         try:
             req_dept = setting.department_name if setting else (_get_staff_department_name(user) or "ไม่ระบุหน่วยงาน")
             req_acc = setting.account_number if setting else ""
             form_type = form.form_type.data
             selected_borrowing_ticket = None
-            
+
             req_date = form.request_date.data if form.request_date.data else datetime.now().date()
             fund_in_date = _coerce_date(request.form.get("fund_in_date"))
             withdrawal_date = _coerce_date(request.form.get("withdrawal_date"))
@@ -4068,8 +4125,8 @@ def staff_fund_request():
             new_request = FundRequest(
                 requester_id=user.id,
                 form_type=form_type,
-                requester_name=req_name,         
-                requester_position=req_pos, 
+                requester_name=req_name,
+                requester_position=req_pos,
                 department_name=req_dept,
                 account_number=req_acc,
                 ticket_number=None,  # รอระบุเลขตอนอนุมัติ
@@ -4091,7 +4148,7 @@ def staff_fund_request():
                 descriptions = request.form.getlist("item_description[]")
                 amounts = request.form.getlist("item_amount[]")
                 categories = request.form.getlist("item_category[]")
-                
+
                 for i in range(len(descriptions)):
                     desc = descriptions[i].strip()
                     amt_str = amounts[i].strip().replace(",", "")
@@ -4155,11 +4212,11 @@ def staff_fund_request():
             db.session.commit()
 
             pdf_bytes = generate_fund_request_pdf(new_request)
-            
+
             response = current_app.response_class(pdf_bytes, mimetype='application/pdf')
             response.headers['Content-Disposition'] = f'attachment; filename=Fund_Request_{new_request.id}.pdf'
             return response
-        
+
         except Exception as e:
             db.session.rollback()
             import traceback
@@ -4195,7 +4252,7 @@ def reject_fund_request(request_id):
         return redirect(url_for("advance_payment.staff_fund_request_history"))
 
     rejection_comment = request.form.get("rejection_comment", "").strip()
-    
+
     fund_req.status = "ปฏิเสธ"
     if hasattr(fund_req, 'rejection_comment'):
         fund_req.rejection_comment = rejection_comment
@@ -4210,7 +4267,7 @@ def staff_fund_request_history():
     user = db.session.query(StaffAccount).filter_by(id=session["user_id"]).first()
     if not user:
         abort(404)
-        
+
     setting = _resolve_petty_cash_setting(user)
     is_staff_user = (getattr(user, "role", None) == "staff")
 
@@ -4264,7 +4321,7 @@ def staff_fund_request_history():
             or (fund_request.ticket_number if fund_request and fund_request.ticket_number else None)
             or f"PC-{claim.id}"
         )
-    
+
     return render_template(
         "staff_fund_request_history.html",
         setting=setting,
@@ -4555,7 +4612,7 @@ def submit_petty_cash_claim():
     is_staff_user = (current_role == "staff")
     is_finance_user = (current_role == "finance")
     can_submit_claim = current_role in PETTY_CASH_ROLE_ALIASES
-    
+
     approved_fund_requests = []
     if can_submit_claim:
         approved_fund_requests = [
@@ -4595,7 +4652,7 @@ def submit_petty_cash_claim():
     if request.method == "POST":
         action = request.form.get("action", "submit")
         is_draft = (action == "draft")
-        
+
         receipt_dates = request.form.getlist("receipt_date[]")
         descriptions = request.form.getlist("description[]")
         category_types = request.form.getlist("category_type[]")
@@ -4720,7 +4777,7 @@ def submit_petty_cash_claim():
                 clean_desc = re.sub(r'[^\u0e00-\u0e7fa-zA-Z0-9\s_-]', '', item.description or "receipt").strip().replace(" ", "_")
                 timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
                 new_filename = f"petty_{clean_desc or 'receipt'}_{timestamp_str}{ext}"
-                
+
                 upload_folder = os.path.join(_upload_root(), f"petty_cash/{user_id}")
                 os.makedirs(upload_folder, exist_ok=True)
                 proof_path = f"uploads/petty_cash/{user_id}/{new_filename}"
@@ -4788,7 +4845,7 @@ def submit_petty_cash_claim():
             flash("บันทึกฉบับร่างเรียบร้อยแล้ว", "success")
         else:
             flash("ส่งใบเบิกเงินสดย่อยเรียบร้อยแล้ว", "success")
-            
+
         return redirect(url_for("advance_payment.staff_fund_request_history"))
 
     claim_query = db.session.query(PettyCashClaimDetail).filter_by(
