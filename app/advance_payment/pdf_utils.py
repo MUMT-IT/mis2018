@@ -322,8 +322,16 @@ def generate_fnar02_pdf(ticket):
 
     p_title = Paragraph("<b>สัญญาการยืมเงิน</b><br/><br/>", styles['ThaiCenterBold'])
     p_sub_title = Paragraph("ยื่นต่อ คณบดีคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล", styles['ThaiCenter'])
-    
-    p_no = Paragraph(f"เลขที่................................./2569", styles['ThaiCenter'])
+    from .views import convert_to_fiscal_year
+
+    fiscal_year_date = (
+        getattr(ticket, "request_date", None)
+        or getattr(ticket, "approved_at", None)
+        or getattr(ticket, "created_at", None)
+    )
+    fiscal_year_be = convert_to_fiscal_year(fiscal_year_date) + 543 if fiscal_year_date else None
+    fiscal_year_label = fiscal_year_be or "................"
+    p_no = Paragraph(f"เลขที่................................./{fiscal_year_label}", styles['ThaiCenter'])
     p_due_lbl = Paragraph("<b>วันครบกำหนด</b>", styles['ThaiCenterBold'])
     p_due_line = Paragraph(f"{due_date_thai}", styles['ThaiCenter'])
     

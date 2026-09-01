@@ -98,6 +98,21 @@ MODULE_ROLE_ORDER = [
     "cash_management_coordinator",
 ]
 
+def convert_to_fiscal_year(date):
+    if date.month in [10, 11, 12]:
+        return date.year + 1
+    else:
+        return date.year
+
+
+def _get_fiscal_year_date_range(value):
+    """Return the fiscal year number and its inclusive Gregorian date range."""
+    fiscal_year = convert_to_fiscal_year(value)
+    return (
+        fiscal_year,
+        date(fiscal_year - 1, 10, 1),
+        date(fiscal_year, 9, 30),
+    )
 
 def _is_coordinator_role(role):
     return role in COORDINATOR_ROLE_ALIASES
@@ -674,9 +689,8 @@ def _assign_fund_request_ticket_number(fund_request, reference_date=None):
         return None
 
     base_date = _fund_request_number_base_date(fund_request, reference_date=reference_date)
-    year_start = date(base_date.year, 1, 1)
-    year_end = date(base_date.year, 12, 31)
-    buddhist_year = base_date.year + 543
+    fiscal_year, year_start, year_end = _get_fiscal_year_date_range(base_date)
+    buddhist_year = fiscal_year + 543
 
     issued_count = (
         db.session.query(func.count(FundRequest.id))
@@ -3837,14 +3851,13 @@ def staff_fund_request():
 
     selected_form_type = request.args.get("form_type", form.form_type.data or "30")
     selected_borrowing_ticket_id = request.args.get("borrowing_ticket_id", type=int)
-
     return render_template(
         "staff_fund_request.html",
         form=form,
         setting=setting,
         approved_borrowing_tickets=approved_borrowing_tickets,
         department_employees=department_employees,
-        current_year_be=datetime.now().year + 543,
+        current_year_be=convert_to_fiscal_year(datetime.now().date()) + 543,
         selected_form_type=selected_form_type,
         selected_borrowing_ticket_id=selected_borrowing_ticket_id,
     )

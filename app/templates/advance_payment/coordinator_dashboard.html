@@ -119,7 +119,7 @@
 
                 <div class="row g-3 mb-3">
                   <div class="col-md-6">
-                    <label for="aip_ref_no" class="form-label fw-bold">ประกาศที่เกี่ยวข้อง (หากมีมากกว่าหนึ่ง ให้คั่นด้วยเครื่องหมายจุลภาค ,)</label>
+                    <label for="aip_ref_no" class="form-label fw-bold">เลขที่อนุมัติในหลักการ (หากมีมากกว่าหนึ่ง ให้คั่นด้วยเครื่องหมายจุลภาค ,)</label>
                     <input id="aip_ref_no" name="aip_ref_no" type="text" value="{{ borrowing_ticket_form.aip_ref_no.data or '' }}" class="form-control" placeholder="อนุมัติในหลักการ(เลขที่หนังสือ)">
                     {% for error in borrowing_ticket_form.aip_ref_no.errors %}
                       <div class="text-danger small mt-1">{{ error }}</div>
