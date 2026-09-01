@@ -230,11 +230,11 @@
         </button>
         <span class="navbar-brand mb-0 h1 fs-5 fw-bold text-dark">
           <i class="text-primary"></i>
-          {% if session.get('user_role') in ['staff', 'secretary'] %}
+          {% if session.get('advance_payment_system') == 'petty_cash' %}
             ระบบเงินสดย่อย
-          {% elif session.get('user_role') == 'cash_management_coordinator' %}
+          {% elif session.get('advance_payment_system') == 'advance_payment' %}
             ระบบทดรองจ่าย
-          {% elif session.get('user_role') == 'finance' %}
+          {% elif session.get('advance_payment_system') == 'finance' %}
             ระบบจัดการเงินสดย่อยและเงินทดรองจ่าย
           {% else %}
             ระบบ Advance Payment
@@ -251,10 +251,10 @@
         <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
           <ul class="nav nav-pills flex-column w-100">
 
-            {% if session.get('user_role') in ['cash_management_coordinator', 'borrower'] %}
+            {% if session.get('advance_payment_system') == 'advance_payment' %}
               <li class="nav-item">
-                <a href="{{ url_for('advance_payment.borrower_dashboard' if session.get('user_role') == 'borrower' else 'advance_payment.coordinator_dashboard') }}" class="nav-link {% if request.endpoint in ['advance_payment.coordinator_dashboard', 'advance_payment.borrower_dashboard'] %}active{% endif %}">
-                  <i class="bi bi-speedometer2 me-2"></i> แดชบอร์ด{% if session.get('user_role') == 'borrower' %}ผู้ยืม{% else %}ผู้ประสานงาน{% endif %}
+                <a href="{{ url_for('advance_payment.coordinator_dashboard') }}" class="nav-link {% if request.endpoint in ['advance_payment.coordinator_dashboard', 'advance_payment.borrower_dashboard'] %}active{% endif %}">
+                  <i class="bi bi-speedometer2 me-2"></i> แดชบอร์ด
                 </a>
               </li>
             {% endif %}
@@ -299,7 +299,7 @@
               </li>
             {% endif %}
 
-            {% if session.get('user_role') in ['staff', 'secretary'] %}
+            {% if session.get('advance_payment_system') == 'petty_cash' %}
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" class="nav-link {% if request.endpoint == 'advance_payment.staff_fund_request_history' %}active{% endif %}">
                   <i class="bi bi-clock-history me-2"></i> ประวัติใบยืมเงินสดย่อย
@@ -322,15 +322,13 @@
               <div class="overflow-hidden">
                 <p class="mb-0 text-dark small fw-bold text-truncate" title="{{ session.get('user_email') }}">{{ session.get('user_email') }}</p>
                 <!-- แสดงข้อความสิทธิ์ผู้ใช้งานให้สอดคล้องกัน -->
-                <span class="badge {% if session.get('user_role') == 'finance' %}bg-info text-dark{% elif session.get('user_role') in ['staff', 'secretary'] %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
-                  {% if session.get('user_role') == 'finance' %}
+                <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
+                  {% if session.get('advance_payment_system') == 'finance' %}
                     ฝ่ายการเงิน
-                  {% elif session.get('user_role') == 'staff' %}
-                    เจ้าหน้าที่เงินสดย่อย
                   {% elif session.get('user_role') == 'secretary' %}
                     ผู้ดูแลเงินสดย่อย
                   {% else %}
-                    {% if session.get('user_role') == 'borrower' %}ผู้ยืม{% else %}ผู้ประสานงาน{% endif %}
+                    ผู้ใช้งานทั่วไป
                   {% endif %}
                 </span>
               </div>

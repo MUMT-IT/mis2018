@@ -10,7 +10,7 @@
 </header>
 
 {% set fund_request_status = selected_fund_request.status if selected_fund_request else (claim_detail.fund_request.status if claim_detail and claim_detail.fund_request else none) %}
-{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('user_role') in ['staff', 'secretary']) and fund_request_status not in ['ส่งเบิกแล้ว', 'เบิกเงินสำเร็จ'] %}
+{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกแล้ว', 'เบิกเงินสำเร็จ'] %}
 {% if can_submit_claim %}
 <div class="card shadow-sm border rounded-4 bg-white mb-5">
   <div class="card-body p-4">
@@ -436,7 +436,7 @@
                   </button>
                 {% endif %}
 
-                {% if session.get('user_role') in ['staff', 'secretary'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
                   <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#parcelEditModal{{ pr.id }}" style="max-width: 150px;">
                     แก้ไข
                   </button>
@@ -472,7 +472,7 @@
         </div>
       {% endif %}
 
-      {% if session.get('user_role') in ['staff', 'secretary'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+      {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
         <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.staff_parcel_return_edit', parcel_return_id=pr.id) }}">

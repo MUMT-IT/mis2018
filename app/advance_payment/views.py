@@ -49,8 +49,10 @@ def render_template(template_name, *args, **kwargs):
 
 COORDINATOR_ROLE = "cash_management_coordinator"
 SECRETARY_ROLE = "secretary"
-COORDINATOR_ROLE_ALIASES = {"borrower", "cash_management_coordinator"}
-PETTY_CASH_ROLE_ALIASES = {"staff", "secretary"}
+ADVANCE_PAYMENT_SYSTEM = "advance_payment"
+PETTY_CASH_SYSTEM = "petty_cash"
+FINANCE_SYSTEM = "finance"
+AVAILABLE_SYSTEMS = (FINANCE_SYSTEM, PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM)
 FUND_REQUEST_FORM_BORROWING_TICKET = "32"
 FUND_REQUEST_NUMBERED_STATUSES = {"อนุมัติแล้ว", "เบิกเงินแล้ว", "ส่งเบิกแล้ว"}
 STATUS_NORMALIZATION_MAP = {
@@ -83,20 +85,10 @@ BANK_ACCOUNT_TYPE_LABELS = {
 }
 
 MODULE_ROLE_LABELS = {
-    "cash_management_coordinator": "ผู้ประสานงาน",
-    "borrower": "ผู้ยืม",
-    "staff": "เจ้าหน้าที่เงินสดย่อย",
-    "secretary": "ผู้ดูแลเงินสดย่อย",
-    "finance": "ฝ่ายการเงิน",
+    FINANCE_SYSTEM: "ฝ่ายการเงิน",
+    PETTY_CASH_SYSTEM: "ระบบเงินสดย่อย",
+    ADVANCE_PAYMENT_SYSTEM: "ระบบเงินทดรองจ่าย",
 }
-
-MODULE_ROLE_ORDER = [
-    "finance",
-    "secretary",
-    "staff",
-    "borrower",
-    "cash_management_coordinator",
-]
 
 def convert_to_fiscal_year(date):
     if date.month in [10, 11, 12]:
@@ -115,31 +107,25 @@ def _get_fiscal_year_date_range(value):
     )
 
 def _is_coordinator_role(role):
-    return role in COORDINATOR_ROLE_ALIASES
+    return role == COORDINATOR_ROLE
 
 
 def _is_petty_cash_role(role):
-    return role in PETTY_CASH_ROLE_ALIASES
+    return role == SECRETARY_ROLE
 
 
 def _dashboard_endpoint_for_role(role):
-    if role == "borrower":
-        return "advance_payment.borrower_dashboard"
-    if role in PETTY_CASH_ROLE_ALIASES:
+    if session.get("advance_payment_system") == PETTY_CASH_SYSTEM:
         return "advance_payment.staff_fund_request_history"
-    if role == "finance":
+    if session.get("advance_payment_system") == FINANCE_SYSTEM:
         return "advance_payment.finance_dashboard"
     return "advance_payment.coordinator_dashboard"
 
 
 def _dashboard_party_label(role):
-    if role == "borrower":
-        return "ผู้ยืม"
-    if role in {"coordinator", COORDINATOR_ROLE}:
+    if _is_coordinator_role(role):
         return "ผู้ประสานงาน"
-    if role == "staff":
-        return "เจ้าหน้าที่เงินสดย่อย"
-    if role in {"custodian", SECRETARY_ROLE}:
+    if _is_petty_cash_role(role):
         return "ผู้ดูแลเงินสดย่อย"
     return "ผู้ใช้งาน"
 
@@ -308,36 +294,36 @@ def _serialize_org_department(org):
 
 
 def _available_module_roles(staff):
-    role_names = set()
+    """Return the only roles that grant elevated access in this module."""
     if staff is None:
         return []
 
-    for role in getattr(staff, "roles", []) or []:
-        role_name = getattr(role, "role_need", None)
-        if role_name:
-            role_names.add(role_name)
-
+    role_names = {
+        getattr(role, "role_need", None)
+        for role in getattr(staff, "roles", []) or []
+    }
     direct_role = getattr(staff, "role", None)
     if direct_role:
         role_names.add(direct_role)
-
-    return [role for role in MODULE_ROLE_ORDER if role in role_names]
+    return [role for role in (COORDINATOR_ROLE, SECRETARY_ROLE) if role in role_names]
 
 
 def _default_module_role(staff):
     roles = _available_module_roles(staff)
     if roles:
         return roles[0]
-    return getattr(staff, "role", None) or "staff"
+    return None
 
 
-def _sync_advance_payment_session(staff, role=None):
+def _sync_advance_payment_session(staff, role=None, system=None):
     if not staff:
         return
 
     session["user_id"] = staff.id
     session["user_email"] = staff.email
-    session["user_role"] = role or _default_module_role(staff)
+    if system is not None:
+        session["advance_payment_system"] = system
+    session["user_role"] = role if role in {COORDINATOR_ROLE, SECRETARY_ROLE} else None
 
 
 def _module_user_from_session():
@@ -360,20 +346,32 @@ def _module_user_from_session():
 
 
 def _ensure_module_role(staff, requested_role):
-    available_roles = _available_module_roles(staff)
-    if not available_roles:
-        return None, "ไม่พบบทบาทที่สามารถใช้งาน Advance Payment ได้"
+    if requested_role not in AVAILABLE_SYSTEMS:
+        return None, "กรุณาเลือกระบบที่ต้องการใช้งาน"
 
-    if not requested_role:
-        if len(available_roles) == 1:
-            requested_role = available_roles[0]
-        else:
-            return None, None
-
-    if requested_role not in available_roles:
-        return None, "บัญชีนี้ไม่มีสิทธิ์ใช้งานในบทบาทที่เลือก"
+    available_roles = set(_available_module_roles(staff))
+    if requested_role == FINANCE_SYSTEM:
+        role_names = {
+            getattr(role, "role_need", None)
+            for role in getattr(staff, "roles", []) or []
+        }
+        if getattr(staff, "role", None) != FINANCE_SYSTEM and FINANCE_SYSTEM not in role_names:
+            return None, "บัญชีนี้ไม่มีสิทธิ์ใช้งานฝ่ายการเงิน"
+        return requested_role, None
 
     return requested_role, None
+
+
+def _selected_system():
+    return session.get("advance_payment_system")
+
+
+def _is_current_coordinator():
+    return _selected_system() == ADVANCE_PAYMENT_SYSTEM and _is_coordinator_role(session.get("user_role"))
+
+
+def _is_current_secretary():
+    return _selected_system() == PETTY_CASH_SYSTEM and _is_petty_cash_role(session.get("user_role"))
 
 
 def _get_user_by_id(user_id):
@@ -782,18 +780,21 @@ def login_required(role=None):
 
             user_role = session.get("user_role")
             available_roles = _available_module_roles(staff)
-            if user_role not in available_roles:
-                if len(available_roles) == 1:
-                    user_role = available_roles[0]
-                    session["user_role"] = user_role
-                else:
-                    return redirect(url_for("advance_payment.login"))
+            if user_role not in available_roles and user_role is not None:
+                user_role = None
+                session["user_role"] = None
 
             if role in {"coordinator", COORDINATOR_ROLE}:
-                if not _is_coordinator_role(user_role):
+                if _selected_system() != ADVANCE_PAYMENT_SYSTEM or not _is_coordinator_role(user_role):
                     abort(403)
-            elif role in {"staff", SECRETARY_ROLE}:
-                if not _is_petty_cash_role(user_role):
+            elif role in {"advance_payment", ADVANCE_PAYMENT_SYSTEM}:
+                if _selected_system() != ADVANCE_PAYMENT_SYSTEM:
+                    abort(403)
+            elif role in {"staff", SECRETARY_ROLE, "petty_cash", PETTY_CASH_SYSTEM}:
+                if _selected_system() != PETTY_CASH_SYSTEM:
+                    abort(403)
+            elif role == FINANCE_SYSTEM or role == "finance":
+                if _selected_system() != FINANCE_SYSTEM or user_role != FINANCE_SYSTEM:
                     abort(403)
             elif role is not None and user_role != role:
                 abort(403)
@@ -1546,30 +1547,23 @@ def _render_role_selection(selected_role=None, error_message=None):
     if not staff:
         return redirect(url_for("auth.login", next=url_for("advance_payment.login")))
 
-    available_roles = _available_module_roles(staff)
-    if not available_roles:
-        flash("บัญชีนี้ยังไม่มีบทบาทสำหรับใช้งาน Advance Payment", "danger")
-        return redirect(url_for("auth.login", next=url_for("advance_payment.login")))
-
-    if selected_role and selected_role in available_roles:
-        _sync_advance_payment_session(staff, selected_role)
-        return redirect(url_for(_dashboard_endpoint_for_role(selected_role)))
-
     if request.method == "POST":
-        requested_role = (request.form.get("role") or "").strip()
-        requested_role, error_message = _ensure_module_role(staff, requested_role)
-        if requested_role:
-            _sync_advance_payment_session(staff, requested_role)
-            return redirect(url_for(_dashboard_endpoint_for_role(requested_role)))
-
-    if len(available_roles) == 1 and request.method == "GET":
-        role = available_roles[0]
-        _sync_advance_payment_session(staff, role)
-        return redirect(url_for(_dashboard_endpoint_for_role(role)))
+        requested_system = (request.form.get("system") or request.form.get("role") or "").strip()
+        requested_system, error_message = _ensure_module_role(staff, requested_system)
+        if requested_system:
+            elevated_role = None
+            if requested_system == ADVANCE_PAYMENT_SYSTEM and COORDINATOR_ROLE in _available_module_roles(staff):
+                elevated_role = COORDINATOR_ROLE
+            elif requested_system == PETTY_CASH_SYSTEM and SECRETARY_ROLE in _available_module_roles(staff):
+                elevated_role = SECRETARY_ROLE
+            elif requested_system == FINANCE_SYSTEM:
+                elevated_role = FINANCE_SYSTEM
+            _sync_advance_payment_session(staff, elevated_role, requested_system)
+            return redirect(url_for(_dashboard_endpoint_for_role(elevated_role)))
 
     return render_template(
         "index.html",
-        available_roles=available_roles,
+        available_roles=AVAILABLE_SYSTEMS,
         role_labels=MODULE_ROLE_LABELS,
         selected_role=selected_role,
         current_email=getattr(staff, "email", None),
@@ -1583,23 +1577,23 @@ def login(role=None):
     if not current_user.is_authenticated and not session.get("user_id"):
         return redirect(url_for("auth.login", next=request.url))
 
-    requested_role = role or request.values.get("role") or request.values.get("login_path")
+    requested_role = role or request.values.get("system") or request.values.get("role") or request.values.get("login_path")
     return _render_role_selection(selected_role=requested_role)
 
 
 @bp.route("/staff/login", methods=["GET", "POST"])
 def staff_login():
-    return login(role=SECRETARY_ROLE)
+    return login(role=PETTY_CASH_SYSTEM)
 
 
 @bp.route("/custodian/login", methods=["GET", "POST"])
 def custodian_login():
-    return login(role=SECRETARY_ROLE)
+    return login(role=PETTY_CASH_SYSTEM)
 
 
 @bp.route("/finance/login", methods=["GET", "POST"])
 def finance_login():
-    return login(role="finance")
+    return login(role=FINANCE_SYSTEM)
 
 
 @bp.route("/logout")
@@ -1607,6 +1601,7 @@ def logout():
     session.pop("user_id", None)
     session.pop("user_email", None)
     session.pop("user_role", None)
+    session.pop("advance_payment_system", None)
     flash("ออกจากระบบ Advance Payment เรียบร้อยแล้ว")
     if current_user.is_authenticated:
         return redirect(url_for("advance_payment.login"))
@@ -1614,11 +1609,11 @@ def logout():
 
 @bp.route("/coordinator/dashboard", methods=["GET", "POST"], endpoint="coordinator_dashboard")
 @bp.route("/borrower/dashboard", methods=["GET", "POST"], endpoint="borrower_dashboard")
-@login_required(role="coordinator")
+@login_required(role=ADVANCE_PAYMENT_SYSTEM)
 def coordinator_dashboard():
     user_id = session.get("user_id")
     user_role = session.get("user_role")
-    is_borrower_mode = user_role == "borrower"
+    is_borrower_mode = not _is_current_coordinator()
     current_user = db.session.query(StaffAccount).filter_by(id=user_id).first()
     if not current_user:
         abort(404)
@@ -1892,7 +1887,10 @@ def export_ticket_pdf(ticket_id):
     if not ticket:
         abort(404)
 
-    if _is_coordinator_role(session.get("user_role")) and ticket.creator_id != session.get("user_id"):
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
+        (not _is_current_coordinator() and ticket.borrower_id != session.get("user_id"))
+        or (_is_current_coordinator() and ticket.creator_id != session.get("user_id"))
+    ):
         abort(403)
 
     pdf_bytes = generate_fnar02_pdf(ticket)
@@ -2275,7 +2273,7 @@ def tickets_view():
 @bp.route("/tickets/<int:ticket_id>/verification")
 def verification_view(ticket_id):
     user_role = session.get("user_role")
-    if user_role not in {"borrower", "finance"} and not _is_coordinator_role(user_role):
+    if _selected_system() not in {ADVANCE_PAYMENT_SYSTEM, FINANCE_SYSTEM}:
         return redirect(url_for("advance_payment.login"))
 
     borrowing_ticket = (
@@ -2284,7 +2282,7 @@ def verification_view(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if _is_coordinator_role(user_role) and borrowing_ticket.creator_id != session.get("user_id"):
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and not _is_current_coordinator() and borrowing_ticket.borrower_id != session.get("user_id"):
         abort(403)
 
     return_details = (
@@ -3005,7 +3003,10 @@ def edit_receipt_item_inline(file_id):
         if not borrowing_ticket:
             abort(404)
 
-        if _is_coordinator_role(session.get("user_role")) and borrowing_ticket.creator_id != session.get("user_id"):
+        if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
+            (not _is_current_coordinator() and borrowing_ticket.borrower_id != session.get("user_id"))
+            or (_is_current_coordinator() and borrowing_ticket.creator_id != session.get("user_id"))
+        ):
             abort(403)
 
         if return_detail.status.lower() not in ["รอตรวจสอบ", "ปฏิเสธ", "ฉบับร่าง"]:
@@ -3128,11 +3129,15 @@ def edit_receipt_item_inline(file_id):
 
 @bp.route("/coordinator/tickets/<int:ticket_id>/autosave-draft", methods=["POST"], endpoint="coordinator_autosave_draft")
 @bp.route("/borrower/tickets/<int:ticket_id>/autosave-draft", methods=["POST"], endpoint="borrower_autosave_draft")
-@login_required(role="coordinator")
+@login_required(role=ADVANCE_PAYMENT_SYSTEM)
 def autosave_return_draft(ticket_id):
     ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if not ticket or ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"}:
         return jsonify({"success": False, "message": "ไม่สามารถบันทึกร่างได้"}), 400
+
+    # ผู้ใช้ทั่วไปบันทึกฉบับร่างได้เฉพาะสัญญาที่ตนเป็นผู้ยืม
+    if not _is_current_coordinator() and ticket.borrower_id != session.get("user_id"):
+        abort(403)
 
     data = request.get_json() or {}
     items = data.get("items", [])
@@ -3986,7 +3991,10 @@ def view_return_proof_detail(return_id):
     if not borrowing_ticket:
         abort(404)
 
-    if _is_coordinator_role(session.get("user_role")) and borrowing_ticket.creator_id != session.get("user_id"):
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
+        (not _is_current_coordinator() and borrowing_ticket.borrower_id != session.get("user_id"))
+        or (_is_current_coordinator() and borrowing_ticket.creator_id != session.get("user_id"))
+    ):
         abort(403)
 
     _prepare_document_display_list(return_detail.documents)
@@ -4054,7 +4062,7 @@ def forbidden(_exception):
     return render_template("advance_payment/403.html"), 403
 
 @bp.route("/staff/fund-request", methods=["GET", "POST"])
-@login_required(role="staff")
+@login_required(role=PETTY_CASH_SYSTEM)
 def staff_fund_request():
     user = db.session.query(StaffAccount).filter_by(id=session["user_id"]).first()
     if not user:
@@ -4240,7 +4248,7 @@ def staff_fund_request():
 @login_required(role=SECRETARY_ROLE)
 def reject_fund_request(request_id):
     current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-    if not current_user or current_user.role != SECRETARY_ROLE:
+    if not current_user or not _is_current_secretary():
         abort(403)
 
     fund_req = db.session.query(FundRequest).get(request_id)
@@ -4262,17 +4270,17 @@ def reject_fund_request(request_id):
     return redirect(url_for("advance_payment.staff_fund_request_history"))
 
 @bp.route("/staff/fund-request-history", methods=["GET"])
-@login_required(role="staff")
+@login_required(role=PETTY_CASH_SYSTEM)
 def staff_fund_request_history():
     user = db.session.query(StaffAccount).filter_by(id=session["user_id"]).first()
     if not user:
         abort(404)
 
     setting = _resolve_petty_cash_setting(user)
-    is_staff_user = (getattr(user, "role", None) == "staff")
+    is_staff_user = not _is_current_secretary()
 
     fund_requests_query = db.session.query(FundRequest)
-    if getattr(user, "role", None) == "staff":
+    if is_staff_user:
         fund_requests_query = fund_requests_query.filter_by(requester_id=user.id)
     fund_requests = fund_requests_query.order_by(FundRequest.id.desc()).all()
 
@@ -4332,7 +4340,7 @@ def staff_fund_request_history():
 
 
 @bp.route("/staff/petty-cash-claims/<int:claim_id>/claim-number", methods=["POST"])
-@login_required(role="staff")
+@login_required(role=PETTY_CASH_SYSTEM)
 def update_petty_cash_claim_number(claim_id):
     current_user = db.session.query(StaffAccount).get(session.get("user_id"))
     if not current_user:
@@ -4343,9 +4351,9 @@ def update_petty_cash_claim_number(claim_id):
         abort(404)
 
     can_edit = False
-    if current_user.role == "staff":
+    if not _is_current_secretary():
         can_edit = claim.user_id == current_user.id
-    elif current_user.role == "custodian":
+    else:
         setting = _resolve_petty_cash_setting(current_user)
         can_edit = bool(
             (setting and setting.id and claim.petty_cash_setting_id == setting.id)
@@ -4372,7 +4380,7 @@ def export_fund_request_pdf(request_id):
     if not fund_req:
         abort(404)
         
-    if session.get("user_role") in PETTY_CASH_ROLE_ALIASES and fund_req.user_id != session.get("user_id"):
+    if _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary() and fund_req.user_id != session.get("user_id"):
         abort(403)
         
     pdf_bytes = generate_fund_request_pdf(fund_req)
@@ -4481,7 +4489,7 @@ CATEGORY_CHOICES = {
 @login_required(role=SECRETARY_ROLE)
 def approve_fund_request(request_id):
     current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-    if not current_user or session.get("user_role") != SECRETARY_ROLE:
+    if not current_user or not _is_current_secretary():
         abort(403)
 
     fund_req = db.session.query(FundRequest).get(request_id)
@@ -4605,13 +4613,13 @@ def submit_petty_cash_claim():
     user_id = session["user_id"]
     current_user = db.session.query(StaffAccount).get(user_id)
     current_role = session.get("user_role") or (getattr(current_user, "role", None) if current_user else None)
-    if not current_user or current_role not in {"staff", SECRETARY_ROLE, "finance"}:
+    if not current_user or _selected_system() not in {PETTY_CASH_SYSTEM, FINANCE_SYSTEM}:
         abort(403)
 
     setting = _resolve_petty_cash_setting(current_user)
-    is_staff_user = (current_role == "staff")
+    is_staff_user = _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary()
     is_finance_user = (current_role == "finance")
-    can_submit_claim = current_role in PETTY_CASH_ROLE_ALIASES
+    can_submit_claim = _selected_system() == PETTY_CASH_SYSTEM
 
     approved_fund_requests = []
     if can_submit_claim:
@@ -4915,14 +4923,14 @@ def submit_petty_cash_claim():
 
 
 @bp.route("/staff/petty-cash/parcel-returns/<int:parcel_return_id>/edit", methods=["POST"], endpoint="staff_parcel_return_edit")
-@login_required(role="staff")
+@login_required(role=PETTY_CASH_SYSTEM)
 def staff_parcel_return_edit(parcel_return_id):
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
         abort(404)
 
     current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-    if not current_user or getattr(current_user, "role", None) not in PETTY_CASH_ROLE_ALIASES:
+    if not current_user or _selected_system() != PETTY_CASH_SYSTEM:
         abort(403)
 
     fund_request = _get_fund_request_by_id(getattr(parcel_return, "fund_request_id", None))
@@ -4930,7 +4938,7 @@ def staff_parcel_return_edit(parcel_return_id):
         flash("ไม่พบคำขอที่เกี่ยวข้องกับรายการนี้", "warning")
         return redirect(request.referrer or url_for("advance_payment.staff_fund_request_history"))
 
-    if current_user.role == "staff" and fund_request.requester_id != current_user.id:
+    if not _is_current_secretary() and fund_request.requester_id != current_user.id:
         abort(403)
 
     current_status = (parcel_return.status or "").strip()
@@ -5004,7 +5012,7 @@ def petty_cash_claim_detail(claim_id):
     if borrowing_ticket is None and getattr(claim_detail, "fund_request", None):
         borrowing_ticket = _get_borrowing_ticket_by_id(getattr(claim_detail.fund_request, "borrowing_ticket_id", None))
 
-    if current_user and current_user.role == "staff" and claim_detail.user_id != current_user.id:
+    if current_user and _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary() and claim_detail.user_id != current_user.id:
         abort(403)
         
     return render_template(
@@ -5111,7 +5119,7 @@ def reject_petty_claim(claim_id):
     return redirect(request.referrer or url_for("advance_payment.petty_cash_settings"))
 
 @bp.route("/staff/petty-cash-ledger", methods=["GET"])
-@login_required()
+@login_required(role=SECRETARY_ROLE)
 def petty_cash_ledger():
     user_id = session.get("user_id")
     current_user = db.session.query(StaffAccount).get(user_id)

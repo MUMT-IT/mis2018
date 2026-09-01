@@ -38,10 +38,10 @@ def _staff_role(staff):
         for role in (getattr(staff, "roles", None) or [])
         if getattr(role, "role_need", None)
     }
-    for role_name in ("finance", "secretary", "staff", "cash_management_coordinator", "borrower"):
+    for role_name in ("finance", "secretary", "cash_management_coordinator"):
         if role_name in role_names:
             return role_name
-    return next(iter(role_names), "staff")
+    return None
 
 
 if not hasattr(StaffAccount, "name"):

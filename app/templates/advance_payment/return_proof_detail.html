@@ -163,7 +163,7 @@
                 <th scope="col" style="width: 100px;">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่อัปโหลด</th>
                 <th scope="col">เปิดดูไฟล์</th>
-                {% if session.get('user_role') in ['cash_management_coordinator', 'borrower'] %}
+                {% if session.get('advance_payment_system') == 'advance_payment' %}
                     <th scope="col">การจัดการ</th>
                 {% endif %}
             </tr>
@@ -218,7 +218,7 @@
                 </td>
                 
                 <td>
-                  {% if session.get('user_role') in ['cash_management_coordinator', 'borrower'] and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                  {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ file.id }}">
                         <i class="bi bi-pencil-square"></i> แก้ไข
                     </button>
@@ -226,7 +226,7 @@
                 </td>
                 </tr>
 
-                {% if session.get('user_role') in ['cash_management_coordinator', 'borrower'] and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
                 <div class="modal fade text-start" id="editModalInRow{{ file.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ file.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">

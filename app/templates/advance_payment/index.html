@@ -1,14 +1,14 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}เลือกบทบาท | ระบบเงินยืมทดรองจ่าย{% endblock %}
+{% block title %}เลือกระบบ | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
   <header class="mb-4">
     <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.12em;">ระบบเงินยืมทดรองจ่าย</p>
-    <h1 class="fw-bold display-6 mb-2">เลือกบทบาทเพื่อใช้งาน</h1>
+    <h1 class="fw-bold display-6 mb-2">เลือกระบบเพื่อใช้งาน</h1>
     <p class="text-muted col-lg-8 p-0">
       คุณเข้าสู่ระบบ MIS แล้วในชื่อ <strong>{{ current_email or '-' }}</strong>
-      จากนี้เลือกบทบาทที่ต้องการใช้ใน Advance Payment ได้เลยโดยไม่ต้องล็อกอินใหม่
+      จากนี้เลือกระบบที่ต้องการใช้งานได้เลยโดยไม่ต้องล็อกอินใหม่ ระบบจะตรวจสอบสิทธิ์หลังจากเลือก
     </p>
   </header>
 
@@ -17,27 +17,23 @@
   {% endif %}
 
   <div class="row g-3">
-    {% for role in available_roles %}
+    {% for system in available_roles %}
       <div class="col-md-4">
         <form method="post" class="h-100">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="role" value="{{ role }}">
+          <input type="hidden" name="system" value="{{ system }}">
           <button type="submit" class="w-100 h-100 text-start border rounded-4 bg-white shadow-sm p-4 role-card" style="min-height: 190px;">
-            <p class="text-uppercase fw-bold small mb-2 text-primary" style="letter-spacing: 0.1em;">Role</p>
-            <h2 class="h4 fw-bold mb-2">{{ role_labels.get(role, role) }}</h2>
+            <p class="text-uppercase fw-bold small mb-2 text-primary" style="letter-spacing: 0.1em;">System</p>
+            <h2 class="h4 fw-bold mb-2">{{ role_labels.get(system, system) }}</h2>
             <p class="text-muted mb-0">
-              {% if role == 'cash_management_coordinator' %}
-                ใช้สำหรับจัดการสัญญาเงินยืมและงานฝั่งผู้ประสานงาน
-              {% elif role == 'borrower' %}
-                ใช้สำหรับดูแดชบอร์ดและทำงานในมุมผู้ยืม
-              {% elif role == 'staff' %}
-                ใช้สำหรับยื่นและติดตามรายการเงินสดย่อย
-              {% elif role == 'secretary' %}
-                ใช้สำหรับดูแลและจัดการเงินสดย่อย
-              {% elif role == 'finance' %}
+              {% if system == 'advance_payment' %}
+                ใช้สำหรับยืมเงินทดรองจ่ายและส่งใช้เงินยืม
+              {% elif system == 'petty_cash' %}
+                ใช้สำหรับขอเบิกและติดตามรายการเงินสดย่อย
+              {% elif system == 'finance' %}
                 ใช้สำหรับตรวจสอบ อนุมัติ และติดตามรายการทั้งหมด
               {% else %}
-                ใช้สำหรับเข้าใช้งานระบบในบทบาทนี้
+                ใช้สำหรับเข้าใช้งานระบบนี้
               {% endif %}
             </p>
           </button>

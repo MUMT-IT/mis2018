@@ -9,7 +9,7 @@
           <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
         </a>
     {% else %}
-        <a href="{{ url_for('advance_payment.borrower_dashboard' if session.get('user_role') == 'borrower' else 'advance_payment.coordinator_dashboard') }}" title="Go to Dashboard">
+        <a href="{{ url_for('advance_payment.coordinator_dashboard') }}" title="Go to Dashboard">
           <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
         </a>
     {% endif %}
@@ -400,7 +400,7 @@
                     </button>
                   {% endif %}
 
-                  {% if session.get('user_role') in ['borrower', 'cash_management_coordinator'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                  {% if session.get('advance_payment_system') == 'advance_payment' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
                     <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#parcelEditModal{{ pr.id }}" style="max-width: 150px;">
                       แก้ไข
                     </button>
@@ -438,7 +438,7 @@
           </div>
         {% endif %}
 
-        {% if session.get('user_role') in ['borrower', 'cash_management_coordinator'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+        {% if session.get('advance_payment_system') == 'advance_payment' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
           <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.coordinator_parcel_return_edit', parcel_return_id=pr.id) }}">

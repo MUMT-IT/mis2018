@@ -4,7 +4,7 @@
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom text-start">
-  {% if session.get('user_role') in ['staff', 'secretary'] %}
+  {% if session.get('advance_payment_system') == 'petty_cash' %}
   <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
@@ -237,7 +237,7 @@
                 <th scope="col">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่อัปโหลด</th>
                 <th scope="col">เปิดดูไฟล์</th>
-                {% if session.get('user_role') in [ 'staff', 'secretary', 'user'] %}
+                {% if session.get('advance_payment_system') == 'petty_cash' %}
                     <th scope="col" class="text-end">การจัดการ</th>
                 {% endif %}
             </tr>
@@ -287,7 +287,7 @@
                 </td>
                 
                 <td class="text-end">
-                    {% if session.get('user_role') in ['staff', 'secretary', 'user'] and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
+                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ item.id }}">
                         <i class="bi bi-pencil-square"></i> แก้ไข
                     </button>
@@ -296,7 +296,7 @@
                 </tr>
 
                 <!-- Modal สำหรับแก้ไขรายการแบบ Inline (สำหรับผู้ขอเบิก) -->
-                {% if session.get('user_role') in ['staff', 'secretary', 'user'] and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
+                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
                 <div class="modal fade text-start" id="editModalInRow{{ item.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ item.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">
