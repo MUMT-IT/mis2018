@@ -3589,29 +3589,98 @@ def api_petty_cash_options():
 @login_required(role="finance")
 def closing_management():
     search_closing_number = request.args.get("search_closing_number", "").strip()
+    searched_closing_results = []
     searched_returns = []
     searched_parcel_returns = []
-    searched_doc = None
     searched_petty_cash = []
 
     if search_closing_number:
-        searched_doc = db.session.query(ClosingDocument).filter_by(
-            document_number=search_closing_number
-        ).first()
-        
-        # --- [แก้ไขส่วนการค้นหา PettyCashClaimDetail] ---
-        query_petty = db.session.query(PettyCashClaimDetail)
-        if searched_doc:
-            query_petty = query_petty.filter(
-                (PettyCashClaimDetail.closing_document_id == searched_doc.id) |
-                (PettyCashClaimDetail.old_closing_document_name.contains(search_closing_number))
-            )
-        else:
-            query_petty = query_petty.filter(
-                PettyCashClaimDetail.old_closing_document_name.contains(search_closing_number)
-            )
-        searched_petty_cash = query_petty.all()
-        # -----------------------------------------------
+        searched_docs = (
+            db.session.query(ClosingDocument)
+            .filter(ClosingDocument.document_number.contains(search_closing_number))
+            .order_by(ClosingDocument.filing_date.desc(), ClosingDocument.id.desc())
+            .all()
+        )
+        matched_return_ids = set()
+        matched_parcel_return_ids = set()
+        matched_petty_cash_ids = set()
+
+        for searched_doc in searched_docs:
+            doc_returns = db.session.query(ReturnDetail).filter(
+                (ReturnDetail.closing_document_id == searched_doc.id)
+                | (ReturnDetail.old_closing_document_name == searched_doc.document_number)
+            ).all()
+            doc_parcel_returns = db.session.query(ParcelReturnDetail).filter(
+                (ParcelReturnDetail.closing_document_id == searched_doc.id)
+                | (ParcelReturnDetail.old_closing_document_name == searched_doc.document_number)
+            ).all()
+            doc_petty_cash = db.session.query(PettyCashClaimDetail).filter(
+                (PettyCashClaimDetail.closing_document_id == searched_doc.id)
+                | (PettyCashClaimDetail.old_closing_document_name == searched_doc.document_number)
+            ).all()
+
+            matched_return_ids.update(ret.id for ret in doc_returns)
+            matched_parcel_return_ids.update(pr.id for pr in doc_parcel_returns)
+            matched_petty_cash_ids.update(petty.id for petty in doc_petty_cash)
+
+            for petty in doc_petty_cash:
+                related_claim = _attach_petty_cash_claim_context(petty)
+                petty.amount = float(petty.total_amount or 0)
+                petty.department_name = (
+                    petty.setting.department_name
+                    if petty.setting
+                    else (petty.user.department if petty.user else "ไม่ระบุ")
+                )
+                petty.requester_name = "-"
+                petty.claim_number = "-"
+                if related_claim:
+                    fund_request = related_claim.fund_request
+                    petty.requester_name = (
+                        fund_request.requester_name
+                        if fund_request and fund_request.requester_name
+                        else (related_claim.user.name if related_claim.user else petty.requester_name)
+                    )
+                    petty.claim_number = (
+                        related_claim.claim_number
+                        or (fund_request.ticket_number if fund_request and fund_request.ticket_number else None)
+                        or f"PC-{related_claim.id}"
+                    )
+                    petty.name = petty.requester_name
+
+            for ret in doc_returns:
+                if not hasattr(ret, 'borrowing_ticket') or ret.borrowing_ticket is None:
+                    ret.borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ret.ticket_id).first()
+
+            for pr in doc_parcel_returns:
+                _attach_parcel_return_context(pr)
+
+            searched_closing_results.append({
+                "doc": searched_doc,
+                "returns": doc_returns,
+                "parcel_returns": doc_parcel_returns,
+                "petty_cash": doc_petty_cash,
+            })
+
+        # Keep showing records that only refer to an older/cancelled document.
+        searched_petty_cash = db.session.query(PettyCashClaimDetail).filter(
+            PettyCashClaimDetail.old_closing_document_name.contains(search_closing_number)
+        ).all()
+        searched_returns = db.session.query(ReturnDetail).filter(
+            ReturnDetail.old_closing_document_name.contains(search_closing_number)
+        ).all()
+        searched_parcel_returns = db.session.query(ParcelReturnDetail).filter(
+            ParcelReturnDetail.old_closing_document_name.contains(search_closing_number)
+        ).all()
+
+        searched_petty_cash = [
+            petty for petty in searched_petty_cash if petty.id not in matched_petty_cash_ids
+        ]
+        searched_returns = [
+            ret for ret in searched_returns if ret.id not in matched_return_ids
+        ]
+        searched_parcel_returns = [
+            pr for pr in searched_parcel_returns if pr.id not in matched_parcel_return_ids
+        ]
 
         for petty in searched_petty_cash:
             related_claim = _attach_petty_cash_claim_context(petty)
@@ -3636,35 +3705,11 @@ def closing_management():
                     or f"PC-{related_claim.id}"
                 )
                 petty.name = petty.requester_name
-        
-        query_returns = db.session.query(ReturnDetail)
-        if searched_doc:
-            query_returns = query_returns.filter(
-                (ReturnDetail.closing_document_id == searched_doc.id) |
-                (ReturnDetail.old_closing_document_name.contains(search_closing_number))
-            )
-        else:
-            query_returns = query_returns.filter(
-                ReturnDetail.old_closing_document_name.contains(search_closing_number)
-            )
-        searched_returns = query_returns.all()
-
-        query_parcel = db.session.query(ParcelReturnDetail)
-        if searched_doc:
-            query_parcel = query_parcel.filter(
-                (ParcelReturnDetail.closing_document_id == searched_doc.id) |
-                (ParcelReturnDetail.old_closing_document_name.contains(search_closing_number))
-            )
-        else:
-            query_parcel = query_parcel.filter(
-                ParcelReturnDetail.old_closing_document_name.contains(search_closing_number)
-            )
-        searched_parcel_returns = query_parcel.all()
 
         for ret in searched_returns:
             if not hasattr(ret, 'borrowing_ticket') or ret.borrowing_ticket is None:
                 ret.borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ret.ticket_id).first()
-                
+
         for pr in searched_parcel_returns:
             _attach_parcel_return_context(pr)
 
@@ -3823,7 +3868,7 @@ def closing_management():
     return render_template(
         "closing_management.html",
         search_closing_number=search_closing_number,
-        searched_doc=searched_doc,
+        searched_closing_results=searched_closing_results,
         searched_returns=searched_returns,
         searched_parcel_returns=searched_parcel_returns,
         searched_petty_cash=searched_petty_cash,

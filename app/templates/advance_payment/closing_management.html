@@ -241,7 +241,7 @@
       <form method="get" action="{{ url_for('advance_payment.closing_management') }}" class="row g-2">
         <div class="col-sm-8 col-md-6">
           <input type="text" name="search_closing_number" class="form-control" 
-                 placeholder="พิมพ์หมายเลขฎีกาที่ต้องการเรียกดูประวัติ..." value="{{ search_closing_number or '' }}">
+                 placeholder="พิมพ์หมายเลขฎีกาได้ทั้งแบบเต็มหรือบางส่วน..." value="{{ search_closing_number or '' }}">
         </div>
         <div class="col-sm-4 col-md-3">
           <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i> เรียกดูข้อมูล</button>
@@ -255,67 +255,97 @@
 
       {% if search_closing_number %}
       <div class="border-top mt-3 pt-3">
-        {% if searched_doc %}
-          <div class="card bg-light border shadow-sm mb-0">
-            <div class="card-header text-dark fw-bold d-flex justify-content-between align-items-center">
-              <span>รายละเอียดข้อมูลฎีกาหลักในระบบ</span>
-              {% if searched_doc.total_amount == 0 %}
-                <span class="badge bg-danger fs-6 px-3 py-2"><i class="bi bi-x-circle me-1"></i>ฎีกาถูกยกเลิกแล้ว</span>
-              {% endif %}
-            </div>
-            <div class="card-body">
-              <div class="row g-3">
-                <div class="col-md-4">
-                  <span class="text-muted d-block small">หมายเลขฎีกา:</span>
-                  <strong class="fs-5 text-dark">{{ searched_doc.document_number }}</strong>
-                </div>
-                <div class="col-md-4">
-                  <span class="text-muted d-block small">วันที่ตั้งฎีกา:</span>
-                  <strong class="fs-5 text-dark">{{ searched_doc.filing_date|thai_date }}</strong>
-                </div>
-                <div class="col-md-4">
-                  <span class="text-muted d-block small">ยอดรวมของฎีกา:</span>
-                  <strong class="fs-5 text-primary">{{ "{:,.2f}".format(searched_doc.total_amount) }} บาท</strong>
+        {% if searched_closing_results %}
+          <div class="alert alert-info py-2 mb-3">
+            <i class="bi bi-info-circle-fill me-2"></i>พบฎีกาที่ตรงกัน {{ searched_closing_results|length }} รายการ กรุณาเลือกเปิดดูรายละเอียด
+          </div>
+          <div class="accordion" id="searchedClosingDocuments">
+          {% for result in searched_closing_results %}
+            {% set searched_doc = result.doc %}
+            <div class="accordion-item border rounded-3 shadow-sm mb-2 overflow-hidden">
+              <h2 class="accordion-header" id="closing-heading-{{ searched_doc.id }}">
+                <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#closing-collapse-{{ searched_doc.id }}" aria-expanded="false" aria-controls="closing-collapse-{{ searched_doc.id }}">
+                  <span class="me-3">ฎีกาเลขที่ {{ searched_doc.document_number }}</span>
+                  <span class="text-muted small">{{ searched_doc.filing_date|thai_date }} | {{ "{:,.2f}".format(searched_doc.total_amount) }} บาท</span>
+                  {% if searched_doc.status == "ถูกยกเลิก" %}<span class="badge bg-danger ms-auto me-2">ถูกยกเลิก</span>{% endif %}
+                </button>
+              </h2>
+              <div id="closing-collapse-{{ searched_doc.id }}" class="accordion-collapse collapse" aria-labelledby="closing-heading-{{ searched_doc.id }}" data-bs-parent="#searchedClosingDocuments">
+                <div class="accordion-body bg-light">
+                  <div class="row g-3 mb-3">
+                    <div class="col-md-4"><span class="text-muted d-block small">หมายเลขฎีกา:</span><strong class="fs-5 text-dark">{{ searched_doc.document_number }}</strong></div>
+                    <div class="col-md-4"><span class="text-muted d-block small">วันที่ตั้งฎีกา:</span><strong class="fs-5 text-dark">{{ searched_doc.filing_date|thai_date }}</strong></div>
+                    <div class="col-md-4"><span class="text-muted d-block small">ยอดรวมของฎีกา:</span><strong class="fs-5 text-primary">{{ "{:,.2f}".format(searched_doc.total_amount) }} บาท</strong></div>
+                  </div>
+                  <div class="border-top pt-3 d-flex justify-content-end gap-2 align-items-center">
+                    {% if searched_doc.status == "ถูกยกเลิก" %}
+                      <div class="alert alert-warning mb-0 py-2 w-100 text-center fw-bold text-dark"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>ฎีกาถูกยกเลิกเรียบร้อยแล้ว</div>
+                    {% elif searched_doc.status == "ล้างลูกหนี้เงินยืม" %}
+                      <div class="alert alert-success mb-0 py-2 w-100 text-center fw-bold text-dark"><i class="bi bi-check-circle-fill me-2 text-success"></i>ฎีกาถูกล้างลูกหนี้เรียบร้อยแล้ว</div>
+                    {% else %}
+                      <button type="button" class="btn btn-danger fw-bold" data-popup-trigger="true" data-popup-title="ยืนยันการยกเลิกฎีกา" data-popup-message="คุณต้องการยกเลิกฎีกาหมายเลข {{ searched_doc.document_number }} ใช่หรือไม่?" data-popup-action="{{ url_for('advance_payment.cancel_closing_doc', closing_doc_id=searched_doc.id) }}" data-popup-confirm-text="ยกเลิกฎีกา" data-popup-confirm-class="btn-danger"><i class="bi bi-x-circle-fill me-1"></i>ยกเลิกฎีกา</button>
+                      <button type="button" class="btn btn-success fw-bold" data-popup-trigger="true" data-popup-title="ยืนยันการล้างลูกหนี้เงินยืม" data-popup-message="คุณต้องการเปลี่ยนสถานะเอกสารทั้งหมดในฎีกานี้เป็น ล้างลูกหนี้เงินยืม ใช่หรือไม่?" data-popup-action="{{ url_for('advance_payment.bulk_receive_closing_doc', closing_doc_id=searched_doc.id) }}" data-popup-confirm-text="ล้างลูกหนี้เงินยืมทั้งฎีกา" data-popup-confirm-class="btn-success"><i class="bi bi-check-circle-fill me-1"></i>ล้างลูกหนี้เงินยืมทั้งฎีกา</button>
+                    {% endif %}
+                  </div>
+                  <div class="table-responsive shadow-sm rounded-4 mt-3">
+                    <table class="table table-hover align-middle mb-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th scope="col" class="small fw-bold ps-3" style="width: 140px;">ประเภท</th>
+                          <th scope="col" class="small fw-bold">เลขที่เอกสาร / บย.</th>
+                          <th scope="col" class="small fw-bold">รายละเอียด / ผู้ประสานงาน / ผู้เบิก</th>
+                          <th scope="col" class="small fw-bold text-end">ยอดเงิน</th>
+                          <th scope="col" class="small fw-bold text-center">วันที่ส่งเอกสาร</th>
+                          <th scope="col" class="small fw-bold text-center">สถานะ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for ret in result.returns %}
+                          <tr class="table-info-subtle">
+                            <td class="ps-3"><span class="badge bg-info-subtle text-info-emphasis border px-2.5 py-1">ส่งใช้เงินยืม</span></td>
+                            <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.number if ret.borrowing_ticket else '-' }}</div></td>
+                            <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.borrower_name if ret.borrowing_ticket else '-' }}</div><small class="text-muted">{{ ret.borrowing_ticket.borrowing_ticket_name if ret.borrowing_ticket else '-' }}</small></td>
+                            <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(ret.amount_spent or 0) }}</td>
+                            <td class="text-center small">{{ ret.created_at|thai_date if ret.created_at else '-' }}</td>
+                            <td class="text-center"><span class="badge bg-secondary text-white px-2.5 py-1">{{ ret.status or '-' }}</span></td>
+                          </tr>
+                        {% endfor %}
+                        {% for pr in result.parcel_returns %}
+                          <tr class="table-warning-subtle">
+                            <td class="ps-3"><span class="badge bg-warning-subtle text-warning-emphasis border px-2.5 py-1">ส่งคืนพัสดุ</span></td>
+                            <td><div class="fw-bold text-dark">{{ pr.display_ticket_number or '-' }}</div></td>
+                            <td><div class="fw-bold text-dark">{{ pr.display_borrower_name or '-' }}</div><small class="text-muted">{{ pr.display_subject_name or '-' }}</small></td>
+                            <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
+                            <td class="text-center small">{{ pr.created_at|thai_date if pr.created_at else '-' }}</td>
+                            <td class="text-center"><span class="badge bg-secondary text-white px-2.5 py-1">{{ pr.status or '-' }}</span></td>
+                          </tr>
+                        {% endfor %}
+                        {% for petty in result.petty_cash %}
+                          <tr class="table-success-subtle">
+                            <td class="ps-3"><span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span></td>
+                            <td><div class="fw-bold text-dark">{{ petty.claim_number or '-' }}</div></td>
+                            <td><div class="fw-bold text-dark">{{ petty.department_name }}</div><small class="text-muted">ผู้เบิก: {{ petty.requester_name or petty.name or '-' }}</small></td>
+                            <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(petty.amount or 0) }}</td>
+                            <td class="text-center small">{{ petty.created_at|thai_date if petty.created_at else '-' }}</td>
+                            <td class="text-center">
+                              {% if petty.status == "เสร็จสิ้นกระบวนการ" %}
+                                <span class="badge bg-secondary text-white border px-2.5 py-1">{{ petty.status }}</span>
+                              {% else %}
+                                <span class="badge bg-success text-white border px-2.5 py-1">{{ petty.status or '-' }}</span>
+                              {% endif %}
+                            </td>
+                          </tr>
+                        {% endfor %}
+                        {% if not result.returns and not result.parcel_returns and not result.petty_cash %}
+                          <tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการเอกสารภายในฎีกานี้</td></tr>
+                        {% endif %}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-              
-              <div class="border-top mt-3 pt-3 d-flex justify-content-end gap-2 align-items-center">
-                {% if searched_doc.status == "ถูกยกเลิก" %}
-                  {# กรณีฎีกาถูกยกเลิกแล้ว: ไม่แสดงปุ่มล้างลูกหนี้/ยกเลิก แต่แสดงข้อความเตือนแทน #}
-                  <div class="alert alert-warning mb-0 py-2 w-100 text-center fw-bold text-dark">
-                    <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>ฎีกาถูกยกเลิกเรียบร้อยแล้ว รายการทั้งหมดถูกปลดออกและเก็บบันทึกในประวัติ
-                  </div>
-                {% elif searched_doc.status == "ล้างลูกหนี้เงินยืม" %}
-                  <div class="alert alert-success mb-0 py-2 w-100 text-center fw-bold text-dark">
-                    <i class="bi bi-check-circle-fill me-2 text-success"></i>ฎีกาถูกล้างลูกหนี้เรียบร้อยแล้ว
-                  </div>
-                {% else %}
-                  {# กรณีฎีกาปกติ: แสดงปุ่มจัดการ #}
-                  <button
-                    type="button"
-                    class="btn btn-danger fw-bold"
-                    data-popup-trigger="true"
-                    data-popup-title="ยืนยันการยกเลิกฎีกา"
-                    data-popup-message="คุณต้องการยกเลิกฎีกาหมายเลข {{ searched_doc.document_number }} ใช่หรือไม่? การยกเลิกจะปลดรายการทั้งหมดออกจากฎีกานี้และเก็บประวัติไว้"
-                    data-popup-action="{{ url_for('advance_payment.cancel_closing_doc', closing_doc_id=searched_doc.id) }}"
-                    data-popup-confirm-text="ยกเลิกฎีกา"
-                    data-popup-confirm-class="btn-danger">
-                    <i class="bi bi-x-circle-fill me-1"></i> ยกเลิกฎีกา
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-success fw-bold"
-                    data-popup-trigger="true"
-                    data-popup-title="ยืนยันการล้างลูกหนี้เงินยืม"
-                    data-popup-message="คุณต้องการเปลี่ยนสถานะเอกสารส่งใช้เงินยืมทั้งหมดในฎีกานี้เป็น ล้างลูกหนี้เงินยืม ใช่หรือไม่?"
-                    data-popup-action="{{ url_for('advance_payment.bulk_receive_closing_doc', closing_doc_id=searched_doc.id) }}"
-                    data-popup-confirm-text="ล้างลูกหนี้เงินยืมทั้งฎีกา"
-                    data-popup-confirm-class="btn-success">
-                    <i class="bi bi-check-circle-fill me-1"></i> ล้างลูกหนี้เงินยืมทั้งฎีกา
-                  </button>
-                {% endif %}
-              </div>
             </div>
+          {% endfor %}
           </div>
         {% else %}
           <div class="alert alert-warning py-2 mb-0">
@@ -433,7 +463,9 @@
                 <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(petty_searched_amt) }}</td>
                 <td class="text-center small">{{ petty.created_at|thai_date if petty.created_at else '-' }}</td>
                 <td class="text-center">
-                  {% if petty.status in ["เสร็จสิ้นกระบวนการ", "ล้างลูกหนี้เงินยืม"] %}
+                  {% if petty.status == "เสร็จสิ้นกระบวนการ" %}
+                    <span class="badge bg-secondary text-white border px-2.5 py-1">เสร็จสิ้นกระบวนการ</span>
+                  {% elif petty.status == "ล้างลูกหนี้เงินยืม" %}
                     <span class="badge bg-success border px-2.5 py-1">ล้างลูกหนี้เงินยืม</span>
                   {% elif petty.closing_document_id or petty.status == "เอกสารตั้งฎีกา" %}
                     <span class="badge bg-secondary text-white px-2.5 py-1">เอกสารตั้งฎีกา</span>
