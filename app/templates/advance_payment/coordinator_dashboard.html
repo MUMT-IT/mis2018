@@ -90,6 +90,7 @@
         <!-- Tab 1: Create Borrowing Ticket Section -->
         <div class="tab-pane fade show active" id="create-ticket-pane" role="tabpanel" aria-labelledby="tab-advance" tabindex="0">
           <form method="post" class="needs-validation" id="createBorrowingTicketForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <!-- Dropdown เลือกผู้ยืมเงินจาก Department -->
               <div class="mb-3">
                 <label for="borrower_email" class="form-label fw-bold">เลือกผู้ยืมเงิน (บุคลากรของคณะ)</label>
@@ -213,6 +214,7 @@
                   </div>
                   
                   <form method="post" action="{{ url_for('advance_payment.coordinator_ticket_returns') }}" enctype="multipart/form-data" id="returnForm_{{ borrowing_ticket.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="ticket_id" value="{{ borrowing_ticket.id }}">
                     <input type="hidden" name="action" id="action_{{ borrowing_ticket.id }}" value="submit">
                     
@@ -224,7 +226,7 @@
                             {% for doc in borrowing_ticket.draft_announcements %}
                               <div class="row g-2 mb-2 document-input-row align-items-center">
                                 <div class="col-md-7 position-relative">
-                                  <input type="hidden" name="announcement_ids[]" class="announcement-id-input" value="{{ doc.id }}">
+                                  <input type="hidden" name="announcement_ids[]" class="announcement-id-input" value="{{ doc.file_id or doc.id }}">
                                   <input type="text" name="announcement_titles[]" 
                                         class="form-control form-control-sm announcement-input" 
                                         placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
@@ -235,7 +237,7 @@
                                 </div>
 
                                 <div class="col-md-5 d-flex gap-2 action-buttons-container">
-                                  <a href="{{ doc.file_path or doc.url or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.file_path and not doc.url %}d-none{% endif %}" target="_blank" download>
+                                  <a href="{{ doc.download_url or doc.file_path or doc.url or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.download_url and not doc.file_path and not doc.url %}d-none{% endif %}" target="_blank" download>
                                     <i class="bi bi-download me-1"></i> ดาวน์โหลด
                                   </a>
                                   <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
@@ -289,6 +291,7 @@
                           <tbody id="receiptBody_{{ borrowing_ticket.id }}">
                             {% if borrowing_ticket.draft_items %}
                               {% for item in borrowing_ticket.draft_items %}
+                                {% set row_index = loop.index0 %}
                                 <tr>
                                   <td>
                                     <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}">
@@ -304,17 +307,14 @@
                                     <input type="text" name="amount[]" step="0.01" min="0.00" class="form-control form-control-sm item-amount-input" value="{{ item.amount }}" oninput="calculateTotalSpent({{ borrowing_ticket.id }})">
                                   </td>
                                   <td>
-                                    <input type="file" name="proof_files[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm">
-                                    {% if item.proof_file %}
+                                    <input type="file" name="proof_files_{{ row_index }}[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm" multiple>
+                                    {% for proof_file in item.proof_files %}
                                       <div class="small text-muted mt-1">
-                                        <input type="hidden" name="existing_proof_files[]" value="{{ item.proof_file.proof_reference }}">
-                                        <input type="hidden" name="existing_proof_filenames[]" value="{{ item.proof_file.filename }}">
-                                        ไฟล์เดิม: <a href="/{{ item.proof_file.proof_reference }}" target="_blank">{{ item.proof_file.filename }}</a>
+                                        <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
+                                        <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
+                                        ไฟล์เดิม: <a href="/{{ proof_file.proof_reference }}" target="_blank">{{ proof_file.filename }}</a>
                                       </div>
-                                    {% else %}
-                                      <input type="hidden" name="existing_proof_files[]" value="">
-                                      <input type="hidden" name="existing_proof_filenames[]" value="">
-                                    {% endif %}
+                                    {% endfor %}
                                   </td>
                                   <td class="text-center">
                                     <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeReceiptRow(this, {{ borrowing_ticket.id }})">
@@ -374,6 +374,7 @@
                 <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
                   <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่งไปฝ่ายพัสดุ</h3>
                   <form method="post" action="{{ url_for('advance_payment.submit_parcel_return', ticket_id=borrowing_ticket.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="row g-3">
                       <div class="col-md-4">
                         <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
@@ -448,7 +449,7 @@
                 {% for borrowing_ticket in borrowing_ticket_history %}
                   {% set badge_class = 'bg-warning text-dark' %}
                   {% set display_status = borrowing_ticket.status %}
-                  {% set ticket_status = borrowing_ticket.status|status_thai %}
+                  {% set ticket_status = borrowing_ticket.status %}
                   {% if borrowing_ticket.status|lower == 'กำลังส่งคำขอ' %}
                     {% set display_status = 'กำลังส่งคำขอ' %}
                   {% elif borrowing_ticket.status|lower in ['อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ'] %}
@@ -709,20 +710,31 @@
       });
     }
 
+    function getReceiptTicketIdFromInput(input) {
+      const tbody = input?.closest("tbody[id^='receiptBody_']");
+      return tbody ? tbody.id.replace("receiptBody_", "") : null;
+    }
+
     function bindAmountInputEvents(input, ticketId) {
+      const resolvedTicketId = ticketId || getReceiptTicketIdFromInput(input);
+
       if (input.value) {
           formatInputNumberWithComma(input);
       }
 
       input.addEventListener("input", function() {
           formatInputNumberWithComma(this);
-          calculateTotalSpent(ticketId);
+          calculateTotalSpent(resolvedTicketId);
       });
 
       input.addEventListener("blur", function() {
           formatInputNumberOnBlur(this);
-          calculateTotalSpent(ticketId);
+          calculateTotalSpent(resolvedTicketId);
       });
+
+      if (resolvedTicketId) {
+        calculateTotalSpent(resolvedTicketId);
+      }
     }
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -759,13 +771,13 @@
       {% endfor %}
 
       document.querySelectorAll(".item-amount-input").forEach(input => {
-          const form = input.closest("form");
-          if (form) {
-              const actionAttr = form.getAttribute("action");
-              const ticketIdInput = form.querySelector('input[name="ticket_id"]');
-              const ticketId = ticketIdInput ? ticketIdInput.value : null;
-              bindAmountInputEvents(input, ticketId);
-          }
+          const ticketId = getReceiptTicketIdFromInput(input);
+          bindAmountInputEvents(input, ticketId);
+      });
+
+      document.querySelectorAll('tbody[id^="receiptBody_"]').forEach(tbody => {
+          const ticketId = tbody.id.replace("receiptBody_", "");
+          calculateTotalSpent(ticketId);
       });
 
       const budgetInput = document.getElementById("required_budget");
@@ -788,9 +800,11 @@
               }
 
               const confirmMessage = [
-                  "1. ตามประกาศ หลักเกณฑ์และวิธีการจ่ายเงินทดรองจ่าย พ.ศ 2551 ข้อ 6.2 หากการเบิกจ่ายค่าวัสดุ ครุภัณฑ์ ครั้งละเกิน 1 แสนบาท ขอให้หน่วยงานดำเนินการผ่านการจัดซื้อจัดจ้าง(เครดิต) แทนการใช้เงินทดรองจ่าย",
+                  "ตามประกาศ หลักเกณฑ์และวิธีการจ่ายเงินทดรองจ่าย พ.ศ 2551 ข้อ 3 และ ข้อ 6.2",
                   "",
-                  "2. ใบสั่งซื้อหรือสั่งจ้างที่มีการลงนามโดยผู้มีอำนาจลงนามในใบสั่งซื้อหรือจ้าง (ตาม แนวปฏิบัติฯ อว 78/ว4087) ต้องหักภาษี ณ ที่จ่ายและนำส่งด้วยทุกครั้ง",
+                  "- การจัดซื้อจัดจ้าง วงเงินเกิน 3 หมื่นบาท (ยกเว้นขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯ) ที่ต้องออก PO  ต้องหักภาษี ณ ที่จ่าย และนำส่งภาษีที่หักด้วยทุกครั้งภายในวันที่ชำระเงิน เพื่อป้องกันเบี้ยปรับเพิ่มเติม",
+                  "",
+                  "- การเบิกจ่ายค่าวัสดุ ครุภัณฑ์ ครั้งละเกิน 1 แสนบาท ขอให้หน่วยงานดำเนินการผ่านการจัดซื้อจัดจ้าง(เครดิต) แทนการใช้เงินทดรองจ่าย",
               ].join("\n");
 
               event.preventDefault();
@@ -834,18 +848,6 @@
               el.classList.remove('is-invalid');
             }
           }
-          if (el.name === 'proof_files[]') {
-            const row = el.closest('tr');
-            const existingFileEl = row.querySelector('input[name="existing_proof_files[]"]');
-            const existingFile = existingFileEl ? existingFileEl.value : "";
-            
-            if (!el.value && !existingFile) {
-              isValid = false;
-              el.classList.add('is-invalid');
-            } else {
-              el.classList.remove('is-invalid');
-            }
-          }
         });
         
         if (isValid) {
@@ -856,7 +858,7 @@
         } else {
           window.openAppPopup({
             title: "กรุณาตรวจสอบข้อมูล",
-            message: "กรุณากรอกข้อมูลและแนบไฟล์ให้ครบถ้วนในทุกแถวก่อนทำการส่งเอกสาร",
+            message: "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วนก่อนทำการส่งเอกสาร",
             confirmText: "ตกลง",
             confirmClass: "btn-primary",
             alertOnly: true,
@@ -881,9 +883,7 @@
         </td>
         <td><input type="text" name="amount[]" class="form-control form-control-sm item-amount-input" value="0.00" required></td>
         <td>
-          <input type="file" name="proof_files[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm" required>
-          <input type="hidden" name="existing_proof_files[]" value="">
-          <input type="hidden" name="existing_proof_filenames[]" value="">
+          <input type="file" name="proof_files_${document.getElementById(`receiptBody_${ticketId}`).rows.length}[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm" multiple>
         </td>
         <td class="text-center">
           <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeReceiptRow(this, ${ticketId})" title="ลบแถวนี้">
@@ -892,6 +892,7 @@
         </td>
       `;
       tbody.appendChild(tr);
+      updateReceiptFileIndices(ticketId);
       bindReceiptAgeWarnings(tr);
       
       const newAmtInput = tr.querySelector(".item-amount-input");
@@ -903,6 +904,7 @@
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
       if (tbody.getElementsByTagName('tr').length > 1) {
           button.closest('tr').remove();
+          updateReceiptFileIndices(ticketId);
           calculateTotalSpent(ticketId);
       } else {
           window.openAppPopup({
@@ -915,6 +917,22 @@
       }
     }
 
+    function updateReceiptFileIndices(ticketId) {
+      const tbody = document.getElementById(`receiptBody_${ticketId}`);
+      if (!tbody) return;
+      Array.from(tbody.rows).forEach((row, index) => {
+        row.querySelectorAll('input[type="file"]').forEach(input => {
+          input.name = `proof_files_${index}[]`;
+        });
+        row.querySelectorAll('input[name^="existing_proof_files_"]').forEach(input => {
+          input.name = `existing_proof_files_${index}[]`;
+        });
+        row.querySelectorAll('input[name^="existing_proof_filenames_"]').forEach(input => {
+          input.name = `existing_proof_filenames_${index}[]`;
+        });
+      });
+    }
+
     function calculateTotalSpent(ticketId) {
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
       if(!tbody) return;
@@ -924,10 +942,13 @@
           let cleanVal = input.value.replace(/,/g, "");
           total += parseFloat(cleanVal) || 0;
       }
-      document.getElementById(`sumAmountDisplay_${ticketId}`).innerText = total.toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-      });
+      const totalDisplay = document.getElementById(`sumAmountDisplay_${ticketId}`);
+      if (totalDisplay) {
+        totalDisplay.innerText = total.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+      }
     }
 
     function addDocumentRow(ticketId, buttonElem) {
@@ -992,8 +1013,11 @@
         return;
       }
 
-      try {
-        const response = await fetch(`/api/documents/suggest?q=${encodeURIComponent(query)}`);
+  try {
+        const response = await fetch(`{{ url_for('advance_payment.suggest_documents') }}?q=${encodeURIComponent(query)}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
         const docs = await response.json();
 
         if (docs.length === 0) {
@@ -1005,16 +1029,18 @@
         suggestionsBox.innerHTML = docs.map(doc => `
           <button type="button" 
                   class="list-group-item list-group-item-action small text-start" 
-                  onclick="selectAnnouncement(this, '${doc.id}', '${escapeHtml(doc.title)}', '${doc.file_path}')">
+                  onclick="selectAnnouncement(this, '${doc.id}', '${escapeHtml(doc.title)}', '${doc.download_url || doc.file_path || doc.url || ''}')">
             <i class="bi bi-file-earmark-pdf text-danger me-1"></i> ${escapeHtml(doc.title)}
           </button>
         `).join('');
 
-        suggestionsBox.classList.remove('d-none');
-      } catch (err) {
-        console.error('Error fetching announcements:', err);
-      }
-    }
+    suggestionsBox.classList.remove('d-none');
+  } catch (err) {
+    console.error('Error fetching announcements:', err);
+    suggestionsBox.innerHTML = `<div class="list-group-item list-group-item-action disabled small text-danger">ค้นหาไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</div>`;
+    suggestionsBox.classList.remove('d-none');
+  }
+}
 
     function selectAnnouncement(itemElem, docId, docTitle, filePath) {
       const row = itemElem.closest('.document-input-row');
@@ -1026,8 +1052,12 @@
       titleInput.value = docTitle;
       if (idInput) idInput.value = docId;
 
-      downloadBtn.href = filePath;
-      downloadBtn.classList.remove('d-none');
+      if (filePath) {
+        downloadBtn.href = filePath;
+        downloadBtn.classList.remove('d-none');
+      } else {
+        downloadBtn.classList.add('d-none');
+      }
 
       suggestionsBox.classList.add('d-none');
       suggestionsBox.innerHTML = '';
@@ -1142,9 +1172,11 @@
       const announcements = [];
       const docContainer = document.getElementById(`document-inputs-container-${ticketId}`);
       if (docContainer) {
-        docContainer.querySelectorAll('.announcement-input').forEach(input => {
-          if (input.value.trim()) {
-            announcements.push(input.value.trim());
+        docContainer.querySelectorAll('.document-input-row').forEach(row => {
+          const title = row.querySelector('.announcement-input')?.value.trim() || '';
+          const docId = row.querySelector('.announcement-id-input')?.value.trim() || '';
+          if (title || docId) {
+            announcements.push({ id: docId, title: title });
           }
         });
       }

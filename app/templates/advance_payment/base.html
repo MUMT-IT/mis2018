@@ -321,7 +321,7 @@
               </div>
             </div>
             <a class="btn btn-danger btn-sm w-100 mt-2 fw-bold" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 8px;">
-              <i class="bi bi-box-arrow-right me-1"></i> ออกจากระบบ
+              <i class="bi bi-box-arrow-right me-1"></i> ออกจาก Advance Payment
             </a>
           </div>
         </div>
@@ -352,6 +352,7 @@
     <div class="modal fade app-popup-modal" id="appPopupModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <form class="modal-content border-0 shadow-lg" id="appPopupModalForm" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="modal-header px-4 pt-4 pb-2">
             <h5 class="modal-title fw-bold text-dark" id="appPopupModalTitle"></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

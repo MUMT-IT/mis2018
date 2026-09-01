@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Boolean, Column, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import object_session
 from app.main import db
@@ -17,6 +19,11 @@ def _staff_department(staff):
     personal_info = getattr(staff, "personal_info", None)
     organization = getattr(personal_info, "org", None)
     return getattr(organization, "name", None)
+
+
+def _staff_org(staff):
+    personal_info = getattr(staff, "personal_info", None)
+    return getattr(personal_info, "org", None)
 
 
 def _staff_position(staff):
@@ -41,6 +48,8 @@ if not hasattr(StaffAccount, "name"):
     StaffAccount.name = property(_staff_name)
 if not hasattr(StaffAccount, "department"):
     StaffAccount.department = property(_staff_department)
+if not hasattr(StaffAccount, "org"):
+    StaffAccount.org = property(_staff_org)
 if not hasattr(StaffAccount, "position"):
     StaffAccount.position = property(_staff_position)
 if not hasattr(StaffAccount, "role"):
@@ -90,7 +99,7 @@ class CashAdvanceBorrowingTicket(db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
 
     id = Column(Integer, primary_key=True)
-    number = Column(Integer, nullable=True)
+    number = Column(String, nullable=True)
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     borrower_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     status = Column(String(64), nullable=False, default="กำลังส่งคำขอ")
@@ -227,7 +236,7 @@ class Document(db.Model):
     id = Column(Integer, primary_key=True)
     title = Column(String(255), nullable=False)
     file_path = Column(String(500), nullable=False, default="#")
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
 
 class ReturnDetail(db.Model):
@@ -239,7 +248,7 @@ class ReturnDetail(db.Model):
     proof_reference = Column(String(255), nullable=False, default="")
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     old_closing_document_name = Column(String(255), nullable=True)
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     rejection_comment = Column(String(4000), nullable=True)
     closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
 
@@ -293,7 +302,7 @@ class ReturnReceiptItem(db.Model):
     store_name = Column(String(255), nullable=False, default="")
     description = Column(String(255), nullable=False, default="")
     amount = Column(Numeric(12, 2), nullable=False, default=0)
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
     @property
     def proof_files(self):
@@ -308,7 +317,7 @@ class ReturnProofFile(db.Model):
     return_receipt_item_id = Column(Integer, ForeignKey("cash_advance_return_receipt_items.id"), nullable=True)
     proof_reference = Column(String(255), nullable=False)
     filename = Column(String(255), nullable=False, default="")
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
     @property
     def receipt_item(self):
@@ -332,7 +341,7 @@ class ParcelReturnDetail(db.Model):
     items_description = Column(String(1000), nullable=False)
     sent_date = Column(Date, nullable=False)
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
     old_closing_document_name = Column(String(255), nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
@@ -432,7 +441,6 @@ class BankAccountInfo(db.Model):
     id = Column(Integer, primary_key=True)
     record_type = Column(String(32), nullable=False)
     thai_name = Column(String(255), nullable=False)
-    english_name = Column(String(255), nullable=False) #delete
     account_number = Column(String(100), nullable=False)
     created_at = Column(DateTime, nullable=False, server_default=func.now()) # editable
 
@@ -454,7 +462,7 @@ class FundRequest(db.Model):
     withdrawal_date = Column(Date, nullable=True) # withdraw_intrest
     status = Column(String(64), nullable=False, default="กำลังดำเนินการ")
     amount = Column(Numeric(12, 2), nullable=False, default=0)
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     purpose = Column(String(1000), nullable=True)
     period_year = Column(String(10), nullable=True)
     withdrawal_proof_reference = Column(String(500), nullable=True)
@@ -509,7 +517,7 @@ class PettyCashClaimDetail(db.Model):
     transferred_at = Column(Date, nullable=True)
     closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
     old_closing_document_name = Column(String(255), nullable=True)
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
     @property
     def fund_request(self):
@@ -550,7 +558,7 @@ class PettyCashClaimItem(db.Model):
     receipt_date = Column(Date, nullable=False)
     description = Column(String(255), nullable=False, default="")
     amount = Column(Numeric(12, 2), nullable=False, default=0)
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     category_type = Column(Integer, nullable=False, default=1)
 
     @property
@@ -566,7 +574,7 @@ class PettyCashClaimProofFile(db.Model):
     claim_item_id = Column(Integer, ForeignKey("petty_cash_claim_items.id"), nullable=True)
     proof_reference = Column(String(255), nullable=False)
     filename = Column(String(255), nullable=False, default="")
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
     @property
     def claim_item(self):

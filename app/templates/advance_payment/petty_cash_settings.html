@@ -92,7 +92,7 @@
                 {% endif %}
               </td>
               <td>{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
-              <td class="fw-semibold text-dark">{{ claim.setting.department_name if claim.setting else (claim.user.department if claim.user else 'ไม่ระบุ') }}</td>
+              <td class="fw-semibold text-dark">{{ claim.setting.department_name if claim.setting else (claim.user.org.name if claim.user and claim.user.org else (claim.user.department if claim.user else 'ไม่ระบุ')) }}</td>
               <td>{{ claim.user.name if claim.user else '-' }}</td>
               <td class="text-end fw-bold text-primary">{{ '{:,.2f}'.format(claim.total_amount or claim.amount or 0.0) }}</td>
               <td class="text-center">
@@ -200,6 +200,7 @@
           <div id="editSettingSection" class="d-none border p-3 rounded-4 bg-light mt-4">
             <h6 class="fw-bold text-dark mb-3">แก้ไขข้อมูลหน่วยงานและงบประมาณ</h6>
             <form method="post" action="{{ url_for('advance_payment.petty_cash_settings') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <template id="bank-account-options-template">
                 <option value="" disabled selected>โปรดเลือกเลขที่บัญชี</option>
                 {% for account in bank_account_options %}
@@ -243,15 +244,13 @@
                         <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" value="{{ '{:,.2f}'.format(setting.budget) }}" required>
                       </td>
                       <td>
-                        <select name="account_number[]" class="form-select form-select-sm bank-account-select" onchange="syncBankAccountInfo(this)" required>
-                          <option value="" disabled {% if not setting.account_number %}selected{% endif %}>โปรดเลือกเลขที่บัญชี</option>
-                          {% for account in bank_account_options %}
-                            <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}" {% if setting.account_number == account.value %}selected{% endif %}>{{ account.label }}</option>
-                          {% endfor %}
-                          {% if setting.account_number and setting.account_number not in bank_account_values %}
-                            <option value="{{ setting.account_number }}" selected>{{ setting.account_number }}</option>
-                          {% endif %}
-                        </select>
+                        <input type="text"
+                               name="account_number[]"
+                               class="form-control form-control-sm account-number-input"
+                               value="{{ setting.account_number or '' }}"
+                               placeholder="123-4-56789-0"
+                               onblur="syncBankAccountInfo(this)"
+                               required>
                         <input type="hidden" name="bank_account_info_id[]" class="bank-account-info-id" value="{{ setting.bank_account_info_id or '' }}">
                       </td>
                     </tr>
@@ -296,7 +295,6 @@
     const tbody = document.getElementById('settingsBody');
     const newRow = document.createElement('tr');
     const currentYear = new Date().getFullYear() + 543;
-    const accountOptionsTemplate = document.getElementById('bank-account-options-template');
 
     newRow.innerHTML = `
       <td class="text-center">
@@ -315,16 +313,14 @@
         <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" value="0.00" required>
       </td>
       <td>
-        <select name="account_number[]" class="form-select form-select-sm bank-account-select" onchange="syncBankAccountInfo(this)" required>
-          ${accountOptionsTemplate ? accountOptionsTemplate.innerHTML : '<option value="" disabled selected>โปรดเลือกเลขที่บัญชี</option>'}
-        </select>
+        <input type="text" name="account_number[]" class="form-control form-control-sm account-number-input" placeholder="123-4-56789-0" onblur="syncBankAccountInfo(this)" required>
         <input type="hidden" name="bank_account_info_id[]" class="bank-account-info-id" value="">
       </td>
     `;
     tbody.appendChild(newRow);
-    const bankSelect = newRow.querySelector('.bank-account-select');
-    if (bankSelect) {
-      syncBankAccountInfo(bankSelect);
+    const bankInput = newRow.querySelector('.account-number-input');
+    if (bankInput) {
+      syncBankAccountInfo(bankInput);
     }
   }
 
@@ -333,15 +329,14 @@
     editSection.classList.toggle('d-none');
   }
 
-  function syncBankAccountInfo(selectElem) {
-    const row = selectElem.closest('tr');
+  function syncBankAccountInfo(inputElem) {
+    const row = inputElem.closest('tr');
     if (!row) return;
 
     const hiddenInput = row.querySelector('.bank-account-info-id');
     if (!hiddenInput) return;
 
-    const selectedOption = selectElem.options[selectElem.selectedIndex];
-    hiddenInput.value = selectedOption && selectedOption.dataset.bankAccountId ? selectedOption.dataset.bankAccountId : '';
+    hiddenInput.value = '';
   }
 
   function filterClaims() {
@@ -390,8 +385,8 @@
 
     setActiveTab('pending-claims');
 
-    document.querySelectorAll('.bank-account-select').forEach((selectElem) => {
-      syncBankAccountInfo(selectElem);
+    document.querySelectorAll('.account-number-input').forEach((inputElem) => {
+      syncBankAccountInfo(inputElem);
     });
   })();
 </script>

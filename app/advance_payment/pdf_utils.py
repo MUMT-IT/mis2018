@@ -1,4 +1,5 @@
 import os
+import re
 from io import BytesIO
 from bahttext import bahttext
 
@@ -12,6 +13,32 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Circle, Rect
 from .models import db, BankAccountInfo, StaffAccount
+
+
+INTEREST_PERIOD_MONTH_LABELS = {
+    "06": "มิถุนายน",
+    "12": "ธันวาคม",
+}
+
+
+def _format_interest_period_label(period_value):
+    normalized = (period_value or "").strip()
+    if not normalized:
+        return ""
+
+    short_match = re.fullmatch(r"(\d{2})/(\d{4})", normalized)
+    if short_match:
+        month_code, year_be = short_match.groups()
+        month_name = INTEREST_PERIOD_MONTH_LABELS.get(month_code)
+        if month_name:
+            return f"{month_name} พ.ศ. {year_be}"
+
+    long_match = re.search(r"(มิถุนายน|ธันวาคม)\s*พ\.?ศ\.?\s*(\d{4})", normalized)
+    if long_match:
+        month_name, year_be = long_match.groups()
+        return f"{month_name} พ.ศ. {year_be}"
+
+    return normalized
 
 
 # =========================================================================
@@ -636,16 +663,16 @@ def generate_fund_request_pdf(fund_request):
         # ส่วนดอกเบี้ยเติมข้อมูลจริง
         box_interest = chk_box_checked
         
-        # ดึงค่าจาก fund_request.period_year (เช่น "มิถุนายน พ.ศ. 2567")
-        period_str = str(fund_request.period_year or "")
-        
+        # รองรับทั้งค่าเก่าแบบ "มิถุนายน พ.ศ. 2567" และค่าใหม่แบบ "06/2567"
+        period_value = str(fund_request.period_year or "")
+        period_label = _format_interest_period_label(period_value)
+
         # เช็คการติ๊กเลือกงวด
-        box_june = chk_box_checked if "มิถุนายน" in period_str else chk_box
-        box_dec = chk_box_checked if "ธันวาคม" in period_str else chk_box
-        
+        box_june = chk_box_checked if period_value.startswith("06/") or "มิถุนายน" in period_label else chk_box
+        box_dec = chk_box_checked if period_value.startswith("12/") or "ธันวาคม" in period_label else chk_box
+
         # สกัดเฉพาะเลขปี พ.ศ. ออกมาจากสตริง (เช่น "2567") หากไม่มีจะใช้เส้นประ
-        import re
-        year_match = re.search(r'\d{4}', period_str)
+        year_match = re.search(r'\d{4}', period_label or period_value)
         p_period_yr = year_match.group(0) if year_match else "................"
 
         p_dept_2 = dept_name

@@ -24,6 +24,7 @@
       <div class="card shadow-sm border rounded-4 bg-white">
         <div class="card-body p-4">
           <form method="post" action="{{ url_for('advance_payment.staff_fund_request') }}" id="fundRequestForm" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-ruled me-2 text-primary"></i>เลือกประเภทและข้อมูลแบบฟอร์ม</h5>
             <div class="mb-3">
@@ -52,7 +53,9 @@
                     <label for="requester_input" class="form-label fw-bold text-muted small">ชื่อ-นามสกุล ผู้ประสานงาน <span class="text-danger">*</span></label>
                     <input type="text" name="requester_name" id="requester_input" list="borrower_list" class="form-control bg-white" placeholder="พิมพ์เพื่อค้นหา หรือเลือกพนักงาน..." autocomplete="off" required oninput="onBorrowerChange()">
                     <datalist id="borrower_list">
-                      <!-- ตัวเลือกจะถูกสร้างผ่าน JavaScript -->
+                      {% for emp in department_employees %}
+                        <option value="{{ emp.name }}" label="{{ emp.name }} ({{ emp.position }})"></option>
+                      {% endfor %}
                     </datalist>
                 </div>
                 <div class="col-md-6">
@@ -85,18 +88,17 @@
               <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับขออนุมัติเบิกดอกเบี้ย</h6>
               <div class="mb-2">
                 <label class="form-label fw-bold">งวดวันที่<span class="text-danger">*</span></label>
-                {% set current_year_th = form.period_year.data | int + 543 %}
                 <div class="d-flex gap-3 mt-1">
                   <div class="form-check">
-                    <input class="form-check-input" type="radio" name="period_year_radio" id="period_june" value="มิถุนายน พ.ศ. {{ current_year_th }}" checked>
+                    <input class="form-check-input" type="radio" name="period_year_radio" id="period_june" value="06/{{ current_year_be }}" checked>
                     <label class="form-check-label fw-bold" for="period_june">
-                      มิถุนายน พ.ศ. {{ current_year_th }}
+                      มิถุนายน พ.ศ. {{ current_year_be }}
                     </label>
                   </div>
                   <div class="form-check">
-                    <input class="form-check-input" type="radio" name="period_year_radio" id="period_december" value="ธันวาคม พ.ศ. {{ current_year_th }}">
+                    <input class="form-check-input" type="radio" name="period_year_radio" id="period_december" value="12/{{ current_year_be }}">
                     <label class="form-check-label fw-bold" for="period_december">
-                      ธันวาคม พ.ศ. {{ current_year_th }}
+                      ธันวาคม พ.ศ. {{ current_year_be }}
                     </label>
                   </div>
                 </div>
@@ -136,7 +138,7 @@
                         {% if selected_borrowing_ticket_id and selected_borrowing_ticket_id == ticket.id %}selected{% endif %}
                         data-borrower="{{ ticket.borrower_name or ticket.borrower_user.name if ticket.borrower_user else '' }}"
                         data-position="{{ ticket.borrower_user.position if ticket.borrower_user and ticket.borrower_user.position else '' }}"
-                        data-department="{{ ticket.borrower_user.department if ticket.borrower_user and ticket.borrower_user.department else '' }}"
+                        data-department="{{ ticket.borrower_user.org.name if ticket.borrower_user and ticket.borrower_user.org else (ticket.borrower_user.department if ticket.borrower_user and ticket.borrower_user.department else '') }}"
                         data-account="{{ ticket.account_number or '' }}"
                         data-amount="{{ '%.2f'|format(ticket.required_budget or 0) }}"
                         data-purpose="เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {{ ticket.number or '-' }}"
@@ -256,34 +258,14 @@
   </div>
 
   <script>
-    let departmentEmployees = [];
+    const departmentEmployees = {{ department_employees | tojson }};
 
     function loadDepartmentEmployees() {
-      const deptInput = document.getElementById("department_input");
-      const deptName = deptInput ? deptInput.value : "";
-      if (!deptName) return;
-
-      fetch(`/api/employees/departments?department=${encodeURIComponent(deptName)}`)
-        .then(response => response.json())
-        .then(data => {
-          departmentEmployees = data;
-          const datalist = document.getElementById("borrower_list");
-          datalist.innerHTML = "";
-          
-          data.forEach(emp => {
-            const option = document.createElement("option");
-            option.value = emp.name;
-            option.label = `${emp.name} (${emp.position})`;
-            datalist.appendChild(option);
-          });
-
-          const defaultValue = "{{ form.requester_name.data or '' }}";
-          if (defaultValue) {
-            document.getElementById("requester_input").value = defaultValue;
-            onBorrowerChange();
-          }
-        })
-        .catch(err => console.error("Error fetching employees:", err));
+      const defaultValue = {{ (form.requester_name.data or '') | tojson }};
+      if (defaultValue) {
+        document.getElementById("requester_input").value = defaultValue;
+        onBorrowerChange();
+      }
     }
 
     function onBorrowerChange() {

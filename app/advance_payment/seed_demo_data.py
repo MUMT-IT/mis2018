@@ -70,7 +70,7 @@ def _ensure_document(session, *, title, file_path):
     if document:
         return document
 
-    document = Document(title=title, file_path=file_path)
+    document = Document(title=title, file_path=file_path, created_at=datetime.now())
     session.add(document)
     session.flush()
     return document
@@ -85,6 +85,7 @@ def _ensure_closing_document(session, *, document_number, filing_date, total_amo
         document_number=document_number,
         filing_date=filing_date,
         total_amount=_money(total_amount),
+        created_at=datetime.now(),
     )
     session.add(closing_document)
     session.flush()
@@ -243,7 +244,7 @@ def _append_document_once(return_detail, document):
     )
 
 
-def _ensure_bank_account_info(session, *, record_type, thai_name, english_name, account_number):
+def _ensure_bank_account_info(session, *, record_type, thai_name, created_at, account_number):
     record = (
         session.query(BankAccountInfo)
         .filter_by(record_type=record_type, thai_name=thai_name)
@@ -255,7 +256,7 @@ def _ensure_bank_account_info(session, *, record_type, thai_name, english_name, 
     record = BankAccountInfo(
         record_type=record_type,
         thai_name=thai_name,
-        english_name=english_name,
+        created_at=created_at,
         account_number=account_number,
     )
     session.add(record)
@@ -325,6 +326,7 @@ def _ensure_fund_request(
         purpose=purpose,
         period_year=period_year,
         withdrawal_proof_reference=withdrawal_proof_reference,
+        created_at=datetime.now(),
         status=status,
     )
     session.add(fund_request)
@@ -346,6 +348,7 @@ def _ensure_fund_request_item(session, *, fund_request, description, amount, cat
         description=description,
         amount=_money(amount),
         category_type=category_type,
+        created_at=datetime.now(),
     )
     session.add(item)
     session.flush()
@@ -795,7 +798,7 @@ def seed_demo_data(session):
         request_date=today - timedelta(days=4),
         amount="11000.00",
         purpose="เดินทางประชุมชี้แจงโครงการ",
-        period_year=str(current_year_be),
+        period_year=f"06/{current_year_be}",
         status="กำลังดำเนินการ",
     )
 
@@ -950,49 +953,49 @@ def seed_demo_data(session):
         session,
         record_type="petty_cash",
         thai_name="เงินสดย่อย งานคลังและพัสดุ",
-        english_name="Faculty of Medical Technology",
+        created_at=datetime.now(),
         account_number="123-4-56789-0",
     )
     _ensure_bank_account_info(
         session,
         record_type="petty_cash",
         thai_name="เงินสดย่อย งานการศึกษา",
-        english_name="Faculty of Medical Technology",
+        created_at=datetime.now(),
         account_number="123-4-56789-1",
     )
     _ensure_bank_account_info(
         session,
         record_type="cash_advance",
         thai_name="เงินยืม หน่วยอาคารสถานที่ ยานพาหนะ",
-        english_name="Faculty of Medical Technology",
+        created_at=datetime.now(),
         account_number="123-4-56789-2",
     )
     _ensure_bank_account_info(
         session,
         record_type="cash_advance",
         thai_name="เงินยืม หน่วยพัฒนาบุคลากรฯ",
-        english_name="Faculty of Medical Technology",
+        created_at=datetime.now(),
         account_number="123-4-56789-3",
     )
     _ensure_bank_account_info(
         session,
         record_type="cash_advance",
         thai_name="เงินยืม ภาควิชารังสีเทคนิค",
-        english_name="Faculty of Medical Technology",
+        created_at=datetime.now(),
         account_number="123-4-56789-4",
     )
     _ensure_bank_account_info(
         session,
         record_type="cash_advance",
         thai_name="เงินยืม งานยุทธศาสตร์ฯ",
-        english_name="Faculty of Medical Technology",
+        created_at=datetime.now(),
         account_number="123-4-56789-5",
     )
     _ensure_bank_account_info(
         session,
         record_type="cash_advance",
         thai_name="เงินยืม ฝ่ายการเงินและบัญชี",
-        english_name="Faculty of Medical Technology",
+        created_at=datetime.now(),
         account_number="123-4-56789-6",
     )
 

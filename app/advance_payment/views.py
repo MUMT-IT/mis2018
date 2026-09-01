@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from .pdf_utils import generate_fnar02_pdf, generate_fund_request_pdf
 
 from flask import (
+    after_this_request,
     Blueprint,
     abort,
     current_app,
@@ -16,17 +17,21 @@ from flask import (
     render_template as _render_template,
     request,
     session,
+    send_file,
     url_for,
 )
-from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
+from flask_login import current_user
+from sqlalchemy import func, or_
+from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
-from .forms import BorrowingTicketForm, LoginForm, RegistrationForm, FundRequestForm, BankAccountInfoForm
+from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association
 from .email_utils import generate_notification_email_content
 from . import advance_payment as bp
+from app.models import Org
+from app.docs_query.models import DocsQueryDocument, DocsQueryTag
 
 
 def _upload_root():
@@ -67,10 +72,31 @@ STATUS_NORMALIZATION_MAP = {
     "ปฏิเสธ": "ปฏิเสธ",
 }
 
+INTEREST_PERIOD_MONTH_LABELS = {
+    "06": "มิถุนายน",
+    "12": "ธันวาคม",
+}
+
 BANK_ACCOUNT_TYPE_LABELS = {
     "petty_cash": "เงินสดย่อย",
     "cash_advance": "เงินยืม",
 }
+
+MODULE_ROLE_LABELS = {
+    "cash_management_coordinator": "ผู้ประสานงาน",
+    "borrower": "ผู้ยืม",
+    "staff": "เจ้าหน้าที่เงินสดย่อย",
+    "secretary": "ผู้ดูแลเงินสดย่อย",
+    "finance": "ฝ่ายการเงิน",
+}
+
+MODULE_ROLE_ORDER = [
+    "finance",
+    "secretary",
+    "staff",
+    "borrower",
+    "cash_management_coordinator",
+]
 
 
 def _is_coordinator_role(role):
@@ -86,6 +112,8 @@ def _dashboard_endpoint_for_role(role):
         return "advance_payment.borrower_dashboard"
     if role in PETTY_CASH_ROLE_ALIASES:
         return "advance_payment.staff_fund_request_history"
+    if role == "finance":
+        return "advance_payment.finance_dashboard"
     return "advance_payment.coordinator_dashboard"
 
 
@@ -110,6 +138,217 @@ def _normalize_status_label(status_value, default=None):
 
 def _bank_account_type_label(record_type):
     return BANK_ACCOUNT_TYPE_LABELS.get((record_type or "").strip(), "ไม่ระบุประเภท")
+
+
+def _normalize_lookup_value(value):
+    return re.sub(r"\s+", "", (value or "").strip()).lower()
+
+
+def _normalize_interest_period_value(period_value):
+    normalized = (period_value or "").strip()
+    if not normalized:
+        return ""
+
+    short_match = re.fullmatch(r"(\d{2})/(\d{4})", normalized)
+    if short_match:
+        month_code, year_be = short_match.groups()
+        if month_code in INTEREST_PERIOD_MONTH_LABELS:
+            return f"{month_code}/{year_be}"
+        return normalized
+
+    long_match = re.search(r"(มิถุนายน|ธันวาคม)\s*พ\.?ศ\.?\s*(\d{4})", normalized)
+    if long_match:
+        month_name, year_be = long_match.groups()
+        month_code = {label: code for code, label in INTEREST_PERIOD_MONTH_LABELS.items()}.get(month_name)
+        if month_code:
+            return f"{month_code}/{year_be}"
+
+    return normalized
+
+
+def _format_interest_period_label(period_value):
+    normalized = _normalize_interest_period_value(period_value)
+    short_match = re.fullmatch(r"(\d{2})/(\d{4})", normalized)
+    if short_match:
+        month_code, year_be = short_match.groups()
+        month_name = INTEREST_PERIOD_MONTH_LABELS.get(month_code)
+        if month_name:
+            return f"{month_name} พ.ศ. {year_be}"
+    return normalized
+
+
+def _get_staff_org(staff):
+    if not staff:
+        return None
+
+    personal_info = getattr(staff, "personal_info", None)
+    org = getattr(personal_info, "org", None)
+    return org
+
+
+def _get_staff_department_name(staff, default=None):
+    org = _get_staff_org(staff)
+    if org and getattr(org, "name", None):
+        return org.name
+    return default or getattr(staff, "department", None) or default
+
+
+def _resolve_org_by_department_name(dept_name):
+    normalized = _normalize_lookup_value(dept_name)
+    if not normalized:
+        return None
+
+    query = db.session.query(Org)
+    raw_name = (dept_name or "").strip()
+    if raw_name.isdigit():
+        org = query.filter_by(id=int(raw_name)).first()
+        if org:
+            return org
+
+    for org in query.all():
+        org_names = [
+            _normalize_lookup_value(getattr(org, "name", None)),
+            _normalize_lookup_value(getattr(org, "en_name", None)),
+        ]
+        if normalized in org_names:
+            return org
+        if any(candidate and (normalized in candidate or candidate in normalized) for candidate in org_names):
+            return org
+
+    return None
+
+
+def _org_account_controller(org):
+    if not org:
+        return None
+
+    secretary_staff = getattr(org, "secretary_staff", None) or []
+    if secretary_staff:
+        controller = secretary_staff[0]
+        return {
+            "name": getattr(controller, "name", "") or getattr(controller, "fullname", "") or getattr(controller, "email", ""),
+            "position": getattr(controller, "position", "") or "เจ้าหน้าที่",
+            "email": getattr(controller, "email", ""),
+        }
+
+    active_accounts = getattr(org, "active_staff_accounts", None) or []
+    if active_accounts:
+        controller = active_accounts[0]
+        return {
+            "name": getattr(controller, "name", "") or getattr(controller, "fullname", "") or getattr(controller, "email", ""),
+            "position": getattr(controller, "position", "") or "เจ้าหน้าที่",
+            "email": getattr(controller, "email", ""),
+        }
+
+    return None
+
+
+def _serialize_org_department(org):
+    if not org:
+        return None
+
+    staff_members = []
+    for staff in getattr(org, "active_staff_accounts", None) or []:
+        if not staff:
+            continue
+        staff_members.append(
+            {
+                "id": getattr(staff, "id", None),
+                "name": getattr(staff, "name", None) or getattr(staff, "fullname", None) or getattr(staff, "email", ""),
+                "position": getattr(staff, "position", "") or "บุคลากร",
+                "email": getattr(staff, "email", ""),
+                "department": getattr(org, "name", "") or "",
+            }
+        )
+
+    controller = _org_account_controller(org)
+    head_name = getattr(org, "head", None) or ""
+    return {
+        "org_id": org.id,
+        "department_code": getattr(org, "en_name", None) or f"ORG-{org.id}",
+        "department_name": org.name,
+        "telephone_number": getattr(org, "phone_number", None) or "",
+        "head_of_department": {
+            "name": head_name or ".......................................................",
+            "position": "หัวหน้าหน่วยงาน",
+            "email": "",
+        },
+        "account_controller": controller or {
+            "name": ".......................................................",
+            "position": "เจ้าหน้าที่",
+            "email": "",
+        },
+        "staff_members": staff_members,
+    }
+
+
+def _available_module_roles(staff):
+    role_names = set()
+    if staff is None:
+        return []
+
+    for role in getattr(staff, "roles", []) or []:
+        role_name = getattr(role, "role_need", None)
+        if role_name:
+            role_names.add(role_name)
+
+    direct_role = getattr(staff, "role", None)
+    if direct_role:
+        role_names.add(direct_role)
+
+    return [role for role in MODULE_ROLE_ORDER if role in role_names]
+
+
+def _default_module_role(staff):
+    roles = _available_module_roles(staff)
+    if roles:
+        return roles[0]
+    return getattr(staff, "role", None) or "staff"
+
+
+def _sync_advance_payment_session(staff, role=None):
+    if not staff:
+        return
+
+    session["user_id"] = staff.id
+    session["user_email"] = staff.email
+    session["user_role"] = role or _default_module_role(staff)
+
+
+def _module_user_from_session():
+    if current_user.is_authenticated:
+        _sync_advance_payment_session(current_user, session.get("user_role"))
+        return current_user
+
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+
+    legacy_user = db.session.query(StaffAccount).get(user_id)
+    if not legacy_user:
+        session.pop("user_id", None)
+        session.pop("user_email", None)
+        session.pop("user_role", None)
+        return None
+
+    return legacy_user
+
+
+def _ensure_module_role(staff, requested_role):
+    available_roles = _available_module_roles(staff)
+    if not available_roles:
+        return None, "ไม่พบบทบาทที่สามารถใช้งาน Advance Payment ได้"
+
+    if not requested_role:
+        if len(available_roles) == 1:
+            requested_role = available_roles[0]
+        else:
+            return None, None
+
+    if requested_role not in available_roles:
+        return None, "บัญชีนี้ไม่มีสิทธิ์ใช้งานในบทบาทที่เลือก"
+
+    return requested_role, None
 
 
 def _get_user_by_id(user_id):
@@ -215,6 +454,7 @@ def _attach_petty_cash_claim_context(claim):
         _attach_fund_request_people(claim.fund_request)
         _attach_fund_request_ticket(claim.fund_request)
 
+    _prepare_document_display_list(claim.documents)
     return claim
 
 
@@ -278,15 +518,65 @@ def _resolve_petty_cash_setting(user):
     if setting:
         return setting
 
-    department_name = (getattr(user, "department", "") or "").strip()
-    if department_name:
-        setting = (
-            db.session.query(PettyCashSetting)
-            .filter_by(department_name=department_name, valid=True)
-            .first()
-        )
+    user_id = getattr(user, "id", None)
+    user_name_candidates = {
+        _normalize_lookup_value(getattr(user, "name", None)),
+        _normalize_lookup_value(getattr(user, "fullname", None)),
+        _normalize_lookup_value(getattr(user, "email", None)),
+    }
+    user_name_candidates.discard("")
+
+    org = _get_staff_org(user)
+    org_names = []
+    if org:
+        org_name = (getattr(org, "name", "") or "").strip()
+        org_en_name = (getattr(org, "en_name", "") or "").strip()
+        if org_name:
+            org_names.append(org_name)
+        if org_en_name and org_en_name not in org_names:
+            org_names.append(org_en_name)
+
+    query = db.session.query(PettyCashSetting).filter(PettyCashSetting.valid == True)
+
+    if user_id:
+        setting = query.filter(PettyCashSetting.custodian_id == user_id).first()
         if setting:
             return setting
+
+    for setting in query.all():
+        custodian_name = _normalize_lookup_value(getattr(setting, "custodian_name", None))
+        if custodian_name and custodian_name in user_name_candidates:
+            return setting
+
+    for org_name in org_names:
+        setting = query.filter_by(department_name=org_name).first()
+        if setting:
+            return setting
+
+    department_name = (getattr(user, "department", "") or "").strip()
+    if department_name:
+        setting = query.filter_by(department_name=department_name).first()
+        if setting:
+            return setting
+
+    normalized_candidates = [*org_names, department_name]
+    normalized_candidates = [value for value in normalized_candidates if value]
+    if normalized_candidates:
+        settings = query.all()
+        for setting in settings:
+            setting_department = _normalize_lookup_value(getattr(setting, "department_name", None))
+            if not setting_department:
+                continue
+            for candidate in normalized_candidates:
+                normalized_candidate = _normalize_lookup_value(candidate)
+                if not normalized_candidate:
+                    continue
+                if (
+                    setting_department == normalized_candidate
+                    or setting_department in normalized_candidate
+                    or normalized_candidate in setting_department
+                ):
+                    return setting
 
     return SimpleNamespace(
         id=None,
@@ -462,17 +752,18 @@ def login_required(role=None):
     def decorator(view_func):
         @wraps(view_func)
         def wrapped(*args, **kwargs):
-            user_id = session.get("user_id")
-            if not user_id:
+            staff = _module_user_from_session()
+            if not staff:
                 return redirect(url_for("advance_payment.login"))
 
-            current_user = db.session.query(StaffAccount).get(user_id)
-            if not current_user:
-                session.clear()
-                return redirect(url_for("advance_payment.login"))
-
-            user_role = current_user.role
-            session["user_role"] = user_role
+            user_role = session.get("user_role")
+            available_roles = _available_module_roles(staff)
+            if user_role not in available_roles:
+                if len(available_roles) == 1:
+                    user_role = available_roles[0]
+                    session["user_role"] = user_role
+                else:
+                    return redirect(url_for("advance_payment.login"))
 
             if role in {"coordinator", COORDINATOR_ROLE}:
                 if not _is_coordinator_role(user_role):
@@ -488,80 +779,6 @@ def login_required(role=None):
         return wrapped
 
     return decorator
-
-
-def _authenticate_user(email, password, requested_role):
-    users = db.session.query(StaffAccount).filter_by(email=email).all()
-    if not users:
-        return None, "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
-
-    matching_users = [user for user in users if user.check_password(password)]
-    if not matching_users:
-        return None, "อีเมลหรือรหัสผ่านไม่ถูกต้อง"
-
-    user = None
-    if requested_role in COORDINATOR_ROLE_ALIASES:
-        for candidate in matching_users:
-            if candidate.role in COORDINATOR_ROLE_ALIASES:
-                user = candidate
-                break
-    elif requested_role in PETTY_CASH_ROLE_ALIASES:
-        for candidate in matching_users:
-            if candidate.role == requested_role:
-                user = candidate
-                break
-        if user is None:
-            for candidate in matching_users:
-                if candidate.role in PETTY_CASH_ROLE_ALIASES:
-                    user = candidate
-                    break
-    else:
-        for candidate in matching_users:
-            if candidate.role == requested_role:
-                user = candidate
-                break
-
-    if user is None:
-        return None, "เส้นทางการเข้าสู่ระบบไม่ถูกต้องสำหรับสิทธิ์ของผู้ใช้นี้"
-
-    return user, None
-
-
-def _handle_login(role):
-    form = LoginForm(request.form)
-    error_message = None
-
-    if request.method == "POST" and form.validate():
-        user, error_message = _authenticate_user(
-            form.email.data.strip().lower(),
-            form.password.data,
-            role,
-        )
-
-        if user is not None:
-            session.clear()
-            session["user_id"] = user.id
-            session["user_email"] = user.email
-            session["user_role"] = user.role
-
-            if user.role == "finance":
-                dashboard_endpoint = "advance_payment.finance_dashboard"
-            elif user.role in PETTY_CASH_ROLE_ALIASES:
-                dashboard_endpoint = "advance_payment.staff_fund_request_history"
-            elif user.role == "borrower":
-                dashboard_endpoint = "advance_payment.borrower_dashboard"
-            else:
-                dashboard_endpoint = "advance_payment.coordinator_dashboard"
-                
-            return redirect(url_for(dashboard_endpoint))
-
-    template_name = "index.html" if role in COORDINATOR_ROLE_ALIASES else "finance_login.html"
-    return render_template(
-        template_name,
-        form=form,
-        error_message=error_message,
-        selected_role=role,
-    )
 
 
 def _coerce_date(value):
@@ -603,60 +820,300 @@ def _get_closing_document(closing_document_id):
     return db.session.query(ClosingDocument).get(closing_document_id)
 
 
-def _get_or_create_document(title):
+def _docs_query_view_url(file_id):
+    if not file_id:
+        return None
+    return f"https://drive.google.com/file/d/{file_id}/view"
+
+
+def _docs_query_download_url(file_id):
+    if not file_id:
+        return None
+    return f"https://drive.google.com/uc?export=download&id={file_id}"
+
+
+def _docs_query_document_tag_names(document):
+    return [
+        tag.name
+        for tag in getattr(document, "tags", []) or []
+        if getattr(tag, "name", "").strip()
+    ]
+
+
+def _docs_query_document_status_label(document):
+    status = (getattr(document, "status", "") or "").strip()
+    if status == "processed":
+        label = "พร้อมใช้งาน"
+        if getattr(document, "is_expired", False):
+            return f"{label} / หมดอายุ"
+        return label
+    if status == "processing":
+        return "กำลังประมวลผล"
+    if status == "failed":
+        return "ประมวลผลล้มเหลว"
+    return "รอประมวลผล"
+
+
+def _docs_query_document_status_class(document):
+    status = (getattr(document, "status", "") or "").strip()
+    if status == "processed":
+        return "bg-success text-white" if not getattr(document, "is_expired", False) else "bg-danger text-white"
+    if status == "processing":
+        return "bg-info text-white"
+    if status == "failed":
+        return "bg-danger text-white"
+    return "bg-secondary text-white"
+
+
+def _resolve_docs_query_document(identifier=None, title=None):
+    candidates = []
+    for value in (identifier, title):
+        cleaned_value = (str(value).strip() if value is not None else "")
+        if cleaned_value:
+            candidates.append(cleaned_value)
+
+    if not candidates:
+        return None
+
+    query = db.session.query(DocsQueryDocument).options(joinedload(DocsQueryDocument.tags))
+
+    for candidate in candidates:
+        document = query.filter(DocsQueryDocument.drive_file_id == candidate).first()
+        if document is not None:
+            return document
+
+    for candidate in candidates:
+        normalized_candidate = candidate.lower()
+        document = query.filter(func.lower(func.trim(DocsQueryDocument.document_title)) == normalized_candidate).first()
+        if document is not None:
+            return document
+        document = query.filter(func.lower(func.trim(DocsQueryDocument.filename)) == normalized_candidate).first()
+        if document is not None:
+            return document
+
+    return None
+
+
+def _attach_document_source_context(document):
+    if not document:
+        return None
+
+    source_document = _resolve_docs_query_document(
+        getattr(document, "file_path", None),
+        getattr(document, "title", None),
+    )
+    if source_document is None:
+        return document
+
+    document.file_id = source_document.drive_file_id
+    document.download_url = _docs_query_download_url(source_document.drive_file_id)
+    document.view_url = _docs_query_view_url(source_document.drive_file_id)
+    document.url = document.view_url
+    document.document_type = source_document.document_type or getattr(document, "document_type", None)
+    document.note = source_document.note or getattr(document, "note", None)
+    document.summary = source_document.summary or getattr(document, "summary", None)
+    document.tags = _docs_query_document_tag_names(source_document)
+    document.status = source_document.status
+    document.status_label = _docs_query_document_status_label(source_document)
+    document.status_class = _docs_query_document_status_class(source_document)
+    document.is_expired = bool(source_document.is_expired)
+    return document
+
+
+def _prepare_document_display_list(documents):
+    prepared_documents = []
+    for document in documents or []:
+        prepared_documents.append(_attach_document_source_context(document))
+    return prepared_documents
+
+
+def _sync_document_from_docs_query(source_document):
+    if source_document is None:
+        return None
+
+    canonical_title = (
+        source_document.document_title
+        or source_document.filename
+        or source_document.drive_file_id
+    )
+    view_url = _docs_query_view_url(source_document.drive_file_id)
+    download_url = _docs_query_download_url(source_document.drive_file_id)
+
+    document = (
+        db.session.query(Document)
+        .filter(
+            or_(
+                Document.file_path == view_url,
+                Document.title == canonical_title,
+            )
+        )
+        .first()
+    )
+
+    if document is None:
+        document = Document(
+            title=canonical_title,
+            file_path=view_url or download_url or "#",
+            created_at=datetime.now(),
+        )
+        db.session.add(document)
+        db.session.flush()
+    else:
+        document.title = canonical_title
+        document.file_path = view_url or download_url or document.file_path
+
+    document.download_url = download_url
+    document.view_url = view_url
+    document.file_id = source_document.drive_file_id
+    document.status = source_document.status
+    document.summary = source_document.summary
+    document.document_type = source_document.document_type
+    document.note = source_document.note
+    document.tags = _docs_query_document_tag_names(source_document)
+    document.is_expired = bool(source_document.is_expired)
+    return document
+
+
+def _get_or_create_document(title=None, source_document=None):
     cleaned_title = (title or "").strip()
+    if source_document is None:
+        source_document = _resolve_docs_query_document(title=cleaned_title)
+
+    if source_document is not None:
+        return _sync_document_from_docs_query(source_document)
+
     if not cleaned_title:
         return None
 
     document = db.session.query(Document).filter_by(title=cleaned_title).first()
     if document is None:
         dummy_file_path = f"/static/dummy_documents/{secure_filename(cleaned_title)}.pdf"
-        document = Document(title=cleaned_title, file_path=dummy_file_path)
+        document = Document(
+            title=cleaned_title,
+            file_path=dummy_file_path,
+            created_at=datetime.now(),
+        )
         db.session.add(document)
         db.session.flush()
     return document
 
 
-def _replace_return_detail_documents(return_detail, titles):
+def _resolve_document_reference(reference=None, title=None):
+    reference_id = None
+    reference_title = title
+
+    if isinstance(reference, dict):
+        reference_id = reference.get("id") or reference.get("file_id") or reference.get("drive_file_id")
+        reference_title = reference.get("title") or reference.get("document_title") or reference.get("name") or reference_title
+    elif reference is not None:
+        reference_title = str(reference).strip() or reference_title
+
+    source_document = _resolve_docs_query_document(reference_id, reference_title)
+    resolved_title = (
+        getattr(source_document, "document_title", None)
+        or getattr(source_document, "filename", None)
+        or (reference_title or "").strip()
+    )
+    return source_document, resolved_title
+
+
+def _replace_documents_from_references(association_table, association_key, target_id, references):
     db.session.execute(
-        document_return_association.delete().where(
-            document_return_association.c.return_id == return_detail.id
+        association_table.delete().where(
+            getattr(association_table.c, association_key) == target_id
         )
     )
 
     seen_document_ids = set()
-    for title in titles or []:
-        document = _get_or_create_document(title)
+    for reference in references or []:
+        source_document, resolved_title = _resolve_document_reference(reference)
+        document = _get_or_create_document(resolved_title, source_document=source_document)
         if document is None or document.id in seen_document_ids:
             continue
         seen_document_ids.add(document.id)
         db.session.execute(
-            document_return_association.insert().values(
+            association_table.insert().values(
                 document_id=document.id,
-                return_id=return_detail.id,
+                **{association_key: target_id},
             )
         )
 
 
-def _replace_claim_detail_documents(claim_detail, titles):
-    db.session.execute(
-        document_petty_claim_association.delete().where(
-            document_petty_claim_association.c.claim_id == claim_detail.id
-        )
+def _replace_return_detail_documents(return_detail, references):
+    _replace_documents_from_references(
+        document_return_association,
+        "return_id",
+        return_detail.id,
+        references,
     )
 
-    seen_document_ids = set()
-    for title in titles or []:
-        document = _get_or_create_document(title)
-        if document is None or document.id in seen_document_ids:
-            continue
-        seen_document_ids.add(document.id)
-        db.session.execute(
-            document_petty_claim_association.insert().values(
-                document_id=document.id,
-                claim_id=claim_detail.id,
+
+def _replace_claim_detail_documents(claim_detail, references):
+    _replace_documents_from_references(
+        document_petty_claim_association,
+        "claim_id",
+        claim_detail.id,
+        references,
+    )
+
+
+def _list_cash_mng_documents(search_query=None, limit=None):
+    query = (
+        db.session.query(DocsQueryDocument)
+        .options(joinedload(DocsQueryDocument.tags))
+    )
+
+    cleaned_query = (search_query or "").strip()
+    if cleaned_query:
+        pattern = f"%{cleaned_query.lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(func.coalesce(DocsQueryDocument.document_title, "")).like(pattern),
+                func.lower(func.coalesce(DocsQueryDocument.filename, "")).like(pattern),
+                func.lower(func.coalesce(DocsQueryDocument.document_type, "")).like(pattern),
+                func.lower(func.coalesce(DocsQueryDocument.note, "")).like(pattern),
+                func.lower(func.coalesce(DocsQueryDocument.summary, "")).like(pattern),
+                DocsQueryDocument.tags.any(func.lower(DocsQueryTag.name).like(pattern)),
             )
         )
+
+    query = query.order_by(
+        DocsQueryDocument.updated_at.desc(),
+        DocsQueryDocument.created_at.desc(),
+        DocsQueryDocument.id.desc(),
+    )
+    if limit:
+        query = query.limit(limit)
+
+    documents = []
+    for source_document in query.all():
+        documents.append({
+            "id": source_document.drive_file_id,
+            "file_id": source_document.drive_file_id,
+            "title": source_document.document_title or source_document.filename or source_document.drive_file_id,
+            "document_type": source_document.document_type or "",
+            "note": source_document.note or "",
+            "summary": source_document.summary or "",
+            "tags": _docs_query_document_tag_names(source_document),
+            "status": source_document.status or "pending",
+            "status_label": _docs_query_document_status_label(source_document),
+            "status_class": _docs_query_document_status_class(source_document),
+            "is_expired": bool(source_document.is_expired),
+            "file_path": _docs_query_download_url(source_document.drive_file_id),
+            "download_url": _docs_query_download_url(source_document.drive_file_id),
+            "view_url": _docs_query_view_url(source_document.drive_file_id),
+            "url": _docs_query_view_url(source_document.drive_file_id),
+            "document_title": source_document.document_title or source_document.filename or source_document.drive_file_id,
+            "filename": source_document.filename or "",
+        })
+    return documents
+
+
+def _download_cash_mng_document(file_id):
+    source_document = _resolve_docs_query_document(file_id)
+    if source_document is None:
+        abort(404)
+    return redirect(_docs_query_download_url(source_document.drive_file_id))
 
 
 def _send_notification_email(target_object, object_type="ticket", extra_ctx=None):
@@ -982,44 +1439,80 @@ def _recalculate_borrowing_ticket_status(ticket_id):
 
     return borrowing_ticket.status
 
+def _render_role_selection(selected_role=None, error_message=None):
+    staff = _module_user_from_session()
+    if not staff:
+        return redirect(url_for("auth.login", next=url_for("advance_payment.login")))
+
+    available_roles = _available_module_roles(staff)
+    if not available_roles:
+        flash("บัญชีนี้ยังไม่มีบทบาทสำหรับใช้งาน Advance Payment", "danger")
+        return redirect(url_for("auth.login", next=url_for("advance_payment.login")))
+
+    if selected_role and selected_role in available_roles:
+        _sync_advance_payment_session(staff, selected_role)
+        return redirect(url_for(_dashboard_endpoint_for_role(selected_role)))
+
+    if request.method == "POST":
+        requested_role = (request.form.get("role") or "").strip()
+        requested_role, error_message = _ensure_module_role(staff, requested_role)
+        if requested_role:
+            _sync_advance_payment_session(staff, requested_role)
+            return redirect(url_for(_dashboard_endpoint_for_role(requested_role)))
+
+    if len(available_roles) == 1 and request.method == "GET":
+        role = available_roles[0]
+        _sync_advance_payment_session(staff, role)
+        return redirect(url_for(_dashboard_endpoint_for_role(role)))
+
+    return render_template(
+        "index.html",
+        available_roles=available_roles,
+        role_labels=MODULE_ROLE_LABELS,
+        selected_role=selected_role,
+        current_email=getattr(staff, "email", None),
+        error_message=error_message,
+    )
+
+
 @bp.route("/", methods=["GET", "POST"])
 @bp.route("/login", methods=["GET", "POST"])
-def login():
-    selected_role = request.values.get("role") or request.values.get("login_path")
-    if not selected_role:
-        return render_template(
-            "index.html",
-            form=LoginForm(request.form),
-            error_message=None,
-            selected_role=None,
-        )
-    return _handle_login(selected_role)
+def login(role=None):
+    if not current_user.is_authenticated and not session.get("user_id"):
+        return redirect(url_for("auth.login", next=request.url))
+
+    requested_role = role or request.values.get("role") or request.values.get("login_path")
+    return _render_role_selection(selected_role=requested_role)
 
 
 @bp.route("/staff/login", methods=["GET", "POST"])
 def staff_login():
-    return _handle_login(SECRETARY_ROLE)
+    return login(role=SECRETARY_ROLE)
 
 
 @bp.route("/custodian/login", methods=["GET", "POST"])
 def custodian_login():
-    return _handle_login(SECRETARY_ROLE)
+    return login(role=SECRETARY_ROLE)
 
 
 @bp.route("/finance/login", methods=["GET", "POST"])
 def finance_login():
-    return _handle_login("finance")
+    return login(role="finance")
 
 
 @bp.route("/logout")
 def logout():
-    session.clear()
-    flash("คุณได้ออกจากระบบเรียบร้อยแล้ว")
-    return redirect(url_for("advance_payment.login"))
+    session.pop("user_id", None)
+    session.pop("user_email", None)
+    session.pop("user_role", None)
+    flash("ออกจากระบบ Advance Payment เรียบร้อยแล้ว")
+    if current_user.is_authenticated:
+        return redirect(url_for("advance_payment.login"))
+    return redirect(url_for("auth.login"))
 
 @bp.route("/coordinator/dashboard", methods=["GET", "POST"], endpoint="coordinator_dashboard")
 @bp.route("/borrower/dashboard", methods=["GET", "POST"], endpoint="borrower_dashboard")
-@login_required()
+@login_required(role="coordinator")
 def coordinator_dashboard():
     user_id = session.get("user_id")
     user_role = session.get("user_role")
@@ -1093,7 +1586,7 @@ def coordinator_dashboard():
                     .filter_by(return_receipt_item_id=item.id)
                     .first()
                 )
-            ticket.draft_announcements = draft_detail.documents
+            ticket.draft_announcements = _prepare_document_display_list(draft_detail.documents)
         else:
             ticket.draft_items = []
             ticket.draft_announcements = []
@@ -1389,17 +1882,12 @@ def finance_dashboard():
     # ==========================================
     # 1. ย้าย Logic คำนวณรอบดอกเบี้ยมาไว้นอกลูป
     # ==========================================
-    current_year_ad = today_date.year       # ปี ค.ศ. (ex. 2026)
     current_year_be = today_date.year + 543 # ปี พ.ศ. (ex. 2569)
-
     if today_date.month <= 11:
-        period_name = f"มิ.ย. {current_year_be}"
-        target_months = ["มิ.ย.", "มิถุนายน"]
+        current_interest_period_key = f"06/{current_year_be}"
     else:
-        period_name = f"ธ.ค. {current_year_be}"
-        target_months = ["ธ.ค.", "ธันวาคม"]
-
-    target_years = [str(current_year_ad), str(current_year_be)]
+        current_interest_period_key = f"12/{current_year_be}"
+    current_interest_period = _format_interest_period_label(current_interest_period_key)
 
     # ==========================================
     # 2. ลูปคำนวณตั๋วยืมคงเหลือ และนับจำนวนสัญญา
@@ -1445,15 +1933,7 @@ def finance_dashboard():
 
     matched_requests = []
     for fr in approved_interest_requests:
-        combined_text = f"{fr.ticket_number or ''} {fr.period_year or ''}".strip()
-        
-        if not combined_text:
-            continue
-
-        has_month = any(m in combined_text for m in target_months)
-        has_year = any(y in combined_text for y in target_years)
-        
-        if has_month and has_year:
+        if _normalize_interest_period_value(fr.period_year) == current_interest_period_key:
             matched_requests.append(fr)
 
     submitted_dept_names = {fr.department_name for fr in matched_requests if fr.department_name}
@@ -1470,7 +1950,7 @@ def finance_dashboard():
             "custodian_name": custodian,
             "is_submitted": is_submitted,
             "is_pending": not is_submitted,
-            "pending_period": period_name,
+            "pending_period": current_interest_period,
             "status_label": "ส่งแล้ว" if is_submitted else "ค้างส่ง"
         }
         pending_interest_departments.append(dept_info)
@@ -1493,10 +1973,35 @@ def finance_dashboard():
         shadow_sum_debt=shadow_sum_debt,
         near_due_count=near_due_count,        # <--- ส่งเพิ่ม
         overdue_count=overdue_count,          # <--- ส่งเพิ่ม
-        current_interest_period=period_name,
+        current_interest_period=current_interest_period,
         pending_interest_departments=pending_interest_departments,
         pending_interest_count=pending_interest_count
     )
+
+
+@bp.route("/finance/documents", methods=["GET"])
+@login_required(role="finance")
+def cash_mng_documents():
+    search_query = (request.args.get("q") or "").strip()
+    documents = _list_cash_mng_documents(search_query=search_query)
+
+    document_statistics = {
+        "total": len(documents),
+        "processed": sum(1 for document in documents if document.get("status") == "processed"),
+        "expired": sum(1 for document in documents if document.get("is_expired")),
+    }
+    return render_template(
+        "cash_mng_documents.html",
+        documents=documents,
+        document_statistics=document_statistics,
+        search_query=search_query,
+    )
+
+
+@bp.route("/finance/documents/<file_id>/download", methods=["GET"])
+@login_required(role="finance")
+def cash_mng_document_download(file_id):
+    return _download_cash_mng_document(file_id)
 
 
 @bp.route("/finance/bank-accounts", methods=["GET", "POST"])
@@ -1506,6 +2011,16 @@ def finance_bank_account_registry():
     form = BankAccountInfoForm()
     form.record_type.choices = list(BANK_ACCOUNT_TYPE_LABELS.items())
 
+    def _parse_bank_account_created_at(raw_value):
+        value = (raw_value or "").strip()
+        if not value:
+            return None
+        try:
+            return datetime.strptime(value[:10], "%Y-%m-%d")
+        except ValueError:
+            return None
+
+
     if request.method == "POST":
         if request.form.get("edit_mode") != "1":
             flash("กรุณากดแก้ไขข้อมูลบัญชีธนาคารก่อน", "warning")
@@ -1514,26 +2029,26 @@ def finance_bank_account_registry():
         row_ids = request.form.getlist("record_id[]")
         row_types = request.form.getlist("record_type[]")
         row_thai_names = request.form.getlist("thai_name[]")
-        row_english_names = request.form.getlist("english_name[]")
+        row_created_ats = request.form.getlist("created_at[]")
         row_account_numbers = request.form.getlist("account_number[]")
 
         errors = []
         processed = 0
 
-        for index, (raw_id, raw_type, raw_thai, raw_english, raw_account) in enumerate(
-            zip(row_ids, row_types, row_thai_names, row_english_names, row_account_numbers),
+        for index, (raw_id, raw_type, raw_thai, raw_created_at, raw_account) in enumerate(
+            zip(row_ids, row_types, row_thai_names, row_created_ats, row_account_numbers),
             start=1,
         ):
             record_type = (raw_type or "").strip()
             thai_name = (raw_thai or "").strip()
-            english_name = (raw_english or "").strip()
+            created_at = _parse_bank_account_created_at(raw_created_at)
             account_number = (raw_account or "").strip()
             record_id = (raw_id or "").strip()
 
-            if not any([record_type, thai_name, english_name, account_number, record_id]):
+            if not any([record_type, thai_name, created_at, account_number, record_id]):
                 continue
 
-            if not all([record_type, thai_name, english_name, account_number]):
+            if not all([record_type, thai_name, created_at, account_number]):
                 errors.append(f"แถวที่ {index} กรุณากรอกข้อมูลให้ครบทุกช่อง")
                 continue
 
@@ -1544,14 +2059,14 @@ def finance_bank_account_registry():
                     continue
                 record.record_type = record_type
                 record.thai_name = thai_name
-                record.english_name = english_name
+                record.created_at = created_at
                 record.account_number = account_number
             else:
                 db.session.add(
                     BankAccountInfo(
                         record_type=record_type,
                         thai_name=thai_name,
-                        english_name=english_name,
+                        created_at=created_at,
                         account_number=account_number,
                     )
                 )
@@ -1576,11 +2091,11 @@ def finance_bank_account_registry():
 
     if request.method == "POST":
         edit_rows = []
-        for raw_id, raw_type, raw_thai, raw_english, raw_account in zip(
+        for raw_id, raw_type, raw_thai, raw_created_at, raw_account in zip(
             request.form.getlist("record_id[]"),
             request.form.getlist("record_type[]"),
             request.form.getlist("thai_name[]"),
-            request.form.getlist("english_name[]"),
+            request.form.getlist("created_at[]"),
             request.form.getlist("account_number[]"),
         ):
             edit_rows.append(
@@ -1588,7 +2103,7 @@ def finance_bank_account_registry():
                     "id": raw_id,
                     "record_type": raw_type,
                     "thai_name": raw_thai,
-                    "english_name": raw_english,
+                    "created_at": raw_created_at,
                     "account_number": raw_account,
                 }
             )
@@ -1598,7 +2113,7 @@ def finance_bank_account_registry():
                 "id": record.id,
                 "record_type": record.record_type,
                 "thai_name": record.thai_name,
-                "english_name": record.english_name,
+                "created_at": record.created_at,
                 "account_number": record.account_number,
             }
             for record in records
@@ -1750,6 +2265,7 @@ def _create_parcel_return_record(*, ticket_id=None, fund_request_id=None, amount
         items_description=items_description,
         sent_date=sent_date,
         status=status,
+        created_at=datetime.now(),
     )
     db.session.add(parcel_return)
     db.session.commit()
@@ -1927,6 +2443,7 @@ def mark_parcel_proofed(parcel_return_id):
     if parcel_return.fund_request_id:
         _recalculate_fund_request_submission_status(parcel_return.fund_request_id)
 
+    _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
     flash("ยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุเรียบร้อยแล้ว", "success")
     return _redirect_back_or("advance_payment.return_records_history")
 
@@ -1997,39 +2514,22 @@ def reject_parcel_return(parcel_return_id):
 @login_required()
 def suggest_documents():
     q = request.args.get("q", "").strip()
-    
-    mock_announcements = [
+    docs = _list_cash_mng_documents(search_query=q, limit=20)
+    return jsonify([
         {
-            "id": 1,
-            "title": "ประกาศ คณะฯ เรื่อง เกณฑ์การตั้งเบิกเงินยืมทดรองจ่าย พ.ศ. 2567",
-            "file_path": "/static/downloads/announcement_2567_01.pdf"
-        },
-        {
-            "id": 2,
-            "title": "ประกาศ เรื่อง แนวปฏิบัติการแนบใบเสร็จรับเงิน และสลิปโอนเงิน",
-            "file_path": "/static/downloads/announcement_receipt_guideline.pdf"
-        },
-        {
-            "id": 3,
-            "title": "ระเบียบการเบิกจ่ายค่าตอบแทนโครงการวิจัยและพัฒนา พ.ศ. 2568",
-            "file_path": "/static/downloads/research_fund_rule_2568.pdf"
-        },
-        {
-            "id": 4,
-            "title": "ประกาศ คำสั่งปรับปรุงอัตราค่าเดินทางและค่าเบี้ยเลี้ยงเดินทาง",
-            "file_path": "/static/downloads/travel_allowance_2026.pdf"
+            "id": doc["file_id"] or doc["id"],
+            "title": doc["title"],
+            "document_type": doc["document_type"],
+            "note": doc["note"],
+            "summary": doc["summary"],
+            "tags": doc["tags"],
+            "file_path": doc["download_url"],
+            "download_url": doc["download_url"],
+            "url": doc["view_url"],
+            "status": doc["status"],
         }
-    ]
-
-    if q:
-        filtered_results = [
-            doc for doc in mock_announcements 
-            if q.lower() in doc["title"].lower()
-        ]
-    else:
-        filtered_results = mock_announcements
-
-    return jsonify(filtered_results)
+        for doc in docs
+    ])
 
 @bp.route("/coordinator/tickets/returns", methods=["POST"], endpoint="coordinator_ticket_returns")
 @bp.route("/borrower/tickets/returns", methods=["POST"], endpoint="borrower_ticket_returns")
@@ -2077,6 +2577,7 @@ def submit_return_details():
         return_detail = ReturnDetail(
             ticket_id=ticket_id,
             proof_reference="Itemized Details Stored",
+            created_at=datetime.now(),
         )
         db.session.add(return_detail)
         db.session.flush()
@@ -2085,7 +2586,9 @@ def submit_return_details():
     db.session.commit()
 
     total_amount_spent = 0.0
-    uploaded_files_list = request.files.getlist("proof_files[]")
+    legacy_uploaded_files = request.files.getlist("proof_files[]")
+    legacy_existing_file_paths = request.form.getlist("existing_proof_files[]")
+    legacy_existing_file_names = request.form.getlist("existing_proof_filenames[]")
     old_receipt_count = 0
 
     for i in range(len(receipt_dates)):
@@ -2119,8 +2622,13 @@ def submit_return_details():
         db.session.add(receipt_obj)
         db.session.commit()
 
-        file_storage = uploaded_files_list[i] if i < len(uploaded_files_list) else None
-        if file_storage and file_storage.filename:
+        uploaded_files = request.files.getlist(f"proof_files_{i}[]")
+        if not uploaded_files and i < len(legacy_uploaded_files):
+            uploaded_files = [legacy_uploaded_files[i]]
+
+        for file_storage in uploaded_files:
+            if not file_storage or not file_storage.filename:
+                continue
             _, ext = os.path.splitext(file_storage.filename)
             clean_store_name = re.sub(r'[^\u0e00-\u0e7fa-zA-Z0-9\s_-]', '', receipt_obj.store_name or "receipt").strip().replace(" ", "_")
             timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -2139,21 +2647,35 @@ def submit_return_details():
                 created_at=datetime.now()
             )
             db.session.add(proof_file_record)
-        else:
-            existing_file_path = request.form.getlist("existing_proof_files[]")
-            existing_file_name = request.form.getlist("existing_proof_filenames[]")
-            if i < len(existing_file_path) and existing_file_path[i]:
+
+        existing_file_paths = request.form.getlist(f"existing_proof_files_{i}[]")
+        existing_file_names = request.form.getlist(f"existing_proof_filenames_{i}[]")
+        if not existing_file_paths and i < len(legacy_existing_file_paths):
+            existing_file_paths = [legacy_existing_file_paths[i]] if legacy_existing_file_paths[i] else []
+            existing_file_names = [legacy_existing_file_names[i] if i < len(legacy_existing_file_names) else "receipt"]
+        for file_index, existing_file_path in enumerate(existing_file_paths):
+            if existing_file_path:
                 proof_file_record = ReturnProofFile(
                     return_detail_id=return_detail.id,
                     return_receipt_item_id=receipt_obj.id,
-                    proof_reference=existing_file_path[i],
-                    filename=existing_file_name[i] if i < len(existing_file_name) else "receipt"
+                    proof_reference=existing_file_path,
+                    filename=existing_file_names[file_index] if file_index < len(existing_file_names) else "receipt"
                 )
                 db.session.add(proof_file_record)
 
     return_detail.amount_spent = total_amount_spent
+    announcement_ids = request.form.getlist("announcement_ids[]")
     announcement_titles = request.form.getlist("announcement_titles[]")
-    _replace_return_detail_documents(return_detail, announcement_titles)
+    announcement_references = []
+    for index, title in enumerate(announcement_titles):
+        cleaned_title = (title or "").strip()
+        cleaned_id = (announcement_ids[index] if index < len(announcement_ids) else "").strip()
+        if cleaned_title or cleaned_id:
+            announcement_references.append({
+                "id": cleaned_id,
+                "title": cleaned_title,
+            })
+    _replace_return_detail_documents(return_detail, announcement_references)
 
     db.session.commit()
 
@@ -2489,7 +3011,17 @@ def approve_borrowing_ticket(ticket_id):
     if borrowing_ticket.status != "กำลังส่งคำขอ":
         flash("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถอนุมัติได้")
         return redirect(url_for("advance_payment.finance_dashboard"))
-    number = request.form.get("number", "").strip()
+
+    raw_number = (request.form.get("number") or "").strip()
+    if not raw_number:
+        flash("กรุณาระบุเลขที่สัญญา")
+        return redirect(url_for("advance_payment.verification_view", ticket_id=ticket_id))
+
+    if not raw_number.isdigit():
+        flash("เลขที่สัญญาต้องเป็นตัวเลขเท่านั้น เช่น 1, 2, 3")
+        return redirect(url_for("advance_payment.verification_view", ticket_id=ticket_id))
+
+    number = int(raw_number)
     borrowing_ticket.status = "อนุมัติจ่ายเงิน"
     borrowing_ticket.number = number
     borrowing_ticket.approved_at = datetime.now()
@@ -2505,34 +3037,23 @@ def approve_borrowing_ticket(ticket_id):
 @bp.route("/api/login", methods=["POST"])
 def api_login():
     payload = request.get_json(silent=True) or request.form
-    email = (payload.get("email") or "").strip().lower()
-    password = payload.get("password") or ""
-    requested_role = payload.get("login_path") or COORDINATOR_ROLE
+    requested_role = (payload.get("role") or payload.get("login_path") or "").strip()
+    staff = _module_user_from_session()
+    if not staff:
+        return jsonify({"ok": False, "message": "กรุณาเข้าสู่ระบบ MIS ก่อนใช้งาน Advance Payment"}), 401
 
-    user, error_message = _authenticate_user(email, password, requested_role)
-    if user is None:
-        return jsonify({"ok": False, "message": error_message}), 401
+    requested_role, error_message = _ensure_module_role(staff, requested_role)
+    if not requested_role:
+        return jsonify({"ok": False, "message": error_message or "กรุณาเลือกบทบาท"}), 401
 
-    session.clear()
-    session["user_id"] = user.id
-    session["user_email"] = user.email
-    session["user_role"] = user.role
-
-    dashboard_endpoint = (
-        "advance_payment.finance_dashboard"
-        if user.role == "finance"
-        else (
-            "advance_payment.staff_fund_request_history"
-            if user.role in PETTY_CASH_ROLE_ALIASES
-            else ("advance_payment.borrower_dashboard" if user.role == "borrower" else "advance_payment.coordinator_dashboard")
-        )
-    )
+    _sync_advance_payment_session(staff, requested_role)
+    dashboard_endpoint = _dashboard_endpoint_for_role(requested_role)
 
     return jsonify(
         {
             "ok": True,
             "message": "เข้าสู่ระบบสำเร็จแล้ว",
-            "role": user.role,
+            "role": requested_role,
             "redirect_to": url_for(dashboard_endpoint),
         }
     )
@@ -2540,28 +3061,8 @@ def api_login():
 
 @bp.route("/register", methods=["GET", "POST"])
 def register():
-    form = RegistrationForm(request.form)
-    success_message = None
-
-    if request.method == "POST" and form.validate():
-        user = StaffAccount(email=form.email.data.strip().lower())
-        user.set_password(form.password.data)
-        session_db = db.session
-        session_db.add(user)
-        try:
-            session_db.commit()
-        except IntegrityError:
-            session_db.rollback()
-            form.email.errors.append("อีเมลนี้ถูกใช้งานในระบบแล้ว")
-        else:
-            success_message = "ลงทะเบียนเรียบร้อยแล้ว"
-            form = RegistrationForm()
-
-    return render_template(
-        "register.html",
-        form=form,
-        success_message=success_message,
-    )
+    flash("Advance Payment ใช้บัญชี MIS ในการเข้าสู่ระบบแล้ว ไม่ต้องลงทะเบียนแยก", "info")
+    return redirect(url_for("auth.login"))
 
 
 @bp.route("/finance/tickets/<int:ticket_id>/reject", methods=["POST"])
@@ -2657,7 +3158,11 @@ def return_records_history():
         _attach_petty_cash_claim_context(claim)
         closing_doc = claim.closing_document
         ticket_num = claim.fund_request.ticket_number if claim.fund_request and claim.fund_request.ticket_number else f"PC-{claim.id}"
-        dept_name = claim.setting.department_name if claim.setting else (claim.user.department if claim.user else 'ไม่ระบุ')
+        dept_name = (
+            claim.setting.department_name
+            if claim.setting
+            else (_get_staff_department_name(claim.user, "ไม่ระบุ") if claim.user else "ไม่ระบุ")
+        )
         borrower_name = claim.user.name if claim.user else '-'
         
         processed_claims.append({
@@ -2731,7 +3236,8 @@ def petty_cash_settings():
                         budget=float(bg_str),
                         account_number=acc,
                         bank_account_info_id=bank_account_info_id,
-                        valid=is_valid
+                        valid=is_valid,
+                        created_at=datetime.now(),
                     )
                     db.session.add(new_setting)
         
@@ -2800,7 +3306,9 @@ def suggest_custodian():
 
     dept_data = get_department_data_service(dept_name)
     if dept_data and "account_controller" in dept_data:
-        return jsonify({"custodian_name": dept_data["account_controller"].get("name", "")})
+        controller_name = dept_data["account_controller"].get("name", "")
+        if controller_name and "..." not in controller_name:
+            return jsonify({"custodian_name": controller_name})
 
     setting = db.session.query(PettyCashSetting).filter_by(department_name=dept_name).first()
     if setting and setting.custodian_name:
@@ -2930,7 +3438,8 @@ def closing_management():
         new_closing_doc = ClosingDocument(
             document_number=document_number,
             filing_date=filing_date,
-            total_amount=total_amount
+            total_amount=total_amount,
+            created_at=datetime.now(),
         )
         db.session.add(new_closing_doc)
         db.session.flush()
@@ -3097,7 +3606,12 @@ def update_return_closing_doc(return_id):
 
     target_doc = db.session.query(ClosingDocument).filter_by(document_number=new_doc_number).first()
     if not target_doc:
-        target_doc = ClosingDocument(document_number=new_doc_number, filing_date=date.today(), total_amount=0)
+        target_doc = ClosingDocument(
+            document_number=new_doc_number,
+            filing_date=date.today(),
+            total_amount=0,
+            created_at=datetime.now(),
+        )
         db.session.add(target_doc)
         db.session.flush()
 
@@ -3123,6 +3637,8 @@ def view_return_proof_detail(return_id):
 
     if _is_coordinator_role(session.get("user_role")) and borrowing_ticket.creator_id != session.get("user_id"):
         abort(403)
+
+    _prepare_document_display_list(return_detail.documents)
 
     proof_files = (
         db.session.query(ReturnProofFile)
@@ -3178,6 +3694,9 @@ def staff_fund_request():
     setting = _resolve_petty_cash_setting(user)
     _attach_petty_cash_setting_people(setting)
     approved_borrowing_tickets = _get_approved_borrowing_tickets_for_setting(setting)
+    staff_department_name = _get_staff_department_name(user)
+    staff_org = _get_staff_org(user) or _resolve_org_by_department_name(staff_department_name)
+    department_employees = _serialize_org_department(staff_org).get("staff_members", []) if staff_org else []
     for ticket in approved_borrowing_tickets:
         _attach_borrowing_ticket_people(ticket)
     form = FundRequestForm(request.form)
@@ -3185,15 +3704,20 @@ def staff_fund_request():
     if request.method == "GET":
         form.requester_name.data = user.name if user else ""
         form.requester_position.data = user.position if hasattr(user, 'position') else "เจ้าหน้าที่"
-        if setting:
+        # Use the staff/org name for employee lookup, and keep petty cash account data from the setting.
+        if staff_department_name:
+            form.department.data = staff_department_name
+        elif setting:
             form.department.data = setting.department_name
+
+        if setting:
             form.account_number.data = setting.account_number
             
         form.period_year.data = str(datetime.now().year)
         
     if request.method == "POST" and form.validate():
         try:
-            req_dept = setting.department_name if setting else (user.department or "ไม่ระบุหน่วยงาน")
+            req_dept = setting.department_name if setting else (_get_staff_department_name(user) or "ไม่ระบุหน่วยงาน")
             req_acc = setting.account_number if setting else ""
             form_type = form.form_type.data
             selected_borrowing_ticket = None
@@ -3221,7 +3745,7 @@ def staff_fund_request():
                 borrower_user = getattr(selected_borrowing_ticket, "borrower_user", None)
                 req_name = selected_borrowing_ticket.borrower_name or getattr(borrower_user, "name", "") or user.name
                 req_pos = getattr(borrower_user, "position", "") or user.position or "ผู้ขอเบิก"
-                req_dept = getattr(borrower_user, "department", "") or req_dept
+                req_dept = _get_staff_department_name(borrower_user, req_dept) or req_dept
                 req_acc = selected_borrowing_ticket.account_number or req_acc
                 req_date = datetime.now().date()
             else:
@@ -3242,8 +3766,9 @@ def staff_fund_request():
                 withdrawal_date=withdrawal_date if form_type == '31' else None,
                 amount=form.amount.data,
                 purpose=form.purpose.data if form_type == '30' else ("ขออนุมัติเบิกดอกเบี้ย" if form_type == '31' else ""),
-                period_year=request.form.get("period_year") if form_type == '31' else "",
+                period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == '31' else "",
                 borrowing_ticket_id=selected_borrowing_ticket.id if selected_borrowing_ticket else None,
+                created_at=datetime.now(),
                 status="กำลังดำเนินการ"
             )
 
@@ -3266,7 +3791,8 @@ def staff_fund_request():
                             fund_request_id=new_request.id,
                             description=desc,
                             amount=amt,
-                            category_type=int(category) if category.isdigit() else 1
+                            category_type=int(category) if category.isdigit() else 1,
+                            created_at=datetime.now()
                         )
                         db.session.add(item_obj)
 
@@ -3285,15 +3811,17 @@ def staff_fund_request():
                         description=f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_number}",
                         amount=ticket_amount,
                         category_type=5,
+                        created_at=datetime.now(),
                     )
                 )
 
             if form_type == '31':
                 # 1. ดึงค่าจาก Radio Button (จะได้ เช่น "มิถุนายน พ.ศ. 2567" หรือ "ธันวาคม พ.ศ. 2567")
                 selected_period = request.form.get("period_year_radio", "")
-                period_year_val = selected_period 
+                period_year_val = _normalize_interest_period_value(selected_period)
 
                 withdrawal_proof_file = request.files.get("withdrawal_proof_file")
+                new_request.period_year = period_year_val
 
                 if withdrawal_proof_file and withdrawal_proof_file.filename:
                     safe_filename = secure_filename(withdrawal_proof_file.filename)
@@ -3309,7 +3837,6 @@ def staff_fund_request():
                     withdrawal_proof_file.save(os.path.join(upload_folder, new_filename))
                     new_request.status = "เบิกเงินแล้ว"
                     _assign_fund_request_ticket_number(new_request, reference_date=req_date)
-                    new_request.period_year = period_year_val
                     new_request.withdrawal_proof_reference = proof_reference
                     new_request.withdrawal_proof_filename = withdrawal_proof_file.filename
 
@@ -3335,6 +3862,8 @@ def staff_fund_request():
         form=form,
         setting=setting,
         approved_borrowing_tickets=approved_borrowing_tickets,
+        department_employees=department_employees,
+        current_year_be=datetime.now().year + 543,
         selected_form_type=selected_form_type,
         selected_borrowing_ticket_id=selected_borrowing_ticket_id,
     )
@@ -3489,73 +4018,17 @@ def export_fund_request_pdf(request_id):
     return response
 
 def get_department_data_service(dept_name=None):
-    """
-    แหล่งข้อมูลหลัก (Source of Truth) สำหรับพนักงานและผู้ดูแลบัญชี
-    """
-    mock_departments_data = {
-        "ฝ่ายการศึกษา": {
-            "department_code": "EDU",
-            "department_name": "ฝ่ายการศึกษา",
-            "telephone_number": "02-100-1001",
-            "head_of_department": {
-                "name": "ผศ.ดร.วิชาการ เรียนดี",
-                "position": "หัวหน้าฝ่ายการศึกษา",
-                "email": "edu_head@example.com"
-            },
-            "account_controller": {
-                "name": "นายสมชาย ใจดี",
-                "position": "นักวิชาการศึกษา",
-                "email": "borrower@example.com"
-            },
-            "staff_members": [
-                {"id": 101, "name": "นายสมชาย ใจดี", "position": "นักวิชาการศึกษา", "email": "borrower@example.com"},
-                {"id": 102, "name": "นางสาวเพ็ญศรี สอนดี", "position": "เจ้าหน้าที่บริหารงานทั่วไป", "email": "pensi@example.com"}
-            ]
-        },
-        "ฝ่ายบุคคล": {
-            "department_code": "HR",
-            "department_name": "ฝ่ายบุคคล",
-            "telephone_number": "02-100-1002",
-            "head_of_department": {
-                "name": "ดร.บริหาร จัดการดี",
-                "position": "หัวหน้าฝ่ายบุคคล",
-                "email": "hr_head@example.com"
-            },
-            "account_controller": {
-                "name": "นางสาวสมหญิง รักเรียน",
-                "position": "นักทรัพยากรบุคคล",
-                "email": "borrower2@example.com"
-            },
-            "staff_members": [
-                {"id": 201, "name": "นางสาวสมหญิง รักเรียน", "position": "นักทรัพยากรบุคคล", "email": "borrower2@example.com"},
-                {"id": 202, "name": "นายประสิทธิ์ คัดเลือก", "position": "เจ้าหน้าที่บุคคล", "email": "prasit@example.com"}
-            ]
-        },
-        "งานพัสดุและจัดหา": {
-            "department_code": "SUP",
-            "department_name": "งานพัสดุและจัดหา",
-            "telephone_number": "02-100-1003",
-            "head_of_department": {
-                "name": "นายจัดซื้อ ครบถ้วน",
-                "position": "หัวหน้าฝ่ายพัสดุและจัดหา",
-                "email": "supplies_head@example.com"
-            },
-            "account_controller": {
-                "name": "นายพัสดุ คุมเงิน",
-                "position": "นักวิชาการพัสดุ",
-                "email": "staff_patsadu@example.com"
-            },
-            "staff_members": [
-                {"id": 301, "name": "นายพัสดุ คุมเงิน", "position": "นักวิชาการพัสดุ", "email": "staff_patsadu@example.com"},
-                {"id": 302, "name": "นางสาวคลังสินค้า ตรวจรับ", "position": "เจ้าหน้าที่พัสดุ", "email": "warehouse@example.com"},
-                {"id": 303, "name": "นางสาวกมลชนก ใจดี", "position": "เจ้าหน้าที่เงินสดย่อย", "email": "staff_clerk@example.com"} 
-            ]
-        }
-    }
-
+    """แหล่งข้อมูลหน่วยงานจาก MIS Org model."""
     if dept_name:
-        return mock_departments_data.get(dept_name)
-    return mock_departments_data
+        org = _resolve_org_by_department_name(dept_name)
+        return _serialize_org_department(org)
+
+    orgs = db.session.query(Org).order_by(Org.name.asc()).all()
+    return {
+        org.name: _serialize_org_department(org)
+        for org in orgs
+        if org and org.name
+    }
 
 @bp.route("/api/employees/departments", methods=["GET"])
 @login_required()
@@ -3581,8 +4054,8 @@ def suggest_employees():
     if current_user:
         if getattr(current_user, 'petty_cash_setting', None):
             user_dept = current_user.petty_cash_setting.department_name
-        elif hasattr(current_user, 'department') and current_user.department:
-            user_dept = current_user.department
+        else:
+            user_dept = _get_staff_department_name(current_user)
 
     dept = user_dept or request.args.get("department", "").strip()
 
@@ -3640,7 +4113,7 @@ CATEGORY_CHOICES = {
 @login_required(role=SECRETARY_ROLE)
 def approve_fund_request(request_id):
     current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-    if not current_user or current_user.role != SECRETARY_ROLE:
+    if not current_user or session.get("user_role") != SECRETARY_ROLE:
         abort(403)
 
     fund_req = db.session.query(FundRequest).get(request_id)
@@ -3763,7 +4236,7 @@ def autosave_petty_cash_claim_draft():
 def submit_petty_cash_claim():
     user_id = session["user_id"]
     current_user = db.session.query(StaffAccount).get(user_id)
-    current_role = getattr(current_user, "role", None) if current_user else None
+    current_role = session.get("user_role") or (getattr(current_user, "role", None) if current_user else None)
     if not current_user or current_role not in {"staff", SECRETARY_ROLE, "finance"}:
         abort(403)
 
@@ -3874,10 +4347,10 @@ def submit_petty_cash_claim():
         db.session.commit()
 
         total_claim_amount = 0.0  # ยอดเบิกตั้งเรื่องคืนการเงิน (สะสมเฉพาะหมวด 1-5)
-        uploaded_files = request.files.getlist("proof_file[]")
+        legacy_uploaded_files = request.files.getlist("proof_file[]")
         old_receipt_count = 0
-        existing_file_paths = request.form.getlist("existing_proof_files[]")
-        existing_file_names = request.form.getlist("existing_proof_filenames[]")
+        legacy_existing_file_paths = request.form.getlist("existing_proof_files[]")
+        legacy_existing_file_names = request.form.getlist("existing_proof_filenames[]")
 
         for i in range(len(receipt_dates)):
             r_date = _coerce_date(receipt_dates[i]) if i < len(receipt_dates) else None
@@ -3912,8 +4385,13 @@ def submit_petty_cash_claim():
             db.session.add(item)
             db.session.commit()
 
-            file_storage = uploaded_files[i] if i < len(uploaded_files) else None
-            if file_storage and file_storage.filename:
+            uploaded_files = request.files.getlist(f"proof_files_{i}[]")
+            if not uploaded_files and i < len(legacy_uploaded_files):
+                uploaded_files = [legacy_uploaded_files[i]]
+
+            for file_storage in uploaded_files:
+                if not file_storage or not file_storage.filename:
+                    continue
                 _, ext = os.path.splitext(file_storage.filename)
                 clean_desc = re.sub(r'[^\u0e00-\u0e7fa-zA-Z0-9\s_-]', '', item.description or "receipt").strip().replace(" ", "_")
                 timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -3932,15 +4410,22 @@ def submit_petty_cash_claim():
                     created_at=datetime.now()
                 )
                 db.session.add(proof_file_record)
-            elif i < len(existing_file_paths) and existing_file_paths[i]:
-                proof_file_record = PettyCashClaimProofFile(
-                    claim_id=claim_detail.id,
-                    claim_item_id=item.id,
-                    proof_reference=existing_file_paths[i],
-                    filename=existing_file_names[i] if i < len(existing_file_names) else "receipt",
-                    created_at=datetime.now()
-                )
-                db.session.add(proof_file_record)
+
+            existing_file_paths = request.form.getlist(f"existing_proof_files_{i}[]")
+            existing_file_names = request.form.getlist(f"existing_proof_filenames_{i}[]")
+            if not existing_file_paths and i < len(legacy_existing_file_paths):
+                existing_file_paths = [legacy_existing_file_paths[i]] if legacy_existing_file_paths[i] else []
+                existing_file_names = [legacy_existing_file_names[i] if i < len(legacy_existing_file_names) else "receipt"]
+            for file_index, existing_file_path in enumerate(existing_file_paths):
+                if existing_file_path:
+                    proof_file_record = PettyCashClaimProofFile(
+                        claim_id=claim_detail.id,
+                        claim_item_id=item.id,
+                        proof_reference=existing_file_path,
+                        filename=existing_file_names[file_index] if file_index < len(existing_file_names) else "receipt",
+                        created_at=datetime.now()
+                    )
+                    db.session.add(proof_file_record)
 
         # บันทึกยอดรวมเงินเฉพาะส่วนที่จะขอเบิกตั้งเรื่องคืนจากการเงิน (ไม่รวมหมวด 6)
         claim_detail.amount = total_claim_amount
@@ -3948,12 +4433,16 @@ def submit_petty_cash_claim():
             claim_detail.total_amount = total_claim_amount
 
         # ปรับปรุงส่วนบันทึกเอกสารประกาศประกอบ ให้รองรับมากกว่า 1 รายการ และบันทึกถูกต้อง
-        resolved_titles = []
-        for i in range(len(announcement_titles)):
-            title = announcement_titles[i].strip()
-            if title:
-                resolved_titles.append(title)
-        _replace_claim_detail_documents(claim_detail, resolved_titles)
+        announcement_references = []
+        for i, title in enumerate(announcement_titles):
+            cleaned_title = (title or "").strip()
+            cleaned_id = (announcement_ids[i] if i < len(announcement_ids) else "").strip()
+            if cleaned_title or cleaned_id:
+                announcement_references.append({
+                    "id": cleaned_id,
+                    "title": cleaned_title,
+                })
+        _replace_claim_detail_documents(claim_detail, announcement_references)
 
         # ตรวจสอบยอดและเปลี่ยนสถานะ FundRequest เมื่อส่งเบิก (ไม่ใช่ Draft)
         if not is_draft and fund_request_id:
@@ -4313,7 +4802,7 @@ def petty_cash_ledger():
                     description=f"เบิกดอกเบี้ย {ticket_label}",
                     bank_expense=amt,
                     cat_11=amt,
-                    custom_category=f"เบิกดอกเบี้ยตามงวดเดือน {fr.period_year} ",
+                    custom_category=f"เบิกดอกเบี้ยตามงวดเดือน {_format_interest_period_label(fr.period_year)} ",
                     submitted_date=submitted_date,
                     is_fund_request=True,
                     sort_order=1,

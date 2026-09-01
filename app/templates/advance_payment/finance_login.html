@@ -16,6 +16,7 @@
   {% endif %}
 
   <form method="post" class="mb-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="mb-3">
       <label for="email" class="form-label fw-bold">อีเมล</label>
       <input id="email" name="email" type="email" value="{{ form.email.data or '' }}" autocomplete="username" class="form-control form-control-lg" placeholder="you@example.com" style="border-radius: 12px;">
@@ -34,8 +35,11 @@
 
     <div class="d-flex flex-column flex-sm-row gap-2">
       <button class="btn btn-primary btn-lg px-4 fw-bold" type="submit" style="border-radius: 12px;">เข้าสู่ระบบ (การเงิน)</button>
+      <a class="btn btn-outline-primary btn-lg px-4 fw-bold" href="{{ url_for('advance_payment.coordinator_dashboard') }}" style="border-radius: 12px;">
+        ไปหน้าแดชบอร์ดผู้ประสานงาน
+      </a>
       <a class="btn btn-light btn-lg px-4 text-primary fw-bold border" href="{{ url_for('advance_payment.login') }}" style="border-radius: 12px; background: #eef3ff;">
-        กลับสู่หน้าเข้าสู่ระบบของผู้ประสานงาน
+        กลับสู่หน้าเลือกบทบาท
       </a>
     </div>
   </form>

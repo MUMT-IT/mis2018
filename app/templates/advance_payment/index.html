@@ -1,13 +1,14 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}เข้าสู่ระบบ | ระบบเงินยืมทดรองจ่าย{% endblock %}
+{% block title %}เลือกบทบาท | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
   <header class="mb-4">
     <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.12em;">ระบบเงินยืมทดรองจ่าย</p>
-    <h1 class="fw-bold display-6 mb-2">เข้าสู่ระบบ</h1>
+    <h1 class="fw-bold display-6 mb-2">เลือกบทบาทเพื่อใช้งาน</h1>
     <p class="text-muted col-lg-8 p-0">
-      กรุณาเลือกบทบาทของคุณก่อน เพื่อไปยังหน้าล็อกอินที่ตรงกับสิทธิ์การใช้งาน
+      คุณเข้าสู่ระบบ MIS แล้วในชื่อ <strong>{{ current_email or '-' }}</strong>
+      จากนี้เลือกบทบาทที่ต้องการใช้ใน Advance Payment ได้เลยโดยไม่ต้องล็อกอินใหม่
     </p>
   </header>
 
@@ -15,81 +16,40 @@
     <div class="alert alert-danger mb-4" role="alert">{{ error_message }}</div>
   {% endif %}
 
-  {% set role_labels = {
-    'cash_management_coordinator': 'ผู้ประสานงาน',
-    'secretary': 'เจ้าหน้าที่เงินสดย่อย',
-    'finance': 'ฝ่ายการเงิน'
-  } %}
-
-  {% if not selected_role %}
-    <div class="row g-3 mb-4">
+  <div class="row g-3">
+    {% for role in available_roles %}
       <div class="col-md-4">
-        <a class="text-decoration-none" href="{{ url_for('advance_payment.login', role='cash_management_coordinator') }}">
-          <div class="p-4 border rounded-4 bg-white shadow-sm h-100">
-            <p class="text-uppercase text-primary fw-bold small mb-2" style="letter-spacing: 0.1em;">Role</p>
-            <h2 class="h4 fw-bold mb-2">ผู้ประสานงาน</h2>
-            <p class="text-muted mb-0">เข้าเพื่อจัดการสัญญาเงินยืมและรายการที่เกี่ยวข้อง</p>
-          </div>
-        </a>
+        <form method="post" class="h-100">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="role" value="{{ role }}">
+          <button type="submit" class="w-100 h-100 text-start border rounded-4 bg-white shadow-sm p-4 role-card" style="min-height: 190px;">
+            <p class="text-uppercase fw-bold small mb-2 text-primary" style="letter-spacing: 0.1em;">Role</p>
+            <h2 class="h4 fw-bold mb-2">{{ role_labels.get(role, role) }}</h2>
+            <p class="text-muted mb-0">
+              {% if role == 'cash_management_coordinator' %}
+                ใช้สำหรับจัดการสัญญาเงินยืมและงานฝั่งผู้ประสานงาน
+              {% elif role == 'borrower' %}
+                ใช้สำหรับดูแดชบอร์ดและทำงานในมุมผู้ยืม
+              {% elif role == 'staff' %}
+                ใช้สำหรับยื่นและติดตามรายการเงินสดย่อย
+              {% elif role == 'secretary' %}
+                ใช้สำหรับดูแลและจัดการเงินสดย่อย
+              {% elif role == 'finance' %}
+                ใช้สำหรับตรวจสอบ อนุมัติ และติดตามรายการทั้งหมด
+              {% else %}
+                ใช้สำหรับเข้าใช้งานระบบในบทบาทนี้
+              {% endif %}
+            </p>
+          </button>
+        </form>
       </div>
-      <div class="col-md-4">
-        <a class="text-decoration-none" href="{{ url_for('advance_payment.staff_login') }}">
-          <div class="p-4 border rounded-4 bg-white shadow-sm h-100">
-            <p class="text-uppercase text-success fw-bold small mb-2" style="letter-spacing: 0.1em;">Role</p>
-            <h2 class="h4 fw-bold mb-2">เจ้าหน้าที่เงินสดย่อย</h2>
-            <p class="text-muted mb-0">เข้าเพื่อยื่นและติดตามรายการเงินสดย่อย</p>
-          </div>
-        </a>
-      </div>
-      <div class="col-md-4">
-        <a class="text-decoration-none" href="{{ url_for('advance_payment.finance_login') }}">
-          <div class="p-4 border rounded-4 bg-white shadow-sm h-100">
-            <p class="text-uppercase text-primary fw-bold small mb-2" style="letter-spacing: 0.1em;">Role</p>
-            <h2 class="h4 fw-bold mb-2">ฝ่ายการเงิน</h2>
-            <p class="text-muted mb-0">เข้าเพื่อตรวจสอบและอนุมัติรายการทั้งหมด</p>
-          </div>
-        </a>
-      </div>
-    </div>
-  {% else %}
-    <div class="alert alert-info border-0 rounded-4 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <div>
-        กำลังเข้าสู่ระบบในบทบาท:
-        <strong>{{ role_labels.get(selected_role, selected_role) }}</strong>
-      </div>
-      <a class="fw-bold" href="{{ url_for('advance_payment.login') }}">เปลี่ยนบทบาท</a>
-    </div>
+    {% endfor %}
+  </div>
 
-    <form method="post" class="mb-4">
-      <input type="hidden" name="login_path" value="{{ selected_role }}">
-      <div class="mb-3">
-        <label for="email" class="form-label fw-bold">อีเมล</label>
-        <input id="email" name="email" type="email" value="{{ form.email.data or '' }}" autocomplete="username" class="form-control form-control-lg" placeholder="you@example.com" style="border-radius: 12px;">
-        {% for error in form.email.errors %}
-          <div class="text-danger small mt-1">{{ error }}</div>
-        {% endfor %}
-      </div>
-
-      <div class="mb-4">
-        <label for="password" class="form-label fw-bold">รหัสผ่าน</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" class="form-control form-control-lg" placeholder="กรอกรหัสผ่านของคุณ" style="border-radius: 12px;">
-        {% for error in form.password.errors %}
-          <div class="text-danger small mt-1">{{ error }}</div>
-        {% endfor %}
-      </div>
-
-      <div class="d-flex flex-column flex-sm-row gap-2">
-        <button class="btn btn-primary btn-lg px-4 fw-bold" type="submit" style="border-radius: 12px;">เข้าสู่ระบบ</button>
-        <a class="btn btn-light btn-lg px-4 text-secondary fw-bold border" href="{{ url_for('advance_payment.login') }}" style="border-radius: 12px; background: #f4f4f5;">
-          กลับไปเลือกบทบาท
-        </a>
-      </div>
-    </form>
-  {% endif %}
-
-  <div class="p-3 border rounded-4 bg-light">
-    <p class="mb-0 small"><strong>บัญชีทดสอบผู้ประสานงาน:</strong> borrower@example.com / password123</p>
-    <p class="mb-0 small"><strong>บัญชีทดสอบเจ้าหน้าที่เงินสดย่อย:</strong> staff_clerk@example.com / password123</p>
-    <p class="mb-0 small"><strong>บัญชีทดสอบฝ่ายการเงิน:</strong> finance@example.com / password123</p>
+  <div class="mt-4 p-3 border rounded-4 bg-light">
+    <div class="fw-bold mb-1">หมายเหตุ</div>
+    <p class="mb-0 small text-muted">
+      หน้า Advance Payment นี้ใช้ session ของ MIS ที่ล็อกอินอยู่แล้ว หากต้องการเปลี่ยนผู้ใช้ให้กลับไปออกจากระบบ MIS ก่อน
+    </p>
   </div>
 {% endblock %}

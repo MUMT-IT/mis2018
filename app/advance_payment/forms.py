@@ -67,7 +67,7 @@ class FundRequestForm(Form):
 class BankAccountInfoForm(Form):
     record_type = SelectField("ประเภทข้อมูล", validators=[DataRequired(message="กรุณาเลือกประเภทข้อมูล")])
     thai_name = StringField("ชื่อภาษาไทย", validators=[DataRequired(message="กรุณากรอกชื่อภาษาไทย")])
-    english_name = StringField("ชื่อภาษาอังกฤษ", validators=[DataRequired(message="กรุณากรอกชื่อภาษาอังกฤษ")])
+    created_at = StringField("วันที่", validators=[DataRequired(message="กรุณากรอกวันที่")])
     account_number = StringField("เลขที่บัญชี", validators=[DataRequired(message="กรุณากรอกเลขที่บัญชี")])
     submit = SubmitField("บันทึกข้อมูล")
 

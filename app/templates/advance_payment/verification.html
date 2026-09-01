@@ -133,11 +133,11 @@
             data-popup-message="โปรดระบุเลขที่สัญญาเพื่ออนุมัติสัญญานี้"
             data-popup-action="{{ url_for('advance_payment.approve_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
             data-popup-confirm-text="ยืนยันการสร้างสัญญา"
-            data-popup-input-type="textarea"
+            data-popup-input-type="number"
             data-popup-input-name="number"
-            data-popup-input-placeholder="โปรดระบุเลขที่สัญญา..."
+            data-popup-input-placeholder="โปรดระบุเลขที่สัญญาเป็นตัวเลข..."
             data-popup-input-required="true"
-            data-popup-input-rows="2">
+            data-popup-input-rows="1">
               อนุมัติสัญญา
           </button>
 
@@ -161,6 +161,7 @@
       {% endif %}
       <div class="d-flex justify-content-end w-100">
         <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <textarea name="finance_note" class="form-control flex-grow-1" rows="1" placeholder="เพิ่มบันทึกช่วยจำเกี่ยวกับสัญญานี้...">{{ borrowing_ticket.finance_note or '' }}</textarea>
           <button class="btn btn-primary fw-bold px-4 text-nowrap" style="border-radius: 6px;">
               บันทึกโน๊ต
@@ -360,8 +361,9 @@
               <td class="text-center">
                 <div class="d-flex flex-wrap gap-2 justify-content-center">
                   {% if session.get('user_role') == 'finance' and pr.status == 'รอตรวจสอบ' %}
-                    <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}">
-                      <button
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button
                         type="button"
                         class="btn btn-sm btn-outline-primary fw-bold w-100"
                         style="max-width: 150px;"
@@ -375,8 +377,9 @@
                       </button>
                     </form>
                   {% elif session.get('user_role') == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
-                    <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}">
-                      <button
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button
                         type="button"
                         class="btn btn-sm btn-success fw-bold w-100"
                         style="max-width: 150px;"
@@ -415,8 +418,9 @@
         {% if session.get('user_role') == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
           <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
-              <form method="post" action="{{ url_for('advance_payment.reject_parcel_return', parcel_return_id=pr.id) }}">
-                <div class="modal-content">
+            <form method="post" action="{{ url_for('advance_payment.reject_parcel_return', parcel_return_id=pr.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="modal-content">
                   <div class="modal-header">
                     <h5 class="modal-title fw-bold text-dark">สาเหตุของการปฏิเสธรายการส่งคืนพัสดุ</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -437,8 +441,9 @@
         {% if session.get('user_role') in ['borrower', 'cash_management_coordinator'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
           <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
-              <form method="post" action="{{ url_for('advance_payment.coordinator_parcel_return_edit', parcel_return_id=pr.id) }}">
-                <div class="modal-content">
+            <form method="post" action="{{ url_for('advance_payment.coordinator_parcel_return_edit', parcel_return_id=pr.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="modal-content">
                   <div class="modal-header">
                     <h5 class="modal-title fw-bold text-dark">แก้ไขรายการส่งคืนพัสดุ</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
