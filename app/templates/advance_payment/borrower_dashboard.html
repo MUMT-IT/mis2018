@@ -321,8 +321,8 @@
                       <div>
                         <div class="text-muted small fw-bold mb-1">รวมยอดเงินที่ใช้จ่าย</div>
                         <div>
-                          <span class="fw-bold text-primary fs-4" id="sumAmountDisplay_{{ borrowing_ticket.id }}">0.00</span>
-                          <span class="text-muted small ms-1">บาท</span>
+                          <span class="fw-bold text-primary fs-4" id="sumAmountDisplay_{{ borrowing_ticket.id }}" data-budget="{{ borrowing_ticket.required_budget or 0 }}" data-existing-total="{{ borrowing_ticket.submitted_return_total or 0 }}">0.00</span>
+                          <span class="text-primary small ms-1" id="sumAmountUnit_{{ borrowing_ticket.id }}">บาท</span>
                         </div>
                       </div>
                     </div>
@@ -359,7 +359,7 @@
                   </div>
                   <div class="col-md-4">
                     <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
-                    <input type="text" name="amount" id="parcel_amount" class="form-control parcel-amount-input" required placeholder="0.00">
+                    <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input" required placeholder="0.00">
                   </div>
                 </div>
                 <div class="text-end mt-3">
@@ -659,8 +659,15 @@
       document.querySelectorAll(".parcel-amount-input").forEach(input => {
           if (input.value) formatInputNumberWithComma(input);
 
-          input.addEventListener("input", function() { formatInputNumberWithComma(this); });
-          input.addEventListener("blur", function() { formatInputNumberOnBlur(this); });
+          const ticketId = input.id.replace("parcel_amount_", "");
+          input.addEventListener("input", function() {
+            formatInputNumberWithComma(this);
+            calculateTotalSpent(ticketId);
+          });
+          input.addEventListener("blur", function() {
+            formatInputNumberOnBlur(this);
+            calculateTotalSpent(ticketId);
+          });
 
           const parcelForm = input.closest("form");
           if (parcelForm) {
@@ -741,6 +748,26 @@
       });
     });
 
+    function validateReturnAmountLimit(form) {
+      const rows = form.querySelectorAll('tbody tr');
+
+      for (let index = 0; index < rows.length; index += 1) {
+        const amountInput = rows[index].querySelector('input[name="amount[]"]');
+        const descriptionInput = rows[index].querySelector('textarea[name="description[]"]');
+        const amount = parseFloat((amountInput?.value || "0").replace(/,/g, "")) || 0;
+        const description = (descriptionInput?.value || "").trim();
+
+        if (amount > 100000 && !description.includes("เงินเหลือส่งใช้เงินยืม")) {
+          alert(`รายการที่ ${index + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก`);
+          amountInput?.focus();
+          amountInput?.select();
+          return false;
+        }
+      }
+
+      return true;
+    }
+
     function submitFormWithAction(ticketId, type) {
       const form = document.getElementById(`returnForm_${ticketId}`);
       document.getElementById(`action_${ticketId}`).value = type;
@@ -753,6 +780,9 @@
         form.submit();
       } else {
         let isValid = true;
+        if (!validateReturnAmountLimit(form)) {
+          return;
+        }
         form.querySelectorAll('input, textarea').forEach(el => {
           if (['receipt_date[]', 'store_name[]', 'description[]', 'amount[]'].includes(el.name)) {
             if (!el.value || !el.value.trim()) {
@@ -856,7 +886,18 @@
           let cleanVal = input.value.replace(/,/g, "");
           total += parseFloat(cleanVal) || 0;
       }
-      document.getElementById(`sumAmountDisplay_${ticketId}`).innerText = total.toLocaleString("en-US", {
+      const totalDisplay = document.getElementById(`sumAmountDisplay_${ticketId}`);
+      const parcelInput = document.getElementById(`parcel_amount_${ticketId}`);
+      total += parseFloat((parcelInput?.value || "0").replace(/,/g, "")) || 0;
+      total += parseFloat(totalDisplay?.dataset.existingTotal || "0") || 0;
+      if (totalDisplay) {
+        const isOverBudget = total > (parseFloat(totalDisplay.dataset.budget || "0") || 0);
+        totalDisplay.classList.toggle("text-danger", isOverBudget);
+        totalDisplay.classList.toggle("text-primary", !isOverBudget);
+        document.getElementById(`sumAmountUnit_${ticketId}`)?.classList.toggle("text-danger", isOverBudget);
+        document.getElementById(`sumAmountUnit_${ticketId}`)?.classList.toggle("text-primary", !isOverBudget);
+      }
+      totalDisplay.innerText = total.toLocaleString("en-US", {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
       });

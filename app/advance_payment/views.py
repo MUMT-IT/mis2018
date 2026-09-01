@@ -1418,6 +1418,83 @@ def _calculate_ticket_return_totals(ticket_id):
         ),
     }
 
+
+def _calculate_ticket_return_totals_with_parcel(ticket_id, *, exclude_return_id=None, exclude_parcel_return_id=None):
+    return_query = db.session.query(func.coalesce(func.sum(ReturnDetail.amount_spent), 0)).filter(
+        ReturnDetail.ticket_id == ticket_id,
+    )
+    if exclude_return_id:
+        return_query = return_query.filter(ReturnDetail.id != exclude_return_id)
+
+    parcel_query = db.session.query(func.coalesce(func.sum(ParcelReturnDetail.amount_spent), 0)).filter(
+        ParcelReturnDetail.ticket_id == ticket_id,
+    )
+    if exclude_parcel_return_id:
+        parcel_query = parcel_query.filter(ParcelReturnDetail.id != exclude_parcel_return_id)
+
+    return_total = float(return_query.scalar() or 0)
+    parcel_total = float(parcel_query.scalar() or 0)
+    budget = float(
+        db.session.query(BorrowingTicket.required_budget)
+        .filter(BorrowingTicket.id == ticket_id)
+        .scalar()
+        or 0
+    )
+    combined_total = return_total + parcel_total
+    return {
+        "return_total": return_total,
+        "parcel_total": parcel_total,
+        "cumulative_total": combined_total,
+        "budget": budget,
+        "remaining_amount": budget - combined_total,
+    }
+
+
+def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, exclude_parcel_return_id=None):
+    claim_query = db.session.query(func.coalesce(func.sum(PettyCashClaimItem.amount), 0)).join(
+        PettyCashClaimDetail,
+        PettyCashClaimDetail.id == PettyCashClaimItem.claim_id,
+    ).filter(
+        PettyCashClaimDetail.fund_request_id == fund_request_id,
+    )
+    if exclude_claim_id:
+        claim_query = claim_query.filter(PettyCashClaimDetail.id != exclude_claim_id)
+
+    parcel_query = db.session.query(func.coalesce(func.sum(ParcelReturnDetail.amount_spent), 0)).filter(
+        ParcelReturnDetail.fund_request_id == fund_request_id,
+    )
+    if exclude_parcel_return_id:
+        parcel_query = parcel_query.filter(ParcelReturnDetail.id != exclude_parcel_return_id)
+
+    claim_total = float(claim_query.scalar() or 0)
+    parcel_total = float(parcel_query.scalar() or 0)
+    request_amount = float(
+        db.session.query(FundRequest.amount)
+        .filter(FundRequest.id == fund_request_id)
+        .scalar()
+        or 0
+    )
+    combined_total = claim_total + parcel_total
+    return {
+        "claim_total": claim_total,
+        "parcel_total": parcel_total,
+        "cumulative_total": combined_total,
+        "request_amount": request_amount,
+        "remaining_amount": request_amount - combined_total,
+    }
+
+
+def _format_currency_amount(amount):
+    return f"{float(amount or 0):,.2f}"
+
+
+def _is_over_limit(projected_total, limit_total):
+    return round(float(projected_total or 0), 2) > round(float(limit_total or 0), 2)
+
+
+def _is_return_amount_limit_exempt(description):
+    return "เงินเหลือส่งใช้เงินยืม" in (description or "")
+
 def _recalculate_borrowing_ticket_status(ticket_id):
     borrowing_ticket = (
         db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
@@ -1631,6 +1708,12 @@ def coordinator_dashboard():
         ticket.summary_days_remaining = None
 
         totals = _calculate_ticket_return_totals(ticket.id)
+        ticket_display_totals = _calculate_ticket_return_totals_with_parcel(
+            ticket.id,
+            exclude_return_id=draft_detail.id if draft_detail else None,
+        )
+        ticket.parcel_return_total = ticket_display_totals["parcel_total"]
+        ticket.submitted_return_total = ticket_display_totals["cumulative_total"]
         ticket_remaining = totals["remaining_amount"]
         ticket.ticket_remaining = ticket_remaining
 
@@ -2330,12 +2413,45 @@ def submit_parcel_return(ticket_id):
         flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน")
         return redirect(url_for("advance_payment.borrower_dashboard"))
 
+    try:
+        parsed_amount = float(amount or 0)
+    except (TypeError, ValueError):
+        flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
+        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+
+    ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id)
+    projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
+    if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
+        flash(
+            (
+                "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
+                f"{_format_currency_amount(projected_ticket_total)} บาท "
+                f"ซึ่งเกินวงเงิน {_format_currency_amount(ticket_totals['budget'])} บาท"
+            ),
+            "danger",
+        )
+        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+
+    if fund_request_id:
+        fund_totals = _calculate_fund_request_totals(fund_request_id)
+        projected_fund_total = fund_totals["cumulative_total"] + parsed_amount
+        if _is_over_limit(projected_fund_total, fund_totals["request_amount"]):
+            flash(
+                (
+                    "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
+                    f"{_format_currency_amount(projected_fund_total)} บาท "
+                    f"ซึ่งเกินยอดขอเบิก {_format_currency_amount(fund_totals['request_amount'])} บาท"
+                ),
+                "danger",
+            )
+            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+
     sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
 
     _create_parcel_return_record(
         ticket_id=ticket_id,
         fund_request_id=fund_request_id,
-        amount=float(amount),
+        amount=parsed_amount,
         items_description=items_description,
         sent_date=sent_date,
         status="รอตรวจสอบ",
@@ -2364,11 +2480,45 @@ def submit_fund_request_parcel_return(fund_request_id):
         flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน")
         return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
 
+    try:
+        parsed_amount = float(amount or 0)
+    except (TypeError, ValueError):
+        flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
+        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+
+    ticket_id = getattr(fund_request, "borrowing_ticket_id", None)
+    if ticket_id:
+        ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id)
+        projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
+        if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
+            flash(
+                (
+                    "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
+                    f"{_format_currency_amount(projected_ticket_total)} บาท "
+                    f"ซึ่งเกินวงเงิน {_format_currency_amount(ticket_totals['budget'])} บาท"
+                ),
+                "danger",
+            )
+            return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+
+    fund_totals = _calculate_fund_request_totals(fund_request_id)
+    projected_fund_total = fund_totals["cumulative_total"] + parsed_amount
+    if _is_over_limit(projected_fund_total, fund_totals["request_amount"]):
+        flash(
+            (
+                "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
+                f"{_format_currency_amount(projected_fund_total)} บาท "
+                f"ซึ่งเกินยอดขอเบิก {_format_currency_amount(fund_totals['request_amount'])} บาท"
+            ),
+            "danger",
+        )
+        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+
     sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
 
     _create_parcel_return_record(
         fund_request_id=fund_request.id,
-        amount=float(amount),
+        amount=parsed_amount,
         items_description=items_description,
         sent_date=sent_date,
         status="รอตรวจสอบ",
@@ -2402,7 +2552,40 @@ def update_parcel_return(parcel_return_id):
         flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน", "danger")
         return _redirect_back_or("advance_payment.return_records_history")
 
-    parcel_return.amount_spent = float(amount)
+    try:
+        parsed_amount = float(amount or 0)
+    except (TypeError, ValueError):
+        flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
+        return _redirect_back_or("advance_payment.return_records_history")
+
+    ticket_totals = _calculate_ticket_return_totals_with_parcel(parcel_return.ticket_id, exclude_parcel_return_id=parcel_return.id)
+    projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
+    if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
+        flash(
+            (
+                "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
+                f"{_format_currency_amount(projected_ticket_total)} บาท "
+                f"ซึ่งเกินวงเงิน {_format_currency_amount(ticket_totals['budget'])} บาท"
+            ),
+            "danger",
+        )
+        return _redirect_back_or("advance_payment.return_records_history")
+
+    if parcel_return.fund_request_id:
+        fund_totals = _calculate_fund_request_totals(parcel_return.fund_request_id, exclude_parcel_return_id=parcel_return.id)
+        projected_fund_total = fund_totals["cumulative_total"] + parsed_amount
+        if _is_over_limit(projected_fund_total, fund_totals["request_amount"]):
+            flash(
+                (
+                    "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
+                    f"{_format_currency_amount(projected_fund_total)} บาท "
+                    f"ซึ่งเกินยอดขอเบิก {_format_currency_amount(fund_totals['request_amount'])} บาท"
+                ),
+                "danger",
+            )
+            return _redirect_back_or("advance_payment.return_records_history")
+
+    parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
     parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
     parcel_return.status = "รอตรวจสอบ"
@@ -2560,6 +2743,59 @@ def submit_return_details():
         flash("กรุณาเพิ่มรายละเอียดใบเสร็จอย่างน้อย 1 รายการ", "warning")
         return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
 
+    parsed_rows = []
+    total_amount_spent = 0.0
+    old_receipt_count = 0
+
+    for i in range(len(receipt_dates)):
+        r_date_raw = receipt_dates[i]
+        r_date = _coerce_date(r_date_raw) if r_date_raw else None
+        if not is_draft and not r_date:
+            flash("ทุกแถวของรายการใบเสร็จต้องระบุวันที่ที่ถูกต้อง", "danger")
+            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+
+        try:
+            amt = float((amounts[i] or "0").replace(",", "")) if i < len(amounts) else 0.0
+            if amt < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            if not is_draft:
+                flash("ทุกแถวของรายการใบเสร็จต้องระบุจำนวนเงินที่ถูกต้อง", "danger")
+                return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+            amt = 0.0
+
+        description = descriptions[i].strip() if i < len(descriptions) else ""
+        if not is_draft and amt > 100000 and not _is_return_amount_limit_exempt(description):
+            flash(f"รายการที่ {i + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก", "danger")
+            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+
+        if not is_draft and _receipt_requires_additional_document(r_date):
+            old_receipt_count += 1
+
+        total_amount_spent += amt
+        parsed_rows.append(
+            {
+                "receipt_date": r_date,
+                "store_name": store_names[i].strip() if i < len(store_names) else "",
+                "description": description,
+                "amount": amt,
+            }
+        )
+
+    if not is_draft:
+        ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id)
+        projected_total = ticket_totals["cumulative_total"] + total_amount_spent
+        if _is_over_limit(projected_total, ticket_totals["budget"]):
+            flash(
+                (
+                    "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
+                    f"{_format_currency_amount(projected_total)} บาท "
+                    f"ซึ่งเกินวงเงิน {_format_currency_amount(ticket_totals['budget'])} บาท"
+                ),
+                "danger",
+            )
+            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+
     existing_draft = db.session.query(ReturnDetail).filter_by(ticket_id=ticket_id, status="ฉบับร่าง").first()
 
     if existing_draft:
@@ -2578,44 +2814,21 @@ def submit_return_details():
         db.session.flush()
     
     return_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
-    db.session.commit()
+    db.session.flush()
 
-    total_amount_spent = 0.0
     legacy_uploaded_files = request.files.getlist("proof_files[]")
     legacy_existing_file_paths = request.form.getlist("existing_proof_files[]")
     legacy_existing_file_names = request.form.getlist("existing_proof_filenames[]")
-    old_receipt_count = 0
 
-    for i in range(len(receipt_dates)):
-        r_date_raw = receipt_dates[i]
-        r_date = _coerce_date(r_date_raw) if r_date_raw else None
-        if not is_draft and _receipt_requires_additional_document(r_date):
-            old_receipt_count += 1
-        
-        if not is_draft and not r_date:
-            flash("ทุกแถวของรายการใบเสร็จต้องระบุวันที่ที่ถูกต้อง", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
-        
-        try:
-            amt = float(amounts[i]) if amounts[i] else 0.0
-            if amt < 0:
-                raise ValueError
-            total_amount_spent += amt
-        except (TypeError, ValueError):
-            if not is_draft:
-                flash("ทุกแถวของรายการใบเสร็จต้องระบุจำนวนเงินที่ถูกต้อง", "danger")
-                return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
-            amt = 0.0
-
+    for i, row in enumerate(parsed_rows):
         receipt_obj = ReturnReceiptItem(
             return_detail_id=return_detail.id,
-            receipt_date=r_date,
-            store_name=store_names[i].strip() if i < len(store_names) else "",
-            description=descriptions[i].strip() if i < len(descriptions) else "",
-            amount=amt
+            receipt_date=row["receipt_date"],
+            store_name=row["store_name"],
+            description=row["description"],
+            amount=row["amount"]
         )
         db.session.add(receipt_obj)
-        db.session.commit()
 
         uploaded_files = request.files.getlist(f"proof_files_{i}[]")
         if not uploaded_files and i < len(legacy_uploaded_files):
@@ -2814,7 +3027,46 @@ def edit_receipt_item_inline(file_id):
 
         amount_str = request.form.get("amount")
         if amount_str:
-            receipt_item.amount = float(amount_str)
+            parsed_item_amount = float(amount_str.replace(",", ""))
+            if not _is_return_amount_limit_exempt(receipt_item.description) and parsed_item_amount > 100000:
+                flash("รายการนี้มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก", "danger")
+                redirect_target = (
+                    url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_detail.id)
+                    if is_claim
+                    else url_for("advance_payment.view_return_proof_detail", return_id=return_detail.id)
+                )
+                return redirect(redirect_target)
+            receipt_item.amount = parsed_item_amount
+
+    if is_claim:
+        total_spent_for_claim = sum(float(i.amount or 0) for i in claim_detail.items)
+        if claim_detail.fund_request_id:
+            fund_totals = _calculate_fund_request_totals(claim_detail.fund_request_id, exclude_claim_id=claim_detail.id)
+            projected_total = fund_totals["cumulative_total"] + total_spent_for_claim
+            if _is_over_limit(projected_total, fund_totals["request_amount"]):
+                flash(
+                    (
+                        "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
+                        f"{_format_currency_amount(projected_total)} บาท "
+                        f"ซึ่งเกินยอดขอเบิก {_format_currency_amount(fund_totals['request_amount'])} บาท"
+                    ),
+                    "danger",
+                )
+                return redirect(url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_detail.id))
+    else:
+        total_spent_for_return = sum(float(i.amount or 0) for i in return_detail.receipt_items)
+        ticket_totals = _calculate_ticket_return_totals_with_parcel(return_detail.ticket_id, exclude_return_id=return_detail.id)
+        projected_total = ticket_totals["cumulative_total"] + total_spent_for_return
+        if _is_over_limit(projected_total, ticket_totals["budget"]):
+            flash(
+                (
+                    "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
+                    f"{_format_currency_amount(projected_total)} บาท "
+                    f"ซึ่งเกินวงเงิน {_format_currency_amount(ticket_totals['budget'])} บาท"
+                ),
+                "danger",
+            )
+            return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_detail.id))
 
     # 6. จัดการอัปโหลดไฟล์ใหม่ (ถ้ามีการแนบไฟล์)
     uploaded_file = request.files.get("proof_file")
@@ -2841,10 +3093,6 @@ def edit_receipt_item_inline(file_id):
     # ==========================================
     if is_claim:
         claim_detail.status = "รอตรวจสอบ"
-        total_spent_for_claim = sum(
-            float(i.amount or 0) 
-            for i in claim_detail.items
-        )
         claim_detail.total_amount = total_spent_for_claim
 
         db.session.commit()
@@ -2857,10 +3105,6 @@ def edit_receipt_item_inline(file_id):
         return redirect(url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_detail.id))
     else:
         return_detail.status = "รอตรวจสอบ"
-        total_spent_for_return = sum(
-            float(i.amount or 0) 
-            for i in return_detail.receipt_items
-        )
         return_detail.amount_spent = total_spent_for_return
         _send_notification_email(return_detail, object_type="return")
 
@@ -3638,8 +3882,26 @@ def view_return_proof_detail(return_id):
     proof_files = (
         db.session.query(ReturnProofFile)
         .filter(ReturnProofFile.return_detail_id == return_id)
+        .order_by(ReturnProofFile.id.asc())
         .all()
     )
+    receipt_items = (
+        db.session.query(ReturnReceiptItem)
+        .filter(ReturnReceiptItem.return_detail_id == return_id)
+        .order_by(ReturnReceiptItem.id.asc())
+        .all()
+    )
+
+    # รองรับไฟล์หลักฐานเก่าที่มี return_detail_id แต่ไม่มี receipt_item_id
+    linked_item_ids = {
+        file.receipt_item.id
+        for file in proof_files
+        if file.receipt_item
+    }
+    unlinked_files = [file for file in proof_files if not file.receipt_item]
+    unlinked_items = [item for item in receipt_items if item.id not in linked_item_ids]
+    for file, item in zip(unlinked_files, unlinked_items):
+        file.receipt_item = item
 
     return render_template(
         "return_proof_detail.html",
@@ -4288,19 +4550,41 @@ def submit_petty_cash_claim():
         fund_request_id_raw = (request.form.get("fund_request_id") or "").strip()
         fund_request_id = int(fund_request_id_raw) if fund_request_id_raw.isdigit() else None
 
-        for i, raw_amount in enumerate(amounts):
+        parsed_items = []
+        total_claim_amount = 0.0
+        old_receipt_count = 0
+
+        for i in range(len(receipt_dates)):
+            r_date = _coerce_date(receipt_dates[i]) if i < len(receipt_dates) and receipt_dates[i] else None
             cat_val_str = str(category_types[i]).strip() if i < len(category_types) and category_types[i] else "1"
-            if cat_val_str == "6":
-                continue
+            cat_val_int = int(cat_val_str) if cat_val_str.isdigit() else 1
 
             try:
-                amt_val = float(str(raw_amount or 0).replace(",", ""))
+                amt = float(str(amounts[i] or 0).replace(",", "")) if i < len(amounts) else 0.0
             except (ValueError, TypeError):
-                amt_val = 0.0
+                amt = 0.0
 
-        if amt_val > 20000:
-            flash("เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาท", "danger")
-            return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
+            if not is_draft and amt > 20000 and cat_val_int != 6:
+                flash("เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาท", "danger")
+                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
+
+            if not is_draft and r_date and _receipt_requires_additional_document(r_date):
+                old_receipt_count += 1
+
+            if cat_val_str == "6" or cat_val_int == 6:
+                item_desc = "เงินโอนคงเหลือจากการยืมเงินสดย่อย"
+            else:
+                item_desc = (descriptions[i] or "").strip() if i < len(descriptions) else ""
+                total_claim_amount += amt
+
+            parsed_items.append(
+                {
+                    "receipt_date": r_date,
+                    "description": item_desc,
+                    "category_type": cat_val_int,
+                    "amount": amt,
+                }
+            )
 
         existing_draft_query = db.session.query(PettyCashClaimDetail).filter_by(
             user_id=user_id,
@@ -4311,6 +4595,23 @@ def submit_petty_cash_claim():
                 PettyCashClaimDetail.fund_request_id == fund_request_id
             )
         existing_draft = existing_draft_query.first()
+
+        if not is_draft and fund_request_id:
+            fund_totals = _calculate_fund_request_totals(
+                fund_request_id,
+                exclude_claim_id=existing_draft.id if existing_draft else None,
+            )
+            projected_total = fund_totals["cumulative_total"] + total_claim_amount
+            if _is_over_limit(projected_total, fund_totals["request_amount"]):
+                flash(
+                    (
+                        "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
+                        f"{_format_currency_amount(projected_total)} บาท "
+                        f"ซึ่งเกินยอดขอเบิก {_format_currency_amount(fund_totals['request_amount'])} บาท"
+                    ),
+                    "danger",
+                )
+                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
 
         if existing_draft:
             if fund_request_id is not None and existing_draft.fund_request_id != fund_request_id:
@@ -4331,53 +4632,27 @@ def submit_petty_cash_claim():
         if setting and setting.id and not claim_detail.petty_cash_setting_id:
             claim_detail.petty_cash_setting_id = setting.id
 
-        claim_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
-        claim_detail.created_at = datetime.now()
-        
         # บันทึก Fund Request ID ที่ผูกกับเอกสารฉบับนี้
         if hasattr(claim_detail, 'fund_request_id'):
             claim_detail.fund_request_id = fund_request_id
 
-        db.session.commit()
-
-        total_claim_amount = 0.0  # ยอดเบิกตั้งเรื่องคืนการเงิน (สะสมเฉพาะหมวด 1-5)
         legacy_uploaded_files = request.files.getlist("proof_file[]")
-        old_receipt_count = 0
         legacy_existing_file_paths = request.form.getlist("existing_proof_files[]")
         legacy_existing_file_names = request.form.getlist("existing_proof_filenames[]")
 
-        for i in range(len(receipt_dates)):
-            r_date = _coerce_date(receipt_dates[i]) if i < len(receipt_dates) else None
-            if not is_draft and _receipt_requires_additional_document(r_date):
-                old_receipt_count += 1
+        claim_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
+        claim_detail.created_at = datetime.now()
+        db.session.flush()
 
-            try:
-                amt = float(amounts[i].replace(",", "")) if (i < len(amounts) and amounts[i]) else 0.0
-            except (ValueError, TypeError):
-                amt = 0.0
-
-            # แปลง category_type ให้เป็น int หรือ string มาตรฐานเพื่อป้องกันปัญหาระบบไม่จำ category_type
-            cat_val_str = str(category_types[i]).strip() if (i < len(category_types) and category_types[i]) else "1"
-            cat_val_int = int(cat_val_str) if cat_val_str.isdigit() else 1
-
-            # เงื่อนไขสำหรับหมวด 6: โอนคืนบัญชีหน่วย
-            if cat_val_str == "6" or cat_val_int == 6:
-                item_desc = "เงินโอนคงเหลือจากการยืมเงินสดย่อย"
-                item_custom_cat = ""
-                # หมวด 6 จะไม่ถูกนำไปบวกในยอดรวมส่งตั้งเบิกคืนจากการเงิน (total_claim_amount)
-            else:
-                item_desc = descriptions[i].strip() if i < len(descriptions) else ""
-                total_claim_amount += amt  # คำนวณสะสมเฉพาะหมวด 1-5
-
+        for i, item_data in enumerate(parsed_items):
             item = PettyCashClaimItem(
                 claim_id=claim_detail.id,
-                receipt_date=r_date,
-                description=item_desc,
-                category_type=cat_val_int,
-                amount=amt
+                receipt_date=item_data["receipt_date"],
+                description=item_data["description"],
+                category_type=item_data["category_type"],
+                amount=item_data["amount"]
             )
             db.session.add(item)
-            db.session.commit()
 
             uploaded_files = request.files.getlist(f"proof_files_{i}[]")
             if not uploaded_files and i < len(legacy_uploaded_files):
@@ -4476,7 +4751,12 @@ def submit_petty_cash_claim():
 
     claim_history = []
     parcel_return_history = []
+    fund_request_total_info = {"request_amount": 0.0, "parcel_total": 0.0}
     if history_fund_request:
+        fund_request_total_info = _calculate_fund_request_totals(
+            history_fund_request.id,
+            exclude_claim_id=claim_detail.id if claim_detail else None,
+        )
         claim_history = (
             db.session.query(PettyCashClaimDetail)
             .filter(
@@ -4518,6 +4798,7 @@ def submit_petty_cash_claim():
         history_fund_request=history_fund_request,
         claim_history=claim_history,
         parcel_return_history=parcel_return_history,
+        fund_request_total_info=fund_request_total_info,
     )
 
 
@@ -4553,7 +4834,41 @@ def staff_parcel_return_edit(parcel_return_id):
         flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน", "danger")
         return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
 
-    parcel_return.amount_spent = float(amount)
+    try:
+        parsed_amount = float(amount or 0)
+    except (TypeError, ValueError):
+        flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
+        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
+
+    ticket_id = getattr(fund_request, "borrowing_ticket_id", None)
+    if ticket_id:
+        ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id, exclude_parcel_return_id=parcel_return.id)
+        projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
+        if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
+            flash(
+                (
+                    "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
+                    f"{_format_currency_amount(projected_ticket_total)} บาท "
+                    f"ซึ่งเกินวงเงิน {_format_currency_amount(ticket_totals['budget'])} บาท"
+                ),
+                "danger",
+            )
+            return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
+
+    fund_totals = _calculate_fund_request_totals(fund_request.id, exclude_parcel_return_id=parcel_return.id)
+    projected_fund_total = fund_totals["cumulative_total"] + parsed_amount
+    if _is_over_limit(projected_fund_total, fund_totals["request_amount"]):
+        flash(
+            (
+                "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
+                f"{_format_currency_amount(projected_fund_total)} บาท "
+                f"ซึ่งเกินยอดขอเบิก {_format_currency_amount(fund_totals['request_amount'])} บาท"
+            ),
+            "danger",
+        )
+        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
+
+    parcel_return.amount_spent = parsed_amount
     parcel_return.items_description = items_description
     parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
     parcel_return.status = "รอตรวจสอบ"

@@ -207,9 +207,9 @@
 
           <!-- 2. ยอดรวมส่งเบิกทั้งสิ้น (เดิม) -->
           <div>
-            <span class="d-block text-primary small fw-bold">ยอดรวมส่งเบิกทั้งสิ้น:</span>
-            <span class="fw-bold text-primary fs-4" id="totalAmountDisplay">0.00</span>
-            <span class="fw-bold text-primary ms-1">บาท</span>
+            <span class="d-block text-primary small fw-bold" id="totalAmountLabel">ยอดรวมส่งเบิกทั้งสิ้น:</span>
+            <span class="fw-bold text-primary fs-4" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
+            <span class="fw-bold text-primary ms-1" id="totalAmountUnit">บาท</span>
           </div>
 
           <div class="vr my-1"></div>
@@ -562,10 +562,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
     input.addEventListener("input", function() {
       formatInputNumberWithComma(this);
+      calculateTotal();
     });
 
     input.addEventListener("blur", function() {
       formatInputCurrency(this);
+      calculateTotal();
     });
 
     const parcelForm = input.closest("form");
@@ -676,20 +678,14 @@ function updateFundRequestInfo(selectElem) {
 
 function calculateTotal() {
   let grandTotal = 0;
-  let financeTotal = 0;
 
   document.querySelectorAll('#claimBody tr').forEach(row => {
-    const catSelect = row.querySelector('select[name="category_type[]"]');
     const amountInput = row.querySelector('.claim-amount');
     
     if (amountInput) {
       const amt = parseFloat(amountInput.value.replace(/,/g, '')) || 0;
       grandTotal += amt;
-
-      if (catSelect && catSelect.value !== '6') {
-        financeTotal += amt;
-      }
-    }
+  }
   });
 
   const grandDisplayEl = document.getElementById('grandTotalDisplay');
@@ -702,7 +698,20 @@ function calculateTotal() {
 
   const financeDisplayEl = document.getElementById('totalAmountDisplay');
   if (financeDisplayEl) {
-    financeDisplayEl.textContent = financeTotal.toLocaleString('en-US', {
+    const parcelInput = document.querySelector('.parcel-amount-input');
+    const existingClaimTotal = parseFloat(financeDisplayEl.dataset.existingClaimTotal || '0') || 0;
+    const parcelTotal = parseFloat(financeDisplayEl.dataset.parcelTotal || '0') || 0;
+    const currentParcelAmount = parseFloat((parcelInput?.value || '0').replace(/,/g, '')) || 0;
+    const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount;
+    const requestAmount = parseFloat(financeDisplayEl.dataset.requestAmount || '0') || 0;
+    const isOverRequest = totalToClaim > requestAmount;
+    financeDisplayEl.classList.toggle('text-danger', isOverRequest);
+    financeDisplayEl.classList.toggle('text-primary', !isOverRequest);
+    document.getElementById('totalAmountLabel')?.classList.toggle('text-danger', isOverRequest);
+    document.getElementById('totalAmountLabel')?.classList.toggle('text-primary', !isOverRequest);
+    document.getElementById('totalAmountUnit')?.classList.toggle('text-danger', isOverRequest);
+    document.getElementById('totalAmountUnit')?.classList.toggle('text-primary', !isOverRequest);
+    financeDisplayEl.textContent = totalToClaim.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
