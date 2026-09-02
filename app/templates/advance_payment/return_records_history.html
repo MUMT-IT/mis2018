@@ -29,7 +29,6 @@
         <option value="รอตรวจสอบ">รอการตรวจสอบ</option>
         <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
         <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ</option>
-        <option value="โอนเงินสดย่อยสำเร็จ">โอนเงินสดย่อยสำเร็จ</option>
         <option value="เอกสารตั้งฎีกา">เอกสารตั้งฎีกา</option>
         <option value="ล้างลูกหนี้เงินยืม">ล้างลูกหนี้เงินยืม</option>
         <option value="ปฏิเสธ">ปฏิเสธ</option>
@@ -160,8 +159,6 @@
                   <span class="badge bg-info text-dark">
                     {% if record.record_type == 'parcel_return' %}ได้รับเอกสารแล้ว{% else %}ผ่านการตรวจสอบ{% endif %}
                   </span>
-                {% elif st in ['โอนเงินสดย่อยสำเร็จ', 'โอนเงินสดย่อยสำเร็จ'] %}
-                  <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
                 {% elif st in ['เอกสารตั้งฎีกา', 'เอกสารตั้งฎีกา'] %}
                   <span class="badge bg-secondary text-white">เอกสารตั้งฎีกา</span>
                 {% elif st in ['ล้างลูกหนี้เงินยืม', 'ล้างลูกหนี้เงินยืม', 'ได้รับเงินคืนแล้ว'] %}
@@ -290,7 +287,6 @@
       if (['รอตรวจสอบ', 'รอการตรวจสอบ', 'รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'].includes(rStatusRaw)) rStatus = 'รอตรวจสอบ';
       else if (['กำลังตรวจสอบ', 'กำลังตรวจสอบ'].includes(rStatusRaw)) rStatus = 'กำลังตรวจสอบ';
       else if (['ผ่านการตรวจสอบ', 'ผ่านการตรวจสอบ', 'ได้รับเอกสารแล้ว', 'ได้รับเอกสารแล้ว'].includes(rStatusRaw)) rStatus = 'ผ่านการตรวจสอบ';
-      else if (['โอนเงินสดย่อยสำเร็จ', 'โอนเงินสดย่อยสำเร็จ'].includes(rStatusRaw)) rStatus = 'โอนเงินสดย่อยสำเร็จ';
       else if (['เอกสารตั้งฎีกา', 'เอกสารตั้งฎีกา'].includes(rStatusRaw)) rStatus = 'เอกสารตั้งฎีกา';
       else if (['ล้างลูกหนี้เงินยืม', 'ล้างลูกหนี้เงินยืม', 'ได้รับเงินคืนแล้ว'].includes(rStatusRaw)) rStatus = 'ล้างลูกหนี้เงินยืม';
       else if (['ปฏิเสธed', 'ปฏิเสธ', 'ปฏิเสธ'].includes(rStatusRaw)) rStatus = 'ปฏิเสธ';
