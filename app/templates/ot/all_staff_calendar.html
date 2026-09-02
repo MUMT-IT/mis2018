@@ -131,6 +131,11 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
     <script>
+    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
+    let datatable = null
+    let dateRangePicker = null
+    let applyingDateRange = false
+
     let ec = new EventCalendar(document.getElementById('calendar'), {
         view: 'dayGridMonth',
         eventSources: [
@@ -138,18 +143,27 @@
                 url: {{ url_for('ot.get_ot_shifts', announcement_id=announcement_id)|tojson|safe }}
 
             }
-        ]
+        ],
+        datesSet: function(info) {
+            if (!applyingDateRange && dateRangePicker) {
+                dateRangePicker.setStartDate(moment(info.start))
+                // EventCalendar's end is exclusive; date ranges are inclusive.
+                dateRangePicker.setEndDate(moment(info.end).subtract(1, 'day'))
+            }
+            if (datatable && !applyingDateRange) {
+                datatable.ajax.url(baseURL + '?start=' + info.start.toISOString() + '&end=' + info.end.toISOString()).load()
+            }
+        }
     });
-    $('input[name="dates"]').daterangepicker({
+    dateRangePicker = $('input[name="dates"]').daterangepicker({
         startDate: ec.view.currentStart,
-        endDate: ec.view.currentEnd,
+        endDate: moment(ec.view.currentEnd).subtract(1, 'day'),
         locale: {
             format: 'DD/MM/YYYY'
         }
-    });
-    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
+    }).data('daterangepicker');
     $.fn.dataTable.moment('lll');
-    let datatable = new $('#record-table').DataTable({
+    datatable = new $('#record-table').DataTable({
         processing: true,
         order: [[4, 'asc']],
         pageLength: 50,
@@ -214,8 +228,13 @@
         ]
     })
     $('input[name="dates"]').on('apply.daterangepicker', function(event, picker) {
-        datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
-        ec.setOption('date', picker.startDate.toISOString())
+        applyingDateRange = true
+        try {
+            datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
+            ec.setOption('date', picker.startDate.toDate())
+        } finally {
+            applyingDateRange = false
+        }
     });
     function load_data() {
         datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
