@@ -59,7 +59,7 @@ PETTY_CASH_SYSTEM = "petty_cash"
 FINANCE_SYSTEM = "finance"
 AVAILABLE_SYSTEMS = (FINANCE_SYSTEM, PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM)
 FUND_REQUEST_FORM_BORROWING_TICKET = "32"
-FUND_REQUEST_NUMBERED_STATUSES = {"อนุมัติแล้ว", "เบิกเงินแล้ว", "ส่งเบิกแล้ว"}
+FUND_REQUEST_NUMBERED_STATUSES = {"อนุมัติแล้ว", "เบิกเงินแล้ว", "ส่งเบิกแล้ว", "เบิกเงินสำเร็จ"}
 STATUS_NORMALIZATION_MAP = {
     "waiting": "รอตรวจสอบ",
     "pending": "รอตรวจสอบ",
