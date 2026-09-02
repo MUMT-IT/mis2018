@@ -26,7 +26,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
@@ -5216,6 +5216,7 @@ def petty_cash_ledger():
     if current_setting:
         initial_budget = float(current_setting.budget or 0)
     department_name = current_setting.department_name if current_setting else None
+    account_number = (current_setting.account_number or "").strip() if current_setting else ""
 
     ledger_raw_items = []
 
@@ -5259,11 +5260,22 @@ def petty_cash_ledger():
 
     # 2. ดึงข้อมูล Fund Request (การเบิก/ยืมเงิน) -> แยกยอดเงินตามหมวดหมู่
     approved_fund_requests = []
-    if department_name:
+    if department_name or account_number:
+        fund_request_scope = []
+        if department_name:
+            fund_request_scope.append(FundRequest.department_name == department_name)
+        if account_number:
+            # Type 32 is tied to the petty-cash account through its borrowing ticket.
+            fund_request_scope.append(
+                and_(
+                    FundRequest.form_type == FUND_REQUEST_FORM_BORROWING_TICKET,
+                    FundRequest.account_number == account_number,
+                )
+            )
         approved_fund_requests = (
             db.session.query(FundRequest)
             .filter(
-                FundRequest.department_name == department_name,
+                or_(*fund_request_scope),
                 ~FundRequest.status.in_(["กำลังดำเนินการ", "ปฏิเสธ"]),
             )
             .all()
@@ -5271,6 +5283,8 @@ def petty_cash_ledger():
 
     for fr in approved_fund_requests:
         amt = float(fr.amount or 0)
+        if str(fr.form_type) == FUND_REQUEST_FORM_BORROWING_TICKET and amt <= 0:
+            amt = float(getattr(fr.borrowing_ticket, "required_budget", 0) or 0)
         ticket_label = f"(ก.ศ.{fr.ticket_number or '-'})"
 
         if str(fr.form_type) == "31":
@@ -5332,7 +5346,6 @@ def petty_cash_ledger():
             sort_order=0,
         )
 
-    account_number = (current_setting.account_number or "").strip() if current_setting else ""
     if account_number:
         approved_borrowing_tickets = (
             db.session.query(BorrowingTicket)
