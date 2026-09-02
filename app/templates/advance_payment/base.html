@@ -57,17 +57,16 @@
       }
       .stepper-item {
         position: relative;
-        width: 22%;
+        width: 18%;
         z-index: 2;
       }
       .stepper-line-bg {
         height: 4px;
-        background-color: #d1e4ff;
+        background-color: #d1d5db;
         z-index: 1;
         top: 40px !important;
-        left: 11%;
-        right: 11%;
-        max-width: 75%;
+        left: 9%;
+        right: 9%;
       }
       .stepper-line-active {
         height: 4px;
@@ -85,11 +84,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #bad5ff;
+        background-color: #e5e7eb;
         transition: all 0.3s ease;
       }
       .step-circle-outer.pending {
-        background-color: #d1e4ff;
+        background-color: #e5e7eb;
       }
       .step-circle-outer.active {
         background-color: #ffffff;
@@ -127,6 +126,12 @@
         color: #2d3748;
         margin-top: 4px;
       }
+      .step-label-main.pending {
+        color: #9ca3af;
+      }
+      .step-label-main.completed {
+        color: #019273;
+      }
       .step-label-status {
         font-size: 0.78rem;
         font-weight: 600;
@@ -140,6 +145,55 @@
       }
       .step-label-status.completed {
         color: #019273;
+      }
+      .status-flow {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        min-width: 190px;
+        padding-left: 18px;
+      }
+      .status-flow::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        bottom: 10px;
+        left: 4px;
+        width: 2px;
+        background-color: #d1d5db;
+      }
+      .status-flow-item {
+        position: relative;
+        z-index: 1;
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+      }
+      .status-flow-dot {
+        position: absolute;
+        left: -18px;
+        width: 10px;
+        height: 10px;
+        border: 2px solid #d1d5db;
+        border-radius: 50%;
+        background-color: #ffffff;
+      }
+      .status-flow-dot.is-current {
+        border-color: #019273;
+        background-color: #019273;
+      }
+      .status-flow .badge {
+        white-space: nowrap;
+      }
+      @media (max-width: 576px) {
+        .status-flow {
+          min-width: 170px;
+        }
+        .status-flow .badge {
+          font-size: 0.85rem !important;
+        }
       }
       .suggestions-box {
         max-height: 200px;

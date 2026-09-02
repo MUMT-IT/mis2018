@@ -19,26 +19,12 @@
   </header>
 
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
-    <div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="row g-4">
+      <div class="col-12 col-lg-10">
+    <div class="d-flex align-items-start mb-4">
       <div>
         <span class="text-uppercase text-primary fw-bold small">ชื่อโครงการ/วัตุถุประสงค์</span>
-        <h2 class="h3 fw-bold mb-0">{{ borrowing_ticket.borrowing_ticket_purpose }}</h2>
-      </div>
-      <div>
-        {% set badge_class = 'bg-warning text-dark' %}
-        {% set display_status = borrowing_ticket.status %}
-        
-        {% if borrowing_ticket.status|lower == 'กำลังส่งคำขอ' %}{% set display_status = 'กำลังส่งคำขอ' %}
-        {% elif borrowing_ticket.status|lower == 'รอตรวจสอบ' %}{% set display_status = 'รอตรวจสอบ' %}
-        {% elif borrowing_ticket.status|lower == 'อนุมัติจ่ายเงิน' %}{% set badge_class = 'bg-success text-white' %}{% set display_status = 'อนุมัติจ่ายเงิน' %}
-        {% elif borrowing_ticket.status|lower == 'ผ่านการตรวจสอบ' %}{% set badge_class = 'bg-success text-white' %}{% set display_status = 'ผ่านการตรวจสอบ' %}
-        {% elif borrowing_ticket.status|lower == 'เคลียร์ยอดแล้ว' %}{% set badge_class = 'bg-success text-white' %}{% set display_status = 'เคลียร์ยอดแล้ว' %}
-        {% elif borrowing_ticket.status|lower == 'มียอดคงค้าง' %}{% set badge_class = 'bg-info text-dark' %}{% set display_status = 'มียอดคงค้าง' %}
-        {% elif borrowing_ticket.status|lower == 'เอกสารตั้งฎีกา' %}{% set badge_class = 'bg-secondary text-white' %}{% set display_status = 'เอกสารตั้งฎีกา' %}
-        {% elif borrowing_ticket.status|lower in ['ปฏิเสธ'] %}{% set badge_class = 'bg-danger text-white' %}{% set display_status = 'ปฏิเสธ' %}
-        {% elif borrowing_ticket.status|lower == 'เลยกำหนด' %}{% set badge_class = 'bg-danger text-white' %}{% set display_status = 'เลยกำหนด' %}        {% endif %}
-        
-        <span class="badge {{ badge_class }} fs-6 px-3 py-2">{{ display_status }}</span>
+        <h2 class="h3 fw-bold mb-0 py-2">{{ borrowing_ticket.borrowing_ticket_purpose }}</h2>
       </div>
     </div>
     <div class="col-6 col-md-4">
@@ -49,6 +35,10 @@
       <div class="col-6 col-md-4">
         <p class="text-muted small mb-1"><strong>ผู้ยืม</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrower_name }}</p>
+      </div>
+      <div class="col-6 col-md-4">
+        <p class="text-muted small mb-1"><strong>ผู้ดำเนินการ</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.creator_name }}</p>
       </div>
       <div class="col-6 col-md-4">
         <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
@@ -169,82 +159,52 @@
         </form>
       </div>
     {% endif %}
-  </section>
-  <div class="card border border-0 rounded-4 bg-white shadow-sm mb-4 p-4">
-    <div class="position-relative d-flex justify-content-between align-items-start stepper-wrapper mx-auto" style="max-width: 900px; padding: 20px 0;">
-      
-      <div class="position-absolute top-0 start-25 end-75 stepper-line-bg"></div>
-      
-      {% set line_width = '0%' %}
-      {% set s1, s2, s3, s4 = 'pending', 'pending', 'pending', 'pending' %}
-      {% set st1, st2, st3, st4 = 'กำลังส่งคำขอ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว' %}
-
-      {% if borrowing_ticket.status|lower == 'กำลังส่งคำขอ' %}
-        {% set line_width = '0%' %}
-        {% set s1 = 'active' %}
-      {% elif borrowing_ticket.status|lower in ['รอตรวจสอบ', 'อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ', 'เลยกำหนด'] %}
-        {% set line_width = '25%' %}
-        {% set s1 = 'completed' %}
-        {% set s2 = 'active' %}
-      {% elif borrowing_ticket.status|lower == 'มียอดคงค้าง' %}
-        {% set line_width = '50%' %}
-        {% set s1, s2 = 'completed', 'completed' %}
-        {% set s3 = 'active' %}
-      {% elif borrowing_ticket.status|lower in ['เคลียร์ยอดแล้ว', 'เอกสารตั้งฎีกา'] %}
-        {% set line_width = '75%' %}
-        {% set s1, s2, s3 = 'completed', 'completed', 'completed' %}
-        {% set s4 = 'completed' %}
-        {% if borrowing_ticket.status|lower == 'เอกสารตั้งฎีกา' %}{% set st4 = 'เอกสารตั้งฎีกา' %}{% endif %}
-      {% endif %}
-      
-      <div class="position-absolute top-0 start-25 stepper-line-active" style="width: {{ line_width }};"></div>
-
-      <div class="stepper-item text-center">
-        <div class="step-circle-outer mx-auto {{ s1 }}">
-          <div class="step-circle-inner">
-            {% if s1 == 'completed' %}<i class="bi bi-check-lg"></i>{% endif %}
-          </div>
-        </div>
-        <div class="step-label-sub">STEP 1</div>
-        <div class="step-label-main text-truncate">{{ st1 }}</div>
-        <div class="step-label-status {{ s1 }}">{% if s1 == 'completed' %}เสร็จสิ้น{% elif s1 == 'active' %}กำลังดำเนินการ{% else %}รอดำเนินการ{% endif %}</div>
       </div>
 
-      <div class="stepper-item text-center">
-        <div class="step-circle-outer mx-auto {{ s2 }}">
-          <div class="step-circle-inner">
-            {% if s2 == 'completed' %}<i class="bi bi-check-lg"></i>{% endif %}
-          </div>
-        </div>
-        <div class="step-label-sub">STEP 2</div>
-        <div class="step-label-main text-truncate">{{ st2 }}</div>
-        <div class="step-label-status {{ s2 }}">{% if s2 == 'completed' %}เสร็จสิ้น{% elif s2 == 'active' %}กำลังดำเนินการ{% else %}รอดำเนินการ{% endif %}</div>
-      </div>
+      <div class="col-12 col-lg-2">
+        {% set current_status = (borrowing_ticket.status or '')|trim %}
+        {% set status_step = {
+          'กำลังส่งคำขอ': 'กำลังส่งคำขอ',
+          'รอตรวจสอบ': 'อนุมัติจ่ายเงิน',
+          'อนุมัติจ่ายเงิน': 'อนุมัติจ่ายเงิน',
+          'ผ่านการตรวจสอบ': 'อนุมัติจ่ายเงิน',
+          'เลยกำหนด': 'อนุมัติจ่ายเงิน',
+          'มียอดคงค้าง': 'มียอดคงค้าง',
+          'เคลียร์ยอดแล้ว': 'เคลียร์ยอดแล้ว',
+          'เอกสารตั้งฎีกา': 'เคลียร์ยอดแล้ว',
+          'ปฏิเสธ': 'ปฏิเสธ'
+        } %}
+        {% set current_step = status_step.get(current_status, current_status) %}
+        {% set status_class = 'bg-warning text-dark' %}
+        {% if current_status in ['อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ', 'เคลียร์ยอดแล้ว'] %}
+          {% set status_class = 'bg-success text-white' %}
+        {% elif current_status == 'มียอดคงค้าง' %}
+          {% set status_class = 'bg-info text-dark' %}
+        {% elif current_status == 'เอกสารตั้งฎีกา' %}
+          {% set status_class = 'bg-secondary text-white' %}
+        {% elif current_status in ['ปฏิเสธ', 'เลยกำหนด'] %}
+          {% set status_class = 'bg-danger text-white' %}
+        {% endif %}
+        {% set steps = ['กำลังส่งคำขอ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว'] %}
+        {% if current_step == 'ปฏิเสธ' %}
+          {% set steps = steps + ['ปฏิเสธ'] %}
+        {% endif %}
 
-      <div class="stepper-item text-center">
-        <div class="step-circle-outer mx-auto {{ s3 }}">
-          <div class="step-circle-inner">
-            {% if s3 == 'completed' %}<i class="bi bi-check-lg"></i>{% endif %}
-          </div>
+        <div class="status-flow">
+          {% for step in steps %}
+            <div class="status-flow-item">
+              <span class="status-flow-dot {% if step == current_step %}is-current{% endif %}"></span>
+              {% if step == current_step %}
+                <span class="badge {{ status_class }} fs-6 px-3 py-2">{{ step }}</span>
+              {% else %}
+                <span class="badge bg-light text-secondary border fs-6 px-3 py-2">{{ step }}</span>
+              {% endif %}
+            </div>
+          {% endfor %}
         </div>
-        <div class="step-label-sub">STEP 3</div>
-        <div class="step-label-main text-truncate">{{ st3 }}</div>
-        <div class="step-label-status {{ s3 }}">{% if s3 == 'completed' %}เสร็จสิ้น{% elif s3 == 'active' %}กำลังดำเนินการ{% else %}รอดำเนินการ{% endif %}</div>
-      </div>
-
-      <div class="stepper-item text-center">
-        <div class="step-circle-outer mx-auto {{ s4 }}">
-          <div class="step-circle-inner">
-            {% if s4 == 'completed' %}<i class="bi bi-check-lg"></i>{% endif %}
-          </div>
-        </div>
-        <div class="step-label-sub">STEP 4</div>
-        <div class="step-label-main text-truncate">{{ st4 }}</div>
-        <div class="step-label-status {{ s4 }}">{% if s4 == 'completed' %}เสร็จสิ้น{% elif s4 == 'active' %}กำลังดำเนินการ{% else %}รอดำเนินการ{% endif %}</div>
       </div>
     </div>
-  </div>
-  
+  </section>
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
       <h3 class="h4 fw-bold mb-0">รายการหลักฐานเอกสารส่งใช้เงินยืม</h3>
