@@ -4,7 +4,12 @@ from sqlalchemy import extract
 from functools import wraps
 import re
 from types import SimpleNamespace
-from .pdf_utils import generate_fnar02_pdf, generate_fund_request_pdf
+from .pdf_utils import (
+    generate_fnar02_pdf,
+    generate_fund_request_pdf,
+    generate_petty_claim,
+    generate_ticket_return,
+)
 
 from flask import (
     after_this_request,
@@ -305,7 +310,11 @@ def _available_module_roles(staff):
     direct_role = getattr(staff, "role", None)
     if direct_role:
         role_names.add(direct_role)
-    return [role for role in (COORDINATOR_ROLE, SECRETARY_ROLE) if role in role_names]
+    return [
+        role
+        for role in (COORDINATOR_ROLE, SECRETARY_ROLE, FINANCE_SYSTEM)
+        if role in role_names
+    ]
 
 
 def _default_module_role(staff):
@@ -323,7 +332,11 @@ def _sync_advance_payment_session(staff, role=None, system=None):
     session["user_email"] = staff.email
     if system is not None:
         session["advance_payment_system"] = system
-    session["user_role"] = role if role in {COORDINATOR_ROLE, SECRETARY_ROLE} else None
+    session["user_role"] = role if role in {
+        COORDINATOR_ROLE,
+        SECRETARY_ROLE,
+        FINANCE_SYSTEM,
+    } else None
 
 
 def _module_user_from_session():
@@ -4392,6 +4405,61 @@ def export_fund_request_pdf(request_id):
         filename = f"FundRequest_Form{fund_req.form_type}_{request_id}.pdf"
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
     return response
+
+
+@bp.route("/staff/petty-cash-claim/<int:claim_id>/pdf")
+@login_required()
+def export_petty_cash_claim_pdf(claim_id):
+    claim = db.session.query(PettyCashClaimDetail).get(claim_id)
+    if not claim:
+        abort(404)
+
+    if _selected_system() == PETTY_CASH_SYSTEM:
+        current_user = db.session.query(StaffAccount).get(session.get("user_id"))
+        setting = _resolve_petty_cash_setting(current_user) if current_user else None
+        can_view = bool(
+            _is_current_secretary()
+            or (current_user and claim.user_id == current_user.id)
+            or (setting and claim.petty_cash_setting_id == setting.id)
+        )
+        if not can_view:
+            abort(403)
+
+    _attach_petty_cash_claim_context(claim)
+    pdf_bytes = generate_petty_claim(claim)
+
+    response = current_app.response_class(pdf_bytes, mimetype='application/pdf')
+    filename = f"Petty_Claim_{claim_id}.pdf"
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    return response
+
+
+@bp.route("/finance/returns/<int:return_id>/pdf")
+@login_required()
+def export_ticket_return_pdf(return_id):
+    return_detail = db.session.query(ReturnDetail).get(return_id)
+    if not return_detail:
+        abort(404)
+
+    borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
+    if not borrowing_ticket:
+        abort(404)
+
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
+        (not _is_current_coordinator() and borrowing_ticket.borrower_id != session.get("user_id"))
+        or (_is_current_coordinator() and borrowing_ticket.creator_id != session.get("user_id"))
+    ):
+        abort(403)
+
+    return_detail.borrowing_ticket = borrowing_ticket
+    pdf_bytes = generate_ticket_return(return_detail)
+
+    response = current_app.response_class(pdf_bytes, mimetype="application/pdf")
+    response.headers["Content-Disposition"] = (
+        f"attachment; filename=Ticket_Return_{return_id}.pdf"
+    )
+    return response
+
 
 def get_department_data_service(dept_name=None):
     """แหล่งข้อมูลหน่วยงานจาก MIS Org model."""

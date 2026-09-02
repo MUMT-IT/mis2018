@@ -9,6 +9,10 @@
   </a>
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ตรวจสอบหลักฐาน</p>
   <h1 class="fw-bold display-6 mb-2">รายละเอียดไฟล์หลักฐานเอกสารส่งใช้เงินยืม</h1>
+  <a href="{{ url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id) }}"
+     class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
+    <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลด PDF
+  </a>
 </header>
 
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">

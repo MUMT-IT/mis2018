@@ -219,6 +219,12 @@
         {% endif %}
     </div>
     {% endif %}
+    <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
+      <a href="{{ url_for('advance_payment.export_petty_cash_claim_pdf', claim_id=claim_detail.id) }}"
+         class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
+        <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลด PDF
+      </a>
+    </div>
   </div>
 </section>
 
