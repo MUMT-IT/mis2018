@@ -2637,6 +2637,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
     if not form.detail.data:
         form.detail.data = f"{record.organization}ไม่สามารถซ่อมเองได้ สมควรส่งบริษัทซ่อม" if record.organization else f"ไม่สามารถซ่อมเองได้ สมควรส่งบริษัทซ่อม"
 
+    if not form.book_number.data:
+        form.book_number.data = '-'
+
     if record.procurements:
         for procurement in record.procurements:
             cost_center= procurement.cost_center[:-1]
