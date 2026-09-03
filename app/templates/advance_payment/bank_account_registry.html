@@ -69,7 +69,13 @@
               </td>
               <td>
                 <span class="view-mode fw-bold text-dark">{{ row.thai_name }}</span>
-                <input type="text" name="thai_name[]" class="form-control form-control-sm edit-mode d-none" value="{{ row.thai_name or '' }}" placeholder="เช่น เงินสดย่อย งานคลังและพัสดุ">
+                <select name="thai_name[]" class="form-select form-select-sm edit-mode d-none">
+                  <option value="">เลือกหน่วยงานหรือบุคลากร</option>
+                  {% for option in account_holder_options %}
+                    <option value="{{ option.value }}" {% if row.thai_name == option.value %}selected{% endif %}>{{ option.label }}</option>
+                  {% endfor %}
+                  {% if row.thai_name and row.thai_name not in account_holder_options|map(attribute='value')|list %}<option value="{{ row.thai_name }}" selected>{{ row.thai_name }}</option>{% endif %}
+                </select>
               </td>
               <td>
                 <span class="view-mode text-dark">{{ created_at_label }}</span>
@@ -111,7 +117,10 @@
     </td>
     <td>
       <span class="view-mode fw-bold text-dark"></span>
-      <input type="text" name="thai_name[]" class="form-control form-control-sm edit-mode d-none" placeholder="เช่น เงินสดย่อย งานคลังและพัสดุ">
+      <select name="thai_name[]" class="form-select form-select-sm edit-mode d-none">
+        <option value="">เลือกหน่วยงานหรือบุคลากร</option>
+        {% for option in account_holder_options %}<option value="{{ option.value }}">{{ option.label }}</option>{% endfor %}
+      </select>
     </td>
     <td>
       <span class="view-mode text-dark"></span>

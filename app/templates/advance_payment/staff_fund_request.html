@@ -45,12 +45,12 @@
               </div>
             </div>
 
-            <!-- ข้อมูลผู้ประสานงาน -->
+            <!-- ข้อมูลผู้ขอยืม -->
             <div id="section_borrower_info">
-              <h5 class="fw-bold text-dark mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i>ข้อมูลผู้ประสานงาน</h5>
+              <h5 class="fw-bold text-dark mb-3"><i class="bi bi-person-lines-fill me-2 text-primary"></i>ข้อมูลผู้ขอยืม</h5>
               <div class="row g-3 mb-4 p-3 bg-light rounded-3 border mt-3">
                 <div class="col-md-6">
-                    <label for="requester_input" class="form-label fw-bold text-muted small">ชื่อ-นามสกุล ผู้ประสานงาน <span class="text-danger">*</span></label>
+                    <label for="requester_input" class="form-label fw-bold text-muted small">ชื่อ-นามสกุล ผู้ขอยืม <span class="text-danger">*</span></label>
                     <input type="text" name="requester_name" id="requester_input" list="borrower_list" class="form-control bg-white" placeholder="พิมพ์เพื่อค้นหา หรือเลือกพนักงาน..." autocomplete="off" required oninput="onBorrowerChange()">
                     <datalist id="borrower_list">
                       {% for emp in department_employees %}
@@ -107,12 +107,12 @@
               <div class="mb-2">
                 <div class="row g-3 align-items-end">
                   <div class="col-lg-4">
-                    <label for="fund_in_date" class="form-label fw-bold">วันที่เงินเข้า</label>
-                    <input type="date" name="fund_in_date" id="fund_in_date" class="form-control">
+                    <label for="receive_interest" class="form-label fw-bold">วันที่เงินเข้า</label>
+                    <input type="date" name="receive_interest" id="receive_interest" class="form-control">
                   </div>
                   <div class="col-lg-4">
-                    <label for="withdrawal_date" class="form-label fw-bold">วันที่ทำการเบิก</label>
-                    <input type="date" name="withdrawal_date" id="withdrawal_date" class="form-control">
+                    <label for="withdraw_intrest" class="form-label fw-bold">วันที่ทำการเบิก</label>
+                    <input type="date" name="withdraw_intrest" id="withdraw_intrest" class="form-control">
                   </div>
                   <div class="col-lg-4">
                     <label for="withdrawal_proof_file" class="form-label fw-bold">หลักฐานการเบิก</label>
@@ -505,14 +505,15 @@
         } else {
           window.openAppPopup({
             title: "ยืนยันการส่งแบบฟอร์ม",
-            message: "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาท\n\nหากอ่านและยอมรับเงื่อนไขนี้แล้ว กดตกลงเพื่อส่งแบบฟอร์ม",
+            message: "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาท",
             targetFormId: mainForm.id,
+            requireAcknowledgement: true,
+            acknowledgementLabel: "ข้าพเจ้าได้อ่านและรับทราบเงื่อนไขข้างต้นแล้ว",
             confirmText: "ตกลงและส่งแบบฟอร์ม",
             confirmClass: "btn-success",
           });
           return;
         }
-
         // 1. ตรวจสอบ Radio ประจำปี
         const selectedRadio = document.querySelector('input[name="period_year_radio"]:checked');
         if (selectedRadio && radio31.checked) {

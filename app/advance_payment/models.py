@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
-from sqlalchemy.orm import object_session
+from sqlalchemy.orm import object_session, relationship
 from app.main import db
 from app.staff.models import StaffAccount
 
@@ -403,18 +403,43 @@ class ClosingDocument(db.Model):
 
 class PettyCashSetting(db.Model):
     __tablename__ = "petty_cash_settings"
+    __table_args__ = (
+        UniqueConstraint(
+            "org_id",
+            "fiscal_year",
+            name="uq_petty_cash_settings_org_fiscal_year",
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     fiscal_year = Column(Integer, nullable=False)
-    department_name = Column(String(255), nullable=False, unique=True)
-    custodian_name = Column(String(255), nullable=True) # delete
+    org_id = Column(Integer, ForeignKey("orgs.id"), nullable=False)
     budget = Column(Numeric(12, 2), nullable=False, default=0)
-    account_number = Column(String(100), nullable=False)
     bank_account_info_id = Column(Integer, ForeignKey("cash_mng_bank_account_infos.id"), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     valid = Column(Boolean, nullable=False, default=True)
-    is_enabled = Column(Boolean, nullable=False, default=True) # which one which
-    custodian_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, unique=True)
+    custodian_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True)
+
+    @property
+    def department_name(self):
+        from app.models import Org
+        org = _session_get(object_session(self), Org, self.org_id)
+        return getattr(org, "name", None)
+
+    @property
+    def org(self):
+        from app.models import Org
+        return _session_get(object_session(self), Org, self.org_id)
+
+    @property
+    def custodian_name(self):
+        custodian = _session_get(object_session(self), StaffAccount, self.custodian_id)
+        return getattr(custodian, "name", None) or getattr(custodian, "fullname", None)
+
+    @property
+    def account_number(self):
+        account = self.bank_account_info
+        return getattr(account, "account_number", None)
 
     @property
     def bank_account_info(self):
@@ -450,16 +475,13 @@ class FundRequest(db.Model):
 
     id = Column(Integer, primary_key=True)
     requester_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
+    org_id = Column(Integer, ForeignKey("orgs.id"), nullable=True, index=True)
     borrowing_ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
     form_type = Column(String(10), nullable=False)
-    requester_name = Column(String(255), nullable=False) # del
-    requester_position = Column(String(255), nullable=False) # del
-    department_name = Column(String(255), nullable=False) # del
-    account_number = Column(String(100), nullable=False) # del
     ticket_number = Column(String(64), nullable=True)
     request_date = Column(Date, nullable=False)
-    fund_in_date = Column(Date, nullable=True) # receive_interest
-    withdrawal_date = Column(Date, nullable=True) # withdraw_intrest
+    receive_interest = Column(Date, nullable=True)
+    withdraw_intrest = Column(Date, nullable=True)
     status = Column(String(64), nullable=False, default="กำลังดำเนินการ")
     amount = Column(Numeric(12, 2), nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
@@ -482,6 +504,64 @@ class FundRequest(db.Model):
     @property
     def items(self):
         return _query_related_list(self, FundRequestItem, "fund_request_id")
+
+    @property
+    def org(self):
+        from app.models import Org
+        return _session_get(object_session(self), Org, self.org_id)
+
+    @property
+    def department_name(self):
+        org = self.org
+        return getattr(org, "name", None)
+
+    @property
+    def requester_name(self):
+        requester = _session_get(object_session(self), StaffAccount, self.requester_id)
+        ticket = self.borrowing_ticket
+        return (
+            getattr(ticket, "borrower_name", None)
+            or getattr(requester, "name", None)
+            or getattr(requester, "fullname", None)
+        )
+
+    @property
+    def requester_position(self):
+        requester = _session_get(object_session(self), StaffAccount, self.requester_id)
+        return getattr(requester, "position", None)
+
+    @property
+    def account_number(self):
+        ticket = self.borrowing_ticket
+        if ticket and getattr(ticket, "account_number", None):
+            return ticket.account_number
+
+        setting_org = self.org
+        if setting_org is None:
+            return None
+
+        session = object_session(self)
+        if session is None:
+            return None
+
+        today = datetime.now().date()
+        current_fiscal_year = today.year + 1 if today.month >= 10 else today.year
+        setting = (
+            session.query(PettyCashSetting)
+            .filter_by(org_id=getattr(setting_org, "id", None), fiscal_year=current_fiscal_year, valid=True)
+            .first()
+        )
+        if setting is not None:
+            return getattr(setting, "account_number", None)
+        return None
+
+    @property
+    def fund_in_date(self):
+        return self.receive_interest
+
+    @property
+    def withdrawal_date(self):
+        return self.withdraw_intrest
 
 
 class FundRequestItem(db.Model):

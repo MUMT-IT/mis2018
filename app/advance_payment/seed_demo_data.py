@@ -21,6 +21,7 @@ from .models import (
     StaffAccount,
     document_return_association,
 )
+from app.models import Org
 
 
 def _money(value):
@@ -47,16 +48,21 @@ INIT_USER_EMAILS = {
 }
 
 def _ensure_setting(session, *, staff, fiscal_year, department_name, custodian_name, budget, account_number, valid=True):
-    setting = _first(session, PettyCashSetting, department_name=department_name)
+    org = session.query(Org).filter(
+        (Org.name == department_name) | (Org.en_name == department_name)
+    ).first()
+    if not org:
+        return None
+    setting = _first(session, PettyCashSetting, org_id=org.id, fiscal_year=fiscal_year)
     if setting:
         return setting
+    bank_account_info = _first(session, BankAccountInfo, account_number=account_number)
 
     setting = PettyCashSetting(
         fiscal_year=fiscal_year,
-        department_name=department_name,
-        custodian_name=custodian_name,
+        org_id=org.id,
         budget=_money(budget),
-        account_number=account_number,
+        bank_account_info_id=bank_account_info.id if bank_account_info else None,
         valid=valid,
         custodian_id=staff.id,
     )
@@ -257,7 +263,6 @@ def _ensure_bank_account_info(session, *, record_type, thai_name, created_at, ac
         record_type=record_type,
         thai_name=thai_name,
         created_at=created_at,
-        account_number=account_number,
     )
     session.add(record)
     session.flush()
@@ -316,10 +321,6 @@ def _ensure_fund_request(
     fund_request = FundRequest(
         requester_id=user.id,
         form_type=form_type,
-        requester_name=requester_name,
-        requester_position=requester_position,
-        department_name=department_name,
-        account_number=account_number,
         ticket_number=ticket_number,
         request_date=request_date,
         amount=_money(amount),

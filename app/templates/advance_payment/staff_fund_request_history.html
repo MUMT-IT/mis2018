@@ -87,7 +87,7 @@
                 {{ request.ticket_number if request.ticket_number else '-' }}
               </td>
               <td>{{ request.request_date|thai_date if request.request_date else '-' }}</td>
-              <td class="text-center">{{ request.requester_name }}</td>
+              <td class="text-center">{{ request.display_requester_name }}</td>
               <td class="text-center">
                 {% if request.form_type == '30' %}
                   <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกเงินสดย่อย</span>
@@ -139,6 +139,10 @@
               </td>
               <td class="text-center">
                 <div class="d-flex justify-content-center align-items-center gap-2">
+                  <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=request.id) }}"
+                     class="btn btn-outline-dark btn-sm fw-bold" target="_blank">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+                  </a>
                   {% if request.status == 'กำลังดำเนินการ' %}
                     {% if session.get('user_role') == 'secretary' %}
                       {% if request.form_type == '31' and request.withdrawal_proof_reference %}

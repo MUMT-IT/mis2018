@@ -104,6 +104,28 @@
         </div>
       </a>
     </div>
+    <!-- 7. หน่วยงานค้างส่งดอกเบี้ย -->
+    <div class="col-md-4">
+      <div
+        class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+        data-bs-toggle="modal"
+        data-bs-target="#interestTrackerModal"
+        style="cursor: pointer;"
+      >
+        <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+          <span>หน่วยงานค้างส่งดอกเบี้ย</span>
+          <i class="bi bi-bank text-danger"></i>
+        </div>
+
+        <div class="fs-2 fw-bold text-danger mt-2" id="pendingInterestCount">
+          {{ pending_interest_count or 0 }}
+        </div>
+
+        <span class="text-primary small mt-1">
+          <i class="bi bi-search"></i> คลิกเพื่อดูรายละเอียด
+        </span>
+      </div>
+    </div>
 
     <!-- บังคับให้การ์ดใบที่ 5 เริ่มแถวใหม่ -->
     <div class="w-100 d-none d-md-block"></div>
@@ -154,29 +176,6 @@
           </span>
         </div>
       </a>
-    </div>
-
-    <!-- 7. หน่วยงานค้างส่งดอกเบี้ย -->
-    <div class="col-md-4">
-      <div
-        class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
-        data-bs-toggle="modal"
-        data-bs-target="#interestTrackerModal"
-        style="cursor: pointer;"
-      >
-        <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
-          <span>หน่วยงานค้างส่งดอกเบี้ย</span>
-          <i class="bi bi-bank text-danger"></i>
-        </div>
-
-        <div class="fs-2 fw-bold text-danger mt-2" id="pendingInterestCount">
-          {{ pending_interest_count or 0 }}
-        </div>
-
-        <span class="text-primary small mt-1">
-          <i class="bi bi-search"></i> คลิกเพื่อดูรายละเอียด
-        </span>
-      </div>
     </div>
 
   </div>

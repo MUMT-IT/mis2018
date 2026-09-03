@@ -40,7 +40,7 @@
         <!-- เลขที่บัญชี -->
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">เลขที่บัญชี</span>
-          <strong class="text-dark">{{ claim_detail.fund_request.account_number if claim_detail.fund_request and claim_detail.fund_request.account_number else '-' }}</strong>
+          <strong class="text-dark">{{ claim_detail.setting.account_number if claim_detail.setting and claim_detail.setting.account_number else '-' }}</strong>
         </div>
 
         <!-- วันที่ส่งเอกสาร -->
