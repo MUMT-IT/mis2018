@@ -2909,8 +2909,8 @@ def generate_repair_approval_pdf(repair_approval):
                             pagesize=A4,
                             rightMargin=38,
                             leftMargin=38,
-                            topMargin=18,
-                            bottomMargin=18
+                            topMargin=10,
+                            bottomMargin=10
                             )
 
     data = []
