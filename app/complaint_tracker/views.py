@@ -2967,7 +2967,7 @@ def generate_repair_approval_pdf(repair_approval):
         leftIndent=0,
     )
 
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
     mhesi_no = '''<font name="SarabunBold">ที่</font>'''
     blank_phone = (
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
