@@ -59,6 +59,116 @@
                     transform: rotate(360deg);
                 }
             }
+            .repair-history {
+                display: grid;
+                gap: .75rem;
+                margin-bottom: 1.5rem;
+                text-align: left;
+            }
+            .repair-history-item {
+                border: 1px solid #e5e7eb;
+                border-radius: 10px;
+                background: #fff;
+                overflow: hidden;
+                box-shadow: 0 1px 3px rgba(10, 10, 10, .06);
+            }
+            .repair-history-item[open] {
+                border-color: #b5d5f5;
+                box-shadow: 0 3px 10px rgba(50, 115, 220, .10);
+            }
+            .repair-history-summary {
+                display: flex;
+                align-items: center;
+                gap: .75rem;
+                padding: .85rem 1rem;
+                cursor: pointer;
+                list-style: none;
+                user-select: none;
+            }
+            .repair-history-summary::-webkit-details-marker {
+                display: none;
+            }
+            .repair-history-summary::before {
+                content: "\f054";
+                flex: 0 0 auto;
+                font-family: "Font Awesome 5 Free";
+                font-size: .75rem;
+                font-weight: 900;
+                color: #7a7a7a;
+                transition: transform .18s ease;
+            }
+            .repair-history-item[open] > .repair-history-summary::before {
+                transform: rotate(90deg);
+            }
+            .repair-history-number {
+                flex: 0 0 auto;
+                color: #7a7a7a;
+                font-size: .9rem;
+            }
+            .repair-history-method {
+                min-width: 0;
+                flex: 1;
+                font-weight: 600;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .repair-history-summary .tag,
+            .repair-history-detail {
+                height: 2.25rem;
+            }
+            .repair-history-detail {
+                width: 2.25rem;
+                padding: 0;
+            }
+            .repair-history-body {
+                padding: 0 1rem 1rem;
+                border-top: 1px solid #f0f0f0;
+            }
+            .repair-history-body .table {
+                margin-bottom: 0;
+            }
+            .repair-spare-parts {
+                border-collapse: separate;
+                border-spacing: 0;
+            }
+            .repair-spare-parts tfoot th {
+                padding: .8rem;
+                border: 0;
+                background: #3298dc;
+                color: #fff;
+                font-weight: 700;
+            }
+            .repair-spare-parts tfoot th:first-child {
+                border-radius: 0 0 0 10px;
+                text-align: center;
+            }
+            .repair-spare-parts tfoot th:last-child {
+                border-radius: 0 0 10px 0;
+                text-align: right;
+            }
+            .repair-history-body > .table > tbody > tr > th {
+                width: 32%;
+                min-width: 180px;
+            }
+            @media screen and (max-width: 768px) {
+                .repair-history-number {
+                    display: none;
+                }
+                .repair-history-summary {
+                    align-items: flex-start;
+                    flex-wrap: wrap;
+                }
+                .repair-history-method {
+                    flex-basis: calc(100% - 2rem);
+                }
+                .repair-history-summary .tag {
+                    margin-left: 1.5rem;
+                }
+                .repair-history-body {
+                    overflow-x: auto;
+                }
+            }
         </style>
         <div class="container">
             {% include "messages.html" %}
@@ -168,13 +278,23 @@
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="checkbox">
-                                    <input type="checkbox"
+                                <label class="label">QR Code</label>
+                                <div class="control">
+                                    <label class="radio">
+                                        <input type="radio"
                                            name="qr_code_attached"
                                            value="1"
-                                           {% if item.qr_code_attached %}checked{% endif %}>
-                                    ติด QR Code แล้ว
-                                </label>
+                                           {% if item.qr_code_attached is sameas true %}checked{% endif %}>
+                                        ติด QR Code แล้ว
+                                    </label>
+                                    <label class="radio">
+                                        <input type="radio"
+                                               name="qr_code_attached"
+                                               value="0"
+                                               {% if item.qr_code_attached is sameas false %}checked{% endif %}>
+                                        ไม่ติด QR Code
+                                    </label>
+                                </div>
                             </div>
                             <div class="field">
                                 <label class="label">อัปเดตเมื่อ</label>
@@ -193,11 +313,231 @@
                     </div>
                     <div class="has-text-centered mt-4">
                         <h4 class="title is-5">ประวัติการซ่อม</h4>
-                        <table class="table is-fullwidth is-striped mb-5">
-                            <tr>
-                                <td class="has-text-centered">อยู่ระหว่างพัฒนา</td>
-                            </tr>
-                        </table>
+                        {% if repair_history %}
+                            {% set expense_count = repair_record_ids_with_expense|length %}
+                            {% set no_expense_count = repair_history|length - expense_count %}
+                            <div class="tabs is-toggle is-toggle-rounded is-centered repair-history-tabs">
+                                <ul>
+                                    <li class="is-active">
+                                        <a href="#" data-expense-filter="no-expense">
+                                            <span>ไม่มีค่าใช้จ่าย</span>
+                                            <span class="tag is-light has-text-danger ml-2">{{ no_expense_count }}</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" data-expense-filter="has-expense">
+                                            <span>มีค่าใช้จ่าย</span>
+                                            <span class="tag is-light has-text-danger ml-2">{{ expense_count }}</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="repair-history">
+                            {% for repair_record in repair_history %}
+                                {% set has_expense = repair_record.id in repair_record_ids_with_expense %}
+                                <details class="repair-history-item{% if has_expense %} is-hidden{% endif %}"
+                                         data-expense-category="{{ 'has-expense' if has_expense else 'no-expense' }}">
+                                    <summary class="repair-history-summary">
+                                        <span class="repair-history-number">รายการที่ {{ loop.index }}</span>
+                                        <span class="repair-history-method">
+                                            {{ repair_record.desc or 'ไม่ระบุรายละเอียด' }}
+                                        </span>
+                                        {% if repair_record.status %}
+                                            <span class="tag {{ repair_record.status.color or 'is-light' }}">
+                                                {{ repair_record.status.status }}
+                                            </span>
+                                        {% else %}
+                                            <span class="tag is-light">ยังไม่ดำเนินการ</span>
+                                        {% endif %}
+                                        {% if can_access_complaint_admin_index %}
+                                            <a class="button is-small is-info is-light repair-history-detail"
+                                               href="{{ url_for('comp_tracker.edit_record_admin', record_id=repair_record.id) }}"
+                                               title="รายละเอียด"
+                                               aria-label="รายละเอียด">
+                                                <span class="icon is-small" aria-hidden="true">
+                                                    <i class="fas fa-search"></i>
+                                                </span>
+                                            </a>
+                                        {% endif %}
+                                    </summary>
+                                    <div class="repair-history-body">
+                                    <table class="table is-fullwidth is-striped">
+                                        <tbody>
+                                        <tr>
+                                            <th>รายละเอียด</th>
+                                            <td>{{ repair_record.desc or '-' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>วันที่แจ้ง</th>
+                                            <td>
+                                                {{ repair_record.created_at|localdatetime if repair_record.created_at else '-' }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th style="width: 32%;">รูปแบบการซ่อม</th>
+                                            <td>{{ repair_record.repair_method or '-' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>สถานะ</th>
+                                            <td>
+                                                {{ repair_record.status.status if repair_record.status else 'ยังไม่ดำเนินการ' }}
+                                                {% set latest_status_update = repair_record.record_status_updates
+                                                    |sort(attribute='updated_at')|last %}
+                                                {% if latest_status_update and latest_status_update.updated_at %}
+                                                    <span class="has-text-grey ml-2">
+                                                        {{ latest_status_update.updated_at|localdatetime }}
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>สาเหตุของปัญหา/การตรวจสอบ/ความเห็น/ข้อเสนอแนะ</th>
+                                            <td>
+                                                {% if repair_record.comments %}
+                                                    {% for action in repair_record.comments|sort(attribute='comment_datetime') %}
+                                                        <div class="content{% if not loop.last %} mb-3{% endif %}">
+                                                            {{ action.review_comment or '-' }}
+                                                        </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>แนวทางการป้องกัน/รายงานผลการดำเนินงาน/รายละเอียดการซ่อม</th>
+                                            <td>
+                                                {% set detail = namespace(found=false) %}
+                                                {% for report in repair_record.reports|sort(attribute='report_datetime') %}
+                                                    {% set detail.found = true %}
+                                                    <div class="content mb-3">{{ report.report_comment or '-' }}</div>
+                                                {% endfor %}
+                                                {% if not detail.found %}-{% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>อะไหล่ที่ใช้</th>
+                                            <td>
+                                                {% if repair_record.spare_parts %}
+                                                    <table class="table is-fullwidth is-narrow repair-spare-parts">
+                                                        <thead>
+                                                        <tr>
+                                                            <th>ชื่ออะไหล่</th>
+                                                            <th>จำนวน</th>
+                                                            <th>หน่วยนับ</th>
+                                                            <th class="has-text-right">ราคาต่อหน่วย</th>
+                                                            <th class="has-text-right">ราคารวม (ราคา×จำนวน)</th>
+                                                        </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                        {% for spare_part in repair_record.spare_parts|sort(attribute='created_at') %}
+                                                            <tr>
+                                                                <td>{{ spare_part.item or '-' }}</td>
+                                                                <td>{{ spare_part.quantity if spare_part.quantity is not none else '-' }}</td>
+                                                                <td>{{ spare_part.unit or '-' }}</td>
+                                                                <td class="has-text-right">
+                                                                    {{ "{:,.2f}".format(spare_part.unit_price) if spare_part.unit_price is not none else '0.00' }}
+                                                                </td>
+                                                                <td class="has-text-right">
+                                                                    {{ "{:,.2f}".format(spare_part.total_price) if spare_part.total_price is not none else '0.00' }}
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                        </tbody>
+                                                        <tfoot>
+                                                        <tr>
+                                                            <th colspan="4">รวมค่าอะไหล่</th>
+                                                            <th>{{ "{:,.2f}".format(repair_record.grand_total) }} บาท</th>
+                                                        </tr>
+                                                        </tfoot>
+                                                    </table>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% set company_data = namespace(found=false) %}
+                                        {% for company in repair_record.repair_companies %}
+                                            {% if company.company_name or company.contact_phone_number
+                                                or company.repair_offer_price is not none or company.detail %}
+                                                {% set company_data.found = true %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if company_data.found %}
+                                            <tr>
+                                                <th>บริษัทที่ส่งซ่อม</th>
+                                                <td>
+                                                    <table class="table is-fullwidth is-narrow repair-spare-parts">
+                                                        <thead>
+                                                        <tr>
+                                                            <th>ชื่อบริษัทที่ส่งซ่อม</th>
+                                                            <th>เบอร์โทร</th>
+                                                            <th class="has-text-right">ราคาซ่อมที่เสนอ</th>
+                                                            <th>รายละเอียดการซ่อมจากบริษัท</th>
+                                                        </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                        {% for company in repair_record.repair_companies|sort(attribute='created_at') %}
+                                                            {% if company.company_name or company.contact_phone_number
+                                                                or company.repair_offer_price is not none or company.detail %}
+                                                                <tr>
+                                                                    <td>{{ company.company_name or '-' }}</td>
+                                                                    <td>{{ company.contact_phone_number or '-' }}</td>
+                                                                    <td class="has-text-right">
+                                                                        {{ "{:,.2f}".format(company.repair_offer_price) if company.repair_offer_price is not none else '0.00' }} บาท
+                                                                    </td>
+                                                                    <td>{{ company.detail or '-' }}</td>
+                                                                </tr>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                        </tbody>
+                                    </table>
+                                    </div>
+                                </details>
+                            {% endfor %}
+                            </div>
+                            {% if no_expense_count == 0 %}
+                                <div class="notification is-light repair-history-empty"
+                                     data-expense-category="no-expense">
+                                    ไม่พบประวัติการซ่อมที่ไม่มีค่าใช้จ่าย
+                                </div>
+                            {% endif %}
+                            {% if expense_count == 0 %}
+                                <div class="notification is-light repair-history-empty is-hidden"
+                                     data-expense-category="has-expense">
+                                    ไม่พบประวัติการซ่อมที่มีค่าใช้จ่าย
+                                </div>
+                            {% endif %}
+                            <div class="notification is-info is-light has-text-left mb-5">
+                                <h5 class="title is-5 mb-3">สรุปค่าใช้จ่ายในการซ่อมของครุภัณฑ์</h5>
+                                <div class="columns is-mobile mb-0">
+                                    <div class="column">ค่าอะไหล่รวม</div>
+                                    <div class="column has-text-right">
+                                        {{ "{:,.2f}".format(repair_spare_parts_total) }} บาท
+                                    </div>
+                                </div>
+                                <div class="columns is-mobile mb-0">
+                                    <div class="column">ราคาซ่อมที่บริษัทเสนอรวม</div>
+                                    <div class="column has-text-right">
+                                        {{ "{:,.2f}".format(repair_company_total) }} บาท
+                                    </div>
+                                </div>
+                                <hr class="my-2">
+                                <div class="columns is-mobile mb-0 has-text-weight-bold">
+                                    <div class="column">ค่าใช้จ่ายในการซ่อมทั้งหมด</div>
+                                    <div class="column has-text-right">
+                                        {{ "{:,.2f}".format(total_repair_expense) }} บาท
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="notification is-light mb-5">ไม่พบประวัติการซ่อมของเลขครุภัณฑ์นี้</div>
+                        {% endif %}
 
                         <h4 class="title is-5">maintenance</h4>
                         <table class="table is-fullwidth is-striped mb-5">
@@ -249,6 +589,47 @@
 
             $('.js-example-basic-multiple').select2({
                 width: '100%',
+            });
+
+            const repairItems = document.querySelectorAll('.repair-history-item');
+            repairItems.forEach(function (item) {
+                item.addEventListener('toggle', function () {
+                    if (!item.open) return;
+                    repairItems.forEach(function (otherItem) {
+                        if (otherItem !== item) otherItem.open = false;
+                    });
+                });
+            });
+
+            const repairTabLinks = document.querySelectorAll('[data-expense-filter]');
+            const repairEmptyMessages = document.querySelectorAll('.repair-history-empty');
+            repairTabLinks.forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const selectedCategory = link.dataset.expenseFilter;
+                    repairTabLinks.forEach(function (otherLink) {
+                        otherLink.parentElement.classList.toggle('is-active', otherLink === link);
+                    });
+                    repairItems.forEach(function (item) {
+                        item.open = false;
+                        item.classList.toggle(
+                            'is-hidden',
+                            item.dataset.expenseCategory !== selectedCategory
+                        );
+                    });
+                    repairEmptyMessages.forEach(function (message) {
+                        message.classList.toggle(
+                            'is-hidden',
+                            message.dataset.expenseCategory !== selectedCategory
+                        );
+                    });
+                });
+            });
+
+            document.querySelectorAll('.repair-history-detail').forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                });
             });
         });
     </script>
