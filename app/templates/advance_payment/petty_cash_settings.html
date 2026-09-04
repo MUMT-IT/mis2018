@@ -9,7 +9,8 @@
   </a>
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
   <h1 class="fw-bold display-6 mb-2">การจัดการเงินสดย่อย</h1>
-  <p class="text-muted mb-0">ตรวจสอบงบประมาณตั้งต้น ยอดคงเหลือ และประวัติรวมทุกหน่วยงาน</p>
+  <p class="text-muted mb-1">ตรวจสอบงบประมาณตั้งต้น ยอดคงเหลือ และประวัติรวมทุกหน่วยงาน</p>
+  <p class="text-muted small mb-0">ปีงบประมาณปัจจุบัน: {{ current_fiscal_year }} | ถ้าปีนี้ยังไม่เคยตั้งงบ ระบบจะดึงข้อมูลปีล่าสุดมาเป็นต้นแบบ และยอดใช้จริงจะเป็น 0 จนกว่าจะกดยืนยันบันทึก</p>
 </header>
 
 <style>
@@ -44,7 +45,7 @@
     <ul class="nav nav-tabs nav-fill border-bottom-0 petty-cash-settings-tabs" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active fw-bold py-3 text-primary nav-item-tab" id="tab-pending-claims" type="button" data-settings-tab="pending-claims">
-          <i class="bi bi-hourglass-split me-1 text-primary"></i>รายการขอเบิกเงินสดย่อยที่รอการตรวจสอบ
+          <i class="bi bi-hourglass-split me-1 text-primary"></i>รายการขอเบิกเงินสดย่อยที่รอการโอนคืน
           <span class="badge bg-primary rounded-pill ms-1">{{ claim_details|length }}</span>
         </button>
       </li>
@@ -62,7 +63,7 @@
   <div class="card mb-5 border shadow-sm" id="proofed-claims">
     <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
       <h5 class="fw-bold text-primary mb-0">
-        <i class="bi bi-hourglass-split me-2"></i>รายการขอเบิกเงินสดย่อยรอการตรวจสอบ
+        <i class="bi bi-hourglass-split me-2"></i>รายการขอเบิกเงินสดย่อยรอการโอนคืน
       </h5>
     </div>
     <div class="card-body p-0">
@@ -92,7 +93,7 @@
                 {% endif %}
               </td>
               <td>{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
-              <td class="fw-semibold text-dark">{{ claim.setting.department_name if claim.setting else (claim.user.department if claim.user else 'ไม่ระบุ') }}</td>
+              <td class="fw-semibold text-dark">{{ claim.setting.department_name if claim.setting else (claim.user.org.name if claim.user and claim.user.org else (claim.user.department if claim.user else 'ไม่ระบุ')) }}</td>
               <td>{{ claim.user.name if claim.user else '-' }}</td>
               <td class="text-end fw-bold text-primary">{{ '{:,.2f}'.format(claim.total_amount or claim.amount or 0.0) }}</td>
               <td class="text-center">
@@ -127,7 +128,7 @@
             <tr>
               <td colspan="9" class="text-center text-muted py-4">
                 <i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>
-                ไม่มีรายการขอเบิกเงินสดย่อยที่รอการอนุมัติในขณะนี้
+                ไม่มีรายการขอเบิกเงินสดย่อยที่รอการโอนคืนในขณะนี้
               </td>
             </tr>
             {% endfor %}
@@ -185,10 +186,15 @@
                   <td class="text-end text-danger">{{ '{:,.2f}'.format(summary.get('total_spent', 0.0)) }}</td>
                   <td class="text-end text-success fw-bold">{{ '{:,.2f}'.format(summary.get('remaining_budget', setting.budget)) }}</td>
                   <td class="text-center">
-                    {% if setting.valid %}
-                    <span class="badge bg-success-subtle text-success border rounded-pill">เปิดใช้งาน</span>
+                    {% if setting.id and setting.valid %}
+                    <span class="badge bg-success-subtle text-success border rounded-pill">ยืนยันแล้ว</span>
+                    {% elif setting.id %}
+                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">ยังไม่ยืนยัน</span>
                     {% else %}
-                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">ปิดใช้งาน</span>
+                    <span class="badge bg-warning-subtle text-warning border rounded-pill">ต้นแบบปีใหม่</span>
+                    {% endif %}
+                    {% if setting.source_fiscal_year %}
+                      <div class="small text-muted mt-1">คัดจากปี {{ setting.source_fiscal_year }}</div>
                     {% endif %}
                   </td>
                 </tr>
@@ -200,6 +206,7 @@
           <div id="editSettingSection" class="d-none border p-3 rounded-4 bg-light mt-4">
             <h6 class="fw-bold text-dark mb-3">แก้ไขข้อมูลหน่วยงานและงบประมาณ</h6>
             <form method="post" action="{{ url_for('advance_payment.petty_cash_settings') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <template id="bank-account-options-template">
                 <option value="" disabled selected>โปรดเลือกเลขที่บัญชี</option>
                 {% for account in bank_account_options %}
@@ -232,26 +239,41 @@
                       </td>
                       <td>
                         <input type="number" name="fiscal_year[]" class="form-control form-control-sm text-center" value="{{ setting.fiscal_year }}" required>
+                        <input type="hidden" name="setting_id[]" value="{{ setting.id or '' }}">
                       </td>
                       <td>
-                        <input type="text" name="dept_name[]" class="form-control form-control-sm dept-input" value="{{ setting.department_name }}" onblur="fetchCustodianSuggestion(this)" required>
+                        <select name="org_id[]" class="form-select form-select-sm dept-input" onchange="syncOrgName(this); fetchCustodianSuggestion(this)" required>
+                          <option value="">เลือกหน่วยงาน</option>
+                          {% for org in org_options %}
+                            <option value="{{ org.id }}" data-org-name="{{ org.name }}" {% if setting_org_ids.get(setting.id) == org.id %}selected{% endif %}>{{ org.name }}</option>
+                          {% endfor %}
+                          {% if not setting_org_ids.get(setting.id) %}<option value="legacy-{{ setting.id }}" selected>{{ setting.department_name }}</option>{% endif %}
+                        </select>
+                        <input type="hidden" name="dept_name[]" value="{{ setting.department_name }}">
                       </td>
                       <td>
-                        <input type="text" name="custodian_name[]" class="form-control form-control-sm custodian-input" value="{{ setting.custodian_name or '' }}" placeholder="ระบุผู้ดูแลบัญชี">
+                        <select name="custodian_id[]" class="form-select form-select-sm custodian-input" onchange="syncCustodianName(this)">
+                          <option value="">เลือกผู้ดูแลบัญชี</option>
+                          {% for staff in staff_options %}
+                            <option value="{{ staff.id }}" {% if setting_custodian_ids.get(setting.id) == staff.id %}selected{% endif %}>{{ staff.fullname }}</option>
+                          {% endfor %}
+                        </select>
+                        <input type="hidden" name="custodian_name[]" value="{{ setting.custodian_name or '' }}">
                       </td>
                       <td>
                         <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" value="{{ '{:,.2f}'.format(setting.budget) }}" required>
+                        {% if setting.source_fiscal_year %}
+                          <div class="small text-muted mt-1">ยอดปี {{ setting.source_fiscal_year }}: {{ '{:,.2f}'.format(setting.source_budget or 0) }}</div>
+                        {% endif %}
                       </td>
                       <td>
-                        <select name="account_number[]" class="form-select form-select-sm bank-account-select" onchange="syncBankAccountInfo(this)" required>
-                          <option value="" disabled {% if not setting.account_number %}selected{% endif %}>โปรดเลือกเลขที่บัญชี</option>
-                          {% for account in bank_account_options %}
-                            <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}" {% if setting.account_number == account.value %}selected{% endif %}>{{ account.label }}</option>
-                          {% endfor %}
-                          {% if setting.account_number and setting.account_number not in bank_account_values %}
-                            <option value="{{ setting.account_number }}" selected>{{ setting.account_number }}</option>
-                          {% endif %}
-                        </select>
+                        <input type="text"
+                               name="account_number[]"
+                               class="form-control form-control-sm account-number-input"
+                               value="{{ setting.account_number or '' }}"
+                               placeholder="123-4-56789-0"
+                               onblur="syncBankAccountInfo(this)"
+                               required>
                         <input type="hidden" name="bank_account_info_id[]" class="bank-account-info-id" value="{{ setting.bank_account_info_id or '' }}">
                       </td>
                     </tr>
@@ -276,7 +298,8 @@
 
 <script>
   function fetchCustodianSuggestion(inputElem) {
-    const deptName = inputElem.value.trim();
+    const selectedOption = inputElem.options[inputElem.selectedIndex];
+    const deptName = (selectedOption?.dataset.orgName || '').trim();
     if (!deptName) return;
 
     const row = inputElem.closest('tr');
@@ -286,17 +309,33 @@
       .then(response => response.json())
       .then(data => {
         if (data.custodian_name && custodianInput && !custodianInput.value) {
-          custodianInput.value = data.custodian_name;
+          const matchingOption = Array.from(custodianInput.options).find(option => option.textContent.trim() === data.custodian_name.trim());
+          if (matchingOption) custodianInput.value = matchingOption.value;
+          syncCustodianName(custodianInput);
         }
       })
       .catch(err => console.error('Error fetching custodian:', err));
   }
 
+  function syncCustodianName(selectElem) {
+    const row = selectElem.closest('tr');
+    const hiddenName = row.querySelector('input[name="custodian_name[]"]');
+    if (hiddenName) hiddenName.value = selectElem.options[selectElem.selectedIndex]?.textContent.trim() || '';
+  }
+
+  function syncOrgName(selectElem) {
+    const row = selectElem.closest('tr');
+    const orgName = selectElem.options[selectElem.selectedIndex]?.dataset.orgName || '';
+    const hiddenName = row.querySelector('input[name="dept_name[]"]');
+    const enabled = row.querySelector('input[name="valid_dept[]"]');
+    if (hiddenName) hiddenName.value = orgName;
+    if (enabled) enabled.value = orgName;
+  }
+
   function addSettingRow() {
     const tbody = document.getElementById('settingsBody');
     const newRow = document.createElement('tr');
-    const currentYear = new Date().getFullYear() + 543;
-    const accountOptionsTemplate = document.getElementById('bank-account-options-template');
+    const currentYear = {{ current_fiscal_year }};
 
     newRow.innerHTML = `
       <td class="text-center">
@@ -304,27 +343,34 @@
       </td>
       <td>
         <input type="number" name="fiscal_year[]" class="form-control form-control-sm text-center" value="${currentYear}" required>
+        <input type="hidden" name="setting_id[]" value="">
       </td>
       <td>
-        <input type="text" name="dept_name[]" class="form-control form-control-sm dept-input" onblur="fetchCustodianSuggestion(this)" required>
+        <select name="org_id[]" class="form-select form-select-sm dept-input" onchange="syncOrgName(this); fetchCustodianSuggestion(this)" required>
+          <option value="">เลือกหน่วยงาน</option>
+          {% for org in org_options %}<option value="{{ org.id }}" data-org-name="{{ org.name }}">{{ org.name }}</option>{% endfor %}
+        </select>
+        <input type="hidden" name="dept_name[]" value="">
       </td>
       <td>
-        <input type="text" name="custodian_name[]" class="form-control form-control-sm custodian-input" placeholder="ระบุผู้ดูแลบัญชี">
+        <select name="custodian_id[]" class="form-select form-select-sm custodian-input" onchange="syncCustodianName(this)">
+          <option value="">เลือกผู้ดูแลบัญชี</option>
+          {% for staff in staff_options %}<option value="{{ staff.id }}">{{ staff.fullname }}</option>{% endfor %}
+        </select>
+        <input type="hidden" name="custodian_name[]" value="">
       </td>
       <td>
         <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" value="0.00" required>
       </td>
       <td>
-        <select name="account_number[]" class="form-select form-select-sm bank-account-select" onchange="syncBankAccountInfo(this)" required>
-          ${accountOptionsTemplate ? accountOptionsTemplate.innerHTML : '<option value="" disabled selected>โปรดเลือกเลขที่บัญชี</option>'}
-        </select>
+        <input type="text" name="account_number[]" class="form-control form-control-sm account-number-input" placeholder="123-4-56789-0" onblur="syncBankAccountInfo(this)" required>
         <input type="hidden" name="bank_account_info_id[]" class="bank-account-info-id" value="">
       </td>
     `;
     tbody.appendChild(newRow);
-    const bankSelect = newRow.querySelector('.bank-account-select');
-    if (bankSelect) {
-      syncBankAccountInfo(bankSelect);
+    const bankInput = newRow.querySelector('.account-number-input');
+    if (bankInput) {
+      syncBankAccountInfo(bankInput);
     }
   }
 
@@ -333,15 +379,14 @@
     editSection.classList.toggle('d-none');
   }
 
-  function syncBankAccountInfo(selectElem) {
-    const row = selectElem.closest('tr');
+  function syncBankAccountInfo(inputElem) {
+    const row = inputElem.closest('tr');
     if (!row) return;
 
     const hiddenInput = row.querySelector('.bank-account-info-id');
     if (!hiddenInput) return;
 
-    const selectedOption = selectElem.options[selectElem.selectedIndex];
-    hiddenInput.value = selectedOption && selectedOption.dataset.bankAccountId ? selectedOption.dataset.bankAccountId : '';
+    hiddenInput.value = '';
   }
 
   function filterClaims() {
@@ -390,8 +435,8 @@
 
     setActiveTab('pending-claims');
 
-    document.querySelectorAll('.bank-account-select').forEach((selectElem) => {
-      syncBankAccountInfo(selectElem);
+    document.querySelectorAll('.account-number-input').forEach((inputElem) => {
+      syncBankAccountInfo(inputElem);
     });
   })();
 </script>
