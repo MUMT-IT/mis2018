@@ -1467,6 +1467,8 @@ def view_location_and_status_on_scan(procurement_no=None):
 @procurement.route('/scan-qrcode/info/mumt/view/<string:procurement_no>', methods=['GET', 'POST'])
 @login_required
 def view_procurement_for_mumt(procurement_no=None):
+    from app.complaint_tracker.models import ComplaintAdmin, ComplaintRecord
+
     procurement_id = request.args.get('procurement_id')
     if procurement_id:
         item = ProcurementDetail.query.get(procurement_id)
@@ -1496,7 +1498,13 @@ def view_procurement_for_mumt(procurement_no=None):
     if request.method == 'POST':
         if current_record and form.validate_on_submit():
             form.populate_obj(current_record)
-            item.qr_code_attached = 'qr_code_attached' in request.form
+            qr_code_attached = request.form.get('qr_code_attached')
+            if qr_code_attached == '1':
+                item.qr_code_attached = True
+            elif qr_code_attached == '0':
+                item.qr_code_attached = False
+            else:
+                item.qr_code_attached = None
             item.comment = request.form.get('comment', '').strip() or None
             current_record.updater_id = current_user.id
             current_record.updated_at = arrow.now('Asia/Bangkok').datetime
@@ -1508,8 +1516,34 @@ def view_procurement_for_mumt(procurement_no=None):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
 
+    repair_history = (ComplaintRecord.query
+                      .join(ComplaintRecord.procurements)
+                      .filter(ProcurementDetail.procurement_no == item.procurement_no)
+                      .distinct()
+                      .order_by(ComplaintRecord.created_at.desc())
+                      .all())
+    repair_spare_parts_total = sum(record.grand_total for record in repair_history)
+    repair_company_total = sum(
+        company.repair_offer_price or 0
+        for record in repair_history
+        for company in record.repair_companies
+    )
+    total_repair_expense = repair_spare_parts_total + repair_company_total
+    repair_record_ids_with_expense = {
+        record.id for record in repair_history
+        if record.grand_total > 0
+        or any((company.repair_offer_price or 0) > 0 for company in record.repair_companies)
+    }
+    can_access_complaint_admin_index = ComplaintAdmin.query.filter_by(admin=current_user).first() is not None
+
     return render_template('procurement/view_procurement_for_mumt.html', item=item,
                            current_record=current_record, location_display=location_display, form=form,
+                           repair_history=repair_history,
+                           repair_spare_parts_total=repair_spare_parts_total,
+                           repair_company_total=repair_company_total,
+                           total_repair_expense=total_repair_expense,
+                           repair_record_ids_with_expense=repair_record_ids_with_expense,
+                           can_access_complaint_admin_index=can_access_complaint_admin_index,
                            procurement_no=item.procurement_no, url_callback=request.referrer)
 
 
