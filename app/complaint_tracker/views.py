@@ -2932,7 +2932,7 @@ def generate_repair_approval_pdf(repair_approval):
         'BoldStyle',
         parent=style_sheet['ThaiStyleBold'],
         fontSize=16,
-        leading=20,
+        leading=22,
         alignment=TA_CENTER
     )
     approver_style = ParagraphStyle(
