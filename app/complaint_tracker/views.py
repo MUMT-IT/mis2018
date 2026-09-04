@@ -3068,8 +3068,8 @@ def generate_repair_approval_pdf(repair_approval):
         receipt_date = arrow.get(repair_approval.receipt_date).format(fmt='DD MMMM YYYY', locale='th-th')
         price = (
             '<font name="SarabunBold">3. วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงิน</font> {price} บาท ({price_thai}) จาก {supplier} ตามใบส่งของ/ใบเสร็จรับเงิน '
-            'เล่มที่ {book_number} เลขที่ {receipt_number} วันที่ {receipt_date} ทั้งนี้ ข้าพเจ้าพร้อมหัวหน้าหน่วยงานได้ลงนามรับรองในใบส่ง'
-            'ของหรือใบเสร็จรับเงินว่า “ได้ตรวจรับพัสดุไว้ถูกต้องครบถ้วนแล้ว”'
+            'เล่มที่ {book_number} เลขที่ {receipt_number} วันที่ {receipt_date} ทั้งนี้ ข้าพเจ้าพร้อมหัวหน้าหน่วยงานได้ลงนามรับรองในใบส่งของหรือ'
+            'ใบเสร็จรับเงินว่า “ได้ตรวจรับพัสดุไว้ถูกต้องครบถ้วนแล้ว”'
             .format(price=formatted_price, price_thai=price_thai, supplier=repair_approval.supplier,
                     book_number=repair_approval.book_number if repair_approval.book_number else '&nbsp;&nbsp;&nbsp;&nbsp;'
                     '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
