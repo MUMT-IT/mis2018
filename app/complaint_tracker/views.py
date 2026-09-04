@@ -3150,7 +3150,8 @@ def generate_repair_approval_pdf(repair_approval):
         description = (
             '<para leftIndent=45>จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/>'
             '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติในหลักการซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
-            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาก<br/>ต่างประเทศเท่านั้น<br/>'
+            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่าง'
+            'ประเทศหรือนำเข้าพัสดุจากต่าง<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ประเทศเท่านั้น<br/>'
             '</para>')
     else:
         indent = 14
@@ -3195,7 +3196,8 @@ def generate_repair_approval_pdf(repair_approval):
         description = (
             '<para leftIndent=45>จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/>'
             '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติในหลักการซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
-            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาก<br/>ต่างประเทศเท่านั้น<br/>'
+            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่าง'
+            'ประเทศหรือนำเข้าพัสดุจากต่าง<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ประเทศเท่านั้น<br/>'
             '</para>')
     if repair_approval.product_code:
         code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code} ผลผลิต {product_code}'
