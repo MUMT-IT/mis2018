@@ -2980,11 +2980,11 @@ def generate_repair_approval_pdf(repair_approval):
         org_name = repair_approval.requester.personal_info.org.name
         org = Org.query.filter_by(name=org_name).first()
         requester = f"{repair_approval.requester.fullname}"
-        if org.name == 'หน่วยข้อมูลและสารสนเทศ':
-            organization_text = (f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>"
-                                 f"โทร {org.phone_number or blank_phone}")
-        elif org.parent and org.parent.parent:
-            organization_text = (f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>"
+        # if org.name == 'หน่วยข้อมูลและสารสนเทศ':
+        #     organization_text = (f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>"
+        #                          f"โทร {org.phone_number or blank_phone}")
+        if org.parent and org.parent.parent:
+            organization_text = (f"{org.name}<br/>{org.parent.name}<br/>{org.parent.parent.name}<br/>"
                                  f"โทร {org.phone_number or blank_phone}")
         elif org.parent and not org.parent.parent:
             organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number or blank_phone}"
@@ -3210,7 +3210,7 @@ def generate_repair_approval_pdf(repair_approval):
         code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code}'
                        .format(cost_center=repair_approval.cost_center, io_code=repair_approval.io_code.id))
     logo_cell = [[logo]]
-    logo_table = Table(logo_cell, colWidths=[60])
+    logo_table = Table(logo_cell, colWidths=[70], rowHeights=[70])
     logo_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (0, 0), 'CENTER'),
         ('VALIGN', (0, 0), (0, 0), 'TOP'),
@@ -3225,9 +3225,11 @@ def generate_repair_approval_pdf(repair_approval):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
+    header_width = A4[0] - doc.leftMargin - doc.rightMargin
+    header_side_width = (header_width - 70) / 2
     header_table = Table([
-        [Spacer(1, 1), logo_table, header_right_table]
-    ], colWidths=[160, 180, 200])
+        ['', logo_table, header_right_table]
+    ], colWidths=[header_side_width, 70, header_side_width])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (0, 0), (0, 0), 'LEFT'),
