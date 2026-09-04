@@ -3261,7 +3261,7 @@ def generate_repair_approval_pdf(repair_approval):
     ]))
 
     data.append(header_table)
-    data.append(Spacer(1, 12))
+    data.append(Spacer(1, 8))
     data.append(Paragraph(mhesi_no, style=content_style))
     data.append(Paragraph(mhesi_no_date_info, style=content_style))
     data.append(Paragraph(item, style=item_style))
