@@ -3085,26 +3085,21 @@ def generate_repair_approval_pdf(repair_approval):
             .format(remark=repair_approval.remark))
         if repair_approval.remark:
             description = (
-                '<para leftIndent=55>จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
-                'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เลขที่ บย.{loan_no} '
-                'เป็นเงินทั้งสิ้น {price} บาท ({price_thai})) โดยส่งใช้เงินยืมทดรองจ่ายใน<br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;นาม "เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}" '
-                '<font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็น<br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;หลักฐานกาตรวจรับโดยอนุโลม</font><br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">3. อนุมัติขยายระยะเวลาเบิกจ่ายเงิน</font>'
-                '</para>').format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
+                '<para leftIndent="55">จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/></para>'
+                '<para leftIndent="76"><font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/></para>'
+                '<para leftIndent="90" firstLineIndent="-14"><font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
+                'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no} เป็นเงินทั้งสิ้น {price} บาท ({price_thai}) โดยส่งใช้เงินยืมทดรอง'
+                'จ่ายในนาม "เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}"<br/></para>'
+                '<para leftIndent="90"><font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็นหลักฐานการตรวจรับโดยอนุโลม</font><br/></para>'
+                '<para leftIndent="76"><font name="SarabunBold">3. อนุมัติขยายระยะเวลาเบิกจ่ายเงิน</font></para>'
+                ).format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
         else:
-            description = ('<para leftIndent=55>จึงเรียนมาเพื่อโปรดพิจารณา หากเห็นชอบโปรด<br/>'
-                            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
-                            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
-                            'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เลขที่ บย.{loan_no} '
-                            'เป็นเงินทั้งสิ้น {price} บาท ({price_thai})) โดยส่งใช้เงินยืมทดรองจ่ายใน<br/>'
-                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;นาม "เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}" '
-                            '<font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็น<br/>'
-                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;หลักฐานกาตรวจรับโดยอนุโลม</font><br/>'
-                           '</para>').format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
+            description = ('<para leftIndent="55">จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/></para>'
+                            '<para leftIndent="76"><font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/></para>'
+                            '<para leftIndent="90" firstLineIndent="-14"><font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
+                            'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no} เป็นเงินทั้งสิ้น {price} บาท ({price_thai}) โดยส่งใช้เงินยืมทดรอง'
+                            'จ่ายในนาม "เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}"<br/></para>'
+                            '<para leftIndent="90"><font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็นหลักฐานการตรวจรับโดยอนุโลม</font><br/></para>').format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
     elif repair_approval.principle_approval_type == 'ซื้อ' or repair_approval.principle_approval_type == 'จ้าง':
         indent = 14
         text_style = content_style
