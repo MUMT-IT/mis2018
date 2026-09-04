@@ -80,7 +80,7 @@ class NumberedCanvas(canvas.Canvas):
     def draw_page_number(self, page_count):
         page = self._pageNumber
         self.setFont("SarabunBold", 12)
-        self.drawRightString(200*mm, 15*mm, f"{page}/{page_count}")
+        self.drawRightString(200*mm, 20, f"{page}/{page_count}")
 
 
 def allowed_file(filename):
@@ -2673,11 +2673,11 @@ def create_repair_approval(record_id, repair_approval_id=None):
         if not form.repair_type.data:
             flash('กรุณาเลือกประเภทใบอนุมัติหลักการซ่อม', 'danger')
             return render_template('complaint_tracker/repair_approval_form.html', form=form,
-                                   record_id=record_id, repair_approval_id=repair_approval_id)
+                                   record_id=record_id, repair_approval_id=repair_approval_id, has_procurement=has_procurement)
         elif form.repair_type.data == 'ไม่เร่งด่วน (ซื้อ/จ้าง)' and not form.principle_approval_type.data:
             flash('กรุณาเลือกประเภทการขออนุมัติ', 'danger')
             return render_template('complaint_tracker/repair_approval_form.html', form=form,
-                                   record_id=record_id, repair_approval_id=repair_approval_id)
+                                   record_id=record_id, repair_approval_id=repair_approval_id, has_procurement=has_procurement)
 
         rep_approval.receipt_date = arrow.get(form.receipt_date.data,
                                               'Asia/Bangkok').date() if form.receipt_date.data else None
