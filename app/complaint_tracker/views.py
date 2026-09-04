@@ -2918,7 +2918,7 @@ def generate_repair_approval_pdf(repair_approval):
     header_right_style = ParagraphStyle(
         'HeaderRightStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=16,
+        fontSize=14,
         leading=20,
         alignment=TA_RIGHT,
     )
