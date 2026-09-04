@@ -80,7 +80,7 @@ class NumberedCanvas(canvas.Canvas):
     def draw_page_number(self, page_count):
         page = self._pageNumber
         self.setFont("SarabunBold", 12)
-        self.drawRightString(200*mm, 15*mm, f"{page}/{page_count}")
+        self.drawRightString(200*mm, 20, f"{page}/{page_count}")
 
 
 def allowed_file(filename):
@@ -2637,6 +2637,9 @@ def create_repair_approval(record_id, repair_approval_id=None):
     if not form.detail.data:
         form.detail.data = f"{record.organization}ไม่สามารถซ่อมเองได้ สมควรส่งบริษัทซ่อม" if record.organization else f"ไม่สามารถซ่อมเองได้ สมควรส่งบริษัทซ่อม"
 
+    if not form.book_number.data:
+        form.book_number.data = '-'
+
     if record.procurements:
         for procurement in record.procurements:
             cost_center= procurement.cost_center[:-1]
@@ -2670,11 +2673,11 @@ def create_repair_approval(record_id, repair_approval_id=None):
         if not form.repair_type.data:
             flash('กรุณาเลือกประเภทใบอนุมัติหลักการซ่อม', 'danger')
             return render_template('complaint_tracker/repair_approval_form.html', form=form,
-                                   record_id=record_id, repair_approval_id=repair_approval_id)
+                                   record_id=record_id, repair_approval_id=repair_approval_id, has_procurement=has_procurement)
         elif form.repair_type.data == 'ไม่เร่งด่วน (ซื้อ/จ้าง)' and not form.principle_approval_type.data:
             flash('กรุณาเลือกประเภทการขออนุมัติ', 'danger')
             return render_template('complaint_tracker/repair_approval_form.html', form=form,
-                                   record_id=record_id, repair_approval_id=repair_approval_id)
+                                   record_id=record_id, repair_approval_id=repair_approval_id, has_procurement=has_procurement)
 
         rep_approval.receipt_date = arrow.get(form.receipt_date.data,
                                               'Asia/Bangkok').date() if form.receipt_date.data else None
@@ -2906,8 +2909,8 @@ def generate_repair_approval_pdf(repair_approval):
                             pagesize=A4,
                             rightMargin=38,
                             leftMargin=38,
-                            topMargin=38,
-                            bottomMargin=38
+                            topMargin=10,
+                            bottomMargin=10
                             )
 
     data = []
@@ -2915,7 +2918,7 @@ def generate_repair_approval_pdf(repair_approval):
     header_right_style = ParagraphStyle(
         'HeaderRightStyle',
         parent=style_sheet['ThaiStyle'],
-        fontSize=16,
+        fontSize=14,
         leading=20,
         alignment=TA_RIGHT,
     )
@@ -2929,7 +2932,7 @@ def generate_repair_approval_pdf(repair_approval):
         'BoldStyle',
         parent=style_sheet['ThaiStyleBold'],
         fontSize=16,
-        leading=20,
+        leading=22,
         alignment=TA_CENTER
     )
     approver_style = ParagraphStyle(
@@ -2964,7 +2967,7 @@ def generate_repair_approval_pdf(repair_approval):
         leftIndent=0,
     )
 
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 70, 70)
     mhesi_no = '''<font name="SarabunBold">ที่</font>'''
     blank_phone = (
         '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
@@ -2977,11 +2980,11 @@ def generate_repair_approval_pdf(repair_approval):
         org_name = repair_approval.requester.personal_info.org.name
         org = Org.query.filter_by(name=org_name).first()
         requester = f"{repair_approval.requester.fullname}"
-        if org.name == 'หน่วยข้อมูลและสารสนเทศ':
-            organization_text = (f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>"
-                                 f"โทร {org.phone_number or blank_phone}")
-        elif org.parent and org.parent.parent:
-            organization_text = (f"{org.name}<br/>{org.parent.name}\u00A0{org.parent.parent.name}<br/>"
+        # if org.name == 'หน่วยข้อมูลและสารสนเทศ':
+        #     organization_text = (f"{org.name}<br/>งานยุทธศาสตร์\u00A0และการบริหารพัฒนาทรัพยากร\u00A0{org.parent.parent.name}<br/>"
+        #                          f"โทร {org.phone_number or blank_phone}")
+        if org.parent and org.parent.parent:
+            organization_text = (f"{org.name}<br/>{org.parent.name}<br/>{org.parent.parent.name}<br/>"
                                  f"โทร {org.phone_number or blank_phone}")
         elif org.parent and not org.parent.parent:
             organization_text = f"{org.name}<br/>{org.parent.name}<br/>โทร {org.phone_number or blank_phone}"
@@ -3065,8 +3068,8 @@ def generate_repair_approval_pdf(repair_approval):
         receipt_date = arrow.get(repair_approval.receipt_date).format(fmt='DD MMMM YYYY', locale='th-th')
         price = (
             '<font name="SarabunBold">3. วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงิน</font> {price} บาท ({price_thai}) จาก {supplier} ตามใบส่งของ/ใบเสร็จรับเงิน '
-            'เล่มที่ {book_number} เลขที่ {receipt_number} วันที่ {receipt_date} ทั้งนี้ ข้าพเจ้าพร้อมหัวหน้าหน่วยงานได้ลงนามรับรองในใบส่ง'
-            'ของหรือใบเสร็จรับเงินว่า “ได้ตรวจรับพัสดุไว้ถูกต้องครบถ้วนแล้ว”'
+            'เล่มที่ {book_number} เลขที่ {receipt_number} วันที่ {receipt_date} ทั้งนี้ ข้าพเจ้าพร้อมหัวหน้าหน่วยงานได้ลงนามรับรองในใบส่งของหรือ'
+            'ใบเสร็จรับเงินว่า “ได้ตรวจรับพัสดุไว้ถูกต้องครบถ้วนแล้ว”'
             .format(price=formatted_price, price_thai=price_thai, supplier=repair_approval.supplier,
                     book_number=repair_approval.book_number if repair_approval.book_number else '&nbsp;&nbsp;&nbsp;&nbsp;'
                     '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
@@ -3082,26 +3085,21 @@ def generate_repair_approval_pdf(repair_approval):
             .format(remark=repair_approval.remark))
         if repair_approval.remark:
             description = (
-                '<para leftIndent=55>จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
-                'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เลขที่ บย.{loan_no} '
-                'เป็นเงินทั้งสิ้น {price} บาท ({price_thai})) โดยส่งใช้เงินยืมทดรองจ่ายใน<br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;นาม "เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}" '
-                '<font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็น<br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;หลักฐานกาตรวจรับโดยอนุโลม</font><br/>'
-                '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">3. อนุมัติขยายระยะเวลาเบิกจ่ายเงิน</font>'
-                '</para>').format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
+                '<para leftIndent="55">จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/></para>'
+                '<para leftIndent="76"><font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/></para>'
+                '<para leftIndent="90" firstLineIndent="-14"><font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
+                'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no} เป็นเงินทั้งสิ้น {price} บาท ({price_thai}) โดยส่งใช้เงินยืมทดรอง'
+                'จ่ายในนาม "เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}"<br/></para>'
+                '<para leftIndent="90"><font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็นหลักฐานการตรวจรับโดยอนุโลม</font><br/></para>'
+                '<para leftIndent="76"><font name="SarabunBold">3. อนุมัติขยายระยะเวลาเบิกจ่ายเงิน</font></para>'
+                ).format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
         else:
-            description = ('<para leftIndent=55>จึงเรียนมาเพื่อโปรดพิจารณา หากเห็นชอบโปรด<br/>'
-                            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
-                            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
-                            'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เลขที่ บย.{loan_no} '
-                            'เป็นเงินทั้งสิ้น {price} บาท ({price_thai})) โดยส่งใช้เงินยืมทดรองจ่ายใน<br/>'
-                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;นาม "เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}" '
-                            '<font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็น<br/>'
-                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;หลักฐานกาตรวจรับโดยอนุโลม</font><br/>'
-                           '</para>').format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
+            description = ('<para leftIndent="55">จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/></para>'
+                            '<para leftIndent="76"><font name="SarabunBold">1. อนุมัติซื้อหรือจ้างตามรายการข้างต้น</font><br/></para>'
+                            '<para leftIndent="90" firstLineIndent="-14"><font name="SarabunBold">2. ทราบผลการตรวจรับพัสดุ และอนุมัติเบิกจ่ายเงิน</font> '
+                            'ให้แก่ เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no} เป็นเงินทั้งสิ้น {price} บาท ({price_thai}) โดยส่งใช้เงินยืมทดรอง'
+                            'จ่ายในนาม "เงินทดรองจ่ายคณะเทคนิคการแพทย์ เลขที่ บย.{loan_no}"<br/></para>'
+                            '<para leftIndent="90"><font name="SarabunBold">และให้ถือว่ารายงานฉบับนี้เป็นหลักฐานการตรวจรับโดยอนุโลม</font><br/></para>').format(loan_no=repair_approval.loan_no, price=formatted_price, price_thai=price_thai)
     elif repair_approval.principle_approval_type == 'ซื้อ' or repair_approval.principle_approval_type == 'จ้าง':
         indent = 14
         text_style = content_style
@@ -3152,7 +3150,8 @@ def generate_repair_approval_pdf(repair_approval):
         description = (
             '<para leftIndent=45>จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/>'
             '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติในหลักการซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
-            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาก<br/>ต่างประเทศเท่านั้น<br/>'
+            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่าง'
+            'ประเทศหรือนำเข้าพัสดุจากต่าง<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ประเทศเท่านั้น<br/>'
             '</para>')
     else:
         indent = 14
@@ -3197,7 +3196,8 @@ def generate_repair_approval_pdf(repair_approval):
         description = (
             '<para leftIndent=45>จึงเรียนมาเพื่อโปรดพิจารณา <font name="SarabunBold">หากเห็นชอบโปรด</font><br/>'
             '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">1. อนุมัติในหลักการซื้อหรือจ้างตามรายการข้างต้น</font><br/>'
-            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่างประเทศหรือนำเข้าพัสดุจาก<br/>ต่างประเทศเท่านั้น<br/>'
+            '&nbsp;&nbsp;&nbsp;&nbsp;<font name="SarabunBold">2. อนุมัติตามข้อ 6</font> กรณีที่มีความจำเป็นต้องมีการใช้พัสดุที่ผลิตจากต่าง'
+            'ประเทศหรือนำเข้าพัสดุจากต่าง<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ประเทศเท่านั้น<br/>'
             '</para>')
     if repair_approval.product_code:
         code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code} ผลผลิต {product_code}'
@@ -3207,7 +3207,7 @@ def generate_repair_approval_pdf(repair_approval):
         code_detail = ('รหัสศูนย์ต้นทุน {cost_center} รหัสใบสั่งงานภายใน {io_code}'
                        .format(cost_center=repair_approval.cost_center, io_code=repair_approval.io_code.id))
     logo_cell = [[logo]]
-    logo_table = Table(logo_cell, colWidths=[60])
+    logo_table = Table(logo_cell, colWidths=[70], rowHeights=[70])
     logo_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (0, 0), 'CENTER'),
         ('VALIGN', (0, 0), (0, 0), 'TOP'),
@@ -3222,9 +3222,11 @@ def generate_repair_approval_pdf(repair_approval):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
+    header_width = A4[0] - doc.leftMargin - doc.rightMargin
+    header_side_width = (header_width - 70) / 2
     header_table = Table([
-        [Spacer(1, 1), logo_table, header_right_table]
-    ], colWidths=[160, 180, 200])
+        ['', logo_table, header_right_table]
+    ], colWidths=[header_side_width, 70, header_side_width])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (0, 0), (0, 0), 'LEFT'),
@@ -3256,7 +3258,7 @@ def generate_repair_approval_pdf(repair_approval):
     ]))
 
     data.append(header_table)
-    data.append(Spacer(1, 12))
+    data.append(Spacer(1, 8))
     data.append(Paragraph(mhesi_no, style=content_style))
     data.append(Paragraph(mhesi_no_date_info, style=content_style))
     data.append(Paragraph(item, style=item_style))
@@ -3264,9 +3266,9 @@ def generate_repair_approval_pdf(repair_approval):
                           style=content_style))
     data.append(Paragraph(item_detail, style=item_detail_style))
     data.append(Paragraph(reason_title, style=content_style))
-    data.append(Paragraph(f'<para leftIndent={indent}>{repair_approval.reason}</para>', style=content_style))
+    data.append(Paragraph(f'<para firstLineIndent={indent}>{repair_approval.reason}</para>', style=content_style))
     data.append(Paragraph(detail_title, style=content_style))
-    data.append(Paragraph(f'<para leftIndent={indent}>{repair_approval.detail}</para>', style=content_style))
+    data.append(Paragraph(f'<para firstLineIndent={indent}>{repair_approval.detail}</para>', style=content_style))
     data.append(Paragraph(price, style=text_style))
     data.append(Paragraph(receipt, style=content_style))
     data.append(Paragraph(code_detail, style=content_style))
@@ -3329,7 +3331,12 @@ def generate_repair_approval_pdf(repair_approval):
     if (repair_approval.repair_type == 'เร่งด่วน' and repair_approval.remark) or repair_approval.principle_approval_type == 'ซื้อ' \
             or repair_approval.principle_approval_type == 'จ้าง' or repair_approval.repair_type == 'จ้างซ่อม':
         data.append(Paragraph(remark, style=text_style))
-    data.append(Paragraph(description, style=content_style))
+    description_parts = [
+        part + '</para>'
+        for part in description.split('</para>')
+        if part.strip()
+    ]
+    data.extend(Paragraph(part, style=content_style) for part in description_parts)
     data.append(Spacer(1, 12))
     data.append(footer_table)
     doc.build(data, canvasmaker=NumberedCanvas)

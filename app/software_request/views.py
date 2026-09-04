@@ -225,12 +225,8 @@ def _serialize_software_request_item(detail):
 
 
 def _pick_software_request_group_label(detail):
-    if detail.system and detail.system.system:
-        return detail.system.system
-    if detail.type:
-        return detail.type
-    if detail.user_group:
-        return detail.user_group
+    if detail.title:
+        return detail.title
     return 'ไม่ระบุ'
 
 
@@ -396,9 +392,9 @@ def _build_fallback_software_request_summary(snapshot):
 
 
 def _build_software_request_summary_email_body(snapshot, ai_summary):
-    status_lines = '\n'.join(
-        f"- {label}: {count} เรื่อง" for label, count in snapshot['status_counts'].items()
-    ) or '- ไม่มีข้อมูล'
+    # status_lines = '\n'.join(
+    #     f"- {label}: {count} เรื่อง" for label, count in snapshot['status_counts'].items()
+    # ) or '- ไม่มีข้อมูล'
     completed_group_lines = '\n'.join(
         f"- {item['label']}: {item['count']} เรื่อง" for item in snapshot['completed_top_groups']
     ) or '- ไม่มีข้อมูล'

@@ -10,11 +10,12 @@
 </header>
 
 {% set fund_request_status = selected_fund_request.status if selected_fund_request else (claim_detail.fund_request.status if claim_detail and claim_detail.fund_request else none) %}
-{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('user_role') in ['staff', 'secretary']) and fund_request_status not in ['ส่งเบิกแล้ว', 'เบิกเงินสำเร็จ'] %}
+{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกแล้ว', 'เบิกเงินสำเร็จ'] %}
 {% if can_submit_claim %}
 <div class="card shadow-sm border rounded-4 bg-white mb-5">
   <div class="card-body p-4">
     <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden"
        name="fund_request_id"
        id="fund_request_id"
@@ -35,7 +36,7 @@
             {% for doc in claim_detail.documents %}
               <div class="row g-2 mb-2 document-input-row align-items-center">
                 <div class="col-md-7 position-relative">
-                  <input type="hidden" name="announcement_ids[]" class="announcement-id-input" value="{{ doc.id }}">
+                  <input type="hidden" name="announcement_ids[]" class="announcement-id-input" value="{{ doc.file_id or doc.id }}">
                   <input type="text" name="announcement_titles[]" 
                         class="form-control form-control-sm announcement-input" 
                         placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
@@ -45,7 +46,7 @@
                   <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
                 </div>
                 <div class="col-md-5 d-flex gap-2 action-buttons-container">
-                  <a href="{{ doc.file_path or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.file_path %}d-none{% endif %}" target="_blank" download>
+                  <a href="{{ doc.download_url or doc.file_path or doc.url or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.download_url and not doc.file_path and not doc.url %}d-none{% endif %}" target="_blank" download>
                     <i class="bi bi-download me-1"></i> ดาวน์โหลด
                   </a>
                   <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
@@ -102,6 +103,7 @@
           <tbody id="claimBody">
             {% if claim_detail and claim_detail.items %}
               {% for item in claim_detail.items %}
+                {% set row_index = loop.index0 %}
                 <tr>
                   <td class="text-center fw-bold row-index">{{ loop.index }}</td>
                   <td>
@@ -128,17 +130,14 @@
                           value="{{ '%.2f'|format(item.amount or 0) }}" placeholder="0.00" oninput="calculateTotal()" required>
                   </td>
                   <td>
-                    <input type="file" name="proof_file[]" class="form-control form-control-sm" accept="image/*,.pdf">
-                    {% if item.proof_files and item.proof_files[0] %}
-                      <input type="hidden" name="existing_proof_files[]" value="{{ item.proof_files[0].proof_reference }}">
-                      <input type="hidden" name="existing_proof_filenames[]" value="{{ item.proof_files[0].filename }}">
+                    <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" multiple>
+                    {% for proof_file in item.proof_files %}
+                      <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
+                      <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
                       <small class="text-success d-block mt-1">
-                        <i class="bi bi-file-earmark-check"></i> {{ item.proof_files[0].filename }}
+                        <i class="bi bi-file-earmark-check"></i> {{ proof_file.filename }}
                       </small>
-                    {% else %}
-                      <input type="hidden" name="existing_proof_files[]" value="">
-                      <input type="hidden" name="existing_proof_filenames[]" value="">
-                    {% endif %}
+                    {% endfor %}
                   </td>
                   <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
@@ -150,6 +149,7 @@
 
             {% elif selected_fund_request and selected_fund_request.items %}
               {% for item in selected_fund_request.items %}
+                {% set row_index = loop.index0 %}
                 <tr>
                   <td class="text-center fw-bold row-index">{{ loop.index }}</td>
                   <td>
@@ -175,9 +175,7 @@
                           value="{{ '%.2f'|format(item.amount or 0) }}" placeholder="0.00" oninput="calculateTotal()" required>
                   </td>
                   <td>
-                    <input type="file" name="proof_file[]" class="form-control form-control-sm" accept="image/*,.pdf">
-                    <input type="hidden" name="existing_proof_files[]" value="">
-                    <input type="hidden" name="existing_proof_filenames[]" value="">
+                    <input type="file" name="proof_files_{{ loop.index0 }}[]" class="form-control form-control-sm" accept="image/*,.pdf" multiple>
                   </td>
                   <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
@@ -209,9 +207,9 @@
 
           <!-- 2. ยอดรวมส่งเบิกทั้งสิ้น (เดิม) -->
           <div>
-            <span class="d-block text-primary small fw-bold">ยอดรวมส่งเบิกทั้งสิ้น:</span>
-            <span class="fw-bold text-primary fs-4" id="totalAmountDisplay">0.00</span>
-            <span class="fw-bold text-primary ms-1">บาท</span>
+            <span class="d-block text-primary small fw-bold" id="totalAmountLabel">ยอดรวมส่งเบิกทั้งสิ้น:</span>
+            <span class="fw-bold text-primary fs-4" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
+            <span class="fw-bold text-primary ms-1" id="totalAmountUnit">บาท</span>
           </div>
 
           <div class="vr my-1"></div>
@@ -244,6 +242,7 @@
   {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
   {% if parcel_return_fund_request_id %}
     <form method="post" action="{{ url_for('advance_payment.submit_fund_request_parcel_return', fund_request_id=parcel_return_fund_request_id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="fund_request_id" value="{{ parcel_return_fund_request_id }}">
       <div class="row g-3">
         <div class="col-md-4">
@@ -399,6 +398,7 @@
               <div class="d-flex flex-wrap gap-2 justify-content-center">
                 {% if session.get('user_role') == 'finance' and pr.status == 'รอตรวจสอบ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
                       type="button"
                       class="btn btn-sm btn-outline-primary fw-bold w-100"
@@ -414,6 +414,7 @@
                   </form>
                 {% elif session.get('user_role') == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
                       type="button"
                       class="btn btn-sm btn-success fw-bold w-100"
@@ -435,7 +436,7 @@
                   </button>
                 {% endif %}
 
-                {% if session.get('user_role') in ['staff', 'secretary'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
                   <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#parcelEditModal{{ pr.id }}" style="max-width: 150px;">
                     แก้ไข
                   </button>
@@ -452,6 +453,7 @@
         <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.reject_parcel_return', parcel_return_id=pr.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="modal-content">
                 <div class="modal-header">
                   <h5 class="modal-title fw-bold text-dark">สาเหตุของการปฏิเสธรายการส่งคืนพัสดุ</h5>
@@ -470,10 +472,11 @@
         </div>
       {% endif %}
 
-      {% if session.get('user_role') in ['staff', 'secretary'] and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+      {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
         <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.staff_parcel_return_edit', parcel_return_id=pr.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="modal-content">
                 <div class="modal-header">
                   <h5 class="modal-title fw-bold text-dark">แก้ไขรายการส่งคืนพัสดุ</h5>
@@ -559,10 +562,12 @@ document.addEventListener("DOMContentLoaded", function() {
 
     input.addEventListener("input", function() {
       formatInputNumberWithComma(this);
+      calculateTotal();
     });
 
     input.addEventListener("blur", function() {
       formatInputCurrency(this);
+      calculateTotal();
     });
 
     const parcelForm = input.closest("form");
@@ -615,9 +620,11 @@ async function autoSavePettyCashDraft() {
 
   // รวบรวมข้อมูล เอกสารประกาศ
   const announcements = [];
-  document.querySelectorAll('.announcement-input').forEach(input => {
-    if (input.value.trim()) {
-      announcements.push(input.value.trim());
+  document.querySelectorAll('.document-input-row').forEach(row => {
+    const title = row.querySelector('.announcement-input')?.value.trim() || '';
+    const docId = row.querySelector('.announcement-id-input')?.value.trim() || '';
+    if (title || docId) {
+      announcements.push({ id: docId, title: title });
     }
   });
 
@@ -671,20 +678,14 @@ function updateFundRequestInfo(selectElem) {
 
 function calculateTotal() {
   let grandTotal = 0;
-  let financeTotal = 0;
 
   document.querySelectorAll('#claimBody tr').forEach(row => {
-    const catSelect = row.querySelector('select[name="category_type[]"]');
     const amountInput = row.querySelector('.claim-amount');
     
     if (amountInput) {
       const amt = parseFloat(amountInput.value.replace(/,/g, '')) || 0;
       grandTotal += amt;
-
-      if (catSelect && catSelect.value !== '6') {
-        financeTotal += amt;
-      }
-    }
+  }
   });
 
   const grandDisplayEl = document.getElementById('grandTotalDisplay');
@@ -697,7 +698,20 @@ function calculateTotal() {
 
   const financeDisplayEl = document.getElementById('totalAmountDisplay');
   if (financeDisplayEl) {
-    financeDisplayEl.textContent = financeTotal.toLocaleString('en-US', {
+    const parcelInput = document.querySelector('.parcel-amount-input');
+    const existingClaimTotal = parseFloat(financeDisplayEl.dataset.existingClaimTotal || '0') || 0;
+    const parcelTotal = parseFloat(financeDisplayEl.dataset.parcelTotal || '0') || 0;
+    const currentParcelAmount = parseFloat((parcelInput?.value || '0').replace(/,/g, '')) || 0;
+    const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount;
+    const requestAmount = parseFloat(financeDisplayEl.dataset.requestAmount || '0') || 0;
+    const isOverRequest = totalToClaim > requestAmount;
+    financeDisplayEl.classList.toggle('text-danger', isOverRequest);
+    financeDisplayEl.classList.toggle('text-primary', !isOverRequest);
+    document.getElementById('totalAmountLabel')?.classList.toggle('text-danger', isOverRequest);
+    document.getElementById('totalAmountLabel')?.classList.toggle('text-primary', !isOverRequest);
+    document.getElementById('totalAmountUnit')?.classList.toggle('text-danger', isOverRequest);
+    document.getElementById('totalAmountUnit')?.classList.toggle('text-primary', !isOverRequest);
+    financeDisplayEl.textContent = totalToClaim.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
@@ -884,9 +898,7 @@ function addRow() {
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>
     <td><input type="text" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" required></td>
     <td>
-      <input type="file" name="proof_file[]" class="form-control form-control-sm" accept="image/*,.pdf" required>
-      <input type="hidden" name="existing_proof_files[]" value="">
-      <input type="hidden" name="existing_proof_filenames[]" value="">
+      <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf" multiple>
     </td>
     <td class="text-center">
       <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
@@ -919,6 +931,15 @@ function removeRow(btn) {
 function updateIndices() {
   document.querySelectorAll('#claimBody tr').forEach((row, idx) => {
     row.querySelector('.row-index').textContent = idx + 1;
+    row.querySelectorAll('input[type="file"]').forEach(input => {
+      input.name = `proof_files_${idx}[]`;
+    });
+    row.querySelectorAll('input[name^="existing_proof_files_"]').forEach(input => {
+      input.name = `existing_proof_files_${idx}[]`;
+    });
+    row.querySelectorAll('input[name^="existing_proof_filenames_"]').forEach(input => {
+      input.name = `existing_proof_filenames_${idx}[]`;
+    });
   });
 }
 
@@ -979,7 +1000,10 @@ async function showSuggestions(inputElem) {
   }
 
   try {
-    const response = await fetch(`/api/documents/suggest?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`{{ url_for('advance_payment.suggest_documents') }}?q=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
     const docs = await response.json();
 
     if (docs.length === 0) {
@@ -991,7 +1015,7 @@ async function showSuggestions(inputElem) {
     suggestionsBox.innerHTML = docs.map(doc => `
       <button type="button" 
               class="list-group-item list-group-item-action small text-start" 
-              onclick="selectAnnouncement(this, '${doc.id}', '${escapeHtml(doc.title)}', '${doc.file_path}')">
+              onclick="selectAnnouncement(this, '${doc.id}', '${escapeHtml(doc.title)}', '${doc.download_url || doc.file_path || doc.url || ''}')">
         <i class="bi bi-file-earmark-pdf text-danger me-1"></i> ${escapeHtml(doc.title)}
       </button>
     `).join('');
@@ -999,6 +1023,8 @@ async function showSuggestions(inputElem) {
     suggestionsBox.classList.remove('d-none');
   } catch (err) {
     console.error('Error fetching announcements:', err);
+    suggestionsBox.innerHTML = `<div class="list-group-item list-group-item-action disabled small text-danger">ค้นหาไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</div>`;
+    suggestionsBox.classList.remove('d-none');
   }
 }
 
@@ -1012,8 +1038,12 @@ function selectAnnouncement(itemElem, docId, docTitle, filePath) {
   titleInput.value = docTitle;
   if (idInput) idInput.value = docId;
 
-  downloadBtn.href = filePath;
-  downloadBtn.classList.remove('d-none');
+  if (filePath) {
+    downloadBtn.href = filePath;
+    downloadBtn.classList.remove('d-none');
+  } else {
+    downloadBtn.classList.add('d-none');
+  }
 
   suggestionsBox.classList.add('d-none');
   suggestionsBox.innerHTML = '';

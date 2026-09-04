@@ -4,7 +4,7 @@
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom text-start">
-  {% if session.get('user_role') in ['staff', 'secretary'] %}
+  {% if session.get('advance_payment_system') == 'petty_cash' %}
   <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
@@ -40,7 +40,7 @@
         <!-- เลขที่บัญชี -->
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">เลขที่บัญชี</span>
-          <strong class="text-dark">{{ claim_detail.fund_request.account_number if claim_detail.fund_request and claim_detail.fund_request.account_number else '-' }}</strong>
+          <strong class="text-dark">{{ claim_detail.setting.account_number if claim_detail.setting and claim_detail.setting.account_number else '-' }}</strong>
         </div>
 
         <!-- วันที่ส่งเอกสาร -->
@@ -122,6 +122,7 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
                             <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_checking', claim_id=claim_detail.id) }}" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-warning fw-bold">ยืนยัน</button>
                             </form>
                         </div>
@@ -151,6 +152,7 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
                             <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_proofed', claim_id=claim_detail.id) }}" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-primary fw-bold">ยืนยันข้อมูลถูกต้อง</button>
                             </form>
                         </div>
@@ -162,6 +164,7 @@
             <div class="modal fade text-start" id="rejectClaimModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                 <form method="POST" action="{{ url_for('advance_payment.reject_petty_claim', claim_id=claim_detail.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title fw-bold text-dark">สาเหตุของการปฏิเสธเอกสาร</h5>
@@ -191,6 +194,7 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_transferred', claim_id=claim_detail.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="modal-header">
                                 <h5 class="modal-title fw-bold text-dark"><i class="bi bi-calendar-check text-primary me-2"></i>บันทึกการโอนเงินสดย่อย</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -215,86 +219,13 @@
         {% endif %}
     </div>
     {% endif %}
-  </div>
-</section>
-
-<!-- Section แสดงเอกสารประกาศ/ไฟล์แนบประกอบ -->
-<section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h3 class="h5 fw-bold mb-0">
-      <i class="bi bi-file-earmark-text text-primary me-2"></i>ประกาศที่เกี่ยวข้อง
-    </h3>
-    {% if claim_detail.documents %}
-      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="downloadAllAnnouncements()">
-        <i class="bi bi-download me-1"></i> ดาวน์โหลดทั้งหมด
-      </button>
-    {% endif %}
-  </div>
-
-  {% if claim_detail.documents %}
-    <div class="accordion" id="announcementAccordion">
-      <div class="accordion-item border rounded-3 overflow-hidden">
-        <h2 class="accordion-header" id="headingAnnouncements">
-          <button class="accordion-button bg-light fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnnouncements" aria-expanded="true" aria-controls="collapseAnnouncements">
-            <i class="bi bi-collection-play me-2 text-primary"></i> รายการประกาศที่เกี่ยวข้อง ({{ claim_detail.documents|length }} รายการ)
-          </button>
-        </h2>
-        <div id="collapseAnnouncements" class="accordion-collapse collapse show" aria-labelledby="headingAnnouncements" data-bs-parent="#announcementAccordion">
-          <div class="accordion-body p-0">
-            <div class="list-group list-group-flush">
-              {% for doc in claim_detail.documents %}
-                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
-                  <div class="d-flex align-items-center">
-                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                      <i class="bi bi-file-earmark-pdf fs-5"></i>
-                    </div>
-                    <div>
-                      <h6 class="mb-0 fw-semibold text-dark text-break">{{ doc.title }}</h6>
-                      <small class="text-muted">เอกสารอ้างอิงประกอบการเบิกเงินสดย่อย</small>
-                    </div>
-                  </div>
-                  <div>
-                    {% if doc.file_path %}
-                      <a href="{{ url_for('static', filename=doc.file_path.replace('/static/', '')) }}" 
-                         download="{{ doc.title }}.pdf" 
-                         class="btn btn-sm btn-outline-primary fw-semibold px-3 announcement-download-btn">
-                        <i class="bi bi-download me-1"></i> ดาวน์โหลด
-                      </a>
-                    {% else %}
-                      <span class="text-muted small">ไม่มีไฟล์ให้ดาวน์โหลด</span>
-                    {% endif %}
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
+      <a href="{{ url_for('advance_payment.export_petty_cash_claim_pdf', claim_id=claim_detail.id) }}"
+         class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
+        <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลด PDF
+      </a>
     </div>
-
-    <script>
-      function downloadAllAnnouncements() {
-        const downloadButtons = document.querySelectorAll('.announcement-download-btn');
-        if (downloadButtons.length === 0) return;
-        
-        downloadButtons.forEach((btn, index) => {
-          setTimeout(() => {
-            const link = document.createElement('a');
-            link.href = btn.getAttribute('href');
-            link.download = btn.getAttribute('download') || 'announcement.pdf';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }, index * 400);
-        });
-      }
-    </script>
-
-  {% else %}
-    <div class="py-3 px-2 border rounded-3 bg-light text-center">
-      <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>ไม่มีเอกสารประกาศที่เกี่ยวข้อง</p>
-    </div>
-  {% endif %}
+  </div>
 </section>
 
 <!-- Section ตารางแสดงรายการเบิกเงินสดย่อย / ใบเสร็จหลักฐาน -->
@@ -312,7 +243,7 @@
                 <th scope="col">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่อัปโหลด</th>
                 <th scope="col">เปิดดูไฟล์</th>
-                {% if session.get('user_role') in [ 'staff', 'secretary', 'user'] %}
+                {% if session.get('advance_payment_system') == 'petty_cash' %}
                     <th scope="col" class="text-end">การจัดการ</th>
                 {% endif %}
             </tr>
@@ -362,7 +293,7 @@
                 </td>
                 
                 <td class="text-end">
-                    {% if session.get('user_role') in ['staff', 'secretary', 'user'] and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
+                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ item.id }}">
                         <i class="bi bi-pencil-square"></i> แก้ไข
                     </button>
@@ -371,7 +302,7 @@
                 </tr>
 
                 <!-- Modal สำหรับแก้ไขรายการแบบ Inline (สำหรับผู้ขอเบิก) -->
-                {% if session.get('user_role') in ['staff', 'secretary', 'user'] and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
+                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
                 <div class="modal fade text-start" id="editModalInRow{{ item.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ item.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">
@@ -380,6 +311,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=item.id) }}" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="source" value="petty_claim">
                         <div class="modal-body">
                         
@@ -427,6 +359,85 @@
     <div class="text-center py-5 border border-dashed rounded-4 bg-light">
       <i class="bi bi-folder-x fs-1 text-muted"></i>
       <p class="text-muted mt-2 mb-0">ไม่พบรายการใบเสร็จหลักฐานสำหรับรายการส่งเบิกเงินสดย่อยนี้</p>
+    </div>
+  {% endif %}
+</section>
+
+<!-- Section แสดงเอกสารประกาศ/ไฟล์แนบประกอบ -->
+<section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h3 class="h5 fw-bold mb-0">
+      <i class="bi bi-file-earmark-text text-primary me-2"></i>ประกาศที่เกี่ยวข้อง
+    </h3>
+    {% if claim_detail.documents %}
+      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="downloadAllAnnouncements()">
+        <i class="bi bi-download me-1"></i> ดาวน์โหลดทั้งหมด
+      </button>
+    {% endif %}
+  </div>
+
+  {% if claim_detail.documents %}
+    <div class="accordion" id="announcementAccordion">
+      <div class="accordion-item border rounded-3 overflow-hidden">
+        <h2 class="accordion-header" id="headingAnnouncements">
+          <button class="accordion-button bg-light fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnnouncements" aria-expanded="true" aria-controls="collapseAnnouncements">
+            <i class="bi bi-collection-play me-2 text-primary"></i> รายการประกาศที่เกี่ยวข้อง ({{ claim_detail.documents|length }} รายการ)
+          </button>
+        </h2>
+        <div id="collapseAnnouncements" class="accordion-collapse collapse show" aria-labelledby="headingAnnouncements" data-bs-parent="#announcementAccordion">
+          <div class="accordion-body p-0">
+            <div class="list-group list-group-flush">
+              {% for doc in claim_detail.documents %}
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                  <div class="d-flex align-items-center">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                      <i class="bi bi-file-earmark-pdf fs-5"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-0 fw-semibold text-dark text-break">{{ doc.title }}</h6>
+                      <small class="text-muted">เอกสารอ้างอิงประกอบการเบิกเงินสดย่อย</small>
+                    </div>
+                  </div>
+                  <div>
+                    {% if doc.download_url or doc.url or doc.file_path %}
+                      <a href="{{ doc.download_url or doc.url or doc.file_path }}"
+                         download="{{ doc.title }}.pdf"
+                         class="btn btn-sm btn-outline-primary fw-semibold px-3 announcement-download-btn">
+                        <i class="bi bi-download me-1"></i> ดาวน์โหลด
+                      </a>
+                    {% else %}
+                      <span class="text-muted small">ไม่มีไฟล์ให้ดาวน์โหลด</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function downloadAllAnnouncements() {
+        const downloadButtons = document.querySelectorAll('.announcement-download-btn');
+        if (downloadButtons.length === 0) return;
+
+        downloadButtons.forEach((btn, index) => {
+          setTimeout(() => {
+            const link = document.createElement('a');
+            link.href = btn.getAttribute('href');
+            link.download = btn.getAttribute('download') || 'announcement.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }, index * 400);
+        });
+      }
+    </script>
+
+  {% else %}
+    <div class="py-3 px-2 border rounded-3 bg-light text-center">
+      <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>ไม่มีเอกสารประกาศที่เกี่ยวข้อง</p>
     </div>
   {% endif %}
 </section>

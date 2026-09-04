@@ -21,7 +21,11 @@
                             <p class="panel-heading">{{ cat }}</p>
                             {% for topic in cat.topics %}
                                 <a class="panel-block"
-                                   href="{{ url_for('comp_tracker.new_record', topic_id=topic.id) }}">
+                                    {% if topic.code == 'runied' %}
+                                        href="{{ url_for('comp_tracker.repair_request_landing') }}"
+                                    {% else %}
+                                        href="{{ url_for('comp_tracker.new_record', topic_id=topic.id) }}">
+                                    {% endif %}
                                     <span class="panel-icon">
                                         <i class="fas fa-exclamation-circle"></i>
                                     </span>

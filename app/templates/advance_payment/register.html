@@ -16,6 +16,7 @@
   {% endif %}
 
   <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="mb-3">
       <label for="email" class="form-label fw-bold">อีเมล</label>
       <input id="email" name="email" type="email" value="{{ form.email.data or '' }}" autocomplete="username" class="form-control form-control-lg" placeholder="you@example.com" style="border-radius: 12px;">

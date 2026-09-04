@@ -57,17 +57,16 @@
       }
       .stepper-item {
         position: relative;
-        width: 22%;
+        width: 18%;
         z-index: 2;
       }
       .stepper-line-bg {
         height: 4px;
-        background-color: #d1e4ff;
+        background-color: #d1d5db;
         z-index: 1;
         top: 40px !important;
-        left: 11%;
-        right: 11%;
-        max-width: 75%;
+        left: 9%;
+        right: 9%;
       }
       .stepper-line-active {
         height: 4px;
@@ -85,11 +84,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #bad5ff;
+        background-color: #e5e7eb;
         transition: all 0.3s ease;
       }
       .step-circle-outer.pending {
-        background-color: #d1e4ff;
+        background-color: #e5e7eb;
       }
       .step-circle-outer.active {
         background-color: #ffffff;
@@ -127,6 +126,12 @@
         color: #2d3748;
         margin-top: 4px;
       }
+      .step-label-main.pending {
+        color: #9ca3af;
+      }
+      .step-label-main.completed {
+        color: #019273;
+      }
       .step-label-status {
         font-size: 0.78rem;
         font-weight: 600;
@@ -140,6 +145,55 @@
       }
       .step-label-status.completed {
         color: #019273;
+      }
+      .status-flow {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        min-width: 190px;
+        padding-left: 18px;
+      }
+      .status-flow::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        bottom: 10px;
+        left: 4px;
+        width: 2px;
+        background-color: #d1d5db;
+      }
+      .status-flow-item {
+        position: relative;
+        z-index: 1;
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+      }
+      .status-flow-dot {
+        position: absolute;
+        left: -18px;
+        width: 10px;
+        height: 10px;
+        border: 2px solid #d1d5db;
+        border-radius: 50%;
+        background-color: #ffffff;
+      }
+      .status-flow-dot.is-current {
+        border-color: #019273;
+        background-color: #019273;
+      }
+      .status-flow .badge {
+        white-space: nowrap;
+      }
+      @media (max-width: 576px) {
+        .status-flow {
+          min-width: 170px;
+        }
+        .status-flow .badge {
+          font-size: 0.85rem !important;
+        }
       }
       .suggestions-box {
         max-height: 200px;
@@ -185,6 +239,16 @@
       .app-popup-field label {
         font-weight: 600;
       }
+      .app-popup-acknowledgement {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 0.9rem 1rem;
+      }
+      .app-popup-acknowledgement .form-check-label {
+        font-weight: 600;
+        color: #334155;
+      }
       .fund-history-tabs .nav-link {
         border: none;
         border-bottom: 3px solid transparent;
@@ -220,11 +284,11 @@
         </button>
         <span class="navbar-brand mb-0 h1 fs-5 fw-bold text-dark">
           <i class="text-primary"></i>
-          {% if session.get('user_role') in ['staff', 'secretary'] %}
+          {% if session.get('advance_payment_system') == 'petty_cash' %}
             ระบบเงินสดย่อย
-          {% elif session.get('user_role') == 'cash_management_coordinator' %}
+          {% elif session.get('advance_payment_system') == 'advance_payment' %}
             ระบบทดรองจ่าย
-          {% elif session.get('user_role') == 'finance' %}
+          {% elif session.get('advance_payment_system') == 'finance' %}
             ระบบจัดการเงินสดย่อยและเงินทดรองจ่าย
           {% else %}
             ระบบ Advance Payment
@@ -241,10 +305,10 @@
         <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
           <ul class="nav nav-pills flex-column w-100">
 
-            {% if session.get('user_role') in ['cash_management_coordinator', 'borrower'] %}
+            {% if session.get('advance_payment_system') == 'advance_payment' %}
               <li class="nav-item">
-                <a href="{{ url_for('advance_payment.borrower_dashboard' if session.get('user_role') == 'borrower' else 'advance_payment.coordinator_dashboard') }}" class="nav-link {% if request.endpoint in ['advance_payment.coordinator_dashboard', 'advance_payment.borrower_dashboard'] %}active{% endif %}">
-                  <i class="bi bi-speedometer2 me-2"></i> แดชบอร์ด{% if session.get('user_role') == 'borrower' %}ผู้ยืม{% else %}ผู้ประสานงาน{% endif %}
+                <a href="{{ url_for('advance_payment.coordinator_dashboard') }}" class="nav-link {% if request.endpoint in ['advance_payment.coordinator_dashboard', 'advance_payment.borrower_dashboard'] %}active{% endif %}">
+                  <i class="bi bi-speedometer2 me-2"></i> แดชบอร์ด
                 </a>
               </li>
             {% endif %}
@@ -264,7 +328,12 @@
               </li>
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.return_records_history') }}" class="nav-link {% if request.endpoint == 'advance_payment.return_records_history' %}active{% endif %}">
-                  <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งใช้และส่งเบิกทั้งหมด
+                  <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งใช้เงินยืมเงินทดรองจ่าย
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{{ url_for('advance_payment.petty_cash_claim_history') }}" class="nav-link {% if request.endpoint == 'advance_payment.petty_cash_claim_history' %}active{% endif %}">
+                  <i class="bi bi-receipt-cutoff me-2"></i> ประวัติเอกสารส่งเบิกเงินสดย่อย
                 </a>
               </li>
               <li>
@@ -284,7 +353,7 @@
               </li>
             {% endif %}
 
-            {% if session.get('user_role') in ['staff', 'secretary'] %}
+            {% if session.get('advance_payment_system') == 'petty_cash' %}
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" class="nav-link {% if request.endpoint == 'advance_payment.staff_fund_request_history' %}active{% endif %}">
                   <i class="bi bi-clock-history me-2"></i> ประวัติใบยืมเงินสดย่อย
@@ -307,21 +376,19 @@
               <div class="overflow-hidden">
                 <p class="mb-0 text-dark small fw-bold text-truncate" title="{{ session.get('user_email') }}">{{ session.get('user_email') }}</p>
                 <!-- แสดงข้อความสิทธิ์ผู้ใช้งานให้สอดคล้องกัน -->
-                <span class="badge {% if session.get('user_role') == 'finance' %}bg-info text-dark{% elif session.get('user_role') in ['staff', 'secretary'] %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
-                  {% if session.get('user_role') == 'finance' %}
+                <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
+                  {% if session.get('advance_payment_system') == 'finance' %}
                     ฝ่ายการเงิน
-                  {% elif session.get('user_role') == 'staff' %}
-                    เจ้าหน้าที่เงินสดย่อย
                   {% elif session.get('user_role') == 'secretary' %}
                     ผู้ดูแลเงินสดย่อย
                   {% else %}
-                    {% if session.get('user_role') == 'borrower' %}ผู้ยืม{% else %}ผู้ประสานงาน{% endif %}
+                    ผู้ใช้งานทั่วไป
                   {% endif %}
                 </span>
               </div>
             </div>
             <a class="btn btn-danger btn-sm w-100 mt-2 fw-bold" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 8px;">
-              <i class="bi bi-box-arrow-right me-1"></i> ออกจากระบบ
+              <i class="bi bi-box-arrow-right me-1"></i> ออกจาก Advance Payment
             </a>
           </div>
         </div>
@@ -352,6 +419,7 @@
     <div class="modal fade app-popup-modal" id="appPopupModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <form class="modal-content border-0 shadow-lg" id="appPopupModalForm" method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="modal-header px-4 pt-4 pb-2">
             <h5 class="modal-title fw-bold text-dark" id="appPopupModalTitle"></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -359,6 +427,7 @@
           <div class="modal-body px-4 py-3">
             <div id="appPopupModalMessage" class="app-popup-message text-secondary"></div>
             <div id="appPopupModalFieldWrap" class="app-popup-field mt-3"></div>
+            <div id="appPopupModalAcknowledgementWrap" class="app-popup-acknowledgement mt-3 d-none"></div>
           </div>
           <div class="modal-footer px-4 pb-4 pt-2">
             <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
@@ -377,10 +446,12 @@
         const titleElement = document.getElementById("appPopupModalTitle");
         const messageElement = document.getElementById("appPopupModalMessage");
         const fieldWrapElement = document.getElementById("appPopupModalFieldWrap");
+        const acknowledgementWrapElement = document.getElementById("appPopupModalAcknowledgementWrap");
         const confirmButton = document.getElementById("appPopupModalConfirm");
         let currentTargetFormId = "";
         let lastTriggerElement = null;
         let currentPopupIsAlertOnly = false;
+        let currentAcknowledgementCheckbox = null;
 
         function setConfirmButtonClass(className) {
           confirmButton.className = "btn fw-bold";
@@ -404,17 +475,36 @@
           return `${label}<input id="appPopupModalInput" type="${config.inputType}" name="${config.inputName || "value"}" class="form-control" ${placeholder} ${required}>`;
         }
 
+        function buildAcknowledgement(config) {
+          if (!config.requireAcknowledgement) {
+            return "";
+          }
+
+          const checkboxId = "appPopupModalAcknowledge";
+          const label = config.acknowledgementLabel || "ข้าพเจ้าได้อ่านและรับทราบข้อความข้างต้นแล้ว";
+          return `
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" id="${checkboxId}">
+              <label class="form-check-label" for="${checkboxId}">${label}</label>
+            </div>
+          `;
+        }
+
         function resetModal() {
           formElement.action = "";
           formElement.method = "post";
           titleElement.textContent = "";
           messageElement.textContent = "";
           fieldWrapElement.innerHTML = "";
+          acknowledgementWrapElement.innerHTML = "";
+          acknowledgementWrapElement.classList.add("d-none");
           confirmButton.textContent = "ยืนยัน";
           setConfirmButtonClass("btn-primary");
           confirmButton.type = "button";
+          confirmButton.disabled = false;
           currentTargetFormId = "";
           currentPopupIsAlertOnly = false;
+          currentAcknowledgementCheckbox = null;
         }
 
         function openPopup(config) {
@@ -425,6 +515,8 @@
           titleElement.textContent = config.title || "ยืนยันการทำรายการ";
           messageElement.textContent = config.message || "";
           fieldWrapElement.innerHTML = buildField(config);
+          acknowledgementWrapElement.innerHTML = buildAcknowledgement(config);
+          acknowledgementWrapElement.classList.toggle("d-none", !config.requireAcknowledgement);
           formElement.action = config.action || "";
           formElement.method = (config.method || "post").toLowerCase();
           confirmButton.textContent = config.confirmText || "ยืนยัน";
@@ -432,6 +524,10 @@
           currentTargetFormId = config.targetFormId || "";
           lastTriggerElement = config.triggerElement || null;
           currentPopupIsAlertOnly = config.alertOnly === true;
+          currentAcknowledgementCheckbox = config.requireAcknowledgement
+            ? document.getElementById("appPopupModalAcknowledge")
+            : null;
+          confirmButton.disabled = !!currentAcknowledgementCheckbox;
           confirmButton.type = currentPopupIsAlertOnly || currentTargetFormId ? "button" : "submit";
           if (currentPopupIsAlertOnly && !config.confirmText) {
             confirmButton.textContent = "ตกลง";
@@ -451,6 +547,12 @@
                 input.focus();
               }
             }, 150);
+          }
+
+          if (currentAcknowledgementCheckbox) {
+            currentAcknowledgementCheckbox.addEventListener("change", function () {
+              confirmButton.disabled = !currentAcknowledgementCheckbox.checked;
+            });
           }
 
           modalInstance.show();
@@ -478,6 +580,10 @@
           }
 
           if (!currentTargetFormId) {
+            return;
+          }
+
+          if (currentAcknowledgementCheckbox && !currentAcknowledgementCheckbox.checked) {
             return;
           }
 
@@ -527,6 +633,8 @@
             inputLabel: trigger.dataset.popupInputLabel,
             inputRows: trigger.dataset.popupInputRows,
             inputRequired: trigger.dataset.popupInputRequired === "true",
+            requireAcknowledgement: trigger.dataset.popupRequireAcknowledgement === "true",
+            acknowledgementLabel: trigger.dataset.popupAcknowledgementLabel,
             targetFormId: trigger.dataset.popupTargetFormId,
             alertOnly: trigger.dataset.popupAlertOnly === "true",
             triggerElement: trigger,

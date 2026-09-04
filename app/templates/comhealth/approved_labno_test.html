@@ -765,11 +765,13 @@
                     'weight',
                     'height',
                     'heartRate',
-                    'systolic',
-                    'comment',
-                    'ApprovedBy',
-                    'LastApprovedTime'
+                    'systolic'
                 ];
+                const hasWaistline = rows.some(function (item) {
+                    return item && Object.prototype.hasOwnProperty.call(item, 'waistline');
+                });
+                if (hasWaistline) columns.push('waistline');
+                columns.push('comment', 'ApprovedBy', 'LastApprovedTime');
                 columns.forEach(function (column) {
                     appendCell(physicalTableHead, 'th', column);
                 });
@@ -785,25 +787,22 @@
             function renderXrayTable(rows) {
                 xrayTableHead.replaceChildren();
                 xrayTableBody.replaceChildren();
-                const hiddenColumns = ['serviceNo', 'custId', 'xRayCarId', 'cmsCode'];
-                const apiColumns = Array.from(rows.reduce(function (keys, row) {
-                    if (row && typeof row === 'object' && !Array.isArray(row)) {
-                        Object.keys(row).forEach(function (key) { keys.add(key); });
-                    }
-                    return keys;
-                }, new Set())).filter(function (column) {
-                    return !hiddenColumns.includes(column);
-                });
-                const approvalColumnNames = new Set([
-                    'LastApprovedTime', 'lastApprovedTime', 'lastapprovedtime',
-                    'ApprovedBy', 'approvedBy', 'Approvedby', 'approvedby'
-                ]);
-                const columns = apiColumns.filter(function (column) {
-                    return !approvalColumnNames.has(column);
-                });
-                columns.push('ApprovedBy', 'LastApprovedTime');
+                const columns = [
+                    'serviceNo',
+                    'serviceDate',
+                    'chest',
+                    'normal',
+                    'status',
+                    'xrayDate',
+                    'isApproved',
+                    'ApprovedBy',
+                    'LastApprovedTime'
+                ];
+                const columnLabels = {
+                    serviceNo: 'Service No'
+                };
                 columns.forEach(function (column) {
-                    appendCell(xrayTableHead, 'th', column);
+                    appendCell(xrayTableHead, 'th', columnLabels[column] || column);
                 });
                 rows.forEach(function (item) {
                     const row = document.createElement('tr');
@@ -847,7 +846,7 @@
                     updateLabApprovalUi();
                     showXrayState('table');
                 } catch (error) {
-                    xrayStates.error.textContent = `ไม่สามารถโหลดข้อมูล X-ray ได้: ${error.message}`;
+                    xrayStates.error.textContent = 'ไม่แสดงข้อมูล X-ray';
                     showXrayState('error');
                 }
             }

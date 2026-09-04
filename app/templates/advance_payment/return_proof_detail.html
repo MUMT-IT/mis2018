@@ -9,6 +9,10 @@
   </a>
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ตรวจสอบหลักฐาน</p>
   <h1 class="fw-bold display-6 mb-2">รายละเอียดไฟล์หลักฐานเอกสารส่งใช้เงินยืม</h1>
+  <a href="{{ url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id) }}"
+     class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
+    <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลด PDF
+  </a>
 </header>
 
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
@@ -70,6 +74,7 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
                             <form method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-warning fw-bold">ยืนยัน</button>
                             </form>
                         </div>
@@ -87,6 +92,7 @@
             <div class="modal fade text-start" id="rejectReturnModal{{ return_detail.id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog">
                 <form method="post" action="{{ url_for('advance_payment.reject_return_detail', return_id=return_detail.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title fw-bold text-dark">สาเหตุของการปฏิเสธเอกสาร</h5>
@@ -111,6 +117,7 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
                             <form method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-primary fw-bold">ยืนยันข้อมูลถูกต้อง</button>
                             </form>
                         </div>
@@ -132,6 +139,7 @@
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
                             <form method="POST" action="{{ url_for('advance_payment.mark_return_received', return_id=return_detail.id) }}" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-success fw-bold">ยืนยันล้างลูกหนี้เงินยืม</button>
                             </form>
                         </div>
@@ -143,83 +151,7 @@
     {% endif %}
     </div>
 </section>
-<section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h3 class="h5 fw-bold mb-0">
-      <i class="bi bi-file-earmark-text text-primary me-2"></i>ประกาศที่เกี่ยวข้อง
-    </h3>
-    {% if return_detail.documents %}
-      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="downloadAllAnnouncements()">
-        <i class="bi bi-download me-1"></i> ดาวน์โหลดทั้งหมด
-      </button>
-    {% endif %}
-  </div>
 
-  {% if return_detail.documents %}
-    <div class="accordion" id="announcementAccordion">
-      <div class="accordion-item border rounded-3 overflow-hidden">
-        <h2 class="accordion-header" id="headingAnnouncements">
-          <button class="accordion-button bg-light fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnnouncements" aria-expanded="true" aria-controls="collapseAnnouncements">
-            <i class="bi bi-collection-play me-2 text-primary"></i> รายการประกาศที่เกี่ยวข้อง ({{ return_detail.documents|length }} รายการ)
-          </button>
-        </h2>
-        <div id="collapseAnnouncements" class="accordion-collapse collapse show" aria-labelledby="headingAnnouncements" data-bs-parent="#announcementAccordion">
-          <div class="accordion-body p-0">
-            <div class="list-group list-group-flush">
-              {% for doc in return_detail.documents %}
-                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
-                  <div class="d-flex align-items-center">
-                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                      <i class="bi bi-file-earmark-pdf fs-5"></i>
-                    </div>
-                    <div>
-                      <h6 class="mb-0 fw-semibold text-dark text-break">{{ doc.title }}</h6>
-                      <small class="text-muted">ระบบเอกสารอ้างอิงประกอบสัญญา</small>
-                    </div>
-                  </div>
-                  <div>
-                    {% if doc.file_path %}
-                      <a href="{{ url_for('static', filename=doc.file_path.replace('/static/', '')) }}" 
-                         download="{{ doc.title }}.pdf" 
-                         class="btn btn-sm btn-outline-primary fw-semibold px-3 announcement-download-btn">
-                        <i class="bi bi-download me-1"></i> ดาวน์โหลด
-                      </a>
-                    {% else %}
-                      <span class="text-muted small">ไม่มีไฟล์ให้ดาวน์โหลด</span>
-                    {% endif %}
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <script>
-      function downloadAllAnnouncements() {
-        const downloadButtons = document.querySelectorAll('.announcement-download-btn');
-        if (downloadButtons.length === 0) return;
-        
-        downloadButtons.forEach((btn, index) => {
-          setTimeout(() => {
-            const link = document.createElement('a');
-            link.href = btn.getAttribute('href');
-            link.download = btn.getAttribute('download') || 'announcement.pdf';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }, index * 400);
-        });
-      }
-    </script>
-
-  {% else %}
-    <div class="py-3 px-2 border rounded-3 bg-light text-center">
-      <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>ไม่มีเอกสารประกาศที่เกี่ยวข้อง</p>
-    </div>
-  {% endif %}
-</section>
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
   <h3 class="h5 fw-bold mb-4">รายการไฟล์หลักฐานที่แนบมา</h3>
     {% if proof_files %}
@@ -235,7 +167,7 @@
                 <th scope="col" style="width: 100px;">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่อัปโหลด</th>
                 <th scope="col">เปิดดูไฟล์</th>
-                {% if session.get('user_role') in ['cash_management_coordinator', 'borrower'] %}
+                {% if session.get('advance_payment_system') == 'advance_payment' %}
                     <th scope="col">การจัดการ</th>
                 {% endif %}
             </tr>
@@ -290,7 +222,7 @@
                 </td>
                 
                 <td>
-                  {% if session.get('user_role') in ['cash_management_coordinator', 'borrower'] and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                  {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ file.id }}">
                         <i class="bi bi-pencil-square"></i> แก้ไข
                     </button>
@@ -298,7 +230,7 @@
                 </td>
                 </tr>
 
-                {% if session.get('user_role') in ['cash_management_coordinator', 'borrower'] and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
                 <div class="modal fade text-start" id="editModalInRow{{ file.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ file.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">
@@ -307,6 +239,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=file.id) }}" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="source" value="return_detail">
                         <div class="modal-body">
                         
@@ -359,6 +292,83 @@
     <div class="text-center py-5 border border-dashed rounded-4 bg-light">
       <i class="bi bi-folder-x fs-1 text-muted"></i>
       <p class="text-muted mt-2 mb-0">ไม่พบไฟล์หลักฐานในระบบสำหรับรายการส่งใช้เงินยืมนี้</p>
+    </div>
+  {% endif %}
+</section>
+<section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h3 class="h5 fw-bold mb-0">
+      <i class="bi bi-file-earmark-text text-primary me-2"></i>ประกาศที่เกี่ยวข้อง
+    </h3>
+    {% if return_detail.documents %}
+      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="downloadAllAnnouncements()">
+        <i class="bi bi-download me-1"></i> ดาวน์โหลดทั้งหมด
+      </button>
+    {% endif %}
+  </div>
+
+  {% if return_detail.documents %}
+    <div class="accordion" id="announcementAccordion">
+      <div class="accordion-item border rounded-3 overflow-hidden">
+        <h2 class="accordion-header" id="headingAnnouncements">
+          <button class="accordion-button bg-light fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnnouncements" aria-expanded="true" aria-controls="collapseAnnouncements">
+            <i class="bi bi-collection-play me-2 text-primary"></i> รายการประกาศที่เกี่ยวข้อง ({{ return_detail.documents|length }} รายการ)
+          </button>
+        </h2>
+        <div id="collapseAnnouncements" class="accordion-collapse collapse show" aria-labelledby="headingAnnouncements" data-bs-parent="#announcementAccordion">
+          <div class="accordion-body p-0">
+            <div class="list-group list-group-flush">
+              {% for doc in return_detail.documents %}
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                  <div class="d-flex align-items-center">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                      <i class="bi bi-file-earmark-pdf fs-5"></i>
+                    </div>
+                    <div>
+                      <h6 class="mb-0 fw-semibold text-dark text-break">{{ doc.title }}</h6>
+                      <small class="text-muted">ระบบเอกสารอ้างอิงประกอบสัญญา</small>
+                    </div>
+                  </div>
+                  <div>
+                    {% if doc.download_url or doc.url or doc.file_path %}
+                      <a href="{{ doc.download_url or doc.url or doc.file_path }}"
+                         download="{{ doc.title }}.pdf"
+                         class="btn btn-sm btn-outline-primary fw-semibold px-3 announcement-download-btn">
+                        <i class="bi bi-download me-1"></i> ดาวน์โหลด
+                      </a>
+                    {% else %}
+                      <span class="text-muted small">ไม่มีไฟล์ให้ดาวน์โหลด</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function downloadAllAnnouncements() {
+        const downloadButtons = document.querySelectorAll('.announcement-download-btn');
+        if (downloadButtons.length === 0) return;
+
+        downloadButtons.forEach((btn, index) => {
+          setTimeout(() => {
+            const link = document.createElement('a');
+            link.href = btn.getAttribute('href');
+            link.download = btn.getAttribute('download') || 'announcement.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }, index * 400);
+        });
+      }
+    </script>
+
+  {% else %}
+    <div class="py-3 px-2 border rounded-3 bg-light text-center">
+      <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>ไม่มีเอกสารประกาศที่เกี่ยวข้อง</p>
     </div>
   {% endif %}
 </section>

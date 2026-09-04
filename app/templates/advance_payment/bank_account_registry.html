@@ -32,6 +32,7 @@
     </div>
 
     <form method="post" action="{{ url_for('advance_payment.finance_bank_account_registry') }}" id="bankAccountForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="edit_mode" id="editModeInput" value="{% if show_editor %}1{% else %}0{% endif %}">
 
       <div class="table-responsive mb-3">
@@ -40,12 +41,19 @@
             <tr>
               <th class="text-center" style="width: 160px;">ประเภท</th>
               <th>ชื่อภาษาไทย</th>
-              <th>ชื่อภาษาอังกฤษ</th>
+              <th style="width: 180px;">วันที่เปิดบัญชี</th>
               <th class="text-end" style="width: 220px;">เลขที่บัญชี</th>
             </tr>
           </thead>
           <tbody id="bankAccountsBody">
             {% for row in edit_rows %}
+            {% if row.created_at %}
+              {% set created_at_value = row.created_at[:10] if row.created_at is string else row.created_at.strftime('%Y-%m-%d') %}
+              {% set created_at_label = row.created_at[:10] if row.created_at is string else row.created_at.strftime('%d/%m/%Y') %}
+            {% else %}
+              {% set created_at_value = '' %}
+              {% set created_at_label = '-' %}
+            {% endif %}
             <tr data-record-id="{{ row.id }}">
               <td class="text-center">
                 <input type="hidden" name="record_id[]" value="{{ row.id }}">
@@ -61,11 +69,17 @@
               </td>
               <td>
                 <span class="view-mode fw-bold text-dark">{{ row.thai_name }}</span>
-                <input type="text" name="thai_name[]" class="form-control form-control-sm edit-mode d-none" value="{{ row.thai_name or '' }}" placeholder="เช่น เงินสดย่อย งานคลังและพัสดุ">
+                <select name="thai_name[]" class="form-select form-select-sm edit-mode d-none">
+                  <option value="">เลือกหน่วยงานหรือบุคลากร</option>
+                  {% for option in account_holder_options %}
+                    <option value="{{ option.value }}" {% if row.thai_name == option.value %}selected{% endif %}>{{ option.label }}</option>
+                  {% endfor %}
+                  {% if row.thai_name and row.thai_name not in account_holder_options|map(attribute='value')|list %}<option value="{{ row.thai_name }}" selected>{{ row.thai_name }}</option>{% endif %}
+                </select>
               </td>
               <td>
-                <span class="view-mode text-dark">{{ row.english_name }}</span>
-                <input type="text" name="english_name[]" class="form-control form-control-sm edit-mode d-none" value="{{ row.english_name or '' }}" placeholder="Faculty of Medical Technology">
+                <span class="view-mode text-dark">{{ created_at_label }}</span>
+                <input type="date" name="created_at[]" class="form-control form-control-sm edit-mode d-none" value="{{ created_at_value }}">
               </td>
               <td class="text-end">
                 <span class="view-mode"><code>{{ row.account_number }}</code></span>
@@ -103,11 +117,14 @@
     </td>
     <td>
       <span class="view-mode fw-bold text-dark"></span>
-      <input type="text" name="thai_name[]" class="form-control form-control-sm edit-mode d-none" placeholder="เช่น เงินสดย่อย งานคลังและพัสดุ">
+      <select name="thai_name[]" class="form-select form-select-sm edit-mode d-none">
+        <option value="">เลือกหน่วยงานหรือบุคลากร</option>
+        {% for option in account_holder_options %}<option value="{{ option.value }}">{{ option.label }}</option>{% endfor %}
+      </select>
     </td>
     <td>
       <span class="view-mode text-dark"></span>
-      <input type="text" name="english_name[]" class="form-control form-control-sm edit-mode d-none" placeholder="Faculty of Medical Technology">
+      <input type="date" name="created_at[]" class="form-control form-control-sm edit-mode d-none">
     </td>
     <td class="text-end">
       <span class="view-mode"><code></code></span>
