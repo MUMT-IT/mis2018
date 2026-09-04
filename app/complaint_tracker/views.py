@@ -3331,7 +3331,12 @@ def generate_repair_approval_pdf(repair_approval):
     if (repair_approval.repair_type == 'เร่งด่วน' and repair_approval.remark) or repair_approval.principle_approval_type == 'ซื้อ' \
             or repair_approval.principle_approval_type == 'จ้าง' or repair_approval.repair_type == 'จ้างซ่อม':
         data.append(Paragraph(remark, style=text_style))
-    data.append(Paragraph(description, style=content_style))
+    description_parts = [
+        part + '</para>'
+        for part in description.split('</para>')
+        if part.strip()
+    ]
+    data.extend(Paragraph(part, style=content_style) for part in description_parts)
     data.append(Spacer(1, 12))
     data.append(footer_table)
     doc.build(data, canvasmaker=NumberedCanvas)
