@@ -1274,4 +1274,65 @@ def test_monthly_calendar_and_table_filter_work_at(ot_views, org_id, expected_st
     for row, name in zip(table['data'], expected_staff):
         assert f'>{name}</a>' in row['staff']
     assert [event['title'] for event in calendar] == (['1 คน'] if expected_staff else [])
+    for event in calendar:
+        assert event['start'] == '2024-01-02T09:00:00+07:00'
+        assert event['end'] == '2024-01-02T17:00:00+07:00'
     assert [row['staff'] for row in staff_table['data']] == (['Local'] if org_id == 27 else [])
+
+
+@pytest.mark.parametrize('start,end', [
+    ('2024-01-01T17:00:00Z', '2024-01-02T16:59:59.999Z'),
+    ('2024-01-02T00:00:00+07:00', '2024-01-02T23:59:59.999+07:00'),
+    ('2024-01-02T00:00:00', '2024-01-02T23:59:59.999'),
+])
+def test_staff_queries_use_bangkok_wall_time(ot_views, monkeypatch, start, end):
+    from urllib.parse import urlencode
+    import time
+
+    bounds = []
+    ranges = []
+
+    class CaptureExpr:
+        def __ge__(self, value):
+            bounds.append(value)
+            return self
+
+        def __le__(self, value):
+            bounds.append(value)
+            return self
+
+    class CaptureRangeField(DummyField):
+        def op(self, operator):
+            def capture(value):
+                ranges.append(value)
+                return DummyExpr()
+            return capture
+
+    monkeypatch.setattr(ot_views, 'func', SimpleNamespace(
+        timezone=lambda zone, field: CaptureExpr() if zone == 'Asia/Bangkok' else None,
+    ))
+    ot_views.StaffWorkLogin = SimpleNamespace(query=FakeLoginQuery([]), start_datetime=DummyField())
+    ot_views.OtShift = SimpleNamespace(query=FakeShiftQuery([]), datetime=CaptureRangeField(), timeslot=DummyField())
+    ot_views.StaffAccount = SimpleNamespace(query=SimpleNamespace(get=lambda _: SimpleNamespace(fullname='Staff')))
+    previous_tz = os.environ.get('TZ')
+    try:
+        os.environ['TZ'] = 'UTC'
+        time.tzset()
+        with Flask('test').test_request_context('/api?' + urlencode({'start': start, 'end': end})):
+            _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7, staff_id=101)
+            _call_unwrapped_view(ot_views.add_checkin_record)(staff_id=101)
+            _call_unwrapped_view(ot_views.get_ot_shifts)(announcement_id=7)
+    finally:
+        if previous_tz is None:
+            os.environ.pop('TZ', None)
+        else:
+            os.environ['TZ'] = previous_tz
+        time.tzset()
+
+    expected = [datetime(2024, 1, 2), datetime(2024, 1, 2, 23, 59, 59, 999000)]
+    assert bounds == expected * 2
+    assert len(ranges) == 2
+    for query_range in ranges:
+        assert [query_range.lower, query_range.upper] == expected
+    assert ranges[0].upper_inc
+    assert not ranges[1].upper_inc

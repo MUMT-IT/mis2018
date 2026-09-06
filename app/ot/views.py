@@ -1686,17 +1686,15 @@ def get_ot_shifts(announcement_id):
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     if cal_start:
-        cal_start = parser.isoparse(cal_start)
-        cal_start = cal_start.astimezone(localtz)
+        cal_start = _normalize_ot_datetime(parser.isoparse(cal_start)).replace(tzinfo=None)
     if cal_end:
-        cal_end = parser.isoparse(cal_end)
-        cal_end = cal_end.astimezone(localtz)
+        cal_end = _normalize_ot_datetime(parser.isoparse(cal_end)).replace(tzinfo=None)
     all_shifts = []
     text_color = '#000000'
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')
                                           (DateTimeRange(lower=cal_start,
                                                          upper=cal_end,
-                                                         bounds='[]'))) \
+                                                         bounds='[)'))) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
         records = [record for record in shift.records if not org_id or (
             record.compensation and record.compensation.work_at_org_id == org_id
@@ -1705,8 +1703,8 @@ def get_ot_shifts(announcement_id):
             continue
         shift = {
             'title': u'{} คน'.format(len(records)),
-            'start': shift.datetime.lower.isoformat(),
-            'end': shift.datetime.upper.isoformat(),
+            'start': _normalize_ot_datetime(shift.datetime.lower).isoformat(),
+            'end': _normalize_ot_datetime(shift.datetime.upper).isoformat(),
             'borderColor': '#000000',
             'backgroundColor': shift.timeslot.color,
             'textColor': text_color,
@@ -2573,16 +2571,19 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
             abort(403)
         staff_id = current_user.id
     if cal_start:
-        cal_start = parser.isoparse(cal_start)
-        cal_start = cal_start.astimezone(localtz)
+        cal_start = _normalize_ot_datetime(parser.isoparse(cal_start))
     if cal_end:
-        cal_end = parser.isoparse(cal_end)
-        cal_end = cal_end.astimezone(localtz)
+        cal_end = _normalize_ot_datetime(parser.isoparse(cal_end))
 
-    cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
+    # Shift ranges store Bangkok wall time without timezone information.
+    cal_daterange = DateTimeRange(
+        lower=cal_start.replace(tzinfo=None) if cal_start else None,
+        upper=cal_end.replace(tzinfo=None) if cal_end else None,
+        bounds='[]',
+    )
     checkin_query = StaffWorkLogin.query\
-        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
-        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start.replace(tzinfo=None)) \
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end.replace(tzinfo=None)) \
 
     if staff_id:
         checkin_query = checkin_query.filter_by(staff_id=staff_id)
@@ -2807,16 +2808,14 @@ def add_checkin_record(staff_id=None, checkin_id=None):
         cal_start = request.args.get('start')
         cal_end = request.args.get('end')
         if cal_start:
-            cal_start = parser.isoparse(cal_start)
-            cal_start = cal_start.astimezone(localtz)
+            cal_start = _normalize_ot_datetime(parser.isoparse(cal_start))
         if cal_end:
-            cal_end = parser.isoparse(cal_end)
-            cal_end = cal_end.astimezone(localtz)
+            cal_end = _normalize_ot_datetime(parser.isoparse(cal_end))
 
         staff = StaffAccount.query.get(staff_id)
 
-        query = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
-            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+        query = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start.replace(tzinfo=None)) \
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end.replace(tzinfo=None)) \
             .filter_by(staff=staff) \
             .order_by(StaffWorkLogin.start_datetime)
 
