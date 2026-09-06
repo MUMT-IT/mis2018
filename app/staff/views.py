@@ -865,8 +865,10 @@ def _calculate_work_hours(start_dt, end_dt):
         return None
 
     workday_start = start_dt.replace(hour=8, minute=0, second=0, microsecond=0)
+    workday_end = start_dt.replace(hour=17, minute=0, second=0, microsecond=0)
     effective_start = max(start_dt, workday_start)
-    worked_seconds = max(0, (end_dt - effective_start).total_seconds())
+    effective_end = min(end_dt, workday_end)
+    worked_seconds = max(0, (effective_end - effective_start).total_seconds())
     worked_hours = worked_seconds / 3600.0
     return min(8.0, worked_hours)
 

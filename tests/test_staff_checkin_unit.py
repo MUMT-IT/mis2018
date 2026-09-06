@@ -136,6 +136,7 @@ def _install_import_stubs(monkeypatch):
         hr_permission=_NoOpPermission(),
         secretary_permission=_NoOpPermission(),
         manager_permission=_NoOpPermission(),
+        head_permission=_NoOpPermission(),
         event_staff_permission=_NoOpPermission(),
     )
     monkeypatch.setitem(sys.modules, "app.roles", roles_mod)
@@ -217,6 +218,7 @@ def _install_import_stubs(monkeypatch):
     monkeypatch.setitem(sys.modules, "pydrive.drive", pydrive_drive_mod)
 
     monkeypatch.setitem(sys.modules, "pydrive", _module("pydrive"))
+    monkeypatch.setitem(sys.modules, "app.procurement.models", _module("app.procurement.models", ProcurementPlan=object))
 
     sys.modules.pop("app.staff.views", None)
 
@@ -320,13 +322,17 @@ def test_to_bangkok_normalizes_naive_utc_datetimes(staff_views):
     [
         ((7, 30), (17, 30), 8.0),
         ((8, 30), (16, 30), 8.0),
-        ((9, 15), (18, 45), 8.0),
-        ((9, 15), (15, 0), 5.8),
+        ((9, 15), (18, 45), 7.75),
+        ((9, 15), (15, 0), 5.75),
+        ((10, 0), (18, 0), 7.0),
+        ((6, 0), (10, 0), 2.0),
+        ((8, 0), (17, 0), 8.0),
+        ((17, 0), (20, 0), 0.0),
         ((6, 30), (7, 30), 0.0),
-        ((18, 0), (19, 0), 1.0),
+        ((18, 0), (19, 0), 0.0),
     ],
 )
-def test_calculate_work_hours_starts_at_eight_and_caps_total(
+def test_calculate_work_hours_counts_only_eight_to_seventeen_and_caps_total(
     staff_views, start_time, end_time, expected_hours
 ):
     tz = pytz.timezone("Asia/Bangkok")
