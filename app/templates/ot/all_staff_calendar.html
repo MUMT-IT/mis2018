@@ -52,7 +52,7 @@
                          </span>
                         <span>finance pdf</span>
                     </button>
-                    <a class="button is-link" onclick="download_shedule()">
+                    <a class="button is-link" onclick="download_schedule()">
                          <span class="icon">
                              <i class="fa-solid fa-download"></i>
                          </span>
@@ -131,7 +131,7 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.js"></script>
     <script>
-    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }}
+    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id)|tojson|safe }} + '?org_id=' + encodeURIComponent({{ (work_at_org_id or '')|tojson }})
     let datatable = null
     let dateRangePicker = null
     let applyingDateRange = false
@@ -140,7 +140,7 @@
         view: 'dayGridMonth',
         eventSources: [
             {
-                url: {{ url_for('ot.get_ot_shifts', announcement_id=announcement_id)|tojson|safe }}
+                url: {{ url_for('ot.get_ot_shifts', announcement_id=announcement_id, org_id=work_at_org_id)|tojson|safe }}
 
             }
         ],
@@ -151,7 +151,7 @@
                 dateRangePicker.setEndDate(moment(info.end).subtract(1, 'day'))
             }
             if (datatable && !applyingDateRange) {
-                datatable.ajax.url(baseURL + '?start=' + info.start.toISOString() + '&end=' + info.end.toISOString()).load()
+                datatable.ajax.url(baseURL + '&start=' + info.start.toISOString() + '&end=' + info.end.toISOString()).load()
             }
         }
     });
@@ -230,20 +230,20 @@
     $('input[name="dates"]').on('apply.daterangepicker', function(event, picker) {
         applyingDateRange = true
         try {
-            datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
+            datatable.ajax.url(baseURL + '&start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
             ec.setOption('date', picker.startDate.toDate())
         } finally {
             applyingDateRange = false
         }
     });
     function load_data() {
-        datatable.ajax.url(baseURL + '?start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
+        datatable.ajax.url(baseURL + '&start=' + ec.view.currentStart.toISOString()+'&end=' + ec.view.currentEnd.toISOString()).load()
     }
     function download_data() {
-        window.location = baseURL + '?download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+        window.location = baseURL + '&download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     function download_schedule() {
-        window.location = baseURL + '?download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+        window.location = baseURL + '&download=yes&format=timesheet&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     function openSignatoryModal(format) {
         $('#signatoryModal').addClass('is-active');
@@ -267,7 +267,7 @@
         if (selectedSignatory) {
             params.set('signatory_id', selectedSignatory);
         }
-        window.location = baseURL + '?' + params.toString()
+        window.location = baseURL + '&' + params.toString()
     }
 
     document.addEventListener('click', function (event) {

@@ -151,7 +151,7 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('ot.view_shifts', announcement_id=announcement_id) }}">
+                    <a class="button is-light" href="{{ url_for('ot.view_shifts', announcement_id=announcement_id, org_id=work_at_org_id) }}">
                          <span class="icon">
                              <i class="fa-solid fa-chevron-left"></i>
                          </span>
@@ -166,7 +166,7 @@
     {{ super() }}
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }}
+    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }} + '?org_id=' + encodeURIComponent({{ (work_at_org_id or '')|tojson }})
     let checkInBaseURL = {{ url_for('ot.add_checkin_record', staff_id=staff.id)|tojson|safe }}
     let defaultStart = moment().startOf('day')
     let defaultEnd = moment().endOf('day')
@@ -282,7 +282,7 @@
         }
     });
     $('input[name="dates"]').on('apply.daterangepicker', function(event, picker) {
-        datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
+        datatable.ajax.url(baseURL + '&start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
         checkin_datatable.ajax.url(checkInBaseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
     });
     document.body.addEventListener('htmx:afterRequest', function (event) {
@@ -308,10 +308,10 @@
         })
     }
     function download_data() {
-        window.location = baseURL + '?download=yes&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+        window.location = baseURL + '&download=yes&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     function download_count_data() {
-        window.location = baseURL + '?download=yes&download_data=counts&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+        window.location = baseURL + '&download=yes&download_data=counts&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
     }
     function openSignatoryModal(format) {
         $('#signatoryModal').addClass('is-active');
@@ -335,7 +335,7 @@
         if (selectedSignatory) {
             params.set('signatory_id', selectedSignatory);
         }
-        window.location = baseURL + '?' + params.toString()
+        window.location = baseURL + '&' + params.toString()
     }
     document.addEventListener('click', function (event) {
         if (event.target.closest('#report-signatory-button')) {

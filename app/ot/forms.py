@@ -130,7 +130,10 @@ for hour in range(0, 24):
 
 
 def get_compensation_rates_for_timeslot(timeslot):
-    rates = OtCompensationRate.query.filter_by(timeslot_id=timeslot.id).all()
+    rates = OtCompensationRate.query.filter_by(
+        timeslot_id=timeslot.id,
+        work_at_org_id=timeslot.work_for_org_id,
+    ).all()
     if rates:
         return rates
     return OtCompensationRate.query.filter_by(

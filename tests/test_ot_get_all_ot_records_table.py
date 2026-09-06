@@ -49,6 +49,9 @@ class FakeShiftQuery:
     def __init__(self, shifts):
         self._shifts = list(shifts)
 
+    def __iter__(self):
+        return iter(self._shifts)
+
     def filter(self, *_args, **_kwargs):
         return self
 
@@ -1237,3 +1240,38 @@ def test_get_all_ot_records_table_formats_download_rows_as_strings(ot_views, mon
     assert captured["df"].iloc[0]["end"] == "2024-01-02 17:00:00"
     assert captured["df"].iloc[0]["checkins"] == "2024-01-02 09:10:00"
     assert captured["df"].iloc[0]["checkouts"] == "2024-01-02 16:50:00"
+
+
+@pytest.mark.parametrize('org_id,expected_staff', [(27, ['Local']), (19, ['Other']), (88, [])])
+def test_monthly_calendar_and_table_filter_work_at(ot_views, org_id, expected_staff):
+    records = []
+    for staff_id, name, work_at in [(101, 'Local', 27), (102, 'Other', 19)]:
+        record = _make_record(
+            staff_id=staff_id, fullname=name, sap_id=str(staff_id),
+            shift_start=datetime(2024, 1, 2, 9),
+            shift_end=datetime(2024, 1, 2, 17),
+        )
+        record.compensation.work_at_org_id = work_at
+        records.append(record)
+    shift = SimpleNamespace(
+        id=1, datetime=records[0].shift.datetime, records=records,
+        timeslot=SimpleNamespace(color='#ffffff'),
+    )
+    ot_views.StaffWorkLogin = SimpleNamespace(query=FakeLoginQuery([]), start_datetime=DummyField())
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery([shift]), datetime=DummyField(), timeslot=DummyField(),
+    )
+    app = Flask('test')
+    with app.test_request_context(
+        f'/api?org_id={org_id}&start=2024-01-02T00:00:00%2B07:00&end=2024-01-02T23:59:59%2B07:00'
+    ):
+        table = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7).get_json()
+        calendar = _call_unwrapped_view(ot_views.get_ot_shifts)(announcement_id=7).get_json()
+        staff_table = _call_unwrapped_view(ot_views.get_all_ot_records_table)(
+            announcement_id=7, staff_id=101,
+        ).get_json()
+    assert len(table['data']) == len(expected_staff)
+    for row, name in zip(table['data'], expected_staff):
+        assert f'>{name}</a>' in row['staff']
+    assert [event['title'] for event in calendar] == (['1 คน'] if expected_staff else [])
+    assert [row['staff'] for row in staff_table['data']] == (['Local'] if org_id == 27 else [])
