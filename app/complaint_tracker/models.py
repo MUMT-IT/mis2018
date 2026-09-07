@@ -584,8 +584,8 @@ class ComplaintRepairApproval(db.Model):
 
     @property
     def has_data_complete(self):
-        if (self.price and self.budget_year and self.purchase_type and self.cost_center and
-                self.io_code and self.product_code):
+        if (self.price and self.budget_year and self.purchase_type and self.cost_center and self.io_code and
+                self.product_code and (self.repair_type == 'เร่งด่วน' or self.committees)):
             return True
         else:
             return False
