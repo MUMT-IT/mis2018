@@ -612,7 +612,7 @@ def respond_invitation_detail(meeting_id=None):
                         f'<div class="field">' \
                         f'<input class="tag is-info" type="submit" value="Send">' \
                         f'<button hx-target="#note-target" hx-get="{add_note_to_response_url}" hx-swap="outerHTML"' \
-                        f'class="tag">Cancel</button></div>' \
+                        f'class="tag" style="margin-left: .3em;">Cancel</button></div>' \
                         f'</form></div>'
             else:
                 invite.note = ''
