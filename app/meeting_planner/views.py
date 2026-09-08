@@ -102,6 +102,8 @@ def create_meeting(poll_id=None):
                                                meeting=new_meeting)
                 db.session.add(invitation)
         new_meeting.creator = current_user
+        new_meeting.start = startdatetime
+        new_meeting.end = enddatetime
         db.session.add(new_meeting)
         db.session.commit()
         if form.notify_participants.data:
