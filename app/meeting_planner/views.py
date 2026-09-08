@@ -337,7 +337,6 @@ def respond(invitation_id):
 @login_required
 def add_note_to_response(invitation_id):
     keep = request.args.get('keep', 'false')
-    response_note = request.args.get('response_note', 'false')
     if request.method == 'PATCH':
         invitation = MeetingInvitation.query.get(invitation_id)
         invitation.note = request.form.get('note')
@@ -345,12 +344,8 @@ def add_note_to_response(invitation_id):
         db.session.commit()
         if keep == 'true':
             return f'<div id="note-target-{invitation_id}" hx-swap-oob="true"></div>'
-        elif response_note == 'true':
-            return f'<div id="note-target" hx-swap-oob="true"></div>'
         else:
             return f'<div id="target-{invitation_id}" hx-swap-oob="true"></div>'
-    if request.method == 'GET' and response_note == 'true':
-        return f'<div id="note-target" hx-swap-oob="true"></div>'
     return f'<div id="target-{invitation_id}" hx-swap-oob="true"></div>'
 
 
@@ -594,8 +589,7 @@ def respond_invitation_detail(meeting_id=None):
                 <div id="note-target" hx-swap-oob="true"></div>
                 '''
             elif invite.response == 'ไม่เข้าร่วม':
-                add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invite.id,
-                                                   response_note='true')
+                add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invite.id)
                 resp = '''
                 <div id="respond-target" hx-swap-oob="true">
                     <span class="icon"><i class="fas fa-times-circle has-text-danger"></i></span>
@@ -611,7 +605,7 @@ def respond_invitation_detail(meeting_id=None):
                         f'</div>' \
                         f'<div class="field">' \
                         f'<input class="tag is-info" type="submit" value="Send">' \
-                        f'<button hx-target="#note-target" hx-get="{add_note_to_response_url}" hx-swap="outerHTML"' \
+                        f'<button hx-target="#note-target" hx-get="{add_note_to_response_url}" hx-swap="innerHTML"' \
                         f'class="tag" style="margin-left: .3em;">Cancel</button></div>' \
                         f'</form></div>'
             else:
