@@ -4169,10 +4169,11 @@ def _handle_login_scan_request(template_name, *, note):
                 note=note,
             )
             try:
+                local_now = _to_bangkok(now)
                 if activity == 'checked in':
-                    msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                    msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {local_now.strftime("%d/%m/%Y %H:%M:%S")}'
                 else:
-                    msg = f'ท่านได้ทำสแกนออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                    msg = f'ท่านได้ทำสแกนออกงานล่าสุดเมื่อ {local_now.strftime("%d/%m/%Y %H:%M:%S")}'
                 line_bot_api.push_message(to=person.staff_account.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass

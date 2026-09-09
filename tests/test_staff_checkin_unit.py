@@ -755,7 +755,14 @@ def test_login_scan_routes_delegate_to_shared_handler(staff_views, monkeypatch):
     ]
 
 
-def test_handle_login_scan_request_posts_shared_flow(staff_views, monkeypatch):
+@pytest.mark.parametrize(
+    ("activity", "message_prefix"),
+    [
+        ("checked in", "ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ"),
+        ("checked out", "ท่านได้ทำสแกนออกงานล่าสุดเมื่อ"),
+    ],
+)
+def test_handle_login_scan_request_posts_shared_flow(staff_views, monkeypatch, activity, message_prefix):
     person = SimpleNamespace(
         fullname="Test User",
         staff_account=SimpleNamespace(line_id="line-1"),
@@ -776,7 +783,7 @@ def test_handle_login_scan_request_posts_shared_flow(staff_views, monkeypatch):
         captured["long"] = long
         captured["qrcode_exp_datetime"] = qrcode_exp_datetime
         captured["note"] = note
-        return SimpleNamespace(id=1), "checked in", 3
+        return SimpleNamespace(id=1), activity, 3
 
     pushed = []
     monkeypatch.setattr(staff_views, "_create_work_login_record", fake_create_work_login_record)
@@ -809,8 +816,12 @@ def test_handle_login_scan_request_posts_shared_flow(staff_views, monkeypatch):
     assert captured["note"] == "qrcode"
     assert captured["qrcode_exp_datetime"].tzinfo is not None
     assert payload["message"] == "success"
-    assert payload["activity"] == "checked in"
+    assert payload["activity"] == activity
     assert payload["name"] == "Test User"
     assert payload["numScans"] == 3
     assert payload["time"]
     assert pushed and pushed[0]["to"] == "line-1"
+    expected_local_time = captured["now"].astimezone(pytz.timezone("Asia/Bangkok")).strftime(
+        "%d/%m/%Y %H:%M:%S"
+    )
+    assert pushed[0]["messages"].text == f"{message_prefix} {expected_local_time}"
