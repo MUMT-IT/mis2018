@@ -33,19 +33,22 @@ def index():
 
 
 @meeting_planner.route('/meetings/new', methods=['GET', 'POST'])
+@meeting_planner.route('/meetings/edit/<int:meeting_id>', methods=['GET', 'POST'])
 @meeting_planner.route('/meetings/new_meeting/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
-def create_meeting(poll_id=None):
+def create_meeting(meeting_id=None, poll_id=None):
     if poll_id:
         MeetingEventForm = create_new_meeting(poll_id)
         form = MeetingEventForm()
-        start = form.start.data.astimezone(localtz).isoformat() if form.start.data else None
-        end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
+    elif meeting_id:
+        meeting_event = MeetingEvent.query.get(meeting_id)
+        MeetingEventForm = create_new_meeting(meeting_id)
+        form = MeetingEventForm(obj=meeting_event)
     else:
         MeetingEventForm = create_new_meeting()
         form = MeetingEventForm()
-        start = form.start.data.astimezone(localtz).isoformat() if form.start.data else None
-        end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
+    start = form.start.data.astimezone(localtz).isoformat() if form.start.data else None
+    end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
     if poll_id:
         poll = MeetingPoll.query.filter_by(id=poll_id).first()
         for p in poll.poll_result:
@@ -74,13 +77,13 @@ def create_meeting(poll_id=None):
             event_form for event_form in form.meeting_events.entries
             if event_form.room.data
         ]
-
-        new_meeting = MeetingEvent()
-        form.populate_obj(new_meeting)
-        for event in new_meeting.meeting_events:
+        if not meeting_id:
+            meeting_event = MeetingEvent()
+        form.populate_obj(meeting_event)
+        for event in meeting_event.meeting_events:
             event.start = startdatetime
             event.end = enddatetime
-            event.title = f'ประชุม{form.title.data}'
+            event.title = form.title.data
             event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
             event.created_by = current_user.id
             event.category = EventCategory.query.filter_by(category='ประชุมกลุ่มย่อย').first()
@@ -91,24 +94,29 @@ def create_meeting(poll_id=None):
         if poll_id:
             for staff in participants:
                 invitation = MeetingInvitation(staff_id=staff.id,
-                                               created_at=new_meeting.start,
-                                               meeting=new_meeting)
-                new_meeting.poll_id = poll_id
+                                               created_at=startdatetime,
+                                               meeting=meeting_event)
+                meeting_event.poll_id = poll_id
                 db.session.add(invitation)
         else:
             for staff in participants:
                 invitation = MeetingInvitation(staff_id=staff.id,
-                                               created_at=new_meeting.start,
-                                               meeting=new_meeting)
+                                               created_at=startdatetime,
+                                               meeting=meeting_event)
                 db.session.add(invitation)
-        new_meeting.creator = current_user
-        new_meeting.start = startdatetime
-        new_meeting.end = enddatetime
-        db.session.add(new_meeting)
+        if meeting_id:
+            meeting_event.updated_at = arrow.now('Asia/Bangkok').datetime
+            meeting_event.updated_by = current_user
+        else:
+            meeting_event.created_at = arrow.now('Asia/Bangkok').datetime
+            meeting_event.creator = current_user
+        meeting_event.start = startdatetime
+        meeting_event.end = enddatetime
+        db.session.add(meeting_event)
         db.session.commit()
-        if form.notify_participants.data:
+        if form.notify_participants.data and not meeting_id:
             meeting_invitation_link = url_for('meeting_planner.show_invitation_detail',
-                                              meeting_id=new_meeting.id, _external=True)
+                                              meeting_id=meeting_event.id, _external=True)
             message = f'''
             ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
             ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
