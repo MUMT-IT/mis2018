@@ -315,7 +315,7 @@ def remove_agenda():
     return resp
 
 
-@meeting_planner.route('/meetings/delete/<int:meeting_id>', methods=['GET', 'DELETE'])
+@meeting_planner.route('/meetings/cancel/<int:meeting_id>', methods=['GET', 'POST'])
 @login_required
 def cancel_meeting(meeting_id):
     meeting = MeetingEvent.query.get(meeting_id)
@@ -447,31 +447,7 @@ def get_meetings():
     for meeting in MeetingEvent.query.filter_by(creator=current_user).order_by(MeetingEvent.created_at.desc()):
         d_ = meeting.to_dict()
         view_meeting_url = url_for('meeting_planner.detail_meeting', meeting_id=d_['id'])
-        edit_meeting_url = url_for('meeting_planner.create_meeting', meeting_id=d_['id'])
-        if d_['cancelled_at'] is None:
-            d_['action'] = (f'<div class="field has-addons">'
-                            f'<div class="control">'
-                            f'<a class="tag " href={view_meeting_url}>view</a>'
-                            f'</div>'
-                            f'<div class="control">'
-                            f'<a class="tag" href={edit_meeting_url}>edit</a>'
-                            f'</div>'
-                            f'<div class="control">'
-                            f'<a class="tag" href={edit_meeting_url}>cancel</a>'
-                            f'</div>'
-                            f'</div>')
-        else:
-            d_['action'] = (f'<div class="field has-addons">'
-                            f'<div class="control">'
-                            f'<a class="tag " href={view_meeting_url}>view</a>'
-                            f'</div>'
-                            f'<div class="control">'
-                            f'<a class="tag" href={edit_meeting_url}>edit</a>'
-                            f'</div>'
-                            f'<div class="control">'
-                            f'<a class="tag" href={edit_meeting_url}>cancel</a>'
-                            f'</div>'
-                            f'</div>')
+        d_['action'] = f'<a class="tag " href={view_meeting_url}>view</a>'
         data.append(d_)
     return jsonify({'data': data})
 
