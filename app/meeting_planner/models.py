@@ -54,7 +54,8 @@ class MeetingEvent(db.Model):
             'title': self.title,
             'start': self.start.astimezone(Bangkok).isoformat(),
             'end': self.end.astimezone(Bangkok).isoformat(),
-            'rooms': self.rooms
+            'rooms': self.rooms,
+            'cancelled_at': self.cancelled_at if self.cancelled_at else None,
         }
 
 
