@@ -62,7 +62,7 @@ class MeetingInvitation(db.Model):
     __tablename__ = 'meeting_invitations'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     meeting_event_id = db.Column('meeting_event_id', db.ForeignKey('meeting_events.id'))
-    meeting = db.relationship(MeetingEvent, backref=db.backref('invitations'))
+    meeting = db.relationship(MeetingEvent, backref=db.backref('invitations', cascade='all, delete-orphan'))
     note = db.Column('note', db.Text(), default='')
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount,
