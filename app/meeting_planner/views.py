@@ -46,10 +46,6 @@ def create_meeting(meeting_id=None, poll_id=None):
         meeting_event = MeetingEvent.query.get(meeting_id)
         MeetingEventForm = create_new_meeting()
         form = MeetingEventForm(obj=meeting_event)
-        # if request.method == 'POST':
-        #     selected_participants = [StaffPersonalInfo.query.get(int(staff_id))
-        #                              for staff_id in request.form.getlist('participants')]
-        # else:
         invitations = [invitation for invitation in meeting_event.invitations]
     else:
         MeetingEventForm = create_new_meeting()
@@ -135,7 +131,8 @@ def create_meeting(meeting_id=None, poll_id=None):
         db.session.add(meeting_event)
         db.session.commit()
         if form.notify_participants.data and not meeting_id:
-            meeting_invitation_link = url_for('meeting_planner.show_invitation_detail',
+            scheme = 'http' if current_app.debug else 'https'
+            meeting_invitation_link = url_for('meeting_planner.show_invitation_detail', _scheme=scheme,
                                               meeting_id=meeting_event.id, _external=True)
             message = f'''
             ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
@@ -317,6 +314,36 @@ def remove_agenda():
     resp = make_response(resp)
     return resp
 
+
+@meeting_planner.route('/meetings/delete/<int:meeting_id>', methods=['GET', 'DELETE'])
+@login_required
+def cancel_meeting(meeting_id):
+    meeting = MeetingEvent.query.get(meeting_id)
+    if meeting.meeting_events:
+        for event in meeting.meeting_events:
+            event.cancelled_at = arrow.now('Asia/Bangkok').datetime
+            event.cancelled_by = current_user.id
+            db.session.add_all(event)
+    meeting.cancelled_at = arrow.now('Asia/Bangkok').datetime
+    meeting.cancelled_by = current_user.id
+    db.session.add(meeting)
+    db.session.commit()
+    if meeting.notify_participants:
+        message = f'''
+        ขอแจ้งยกเลิกการนัดหมายประชุม{meeting.title}
+        ในวันที่ {meeting.start.data.strftime('%d/%m/%Y %H:%M')} - {meeting.end.data.strftime('%d/%m/%Y %H:%M')}
+        {meeting.rooms} 
+
+        ขออภัยในความไม่สะดวก
+        '''
+        if not current_app.debug:
+            send_mail([invitation.staff.email + '@mahidol.ac.th' for invitation in meeting.invitations],
+                      title=f'MUMT-MIS: ยกเลิกการนัดหมายประชุม{meeting.title}',
+                      message=message)
+        else:
+            print(message)
+    flash('ยกเลิกการนัดมายประชุมสำเร็จ', 'success')
+    return redirect(url_for('meeting_planner.list_meetings'))
 
 @meeting_planner.route('/invitations/<int:invitation_id>/rsvp', methods=['PATCH'])
 @login_required
