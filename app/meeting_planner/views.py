@@ -37,13 +37,20 @@ def index():
 @meeting_planner.route('/meetings/new_meeting/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
 def create_meeting(meeting_id=None, poll_id=None):
+    meeting_event = None
+    invitations = []
     if poll_id:
         MeetingEventForm = create_new_meeting(poll_id)
         form = MeetingEventForm()
     elif meeting_id:
         meeting_event = MeetingEvent.query.get(meeting_id)
-        MeetingEventForm = create_new_meeting(meeting_id)
+        MeetingEventForm = create_new_meeting()
         form = MeetingEventForm(obj=meeting_event)
+        # if request.method == 'POST':
+        #     selected_participants = [StaffPersonalInfo.query.get(int(staff_id))
+        #                              for staff_id in request.form.getlist('participants')]
+        # else:
+        invitations = [invitation for invitation in meeting_event.invitations]
     else:
         MeetingEventForm = create_new_meeting()
         form = MeetingEventForm()
@@ -62,15 +69,14 @@ def create_meeting(meeting_id=None, poll_id=None):
         else:
             participants = []
             for staff_id in request.form.getlist('participants'):
-                personal_info = StaffPersonalInfo.query.get(int(staff_id))
-                if personal_info and personal_info.staff_account:
-                    participants.append(personal_info.staff_account)
+                staff_personal_info = StaffPersonalInfo.query.get(int(staff_id))
+                participants.append(staff_personal_info.staff_account)
 
         participant_count = len(participants)
         if not participants:
             flash('กรุณาเลือกรายชื่อผู้เข้าร่วม', 'danger')
-            return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id, start=start
-                                   , end=end)
+            return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id,
+                                   meeting_id=meeting_id, invitations=invitations, start=start, end=end)
         startdatetime = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
         form.meeting_events.entries = [
@@ -98,6 +104,20 @@ def create_meeting(meeting_id=None, poll_id=None):
                                                meeting=meeting_event)
                 meeting_event.poll_id = poll_id
                 db.session.add(invitation)
+        elif meeting_id:
+            staff_ids = {staff.id for staff in participants}
+            invitation_staff_ids = {invitation.staff_id for invitation in meeting_event.invitations}
+
+            for invitation in meeting_event.invitations:
+                if invitation.staff_id not in staff_ids:
+                    db.session.delete(invitation)
+
+            for staff in participants:
+                if staff.id not in invitation_staff_ids:
+                    invitation = MeetingInvitation(staff_id=staff.id,
+                                                   created_at=startdatetime,
+                                                   meeting=meeting_event)
+                    db.session.add(invitation)
         else:
             for staff in participants:
                 invitation = MeetingInvitation(staff_id=staff.id,
@@ -106,7 +126,7 @@ def create_meeting(meeting_id=None, poll_id=None):
                 db.session.add(invitation)
         if meeting_id:
             meeting_event.updated_at = arrow.now('Asia/Bangkok').datetime
-            meeting_event.updated_by = current_user
+            meeting_event.updated_by = current_user.id
         else:
             meeting_event.created_at = arrow.now('Asia/Bangkok').datetime
             meeting_event.creator = current_user
@@ -130,7 +150,7 @@ def create_meeting(meeting_id=None, poll_id=None):
             {meeting_invitation_link}
             '''
             if not current_app.debug:
-                send_mail([invitation.staff.email + '@mahidol.ac.th' for invitation in new_meeting.invitations],
+                send_mail([invitation.staff.email + '@mahidol.ac.th' for invitation in meeting_event.invitations],
                           title=f'MUMT-MIS: เชิญเข้าร่วมประชุม{invitation.meeting.title}',
                           message=message)
             else:
@@ -140,8 +160,9 @@ def create_meeting(meeting_id=None, poll_id=None):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id, start=start
-                           , end=end)
+    return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id,
+                           meeting_id=meeting_id, invitations=invitations,
+                           start=start, end=end)
 
 
 @meeting_planner.route('/api/meeting_planner/add_event', methods=['POST'])
@@ -399,7 +420,31 @@ def get_meetings():
     for meeting in MeetingEvent.query.filter_by(creator=current_user).order_by(MeetingEvent.created_at.desc()):
         d_ = meeting.to_dict()
         view_meeting_url = url_for('meeting_planner.detail_meeting', meeting_id=d_['id'])
-        d_['action'] = f'<a class="tag" href={view_meeting_url}>view</a>'
+        edit_meeting_url = url_for('meeting_planner.create_meeting', meeting_id=d_['id'])
+        if d_['cancelled_at'] is None:
+            d_['action'] = (f'<div class="field has-addons">'
+                            f'<div class="control">'
+                            f'<a class="tag " href={view_meeting_url}>view</a>'
+                            f'</div>'
+                            f'<div class="control">'
+                            f'<a class="tag" href={edit_meeting_url}>edit</a>'
+                            f'</div>'
+                            f'<div class="control">'
+                            f'<a class="tag" href={edit_meeting_url}>cancel</a>'
+                            f'</div>'
+                            f'</div>')
+        else:
+            d_['action'] = (f'<div class="field has-addons">'
+                            f'<div class="control">'
+                            f'<a class="tag " href={view_meeting_url}>view</a>'
+                            f'</div>'
+                            f'<div class="control">'
+                            f'<a class="tag" href={edit_meeting_url}>edit</a>'
+                            f'</div>'
+                            f'<div class="control">'
+                            f'<a class="tag" href={edit_meeting_url}>cancel</a>'
+                            f'</div>'
+                            f'</div>')
         data.append(d_)
     return jsonify({'data': data})
 
