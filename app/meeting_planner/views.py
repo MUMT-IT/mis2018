@@ -444,7 +444,8 @@ def list_invitations():
 @login_required
 def get_meetings():
     data = []
-    for meeting in MeetingEvent.query.filter_by(creator=current_user).order_by(MeetingEvent.created_at.desc()):
+    # MeetingEvent.query.filter_by(creator=current_user).order_by(MeetingEvent.created_at.desc())
+    for meeting in MeetingEvent.query.filter_by(creator=current_user, cancelled_at=None):
         d_ = meeting.to_dict()
         view_meeting_url = url_for('meeting_planner.detail_meeting', meeting_id=d_['id'])
         d_['action'] = f'<a class="tag " href={view_meeting_url}>view</a>'
