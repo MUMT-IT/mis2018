@@ -75,6 +75,7 @@ def create_meeting(meeting_id=None, poll_id=None):
                                    meeting_id=meeting_id, invitations=invitations, start=start, end=end)
         startdatetime = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        event_category = EventCategory.query.filter_by(category='ประชุมกลุ่มย่อย').first()
         form.meeting_events.entries = [
             event_form for event_form in form.meeting_events.entries
             if event_form.room.data
@@ -82,17 +83,18 @@ def create_meeting(meeting_id=None, poll_id=None):
         if not meeting_id:
             meeting_event = MeetingEvent()
         form.populate_obj(meeting_event)
-        for event in meeting_event.meeting_events:
-            event.start = startdatetime
-            event.end = enddatetime
-            event.title = form.title.data
-            event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
-            event.created_by = current_user.id
-            event.category = EventCategory.query.filter_by(category='ประชุมกลุ่มย่อย').first()
-            event.occupancy = participant_count
-            event.notify_participants = True
-            event.participants = participants
-            event.note = event.request
+        with db.session.no_autoflush:
+            for event in meeting_event.meeting_events:
+                event.start = startdatetime
+                event.end = enddatetime
+                event.title = form.title.data
+                event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
+                event.created_by = current_user.id
+                event.category = event_category
+                event.occupancy = participant_count
+                event.notify_participants = True
+                event.participants = participants
+                event.note = event.request
         if poll_id:
             for staff in participants:
                 invitation = MeetingInvitation(staff_id=staff.id,
