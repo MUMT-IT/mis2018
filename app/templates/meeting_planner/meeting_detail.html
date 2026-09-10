@@ -180,11 +180,20 @@
                     </form>
                 </div>
             </div>
-        <br>
-        <div class="buttons is-centered">
-            <a href="{{ url_for('meeting_planner.list_meetings') }}"
-               class="button is-light">Back</a>
-        </div>
+            <br>
+            <div class="buttons is-centered">
+                <a href="{{ url_for('meeting_planner.list_meetings') }}" class="button is-light">
+                    Back
+                </a>
+                {% if meeting.active_meeting %}
+                    <a class="button is-warning" href="{{ url_for('meeting_planner.create_meeting', meeting_id=meeting.id) }}">
+                        Edit
+                    </a>
+                    <a class="button is-danger" href="{{ url_for('meeting_planner.cancel_meeting', meeting_id=meeting.id) }}">
+                        Cancel
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
