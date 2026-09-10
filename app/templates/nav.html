@@ -12,6 +12,7 @@
         ],
         user_display=current_user.personal_info.fullname if current_user.is_authenticated else None,
         account_href=url_for('auth.account') if current_user.is_authenticated else None,
+        staff_href=url_for('staff.index') if current_user.is_authenticated else None,
         logout_href=url_for('auth.logout') if current_user.is_authenticated else None,
         support_href=url_for('user_support_index'),
         login_href=url_for('auth.login') if not current_user.is_authenticated else None,
