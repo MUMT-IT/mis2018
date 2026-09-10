@@ -626,6 +626,8 @@ def announcement_edit_compensation(com_id):
             db.session.add(compensation)
             db.session.commit()
             flash(u'แก้ไขรายละเอียดของประกาศเรียบร้อยแล้ว', 'success')
+            if compensation.announcement:
+                return redirect(url_for('ot.announcement_compensations', announcement_id=compensation.announcement.id))
             return redirect(url_for('ot.announcement'))
         else:
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
@@ -927,6 +929,8 @@ def add_ot_schedule(announcement_id):
     slots = slots_query.order_by(OtTimeSlot.start).all()
     return render_template('ot/schedule_add.html',
                            announcement_id=announcement_id,
+                           announcement=announcement,
+                           work_at_org=selected_work_at_org,
                            work_at_org_id=org_id,
                            slots=slots)
 
@@ -971,15 +975,30 @@ def reset_slot_selector(announcement_id):
 def get_shifts(announcement_id):
     start = request.args.get('start')
     start = arrow.get(dateutil.parser.parse(start), 'Asia/Bangkok').datetime
+    org_id = request.args.get('org_id', type=int)
+    if not org_id:
+        announcement = OtPaymentAnnounce.query.get_or_404(announcement_id)
+        org_id = announcement.org_id
+    slots_query = OtTimeSlot.query.filter_by(announcement_id=announcement_id)
+    if org_id:
+        slots_query = slots_query.filter_by(work_for_org_id=org_id)
     shifts = []
-    for slot in OtTimeSlot.query.filter_by(announcement_id=announcement_id):
+    for slot in slots_query:
         for shift in slot.shifts:
             if shift.datetime.lower.date() == start.date():
+                records = [
+                    rec for rec in shift.records
+                    if not org_id or (
+                        rec.compensation and rec.compensation.work_at_org_id == org_id
+                    )
+                ]
+                if not records:
+                    continue
                 shifts.append({
                     'id': f'shift-{shift.id}',
                     'start': shift.datetime.lower.isoformat(),
                     'end': shift.datetime.upper.isoformat(),
-                    'title': ','.join([rec.staff.personal_info.th_firstname for rec in shift.records]),
+                    'title': ','.join([rec.staff.personal_info.th_firstname for rec in records]),
                     'textColor': shift.timeslot.color or '',
                 })
     return jsonify(shifts)
@@ -1639,8 +1658,10 @@ def view_monthly_records():
 def view_staff_monthly_records(staff_id, announcement_id):
     staff = StaffAccount.query.get(staff_id)
     announcement = OtPaymentAnnounce.query.get_or_404(announcement_id)
+    org_id = request.args.get('org_id', type=int) or announcement.org_id
     return render_template('ot/staff_admin_records.html',
                            staff=staff, announcement_id=announcement_id,
+                           work_at_org_id=org_id,
                            signatories=announcement.signatories)
 
 
@@ -1649,36 +1670,41 @@ def view_staff_monthly_records(staff_id, announcement_id):
 @manager_permission.union(secretary_permission).require()
 def view_shifts(announcement_id):
     announcement = OtPaymentAnnounce.query.get_or_404(announcement_id)
+    org_id = request.args.get('org_id', type=int) or announcement.org_id
     return render_template('ot/all_staff_calendar.html',
                            announcement_id=announcement_id,
                            announcement=announcement,
                            signatories=announcement.signatories,
-                           work_at_org_id=announcement.org_id)
+                           work_at_org_id=org_id)
 
 
 @ot.route('/api/announcements/<int:announcement_id>/ot_shifts')
 @login_required
 @manager_permission.union(secretary_permission).require()
 def get_ot_shifts(announcement_id):
+    org_id = request.args.get('org_id', type=int)
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     if cal_start:
-        cal_start = parser.isoparse(cal_start)
-        cal_start = cal_start.astimezone(localtz)
+        cal_start = _normalize_ot_datetime(parser.isoparse(cal_start)).replace(tzinfo=None)
     if cal_end:
-        cal_end = parser.isoparse(cal_end)
-        cal_end = cal_end.astimezone(localtz)
+        cal_end = _normalize_ot_datetime(parser.isoparse(cal_end)).replace(tzinfo=None)
     all_shifts = []
     text_color = '#000000'
     for shift in OtShift.query.filter(OtShift.datetime.op('&&')
                                           (DateTimeRange(lower=cal_start,
                                                          upper=cal_end,
-                                                         bounds='[]'))) \
+                                                         bounds='[)'))) \
             .filter(OtShift.timeslot.has(announcement_id=announcement_id)):
+        records = [record for record in shift.records if not org_id or (
+            record.compensation and record.compensation.work_at_org_id == org_id
+        )]
+        if not records:
+            continue
         shift = {
-            'title': u'{} คน'.format(len(shift.records)),
-            'start': shift.datetime.lower.isoformat(),
-            'end': shift.datetime.upper.isoformat(),
+            'title': u'{} คน'.format(len(records)),
+            'start': _normalize_ot_datetime(shift.datetime.lower).isoformat(),
+            'end': _normalize_ot_datetime(shift.datetime.upper).isoformat(),
             'borderColor': '#000000',
             'backgroundColor': shift.timeslot.color,
             'textColor': text_color,
@@ -2444,7 +2470,7 @@ def _build_ot_record_row(record, shift_start, shift_end, announcement_id, staff_
         'fullname': f'{record.staff.fullname}',
         'sap': f'{record.staff.personal_info.sap_id}',
         'timeslot': f'{record.compensation.time_slot}' if record.compensation else '-',
-        'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id)}">{record.staff.fullname}</a>''',
+        'staff': f'{record.staff.fullname}' if staff_id else f'''<a href="{url_for('ot.view_staff_monthly_records', staff_id=record.staff_account_id, announcement_id=announcement_id, org_id=request.args.get('org_id', type=int))}">{record.staff.fullname}</a>''',
         'start': shift_start.isoformat() if not download else shift_start.strftime('%Y-%m-%d %H:%M:%S'),
         'end': shift_end.isoformat() if not download else shift_end.strftime('%Y-%m-%d %H:%M:%S'),
         'id': record.id,
@@ -2534,6 +2560,7 @@ def get_all_ot_schedule(announcement_id=None, staff_id=None):
 @ot.route('/api/staff/<int:staff_id>/ot-records/table')
 @login_required
 def get_all_ot_records_table(announcement_id=None, staff_id=None):
+    org_id = request.args.get('org_id', type=int)
     cal_start = request.args.get('start')
     cal_end = request.args.get('end')
     download = request.args.get('download')
@@ -2544,16 +2571,19 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
             abort(403)
         staff_id = current_user.id
     if cal_start:
-        cal_start = parser.isoparse(cal_start)
-        cal_start = cal_start.astimezone(localtz)
+        cal_start = _normalize_ot_datetime(parser.isoparse(cal_start))
     if cal_end:
-        cal_end = parser.isoparse(cal_end)
-        cal_end = cal_end.astimezone(localtz)
+        cal_end = _normalize_ot_datetime(parser.isoparse(cal_end))
 
-    cal_daterange = DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')
+    # Shift ranges store Bangkok wall time without timezone information.
+    cal_daterange = DateTimeRange(
+        lower=cal_start.replace(tzinfo=None) if cal_start else None,
+        upper=cal_end.replace(tzinfo=None) if cal_end else None,
+        bounds='[]',
+    )
     checkin_query = StaffWorkLogin.query\
-        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
-        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start.replace(tzinfo=None)) \
+        .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end.replace(tzinfo=None)) \
 
     if staff_id:
         checkin_query = checkin_query.filter_by(staff_id=staff_id)
@@ -2571,6 +2601,8 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
     ot_record_checkins = {}
     for shift in shift_query.order_by(OtShift.datetime):
         for record in shift.records:
+            if org_id and (not record.compensation or record.compensation.work_at_org_id != org_id):
+                continue
             if staff_id and record.staff_account_id != staff_id:
                 continue
             shift_start = localtz.localize(record.shift.datetime.lower)
@@ -2607,6 +2639,17 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                         if _pair.start.date() != shift_start.date():
                             continue
                     elif _pair.start.date() != shift_start.date() and _pair.end.date() != shift_end.date():
+                        continue
+                    # A cross-day pair that starts before the shift date can only
+                    # belong to a shift that itself starts at midnight.  Without
+                    # this guard, two unrelated daytime scans such as Aug 4 08:56
+                    # and Aug 5 13:34 are treated as the check-in/out for an Aug 5
+                    # morning shift.
+                    if (
+                        _pair.end
+                        and _pair.start.date() != shift_start.date()
+                        and shift_start.time() != time(0, 0)
+                    ):
                         continue
 
                     # Treat midnight as a real check-in only for midnight-starting shifts.
@@ -2765,16 +2808,14 @@ def add_checkin_record(staff_id=None, checkin_id=None):
         cal_start = request.args.get('start')
         cal_end = request.args.get('end')
         if cal_start:
-            cal_start = parser.isoparse(cal_start)
-            cal_start = cal_start.astimezone(localtz)
+            cal_start = _normalize_ot_datetime(parser.isoparse(cal_start))
         if cal_end:
-            cal_end = parser.isoparse(cal_end)
-            cal_end = cal_end.astimezone(localtz)
+            cal_end = _normalize_ot_datetime(parser.isoparse(cal_end))
 
         staff = StaffAccount.query.get(staff_id)
 
-        query = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start) \
-            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end) \
+        query = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) >= cal_start.replace(tzinfo=None)) \
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime) <= cal_end.replace(tzinfo=None)) \
             .filter_by(staff=staff) \
             .order_by(StaffWorkLogin.start_datetime)
 
@@ -2810,6 +2851,7 @@ def add_checkin_record(staff_id=None, checkin_id=None):
             for checkin in query:
                 rec = {
                     'staff': staff.fullname,
+                    'creator': checkin.creator.fullname if checkin.creator else '-',
                     'note': checkin.note,
                     'checkin': checkin.start_datetime.isoformat() if download == 'no' else checkin.start_datetime.strftime(
                         '%Y-%m-%d %H:%M:%S'),
@@ -2829,6 +2871,7 @@ def add_checkin_record(staff_id=None, checkin_id=None):
         new_checkin_record = StaffWorkLogin()
         new_checkin_record.staff_id = staff_id
         new_checkin_record.start_datetime = checkin_datetime
+        new_checkin_record.creator_id = current_user.id
         note = form.get('note')
         new_checkin_record.note = note or 'แก้ไข/เพิ่มเติมโดย admin'
         db.session.add(new_checkin_record)

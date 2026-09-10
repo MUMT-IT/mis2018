@@ -142,6 +142,7 @@
                     <th>Check-In</th>
                     <th>Note</th>
                     <th>Action</th>
+                    <th>Creator</th>
                     </thead>
                     <tbody></tbody>
                 </table>
@@ -150,7 +151,7 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('ot.view_shifts', announcement_id=announcement_id) }}">
+                    <a class="button is-light" href="{{ url_for('ot.view_shifts', announcement_id=announcement_id, org_id=work_at_org_id) }}">
                          <span class="icon">
                              <i class="fa-solid fa-chevron-left"></i>
                          </span>
@@ -165,10 +166,14 @@
     {{ super() }}
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }}
+    let baseURL = {{ url_for('ot.get_all_ot_records_table', announcement_id=announcement_id, staff_id=staff.id)|tojson|safe }} + '?org_id=' + encodeURIComponent({{ (work_at_org_id or '')|tojson }})
     let checkInBaseURL = {{ url_for('ot.add_checkin_record', staff_id=staff.id)|tojson|safe }}
-    let defaultStart = moment().startOf('day')
-    let defaultEnd = moment().endOf('day')
+    let defaultStart = moment().utcOffset(7).startOf('day')
+    let defaultEnd = moment().utcOffset(7).endOf('day')
+    function bangkokDateBoundary(date, endOfDay = false) {
+        const time = endOfDay ? 'T23:59:59.999+07:00' : 'T00:00:00+07:00';
+        return new Date(date.format('YYYY-MM-DD') + time).toISOString();
+    }
     $.fn.dataTable.moment('lll');
     let datatable = new $('#record-table').DataTable({
         processing: true,
@@ -177,8 +182,8 @@
         ajax: {
             url: baseURL,
             data: {
-                start: defaultStart.toISOString(),
-                end: defaultEnd.toISOString(),
+                start: bangkokDateBoundary(defaultStart),
+                end: bangkokDateBoundary(defaultEnd, true),
             }
         },
         columns: [
@@ -241,8 +246,8 @@
         ajax: {
             url: checkInBaseURL,
             data: {
-                start: defaultStart.toISOString(),
-                end: defaultEnd.toISOString(),
+                start: bangkokDateBoundary(defaultStart),
+                end: bangkokDateBoundary(defaultEnd, true),
             }
         },
         columns: [
@@ -259,6 +264,7 @@
             {
                 data: 'action',
             },
+            { data: 'creator' },
         ]
     })
     $('input[name="checkin-datetime"]').daterangepicker({
@@ -280,8 +286,8 @@
         }
     });
     $('input[name="dates"]').on('apply.daterangepicker', function(event, picker) {
-        datatable.ajax.url(baseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
-        checkin_datatable.ajax.url(checkInBaseURL + '?start=' + picker.startDate.toISOString()+'&end=' + picker.endDate.toISOString()).load()
+        datatable.ajax.url(baseURL + '&start=' + bangkokDateBoundary(picker.startDate)+'&end=' + bangkokDateBoundary(picker.endDate, true)).load()
+        checkin_datatable.ajax.url(checkInBaseURL + '?start=' + bangkokDateBoundary(picker.startDate)+'&end=' + bangkokDateBoundary(picker.endDate, true)).load()
     });
     document.body.addEventListener('htmx:afterRequest', function (event) {
         if (event.target && event.target.id === 'checkin-form' && event.detail.successful) {
@@ -306,10 +312,10 @@
         })
     }
     function download_data() {
-        window.location = baseURL + '?download=yes&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+        window.location = baseURL + '&download=yes&start=' + bangkokDateBoundary($("input[name='dates']").data("daterangepicker").startDate)+'&end=' + bangkokDateBoundary($("input[name='dates']").data("daterangepicker").endDate, true)
     }
     function download_count_data() {
-        window.location = baseURL + '?download=yes&download_data=counts&format=report&start=' + $("input[name='dates']").data("daterangepicker").startDate.toISOString()+'&end=' + $("input[name='dates']").data("daterangepicker").endDate.toISOString()
+        window.location = baseURL + '&download=yes&download_data=counts&format=report&start=' + bangkokDateBoundary($("input[name='dates']").data("daterangepicker").startDate)+'&end=' + bangkokDateBoundary($("input[name='dates']").data("daterangepicker").endDate, true)
     }
     function openSignatoryModal(format) {
         $('#signatoryModal').addClass('is-active');
@@ -327,13 +333,13 @@
         const params = new URLSearchParams({
             download: 'yes',
             format: format,
-            start: $("input[name='dates']").data("daterangepicker").startDate.toISOString(),
-            end: $("input[name='dates']").data("daterangepicker").endDate.toISOString(),
+            start: bangkokDateBoundary($("input[name='dates']").data("daterangepicker").startDate),
+            end: bangkokDateBoundary($("input[name='dates']").data("daterangepicker").endDate, true),
         });
         if (selectedSignatory) {
             params.set('signatory_id', selectedSignatory);
         }
-        window.location = baseURL + '?' + params.toString()
+        window.location = baseURL + '&' + params.toString()
     }
     document.addEventListener('click', function (event) {
         if (event.target.closest('#report-signatory-button')) {

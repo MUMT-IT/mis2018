@@ -865,8 +865,10 @@ def _calculate_work_hours(start_dt, end_dt):
         return None
 
     workday_start = start_dt.replace(hour=8, minute=0, second=0, microsecond=0)
+    workday_end = start_dt.replace(hour=17, minute=0, second=0, microsecond=0)
     effective_start = max(start_dt, workday_start)
-    worked_seconds = max(0, (end_dt - effective_start).total_seconds())
+    effective_end = min(end_dt, workday_end)
+    worked_seconds = max(0, (effective_end - effective_start).total_seconds())
     worked_hours = worked_seconds / 3600.0
     return min(8.0, worked_hours)
 
@@ -3450,6 +3452,13 @@ def hr_daily_attendance_report():
             'total': 0,
         })
         row['total'] += 1
+        half_day_period = _approved_half_day_leave_period(
+            personal_info.staff_account, snapshot.attendance_date
+        )
+        # Leave can coexist with a check-in; count its duration independently
+        # of the snapshot's primary attendance status.
+        if half_day_period and snapshot.status not in ('holiday', 'weekend'):
+            row['leave'] += 0.5
         if snapshot.status == 'present':
             if snapshot.source == 'approved_request':
                 row['approved_request'] += 1
@@ -3459,6 +3468,9 @@ def hr_daily_attendance_report():
                 row['normal_checkin'] += 1
             else:
                 row['other_present'] += 1
+        elif snapshot.status == 'leave':
+            if not half_day_period:
+                row['leave'] += 1
         elif snapshot.status in row:
             row[snapshot.status] += 1
 
@@ -3572,6 +3584,12 @@ def hr_daily_attendance_staff_detail(staff_id):
         'staff/hr_daily_attendance_staff_detail.html',
         staff_account=staff_account,
         records=records,
+        half_day_leave_periods={
+            record.attendance_date: _approved_half_day_leave_period(
+                staff_account, record.attendance_date
+            )
+            for record in records
+        },
         start_date=start_date,
         end_date=end_date,
     )
@@ -4151,10 +4169,11 @@ def _handle_login_scan_request(template_name, *, note):
                 note=note,
             )
             try:
+                local_now = _to_bangkok(now)
                 if activity == 'checked in':
-                    msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                    msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {local_now.strftime("%d/%m/%Y %H:%M:%S")}'
                 else:
-                    msg = f'ท่านได้ทำสแกนออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                    msg = f'ท่านได้ทำสแกนออกงานล่าสุดเมื่อ {local_now.strftime("%d/%m/%Y %H:%M:%S")}'
                 line_bot_api.push_message(to=person.staff_account.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
@@ -4552,13 +4571,14 @@ def refresh_daily_attendance(target_date, staff_ids=None):
         if record.start_datetime is not None or record.end_datetime is not None:
             records_by_staff[record.staff_id].append(record)
 
-    day_start = tz.localize(datetime.combine(target_date, datetime.min.time()))
-    day_end = tz.localize(datetime.combine(target_date, datetime.max.time()))
+    # Compare local calendar dates after converting timestamps to Bangkok.
+    # This avoids relying on the production PostgreSQL/session timezone when
+    # matching approved leave and work-from-home requests.
     leave_staff_ids = {
         leave_request.staff_account_id
         for leave_request in StaffLeaveRequest.query.filter(
-            StaffLeaveRequest.start_datetime <= day_end,
-            StaffLeaveRequest.end_datetime >= day_start,
+            cast(func.timezone('Asia/Bangkok', StaffLeaveRequest.start_datetime), Date) <= target_date,
+            cast(func.timezone('Asia/Bangkok', StaffLeaveRequest.end_datetime), Date) >= target_date,
             StaffLeaveRequest.cancelled_at.is_(None),
         ).all()
         if leave_request.staff_account_id in account_ids and leave_request.get_approved
@@ -4566,8 +4586,8 @@ def refresh_daily_attendance(target_date, staff_ids=None):
     wfh_staff_ids = {
         wfh_request.staff_account_id
         for wfh_request in StaffWorkFromHomeRequest.query.filter(
-            StaffWorkFromHomeRequest.start_datetime <= day_end,
-            StaffWorkFromHomeRequest.end_datetime >= day_start,
+            cast(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.start_datetime), Date) <= target_date,
+            cast(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.end_datetime), Date) >= target_date,
             StaffWorkFromHomeRequest.cancelled_at.is_(None),
         ).all()
         if wfh_request.staff_account_id in account_ids and wfh_request.get_approved

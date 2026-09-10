@@ -117,7 +117,8 @@ class OtCompensationRate(db.Model):
     @property
     def dropdown_label(self):
         role_name = self.ot_job_role.role if self.ot_job_role else self.role or '-'
-        return f'{role_name} | {self.rate}'
+        work_at_name = self.work_at_org.display_name if self.work_at_org else '-'
+        return f'{role_name} | {self.rate} | {work_at_name}'
 
     @property
     def rate(self):
