@@ -556,7 +556,10 @@ def edit_topic_form(topic_id):
                         </a>
                     </div>
                     <div class="control">
-                        <a class="button is-light is-outlined">
+                        <a class="button is-light is-outlined"
+                            hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่"
+                            hx-delete="{}"
+                        >
                             <span class="icon">
                                 <i class="fas fa-trash-alt has-text-danger"></i>
                             </span>
@@ -569,6 +572,7 @@ def edit_topic_form(topic_id):
                    topic.detail,
                    topic.consensus,
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
+                   url_for('meeting_planner.edit_topic_form', topic_id=topic.id)
                    )
     if request.method == 'DELETE':
         db.session.delete(topic)
