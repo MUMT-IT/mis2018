@@ -27,7 +27,8 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            let table = $('#meetings').DataTable({
+            $.fn.dataTable.moment('lll');
+            $('#meetings').DataTable({
                 ajax: "{{ url_for('meeting_planner.get_meetings') }}",
                 dataSrc: "data",
                 order: [[1, 'desc']],
