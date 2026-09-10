@@ -1,3 +1,4 @@
+import arrow
 from pytz import timezone
 from sqlalchemy import func, select
 
@@ -42,6 +43,16 @@ class MeetingEvent(db.Model):
 
     def teams(self):
         return [i.paticipants.fullname for i in self.polls]
+
+    @property
+    def active_meeting(self):
+        date_time_now = arrow.now('Asia/Bangkok').datetime
+        if self.cancelled_at:
+            return False
+        elif self.end > date_time_now:
+            return True
+        else:
+            return False
 
     @property
     def rooms(self):
