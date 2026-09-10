@@ -31,7 +31,8 @@
             $('#meetings').DataTable({
                 ajax: "{{ url_for('meeting_planner.get_meetings') }}",
                 dataSrc: "data",
-                order: [[1, 'desc']],
+                order: [[1, 'desc'],
+                        [2, 'desc']],
                 columns: [
                     { data : 'title'},
                     {
