@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block title %}รายการลงเวลาทั้งหมด{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .time-records-shell { padding: 1.5rem 0 3rem; }
+    .time-records-card {
+        background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(243,246,255,.96));
+        border: 1px solid var(--theme-border);
+        border-radius: 28px;
+        box-shadow: var(--theme-shadow);
+        padding: 1.25rem;
+    }
+    .time-records-title { color: var(--theme-navy-deep); font-size: 1.35rem; font-weight: 800; }
+    .time-records-subtitle { color: var(--theme-muted); margin: .35rem 0 1rem; }
+    .time-records-table-wrap { overflow-x: auto; }
+    #timeRecordsTable { min-width: 48rem; }
+    #timeRecordsTable tbody td { vertical-align: middle; }
+    .time-records-note { max-width: 20rem; white-space: normal; }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="section time-records-shell">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="time-records-card">
+            <h1 class="time-records-title">รายการลงเวลาทั้งหมด</h1>
+            <p class="time-records-subtitle">{{ current_user.personal_info }} · ค้นหา เรียงลำดับ และเปิดดูประวัติการลงเวลาทุกหน้า</p>
+            <div class="time-records-table-wrap">
+                <table id="timeRecordsTable" class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                        <tr>
+                            <th>รหัสรายการ</th>
+                            <th>เวลาเข้า</th>
+                            <th>เวลาออก</th>
+                            <th>แหล่งที่มา</th>
+                            <th>หมายเหตุ</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function escapeHtml(value) {
+        return $('<span/>').text(value == null ? '' : String(value)).html();
+    }
+
+    function formatLocalDateTime(value) {
+        if (!value) return '—';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '—';
+        return date.toLocaleString('th-TH', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+        });
+    }
+
+    $(function() {
+        $('#timeRecordsTable').DataTable({
+            processing: true,
+            serverSide: true,
+            deferRender: true,
+            searchDelay: 400,
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+            order: [[1, 'desc']],
+            ajax: {{ url_for('staff.send_time_report_records')|tojson|safe }},
+            columns: [
+                {data: 'id'},
+                {data: 'checkin', render: function(data, type) {
+                    return type === 'display' ? escapeHtml(formatLocalDateTime(data)) : (data || '');
+                }},
+                {data: 'checkout', render: function(data, type) {
+                    return type === 'display' ? escapeHtml(formatLocalDateTime(data)) : (data || '');
+                }},
+                {data: 'record_source', render: function(data) { return escapeHtml(data || '—'); }},
+                {data: 'note', render: function(data) {
+                    return '<span class="time-records-note">' + escapeHtml(data || '—') + '</span>';
+                }}
+            ],
+            language: {
+                processing: 'กำลังโหลด...', search: 'ค้นหา:',
+                lengthMenu: 'แสดง _MENU_ รายการ',
+                info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                infoEmpty: 'ไม่มีรายการ', zeroRecords: 'ไม่พบรายการที่ค้นหา',
+                paginate: {first: 'แรก', last: 'สุดท้าย', next: 'ถัดไป', previous: 'ก่อนหน้า'}
+            }
+        });
+    });
+</script>
+{% endblock %}
