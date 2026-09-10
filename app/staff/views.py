@@ -53,7 +53,9 @@ EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
     'staff.show_qrcode',
     'staff.create_qrcode',
     'staff.show_time_report',
+    'staff.show_time_report_records',
     'staff.send_time_report_data',
+    'staff.send_time_report_records',
     'staff.send_time_report_quota',
     'staff.send_holidays_data',
 }
@@ -6951,6 +6953,68 @@ def send_time_report_quota():
     return jsonify(_build_login_quota_summary(current_user.personal_info))
 
 
+@staff.route('/api/time-report/records')
+@login_required
+def send_time_report_records():
+    draw = request.args.get('draw', 0, type=int)
+    start = max(request.args.get('start', 0, type=int), 0)
+    length = min(max(request.args.get('length', 25, type=int), 1), 100)
+
+    query = StaffWorkLogin.query.filter(StaffWorkLogin.staff_id == current_user.id)
+    records_total = query.count()
+
+    search_value = (request.args.get('search[value]') or '').strip()
+    if search_value:
+        search_pattern = f'%{search_value}%'
+        query = query.filter(or_(
+            StaffWorkLogin.record_source.ilike(search_pattern),
+            StaffWorkLogin.note.ilike(search_pattern),
+        ))
+
+    records_filtered = query.count()
+    order_columns = {
+        0: StaffWorkLogin.id,
+        1: StaffWorkLogin.start_datetime,
+        2: StaffWorkLogin.end_datetime,
+        3: StaffWorkLogin.record_source,
+        4: StaffWorkLogin.note,
+    }
+    order_index = request.args.get('order[0][column]', 1, type=int)
+    order_column = order_columns.get(order_index, StaffWorkLogin.start_datetime)
+    order_direction = request.args.get('order[0][dir]', 'desc')
+    if order_direction == 'asc':
+        query = query.order_by(order_column.asc(), StaffWorkLogin.id.asc())
+    else:
+        query = query.order_by(order_column.desc(), StaffWorkLogin.id.desc())
+
+    def isoformat(value):
+        return _to_bangkok(value).isoformat() if value else None
+
+    data = []
+    for record in query.offset(start).limit(length).all():
+        checkout_datetime = record.end_datetime
+        if checkout_datetime is None and (
+            record.correction_type == 'checkout'
+            or (record.record_source == 'scan' and (record.num_scans or 0) > 1)
+        ):
+            checkout_datetime = record.start_datetime
+
+        data.append({
+            'id': record.id,
+            'checkin': isoformat(record.start_datetime),
+            'checkout': isoformat(checkout_datetime),
+            'record_source': record.record_source or '',
+            'note': record.note or '',
+        })
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+    })
+
+
 @staff.route('/api/for-hr/login-report/quota/<int:staff_id>')
 @hr_permission.require()
 @login_required
@@ -6992,6 +7056,12 @@ def show_time_report():
                            logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()),
                            pending_clockin_requests=pending_clockin_requests,
                            recent_clockin_requests=recent_clockin_requests)
+
+
+@staff.route('/time-report/records')
+@login_required
+def show_time_report_records():
+    return render_template('staff/time_report_records.html')
 
 
 def _active_staff_filters():
