@@ -4450,6 +4450,11 @@ def closing_management():
                 "returns": doc_returns,
                 "parcel_returns": doc_parcel_returns,
                 "petty_cash": doc_petty_cash,
+                "petty_cash_total": sum(petty.total_amount or 0 for petty in doc_petty_cash),
+                "loan_total": (
+                    sum(ret.amount_spent or 0 for ret in doc_returns)
+                    + sum(pr.amount_spent or 0 for pr in doc_parcel_returns)
+                ),
             })
 
         # Keep showing records that only refer to an older/cancelled document.

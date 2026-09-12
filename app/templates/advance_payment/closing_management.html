@@ -280,7 +280,11 @@
                   <div class="row g-3 mb-3">
                     <div class="col-md-4"><span class="text-muted d-block small">หมายเลขฎีกา:</span><strong class="fs-5 text-dark">{{ searched_doc.document_number }}</strong></div>
                     <div class="col-md-4"><span class="text-muted d-block small">วันที่ตั้งฎีกา:</span><strong class="fs-5 text-dark">{{ searched_doc.filing_date|thai_date }}</strong></div>
+                  </div>
+                  <div class="row g-3 mb-3">
                     <div class="col-md-4"><span class="text-muted d-block small">ยอดรวมของฎีกา:</span><strong class="fs-5 text-primary">{{ "{:,.2f}".format(searched_doc.total_amount) }} บาท</strong></div>
+                    <div class="col-md-4"><span class="text-muted d-block small">ยอดรวมเงินสดย่อย:</span><strong class="fs-5 text-primary">{{ "{:,.2f}".format(result.petty_cash_total) }} บาท</strong></div>
+                    <div class="col-md-4"><span class="text-muted d-block small">ยอดรวมเงินยืม:</span><strong class="fs-5 text-primary">{{ "{:,.2f}".format(result.loan_total) }} บาท</strong></div>
                   </div>
                   <div class="border-top pt-3 d-flex justify-content-end gap-2 align-items-center">
                     {% if searched_doc.status == "ถูกยกเลิก" %}
