@@ -190,7 +190,7 @@
         <div class="container-fluid">
           <div class="row g-3 align-items-center">
             <div class="col-md-3">
-              <label class="small fw-bold text-dark mb-1">ยอดรวมของฎีกา (การเงินระบุเอง)</label>
+              <label class="small fw-bold text-dark mb-1">ยอดรวมของฎีกา</label>
               <input type="text" name="total_amount" id="totalAmountInput" class="form-control form-control-lg fw-bold text-primary border-primary" required>
               <div class="small text-muted mt-1">
                 ยอดแนะนำจากระบบ: <span id="systemGuideline" class="fw-bold">0.00</span> บาท (<span id="selectedCount">0</span> รายการ)
@@ -198,8 +198,13 @@
             </div>
             
             <div class="col-md-3">
-              <label class="small fw-bold text-dark mb-1">เลขที่ฎีกา</label>
-              <input type="text" name="document_number" class="form-control" placeholder="เช่น ฎ.1234/2569" required>
+              <label for="documentNumberPrefix" class="small fw-bold text-dark mb-1">เลขที่ฎีกา</label>
+              <div class="input-group">
+                <input type="text" id="documentNumberPrefix" class="form-control text-center" maxlength="4" required>
+                <span class="input-group-text">/</span>
+                <input type="text" id="documentNumberYear" class="form-control text-center" maxlength="4" required>
+              </div>
+              <input type="hidden" name="document_number" id="documentNumberInput">
             </div>
             
             <div class="col-md-3">
@@ -536,6 +541,23 @@
 </div>
 
 <script>
+  const documentNumberPrefix = document.getElementById('documentNumberPrefix');
+  const documentNumberYear = document.getElementById('documentNumberYear');
+  const documentNumberInput = document.getElementById('documentNumberInput');
+
+  function syncDocumentNumber() {
+    documentNumberInput.value = documentNumberPrefix.value && documentNumberYear.value
+      ? `${documentNumberPrefix.value}/${documentNumberYear.value}`
+      : '';
+  }
+
+  [documentNumberPrefix, documentNumberYear].forEach(input => {
+    input.addEventListener('input', syncDocumentNumber);
+    input.addEventListener('change', syncDocumentNumber);
+  });
+  document.getElementById('closingActionForm').addEventListener('submit', syncDocumentNumber);
+  syncDocumentNumber();
+
   function formatInputNumberWithComma(element) {
     let value = element.value.replace(/,/g, "").replace(/[^0-9.]/g, "");
     const parts = value.split(".");
