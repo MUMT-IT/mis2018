@@ -646,7 +646,7 @@ def generate_fnar02_pdf(ticket):
     return pdf_bytes
 
 
-def generate_petty_claim(claim):
+def generate_petty_claim(claim, claim_type="1"):
     """
     สร้างเอกสาร PDF สำหรับรายการขออนุมัติเบิกค่าใช้จ่ายของ petty cash claim
     โดยยึดรูปแบบหน้าเดียวตามเอกสารตัวอย่าง:
@@ -660,6 +660,10 @@ def generate_petty_claim(claim):
 
     if not claim:
         return b""
+
+    if claim_type not in ("1", "2"):
+        raise ValueError("Unsupported petty claim type")
+    no_approval_letter = claim_type == "2"
 
     fund_request = getattr(claim, "fund_request", None)
     setting = getattr(claim, "setting", None)
@@ -871,6 +875,12 @@ def generate_petty_claim(claim):
         f"มหาวิทยาลัยมหิดล<br/>{telephone_number}",
         claim_right,
     )
+    if no_approval_letter:
+        header_right = Paragraph(
+            f"{escape(department_name)}<br/>"
+            f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
+            f"โทร. {escape(str(telephone_number))}", claim_right,
+        )
     header_table = Table([["", logo_img, header_right]], colWidths=[170, 110, 175])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -880,7 +890,12 @@ def generate_petty_claim(claim):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
     ]))
-    story.append(header_table)
+    if no_approval_letter:
+        story.append(logo_img)
+        story.append(header_right)
+        story.append(Spacer(1, 20))
+    else:
+        story.append(header_table)
     story.append(Spacer(1, 10))
 
     info_data = [
@@ -913,9 +928,16 @@ def generate_petty_claim(claim):
         f"โดยมีรายละเอียดดังนี้"
     )
 
-    story.append(Paragraph(body_1, claim_body))
-    story.append(Spacer(1, 8))
-    story.append(Paragraph(body_2, claim_body))
+    if no_approval_letter:
+        story.append(Paragraph(
+            f"ด้วย{escape(department_name)} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ"
+            f"{escape(request_purpose)} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
+            claim_body,
+        ))
+    else:
+        story.append(Paragraph(body_1, claim_body))
+        story.append(Spacer(1, 8))
+        story.append(Paragraph(body_2, claim_body))
     story.append(Spacer(1, 10))
 
     table_rows = []
@@ -928,7 +950,7 @@ def generate_petty_claim(claim):
                 claim_style,
             ),
             Paragraph(
-                f"{float(getattr(item, 'amount', 0) or 0):,.2f}",
+                f"{float(getattr(item, 'amount', 0) or 0):,.2f}" + (" บาท" if no_approval_letter else ""),
                 claim_right,
             ),
         ])
@@ -953,7 +975,7 @@ def generate_petty_claim(claim):
             Paragraph(f"{amount_text}", claim_left),
             Paragraph(f"{amount_numeric} บาท", claim_right),
         ]],
-        colWidths=[55, 250, 80],
+        colWidths=[65, 230, 90] if no_approval_letter else [55, 250, 80],
     )
     total_table.setStyle(TableStyle([
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -962,6 +984,8 @@ def generate_petty_claim(claim):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
     ]))
+    if no_approval_letter:
+        total_table.setStyle(TableStyle([('LEFTPADDING', (1, 0), (1, 0), 8)]))
     story.append(total_table)
     story.append(Spacer(1, 10))
 
@@ -974,7 +998,21 @@ def generate_petty_claim(claim):
         f"เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป "
         f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
     )
-    story.append(Paragraph(ref_text, claim_style))
+    if no_approval_letter:
+        story.append(Paragraph(
+            f"ในการนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{escape(request_purpose)} "
+            f"จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
+            f"ประจำปีงบประมาณ {fiscal_year_label} "
+            f"ผลผลิต {product_name} "
+            f"รหัสศูนย์ต้นทุน {escape(str(cost_center_label))} "
+            f"รหัสใบสั่งงานภายใน {escape(str(mission_label))} "
+            f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} "
+            f"เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป "
+            f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
+            , claim_body,
+        ))
+    else:
+        story.append(Paragraph(ref_text, claim_style))
     story.append(Spacer(1, 12))
     story.append(Paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", claim_center))
     story.append(Spacer(1, 34))

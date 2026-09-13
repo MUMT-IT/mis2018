@@ -5256,7 +5256,7 @@ def _pdf_reference_options():
     }
 
 
-def _save_pdf_reference_data(document, borrowing_ticket=None):
+def _save_pdf_reference_data(document, borrowing_ticket=None, *, require_reference=True):
     reference_number = request.form.get("reference_number", "").strip()
     reference_date = request.form.get("reference_date", "").strip()
     fiscal_year = request.form.get("fiscal_year", "").strip()
@@ -5264,11 +5264,16 @@ def _save_pdf_reference_data(document, borrowing_ticket=None):
     cost_center_id = request.form.get("cost_center_id", "").strip()
     iocode_id = request.form.get("iocode_id", "").strip()
     if borrowing_ticket is not None:
+        require_reference = True
         reference_number = getattr(borrowing_ticket, "aip_ref_no", None) or reference_number
         reference_date = getattr(borrowing_ticket, "aip_ref_date", None) or reference_date
-    if not all((reference_number, reference_date, fiscal_year, product_code_id, cost_center_id, iocode_id)):
+    if not all((fiscal_year, product_code_id, cost_center_id, iocode_id)) or (
+        require_reference and not all((reference_number, reference_date))
+    ):
         abort(400, description="กรุณากรอกข้อมูลอ้างอิงสำหรับเอกสาร PDF ให้ครบถ้วน")
-    if isinstance(reference_date, date):
+    if not require_reference:
+        parsed_date = None
+    elif isinstance(reference_date, date):
         parsed_date = reference_date
     else:
         try:
@@ -5284,8 +5289,9 @@ def _save_pdf_reference_data(document, borrowing_ticket=None):
     if fiscal_year <= 0:
         abort(400, description="ปีงบประมาณไม่ถูกต้อง")
 
-    document.reference_number = reference_number
-    document.reference_date = parsed_date
+    if require_reference:
+        document.reference_number = reference_number
+        document.reference_date = parsed_date
     document.fiscal_year = fiscal_year
     document.product_code = db.session.get(ProductCode, product_code_id)
     document.cost_center = db.session.get(CostCenter, cost_center_id)
@@ -5316,9 +5322,12 @@ def export_petty_cash_claim_pdf(claim_id):
     if request.method == "GET":
         return redirect(url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_id))
 
-    _save_pdf_reference_data(claim)
+    claim_type = request.form.get("claim_type", "1")
+    if claim_type not in ("1", "2"):
+        abort(400, description="ประเภทเอกสาร PDF ไม่ถูกต้อง")
+    _save_pdf_reference_data(claim, require_reference=claim_type == "1")
     _attach_petty_cash_claim_context(claim)
-    pdf_bytes = generate_petty_claim(claim)
+    pdf_bytes = generate_petty_claim(claim, claim_type=claim_type)
 
     response = current_app.response_class(pdf_bytes, mimetype='application/pdf')
     filename = f"Petty_Claim_{claim_id}.pdf"

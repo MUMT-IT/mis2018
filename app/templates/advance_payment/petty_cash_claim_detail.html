@@ -227,7 +227,7 @@
       {% endif %}
   </div>
 </section>
-{% with document=claim_detail, pdf_export_url=url_for('advance_payment.export_petty_cash_claim_pdf', claim_id=claim_detail.id), pdf_reference_editable=True %}
+{% with document=claim_detail, pdf_export_url=url_for('advance_payment.export_petty_cash_claim_pdf', claim_id=claim_detail.id), pdf_reference_editable=True, pdf_allow_no_approval_letter=True %}
   {% include 'advance_payment/_pdf_reference_modal.html' %}
 {% endwith %}
 
