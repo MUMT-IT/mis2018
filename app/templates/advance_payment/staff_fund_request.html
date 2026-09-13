@@ -216,7 +216,7 @@
                           <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
                           <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
                           <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                          <option value="5">อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
+                          <option value="5"{% if selected_form_type != '32' %} hidden disabled{% endif %}>อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
                         </select>
                       </td>
                       <td>
@@ -588,6 +588,7 @@
           borrowingRequestDateInput.disabled = !radio32.checked;
         }
         const isBorrowingTicketForm = radio32 && radio32.checked;
+        updateBorrowingCategoryOptions();
         if (!isBorrowingTicketForm) onBorrowerChange();
 
         if (radio30.checked) {
@@ -770,6 +771,18 @@
       toggleFormFields(); 
     });
 
+    function updateBorrowingCategoryOptions() {
+      const isBorrowingTicketForm = document.getElementById("form_type_32").checked;
+      document.querySelectorAll('#receiptBody select[name="item_category[]"]').forEach(select => {
+        const borrowingOption = select.querySelector('option[value="5"]');
+        borrowingOption.hidden = !isBorrowingTicketForm;
+        borrowingOption.disabled = !isBorrowingTicketForm;
+        if (!isBorrowingTicketForm && select.value === "5") {
+          select.value = "";
+        }
+      });
+    }
+
     function addReceiptRow() {
       const tbody = document.getElementById("receiptBody");
       const newRow = document.createElement("tr");
@@ -783,7 +796,7 @@
             <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
             <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
             <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-            <option value="5">อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
+            <option value="5" hidden disabled>อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
           </select>
         </td>
         <td>
@@ -799,6 +812,7 @@
         </td>
       `;
       tbody.appendChild(newRow);
+      updateBorrowingCategoryOptions();
       
       const newAmountInput = newRow.querySelector(".item-amount-input");
       newAmountInput.addEventListener("blur", function() {
