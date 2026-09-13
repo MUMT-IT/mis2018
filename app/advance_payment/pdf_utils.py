@@ -646,7 +646,7 @@ def generate_fnar02_pdf(ticket):
     return pdf_bytes
 
 
-def generate_petty_claim(claim, document_kind="petty_claim"):
+def generate_petty_claim(claim):
     """
     สร้างเอกสาร PDF สำหรับรายการขออนุมัติเบิกค่าใช้จ่ายของ petty cash claim
     โดยยึดรูปแบบหน้าเดียวตามเอกสารตัวอย่าง:
@@ -660,8 +660,6 @@ def generate_petty_claim(claim, document_kind="petty_claim"):
 
     if not claim:
         return b""
-
-    is_ticket_return = document_kind == "ticket_return"
 
     fund_request = getattr(claim, "fund_request", None)
     setting = getattr(claim, "setting", None)
@@ -726,7 +724,7 @@ def generate_petty_claim(claim, document_kind="petty_claim"):
         getattr(fund_request, "purpose", None)
         or getattr(fund_request, "borrowing_ticket_name", None)
         or getattr(fund_request, "claim_name", None)
-        or ("วัตถุประสงค์ของการขอเบิกค่าใช้จ่าย" if is_ticket_return else "วัตถุประสงค์ของการขอเบิกเงินสดย่อย")
+        or "วัตถุประสงค์ของการขอเบิกเงินสดย่อย"
     )
     subject_text = (f"ขออนุมัติเบิกค่าใช้จ่าย{request_purpose}")
 
@@ -903,31 +901,17 @@ def generate_petty_claim(claim, document_kind="petty_claim"):
     story.append(info_table)
     story.append(Spacer(1, 18))
 
-    if is_ticket_return:
-        body_1 = (
-            f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} "
-            f"ซึ่งคณะได้อนุมัติให้{request_purpose}นั้น"
-        )
-        body_2 = (
-            f"ในการนี้ {department_name} ดำเนินการดังกล่าวเสร็จสิ้นแล้ว "
-            f"จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} "
-            f"โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัดโครงการดังกล่าว "
-            f"เป็นจำนวน {amount_numeric} บาท ({amount_text}) "
-            f"โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ส่งใช้เงินยืม "
-            f"โดยมีรายละเอียดดังนี้"
-        )
-    else:
-        body_1 = (
-            f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} "
-            f"ซึ่งคณะได้รับการอนุมัติให้ดำเนินการแล้ว"
-        )
-        body_2 = (
-            f"ในการนี้ {department_name} ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว "
-            f"จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} "
-            f"เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) "
-            f"โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง "
-            f"โดยมีรายละเอียดดังนี้"
-        )
+    body_1 = (
+        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} "
+        f"ซึ่งคณะได้รับการอนุมัติให้ดำเนินการแล้ว"
+    )
+    body_2 = (
+        f"ในการนี้ {department_name} ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว "
+        f"จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} "
+        f"เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) "
+        f"โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง "
+        f"โดยมีรายละเอียดดังนี้"
+    )
 
     story.append(Paragraph(body_1, claim_body))
     story.append(Spacer(1, 8))
@@ -981,27 +965,15 @@ def generate_petty_claim(claim, document_kind="petty_claim"):
     story.append(total_table)
     story.append(Spacer(1, 10))
 
-    if is_ticket_return:
-        ref_text = (
-            f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต "
-            f"........................................ รหัสศูนย์ต้นทุน "
-            f"........................................ หมายเลขรหัสศูนย์ต้นทุน "
-            f"........................................ รหัสใบสั่งงานภายใน "
-            f"........................................ เอกสารฉบับนี้ส่งคืนบัญชี "
-            f"{account_name} บย. เลขที่บัญชี {account_number} "
-            f"เพื่อทำการขอเบิกเงินคืนเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป "
-            f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
-        )
-    else:
-        ref_text = (
-            f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} "
-            f"ผลผลิต {product_name} "
-            f"รหัสศูนย์ต้นทุน {cost_center_label} "
-            f"รหัสใบสั่งงานภายใน {mission_label} "
-            f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} "
-            f"เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป "
-            f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
-        )
+    ref_text = (
+        f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} "
+        f"ผลผลิต {product_name} "
+        f"รหัสศูนย์ต้นทุน {cost_center_label} "
+        f"รหัสใบสั่งงานภายใน {mission_label} "
+        f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} "
+        f"เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป "
+        f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
+    )
     story.append(Paragraph(ref_text, claim_style))
     story.append(Spacer(1, 12))
     story.append(Paragraph("จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติจักเป็นพระคุณยิ่ง", claim_center))
