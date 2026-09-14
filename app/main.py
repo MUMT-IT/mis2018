@@ -3163,7 +3163,7 @@ def import_seminar_attend_data():
         start_date = pandas.to_datetime(row['start_date'], format='%d/%m/%Y')
         end_date = pandas.to_datetime(row['end_date'], format='%d/%m/%Y')
         if staff_account:
-            if seminar.id:
+            if seminar:
                 attend = StaffSeminarAttend(
                     seminar_id=seminar.id,
                     staff_account_id=staff_account.id,
@@ -3183,6 +3183,33 @@ def import_seminar_attend_data():
                 print('Not found seminar topic of {} {}'.format(staff_account.email, tz.localize(start_date)))
         else:
             print(u'Cannot save data of email: {} start date: {}'.format(row['seminar'], start_date))
+    db.session.commit()
+
+
+@dbutils.command('import-pre-register-seminar-data')
+def import_pre_register_seminar_data():
+    tz = timezone('Asia/Bangkok')
+    sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
+    print('Authorizing with Google..')
+    gc = get_credential()
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("pre-attend")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        staff_account = StaffAccount.query.filter_by(email=row['email']).first()
+        seminar = StaffSeminar.query.filter_by(topic=row['seminar']).first()
+        if staff_account:
+            if seminar:
+                attend = StaffSeminarPreRegister(
+                    seminar_id=seminar.id,
+                    staff_account_id=staff_account.id,
+                    created_at=tz.localize(datetime.today()),
+                )
+                db.session.add(attend)
+            else:
+                print('Not found seminar topic of {}'.format(staff_account.email))
+        else:
+            print(u'Cannot save data of email: {}'.format(row['seminar']))
     db.session.commit()
 
 

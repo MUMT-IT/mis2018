@@ -487,6 +487,20 @@
                     {% endwith %}
                     {% block content %}{% endblock %}
           </section>
+          {% if config['DEBUG'] %}
+          <footer class="footer">
+                    <div class="content has-text-centered">
+                              <article class="message is-warning">
+                                        <div class="message-header">
+                                                  DEBUG MODE
+                                        </div>
+                                        <div class="message-body">
+                                                  <strong>Template file:</strong> {{ self._TemplateReference__context.name }}
+                                        </div>
+                              </article>
+                    </div>
+          </footer>
+          {% endif %}
           <script src="https://unpkg.com/htmx.org@1.9.12"></script>
           <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
           <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>

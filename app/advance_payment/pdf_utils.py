@@ -738,11 +738,9 @@ def generate_petty_claim(claim, claim_type="1"):
         if str(getattr(item, "category_type", "")).strip() != "6"
     ]
 
-    amount_value = float(
-        getattr(claim, "total_amount", 0) or sum(
-            float(getattr(item, "amount", 0) or 0)
-            for item in display_items
-        )
+    amount_value = sum(
+        (Decimal(str(getattr(item, "amount", 0) or 0)) for item in display_items),
+        Decimal("0.00"),
     )
     amount_numeric = f"{amount_value:,.2f}" if amount_value else "................"
     amount_text = bahttext(amount_value) if amount_value else "........................................................"
@@ -1075,8 +1073,14 @@ def generate_ticket_return(return_detail):
     ticket_date = getattr(ticket, "approved_at", None) or getattr(ticket, "created_at", None)
     request_purpose = getattr(ticket, "borrowing_ticket_purpose", None) or "........................................"
     date_thai = get_thai_month_year(ticket_date.date()) if ticket_date else "........................................"
-    return_items = list(getattr(return_detail, "receipt_items", None) or [])
-    amount_value = float(getattr(return_detail, "amount_spent", 0) or sum(float(item.amount or 0) for item in return_items))
+    return_items = [
+        item for item in (getattr(return_detail, "receipt_items", None) or [])
+        if not getattr(item, "is_cash", False)
+    ]
+    amount_value = sum(
+        (Decimal(str(item.amount or 0)) for item in return_items),
+        Decimal("0.00"),
+    )
     amount_numeric = f"{amount_value:,.2f}" if amount_value else "................"
     amount_text = bahttext(amount_value) if amount_value else "........................................................"
 
@@ -1249,7 +1253,7 @@ def generate_ticket_return(return_detail):
         Spacer(1, 34),
     ])
 
-    head_sign = Table([["", Paragraph(f"({head_name})<br/>{head_position}", return_center)]], colWidths=[170, 285])
+    head_sign = Table([["", Paragraph(f"({head_name})<br/>{head_position}", return_center)]], colWidths=[280, 285])
     head_sign.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
@@ -1257,7 +1261,7 @@ def generate_ticket_return(return_detail):
     ]))
     story.append(head_sign)
     story.append(Spacer(1, 45))
-    approval_sign = Table([[Paragraph("อนุมัติ<br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์", return_center), ""]], colWidths=[170, 285])
+    approval_sign = Table([[Paragraph("อนุมัติ<br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์", return_center), ""]], colWidths=[280, 285])
     approval_sign.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
