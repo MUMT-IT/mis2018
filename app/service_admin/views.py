@@ -2342,20 +2342,13 @@ def create_customer(customer_id=None):
     if form.validate_on_submit():
         if customer_id is None:
             customer = ServiceCustomerInfo()
-        form.populate_obj(customer)
-        if customer_id is None:
-            if current_user.is_authenticated:
-                customer.creator_id = current_user.id
-            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer,
-                                             verify_datetime=arrow.now('Asia/Bangkok').datetime)
-        else:
-            account.email = form.email.data
+        print('f', form.attachments)
         if form.attachments:
             for item in form.attachments:
                 file = request.files.get(f'file_{item.id}')
                 if file and allowed_file(file.filename):
                     mime_type = file.mimetype
-                    file_name = '{}.{}'.format(f'{item.file_name}', file.filename.split('.')[-1])
+                    file_name = '{}.{}'.format(f'{item.file_name.data}', file.filename.split('.')[-1])
                     file_data = file.stream.read()
                     response = s3.put_object(
                         Bucket=S3_BUCKET_NAME,
@@ -2364,6 +2357,14 @@ def create_customer(customer_id=None):
                         ContentType=mime_type
                     )
                     item.file.data = file_name
+        form.populate_obj(customer)
+        if customer_id is None:
+            if current_user.is_authenticated:
+                customer.creator_id = current_user.id
+            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer,
+                                             verify_datetime=arrow.now('Asia/Bangkok').datetime)
+        else:
+            account.email = form.email.data
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
