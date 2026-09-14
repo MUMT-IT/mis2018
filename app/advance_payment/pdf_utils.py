@@ -1073,23 +1073,13 @@ def generate_ticket_return(return_detail):
     department_name = department_name or "........................................"
     ticket_number = getattr(ticket, "number", None) or f"บ.ย.-{getattr(ticket, 'id', '')}"
     ticket_date = getattr(ticket, "approved_at", None) or getattr(ticket, "created_at", None)
-    aip_ref_no = getattr(ticket, "aip_ref_no", None) or ticket_number
     request_purpose = getattr(ticket, "borrowing_ticket_purpose", None) or "........................................"
-    requester_name = getattr(ticket, "borrower_name", None) or getattr(borrower, "name", None) or "........................................"
-    requester_position = getattr(borrower, "position", None) or "........................................"
     date_thai = get_thai_month_year(ticket_date.date()) if ticket_date else "........................................"
     return_items = list(getattr(return_detail, "receipt_items", None) or [])
     amount_value = float(getattr(return_detail, "amount_spent", 0) or sum(float(item.amount or 0) for item in return_items))
     amount_numeric = f"{amount_value:,.2f}" if amount_value else "................"
     amount_text = bahttext(amount_value) if amount_value else "........................................................"
 
-    bank_account_info = _get_bank_account_info_for_account_number(getattr(ticket, "account_number", None))
-    account_number = getattr(ticket, "account_number", None) or "...................................."
-    account_name = (
-        bank_account_info.thai_name
-        if bank_account_info and bank_account_info.thai_name
-        else "...................................."
-    )
     fiscal_year_label = _format_fiscal_year_for_pdf(getattr(return_detail, "fiscal_year", None))
     reference_number = getattr(ticket, "aip_ref_no", None) or getattr(return_detail, "reference_number", None) or "                 "
     reference_date = getattr(ticket, "aip_ref_date", None) or getattr(return_detail, "reference_date", None) or "                 "
