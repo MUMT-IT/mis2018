@@ -630,7 +630,9 @@ class StaffLeaveApprover(db.Model):
         return self.account.personal_info.fullname
 
     def __str__(self):
-        return "{}->{}".format(self.account.email, self.requester.email)
+        approver = self.account.email if self.account else self.approver_account_id
+        requester = self.requester.email if self.requester else self.staff_account_id
+        return "{}->{}".format(approver, requester)
 
 
 class StaffLeaveApproval(db.Model):

@@ -2458,7 +2458,7 @@ def update_approver_gsheet():
             ap2 = StaffLeaveApprover.query.filter_by(staff_account_id=account.id,
                                                      approver_account_id=approver2.id).first()
             if not ap2:
-                ap2 = StaffLeaveApprover(requester=account, approver=approver2)
+                ap2 = StaffLeaveApprover(requester=account, account=approver2)
                 db.session.add(ap2)
         db.session.commit()
 
