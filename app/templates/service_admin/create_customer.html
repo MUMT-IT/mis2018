@@ -211,6 +211,14 @@
                                                         </span>
                                                         <span class="file-name">กรุณาอัปโหลดไฟล์</span>
                                                     </label>
+                                                    <a class="button is-danger is-outlined"
+                                                       hx-delete="{{ url_for('service_admin.remove_attachment',
+                                                       name=item_form.name) }}"
+                                                       hx-target="closest .attachment-item"
+                                                       hx-swap="outerHTML"
+                                                    >
+                                                        <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
