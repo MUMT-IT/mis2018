@@ -242,7 +242,11 @@
 <!-- Section ตารางแสดงรายการเบิกเงินสดย่อย / ใบเสร็จหลักฐาน -->
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
   <h3 class="h5 fw-bold mb-4">รายการใบเสร็จหลักฐานที่แนบมา</h3>
-  {% if claim_detail.items %}
+  {% set visible_items = claim_detail.items %}
+  {% if session.get('user_role') == 'finance' %}
+    {% set visible_items = visible_items|rejectattr('category_type', 'equalto', 6)|list %}
+  {% endif %}
+  {% if visible_items %}
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
@@ -260,7 +264,7 @@
             </tr>
             </thead>
             <tbody>
-            {% for item in claim_detail.items %}
+            {% for item in visible_items %}
                 {% set proof_file = item.proof_files[0] if item.proof_files else None %}
                 <tr>
                 <td class="fw-bold text-muted">
