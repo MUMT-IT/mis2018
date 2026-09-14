@@ -1,0 +1,13 @@
+{% macro last_edit(records) -%}
+  {% set edit = finance_last_edit(records) %}
+  {% if edit %}
+    <div class="small text-muted my-2 finance-last-edit">
+      {% if edit.edited_at %}
+        <span>แก้ไขล่าสุด: {{ edit.edited_at|thai_date }} {{ edit.edited_at.strftime('%H:%M:%S') }}</span>
+        <span class="d-inline-block">โดย {{ edit.editor_name or 'ไม่พบชื่อเจ้าหน้าที่' }}</span>
+      {% else %}
+        <span> </span>
+      {% endif %}
+    </div>
+  {% endif %}
+{%- endmacro %}

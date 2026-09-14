@@ -1,9 +1,17 @@
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import Boolean, Column, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
-from sqlalchemy.orm import object_session, relationship
+from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, text
+from flask import g, has_request_context
+from sqlalchemy import event
+from sqlalchemy.orm import Session, declared_attr, object_session, relationship
 from app.main import db
 from app.staff.models import StaffAccount
+
+
+def _current_fiscal_year():
+    today = datetime.now().date()
+    return today.year + 1 if today.month >= 10 else today.year
 
 
 def _staff_name(staff):
@@ -28,8 +36,10 @@ def _staff_org(staff):
 
 def _staff_position(staff):
     personal_info = getattr(staff, "personal_info", None)
-    job_position = getattr(personal_info, "job_position", None)
-    return getattr(job_position, "position", None)
+    return (
+        getattr(personal_info, "position", None)
+        or getattr(getattr(personal_info, "job_position", None), "position", None)
+    )
 
 
 def _staff_role(staff):
@@ -95,11 +105,39 @@ def _query_many_to_many_list(parent, association_table, parent_fk_name, model):
     )
 
 
-class CashAdvanceBorrowingTicket(db.Model):
+class FinanceEditMixin:
+    """Latest finance edit, persisted in the same transaction as the change."""
+
+    last_edited_at = Column(DateTime, nullable=True)
+
+    @declared_attr
+    def last_edited_by_id(cls):
+        return Column(Integer, ForeignKey("staff_account.id"), nullable=True)
+
+
+@event.listens_for(Session, "before_flush")
+def _stamp_finance_edits(session, flush_context, instances):
+    if not has_request_context():
+        return
+    actor_id = getattr(g, "advance_payment_finance_actor_id", None)
+    if actor_id is None:
+        return
+    edited_at = datetime.now()
+    for record in set(session.new).union(session.dirty):
+        if not isinstance(record, FinanceEditMixin) or record in session.deleted:
+            continue
+        if record in session.new or session.is_modified(record, include_collections=True):
+            record.last_edited_at = edited_at
+            record.last_edited_by_id = actor_id
+
+
+class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
 
     id = Column(Integer, primary_key=True)
     number = Column(String, nullable=True)
+    borrowing_approval_ref_no = Column(String(255), nullable=True)
+    borrowing_approval_date = Column(Date, nullable=True)
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     borrower_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     status = Column(String(64), nullable=False, default="กำลังส่งคำขอ")
@@ -230,7 +268,7 @@ document_return_association = Table(
 )
 
 
-class Document(db.Model):
+class Document(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_documents"
 
     id = Column(Integer, primary_key=True)
@@ -239,7 +277,64 @@ class Document(db.Model):
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
 
-class ReturnDetail(db.Model):
+class ClosingDocumentRecordMixin(FinanceEditMixin):
+    """Current association and history come from links, never copied document names."""
+
+    @declared_attr
+    def closing_links(cls):
+        return relationship(
+            "ClosingDocumentLink",
+            foreign_keys="ClosingDocumentLink." + cls._closing_fk,
+            back_populates=cls._closing_record,
+            order_by="ClosingDocumentLink.id",
+        )
+
+    @property
+    def closing_document(self):
+        return next((link.document for link in self.closing_links
+                     if link.is_active and link.document.is_active is not False), None)
+
+    @closing_document.setter
+    def closing_document(self, document):
+        if document is not None and document.is_active is False:
+            raise ValueError("Cannot attach a record to a cancelled closing document")
+        if self.closing_document is document:
+            return
+        for link in self.closing_links:
+            link.is_active = False
+        session = object_session(self)
+        if session is not None:
+            session.flush()  # Release the unique active association before inserting.
+        if document is not None:
+            link = next((link for link in self.closing_links if link.document is document), None)
+            if link is None:
+                self.closing_links.append(ClosingDocumentLink(document=document, is_active=True))
+            else:
+                link.is_active = True
+
+    @property
+    def closing_document_id(self):
+        document = self.closing_document
+        return document.id if document else None
+
+    @property
+    def closing_document_name(self):
+        document = self.closing_document
+        return document.document_number if document else None
+
+    @property
+    def historical_closing_documents(self):
+        return [link.document for link in self.closing_links
+                if not link.is_active or link.document.is_active is False]
+
+    @property
+    def old_document_number(self):
+        return ", ".join(doc.document_number for doc in self.historical_closing_documents)
+
+
+class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
+    _closing_fk = "ticket_return_id"
+    _closing_record = "ticket_return"
     __tablename__ = "cash_advance_return_details" # use cash_advance_payment_receipt_detail
 
     id = Column(Integer, primary_key=True)
@@ -247,10 +342,17 @@ class ReturnDetail(db.Model):
     amount_spent = Column(Numeric(12, 2), nullable=False, default=0)
     proof_reference = Column(String(255), nullable=False, default="")
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
-    old_closing_document_name = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     rejection_comment = Column(String(4000), nullable=True)
-    closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
+    reference_number = Column(String(255), nullable=True)
+    reference_date = Column(Date, nullable=True)
+    product_code_id = Column(String(12), ForeignKey("product_codes.id"), nullable=True)
+    cost_center_id = Column(String(12), ForeignKey("cost_centers.id"), nullable=True)
+    iocode_id = Column(String(16), ForeignKey("iocodes.id"), nullable=True)
+    fiscal_year = Column(Integer, nullable=False, default=_current_fiscal_year)
+    product_code = relationship("ProductCode")
+    cost_center = relationship("CostCenter")
+    iocode = relationship("IOCode")
 
     @property
     def borrowing_ticket(self):
@@ -268,32 +370,22 @@ class ReturnDetail(db.Model):
         return _query_related_list(self, ReturnReceiptItem, "return_detail_id")
 
     @property
-    def closing_document(self):
-        cached_document = getattr(self, "_closing_document", None)
-        if cached_document is not None:
-            return cached_document
-        return _session_get(object_session(self), ClosingDocument, self.closing_document_id)
-
-    @closing_document.setter
-    def closing_document(self, value):
-        self._closing_document = value
-
-    @property
-    def closing_document_name(self):
-        if self.closing_document is not None:
-            return self.closing_document.document_number
-        return None
-
-    @property
-    def old_document_number(self):
-        return self.old_closing_document_name
+    def closing_amount(self):
+        """Amount eligible for a closing document, excluding cash returns."""
+        items = self.receipt_items
+        if not items:
+            return Decimal(str(self.amount_spent or 0))
+        return sum(
+            (Decimal(str(item.amount or 0)) for item in items if not item.is_cash),
+            Decimal("0"),
+        )
 
     @property
     def documents(self):
         return _query_many_to_many_list(self, document_return_association, "return_id", Document)
 
 
-class ReturnReceiptItem(db.Model):
+class ReturnReceiptItem(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_receipt_items"
 
     id = Column(Integer, primary_key=True)
@@ -303,13 +395,14 @@ class ReturnReceiptItem(db.Model):
     description = Column(String(255), nullable=False, default="")
     amount = Column(Numeric(12, 2), nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
+    is_cash = Column(Boolean, nullable=False, default=False, server_default=text("false"))
 
     @property
     def proof_files(self):
         return _query_related_list(self, ReturnProofFile, "return_receipt_item_id")
 
 
-class ReturnProofFile(db.Model):
+class ReturnProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_proof_files"
 
     id = Column(Integer, primary_key=True)
@@ -331,7 +424,9 @@ class ReturnProofFile(db.Model):
         self._receipt_item = value
 
 
-class ParcelReturnDetail(db.Model):
+class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
+    _closing_fk = "parcel_return_id"
+    _closing_record = "parcel_return"
     __tablename__ = "cash_mng_parcel_return_details"
 
     id = Column(Integer, primary_key=True)
@@ -342,8 +437,6 @@ class ParcelReturnDetail(db.Model):
     sent_date = Column(Date, nullable=False)
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
-    closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
-    old_closing_document_name = Column(String(255), nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
 
     @property
@@ -368,40 +461,62 @@ class ParcelReturnDetail(db.Model):
     def fund_request(self, value):
         self._fund_request = value
 
-    @property
-    def closing_document(self):
-        cached_document = getattr(self, "_closing_document", None)
-        if cached_document is not None:
-            return cached_document
-        return _session_get(object_session(self), ClosingDocument, self.closing_document_id)
 
-    @closing_document.setter
-    def closing_document(self, value):
-        self._closing_document = value
-
-    @property
-    def closing_document_name(self):
-        if self.closing_document is not None:
-            return self.closing_document.document_number
-        return None
-
-    @property
-    def old_document_number(self):
-        return self.old_closing_document_name
-
-
-class ClosingDocument(db.Model):
+class ClosingDocument(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_closing_documents"
 
     id = Column(Integer, primary_key=True)
     document_number = Column(String(255), nullable=False, unique=True)
     filing_date = Column(Date, nullable=False)
     total_amount = Column(Numeric(12, 2), nullable=False, default=0)
-    status = Column(String(32), nullable=False, default="ใช้งานอยู่")
+    is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
+    links = relationship("ClosingDocumentLink", back_populates="document", order_by="ClosingDocumentLink.id")
 
-class PettyCashSetting(db.Model):
+    @property
+    def is_settled(self):
+        records = [link.record for link in self.links if link.is_active]
+        return self.is_active and bool(records) and all(
+            record.status in ("ล้างลูกหนี้เงินยืม", "เสร็จสิ้นกระบวนการ") for record in records
+        )
+
+
+class ClosingDocumentLink(FinanceEditMixin, db.Model):
+    __tablename__ = "cash_mng_closing_document_links"
+    __table_args__ = (
+        CheckConstraint(
+            "(CASE WHEN ticket_return_id IS NOT NULL THEN 1 ELSE 0 END + "
+            "CASE WHEN parcel_return_id IS NOT NULL THEN 1 ELSE 0 END + "
+            "CASE WHEN claim_id IS NOT NULL THEN 1 ELSE 0 END) = 1",
+            name="ck_closing_link_one_record",
+        ),
+        *tuple(constraint for field in ("ticket_return_id", "parcel_return_id", "claim_id")
+               for constraint in (
+                   UniqueConstraint("document_id", field, name="uq_closing_link_doc_" + field),
+                   Index("uq_closing_link_active_" + field, field, unique=True,
+                         postgresql_where=text("is_active"), sqlite_where=text("is_active = 1")),
+               )),
+    )
+
+    id = Column(Integer, primary_key=True)
+    document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=False, index=True)
+    ticket_return_id = Column(Integer, ForeignKey("cash_advance_return_details.id"), nullable=True)
+    parcel_return_id = Column(Integer, ForeignKey("cash_mng_parcel_return_details.id"), nullable=True)
+    claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    document = relationship("ClosingDocument", back_populates="links")
+    ticket_return = relationship("ReturnDetail", back_populates="closing_links")
+    parcel_return = relationship("ParcelReturnDetail", back_populates="closing_links")
+    claim = relationship("PettyCashClaimDetail", back_populates="closing_links")
+
+    @property
+    def record(self):
+        return self.ticket_return or self.parcel_return or self.claim
+
+
+class PettyCashSetting(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_settings"
     __table_args__ = (
         UniqueConstraint(
@@ -439,7 +554,21 @@ class PettyCashSetting(db.Model):
     @property
     def account_number(self):
         account = self.bank_account_info
-        return getattr(account, "account_number", None)
+        if account is not None:
+            return getattr(account, "account_number", None)
+
+        # Keep legacy settings usable when the FK was not backfilled.
+        session = object_session(self)
+        if session is not None and self.org_id:
+            account = (
+                session.query(BankAccountInfo)
+                .filter_by(org_id=self.org_id, record_type="petty_cash")
+                .order_by(BankAccountInfo.id.asc())
+                .first()
+            )
+            if account is not None:
+                return account.account_number
+        return None
 
     @property
     def bank_account_info(self):
@@ -453,7 +582,7 @@ class PettyCashSetting(db.Model):
         self._bank_account_info = value
 
 
-class BankAccountInfo(db.Model):
+class BankAccountInfo(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_bank_account_infos"
     __table_args__ = (
         UniqueConstraint(
@@ -461,20 +590,31 @@ class BankAccountInfo(db.Model):
             "thai_name",
             name="uq_cash_mng_bank_account_infos_record_type_thai_name",
         ),
+        UniqueConstraint(
+            "account_number",
+            name="uq_cash_mng_bank_account_infos_account_number",
+        ),
     )
 
     id = Column(Integer, primary_key=True)
     record_type = Column(String(32), nullable=False)
+    org_id = Column(Integer, ForeignKey("orgs.id"), nullable=True, index=True)
     thai_name = Column(String(255), nullable=False)
-    account_number = Column(String(100), nullable=False)
-    created_at = Column(DateTime, nullable=False, server_default=func.now()) # editable
+    account_number = Column(String(10), nullable=False)
+    closed_at = Column(DateTime, nullable=True)
+
+    @property
+    def org(self):
+        from app.models import Org
+        return _session_get(object_session(self), Org, self.org_id)
 
 
-class FundRequest(db.Model):
+class FundRequest(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_requests"
 
     id = Column(Integer, primary_key=True)
     requester_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
+    creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
     org_id = Column(Integer, ForeignKey("orgs.id"), nullable=True, index=True)
     borrowing_ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
     form_type = Column(String(10), nullable=False)
@@ -482,7 +622,7 @@ class FundRequest(db.Model):
     request_date = Column(Date, nullable=False)
     receive_interest = Column(Date, nullable=True)
     withdraw_intrest = Column(Date, nullable=True)
-    status = Column(String(64), nullable=False, default="กำลังดำเนินการ")
+    status = Column(String(64), nullable=False, default="อนุมัติแล้ว")
     amount = Column(Numeric(12, 2), nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     purpose = Column(String(1000), nullable=True)
@@ -531,6 +671,10 @@ class FundRequest(db.Model):
         return getattr(requester, "position", None)
 
     @property
+    def creator(self):
+        return _session_get(object_session(self), StaffAccount, self.creator_id)
+
+    @property
     def account_number(self):
         ticket = self.borrowing_ticket
         if ticket and getattr(ticket, "account_number", None):
@@ -564,7 +708,7 @@ class FundRequest(db.Model):
         return self.withdraw_intrest
 
 
-class FundRequestItem(db.Model):
+class FundRequestItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_request_items"
 
     id = Column(Integer, primary_key=True)
@@ -583,7 +727,9 @@ document_petty_claim_association = Table(
 )
 
 
-class PettyCashClaimDetail(db.Model):
+class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
+    _closing_fk = "claim_id"
+    _closing_record = "claim"
     __tablename__ = "petty_cash_claim_details" # use petty_cash_payment_receipt_detail
 
     id = Column(Integer, primary_key=True)
@@ -595,9 +741,16 @@ class PettyCashClaimDetail(db.Model):
     total_amount = Column(Numeric(12, 2), nullable=False, default=0)
     rejection_comment = Column(String(4000), nullable=True)
     transferred_at = Column(Date, nullable=True)
-    closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
-    old_closing_document_name = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
+    reference_number = Column(String(255), nullable=True)
+    reference_date = Column(Date, nullable=True)
+    product_code_id = Column(String(12), ForeignKey("product_codes.id"), nullable=True)
+    cost_center_id = Column(String(12), ForeignKey("cost_centers.id"), nullable=True)
+    iocode_id = Column(String(16), ForeignKey("iocodes.id"), nullable=True)
+    fiscal_year = Column(Integer, nullable=False, default=_current_fiscal_year)
+    product_code = relationship("ProductCode")
+    cost_center = relationship("CostCenter")
+    iocode = relationship("IOCode")
 
     @property
     def fund_request(self):
@@ -611,17 +764,6 @@ class PettyCashClaimDetail(db.Model):
         self._fund_request = value
 
     @property
-    def closing_document(self):
-        cached_document = getattr(self, "_closing_document", None)
-        if cached_document is not None:
-            return cached_document
-        return _session_get(object_session(self), ClosingDocument, self.closing_document_id)
-
-    @closing_document.setter
-    def closing_document(self, value):
-        self._closing_document = value
-
-    @property
     def items(self):
         return _query_related_list(self, PettyCashClaimItem, "claim_id")
 
@@ -630,7 +772,7 @@ class PettyCashClaimDetail(db.Model):
         return _query_many_to_many_list(self, document_petty_claim_association, "claim_id", Document)
 
 
-class PettyCashClaimItem(db.Model):
+class PettyCashClaimItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_items"
 
     id = Column(Integer, primary_key=True)
@@ -646,7 +788,7 @@ class PettyCashClaimItem(db.Model):
         return _query_related_list(self, PettyCashClaimProofFile, "claim_item_id")
 
 
-class PettyCashClaimProofFile(db.Model):
+class PettyCashClaimProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_proof_files"
 
     id = Column(Integer, primary_key=True)

@@ -1,5 +1,7 @@
 {% extends "advance_payment/base.html" %}
 
+{% from "advance_payment/_finance_last_edit.html" import last_edit with context %}
+
 {% block title %}ข้อมูลบัญชีธนาคาร | ระบบเงินสดย่อยและเงินยืม{% endblock %}
 
 {% block content %}
@@ -35,24 +37,26 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="edit_mode" id="editModeInput" value="{% if show_editor %}1{% else %}0{% endif %}">
 
+      {{ last_edit(records) }}
       <div class="table-responsive mb-3">
         <table class="table table-hover align-middle border mb-0">
           <thead class="table-light small fw-bold">
             <tr>
               <th class="text-center" style="width: 160px;">ประเภท</th>
+              <th style="width: 260px;">หน่วยงาน</th>
               <th>ชื่อภาษาไทย</th>
-              <th style="width: 180px;">วันที่เปิดบัญชี</th>
+              <th style="width: 180px;">วันที่ปิดบัญชี</th>
               <th class="text-end" style="width: 220px;">เลขที่บัญชี</th>
             </tr>
           </thead>
           <tbody id="bankAccountsBody">
             {% for row in edit_rows %}
-            {% if row.created_at %}
-              {% set created_at_value = row.created_at[:10] if row.created_at is string else row.created_at.strftime('%Y-%m-%d') %}
-              {% set created_at_label = row.created_at[:10] if row.created_at is string else row.created_at.strftime('%d/%m/%Y') %}
+            {% if row.closed_at %}
+              {% set closed_at_value = row.closed_at[:10] if row.closed_at is string else row.closed_at.strftime('%Y-%m-%d') %}
+              {% set closed_at_label = row.closed_at[:10] if row.closed_at is string else row.closed_at.strftime('%d/%m/%Y') %}
             {% else %}
-              {% set created_at_value = '' %}
-              {% set created_at_label = '-' %}
+              {% set closed_at_value = '' %}
+              {% set closed_at_label = '-' %}
             {% endif %}
             <tr data-record-id="{{ row.id }}">
               <td class="text-center">
@@ -68,22 +72,25 @@
                 </select>
               </td>
               <td>
-                <span class="view-mode fw-bold text-dark">{{ row.thai_name }}</span>
-                <select name="thai_name[]" class="form-select form-select-sm edit-mode d-none">
-                  <option value="">เลือกหน่วยงานหรือบุคลากร</option>
-                  {% for option in account_holder_options %}
-                    <option value="{{ option.value }}" {% if row.thai_name == option.value %}selected{% endif %}>{{ option.label }}</option>
+                <select name="org_id[]" class="form-select form-select-sm edit-mode d-none org-id-input">
+                  <option value="">เลือกหน่วยงาน</option>
+                  {% for org in org_options %}
+                    <option value="{{ org.id }}" data-org-name="{{ org.name }}" {% if row.org_id == org.id %}selected{% endif %}>{{ org.name }}</option>
                   {% endfor %}
-                  {% if row.thai_name and row.thai_name not in account_holder_options|map(attribute='value')|list %}<option value="{{ row.thai_name }}" selected>{{ row.thai_name }}</option>{% endif %}
                 </select>
+                <span class="view-mode text-dark">{{ row.org_name or '-' }}</span>
               </td>
               <td>
-                <span class="view-mode text-dark">{{ created_at_label }}</span>
-                <input type="date" name="created_at[]" class="form-control form-control-sm edit-mode d-none" value="{{ created_at_value }}">
+                <span class="view-mode fw-bold text-dark">{{ row.thai_name }}</span>
+                <input type="text" name="thai_name[]" class="form-control form-control-sm edit-mode d-none thai-name-input" value="{{ row.thai_name or '' }}" required>
+              </td>
+              <td>
+                <span class="view-mode text-dark">{{ closed_at_label }}</span>
+                <input type="date" name="closed_at[]" class="form-control form-control-sm edit-mode d-none" value="{{ closed_at_value }}">
               </td>
               <td class="text-end">
                 <span class="view-mode"><code>{{ row.account_number }}</code></span>
-                <input type="text" name="account_number[]" class="form-control form-control-sm text-end edit-mode d-none" value="{{ row.account_number or '' }}" placeholder="123-4-56789-0">
+                <input type="text" name="account_number[]" class="form-control form-control-sm text-end edit-mode d-none account-number-input" value="{{ row.account_number or '' }}" placeholder="1234567890" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" title="เลขที่บัญชีต้องเป็นตัวเลขติดกัน 10 หลัก">
               </td>
             </tr>
             {% endfor %}
@@ -92,7 +99,7 @@
       </div>
 
       <div class="d-flex justify-content-end gap-2">
-        <button type="button" class="btn btn-light fw-bold d-none" id="cancelEditButton" onclick="toggleEditMode()">
+        <button type="button" class="btn btn-light fw-bold d-none" id="cancelEditButton" onclick="cancelBankAccountEdit()">
           ยกเลิก
         </button>
         <button type="submit" class="btn btn-primary px-4 fw-bold d-none" id="saveChangesButton">
@@ -116,19 +123,23 @@
       </select>
     </td>
     <td>
-      <span class="view-mode fw-bold text-dark"></span>
-      <select name="thai_name[]" class="form-select form-select-sm edit-mode d-none">
-        <option value="">เลือกหน่วยงานหรือบุคลากร</option>
-        {% for option in account_holder_options %}<option value="{{ option.value }}">{{ option.label }}</option>{% endfor %}
+      <select name="org_id[]" class="form-select form-select-sm edit-mode d-none org-id-input">
+        <option value="">เลือกหน่วยงาน</option>
+        {% for org in org_options %}<option value="{{ org.id }}" data-org-name="{{ org.name }}">{{ org.name }}</option>{% endfor %}
       </select>
+      <span class="view-mode text-dark"></span>
+    </td>
+    <td>
+      <span class="view-mode fw-bold text-dark"></span>
+      <input type="text" name="thai_name[]" class="form-control form-control-sm edit-mode d-none thai-name-input" required>
     </td>
     <td>
       <span class="view-mode text-dark"></span>
-      <input type="date" name="created_at[]" class="form-control form-control-sm edit-mode d-none">
+      <input type="date" name="closed_at[]" class="form-control form-control-sm edit-mode d-none">
     </td>
     <td class="text-end">
       <span class="view-mode"><code></code></span>
-      <input type="text" name="account_number[]" class="form-control form-control-sm text-end edit-mode d-none" placeholder="123-4-56789-0">
+      <input type="text" name="account_number[]" class="form-control form-control-sm text-end edit-mode d-none account-number-input" placeholder="1234567890" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" title="เลขที่บัญชีต้องเป็นตัวเลขติดกัน 10 หลัก">
     </td>
   </tr>
 </template>
@@ -152,10 +163,24 @@
     document.getElementById('saveChangesButton').classList.toggle('d-none', !enabled);
     document.getElementById('editModeInput').value = enabled ? '1' : '0';
     document.getElementById('editToggleLabel').textContent = enabled ? 'กำลังแก้ไขข้อมูล' : 'แก้ไขข้อมูลบัญชีธนาคาร';
+
+    // Select2 replaces the hidden select visually with a sibling container.
+    // Keep that container in read-only mode as well.
+    document.querySelectorAll('.org-id-input').forEach((select) => {
+      const select2Container = select.nextElementSibling;
+      if (select2Container && select2Container.classList.contains('select2')) {
+        select2Container.classList.toggle('d-none', !enabled);
+      }
+    });
   }
 
   function toggleEditMode() {
     setBankAccountEditMode(!bankAccountEditMode);
+  }
+
+  function cancelBankAccountEdit() {
+    // Reload the read-only data so unsaved edits and newly added rows are discarded.
+    window.location.reload();
   }
 
   function addBankAccountRow() {
@@ -167,11 +192,51 @@
     const tbody = document.getElementById('bankAccountsBody');
     const clone = template.content.cloneNode(true);
     tbody.appendChild(clone);
+    initializeThaiNameSelects(tbody.lastElementChild);
     setBankAccountEditMode(true);
   }
 
+  function initializeThaiNameSelects(container = document) {
+    $(container).find('.org-id-input').each(function() {
+      const select = $(this);
+      if (select.hasClass('select2-hidden-accessible')) return;
+      select.select2({
+        theme: 'bootstrap-5',
+        placeholder: 'พิมพ์เพื่อค้นหาหน่วยงาน...',
+        allowClear: true,
+        width: '100%'
+      });
+      select.on('change', function() {
+        const row = this.closest('tr');
+        const option = this.options[this.selectedIndex];
+        const thaiName = row.querySelector('.thai-name-input');
+        if (thaiName && option && option.dataset.orgName) {
+          thaiName.value = option.dataset.orgName;
+        }
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    initializeThaiNameSelects();
     setBankAccountEditMode(bankAccountEditMode);
+
+    document.getElementById('bankAccountForm').addEventListener('submit', function (event) {
+      const invalidInput = [...this.querySelectorAll('.account-number-input')].find((input) => {
+        return input.value.trim() !== '' && !/^[0-9]{10}$/.test(input.value.trim());
+      });
+
+      if (invalidInput) {
+        event.preventDefault();
+        invalidInput.setCustomValidity('เลขที่บัญชีต้องเป็นตัวเลขติดกัน 10 หลักเท่านั้น เช่น 1234567890');
+        invalidInput.reportValidity();
+        invalidInput.focus();
+      }
+    });
+
+    document.querySelectorAll('.account-number-input').forEach((input) => {
+      input.addEventListener('input', () => input.setCustomValidity(''));
+    });
   });
 </script>
 {% endblock %}

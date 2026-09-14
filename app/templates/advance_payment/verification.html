@@ -32,6 +32,16 @@
         <p class="mb-0 text-dark fw-semibold">{{borrowing_ticket.number}}</p>
     </div></br>
     <div class="row g-3 text-start mb-3">
+      <div class="col-12 col-md-4">
+        <p class="text-muted small mb-1"><strong>เลขที่อว.อนุมัติยืมเงิน</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_ref_no or '-' }}</p>
+      </div>
+      <div class="col-12 col-md-4">
+        <p class="text-muted small mb-1"><strong>วันที่อนุมัติ</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_date|thai_date if borrowing_ticket.borrowing_approval_date else '-' }}</p>
+      </div>
+    </div>
+    <div class="row g-3 text-start mb-3">
       <div class="col-6 col-md-4">
         <p class="text-muted small mb-1"><strong>ผู้ยืม</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrower_name }}</p>
@@ -56,7 +66,7 @@
     <div class="my-4"></div>
     <div class="row g-2 text-start mb-3">
       <div class="col-6 col-md-4">
-        <p class="text-muted small mb-1"><strong>ประกาศที่เกี่ยวข้อง</strong></p>
+        <p class="text-muted small mb-1"><strong>เลขที่อนุมัติในหลักการ</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.aip_ref_no }}</p>
       </div>
       <div class="col-12 col-md-4">
@@ -110,7 +120,6 @@
         </div>
       </div>
     {% endif %}
-    
     {% if session.get("user_role") == "finance" %}
       <div class="my-4"></div>
       {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
@@ -120,16 +129,27 @@
             class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
             data-popup-trigger="true"
             data-popup-title="ทำการใส่เลขที่สัญญา"
-            data-popup-message="โปรดระบุเลขที่สัญญาเพื่ออนุมัติสัญญานี้"
+            data-popup-message="โปรดระบุเลขที่สัญญา เลขที่อว.อนุมัติยืมเงิน และวันที่อนุมัติ"
             data-popup-action="{{ url_for('advance_payment.approve_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
             data-popup-confirm-text="ยืนยันการสร้างสัญญา"
-            data-popup-input-type="number"
+            data-popup-input-type="text"
             data-popup-input-name="number"
-            data-popup-input-placeholder="โปรดระบุเลขที่สัญญาเป็นตัวเลข..."
+            data-popup-input-placeholder="เลขที่บย. เช่น 12/2569"
+            data-popup-extra-fields-template-id="borrowingApprovalFields"
             data-popup-input-required="true"
             data-popup-input-rows="1">
               อนุมัติสัญญา
           </button>
+          <template id="borrowingApprovalFields">
+            <div class="mt-3">
+              <label for="borrowingApprovalRefNo" class="form-label">เลขที่อว.อนุมัติยืมเงิน</label>
+              <input id="borrowingApprovalRefNo" type="text" name="borrowing_approval_ref_no" class="form-control" placeholder="เลขที่อว.อนุมัติยืมเงิน" maxlength="255" required>
+            </div>
+            <div class="mt-3">
+              <label for="borrowingApprovalDate" class="form-label">วันที่อนุมัติ</label>
+              <input id="borrowingApprovalDate" type="date" name="borrowing_approval_date" class="form-control" required>
+            </div>
+          </template>
 
           <button
             type="button"
@@ -172,6 +192,7 @@
           'มียอดคงค้าง': 'มียอดคงค้าง',
           'เคลียร์ยอดแล้ว': 'เคลียร์ยอดแล้ว',
           'เอกสารตั้งฎีกา': 'เคลียร์ยอดแล้ว',
+          'ฎีกาถูกตีกลับจากกองคลัง': 'ฎีกาถูกตีกลับจากกองคลัง',
           'ปฏิเสธ': 'ปฏิเสธ'
         } %}
         {% set current_step = status_step.get(current_status, current_status) %}
@@ -182,10 +203,15 @@
           {% set status_class = 'bg-info text-dark' %}
         {% elif current_status == 'เอกสารตั้งฎีกา' %}
           {% set status_class = 'bg-secondary text-white' %}
+        {% elif current_status == 'ฎีกาถูกตีกลับจากกองคลัง' %}
+          {% set status_class = 'bg-danger text-white' %}
         {% elif current_status in ['ปฏิเสธ', 'เลยกำหนด'] %}
           {% set status_class = 'bg-danger text-white' %}
         {% endif %}
         {% set steps = ['กำลังส่งคำขอ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว'] %}
+        {% if current_step == 'ฎีกาถูกตีกลับจากกองคลัง' %}
+          {% set steps = steps + ['ฎีกาถูกตีกลับจากกองคลัง'] %}
+        {% endif %}
         {% if current_step == 'ปฏิเสธ' %}
           {% set steps = steps + ['ปฏิเสธ'] %}
         {% endif %}
@@ -204,6 +230,13 @@
         </div>
       </div>
     </div>
+    {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
+      <div class="d-flex justify-content-end mt-3">
+        <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-danger" style="border-radius:6px;" target="_blank">
+          <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export PDF
+        </a>
+      </div>
+    {% endif %}
   </section>
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -239,6 +272,7 @@
                 {% elif return_detail.status|lower == 'กำลังตรวจสอบ' %}{% set r_badge = 'bg-warning text-dark' %}{% set r_status = 'กำลังตรวจสอบ' %}
                 {% elif return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
                 {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-secondary text-white' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
+                {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
                 {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
                 {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธ' %}{% endif %}
                 
@@ -484,7 +518,12 @@
                     <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td> 
                     <td></td> 
                     <td></td>
-                    <td>{{ return_detail.closing_document_name if return_detail.closing_document_name else '-' }}</td>
+                    <td>
+                      {{ return_detail.closing_document_name or '-' }}
+                      {% if return_detail.old_document_number %}
+                        <span class="text-muted small d-block">(เลขเก่า: {{ return_detail.old_document_number }})</span>
+                      {% endif %}
+                    </td>
                   </tr>
                 {% endfor %}
               {% else %}
@@ -498,7 +537,12 @@
                   <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td> 
                   <td></td> 
                   <td></td>
-                  <td>{{ return_detail.closing_document_name if return_detail.closing_document_name else '-' }}</td>
+                  <td>
+                      {{ return_detail.closing_document_name or '-' }}
+                      {% if return_detail.old_document_number %}
+                        <span class="text-muted small d-block">(เลขเก่า: {{ return_detail.old_document_number }})</span>
+                      {% endif %}
+                    </td>
                 </tr>
               {% endif %}
             {% endfor %}
@@ -515,7 +559,12 @@
                   <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td>
                   <td></td>
                   <td></td>
-                  <td>-</td>
+                  <td>
+                    {{ pr.closing_document_name or '-' }}
+                    {% if pr.old_document_number %}
+                      <span class="text-muted small d-block">(เลขเก่า: {{ pr.old_document_number }})</span>
+                    {% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             {% endif %}
@@ -526,7 +575,7 @@
       <p class="text-muted mb-0">ยังไม่มีการส่งหลักฐานเอกสารส่งใช้เงินยืมเข้ามาในระบบ</p>
     {% endif %}
   </section>
-  
+
 {% endblock %}
 
 

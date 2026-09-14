@@ -1,0 +1,117 @@
+<div class="modal fade" id="pdfReferenceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-start">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">ข้อมูลสำหรับส่งออก PDF</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+      </div>
+      <form method="post" action="{{ pdf_export_url }}" target="_blank">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          {% if pdf_reference_editable is defined and not pdf_reference_editable %}
+          <p class="text-muted small">เลขที่หนังสือและวันที่หนังสือจะดึงจากสัญญาเงินยืมโดยอัตโนมัติ</p>
+          {% else %}
+          <p class="text-muted small">ระบบจะจำค่าที่บันทึกไว้ และเปิดให้ตรวจสอบหรือแก้ไขได้ทุกครั้งก่อนส่งออก</p>
+          {% endif %}
+          {% if pdf_allow_no_approval_letter %}
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="pdfNoApprovalLetter" name="claim_type" value="2">
+            <label class="form-check-label text-primary fw-bold" for="pdfNoApprovalLetter">สร้างเอกสารเบิกจ่ายกรณีไม่มีหนังสืออนุมัติ</label>
+          </div>
+          {% endif %}
+          {% set fiscal_year_suggested = ((document.fiscal_year if document.fiscal_year >= 2400 else document.fiscal_year + 543) if document.fiscal_year else ((pdf_fiscal_year_default + 543) if pdf_fiscal_year_default else '')) %}
+          <div class="mb-3">
+            <label class="form-label fw-bold">ปีงบประมาณ</label>
+            <input
+              type="number"
+              class="form-control"
+              name="fiscal_year"
+              id="pdfFiscalYear"
+              value="{{ fiscal_year_suggested }}"
+              required
+            >
+          </div>
+          {% if pdf_reference_editable is not defined or pdf_reference_editable %}
+          <div class="mb-3">
+            <label class="form-label fw-bold">เลขที่หนังสือ</label>
+            <input class="form-control" name="reference_number" required value="{{ document.reference_number or '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">วันที่หนังสือ</label>
+            <input type="date" class="form-control" name="reference_date" required value="{{ document.reference_date.strftime('%Y-%m-%d') if document.reference_date else '' }}">
+          </div>
+          {% endif %}
+          <div class="mb-3">
+            <label class="form-label fw-bold">ผลผลิต</label>
+            <select class="form-select searchable-select" name="product_code_id" required>
+              <option value="">เลือกผลผลิต</option>
+              {% for item in pdf_reference_options.product_codes %}
+              <option value="{{ item.id }}" {% if document.product_code_id == item.id %}selected{% endif %}>{{ item.id }} - {{ item.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">รหัสศูนย์ต้นทุน</label>
+            <select class="form-select searchable-select" name="cost_center_id" required>
+              <option value="">เลือกศูนย์ต้นทุน</option>
+              {% for item in pdf_reference_options.cost_centers %}
+              <option value="{{ item.id }}" {% if document.cost_center_id == item.id %}selected{% endif %}>{{ item.id }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+<!--            <label class="form-label fw-bold">รหัสใบสั่งงานภายใน</label>-->
+            <label class="form-label fw-bold">เลือกโครงการ</label>
+            <select class="form-select searchable-select" name="iocode_id" required>
+              <option value="">เลือก IO Code</option>
+              {% for item in pdf_reference_options.iocodes %}
+              <option value="{{ item.id }}" {% if document.iocode_id == item.id %}selected{% endif %}>{{ item.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-dark fw-bold">บันทึกและดาวน์โหลด PDF</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('pdfReferenceModal');
+    if (!modal) return;
+
+    const noApprovalLetter = modal.querySelector('#pdfNoApprovalLetter');
+    if (noApprovalLetter) {
+      const updateReferenceFields = function () {
+        ['reference_number', 'reference_date'].forEach(function (name) {
+          const input = modal.querySelector('[name="' + name + '"]');
+          input.required = !noApprovalLetter.checked;
+          input.disabled = noApprovalLetter.checked;
+          input.closest('.mb-3').hidden = noApprovalLetter.checked;
+        });
+      };
+      noApprovalLetter.addEventListener('change', updateReferenceFields);
+      updateReferenceFields();
+    }
+
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+      $(modal).find('.searchable-select').select2({
+        theme: 'bootstrap-5',
+        placeholder: 'พิมพ์เพื่อค้นหาหรือเลือกข้อมูล...',
+        allowClear: true,
+        width: '100%',
+        dropdownParent: $(modal)
+      });
+    }
+
+    const fiscalYearInput = modal.querySelector('#pdfFiscalYear');
+    if (fiscalYearInput && !fiscalYearInput.value) {
+      const today = new Date();
+      const currentFiscalYear = today.getMonth() >= 9 ? today.getFullYear() + 1 : today.getFullYear();
+      fiscalYearInput.value = currentFiscalYear + 543;
+    }
+
+  });
+</script>

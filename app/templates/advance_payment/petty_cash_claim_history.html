@@ -9,20 +9,98 @@
   <p class="text-muted mb-0">รวบรวม ตรวจสอบ ค้นหา และคัดกรองข้อมูลประวัติเอกสารขอเบิกเงินสดย่อยและรายการส่งคืนพัสดุที่ผูกกับเงินสดย่อยในระบบ</p>
 </header>
 
+<section class="mb-4">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <a href="{{ url_for('advance_payment.petty_cash_claim_history', status='รอตรวจสอบ') }}" class="text-decoration-none text-dark d-block h-100">
+        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card">
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>รายการที่รอการตรวจสอบ</span>
+            <i class="bi bi-clock-history text-warning"></i>
+          </div>
+          <div class="fs-2 fw-bold text-warning mt-2">{{ pending_review_count or 0 }}</div>
+          <span class="text-primary small mt-1">
+            <i class="bi bi-search"></i> คลิกเพื่อกรองรายการ
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-6">
+      <a href="{{ url_for('advance_payment.petty_cash_claim_history', status='ผ่านการตรวจสอบ') }}" class="text-decoration-none text-dark d-block h-100">
+        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card">
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>รอการตั้งฎีกา</span>
+            <i class="bi bi-file-earmark-check text-primary"></i>
+          </div>
+          <div class="fs-2 fw-bold text-primary mt-2">{{ proofed_count or 0 }}</div>
+          <span class="text-primary small mt-1">
+            <i class="bi bi-search"></i> คลิกเพื่อกรองรายการ
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-6">
+      <a href="{{ url_for('advance_payment.petty_cash_claim_history', status='ผ่านการตรวจสอบ') }}" class="text-decoration-none text-dark d-block h-100">
+        <div class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card">
+          <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+            <span>รายการเงินสดย่อยที่รอการโอนคืน</span>
+            <i class="bi bi-arrow-repeat text-info"></i>
+          </div>
+          <div class="fs-2 fw-bold text-info mt-2">{{ claim_proofed_count or 0 }}</div>
+          <span class="text-primary small mt-1">
+            <i class="bi bi-search"></i> คลิกเพื่อกรองรายการ
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <div class="col-md-6">
+      <div
+        class="card border rounded-4 shadow-sm bg-white p-3 h-100 clickable-card"
+        data-bs-toggle="modal"
+        data-bs-target="#interestTrackerModal"
+        style="cursor: pointer;"
+      >
+        <div class="text-muted small fw-bold text-uppercase d-flex justify-content-between">
+          <span>หน่วยงานค้างส่งดอกเบี้ย</span>
+          <i class="bi bi-bank text-danger"></i>
+        </div>
+        <div class="fs-2 fw-bold text-danger mt-2">{{ pending_interest_count or 0 }}</div>
+        <span class="text-primary small mt-1">
+          <i class="bi bi-search"></i> คลิกเพื่อดูรายละเอียด
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Section กรองและค้นหาข้อมูล -->
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4">
   <div class="row g-3">
     <!-- 1. ช่องค้นหา -->
-    <div class="col-md-5">
+    <div class="col-md-4">
       <label for="searchQuery" class="form-label fw-bold text-secondary small">ค้นหาข้อความ</label>
       <div class="input-group">
         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-        <input type="text" id="searchQuery" class="form-control border-start-0 ps-0" placeholder="ค้นหา เลขที่รายการ/ชื่อ/ผู้ยื่น/ฎีกา..." onkeyup="filterHistoryTable()" style="border-radius: 0 6px 6px 0;">
+        <input type="text" id="searchQuery" class="form-control border-start-0 ps-0" placeholder="ค้นหา เลขที่รายการ, ฎีกาปัจจุบัน/เก่า, หน่วยงาน, ชื่อบัญชี..." onkeyup="filterHistoryTable()" style="border-radius: 0 6px 6px 0;">
       </div>
     </div>
 
-    <!-- 2. Filter กรองตามสถานะ -->
+    <!-- 1.1 Filter กรองตามหน่วยงาน -->
     <div class="col-md-3">
+      <label for="orgFilter" class="form-label fw-bold text-secondary small">กรองตามหน่วยงาน</label>
+      <select id="orgFilter" class="form-select style-select" onchange="filterHistoryTable()">
+        <option value="all">ทุกหน่วยงาน</option>
+        {% for org in org_options %}
+          <option value="{{ org.id }}">{{ org.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- 2. Filter กรองตามสถานะ -->
+    <div class="col-md-2">
       <label for="statusFilter" class="form-label fw-bold text-secondary small">กรองตามสถานะ</label>
       <select id="statusFilter" class="form-select style-select" onchange="filterHistoryTable()">
         <option value="all">แสดงสถานะทั้งหมด</option>
@@ -37,7 +115,7 @@
     </div>
 
     <!-- 3. จัดเรียงข้อมูล -->
-    <div class="col-md-4">
+    <div class="col-md-3">
       <label for="sortOrder" class="form-label fw-bold text-secondary small">จัดเรียงตามลำดับ</label>
       <select id="sortOrder" class="form-select style-select" onchange="sortHistoryTable()">
         <option value="created_desc">วันที่สร้างรายการล่าสุด → เก่าสุด</option>
@@ -83,8 +161,8 @@
         <table class="table table-hover align-middle mb-0" id="historyTable">
           <thead class="table-light">
             <tr>
-              <th scope="col" class="small fw-bold text-secondary text-start ps-3" style="width: 140px;">เลขที่เอกสาร / บย.</th>
-              <th scope="col" class="small fw-bold text-secondary">ชื่อผู้ประสานงาน / ผู้เบิก</th>
+              <th scope="col" class="small fw-bold text-secondary text-start ps-3" style="width: 140px;">เลขที่เอกสารเบิก</th>
+              <th scope="col" class="small fw-bold text-secondary">ชื่อผู้เบิก</th>
               <th scope="col" class="small fw-bold text-secondary text-center">ประเภทรายการ</th>
               <th scope="col" class="small fw-bold text-secondary text-end">จำนวนเงิน</th>
               <th scope="col" class="small fw-bold text-secondary text-center">วันที่สร้างรายการ</th>
@@ -96,13 +174,17 @@
           <tbody id="historyTableBody">
             {% for record in records %}
             <tr class="record-row align-top"
-                data-ticket="{{ record.borrowing_ticket_name or '' }}"
+                data-ticket="{{ record.ticket_number or '' }}"
                 data-borrower="{{ record.borrower_name or '' }}"
+                data-org-id="{{ record.org_id or '' }}"
+                data-org="{{ record.org_name or '' }}"
+                data-account-name="{{ record.account_name or '' }}"
+                data-account-number="{{ record.account_number or '' }}"
                 data-status="{{ record.status or '' }}"
                 data-type="{{ record.record_type or 'petty_cash' }}"
                 data-submitdate="{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else '-' }}"
                 data-เอกสารตั้งฎีกาdate="{{ record.เอกสารตั้งฎีกา_at.strftime('%Y-%m-%d') if record.เอกสารตั้งฎีกา_at else '-' }}"
-                data-closingdoc="{{ record.closing_document_name or '-' }}"
+                data-closingdoc="{{ record.closing_document_name or '-' }} {{ record.old_document_number or '' }}"
                 data-amount="{{ record.total_amount or record.amount_spent or 0 }}">
               
               <!-- 1. เลขที่เอกสาร / บย. -->
@@ -231,10 +313,6 @@
           </tbody>
         </table>
       </div>
-
-      <div id="noResults" class="p-4 text-center text-muted d-none">
-        ไม่พบข้อมูลประวัติที่ตรงกับเงื่อนไขการค้นหา
-      </div>
     </div>
   </div>
 </section>
@@ -273,6 +351,7 @@
 
   function filterHistoryTable() {
     const q = document.getElementById("searchQuery").value.toLowerCase().trim();
+    const org = document.getElementById("orgFilter").value;
     const status = document.getElementById("statusFilter").value.toLowerCase();
     const rows = document.querySelectorAll(".record-row");
     let visibleCount = 0;
@@ -280,6 +359,10 @@
     rows.forEach(row => {
       const ticket = row.getAttribute("data-ticket").toLowerCase();
       const borrower = row.getAttribute("data-borrower").toLowerCase();
+      const orgId = (row.getAttribute("data-org-id") || "").toLowerCase();
+      const orgName = (row.getAttribute("data-org") || "").toLowerCase();
+      const accountName = (row.getAttribute("data-account-name") || "").toLowerCase();
+      const accountNumber = (row.getAttribute("data-account-number") || "").toLowerCase();
       const closingDoc = row.getAttribute("data-closingdoc").toLowerCase();
       const rType = (row.getAttribute("data-type") || "petty_cash").toLowerCase();
       
@@ -297,10 +380,11 @@
 
       // ตรวจสอบเงื่อนไขการกรอง (Tab + Search + Status)
       const matchesTab = (currentSystemTab === "all") || (rType === currentSystemTab);
-      const matchesSearch = ticket.includes(q) || borrower.includes(q) || closingDoc.includes(q);
+      const matchesSearch = ticket.includes(q) || borrower.includes(q) || closingDoc.includes(q) || orgName.includes(q) || accountName.includes(q) || accountNumber.includes(q);
+      const matchesOrg = (org === "all") || (orgId === org);
       const matchesStatus = (status === "all") || (rStatus.toLowerCase() === status);
 
-      if (matchesTab && matchesSearch && matchesStatus) {
+      if (matchesTab && matchesSearch && matchesOrg && matchesStatus) {
         row.style.display = "";
         visibleCount++;
       } else {
@@ -348,6 +432,13 @@
     const urlParams = new URLSearchParams(window.location.search);
     let statusParam = urlParams.get('status');
     let typeParam = urlParams.get('type');
+
+    if (statusParam) {
+      const statusFilter = document.getElementById("statusFilter");
+      if (statusFilter) {
+        statusFilter.value = statusParam;
+      }
+    }
     
     // ดึงค่าประเภทจาก URL Parameter เพื่อสั่งสลับ Tab อัตโนมัติ (ถ้ามี)
     if (typeParam) {
@@ -360,4 +451,81 @@
     sortHistoryTable();
   });
 </script>
+
+<div class="modal fade" id="interestTrackerModal" tabindex="-1" aria-labelledby="interestTrackerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+      <div class="modal-header bg-white border-bottom-0 pt-4 px-4 pb-2">
+        <div>
+          <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em; font-size: 0.75rem;">
+            <i class="bi bi-bank me-1"></i> ติดตามเงินสดย่อย
+          </p>
+          <h5 class="modal-title fw-bold text-dark fs-5" id="interestTrackerModalLabel">
+            ติดตามการนำส่งดอกเบี้ยธนาคาร
+          </h5>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body px-4 pb-4 pt-2">
+        <p class="text-muted small mb-3">
+          แสดงรายการและสถานะการนำส่งดอกเบี้ยธนาคารของแต่ละหน่วยงาน
+        </p>
+
+        <div class="card border-0 rounded-4 shadow-sm bg-light overflow-hidden">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="bg-white text-muted small text-uppercase" style="border-bottom: 2px solid #edf2f7;">
+                  <tr>
+                    <th class="ps-4 py-3 fw-bold">หน่วยงาน</th>
+                    <th class="py-3 fw-bold">ผู้รักษาเงินสดย่อย</th>
+                    <th class="py-3 fw-bold">สถานะนำส่งดอกเบี้ย</th>
+                    <th class="pe-4 py-3 fw-bold text-end">รอบที่ค้างชำระ</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white">
+                  {% if pending_interest_departments %}
+                    {% for item in pending_interest_departments %}
+                    <tr class="{% if not item.is_submitted %}table-danger-subtle bg-opacity-10{% endif %}">
+                      <td class="ps-4 py-3 fw-semibold text-dark">{{ item.department_name }}</td>
+                      <td class="py-3 text-muted font-monospace">{{ item.custodian_name or '-' }}</td>
+                      <td class="py-3">
+                        {% if item.is_submitted %}
+                          <span class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle">
+                            <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
+                          </span>
+                        {% else %}
+                          <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5 rounded-pill fw-semibold border border-danger-subtle">
+                            <i class="bi bi-x-circle-fill me-1"></i> มีดอกเบี้ยค้างส่ง
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td class="pe-4 py-3 text-end {% if not item.is_submitted %}fw-bold text-danger{% else %}text-muted{% endif %} small">
+                        {{ item.pending_period if not item.is_submitted else '-' }}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="4" class="text-center text-muted py-4">
+                        ไม่มีรายการค้างส่งดอกเบี้ยธนาคาร
+                      </td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer border-top-0 px-4 pb-4 pt-0">
+        <button type="button" class="btn btn-light fw-bold px-4 py-2" data-bs-dismiss="modal" style="border-radius: 10px;">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

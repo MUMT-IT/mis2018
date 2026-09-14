@@ -1,5 +1,7 @@
 ﻿{% extends "advance_payment/base.html" %}
 
+{% from "advance_payment/_finance_last_edit.html" import last_edit with context %}
+
 {% block title %}การจัดการเงินสดย่อย | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
@@ -10,7 +12,7 @@
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
   <h1 class="fw-bold display-6 mb-2">การจัดการเงินสดย่อย</h1>
   <p class="text-muted mb-1">ตรวจสอบงบประมาณตั้งต้น ยอดคงเหลือ และประวัติรวมทุกหน่วยงาน</p>
-  <p class="text-muted small mb-0">ปีงบประมาณปัจจุบัน: {{ current_fiscal_year }} | ถ้าปีนี้ยังไม่เคยตั้งงบ ระบบจะดึงข้อมูลปีล่าสุดมาเป็นต้นแบบ และยอดใช้จริงจะเป็น 0 จนกว่าจะกดยืนยันบันทึก</p>
+  <p class="text-muted small mb-0">ปีงบประมาณปัจจุบัน: {{ current_fiscal_year + 543 }}</p>
 </header>
 
 <style>
@@ -38,6 +40,10 @@
     border-bottom-color: #198754 !important;
   }
 
+  #tab-history.active {
+    border-bottom-color: #6f42c1 !important;
+  }
+
 </style>
 
 <div class="card shadow-sm border rounded-4 bg-white mb-4">
@@ -51,8 +57,14 @@
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link fw-bold py-3 text-success nav-item-tab" id="tab-current-budget" type="button" data-settings-tab="current-budget">
-          <i class="bi bi-bank me-1 text-success"></i>ตารางแสดงงบประมาณประจำปีปัจจุบัน
+          <i class="bi bi-bank me-1 text-success"></i>ตารางงบประมาณล่าสุดรายหน่วยงาน
           <span class="badge bg-success rounded-pill ms-1">{{ settings|length }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold py-3 text-secondary nav-item-tab" id="tab-history" type="button" data-settings-tab="history">
+          <i class="bi bi-clock-history me-1 text-secondary"></i>ประวัติการเบิกแต่ละหน่วยงาน
+          <span class="badge bg-secondary rounded-pill ms-1">{{ history_summary|length }}</span>
         </button>
       </li>
     </ul>
@@ -106,11 +118,11 @@
               <td class="text-center">
                 {% if claim.closing_document %}
                   <span class="text-dark d-block fw-medium">{{ claim.closing_document.document_number }}</span>
-                  {% if claim.old_closing_document_name %}
-                    <span class="text-muted small ms-2">(เลขฎีกาเก่า: {{ claim.old_closing_document_name }})</span>
-                  {% endif %}
                 {% else %}
                   <span class="text-muted small">-</span>
+                {% endif %}
+                {% if claim.old_document_number %}
+                  <span class="text-muted small ms-2">(เลขฎีกาเก่า: {{ claim.old_document_number }})</span>
                 {% endif %}
               </td>
               <td class="text-center small text-secondary">
@@ -153,7 +165,8 @@
             </button>
           </div>
 
-          <div class="table-responsive mb-5">
+          {{ last_edit(settings) }}
+          <div id="settingsReadOnly" class="table-responsive mb-5">
             <table class="table table-hover align-middle border">
               <thead class="table-light small fw-bold">
                 <tr>
@@ -170,14 +183,19 @@
               <tbody>
                 {% for setting in settings %}
                 {% set summary = dept_summary.get(setting.id, {}) %}
+                {% set selected_account_number = setting.bank_account_info.account_number if setting.bank_account_info else setting.account_number %}
+                {% set selected_account_closed = setting.bank_account_info and setting.bank_account_info.closed_at %}
                 <tr>
-                  <td class="text-center fw-bold">{{ setting.fiscal_year }}</td>
+                  <td class="text-center fw-bold">{{ setting.fiscal_year + 543 }}</td>
                   <td class="fw-bold text-dark">{{ setting.department_name }}</td>
                   <td class="text-dark">{{ setting.custodian_name or '-' }}</td>
                   <td class="fw-bold text-dark">
                     {% if setting.bank_account_info %}
                       <div>{{ setting.bank_account_info.account_number }}</div>
                       <div class="small text-muted">{{ setting.bank_account_info.thai_name }}</div>
+                      {% if setting.bank_account_info.closed_at %}
+                        <div class="small text-danger">ปิดบัญชีแล้ว {{ setting.bank_account_info.closed_at|thai_date }}</div>
+                      {% endif %}
                     {% else %}
                       {{ setting.account_number or '-' }}
                     {% endif %}
@@ -186,15 +204,10 @@
                   <td class="text-end text-danger">{{ '{:,.2f}'.format(summary.get('total_spent', 0.0)) }}</td>
                   <td class="text-end text-success fw-bold">{{ '{:,.2f}'.format(summary.get('remaining_budget', setting.budget)) }}</td>
                   <td class="text-center">
-                    {% if setting.id and setting.valid %}
+                    {% if setting.valid %}
                     <span class="badge bg-success-subtle text-success border rounded-pill">ยืนยันแล้ว</span>
-                    {% elif setting.id %}
-                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">ยังไม่ยืนยัน</span>
                     {% else %}
-                    <span class="badge bg-warning-subtle text-warning border rounded-pill">ต้นแบบปีใหม่</span>
-                    {% endif %}
-                    {% if setting.source_fiscal_year %}
-                      <div class="small text-muted mt-1">คัดจากปี {{ setting.source_fiscal_year }}</div>
+                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill">ยังไม่ยืนยัน</span>
                     {% endif %}
                   </td>
                 </tr>
@@ -204,7 +217,7 @@
           </div>
 
           <div id="editSettingSection" class="d-none border p-3 rounded-4 bg-light mt-4">
-            <h6 class="fw-bold text-dark mb-3">แก้ไขข้อมูลหน่วยงานและงบประมาณ</h6>
+            <h6 class="fw-bold text-dark mb-3">แก้ไขข้อมูลงบประมาณล่าสุดรายหน่วยงาน</h6>
             <form method="post" action="{{ url_for('advance_payment.petty_cash_settings') }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <template id="bank-account-options-template">
@@ -238,11 +251,11 @@
                         <input type="checkbox" name="valid_dept[]" value="{{ setting.department_name }}" class="form-check-input" {% if setting.valid %}checked{% endif %}>
                       </td>
                       <td>
-                        <input type="number" name="fiscal_year[]" class="form-control form-control-sm text-center" value="{{ setting.fiscal_year }}" required>
+                        <input type="number" name="fiscal_year[]" class="form-control form-control-sm text-center" value="{{ setting.fiscal_year + 543 }}" min="2400" max="3000" required>
                         <input type="hidden" name="setting_id[]" value="{{ setting.id or '' }}">
                       </td>
                       <td>
-                        <select name="org_id[]" class="form-select form-select-sm dept-input" onchange="syncOrgName(this); fetchCustodianSuggestion(this)" required>
+                        <select name="org_id[]" class="form-select form-select-sm dept-input searchable-select" onchange="syncOrgName(this); fetchCustodianSuggestion(this)" required>
                           <option value="">เลือกหน่วยงาน</option>
                           {% for org in org_options %}
                             <option value="{{ org.id }}" data-org-name="{{ org.name }}" {% if setting_org_ids.get(setting.id) == org.id %}selected{% endif %}>{{ org.name }}</option>
@@ -252,10 +265,10 @@
                         <input type="hidden" name="dept_name[]" value="{{ setting.department_name }}">
                       </td>
                       <td>
-                        <select name="custodian_id[]" class="form-select form-select-sm custodian-input" onchange="syncCustodianName(this)">
+                        <select name="custodian_id[]" class="form-select form-select-sm custodian-input searchable-select" onchange="syncCustodianName(this)">
                           <option value="">เลือกผู้ดูแลบัญชี</option>
                           {% for staff in staff_options %}
-                            <option value="{{ staff.id }}" {% if setting_custodian_ids.get(setting.id) == staff.id %}selected{% endif %}>{{ staff.fullname }}</option>
+                            <option value="{{ staff.id }}" {% if setting.custodian_id == staff.id %}selected{% endif %}>{{ staff.fullname }}</option>
                           {% endfor %}
                         </select>
                         <input type="hidden" name="custodian_name[]" value="{{ setting.custodian_name or '' }}">
@@ -263,17 +276,32 @@
                       <td>
                         <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" value="{{ '{:,.2f}'.format(setting.budget) }}" required>
                         {% if setting.source_fiscal_year %}
-                          <div class="small text-muted mt-1">ยอดปี {{ setting.source_fiscal_year }}: {{ '{:,.2f}'.format(setting.source_budget or 0) }}</div>
+                          <div class="small text-muted mt-1">ยอดปี {{ setting.source_fiscal_year + 543 }}: {{ '{:,.2f}'.format(setting.source_budget or 0) }}</div>
                         {% endif %}
                       </td>
                       <td>
-                        <input type="text"
-                               name="account_number[]"
-                               class="form-control form-control-sm account-number-input"
-                               value="{{ setting.account_number or '' }}"
-                               placeholder="123-4-56789-0"
-                               onblur="syncBankAccountInfo(this)"
-                               required>
+                        {% set selected_account_number = setting.bank_account_info.account_number if setting.bank_account_info else setting.account_number %}
+                        <select name="account_number[]"
+                                class="form-select form-select-sm account-number-input searchable-select"
+                                onchange="syncBankAccountInfo(this)"
+                                required>
+                          <option value="">โปรดเลือกเลขที่บัญชี</option>
+                          {% for account in bank_account_options %}
+                            <option value="{{ account.value }}"
+                                    data-bank-account-id="{{ account.id }}"
+                                    {% if selected_account_number == account.value %}selected{% endif %}>
+                              {{ account.label }}
+                            </option>
+                          {% endfor %}
+                          {% if selected_account_number and selected_account_number not in bank_account_values %}
+                            <option value="{{ selected_account_number }}"
+                                    data-bank-account-id="{{ setting.bank_account_info_id or '' }}"
+                                    {% if selected_account_closed %}disabled{% endif %}
+                                    selected>
+                              {{ selected_account_number }}{% if selected_account_closed %} - ปิดบัญชีแล้ว{% endif %}
+                            </option>
+                          {% endif %}
+                        </select>
                         <input type="hidden" name="bank_account_info_id[]" class="bank-account-info-id" value="{{ setting.bank_account_info_id or '' }}">
                       </td>
                     </tr>
@@ -296,7 +324,77 @@
   </div>
 </section>
 
+<section class="mb-5 d-none" id="history-section">
+  <div class="card shadow-sm border rounded-4 bg-white">
+    <div class="card-header bg-white py-3">
+      <h5 class="fw-bold text-secondary mb-0">
+        <i class="bi bi-clock-history me-2"></i>ประวัติการเบิกเงินสดย่อยของแต่ละหน่วยงาน
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small fw-bold">
+            <tr>
+              <th class="text-center">ปีงบประมาณ</th>
+              <th>หน่วยงาน</th>
+              <th class="text-center">จำนวนครั้งที่เบิก</th>
+              <th class="text-end">จำนวนเงินที่ใช้ (บาท)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for history in history_summary %}
+            <tr>
+              <td class="text-center fw-bold">{{ history.fiscal_year + 543 }}</td>
+              <td class="fw-semibold">{{ history.department_name }}</td>
+              <td class="text-center">{{ history.request_count }}</td>
+              <td class="text-end fw-bold text-danger">{{ '{:,.2f}'.format(history.used_amount) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">ยังไม่มีประวัติการเบิกเงินสดย่อยของแต่ละหน่วยงาน</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
 <script>
+  function formatInputNumberWithComma(element) {
+    if (!element) return;
+    let value = String(element.value || '').replace(/,/g, '').replace(/[^0-9.]/g, '');
+    const parts = value.split('.');
+    if (parts.length > 2) value = parts[0] + '.' + parts.slice(1).join('');
+    const integerPart = parts[0] || '';
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    element.value = parts.length > 1 ? formattedInteger + '.' + parts[1] : formattedInteger;
+  }
+
+  function formatInputNumberOnBlur(element) {
+    if (!element) return;
+    const value = String(element.value || '').replace(/,/g, '').replace(/[^0-9.]/g, '');
+    const cleanNumber = parseFloat(value);
+    if (!Number.isNaN(cleanNumber)) {
+      element.value = cleanNumber.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+  }
+
+  function initializeBudgetInputs(container = document) {
+    container.querySelectorAll('.budget-input').forEach((input) => {
+      if (input.dataset.formatBound === '1') return;
+      input.dataset.formatBound = '1';
+      formatInputNumberWithComma(input);
+      input.addEventListener('input', () => formatInputNumberWithComma(input));
+      input.addEventListener('blur', () => formatInputNumberOnBlur(input));
+    });
+  }
+
   function fetchCustodianSuggestion(inputElem) {
     const selectedOption = inputElem.options[inputElem.selectedIndex];
     const deptName = (selectedOption?.dataset.orgName || '').trim();
@@ -335,25 +433,25 @@
   function addSettingRow() {
     const tbody = document.getElementById('settingsBody');
     const newRow = document.createElement('tr');
-    const currentYear = {{ current_fiscal_year }};
+    const currentYear = {{ current_fiscal_year + 543 }};
 
     newRow.innerHTML = `
       <td class="text-center">
         <input type="checkbox" name="valid_dept[]" value="" class="form-check-input" checked>
       </td>
       <td>
-        <input type="number" name="fiscal_year[]" class="form-control form-control-sm text-center" value="${currentYear}" required>
+        <input type="number" name="fiscal_year[]" class="form-control form-control-sm text-center" value="${currentYear}" min="2400" max="3000" required>
         <input type="hidden" name="setting_id[]" value="">
       </td>
       <td>
-        <select name="org_id[]" class="form-select form-select-sm dept-input" onchange="syncOrgName(this); fetchCustodianSuggestion(this)" required>
+        <select name="org_id[]" class="form-select form-select-sm dept-input searchable-select" onchange="syncOrgName(this); fetchCustodianSuggestion(this)" required>
           <option value="">เลือกหน่วยงาน</option>
           {% for org in org_options %}<option value="{{ org.id }}" data-org-name="{{ org.name }}">{{ org.name }}</option>{% endfor %}
         </select>
         <input type="hidden" name="dept_name[]" value="">
       </td>
       <td>
-        <select name="custodian_id[]" class="form-select form-select-sm custodian-input" onchange="syncCustodianName(this)">
+        <select name="custodian_id[]" class="form-select form-select-sm custodian-input searchable-select" onchange="syncCustodianName(this)">
           <option value="">เลือกผู้ดูแลบัญชี</option>
           {% for staff in staff_options %}<option value="{{ staff.id }}">{{ staff.fullname }}</option>{% endfor %}
         </select>
@@ -363,11 +461,16 @@
         <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" value="0.00" required>
       </td>
       <td>
-        <input type="text" name="account_number[]" class="form-control form-control-sm account-number-input" placeholder="123-4-56789-0" onblur="syncBankAccountInfo(this)" required>
+        <select name="account_number[]" class="form-select form-select-sm account-number-input searchable-select" onchange="syncBankAccountInfo(this)" required>
+          <option value="">โปรดเลือกเลขที่บัญชี</option>
+          {% for account in bank_account_options %}<option value="{{ account.value }}" data-bank-account-id="{{ account.id }}">{{ account.label }}</option>{% endfor %}
+        </select>
         <input type="hidden" name="bank_account_info_id[]" class="bank-account-info-id" value="">
       </td>
     `;
     tbody.appendChild(newRow);
+    initializeSettingSelects(newRow);
+    initializeBudgetInputs(newRow);
     const bankInput = newRow.querySelector('.account-number-input');
     if (bankInput) {
       syncBankAccountInfo(bankInput);
@@ -375,8 +478,30 @@
   }
 
   function toggleEditSection() {
+    const readOnlySection = document.getElementById('settingsReadOnly');
     const editSection = document.getElementById('editSettingSection');
-    editSection.classList.toggle('d-none');
+    const isEditing = editSection.classList.contains('d-none');
+    editSection.classList.toggle('d-none', !isEditing);
+    readOnlySection.classList.toggle('d-none', isEditing);
+  }
+
+  function initializeSettingSelects(container = document) {
+    $(container).find('.searchable-select').each(function() {
+      const select = $(this);
+      if (select.hasClass('select2-hidden-accessible')) return;
+
+      let placeholder = 'พิมพ์เพื่อค้นหาหรือเลือกข้อมูล...';
+      if (select.hasClass('dept-input')) placeholder = 'พิมพ์เพื่อค้นหาหน่วยงาน...';
+      if (select.hasClass('custodian-input')) placeholder = 'พิมพ์เพื่อค้นหาผู้ดูแลบัญชี...';
+      if (select.hasClass('account-number-input')) placeholder = 'พิมพ์เพื่อค้นหาเลขที่บัญชี...';
+
+      select.select2({
+        theme: 'bootstrap-5',
+        placeholder: placeholder,
+        allowClear: true,
+        width: '100%'
+      });
+    });
   }
 
   function syncBankAccountInfo(inputElem) {
@@ -386,7 +511,8 @@
     const hiddenInput = row.querySelector('.bank-account-info-id');
     if (!hiddenInput) return;
 
-    hiddenInput.value = '';
+    const selectedOption = inputElem.options[inputElem.selectedIndex];
+    hiddenInput.value = selectedOption?.dataset.bankAccountId || '';
   }
 
   function filterClaims() {
@@ -438,6 +564,16 @@
     document.querySelectorAll('.account-number-input').forEach((inputElem) => {
       syncBankAccountInfo(inputElem);
     });
+    initializeSettingSelects();
+    initializeBudgetInputs();
+    const settingsForm = document.querySelector('form[action*="petty_cash_settings"]');
+    if (settingsForm) {
+      settingsForm.addEventListener('submit', () => {
+        settingsForm.querySelectorAll('.budget-input').forEach((input) => {
+          input.value = input.value.replace(/,/g, '');
+        });
+      });
+    }
   })();
 </script>
 {% endblock %}
