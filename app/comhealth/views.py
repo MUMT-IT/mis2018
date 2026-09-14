@@ -681,6 +681,11 @@ def save_lab_approvals_api():
                     _external=True,
                 )
                 title = 'ผลตรวจสุขภาพออนไลน์พร้อมดูแล้ว / Online health results available'
+                html_message = render_template(
+                    'comhealth/emails/online_result_available.html',
+                    subject=title,
+                    result_url=result_url,
+                )
                 message = (
                     'เรียน ผู้รับบริการ\n\n'
                     'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณาคลิกลิงก์ด้านล่าง:\n'
@@ -694,7 +699,23 @@ def save_lab_approvals_api():
                     'This link provides access to personal health information. Please do not share it.\n\n'
                     'อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ'
                 )
-                send_mail([customer_email], title, message)
+                with current_app.open_resource(
+                    'static/img/LOGO_MT-Mahidol.png',
+                    mode='rb',
+                ) as logo_file:
+                    logo_data = logo_file.read()
+                send_mail(
+                    [customer_email],
+                    title,
+                    message,
+                    html=html_message,
+                    inline_images=[{
+                        'filename': 'LOGO_MT-Mahidol.png',
+                        'content_type': 'image/png',
+                        'data': logo_data,
+                        'content_id': 'comhealth-logo',
+                    }],
+                )
                 email_notification = {'sent': True, 'recipient': customer_email}
             except Exception:
                 current_app.logger.exception(
@@ -3825,8 +3846,20 @@ def enter_password_for_sign_digital(receipt_id):
     return render_template('comhealth/password_modal.html', form=form, receipt_id=receipt_id)
 
 
-def send_mail(recp, title, message, attached_file=None, filename=None):
+def send_mail(
+        recp, title, message, attached_file=None, filename=None, html=None,
+        inline_images=None):
     message = Message(subject=title, body=message, recipients=recp)
+    if html:
+        message.html = html
+    for image in inline_images or []:
+        message.attach(
+            filename=image['filename'],
+            content_type=image['content_type'],
+            data=image['data'],
+            disposition='inline',
+            headers=[('Content-ID', '<{}>'.format(image['content_id']))],
+        )
     if attached_file:
         message.attach(filename=filename, data=attached_file, content_type='application/pdf')
     mail.send(message)
