@@ -2393,7 +2393,7 @@ def add_attachment():
             <div id="{}" class="attachment-item">
                 <hr style="background-color: #F3F3F3">
                 <p><strong>รายการที่ {}</strong></p>
-                <div class="field" >
+                <div class="field" style="margin-top: .8em">
                     <label class="label">
                         {}
                         <span class="has-text-danger">*</span>
