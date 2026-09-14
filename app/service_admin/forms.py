@@ -42,7 +42,6 @@ class ServiceCustomerAttachmentForm(ModelForm):
     class Meta:
         model = ServiceCustomerAttachment
 
-    name = StringField('ชื่อเอกสาร', validators=[DataRequired()])
     file_upload = FileField('File Upload')
 
 
