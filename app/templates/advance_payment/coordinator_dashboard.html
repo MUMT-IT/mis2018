@@ -305,7 +305,7 @@
                                   <td>
                                     <textarea name="description[]" class="form-control form-control-sm" style="resize: vertical; min-height: 31px;">{{ item.description }}</textarea>
                                     <label class="form-check mt-2">
-                                      <input type="checkbox" name="is_cash_{{ row_index }}" value="true" class="form-check-input receipt-is-cash" {% if item.is_cash %}checked{% endif %}>
+                                      <input type="checkbox" name="is_cash_{{ row_index }}" value="true" class="form-check-input receipt-is-cash" onchange="fillCashReturnFields(this)" {% if item.is_cash %}checked{% endif %}>
                                       <span class="form-check-label">คืนเงินยืม</span>
                                     </label>
                                   </td>
@@ -913,6 +913,17 @@
       }
     }
 
+    function fillCashReturnFields(checkbox) {
+      if (!checkbox.checked) return;
+      const row = checkbox.closest('tr');
+      for (const [name, value] of [['store_name[]', '-'], ['description[]', 'เงินเหลือส่งใช้เงินยืม']]) {
+        const field = row.querySelector(`[name="${name}"]`);
+        field.value = value;
+        field.classList.remove('is-invalid');
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+
     function addReceiptRow(ticketId) {
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
       if (!tbody) return;
@@ -927,7 +938,7 @@
         <td>
           <textarea name="description[]" class="form-control form-control-sm" placeholder="ระบุรายละเอียดรายการ..." style="resize: vertical; min-height: 31px;" required></textarea>
           <label class="form-check mt-2">
-            <input type="checkbox" value="true" class="form-check-input receipt-is-cash">
+            <input type="checkbox" value="true" class="form-check-input receipt-is-cash" onchange="fillCashReturnFields(this)">
             <span class="form-check-label">คืนเงินยืม</span>
           </label>
         </td>
