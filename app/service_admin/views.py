@@ -2350,10 +2350,20 @@ def create_customer(customer_id=None):
                                              verify_datetime=arrow.now('Asia/Bangkok').datetime)
         else:
             account.email = form.email.data
-        # if request.form.getlist('verify_email'):
-        #     account.verify_datetime = arrow.now('Asia/Bangkok').datetime
-        # else:
-        #     account.verify_datetime = None
+        if form.attachments:
+            for item in form.attachments:
+                file = request.files.get(f'file_{item.id}')
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    file_name = '{}.{}'.format(f'{item.file_name}', file.filename.split('.')[-1])
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    item.file.data = file_name
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
@@ -2370,6 +2380,66 @@ def create_customer(customer_id=None):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_customer.html', customer_id=customer_id,
                            form=form, account=account)
+
+
+@service_admin.route('/customer/account/file/add', methods=['POST'])
+def add_attachment():
+    form = ServiceCustomerInfoForm()
+    form.attachments.append_entry()
+    item_form = form.attachments[-1]
+    index = len(form.attachments)
+    template = """
+            <div id="{}" class="attachment-item">
+                <hr style="background-color: #F3F3F3">
+                <p><strong>รายการที่ {}</strong></p>
+                <div class="field" >
+                    <label class="label">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="file" style="margin-bottom: .5em">
+                        <label class="file-label">
+                            <input class="file-input" type="file" name="file_{}" id="file_{}"
+                                required>
+                            <span class="file-cta">
+                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                <span class="file-label">เลือกไฟล์…</span>
+                            </span>
+                            <span class="file-name">กรุณาอัปโหลดไฟล์</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.file_name.label,
+                           item_form.file_name(class_='input', required=True),
+                           item_form.note.label,
+                           item_form.note(class_='input'),
+                           item_form.file.label,
+                           item_form.id,
+                           item_form.id,
+                           # url_for('academic_services.remove_protein_identification_condition_item',
+                           #         name=item_form.id)
+                           )
+    resp = make_response(resp)
+    return resp
 
 
 # @service_admin.route('/request/index')
