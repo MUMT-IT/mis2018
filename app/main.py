@@ -1476,11 +1476,10 @@ from app.staff.models import *
 
 
 class MyStaffAccountModelView(ModelView):
-    form_excluded_columns = ('ot_record_created_staff',
-                             'ot_record_staff',
-                             'leave_approvers',
-                             'leave_requesters',
-                             )
+    # Avoid rendering relationship collections when listing or editing accounts.
+    _scalar_columns = ('id', 'personal_id', 'email', 'external_email', 'line_id')
+    column_list = _scalar_columns
+    form_columns = _scalar_columns[1:]
 
 
 admin.add_view(ModelView(StrategyActivity, db.session, category='Strategy'))
