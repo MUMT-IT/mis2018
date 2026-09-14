@@ -1475,10 +1475,20 @@ app.register_blueprint(staff_blueprint, url_prefix='/staff')
 from app.staff.models import *
 
 
+def format_staff_account_thai_name(view, context, model, name):
+    info = model.personal_info
+    if info is None:
+        return ''
+    return '{}{} {}'.format(info.th_title or '', info.th_firstname or '',
+                            info.th_lastname or '').strip()
+
+
 class MyStaffAccountModelView(ModelView):
     # Avoid rendering relationship collections when listing or editing accounts.
     _scalar_columns = ('id', 'personal_id', 'email', 'external_email', 'line_id')
-    column_list = _scalar_columns
+    column_list = ('id', 'personal_id', 'thai_fullname', 'email', 'external_email', 'line_id')
+    column_labels = {'thai_fullname': 'ชื่อ-นามสกุลภาษาไทย'}
+    column_formatters = {'thai_fullname': format_staff_account_thai_name}
     form_columns = _scalar_columns[1:]
 
 
