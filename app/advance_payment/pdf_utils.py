@@ -1075,7 +1075,10 @@ def generate_ticket_return(return_detail):
     ticket_date = getattr(ticket, "approved_at", None) or getattr(ticket, "created_at", None)
     request_purpose = getattr(ticket, "borrowing_ticket_purpose", None) or "........................................"
     date_thai = get_thai_month_year(ticket_date.date()) if ticket_date else "........................................"
-    return_items = list(getattr(return_detail, "receipt_items", None) or [])
+    return_items = [
+        item for item in (getattr(return_detail, "receipt_items", None) or [])
+        if not getattr(item, "is_cash", False)
+    ]
     amount_value = float(getattr(return_detail, "amount_spent", 0) or sum(float(item.amount or 0) for item in return_items))
     amount_numeric = f"{amount_value:,.2f}" if amount_value else "................"
     amount_text = bahttext(amount_value) if amount_value else "........................................................"
