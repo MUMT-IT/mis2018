@@ -256,7 +256,7 @@ class ServiceCustomerAttachment(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
     note = db.Column('note', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
-    file = db.Column('file', db.String())
+    file = db.Column('file', db.String(), info={'label': 'ไฟล์'})
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('attachments', cascade='all, delete-orphan'))
 
