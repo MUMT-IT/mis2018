@@ -1478,6 +1478,8 @@ from app.staff.models import *
 class MyStaffAccountModelView(ModelView):
     form_excluded_columns = ('ot_record_created_staff',
                              'ot_record_staff',
+                             'leave_approvers',
+                             'leave_requesters',
                              )
 
 
