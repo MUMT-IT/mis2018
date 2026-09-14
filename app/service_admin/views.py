@@ -2383,7 +2383,7 @@ def create_customer(customer_id=None):
                            form=form, account=account)
 
 
-@service_admin.route('/customer/account/file/add', methods=['POST'])
+@service_admin.route('/api/customer/account/file/add', methods=['POST'])
 def add_attachment():
     form = ServiceCustomerInfoForm()
     form.attachments.append_entry()
@@ -2423,6 +2423,13 @@ def add_attachment():
                             </span>
                             <span class="file-name">กรุณาอัปโหลดไฟล์</span>
                         </label>
+                        <a class="button is-danger is-outlined" style="margin-left: .5em"
+                            hx-delete="{}"
+                            hx-target="closest .attachment-item"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -2436,11 +2443,25 @@ def add_attachment():
                            item_form.file.label,
                            item_form.id,
                            item_form.id,
-                           # url_for('academic_services.remove_protein_identification_condition_item',
-                           #         name=item_form.id)
+                           url_for('service_admin.remove_attachment', name=item_form.id)
                            )
     resp = make_response(resp)
     return resp
+
+
+@service_admin.route('/api/customer/account/file/remove', methods=['DELETE'])
+def remove_attachment():
+    field_name = request.args.get('name')
+    form = ServiceCustomerInfoForm()
+    temp_entries = []
+    for entry in form.attachments:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.attachments) > 0:
+        form.attachments.pop_entry()
+    for entry in temp_entries:
+        form.attachments.append_entry(entry)
+    return ""
 
 
 # @service_admin.route('/request/index')
