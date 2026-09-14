@@ -1,5 +1,7 @@
 {% extends "advance_payment/base.html" %}
 
+{% from "advance_payment/_finance_last_edit.html" import last_edit with context %}
+
 {% block title %}ข้อมูลบัญชีธนาคาร | ระบบเงินสดย่อยและเงินยืม{% endblock %}
 
 {% block content %}
@@ -35,6 +37,7 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="edit_mode" id="editModeInput" value="{% if show_editor %}1{% else %}0{% endif %}">
 
+      {{ last_edit(records) }}
       <div class="table-responsive mb-3">
         <table class="table table-hover align-middle border mb-0">
           <thead class="table-light small fw-bold">

@@ -22,6 +22,7 @@ from flask import (
     abort,
     current_app,
     flash,
+    g,
     jsonify,
     redirect,
     render_template as _render_template,
@@ -500,6 +501,29 @@ def _get_user_by_id(user_id):
     return db.session.query(StaffAccount).get(user_id)
 
 
+@bp.app_template_global()
+def finance_last_edit(records):
+    """Summarize only the displayed records, and only in the finance view."""
+    if session.get("user_role") != FINANCE_SYSTEM or _selected_system() != FINANCE_SYSTEM:
+        return None
+    latest = max(
+        (record for record in records if getattr(record, "last_edited_at", None)),
+        key=lambda record: (record.last_edited_at, record.last_edited_by_id or 0),
+        default=None,
+    )
+    if latest is None:
+        return {"edited_at": None}
+    editor = _get_user_by_id(latest.last_edited_by_id)
+    return {
+        "edited_at": latest.last_edited_at,
+        "editor_id": latest.last_edited_by_id,
+        "editor_name": (
+            (getattr(editor, "fullname", None) or getattr(editor, "email", None))
+            if editor else None
+        ),
+    }
+
+
 def _get_borrowing_ticket_by_id(ticket_id):
     if not ticket_id:
         return None
@@ -975,6 +999,14 @@ def login_required(role=None):
             elif role is not None and user_role != role:
                 abort(403)
 
+            # Stamp only writes made by authenticated staff in the finance system.
+            g.advance_payment_finance_actor_id = (
+                staff.id
+                if user_role == FINANCE_SYSTEM
+                and _selected_system() == FINANCE_SYSTEM
+                and request.method in {"POST", "PUT", "PATCH", "DELETE"}
+                else None
+            )
             return view_func(*args, **kwargs)
 
         return wrapped
@@ -4524,6 +4556,7 @@ def closing_management():
         records=processed_records,
         parcel_records=processed_parcels,
         transferred_petty_claims=transferred_petty_claims,
+        pending_last_edit_records=[*proofed_records, *proofed_parcels, *transferred_petty_claims],
         all_petty_settings=all_petty_settings
     )
 

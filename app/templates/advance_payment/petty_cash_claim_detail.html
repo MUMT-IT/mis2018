@@ -1,5 +1,7 @@
 ﻿{% extends "advance_payment/base.html" %}
 
+{% from "advance_payment/_finance_last_edit.html" import last_edit with context %}
+
 {% block title %}รายละเอียดหลักฐานการส่งเบิกเงินสดย่อย | ระบบเงินสดย่อย{% endblock %}
 
 {% block content %}
@@ -87,6 +89,7 @@
           {% if claim_detail.transferred_at %}
             <span class="text-muted small d-block">วันที่ได้รับคืนเงินสดย่อย</span>
             <strong class="text-primary">{{ claim_detail.transferred_at|thai_date }}</strong>
+            {{ last_edit([claim_detail]) }}
           {% endif %}
         </div>
 

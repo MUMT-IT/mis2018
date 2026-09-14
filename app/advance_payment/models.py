@@ -2,7 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, text
-from sqlalchemy.orm import declared_attr, object_session, relationship
+from flask import g, has_request_context
+from sqlalchemy import event
+from sqlalchemy.orm import Session, declared_attr, object_session, relationship
 from app.main import db
 from app.staff.models import StaffAccount
 
@@ -103,7 +105,33 @@ def _query_many_to_many_list(parent, association_table, parent_fk_name, model):
     )
 
 
-class CashAdvanceBorrowingTicket(db.Model):
+class FinanceEditMixin:
+    """Latest finance edit, persisted in the same transaction as the change."""
+
+    last_edited_at = Column(DateTime, nullable=True)
+
+    @declared_attr
+    def last_edited_by_id(cls):
+        return Column(Integer, ForeignKey("staff_account.id"), nullable=True)
+
+
+@event.listens_for(Session, "before_flush")
+def _stamp_finance_edits(session, flush_context, instances):
+    if not has_request_context():
+        return
+    actor_id = getattr(g, "advance_payment_finance_actor_id", None)
+    if actor_id is None:
+        return
+    edited_at = datetime.now()
+    for record in set(session.new).union(session.dirty):
+        if not isinstance(record, FinanceEditMixin) or record in session.deleted:
+            continue
+        if record in session.new or session.is_modified(record, include_collections=True):
+            record.last_edited_at = edited_at
+            record.last_edited_by_id = actor_id
+
+
+class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
 
     id = Column(Integer, primary_key=True)
@@ -240,7 +268,7 @@ document_return_association = Table(
 )
 
 
-class Document(db.Model):
+class Document(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_documents"
 
     id = Column(Integer, primary_key=True)
@@ -249,7 +277,7 @@ class Document(db.Model):
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
 
-class ClosingDocumentRecordMixin:
+class ClosingDocumentRecordMixin(FinanceEditMixin):
     """Current association and history come from links, never copied document names."""
 
     @declared_attr
@@ -357,7 +385,7 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
         return _query_many_to_many_list(self, document_return_association, "return_id", Document)
 
 
-class ReturnReceiptItem(db.Model):
+class ReturnReceiptItem(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_receipt_items"
 
     id = Column(Integer, primary_key=True)
@@ -374,7 +402,7 @@ class ReturnReceiptItem(db.Model):
         return _query_related_list(self, ReturnProofFile, "return_receipt_item_id")
 
 
-class ReturnProofFile(db.Model):
+class ReturnProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_proof_files"
 
     id = Column(Integer, primary_key=True)
@@ -434,7 +462,7 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
         self._fund_request = value
 
 
-class ClosingDocument(db.Model):
+class ClosingDocument(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_closing_documents"
 
     id = Column(Integer, primary_key=True)
@@ -454,7 +482,7 @@ class ClosingDocument(db.Model):
         )
 
 
-class ClosingDocumentLink(db.Model):
+class ClosingDocumentLink(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_closing_document_links"
     __table_args__ = (
         CheckConstraint(
@@ -488,7 +516,7 @@ class ClosingDocumentLink(db.Model):
         return self.ticket_return or self.parcel_return or self.claim
 
 
-class PettyCashSetting(db.Model):
+class PettyCashSetting(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_settings"
     __table_args__ = (
         UniqueConstraint(
@@ -554,7 +582,7 @@ class PettyCashSetting(db.Model):
         self._bank_account_info = value
 
 
-class BankAccountInfo(db.Model):
+class BankAccountInfo(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_bank_account_infos"
     __table_args__ = (
         UniqueConstraint(
@@ -581,7 +609,7 @@ class BankAccountInfo(db.Model):
         return _session_get(object_session(self), Org, self.org_id)
 
 
-class FundRequest(db.Model):
+class FundRequest(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_requests"
 
     id = Column(Integer, primary_key=True)
@@ -680,7 +708,7 @@ class FundRequest(db.Model):
         return self.withdraw_intrest
 
 
-class FundRequestItem(db.Model):
+class FundRequestItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_request_items"
 
     id = Column(Integer, primary_key=True)
@@ -744,7 +772,7 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
         return _query_many_to_many_list(self, document_petty_claim_association, "claim_id", Document)
 
 
-class PettyCashClaimItem(db.Model):
+class PettyCashClaimItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_items"
 
     id = Column(Integer, primary_key=True)
@@ -760,7 +788,7 @@ class PettyCashClaimItem(db.Model):
         return _query_related_list(self, PettyCashClaimProofFile, "claim_item_id")
 
 
-class PettyCashClaimProofFile(db.Model):
+class PettyCashClaimProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_proof_files"
 
     id = Column(Integer, primary_key=True)

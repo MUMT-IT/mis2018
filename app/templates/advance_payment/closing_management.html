@@ -1,5 +1,7 @@
 {% extends "advance_payment/base.html" %}
 
+{% from "advance_payment/_finance_last_edit.html" import last_edit with context %}
+
 {% block title %}จัดการตั้งฎีกา{% endblock %}
 
 {% block content %}
@@ -66,6 +68,7 @@
           <div class="text-muted small">แสดงรายการที่พร้อมสำหรับการตั้งฎีกาแบ่งตามประเภท</div>
         </div>
         
+        {{ last_edit(pending_last_edit_records) }}
         <div class="table-responsive shadow-sm rounded-4 mb-4">
           <table class="table table-hover align-middle mb-0" id="closingItemsTable">
             <thead class="table-light">
@@ -302,6 +305,7 @@
                       <button type="button" class="btn btn-success fw-bold" data-popup-trigger="true" data-popup-title="ยืนยันการล้างลูกหนี้เงินยืม" data-popup-message="คุณต้องการเปลี่ยนสถานะเอกสารทั้งหมดในฎีกานี้เป็น ล้างลูกหนี้เงินยืม ใช่หรือไม่?" data-popup-action="{{ url_for('advance_payment.bulk_receive_closing_doc', closing_doc_id=searched_doc.id) }}" data-popup-confirm-text="ล้างลูกหนี้เงินยืมทั้งฎีกา" data-popup-confirm-class="btn-success"><i class="bi bi-check-circle-fill me-1"></i>ล้างลูกหนี้เงินยืมทั้งฎีกา</button>
                     {% endif %}
                   </div>
+                  {{ last_edit([searched_doc] + searched_doc.links + result.returns + result.parcel_returns + result.petty_cash) }}
                   <div class="table-responsive shadow-sm rounded-4 mt-3">
                     <table class="table table-hover align-middle mb-0">
                       <thead class="table-light">
@@ -407,6 +411,7 @@
         <span class="badge bg-info text-dark">ผลการค้นหา</span>
       </div>
 
+      {{ last_edit(searched_returns + searched_parcel_returns + searched_petty_cash) }}
       <div class="table-responsive shadow-sm rounded-4">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
