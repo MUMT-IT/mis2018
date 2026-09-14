@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}ลงทะเบียนลูกหนี้{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container" style="max-width: 980px;">
+            {% include 'messages.html' %}
+            <div class="columns is-centered">
+                <div class="column is-8">
+                    <div class="card">
+                        <div class="card-content has-text-centered">
+                            <span class="icon is-large has-text-info">
+                                <i class="fas fa-file-invoice-dollar fa-3x"></i>
+                            </span>
+                            <h1 class="title mt-4 mb-2">ลงทะเบียนลูกหนี้</h1>
+                            <p class="subtitle is-6 has-text-grey">
+                                จัดเก็บข้อมูลลูกค้าและบริษัทสำหรับใช้อ้างอิงในงานบริการวิชาการ
+                            </p>
+                            <hr>
+                                <a class="button is-info is-medium" href="{{ url_for('service_admin.search_customer') }}">
+                                    <span class="icon"><i class="fas fa-search"></i></span>
+                                    <span>ค้นหา</span>
+                                </a>
+                                <a class="button is-success is-medium" href="{{ url_for('service_admin.create_customer') }}">
+                                    <span class="icon"><i class="fas fa-user-plus"></i></span>
+                                    <span>ลงทะเบียน</span>
+                                </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
