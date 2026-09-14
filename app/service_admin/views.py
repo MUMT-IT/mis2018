@@ -2285,6 +2285,42 @@ def menu():
                 invoice_count_for_central_admin=invoice_count_for_central_admin)
 
 
+@service_admin.route('/customer/register/index')
+def customer_register_index():
+    return render_template('service_admin/customer_register_index.html')
+
+
+@service_admin.route('/customer/register/search')
+@login_required
+def search_customer():
+    customer_name = request.args.get('customer_name', '').strip()
+    customers = []
+    if customer_name:
+        search_term = f'%{customer_name}%'
+        customers = (
+            ServiceCustomerInfo.query
+            .filter(or_(
+                ServiceCustomerInfo.cus_name.ilike(search_term),
+                ServiceCustomerInfo.taxpayer_identification_no.ilike(search_term),
+                ServiceCustomerInfo.email.ilike(search_term),
+                ServiceCustomerInfo.phone_number.ilike(search_term),
+            ))
+            .order_by(ServiceCustomerInfo.cus_name.asc())
+            .limit(100)
+            .all()
+        )
+    return render_template(
+        'service_admin/search_customer.html',
+        customers=customers,
+        customer_name=customer_name,
+    )
+
+
+@service_admin.route('/customer/register/closing-page')
+def closing_page():
+    return render_template('service_admin/closing_page.html')
+
+
 @service_admin.route('/customer/view')
 @login_required
 def view_customer():
@@ -2295,7 +2331,6 @@ def view_customer():
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
 @service_admin.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-@login_required
 def create_customer(customer_id=None):
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
@@ -2309,7 +2344,8 @@ def create_customer(customer_id=None):
             customer = ServiceCustomerInfo()
         form.populate_obj(customer)
         if customer_id is None:
-            customer.creator_id = current_user.id
+            if current_user.is_authenticated:
+                customer.creator_id = current_user.id
             account = ServiceCustomerAccount(email=form.email.data, customer_info=customer,
                                              verify_datetime=arrow.now('Asia/Bangkok').datetime)
         else:
@@ -2325,7 +2361,10 @@ def create_customer(customer_id=None):
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
             flash('เพิ่มลูกค้าสำเร็จ', 'success')
-        return redirect(url_for('service_admin.view_customer'))
+        if current_user.is_authenticated:
+            return redirect(url_for('service_admin.view_customer'))
+        else:
+            return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
