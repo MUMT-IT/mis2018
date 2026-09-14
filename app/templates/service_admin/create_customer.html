@@ -180,7 +180,7 @@
                                     {% for item_form in form.attachments %}
                                         <div id="{{ item_form.id }}" class="attachment-item">
                                             <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
-                                            <div class="field">
+                                            <div class="field" style="margin-top: .8em">
                                                 <label class="label">
                                                     {{ item_form.file_name.label }}
                                                     <span class="has-text-danger">*</span>
