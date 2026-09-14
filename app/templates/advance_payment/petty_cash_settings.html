@@ -63,7 +63,7 @@
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link fw-bold py-3 text-secondary nav-item-tab" id="tab-history" type="button" data-settings-tab="history">
-          <i class="bi bi-clock-history me-1 text-secondary"></i>ประวัติการเบิกปีก่อน
+          <i class="bi bi-clock-history me-1 text-secondary"></i>ประวัติการเบิกแต่ละหน่วยงาน
           <span class="badge bg-secondary rounded-pill ms-1">{{ history_summary|length }}</span>
         </button>
       </li>
@@ -328,7 +328,7 @@
   <div class="card shadow-sm border rounded-4 bg-white">
     <div class="card-header bg-white py-3">
       <h5 class="fw-bold text-secondary mb-0">
-        <i class="bi bi-clock-history me-2"></i>ประวัติการเบิกเงินสดย่อยปีก่อน
+        <i class="bi bi-clock-history me-2"></i>ประวัติการเบิกเงินสดย่อยของแต่ละหน่วยงาน
       </h5>
     </div>
     <div class="card-body p-0">
@@ -352,7 +352,7 @@
             </tr>
             {% else %}
             <tr>
-              <td colspan="4" class="text-center text-muted py-4">ยังไม่มีประวัติการเบิกเงินสดย่อยปีก่อน</td>
+              <td colspan="4" class="text-center text-muted py-4">ยังไม่มีประวัติการเบิกเงินสดย่อยของแต่ละหน่วยงาน</td>
             </tr>
             {% endfor %}
           </tbody>

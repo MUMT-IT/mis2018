@@ -836,15 +836,24 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
     approved_claims = [
         claim
         for claim in approved_claims
-        if (claim.status or "").strip() not in {"ฉบับร่าง", "รอตรวจสอบ", "กำลังตรวจสอบ", "ปฏิเสธ"}
+        if (claim.status or "").strip() not in {"ฉบับร่าง", "ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"}
         and getattr(claim, "created_at", None)
         and convert_to_fiscal_year(claim.created_at.date()) == current_fiscal_year
     ]
 
     total_claim_incomes = 0.0
     for claim in approved_claims:
+        claim_status = (claim.status or "").strip()
+        # Replenish expenses only after transfer, retaining the credit when
+        # a transferred claim is subsequently marked complete.
+        is_transferred = claim_status in {"โอนคืนเงินสดย่อย", "โอนเงินสดย่อยสำเร็จ"} or (
+            claim_status == "เสร็จสิ้นกระบวนการ"
+            and bool(getattr(claim, "transferred_at", None))
+        )
         for item in claim.items:
-            total_claim_incomes += float(item.amount or 0)
+            # cat_6 is money returned directly to the unit on submission.
+            if is_transferred or int(item.category_type or 0) == 6:
+                total_claim_incomes += float(item.amount or 0)
 
     running_balance = initial_budget - total_fund_expenses + total_claim_incomes
     remaining_budget = max(0.0, running_balance)
@@ -4224,7 +4233,7 @@ def petty_cash_settings():
     setting_org_ids = {setting.id: setting.org_id for setting in display_settings if getattr(setting, "id", None)}
     setting_custodian_ids = {setting.id: setting.custodian_id for setting in display_settings if getattr(setting, "id", None)}
 
-    # Summarize completed petty-cash requests (form type 30) by fiscal year and department.
+    # Summarize petty-cash requests (form type 30) across all fiscal years by department.
     history_requests = (
         db.session.query(FundRequest)
         .filter(
@@ -4237,9 +4246,6 @@ def petty_cash_settings():
     request_summary = {}
     for fund_request in history_requests:
         fiscal_year = convert_to_fiscal_year(fund_request.request_date)
-        if fiscal_year >= current_fiscal_year:
-            continue
-
         key = (fiscal_year, getattr(fund_request, "org_id", None))
         summary = request_summary.setdefault(
             key,
@@ -6252,6 +6258,9 @@ def petty_cash_ledger():
         ]
 
     for claim in transferred_claims:
+        # Category 6 returns already have their own ledger rows above.
+        if _claim_has_only_category_six(claim):
+            continue
         _attach_petty_cash_claim_context(claim)
         if claim.documents:
             doc_no = ", ".join([doc.title for doc in claim.documents if doc.title])
@@ -6296,7 +6305,7 @@ def petty_cash_ledger():
             has_prior_transactions = True
             opening_balance += item["bank_income"] - item["bank_expense"]
 
-    opening_row_description = "งบประมาณตั้งต้น" if not has_prior_transactions else "ยกยอดมา"
+    opening_row_description = "งบประมาณตั้งต้น" if selected_month_start.month == 10 else "ยกยอดมา"
     opening_row_income = initial_budget if not has_prior_transactions else opening_balance
 
     month_ledger_items = [
