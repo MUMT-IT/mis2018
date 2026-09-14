@@ -42,11 +42,6 @@
                         <strong>หมายเหตุ</strong> ระบบจะบันทึกการสแกนครั้งแรกของวันเป็นเวลาเข้างานและการสแกนครั้งสุดท้ายเป็นเวลาออกจากงาน หากสแกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
                     </p>
                     <br>
-                    <div class="notification is-danger is-light">
-                        <h1 class="title is-size-5">
-                            โปรแกรมนี้กำลังอยู่ในช่วงทดสอบการใช้งาน
-                        </h1>
-                    </div>
                 </div>
             </div>
         </div>
@@ -146,8 +141,8 @@
                         if (resp.data.seminar_preregistration){
                             if (resp.data.preregister){
                                 Swal.fire({
-                                    title: 'สวัสดี ' + this.staff,
-                                    timer: 3000,
+                                    title: 'สวัสดี ' + this.staff+'  ขอบคุณที่ท่านได้ลงทะเบียนล่วงหน้า',
+                                    timer: 4000,
                                     timerProgressBar: true,
                                     icon: 'success',
                                     text: 'เวลาสแกน ' + this.time
@@ -156,9 +151,10 @@
                             else{
                                 Swal.fire({
                                     title: this.staff,
-                                    timer: 3000,
+                                    timer: 4000,
                                     timerProgressBar: true,
-                                    icon: 'warning',
+                                    icon: 'success',
+                                    iconColor: '#FFD700',
                                     text: this.time
                                 })
                             }
