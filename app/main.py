@@ -1834,6 +1834,7 @@ admin.add_views(ModelView(ServiceSequenceQuotationID, db.session, category='Acad
 admin.add_views(ModelView(ServiceCustomerAccount, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerInfo, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerContact, db.session, category='Academic Service'))
+admin.add_views(ModelView(ServiceCustomerAttachment, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceCustomerAddress, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceLab, db.session, category='Academic Service'))
 admin.add_views(ModelView(ServiceSubLab, db.session, category='Academic Service'))
