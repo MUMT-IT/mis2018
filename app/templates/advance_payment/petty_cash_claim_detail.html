@@ -90,6 +90,14 @@
           {% endif %}
         </div>
 
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">หมายเลขฎีกา</span>
+          <strong class="text-dark">{{ claim_detail.closing_document_name or '-' }}</strong>
+          {% if claim_detail.old_document_number %}
+            <span class="text-muted small d-block">(เลขเก่า: {{ claim_detail.old_document_number }})</span>
+          {% endif %}
+        </div>
+
         <!-- ประวัติการบันทึกสาเหตุการปฏิเสธ -->
         {% if claim_detail.rejection_comment %}
         <div class="col-12 mt-3">

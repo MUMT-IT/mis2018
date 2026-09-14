@@ -51,7 +51,7 @@
       <label for="searchQuery" class="form-label fw-bold text-secondary small">ค้นหาข้อความ</label>
       <div class="input-group">
         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-        <input type="text" id="searchQuery" class="form-control border-start-0 ps-0" placeholder="ค้นหา เลขที่รายการ, หน่วยงาน, ชื่อบัญชี, เลขที่บัญชี..." onkeyup="filterHistoryTable()" style="border-radius: 0 6px 6px 0;">
+        <input type="text" id="searchQuery" class="form-control border-start-0 ps-0" placeholder="ค้นหา เลขที่รายการ, ฎีกาปัจจุบัน/เก่า, หน่วยงาน, ชื่อบัญชี..." onkeyup="filterHistoryTable()" style="border-radius: 0 6px 6px 0;">
       </div>
     </div>
 
@@ -151,7 +151,7 @@
                 data-type="{{ record.record_type or 'return' }}"
                 data-submitdate="{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else '-' }}"
                 data-เอกสารตั้งฎีกาdate="{{ record.เอกสารตั้งฎีกา_at.strftime('%Y-%m-%d') if record.เอกสารตั้งฎีกา_at else '-' }}"
-                data-closingdoc="{{ record.closing_document_name or '-' }}"
+                data-closingdoc="{{ record.closing_document_name or '-' }} {{ record.old_document_number or '' }}"
                 data-amount="{{ record.total_amount or record.amount_spent or 0 }}">
               
               <!-- 1. เลขที่เอกสาร / บย. -->

@@ -589,7 +589,6 @@ def _attach_petty_cash_claim_context(claim):
     claim.user = _get_user_by_id(getattr(claim, "user_id", None))
     claim.setting = db.session.query(PettyCashSetting).get(getattr(claim, "petty_cash_setting_id", None))
     claim.fund_request = db.session.query(FundRequest).get(getattr(claim, "fund_request_id", None))
-    claim.closing_document = _get_closing_document(getattr(claim, "closing_document_id", None))
 
     if claim.setting:
         _attach_petty_cash_setting_people(claim.setting)
@@ -1008,18 +1007,6 @@ def _calculate_due_date(end_date):
     if project_end_date is None:
         return None
     return project_end_date + timedelta(days=15)
-
-
-def _get_closing_document(closing_document_id):
-    if not closing_document_id:
-        return None
-
-    try:
-        closing_document_id = int(closing_document_id)
-    except (TypeError, ValueError):
-        return None
-
-    return db.session.query(ClosingDocument).get(closing_document_id)
 
 
 def _docs_query_view_url(file_id):
@@ -1469,65 +1456,32 @@ def mark_return_bounced(return_id):
 @bp.route("/finance/closing-documents/<int:closing_doc_id>/cancel", methods=["POST"])
 @login_required(role="finance")
 def cancel_closing_doc(closing_doc_id):
-    """
-    ยกเลิกฎีกา (เปลี่ยนสภาวะจากการล้างยอดเงินเป็นการเก็บยอดเงินไว้แล้วเช็คจากสถานะ):
-    - เปลี่ยน status ของ ClosingDocument เป็น 'ถูกยกเลิก'
-    - คงยอดรวม (total_amount) และรายการที่ผูกไว้ในฎีกาเดิมไว้สำหรับตรวจสอบประวัติ
-    - ย้ายรายการส่งใช้ (ReturnDetail, ParcelReturnDetail, PettyCashClaimDetail) กลับมารอตั้งฎีกาใหม่
-      และบันทึกหมายเลขฎีกาที่ถูกยกเลิกไว้ใน old_closing_document_name
-    """
-    closing_doc = db.session.query(ClosingDocument).get(closing_doc_id)
+    """Cancel the document while retaining its associations for history."""
+    closing_doc = db.session.query(ClosingDocument).filter_by(id=closing_doc_id).with_for_update().first()
     if not closing_doc:
         abort(404)
+    if not closing_doc.is_active:
+        flash("ฎีกานี้ถูกยกเลิกแล้ว", "info")
+        return redirect(url_for("advance_payment.closing_management", search_closing_number=closing_doc.document_number))
 
-    # เปลี่ยนสถานะฎีกาเป็น ถูกยกเลิก (โดยไม่ล้าง total_amount ให้เป็น 0)
-    closing_doc.status = "ถูกยกเลิก"
     doc_number = closing_doc.document_number
     updated_tickets = set()
+    for link in closing_doc.links:
+        if not link.is_active:
+            continue
+        record = link.record
+        link.is_active = False
+        if link.ticket_return_id is not None:
+            record.status = "ผ่านการตรวจสอบ"
+            updated_tickets.add(record.ticket_id)
+        elif link.parcel_return_id is not None:
+            record.status = "ได้รับเอกสารแล้ว"
+            updated_tickets.add(record.ticket_id)
+        else:
+            record.status = "โอนเงินสดย่อยสำเร็จ"
+    closing_doc.is_active = False
 
-    def append_history(existing_history):
-        history_items = [
-            item.strip()
-            for item in (existing_history or "").split(",")
-            if item.strip()
-        ]
-        if doc_number not in history_items:
-            history_items.append(doc_number)
-        return ", ".join(history_items)
-
-    # 1. จัดการรายการส่งใช้เงินยืม (ReturnDetail)
-    returns_in_doc = db.session.query(ReturnDetail).filter(
-        ReturnDetail.closing_document_id == closing_doc.id
-    ).all()
-
-    for ret in returns_in_doc:
-        ret.old_closing_document_name = append_history(ret.old_closing_document_name)
-        ret.closing_document_id = None
-        ret.status = "ผ่านการตรวจสอบ"  # สถานะกลับมารอตั้งฎีกาใหม่
-        updated_tickets.add(ret.ticket_id)
-
-    # 2. จัดการรายการส่งคืนพัสดุ (ParcelReturnDetail)
-    parcel_in_doc = db.session.query(ParcelReturnDetail).filter(
-        ParcelReturnDetail.closing_document_id == closing_doc.id
-    ).all()
-
-    for pr in parcel_in_doc:
-        pr.old_closing_document_name = append_history(pr.old_closing_document_name)
-        pr.closing_document_id = None
-        pr.status = "ได้รับเอกสารแล้ว"  # สถานะกลับมารอตั้งฎีกาใหม่
-        updated_tickets.add(pr.ticket_id)
-
-    # 3. จัดการรายการเงินสดย่อย (PettyCashClaimDetail)
-    petty_in_doc = db.session.query(PettyCashClaimDetail).filter(
-        PettyCashClaimDetail.closing_document_id == closing_doc.id
-    ).all()
-
-    for petty in petty_in_doc:
-        petty.old_closing_document_name = append_history(petty.old_closing_document_name)
-        petty.closing_document_id = None
-        petty.status = "โอนเงินสดย่อยสำเร็จ"  # สถานะกลับมารอตั้งฎีกาใหม่
-
-    # 4. คำนวณสถานะตั๋วเงินยืมใหม่สำหรับทุกสัญญาที่เกี่ยวข้อง
+    # คำนวณสถานะตั๋วเงินยืมใหม่สำหรับทุกสัญญาที่เกี่ยวข้อง
     for ticket_id in updated_tickets:
         _recalculate_borrowing_ticket_status(ticket_id)
 
@@ -1539,24 +1493,21 @@ def cancel_closing_doc(closing_doc_id):
 @login_required(role="finance")
 def bulk_receive_closing_doc(closing_doc_id):
     """ เปลี่ยนสถานะเอกสารทุกรายการในฎีกานี้เป็น ล้างลูกหนี้เงินยืม """
-    closing_doc = db.session.query(ClosingDocument).get(closing_doc_id)
+    closing_doc = db.session.query(ClosingDocument).filter_by(id=closing_doc_id).with_for_update().first()
     if not closing_doc:
         abort(404)
+    if not closing_doc.is_active:
+        abort(400, description="Cannot settle a cancelled closing document")
 
-    returns_in_doc = db.session.query(ReturnDetail).filter(
-        ReturnDetail.closing_document_id == closing_doc.id,
-        ReturnDetail.status != "ล้างลูกหนี้เงินยืม"
-    ).all()
-
-    parcel_in_doc = db.session.query(ParcelReturnDetail).filter(
-        ParcelReturnDetail.closing_document_id == closing_doc.id,
-        ParcelReturnDetail.status != "ได้รับเอกสารแล้ว"
-    ).all()
-
-    petty_in_doc = db.session.query(PettyCashClaimDetail).filter(
-        PettyCashClaimDetail.closing_document_id == closing_doc.id,
-        PettyCashClaimDetail.status != "เสร็จสิ้นกระบวนการ"
-    ).all()
+    returns_in_doc = [link.ticket_return for link in closing_doc.links
+                      if link.is_active and link.ticket_return is not None
+                      and link.ticket_return.status != "ล้างลูกหนี้เงินยืม"]
+    parcel_in_doc = [link.parcel_return for link in closing_doc.links
+                    if link.is_active and link.parcel_return is not None
+                    and link.parcel_return.status != "ล้างลูกหนี้เงินยืม"]
+    petty_in_doc = [link.claim for link in closing_doc.links
+                   if link.is_active and link.claim is not None
+                   and link.claim.status != "เสร็จสิ้นกระบวนการ"]
 
     if not returns_in_doc and not petty_in_doc and not parcel_in_doc:
         flash("ไม่มีรายการเอกสารส่งใช้เงินยืม พัสดุ หรือเงินสดย่อยที่ต้องล้างลูกหนี้ในฎีกานี้เพิ่มเติม", "info")
@@ -1576,8 +1527,6 @@ def bulk_receive_closing_doc(closing_doc_id):
 
     for ticket_id in updated_tickets:
         _recalculate_borrowing_ticket_status(ticket_id)
-
-    closing_doc.status = "ล้างลูกหนี้เงินยืม"
 
     db.session.commit()
     flash(f"เปลี่ยนสถานะรายการทั้งหมดรวมถึงเงินสดย่อยในฎีกา {closing_doc.document_number} เป็น 'ล้างลูกหนี้เงินยืม' เรียบร้อยแล้ว", "success")
@@ -3855,7 +3804,7 @@ def return_records_history():
     processed_records = []
     for record in return_records:
         ticket = db.session.query(BorrowingTicket).filter_by(id=record.ticket_id).first()
-        closing_document = _get_closing_document(record.closing_document_id)
+        closing_document = record.closing_document
         borrower_user = _get_user_by_id(getattr(ticket, "borrower_id", None)) if ticket else None
         borrower_org = _get_staff_org(borrower_user)
         account_name, account_number = _bank_account_search_info(getattr(ticket, "bank_account_info", None) if ticket else None)
@@ -3878,7 +3827,7 @@ def return_records_history():
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
             "closing_document_name": closing_document.document_number if closing_document else "-",
-            "old_document_number": record.old_closing_document_name or ""
+            "old_document_number": record.old_document_number or ""
         })
 
     # 2. ดึงข้อมูลรายการส่งคืนพัสดุ (ParcelReturnDetail)
@@ -3891,7 +3840,7 @@ def return_records_history():
     )
     for record in parcel_records:
         _attach_parcel_return_context(record)
-        closing_document = _get_closing_document(record.closing_document_id)
+        closing_document = record.closing_document
         ticket = getattr(record, "borrowing_ticket", None)
         fund_request = getattr(record, "fund_request", None)
         org = getattr(fund_request, "org", None) if fund_request else None
@@ -3922,7 +3871,7 @@ def return_records_history():
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
             "closing_document_name": closing_document.document_number if closing_document else "-",
-            "old_document_number": record.old_closing_document_name or ""
+            "old_document_number": record.old_document_number or ""
         })
 
     pending_review_count = sum(
@@ -3997,7 +3946,7 @@ def petty_cash_claim_history():
             "closed_at": closing_doc.filing_date if closing_doc else None,
             "closing_document_id": claim.closing_document_id or "-",
             "closing_document_name": closing_doc.document_number if closing_doc else "-",
-            "old_document_number": claim.old_closing_document_name or ""
+            "old_document_number": claim.old_document_number or ""
         })
 
     # 2. ดึงข้อมูลรายการส่งคืนพัสดุที่ผูกกับ fund_request
@@ -4010,7 +3959,7 @@ def petty_cash_claim_history():
 
     for record in parcel_records:
         _attach_parcel_return_context(record)
-        closing_document = _get_closing_document(record.closing_document_id)
+        closing_document = record.closing_document
         ticket = getattr(record, "borrowing_ticket", None)
         fund_request = getattr(record, "fund_request", None)
         org = getattr(fund_request, "org", None) if fund_request else None
@@ -4041,7 +3990,7 @@ def petty_cash_claim_history():
             "closed_at": closing_document.filing_date if closing_document else None,
             "closing_document_id": record.closing_document_id or "-",
             "closing_document_name": closing_document.document_number if closing_document else "-",
-            "old_document_number": record.old_closing_document_name or ""
+            "old_document_number": record.old_document_number or ""
         })
 
     claim_proofed_count = sum(
@@ -4396,27 +4345,12 @@ def closing_management():
             .order_by(ClosingDocument.filing_date.desc(), ClosingDocument.id.desc())
             .all()
         )
-        matched_return_ids = set()
-        matched_parcel_return_ids = set()
-        matched_petty_cash_ids = set()
 
         for searched_doc in searched_docs:
-            doc_returns = db.session.query(ReturnDetail).filter(
-                (ReturnDetail.closing_document_id == searched_doc.id)
-                | (ReturnDetail.old_closing_document_name == searched_doc.document_number)
-            ).all()
-            doc_parcel_returns = db.session.query(ParcelReturnDetail).filter(
-                (ParcelReturnDetail.closing_document_id == searched_doc.id)
-                | (ParcelReturnDetail.old_closing_document_name == searched_doc.document_number)
-            ).all()
-            doc_petty_cash = db.session.query(PettyCashClaimDetail).filter(
-                (PettyCashClaimDetail.closing_document_id == searched_doc.id)
-                | (PettyCashClaimDetail.old_closing_document_name == searched_doc.document_number)
-            ).all()
+            doc_returns = [link.ticket_return for link in searched_doc.links if link.ticket_return is not None]
+            doc_parcel_returns = [link.parcel_return for link in searched_doc.links if link.parcel_return is not None]
+            doc_petty_cash = [link.claim for link in searched_doc.links if link.claim is not None]
 
-            matched_return_ids.update(ret.id for ret in doc_returns)
-            matched_parcel_return_ids.update(pr.id for pr in doc_parcel_returns)
-            matched_petty_cash_ids.update(petty.id for petty in doc_petty_cash)
 
             for petty in doc_petty_cash:
                 related_claim = _attach_petty_cash_claim_context(petty)
@@ -4427,11 +4361,11 @@ def closing_management():
                     else (petty.user.department if petty.user else "ไม่ระบุ")
                 )
                 petty.requester_name = "-"
-                petty.claim_number = "-"
+                petty.display_claim_number = "-"
                 if related_claim:
                     fund_request = related_claim.fund_request
                     petty.requester_name = _fund_request_requester_name(fund_request, getattr(related_claim.user, "name", petty.requester_name)) if fund_request else (related_claim.user.name if related_claim.user else petty.requester_name)
-                    petty.claim_number = (
+                    petty.display_claim_number = (
                         related_claim.claim_number
                         or (fund_request.ticket_number if fund_request and fund_request.ticket_number else None)
                         or f"PC-{related_claim.id}"
@@ -4450,6 +4384,9 @@ def closing_management():
                 "returns": doc_returns,
                 "parcel_returns": doc_parcel_returns,
                 "petty_cash": doc_petty_cash,
+                "historical_return_ids": {link.ticket_return_id for link in searched_doc.links if not link.is_active},
+                "historical_parcel_ids": {link.parcel_return_id for link in searched_doc.links if not link.is_active},
+                "historical_claim_ids": {link.claim_id for link in searched_doc.links if not link.is_active},
                 "petty_cash_total": sum(petty.total_amount or 0 for petty in doc_petty_cash),
                 "loan_total": (
                     sum(ret.amount_spent or 0 for ret in doc_returns)
@@ -4457,137 +4394,57 @@ def closing_management():
                 ),
             })
 
-        # Keep showing records that only refer to an older/cancelled document.
-        searched_petty_cash = db.session.query(PettyCashClaimDetail).filter(
-            PettyCashClaimDetail.old_closing_document_name.contains(search_closing_number)
-        ).all()
-        searched_returns = db.session.query(ReturnDetail).filter(
-            ReturnDetail.old_closing_document_name.contains(search_closing_number)
-        ).all()
-        searched_parcel_returns = db.session.query(ParcelReturnDetail).filter(
-            ParcelReturnDetail.old_closing_document_name.contains(search_closing_number)
-        ).all()
-
-        searched_petty_cash = [
-            petty for petty in searched_petty_cash if petty.id not in matched_petty_cash_ids
-        ]
-        searched_returns = [
-            ret for ret in searched_returns if ret.id not in matched_return_ids
-        ]
-        searched_parcel_returns = [
-            pr for pr in searched_parcel_returns if pr.id not in matched_parcel_return_ids
-        ]
-
-        for petty in searched_petty_cash:
-            related_claim = _attach_petty_cash_claim_context(petty)
-            petty.amount = float(petty.total_amount or 0)
-            petty.department_name = (
-                petty.setting.department_name
-                if petty.setting
-                else (petty.user.department if petty.user else "ไม่ระบุ")
-            )
-            petty.requester_name = "-"
-            petty.claim_number = "-"
-            if related_claim:
-                fund_request = related_claim.fund_request
-                petty.requester_name = _fund_request_requester_name(fund_request, getattr(related_claim.user, "name", petty.requester_name)) if fund_request else (related_claim.user.name if related_claim.user else petty.requester_name)
-                petty.claim_number = (
-                    related_claim.claim_number
-                    or (fund_request.ticket_number if fund_request and fund_request.ticket_number else None)
-                    or f"PC-{related_claim.id}"
-                )
-                petty.name = petty.requester_name
-
-        for ret in searched_returns:
-            if not hasattr(ret, 'borrowing_ticket') or ret.borrowing_ticket is None:
-                ret.borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ret.ticket_id).first()
-
-        for pr in searched_parcel_returns:
-            _attach_parcel_return_context(pr)
-
     if request.method == "POST":
         document_number = request.form.get("document_number", "").strip()
-        filing_date_str = request.form.get("filing_date", "").strip()
-        total_amount_input = request.form.get("total_amount", "0").strip()
-
-        return_ids = request.form.getlist("return_ids[]")
-        parcel_return_ids = request.form.getlist("parcel_return_ids[]")
-        petty_claim_ids = request.form.getlist("petty_claim_ids[]")  # รับเฉพาะ ID ของรายการเงินสดย่อยที่ถูกเลือก
-
-        if not document_number or not filing_date_str:
-            flash("กรุณากรอกเลขที่ฎีกาและวันที่ตั้งฎีกา")
+        try:
+            filing_date = datetime.strptime(request.form.get("filing_date", ""), "%Y-%m-%d").date()
+            selections = [
+                (ReturnDetail, {int(value) for value in request.form.getlist("return_ids[]")}, "ผ่านการตรวจสอบ"),
+                (ParcelReturnDetail, {int(value) for value in request.form.getlist("parcel_return_ids[]")}, "ได้รับเอกสารแล้ว"),
+                (PettyCashClaimDetail, {int(value) for value in request.form.getlist("petty_claim_ids[]")}, "โอนเงินสดย่อยสำเร็จ"),
+            ]
+        except (ValueError, TypeError):
+            flash("วันที่หรือรายการตั้งฎีกาไม่ถูกต้อง", "danger")
+            return redirect(url_for("advance_payment.closing_management"))
+        if not document_number or len(document_number) > 255 or not any(ids for _, ids, _ in selections):
+            flash("กรุณาระบุเลขที่ฎีกาและเลือกรายการตั้งฎีกา", "danger")
+            return redirect(url_for("advance_payment.closing_management"))
+        if db.session.query(ClosingDocument).filter_by(document_number=document_number).first():
+            flash("เลขที่ฎีกานี้มีอยู่แล้ว กรุณาใช้เลขที่ใหม่", "danger")
             return redirect(url_for("advance_payment.closing_management"))
 
-        filing_date = datetime.strptime(filing_date_str, "%Y-%m-%d").date()
-        total_amount = float(total_amount_input.replace(",", ""))
+        selected_records = []
+        for model, ids, status in selections:
+            records = db.session.query(model).filter(model.id.in_(ids)).with_for_update().all()
+            if len(records) != len(ids) or any(
+                record.status != status or record.closing_document is not None for record in records
+            ):
+                db.session.rollback()
+                flash("มีรายการที่ไม่พร้อมตั้งฎีกาหรือผูกกับฎีกาอื่นแล้ว กรุณาตรวจสอบอีกครั้ง", "danger")
+                return redirect(url_for("advance_payment.closing_management"))
+            selected_records.extend(records)
 
+        total_amount = sum((record.total_amount if isinstance(record, PettyCashClaimDetail)
+                            else record.amount_spent) or Decimal("0") for record in selected_records)
         new_closing_doc = ClosingDocument(
-            document_number=document_number,
-            filing_date=filing_date,
-            total_amount=total_amount,
-            created_at=datetime.now(),
+            document_number=document_number, filing_date=filing_date,
+            total_amount=total_amount, created_at=datetime.now(),
         )
         db.session.add(new_closing_doc)
-        db.session.flush()
-
-        # --- ส่วนจัดการรายการเงินสดย่อย (Petty Claim) ที่เลือก ---
-        if petty_claim_ids:
-            # ดึงเฉพาะรายการ PettyCashClaimDetail ที่ถูกติ๊กเลือก และมีสถานะเป็น transferred
-            selected_claims = db.session.query(PettyCashClaimDetail).filter(
-                PettyCashClaimDetail.id.in_([int(p_id) for p_id in petty_claim_ids]),
-                PettyCashClaimDetail.status == "โอนเงินสดย่อยสำเร็จ"
-            ).all()
-
-            for claim in selected_claims:
-                _attach_petty_cash_claim_context(claim)
-                setting_id = claim.setting.id if claim.setting else None
-                dept_name = claim.setting.department_name if claim.setting else "ไม่ระบุ"
-                budget_val = float(claim.setting.budget or 0) if claim.setting else 0.0
-                acc_num = claim.setting.account_number if claim.setting else ""
-                claim_amount = float(claim.total_amount or claim.amount or 0)
-                requester_name = _fund_request_requester_name(claim.fund_request, getattr(claim.user, "name", "-")) if claim.fund_request else (claim.user.name if claim.user else "-")
-
-                # อัปเดตสถานะของ PettyCashClaimDetail เดิม
-                claim.status = "เอกสารตั้งฎีกา"
-                claim.closing_document_id = new_closing_doc.id
-
         updated_ticket_ids = set()
-
-        if return_ids:
-            records = db.session.query(ReturnDetail).filter(
-                ReturnDetail.id.in_([int(r_id) for r_id in return_ids]),
-                ReturnDetail.status == "ผ่านการตรวจสอบ"
-            ).all()
-            for record in records:
-                previous_document = _get_closing_document(record.closing_document_id)
-                if previous_document and previous_document.id != new_closing_doc.id:
-                    record.old_closing_document_name = previous_document.document_number
-                record.status = "เอกสารตั้งฎีกา"
-                record.closing_document_id = new_closing_doc.id
+        for record in selected_records:
+            record.status = "เอกสารตั้งฎีกา"
+            record.closing_document = new_closing_doc
+            if not isinstance(record, PettyCashClaimDetail) and record.ticket_id:
                 updated_ticket_ids.add(record.ticket_id)
-
-        if parcel_return_ids:
-            parcel_records = db.session.query(ParcelReturnDetail).filter(
-                ParcelReturnDetail.id.in_([int(p_id) for p_id in parcel_return_ids]),
-                ParcelReturnDetail.status == "ได้รับเอกสารแล้ว"
-            ).all()
-            for pr_record in parcel_records:
-                previous_document = _get_closing_document(pr_record.closing_document_id)
-                if previous_document and previous_document.id != new_closing_doc.id:
-                    pr_record.old_closing_document_name = previous_document.document_number
-                pr_record.status = "เอกสารตั้งฎีกา"
-                pr_record.closing_document_id = new_closing_doc.id
-                updated_ticket_ids.add(pr_record.ticket_id)
-
-        for t_id in updated_ticket_ids:
-            _recalculate_borrowing_ticket_status(t_id)
-
+        for ticket_id in updated_ticket_ids:
+            _recalculate_borrowing_ticket_status(ticket_id)
         db.session.commit()
         flash(f"บันทึกเอกสารตั้งฎีกาเลขที่ {document_number} ยอดรวม {total_amount:,.2f} บาท สำเร็จ")
         return redirect(url_for("advance_payment.closing_management"))
 
     # --- ส่วนการดึงข้อมูลเพื่อแสดงผล (GET) ---
-    proofed_records = db.session.query(ReturnDetail).filter(ReturnDetail.status == "ผ่านการตรวจสอบ").all()
+    proofed_records = db.session.query(ReturnDetail).filter(ReturnDetail.status == "ผ่านการตรวจสอบ", ~ReturnDetail.closing_links.any(is_active=True)).all()
     processed_records = []
     for record in proofed_records:
         ticket = db.session.query(BorrowingTicket).filter_by(id=record.ticket_id).first()
@@ -4602,7 +4459,7 @@ def closing_management():
             "created_at": record.created_at,
         })
 
-    proofed_parcels = db.session.query(ParcelReturnDetail).filter(ParcelReturnDetail.status == "ได้รับเอกสารแล้ว").all()
+    proofed_parcels = db.session.query(ParcelReturnDetail).filter(ParcelReturnDetail.status == "ได้รับเอกสารแล้ว", ~ParcelReturnDetail.closing_links.any(is_active=True)).all()
     processed_parcels = []
     for pr in proofed_parcels:
         _attach_parcel_return_context(pr)
@@ -4642,7 +4499,8 @@ def closing_management():
 
     # ดึงรายการเงินสดย่อยที่มีสถานะเป็น transferred เพื่อนำไปแสดงในตารางที่ 3
     transferred_petty_claims = db.session.query(PettyCashClaimDetail).filter(
-        PettyCashClaimDetail.status == "โอนเงินสดย่อยสำเร็จ"
+        PettyCashClaimDetail.status == "โอนเงินสดย่อยสำเร็จ",
+        ~PettyCashClaimDetail.closing_links.any(is_active=True),
     ).all()
     for petty in transferred_petty_claims:
         _attach_petty_cash_claim_context(petty)
@@ -4666,7 +4524,7 @@ def closing_management():
 @login_required(role="finance")
 def update_return_closing_doc(return_id):
     """ แก้ไขเลขฎีกาของใบคืนเงินชิ้นนี้ พร้อมบันทึกประวัติเดิม """
-    return_detail = db.session.query(ReturnDetail).get(return_id)
+    return_detail = db.session.query(ReturnDetail).filter_by(id=return_id).with_for_update().first()
     if not return_detail:
         abort(404)
 
@@ -4675,14 +4533,14 @@ def update_return_closing_doc(return_id):
         flash("กรุณาระบุหมายเลขฎีกาใหม่", "danger")
         return redirect(request.referrer)
 
-    # เก็บประวัติฎีกาเดิมก่อนเปลี่ยน
     current_doc = return_detail.closing_document
-    if current_doc:
-        old_history = return_detail.old_closing_document_name
-        return_detail.old_closing_document_name = f"{old_history}, {current_doc.document_number}" if old_history else current_doc.document_number
-        current_doc.total_amount = max(0, float(current_doc.total_amount or 0) - float(return_detail.amount_spent or 0))
+    if current_doc and current_doc.document_number == new_doc_number:
+        return redirect(request.referrer or url_for("advance_payment.closing_management"))
 
-    target_doc = db.session.query(ClosingDocument).filter_by(document_number=new_doc_number).first()
+    target_doc = db.session.query(ClosingDocument).filter_by(document_number=new_doc_number).with_for_update().first()
+    if target_doc and not target_doc.is_active:
+        flash("ไม่สามารถย้ายรายการไปฎีกาที่ถูกยกเลิกแล้ว", "danger")
+        return redirect(request.referrer or url_for("advance_payment.closing_management"))
     if not target_doc:
         target_doc = ClosingDocument(
             document_number=new_doc_number,
@@ -4693,8 +4551,11 @@ def update_return_closing_doc(return_id):
         db.session.add(target_doc)
         db.session.flush()
 
-    target_doc.total_amount = float(target_doc.total_amount or 0) + float(return_detail.amount_spent or 0)
-    return_detail.closing_document_id = target_doc.id
+    if current_doc:
+        current_doc = db.session.query(ClosingDocument).filter_by(id=current_doc.id).with_for_update().first()
+        current_doc.total_amount = max(0, current_doc.total_amount - return_detail.amount_spent)
+    target_doc.total_amount += return_detail.amount_spent
+    return_detail.closing_document = target_doc
     return_detail.status = "เอกสารตั้งฎีกา"
 
     db.session.commit()

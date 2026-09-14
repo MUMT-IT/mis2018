@@ -116,11 +116,11 @@
               <td class="text-center">
                 {% if claim.closing_document %}
                   <span class="text-dark d-block fw-medium">{{ claim.closing_document.document_number }}</span>
-                  {% if claim.old_closing_document_name %}
-                    <span class="text-muted small ms-2">(เลขฎีกาเก่า: {{ claim.old_closing_document_name }})</span>
-                  {% endif %}
                 {% else %}
                   <span class="text-muted small">-</span>
+                {% endif %}
+                {% if claim.old_document_number %}
+                  <span class="text-muted small ms-2">(เลขฎีกาเก่า: {{ claim.old_document_number }})</span>
                 {% endif %}
               </td>
               <td class="text-center small text-secondary">

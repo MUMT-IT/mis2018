@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
-from sqlalchemy.orm import object_session, relationship
+from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, text
+from sqlalchemy.orm import declared_attr, object_session, relationship
 from app.main import db
 from app.staff.models import StaffAccount
 
@@ -248,7 +248,64 @@ class Document(db.Model):
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
 
 
-class ReturnDetail(db.Model):
+class ClosingDocumentRecordMixin:
+    """Current association and history come from links, never copied document names."""
+
+    @declared_attr
+    def closing_links(cls):
+        return relationship(
+            "ClosingDocumentLink",
+            foreign_keys="ClosingDocumentLink." + cls._closing_fk,
+            back_populates=cls._closing_record,
+            order_by="ClosingDocumentLink.id",
+        )
+
+    @property
+    def closing_document(self):
+        return next((link.document for link in self.closing_links
+                     if link.is_active and link.document.is_active is not False), None)
+
+    @closing_document.setter
+    def closing_document(self, document):
+        if document is not None and document.is_active is False:
+            raise ValueError("Cannot attach a record to a cancelled closing document")
+        if self.closing_document is document:
+            return
+        for link in self.closing_links:
+            link.is_active = False
+        session = object_session(self)
+        if session is not None:
+            session.flush()  # Release the unique active association before inserting.
+        if document is not None:
+            link = next((link for link in self.closing_links if link.document is document), None)
+            if link is None:
+                self.closing_links.append(ClosingDocumentLink(document=document, is_active=True))
+            else:
+                link.is_active = True
+
+    @property
+    def closing_document_id(self):
+        document = self.closing_document
+        return document.id if document else None
+
+    @property
+    def closing_document_name(self):
+        document = self.closing_document
+        return document.document_number if document else None
+
+    @property
+    def historical_closing_documents(self):
+        return [link.document for link in self.closing_links
+                if not link.is_active or link.document.is_active is False]
+
+    @property
+    def old_document_number(self):
+        return ", ".join(doc.document_number for doc in self.historical_closing_documents)
+
+
+class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
+    _closing_fk = "ticket_return_id"
+    _closing_record = "ticket_return"
     __tablename__ = "cash_advance_return_details" # use cash_advance_payment_receipt_detail
 
     id = Column(Integer, primary_key=True)
@@ -256,10 +313,8 @@ class ReturnDetail(db.Model):
     amount_spent = Column(Numeric(12, 2), nullable=False, default=0)
     proof_reference = Column(String(255), nullable=False, default="")
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
-    old_closing_document_name = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     rejection_comment = Column(String(4000), nullable=True)
-    closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
     reference_number = Column(String(255), nullable=True)
     reference_date = Column(Date, nullable=True)
     product_code_id = Column(String(12), ForeignKey("product_codes.id"), nullable=True)
@@ -284,27 +339,6 @@ class ReturnDetail(db.Model):
     @property
     def receipt_items(self):
         return _query_related_list(self, ReturnReceiptItem, "return_detail_id")
-
-    @property
-    def closing_document(self):
-        cached_document = getattr(self, "_closing_document", None)
-        if cached_document is not None:
-            return cached_document
-        return _session_get(object_session(self), ClosingDocument, self.closing_document_id)
-
-    @closing_document.setter
-    def closing_document(self, value):
-        self._closing_document = value
-
-    @property
-    def closing_document_name(self):
-        if self.closing_document is not None:
-            return self.closing_document.document_number
-        return None
-
-    @property
-    def old_document_number(self):
-        return self.old_closing_document_name
 
     @property
     def documents(self):
@@ -349,7 +383,9 @@ class ReturnProofFile(db.Model):
         self._receipt_item = value
 
 
-class ParcelReturnDetail(db.Model):
+class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
+    _closing_fk = "parcel_return_id"
+    _closing_record = "parcel_return"
     __tablename__ = "cash_mng_parcel_return_details"
 
     id = Column(Integer, primary_key=True)
@@ -360,8 +396,6 @@ class ParcelReturnDetail(db.Model):
     sent_date = Column(Date, nullable=False)
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
-    closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
-    old_closing_document_name = Column(String(255), nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
 
     @property
@@ -386,27 +420,6 @@ class ParcelReturnDetail(db.Model):
     def fund_request(self, value):
         self._fund_request = value
 
-    @property
-    def closing_document(self):
-        cached_document = getattr(self, "_closing_document", None)
-        if cached_document is not None:
-            return cached_document
-        return _session_get(object_session(self), ClosingDocument, self.closing_document_id)
-
-    @closing_document.setter
-    def closing_document(self, value):
-        self._closing_document = value
-
-    @property
-    def closing_document_name(self):
-        if self.closing_document is not None:
-            return self.closing_document.document_number
-        return None
-
-    @property
-    def old_document_number(self):
-        return self.old_closing_document_name
-
 
 class ClosingDocument(db.Model):
     __tablename__ = "cash_mng_closing_documents"
@@ -415,9 +428,51 @@ class ClosingDocument(db.Model):
     document_number = Column(String(255), nullable=False, unique=True)
     filing_date = Column(Date, nullable=False)
     total_amount = Column(Numeric(12, 2), nullable=False, default=0)
-    # TODO use is_active
-    status = Column(String(32), nullable=False, default="ใช้งานอยู่")
+    is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    links = relationship("ClosingDocumentLink", back_populates="document", order_by="ClosingDocumentLink.id")
+
+    @property
+    def is_settled(self):
+        records = [link.record for link in self.links if link.is_active]
+        return self.is_active and bool(records) and all(
+            record.status in ("ล้างลูกหนี้เงินยืม", "เสร็จสิ้นกระบวนการ") for record in records
+        )
+
+
+class ClosingDocumentLink(db.Model):
+    __tablename__ = "cash_mng_closing_document_links"
+    __table_args__ = (
+        CheckConstraint(
+            "(CASE WHEN ticket_return_id IS NOT NULL THEN 1 ELSE 0 END + "
+            "CASE WHEN parcel_return_id IS NOT NULL THEN 1 ELSE 0 END + "
+            "CASE WHEN claim_id IS NOT NULL THEN 1 ELSE 0 END) = 1",
+            name="ck_closing_link_one_record",
+        ),
+        *tuple(constraint for field in ("ticket_return_id", "parcel_return_id", "claim_id")
+               for constraint in (
+                   UniqueConstraint("document_id", field, name="uq_closing_link_doc_" + field),
+                   Index("uq_closing_link_active_" + field, field, unique=True,
+                         postgresql_where=text("is_active"), sqlite_where=text("is_active = 1")),
+               )),
+    )
+
+    id = Column(Integer, primary_key=True)
+    document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=False, index=True)
+    ticket_return_id = Column(Integer, ForeignKey("cash_advance_return_details.id"), nullable=True)
+    parcel_return_id = Column(Integer, ForeignKey("cash_mng_parcel_return_details.id"), nullable=True)
+    claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    document = relationship("ClosingDocument", back_populates="links")
+    ticket_return = relationship("ReturnDetail", back_populates="closing_links")
+    parcel_return = relationship("ParcelReturnDetail", back_populates="closing_links")
+    claim = relationship("PettyCashClaimDetail", back_populates="closing_links")
+
+    @property
+    def record(self):
+        return self.ticket_return or self.parcel_return or self.claim
 
 
 class PettyCashSetting(db.Model):
@@ -631,7 +686,9 @@ document_petty_claim_association = Table(
 )
 
 
-class PettyCashClaimDetail(db.Model):
+class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
+    _closing_fk = "claim_id"
+    _closing_record = "claim"
     __tablename__ = "petty_cash_claim_details" # use petty_cash_payment_receipt_detail
 
     id = Column(Integer, primary_key=True)
@@ -643,8 +700,6 @@ class PettyCashClaimDetail(db.Model):
     total_amount = Column(Numeric(12, 2), nullable=False, default=0)
     rejection_comment = Column(String(4000), nullable=True)
     transferred_at = Column(Date, nullable=True)
-    closing_document_id = Column(Integer, ForeignKey("cash_mng_closing_documents.id"), nullable=True)
-    old_closing_document_name = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     reference_number = Column(String(255), nullable=True)
     reference_date = Column(Date, nullable=True)
@@ -666,17 +721,6 @@ class PettyCashClaimDetail(db.Model):
     @fund_request.setter
     def fund_request(self, value):
         self._fund_request = value
-
-    @property
-    def closing_document(self):
-        cached_document = getattr(self, "_closing_document", None)
-        if cached_document is not None:
-            return cached_document
-        return _session_get(object_session(self), ClosingDocument, self.closing_document_id)
-
-    @closing_document.setter
-    def closing_document(self, value):
-        self._closing_document = value
 
     @property
     def items(self):

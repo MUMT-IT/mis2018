@@ -156,7 +156,6 @@ def _ensure_return_detail(
     amount_spent,
     proof_reference,
     status,
-    old_closing_document_name=None,
     closing_document=None,
     rejection_comment=None,
 ):
@@ -173,7 +172,6 @@ def _ensure_return_detail(
         amount_spent=_money(amount_spent),
         proof_reference=proof_reference,
         status=status,
-        old_closing_document_name=old_closing_document_name,
         rejection_comment=rejection_comment,
     )
     if closing_document:
@@ -545,7 +543,6 @@ def seed_demo_data(session):
         amount_spent="4200.00",
         proof_reference="001/69",
         status="ผ่านการตรวจสอบ",
-        old_closing_document_name=closing_doc_1.document_number,
         closing_document=closing_doc_1,
     )
     partial_item_1 = _ensure_return_receipt_item(
@@ -586,7 +583,6 @@ def seed_demo_data(session):
         amount_spent="8000.00",
         proof_reference="002/69",
         status="เอกสารตั้งฎีกา",
-        old_closing_document_name=closing_doc_2.document_number,
         closing_document=closing_doc_2,
     )
     full_item_1 = _ensure_return_receipt_item(
@@ -679,7 +675,6 @@ def seed_demo_data(session):
         amount_spent="6200.00",
         proof_reference="B-002/69",
         status="เคลียร์ยอดแล้ว",
-        old_closing_document_name=closing_doc_2.document_number,
         closing_document=closing_doc_2,
     )
     borrower_closed_item = _ensure_return_receipt_item(

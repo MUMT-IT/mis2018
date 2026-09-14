@@ -518,7 +518,12 @@
                     <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td> 
                     <td></td> 
                     <td></td>
-                    <td>{{ return_detail.closing_document_name if return_detail.closing_document_name else '-' }}</td>
+                    <td>
+                      {{ return_detail.closing_document_name or '-' }}
+                      {% if return_detail.old_document_number %}
+                        <span class="text-muted small d-block">(เลขเก่า: {{ return_detail.old_document_number }})</span>
+                      {% endif %}
+                    </td>
                   </tr>
                 {% endfor %}
               {% else %}
@@ -532,7 +537,12 @@
                   <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td> 
                   <td></td> 
                   <td></td>
-                  <td>{{ return_detail.closing_document_name if return_detail.closing_document_name else '-' }}</td>
+                  <td>
+                      {{ return_detail.closing_document_name or '-' }}
+                      {% if return_detail.old_document_number %}
+                        <span class="text-muted small d-block">(เลขเก่า: {{ return_detail.old_document_number }})</span>
+                      {% endif %}
+                    </td>
                 </tr>
               {% endif %}
             {% endfor %}
@@ -549,7 +559,12 @@
                   <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td>
                   <td></td>
                   <td></td>
-                  <td>-</td>
+                  <td>
+                    {{ pr.closing_document_name or '-' }}
+                    {% if pr.old_document_number %}
+                      <span class="text-muted small d-block">(เลขเก่า: {{ pr.old_document_number }})</span>
+                    {% endif %}
+                  </td>
                 </tr>
               {% endfor %}
             {% endif %}
