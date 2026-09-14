@@ -8,9 +8,124 @@
   <h1 class="fw-bold display-6 mb-2">บันทึกใบส่งเบิกเงินสดย่อย</h1>
   <p class="text-muted mb-0">หน่วยงาน: {{ setting.department_name if setting else '-' }} | เลขที่บัญชี: {{ setting.account_number if setting else '-' }}</p>
 </header>
+{% if verification_fund_request or claim_detail %}
+<section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
+  <div class="row g-4">
+    <div class="col-12 col-lg-10">
+      <div class="d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3 mb-4">
+        <div>
+          <span class="text-uppercase text-primary fw-bold small">วัตถุประสงค์</span>
+          <h2 class="h3 fw-bold mb-0 py-2">{{ verification_purpose }}</h2>
+        </div>
+        <div class="d-flex flex-column align-items-md-end gap-2 flex-wrap">
+          <div class="text-md-end">
+            {% if verification_fund_request and verification_fund_request.form_type == '31' and verification_fund_request.withdrawal_proof_reference %}
+              <a href="{{ url_for('static', filename=verification_fund_request.withdrawal_proof_reference) }}" class="btn btn-outline-primary btn-sm fw-bold" target="_blank">
+                <i class="bi bi-paperclip me-1"></i>{{ verification_fund_request.withdrawal_proof_filename or 'หลักฐานการเบิก' }}
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
 
-{% set fund_request_status = selected_fund_request.status if selected_fund_request else (claim_detail.fund_request.status if claim_detail and claim_detail.fund_request else none) %}
-{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกแล้ว', 'เบิกเงินสำเร็จ'] %}
+      <div class="col-12 col-md-4 mb-3">
+        <p class="text-muted small mb-1"><strong>เลขที่ใบเบิก</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ verification_ticket_number }}</p>
+      </div>
+
+      <div class="row g-3 text-start mb-3">
+        <div class="col-6 col-md-4">
+          <p class="text-muted small mb-1"><strong>ผู้สร้างรายการ</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ verification_creator_name if verification_creator_name is not none else '-' }}</p>
+        </div>
+        <div class="col-6 col-md-4">
+          <p class="text-muted small mb-1"><strong>ผู้ขอเบิก</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ verification_requester_name if verification_requester_name is not none else '-' }}</p>
+        </div>
+        <div class="col-6 col-md-4">
+          <p class="text-muted small mb-1"><strong>จำนวนเงิน</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ '{:,.2f}'.format(verification_amount or 0) }} บาท</p>
+        </div>
+        <div class="col-6 col-md-4">
+          <p class="text-muted small mb-1"><strong>วันที่ขอเบิก</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ verification_request_date|thai_date if verification_request_date else '-' }}</p>
+        </div>
+        <div class="col-12 col-md-4">
+          <p class="text-muted small mb-1"><strong>วันที่สร้างรายการ</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ verification_created_at|thai_date if verification_created_at else '-' }}</p>
+        </div>
+      </div>
+
+    </div>
+    <div class="col-12 col-lg-2">
+      {% set current_fund_request_status = (fund_request_status or '')|trim %}
+      {% set fund_request_status_aliases = {
+        'ส่งเบิกแล้ว': 'เบิกเงินแล้ว',
+        'เบิกเงินสำเร็จ': 'เบิกเงินแล้ว'
+      } %}
+      {% set current_fund_request_step = fund_request_status_aliases.get(current_fund_request_status, current_fund_request_status) %}
+      {% set fund_request_status_class = 'bg-secondary text-white' %}
+      {% if current_fund_request_step == 'อนุมัติแล้ว' %}
+        {% set fund_request_status_class = 'bg-primary text-white' %}
+      {% elif current_fund_request_step == 'ส่งเบิกครบแล้ว' %}
+        {% set fund_request_status_class = 'bg-info text-white' %}
+      {% elif current_fund_request_step == 'เคลียร์ยอดสำเร็จ' %}
+        {% set fund_request_status_class = 'bg-success text-white' %}
+      {% elif current_fund_request_step in ['ยกเลิก', 'ปฏิเสธ'] %}
+        {% set fund_request_status_class = 'bg-danger text-white' %}
+      {% endif %}
+
+      <div class="status-flow">
+        {% for step in fund_request_status_steps %}
+          <div class="status-flow-item">
+            <span class="status-flow-dot {% if step == current_fund_request_step %}is-current{% endif %}"></span>
+            {% if step == current_fund_request_step %}
+              <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ step }}</span>
+            {% else %}
+              <span class="badge bg-light text-secondary border fs-6 px-3 py-2">{{ step }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        {% if current_fund_request_step not in fund_request_status_steps and current_fund_request_step %}
+          <div class="status-flow-item">
+            <span class="status-flow-dot is-current"></span>
+            <span class="badge {{ fund_request_status_class }} fs-6 px-3 py-2">{{ current_fund_request_step }}</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% if verification_fund_request and fund_request_status not in ['ยกเลิก', 'ส่งเบิกแล้ว', 'ส่งเบิกครบแล้ว', 'เบิกเงินสำเร็จ', 'เคลียร์ยอดสำเร็จ'] and session.get('user_role') == 'secretary' %}
+  <div class="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
+    <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
+      <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+    </a>
+    <button type="button"
+            class="btn btn-outline-danger btn-sm fw-bold px-3 py-1.5"
+            data-popup-trigger="true"
+            data-popup-title="สาเหตุของการยกเลิกใบเบิก"
+            data-popup-message="กรุณาระบุเหตุผลสำหรับการยกเลิกใบเบิก"
+            data-popup-action="{{ url_for('advance_payment.cancel_fund_request', request_id=verification_fund_request.id) }}"
+            data-popup-confirm-text="ยืนยันการยกเลิก"
+            data-popup-confirm-class="btn-danger"
+            data-popup-input-type="textarea"
+            data-popup-input-name="cancellation_reason"
+            data-popup-input-placeholder="ระบุเหตุผลที่ยกเลิกใบเบิก..."
+            data-popup-input-required="true"
+            data-popup-input-rows="2">
+      ยกเลิกใบเบิก
+    </button>
+  </div>
+  {% endif %}
+</section>
+
+{% endif %}
+{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกแล้ว', 'ส่งเบิกครบแล้ว', 'เบิกเงินสำเร็จ', 'เคลียร์ยอดสำเร็จ'] %}
+{% set total_request_amount = fund_request_total_info.request_amount if fund_request_total_info is defined else 0 %}
+{% set total_claimed_amount = fund_request_total_info.claim_total if fund_request_total_info is defined else 0 %}
+{% set total_parcel_amount = fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 %}
+{% set is_over_request = (total_claimed_amount + total_parcel_amount) > total_request_amount if total_request_amount else false %}
 {% if can_submit_claim %}
 <div class="card shadow-sm border rounded-4 bg-white mb-5">
   <div class="card-body p-4">
@@ -46,7 +161,7 @@
                   <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
                 </div>
                 <div class="col-md-5 d-flex gap-2 action-buttons-container">
-                  <a href="{{ doc.download_url or doc.file_path or doc.url or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.download_url and not doc.file_path and not doc.url %}d-none{% endif %}" target="_blank" download>
+                  <a href="{{ doc.url or doc.view_url or doc.file_path or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.url and not doc.view_url and not doc.file_path %}d-none{% endif %}" target="_blank" rel="noopener">
                     <i class="bi bi-download me-1"></i> ดาวน์โหลด
                   </a>
                   <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
@@ -67,7 +182,7 @@
                 <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
               </div>
               <div class="col-md-5 d-flex gap-2 action-buttons-container">
-                <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" download>
+                <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
                   <i class="bi bi-download me-1"></i> ดาวน์โหลด
                 </a>
                 <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
@@ -117,7 +232,6 @@
                       <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)</option>
                       <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น เครื่องเขียน, วัสดุสำนักงาน, อุปกรณ์)</option>
                       <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)</option>
-                      <option value="5" {% if item.category_type|string == '5' %}selected{% endif %}>อื่น ๆ (เช่น สัญญาเงินยืม)</option>
                       <option value="6" {% if item.category_type|string == '6' %}selected{% endif %}>โอนคืนบัญชีหน่วย</option>
                     </select>
                     </td>
@@ -130,7 +244,7 @@
                           value="{{ '%.2f'|format(item.amount or 0) }}" placeholder="0.00" oninput="calculateTotal()" required>
                   </td>
                   <td>
-                    <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" multiple>
+                    <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item.proof_files %}required{% endif %}>
                     {% for proof_file in item.proof_files %}
                       <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
                       <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
@@ -162,7 +276,6 @@
                       <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
                       <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
                       <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                      <option value="5" {% if item.category_type|string == '5' %}selected{% endif %}>อื่น ๆ (เช่น สัญญาเงินยืม)</option>
                       <option value="6" {% if item.category_type|string == '6' %}selected{% endif %}>โอนคืนบัญชีหน่วย</option>
                     </select>
                     </td>
@@ -175,7 +288,7 @@
                           value="{{ '%.2f'|format(item.amount or 0) }}" placeholder="0.00" oninput="calculateTotal()" required>
                   </td>
                   <td>
-                    <input type="file" name="proof_files_{{ loop.index0 }}[]" class="form-control form-control-sm" accept="image/*,.pdf" multiple>
+                    <input type="file" name="proof_files_{{ loop.index0 }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if loop.index0 == 0 %}required{% endif %}>
                   </td>
                   <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
@@ -189,45 +302,47 @@
         </table>
       </div>
 
-      <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-4">
+      <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-end justify-content-between p-3 bg-light rounded-3 mb-4 gap-3">
         <button type="button" class="btn btn-sm btn-success fw-bold" onclick="addRow()">
           <i class="bi bi-plus-lg me-1"></i> เพิ่มรายการใบเสร็จ
         </button>
-        <div class="d-flex gap-4 text-end align-items-center">
-          <!-- 1. วงเงินสดย่อยที่ขออนุมัติ (fund_request.amount) เพิ่มไว้หน้าสุด -->
-          <div>
-            <span class="d-block text-secondary small fw-bold">ยอดเงินที่ขอเบิกไป:</span>
-            <span class="fw-bold text-secondary fs-5">
-              {{ '%.2f'|format(selected_fund_request.amount if selected_fund_request and selected_fund_request.amount else (claim_detail.fund_request.amount if claim_detail and claim_detail.fund_request and claim_detail.fund_request.amount else 0)) }}
-            </span>
-            <span class="text-secondary small ms-1">บาท</span>
+      <div class="d-flex flex-column gap-2 ms-lg-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
+          <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
+            <span class="fw-bold">ยอดที่ขอไป</span>
+            <span class="fw-bold">{{ '%.2f'|format(selected_fund_request.amount if selected_fund_request and selected_fund_request.amount else (claim_detail.fund_request.amount if claim_detail and claim_detail.fund_request and claim_detail.fund_request.amount else 0)) }}</span>
           </div>
-
-          <div class="vr my-1"></div>
-
-          <!-- 2. ยอดรวมส่งเบิกทั้งสิ้น (เดิม) -->
-          <div>
-            <span class="d-block text-primary small fw-bold" id="totalAmountLabel">ยอดรวมส่งเบิกทั้งสิ้น:</span>
-            <span class="fw-bold text-primary fs-4" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
-            <span class="fw-bold text-primary ms-1" id="totalAmountUnit">บาท</span>
+          <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
+            <span class="fw-bold">ยอดที่ส่งแล้ว</span>
+            <span class="fw-bold" id="submittedAmountDisplay">0.00</span>
           </div>
-
-          <div class="vr my-1"></div>
-
-          <!-- 3. รวมเป็นเงิน (เดิม) -->
-          <div>
-            <span class="d-block text-muted small fw-bold">รวมเป็นเงิน:</span>
-            <span class="fw-bold text-dark fs-5" id="grandTotalDisplay">0.00</span>
-            <span class="text-muted small ms-1">บาท</span>
+          <div class="border-top border-3 border-dark my-2" style="border-top-style: dashed !important;"></div>
+          <div class="d-flex justify-content-between align-items-center gap-4 text-dark fs-4">
+            <span class="fw-bold">ยอดครั้งนี้</span>
+            <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="grandTotalDisplay" value="0.00" readonly aria-label="ยอดครั้งนี้">
           </div>
+          <div class="d-flex justify-content-between align-items-baseline gap-4 text-dark fs-4">
+            <span class="fw-bold">ยอดคงค้าง</span>
+            <span class="fw-bold" id="remainingAmountDisplay">0.00</span>
+          </div>
+          <div class="text-end fw-bold fs-4 lh-1">=====</div>
+          <span class="visually-hidden" id="totalAmountLabel">ยอดรวมส่งเบิกทั้งสิ้น</span>
+          <span class="visually-hidden" id="totalAmountUnit">บาท</span>
+          <span class="visually-hidden" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
         </div>
       </div>
+
+      {% if is_over_request %}
+      <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>ยอดรวมเกินยอดที่ขอเบิกแล้ว ระบบได้ล็อกปุ่มส่งเบิกและส่งคืนชั่วคราวจนกว่ายอดรวมจะกลับมาอยู่ในเงื่อนไข</div>
+      </div>
+      {% endif %}
 
       <div class="d-flex gap-2 justify-content-end">
         <button type="submit" name="action" value="draft" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 8px;">
           บันทึกฉบับร่าง
         </button>
-        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;">
+        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if is_over_request %}disabled aria-disabled="true"{% endif %}>
           <i class="bi bi-send me-1"></i> ยืนยันส่งเบิกเงิน
         </button>
       </div>
@@ -259,7 +374,7 @@
         </div>
       </div>
       <div class="text-end mt-3">
-        <button type="submit" class="btn btn-primary fw-bold">บันทึกข้อมูลส่งฝ่ายพัสดุ</button>
+        <button type="submit" class="btn btn-primary fw-bold" id="parcelReturnSubmitBtn" {% if is_over_request %}disabled aria-disabled="true"{% endif %}>บันทึกข้อมูลส่งฝ่ายพัสดุ</button>
       </div>
     </form>
   {% else %}
@@ -277,7 +392,6 @@
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>
       <h3 class="h4 fw-bold mb-0 py-3">ประวัติการส่งเบิกเงินสดย่อย</h3>
-      <p class="text-muted small mb-0 py-2">คำขอที่เลือก: {{ history_target.ticket_number or history_target.id }}  ({{ history_target.purpose }})</p>
     </div>
   </div>
 
@@ -538,6 +652,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
+      if (!validateFundRequestTotal()) {
+        event.preventDefault();
+        return;
+      }
+
       document.querySelectorAll('.claim-amount').forEach(input => {
         input.value = input.value.replace(/,/g, '');
       });
@@ -570,9 +689,13 @@ document.addEventListener("DOMContentLoaded", function() {
       calculateTotal();
     });
 
-    const parcelForm = input.closest("form");
-    if (parcelForm) {
-      parcelForm.addEventListener("submit", function() {
+      const parcelForm = input.closest("form");
+      if (parcelForm) {
+      parcelForm.addEventListener("submit", function(event) {
+        if (!validateFundRequestTotal(input)) {
+          event.preventDefault();
+          return;
+        }
         input.value = input.value.replace(/,/g, "");
       });
     }
@@ -690,7 +813,7 @@ function calculateTotal() {
 
   const grandDisplayEl = document.getElementById('grandTotalDisplay');
   if (grandDisplayEl) {
-    grandDisplayEl.textContent = grandTotal.toLocaleString('en-US', {
+      grandDisplayEl.value = grandTotal.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
@@ -705,6 +828,30 @@ function calculateTotal() {
     const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount;
     const requestAmount = parseFloat(financeDisplayEl.dataset.requestAmount || '0') || 0;
     const isOverRequest = totalToClaim > requestAmount;
+    const submittedAmount = existingClaimTotal + parcelTotal;
+    const currentAmount = grandTotal + currentParcelAmount;
+    const remainingAmount = requestAmount - totalToClaim;
+
+    document.getElementById('submittedAmountDisplay')?.replaceChildren(
+      document.createTextNode(submittedAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+    );
+    const remainingDisplayEl = document.getElementById('remainingAmountDisplay');
+    if (remainingDisplayEl) {
+      remainingDisplayEl.textContent = remainingAmount.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      remainingDisplayEl.classList.toggle('text-danger', isOverRequest);
+    }
+    if (grandDisplayEl) {
+      grandDisplayEl.value = currentAmount.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      grandDisplayEl.classList.toggle('text-danger', isOverRequest);
+      grandDisplayEl.classList.toggle('bg-info-subtle', !isOverRequest);
+      grandDisplayEl.classList.toggle('bg-danger-subtle', isOverRequest);
+    }
     financeDisplayEl.classList.toggle('text-danger', isOverRequest);
     financeDisplayEl.classList.toggle('text-primary', !isOverRequest);
     document.getElementById('totalAmountLabel')?.classList.toggle('text-danger', isOverRequest);
@@ -715,7 +862,23 @@ function calculateTotal() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
+    updateSubmitAndReturnButtons(isOverRequest);
   }
+}
+
+function updateSubmitAndReturnButtons(isOverRequest) {
+  const finalSubmitBtn = document.getElementById('claimSubmitFinalBtn');
+  const parcelReturnSubmitBtn = document.getElementById('parcelReturnSubmitBtn');
+
+  [finalSubmitBtn, parcelReturnSubmitBtn].forEach(btn => {
+    if (!btn) {
+      return;
+    }
+
+    btn.disabled = isOverRequest;
+    btn.setAttribute('aria-disabled', isOverRequest ? 'true' : 'false');
+    btn.title = isOverRequest ? 'ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้' : '';
+  });
 }
 
 function validateClaimAmountLimit() {
@@ -734,11 +897,47 @@ function validateClaimAmountLimit() {
     const amount = parseFloat(amountInput.value.replace(/,/g, '')) || 0;
 
     if (categoryType !== '6' && amount > 20000) {
-      alert(`รายการที่ ${index + 1} มียอดเกิน 20,000 บาท กรุณาแก้ไขก่อนส่งเบิก`);
+      window.openAppPopup({
+        title: "กรุณาตรวจสอบจำนวนเงิน",
+        message: `รายการที่ ${index + 1} มียอดเกิน 20,000 บาท กรุณาแก้ไขก่อนส่งเบิก`,
+        confirmText: "ตกลง",
+        confirmClass: "btn-primary",
+        alertOnly: true,
+      });
       amountInput.focus();
       amountInput.select();
       return false;
     }
+  }
+
+  return true;
+}
+
+function validateFundRequestTotal(parcelInput = null) {
+  const display = document.getElementById('totalAmountDisplay');
+  const requestAmount = parseFloat(display?.dataset.requestAmount || '0') || 0;
+  if (!display || requestAmount <= 0) {
+    return true;
+  }
+
+  let currentClaimTotal = 0;
+  document.querySelectorAll('#claimBody .claim-amount').forEach(input => {
+    currentClaimTotal += parseFloat((input.value || '0').replace(/,/g, '')) || 0;
+  });
+  const existingClaimTotal = parseFloat(display.dataset.existingClaimTotal || '0') || 0;
+  const parcelTotal = parseFloat(display.dataset.parcelTotal || '0') || 0;
+  const currentParcelAmount = parseFloat((parcelInput || document.querySelector('.parcel-amount-input'))?.value?.replace(/,/g, '') || '0') || 0;
+  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount;
+
+  if (projectedTotal > requestAmount) {
+    window.openAppPopup({
+      title: "ยอดเกินยอดขอเบิก",
+      message: `ยอดรวมจะเป็น ${projectedTotal.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท ซึ่งเกินยอดขอเบิก ${requestAmount.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`,
+      confirmText: "ตกลง",
+      confirmClass: "btn-primary",
+      alertOnly: true,
+    });
+    return false;
   }
 
   return true;
@@ -891,14 +1090,13 @@ function addRow() {
         <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
         <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
         <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-        <option value="5">อื่น ๆ (สัญญาเงินยืม)</option>
         <option value="6">โอนคืนบัญชีหน่วย</option>
       </select>
     </td>
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>
     <td><input type="text" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" required></td>
     <td>
-      <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf" multiple>
+      <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf" required>
     </td>
     <td class="text-center">
       <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
@@ -958,7 +1156,7 @@ function addDocumentRow() {
       <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
     </div>
     <div class="col-md-5 d-flex gap-2 action-buttons-container">
-      <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" download>
+      <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
         <i class="bi bi-download me-1"></i> ดาวน์โหลด
       </a>
       <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
@@ -1015,7 +1213,7 @@ async function showSuggestions(inputElem) {
     suggestionsBox.innerHTML = docs.map(doc => `
       <button type="button" 
               class="list-group-item list-group-item-action small text-start" 
-              onclick="selectAnnouncement(this, '${doc.id}', '${escapeHtml(doc.title)}', '${doc.download_url || doc.file_path || doc.url || ''}')">
+              onclick="selectAnnouncement(this, '${doc.id}', '${escapeHtml(doc.title)}', '${doc.view_url || doc.url || doc.file_path || ''}')">
         <i class="bi bi-file-earmark-pdf text-danger me-1"></i> ${escapeHtml(doc.title)}
       </button>
     `).join('');

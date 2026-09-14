@@ -1,6 +1,6 @@
 from flask import current_app
 from wtforms import DateField, DecimalField, Form, PasswordField, SelectField, StringField, SubmitField
-from wtforms.validators import DataRequired, NumberRange, Optional, ValidationError
+from wtforms.validators import DataRequired, NumberRange, Optional, ValidationError, Length
 from datetime import date
 from .models import db, StaffAccount
 
@@ -30,8 +30,14 @@ class LoginForm(Form):
 class BorrowingTicketForm(Form):
     borrower_email = SelectField("เลือกผู้ยืม", validators=[Optional()])
     borrowing_ticket_purpose = StringField("ชื่อโครงการ/วัตถุประสงค์", validators=[DataRequired(message="กรุณากรอกชื่อโครงการ/วัตถุประสงค์")])
-    aip_ref_no = StringField("อนุมัติในหลักการ (เลขที่หนังสือ)", validators=[Optional()])
-    aip_ref_date = DateField("วันที่หนังสือได้รับการอนุมัติ", validators=[Optional()])
+    aip_ref_no = StringField(
+        "อนุมัติในหลักการ (เลขที่หนังสือ)",
+        validators=[DataRequired(message="กรุณากรอกเลขที่หนังสืออนุมัติในหลักการ")],
+    )
+    aip_ref_date = DateField(
+        "วันที่หนังสือได้รับการอนุมัติ",
+        validators=[DataRequired(message="กรุณาระบุวันที่หนังสือได้รับการอนุมัติ")],
+    )
     required_budget = DecimalField("ยอดเงินยืม", validators=[DataRequired(message="กรุณาระบุยอดเงินยืมที่ถูกต้อง")])
     account_number = StringField("เลขที่บัญชี", validators=[DataRequired(message="กรุณากรอกเลขที่บัญชี")])
     borrowing_ticket_start_date = DateField("วันที่เริ่มต้นโครงการ", validators=[DataRequired(message="กรุณาระบุวันที่เริ่มต้นโครงการ")])
@@ -45,7 +51,10 @@ class BorrowingTicketForm(Form):
             raise ValidationError("วันที่สิ้นสุดโครงการต้องไม่เป็นวันในอดีต")
 
 class FundRequestForm(Form):
-    form_type = StringField("ประเภทแบบฟอร์ม")
+    form_type = StringField(
+        "ประเภทแบบฟอร์ม",
+        validators=[DataRequired(message="กรุณาเลือกประเภทแบบฟอร์ม")],
+    )
     
     requester_name = StringField("ชื่อ-นามสกุล ผู้เบิกเงิน", validators=[Optional()])
     requester_position = StringField("ตำแหน่ง ผู้เบิกเงิน", validators=[Optional()])
@@ -54,6 +63,7 @@ class FundRequestForm(Form):
     account_number = StringField("เลขบัญชีหน่วยงาน")
     
     ticket_number = StringField("เลขที่ใบเบิกเงิน") 
+    # The view supplies today's date when this field is not part of the UI.
     request_date = DateField("วันที่เบิกเงิน", format="%Y-%m-%d", validators=[Optional()])
     
     amount = DecimalField("จำนวนเงิน", validators=[DataRequired(), NumberRange(min=0.01)], places=2)
@@ -67,14 +77,26 @@ class FundRequestForm(Form):
 class BankAccountInfoForm(Form):
     record_type = SelectField("ประเภทข้อมูล", validators=[DataRequired(message="กรุณาเลือกประเภทข้อมูล")])
     thai_name = StringField("ชื่อภาษาไทย", validators=[DataRequired(message="กรุณากรอกชื่อภาษาไทย")])
-    created_at = StringField("วันที่", validators=[DataRequired(message="กรุณากรอกวันที่")])
-    account_number = StringField("เลขที่บัญชี", validators=[DataRequired(message="กรุณากรอกเลขที่บัญชี")])
+    closed_at = StringField("วันที่ปิดบัญชี", validators=[Optional()])
+    account_number = StringField(
+        "เลขที่บัญชี",
+        validators=[
+            DataRequired(message="กรุณากรอกเลขที่บัญชี"),
+            Length(max=10, min=10, message="เลขที่บัญชีต้องมี 10 ตัวอักษร")
+        ]
+    )
     submit = SubmitField("บันทึกข้อมูล")
 
 class PettyCashClaimItemForm(Form):
     receipt_date = DateField("วันที่ตามใบเสร็จ", validators=[DataRequired(message="กรุณาระบุวันที่")])
     description = StringField("รายการ", validators=[DataRequired(message="กรุณากรอกรายการ")])
-    amount = DecimalField("จำนวนเงิน", validators=[NumberRange(min=0.01, message="จำนวนเงินต้องมากกว่า 0")])
+    amount = DecimalField(
+        "จำนวนเงิน",
+        validators=[
+            DataRequired(message="กรุณาระบุจำนวนเงิน"),
+            NumberRange(min=0.01, message="จำนวนเงินต้องมากกว่า 0"),
+        ],
+    )
     category_type = StringField("ประเภทหมวดหมู่", validators=[DataRequired()])
     custom_category = StringField("หมวดหมู่อื่นๆ (ถ้ามี)")
 

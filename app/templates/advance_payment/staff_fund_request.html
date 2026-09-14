@@ -51,12 +51,17 @@
               <div class="row g-3 mb-4 p-3 bg-light rounded-3 border mt-3">
                 <div class="col-md-6">
                     <label for="requester_input" class="form-label fw-bold text-muted small">ชื่อ-นามสกุล ผู้ขอยืม <span class="text-danger">*</span></label>
-                    <input type="text" name="requester_name" id="requester_input" list="borrower_list" class="form-control bg-white" placeholder="พิมพ์เพื่อค้นหา หรือเลือกพนักงาน..." autocomplete="off" required oninput="onBorrowerChange()">
-                    <datalist id="borrower_list">
-                      {% for emp in department_employees %}
-                        <option value="{{ emp.name }}" label="{{ emp.name }} ({{ emp.position }})"></option>
-                      {% endfor %}
-                    </datalist>
+                    {% if is_secretary %}
+                      <select name="requester_id" id="requester_input" class="form-select bg-white" required onchange="onBorrowerChange()">
+                        <option value="">พิมพ์เพื่อค้นหา หรือเลือกพนักงาน...</option>
+                        {% for emp in department_employees %}
+                          <option value="{{ emp.id }}" {% if form.requester_name.data == emp.name %}selected{% endif %}>{{ emp.name }}</option>
+                        {% endfor %}
+                      </select>
+                    {% else %}
+                      <input type="text" id="requester_input" class="form-control bg-light" value="{{ current_user_display_name }}" readonly>
+                      <input type="hidden" name="requester_id" value="{{ session.get('user_id') }}">
+                    {% endif %}
                 </div>
                 <div class="col-md-6">
                     <label for="requester_position_input" class="form-label fw-bold text-muted small">ตำแหน่ง</label>
@@ -77,9 +82,15 @@
             <!-- ช่องข้อมูลเฉพาะของ แบบฟอร์ม 30 --> 
             <div id="section_form_30" class="p-3 border rounded-3 mb-4 bg-light-subtle">
               <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับขออนุมัติเบิกเงินสดย่อย</h6>
-              <div class="mb-2">
-                <label for="purpose" class="form-label fw-bold">วัตถุประสงค์ในการเบิก <span class="text-danger">*</span></label>
-                {{ form.purpose(class="form-control", id="purpose", style="border-radius: 12px;") }}
+              <div class="row g-3 mb-2">
+                <div class="col-md-8">
+                  <label for="purpose" class="form-label fw-bold">วัตถุประสงค์ในการเบิก <span class="text-danger">*</span></label>
+                  {{ form.purpose(class="form-control", id="purpose", style="border-radius: 12px;") }}
+                </div>
+                <div class="col-md-4">
+                  <label for="request_date" class="form-label fw-bold">วันที่ทำการเบิก <span class="text-danger">*</span></label>
+                  {{ form.request_date(class="form-control", id="request_date", type="date", required=True, style="border-radius: 12px;") }}
+                </div>
               </div>
             </div>
 
@@ -128,7 +139,8 @@
             <div id="section_form_32" class="p-3 border rounded-3 mb-4 bg-light-subtle" style="display: none;">
               <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-journal-text me-1"></i> ข้อมูลใบยืมเงินสำหรับเบิกผ่านบัญชีเงินสดย่อย</h6>
               {% if approved_borrowing_tickets and approved_borrowing_tickets|length > 0 %}
-                <div class="mb-3">
+                <div class="row g-3 mb-3">
+                  <div class="col-md-8">
                   <label for="borrowing_ticket_id" class="form-label fw-bold">เลือกใบยืมเงิน <span class="text-danger">*</span></label>
                   <select name="borrowing_ticket_id" id="borrowing_ticket_id" class="form-select">
                     <option value="">-- เลือกใบยืมเงิน --</option>
@@ -136,8 +148,9 @@
                       <option
                         value="{{ ticket.id }}"
                         {% if selected_borrowing_ticket_id and selected_borrowing_ticket_id == ticket.id %}selected{% endif %}
-                        data-borrower="{{ ticket.borrower_name or ticket.borrower_user.name if ticket.borrower_user else '' }}"
-                        data-position="{{ ticket.borrower_user.position if ticket.borrower_user and ticket.borrower_user.position else '' }}"
+                        data-borrower="{{ ticket.borrower_name or (ticket.borrower_user.fullname if ticket.borrower_user else 'ไม่พบข้อมูล') }}"
+                        data-borrower-id="{{ ticket.borrower_id or '' }}"
+                        data-position="{{ (ticket.borrower_user.personal_info.position if ticket.borrower_user and ticket.borrower_user.personal_info else '') or ticket.borrower_position or 'ไม่พบข้อมูล' }}"
                         data-department="{{ ticket.borrower_user.org.name if ticket.borrower_user and ticket.borrower_user.org else (ticket.borrower_user.department if ticket.borrower_user and ticket.borrower_user.department else '') }}"
                         data-account="{{ ticket.account_number or '' }}"
                         data-amount="{{ '%.2f'|format(ticket.required_budget or 0) }}"
@@ -148,7 +161,11 @@
                       </option>
                     {% endfor %}
                   </select>
-                  <small class="text-muted d-block mt-1">ระบบจะดึงข้อมูลจากใบยืมเงินที่อนุมัติแล้วและมีเลขบัญชีตรงกับบัญชีเงินสดย่อยของหน่วยงาน</small>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="borrowing_request_date" class="form-label fw-bold">วันที่ทำการเบิก <span class="text-danger">*</span></label>
+                    {{ form.request_date(class="form-control", id="borrowing_request_date", type="date", disabled=True, style="border-radius: 12px;") }}
+                  </div>
                 </div>
                 <div class="row g-3">
                   <div class="col-md-6">
@@ -170,7 +187,7 @@
                 </div>
               {% else %}
                 <div class="alert alert-warning border mb-0">
-                  ไม่พบใบยืมเงินที่อนุมัติแล้วและผูกกับบัญชีเงินสดย่อยของหน่วยงานนี้
+                  ไม่พบใบยืมเงินที่อนุมัติแล้ว ผูกกับบัญชีเงินสดย่อยของหน่วยงานนี้ และยังไม่เคยใช้สร้างใบเบิก
                 </div>
               {% endif %}
             </div>
@@ -199,7 +216,7 @@
                           <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
                           <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
                           <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                          <option value="5">อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
+                          <option value="5"{% if selected_form_type != '32' %} hidden disabled{% endif %}>อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
                         </select>
                       </td>
                       <td>
@@ -237,17 +254,42 @@
               <label for="user_total_amount" class="form-label fw-bold d-block text-end">
                 จำนวนเงินที่ต้องการขอเบิก (บาท) <span class="text-danger">*</span>
               </label>
-              <input type="text" name="amount" id="user_total_amount" class="form-control fw-bold text-primary text-end" placeholder="0.00" required style="border-radius: 12px; font-size: 1.1rem;" oninput="handleUserTotalInput(this)">
+              {% set available_budget = dept_summary.remaining_budget if dept_summary else 0 %}
+              <input type="text"
+                     name="amount"
+                     id="user_total_amount"
+                     class="form-control fw-bold text-primary text-end"
+                     placeholder="0.00"
+                     required
+                     style="border-radius: 12px; font-size: 1.1rem;"
+                     oninput="handleUserTotalInput(this)"
+                     data-available-budget="{{ '%.2f'|format(available_budget or 0) }}">
+              <div id="budgetSummary" class="p-3 mt-2 border rounded-3 bg-light text-start{% if selected_form_type in ['31', '32'] %} d-none{% endif %}">
+                <div class="d-flex justify-content-between align-items-center gap-3">
+                  <span class="fw-bold text-muted">ยอดคงเหลือปัจจุบัน</span>
+                  <span class="fw-bold {% if available_budget <= 0 %}text-danger{% else %}text-success{% endif %}" id="availableBudgetDisplay">
+                    {{ "{:,.2f}".format(available_budget or 0) }}
+                  </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center gap-3 mt-1">
+                  <span class="fw-bold text-muted">ยอดคงเหลือหลังเบิก</span>
+                  <span class="fw-bold text-success" id="budgetAfterRequestDisplay">
+                    {{ "{:,.2f}".format(available_budget or 0) }}
+                  </span>
+                </div>
+                <div id="budget_limit_alert" class="text-danger small fw-bold mt-2 d-none">
+                  <i class="bi bi-exclamation-circle-fill me-1"></i> ยอดที่ขอเบิกเกินยอดคงเหลือ กรุณาปรับจำนวนเงินก่อนส่งแบบฟอร์ม
+                </div>
+              </div>
               <div id="amount_mismatch_alert" class="text-danger small fw-bold mt-1 text-end" style="display: none;">
                 <i class="bi bi-exclamation-circle-fill me-1"></i> จำนวนเงินไม่ตรงกับยอดรวมของรายการด้านบน กรุณาตรวจสอบอีกครั้ง
               </div>
-            </div>
-
-            <!-- ปุ่มบันทึก -->
-            <div class="col-md-auto text-end">
-              <button type="submit" class="btn btn-success btn-lg fw-bold mt-2 px-4" style="border-radius: 12px;">
-                <i class="bi bi-file-earmark-check me-2"></i> บันทึกและสร้างแบบฟอร์ม
-              </button>
+              <!-- ปุ่มบันทึก -->
+              <div class="col-md-auto text-end">
+                <button type="submit" class="btn btn-success btn-lg fw-bold mt-2 px-4" style="border-radius: 12px;" id="fundRequestSubmitBtn">
+                  <i class="bi bi-file-earmark-check me-2"></i> บันทึกและสร้างแบบฟอร์ม
+                </button>
+              </div>
             </div>
 
           </div>
@@ -261,9 +303,15 @@
     const departmentEmployees = {{ department_employees | tojson }};
 
     function loadDepartmentEmployees() {
-      const defaultValue = {{ (form.requester_name.data or '') | tojson }};
+      const requesterInput = document.getElementById("requester_input");
+      if (!requesterInput || requesterInput.tagName !== "SELECT") {
+        return;
+      }
+      const defaultName = {{ (form.requester_name.data or '') | tojson }};
+      const defaultEmployee = departmentEmployees.find(emp => emp.name === defaultName);
+      const defaultValue = defaultEmployee ? String(defaultEmployee.id) : '';
       if (defaultValue) {
-        document.getElementById("requester_input").value = defaultValue;
+        requesterInput.value = defaultValue;
         onBorrowerChange();
       }
     }
@@ -271,13 +319,19 @@
     function onBorrowerChange() {
       const input = document.getElementById("requester_input");
       const positionInput = document.getElementById("requester_position_input");
-      const matchedEmp = departmentEmployees.find(emp => emp.name === input.value);
-      
-      if (matchedEmp) {
-        positionInput.value = matchedEmp.position;
-      } else {
-        positionInput.value = "";
+      if (!input || input.tagName !== "SELECT") {
+        return;
       }
+      const matchedEmp = departmentEmployees.find(emp => String(emp.id) === String(input.value));
+      const radio32 = document.getElementById("form_type_32");
+      const ticketSelect = document.getElementById("borrowing_ticket_id");
+      const ticketOption = ticketSelect && ticketSelect.selectedOptions[0];
+      const ticketPosition = radio32 && radio32.checked && ticketOption
+        && String(ticketOption.dataset.borrowerId) === String(input.value)
+        ? ticketOption.dataset.position : "";
+      const employeePosition = matchedEmp && matchedEmp.position;
+      positionInput.value = employeePosition && !employeePosition.startsWith("ไม่พบข้อมูล")
+        ? employeePosition : (ticketPosition || employeePosition || "ไม่พบข้อมูล");
     }
 
     function formatInputNumberWithComma(element) {
@@ -305,6 +359,91 @@
       }
     }
 
+    function getAvailableBudgetAmount() {
+      const userTotalInput = document.getElementById("user_total_amount");
+      if (!userTotalInput) {
+        return 0;
+      }
+      return parseFloat(userTotalInput.dataset.availableBudget || "0") || 0;
+    }
+
+    function isAmountMismatch() {
+      const radio30 = document.getElementById("form_type_30");
+      const userTotalInput = document.getElementById("user_total_amount");
+      const sumAmountDisplay = document.getElementById("sumAmountDisplay");
+      if (!radio30 || !radio30.checked || !userTotalInput || !sumAmountDisplay) {
+        return false;
+      }
+
+      const autoAmount = parseFloat(sumAmountDisplay.innerText.replace(/,/g, "")) || 0;
+      const userAmount = parseFloat(userTotalInput.value.replace(/,/g, "")) || 0;
+      return userTotalInput.value.trim() !== "" && autoAmount.toFixed(2) !== userAmount.toFixed(2);
+    }
+
+    function updateBudgetLimitState() {
+      const userTotalInput = document.getElementById("user_total_amount");
+      const budgetAfterRequestDisplay = document.getElementById("budgetAfterRequestDisplay");
+      const availableBudgetDisplay = document.getElementById("availableBudgetDisplay");
+      const budgetLimitAlert = document.getElementById("budget_limit_alert");
+      const submitBtn = document.getElementById("fundRequestSubmitBtn");
+      const radio31 = document.getElementById("form_type_31");
+      const radio32 = document.getElementById("form_type_32");
+      const isBudgetExemptForm = (radio31 && radio31.checked) || (radio32 && radio32.checked);
+      const budgetSummary = document.getElementById("budgetSummary");
+      if (budgetSummary) budgetSummary.classList.toggle("d-none", isBudgetExemptForm);
+
+      if (isBudgetExemptForm) {
+        if (budgetLimitAlert) budgetLimitAlert.classList.add("d-none");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.setAttribute("aria-disabled", "false");
+          submitBtn.title = "";
+        }
+        return { isOverBudget: false, amountMismatch: false, requestedAmount: 0, availableBudget: 0 };
+      }
+
+      if (!userTotalInput) {
+        return { isOverBudget: false, requestedAmount: 0, availableBudget: 0 };
+      }
+
+      const availableBudget = getAvailableBudgetAmount();
+      const requestedAmount = parseFloat(userTotalInput.value.replace(/,/g, "")) || 0;
+      const remainingAfterRequest = availableBudget - requestedAmount;
+      const isOverBudget = requestedAmount > availableBudget && requestedAmount > 0;
+      const amountMismatch = isAmountMismatch();
+      const shouldLockSubmit = !isBudgetExemptForm && (availableBudget <= 0 || isOverBudget || amountMismatch);
+
+      if (availableBudgetDisplay) {
+        availableBudgetDisplay.classList.toggle("text-danger", availableBudget <= 0 && !isBudgetExemptForm);
+        availableBudgetDisplay.classList.toggle("text-success", availableBudget > 0 && !isBudgetExemptForm);
+      }
+
+      if (budgetAfterRequestDisplay) {
+        budgetAfterRequestDisplay.textContent = remainingAfterRequest.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        budgetAfterRequestDisplay.classList.toggle("text-danger", isOverBudget && !isBudgetExemptForm);
+        budgetAfterRequestDisplay.classList.toggle("text-success", !isOverBudget && !isBudgetExemptForm);
+      }
+
+      if (budgetLimitAlert) {
+        budgetLimitAlert.classList.toggle("d-none", !isOverBudget || isBudgetExemptForm);
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = shouldLockSubmit;
+        submitBtn.setAttribute("aria-disabled", shouldLockSubmit ? "true" : "false");
+        submitBtn.title = shouldLockSubmit
+          ? (amountMismatch
+            ? "ยอดรวมไม่ตรงกับรายการ จึงไม่สามารถส่งแบบฟอร์มได้"
+            : "ยอดขอเบิกเกินยอดคงเหลือ จึงไม่สามารถส่งแบบฟอร์มได้")
+          : "";
+      }
+
+      return { isOverBudget, amountMismatch, requestedAmount, availableBudget };
+    }
+
     function handleAmountInput(element) {
       formatInputNumberWithComma(element);
       calculateTotalSpent();
@@ -318,6 +457,16 @@
     document.addEventListener("DOMContentLoaded", function () {
       loadDepartmentEmployees();
 
+      const requesterInput = document.getElementById("requester_input");
+      if (requesterInput && requesterInput.tagName === "SELECT" && window.jQuery && typeof $('#requester_input').select2 === 'function') {
+        $('#requester_input').select2({
+          theme: 'bootstrap-5',
+          placeholder: 'พิมพ์เพื่อค้นหา หรือเลือกพนักงาน...',
+          allowClear: true,
+          width: '100%'
+        });
+      }
+
       const radio30 = document.getElementById("form_type_30");
       const radio31 = document.getElementById("form_type_31");
       const radio32 = document.getElementById("form_type_32");
@@ -325,7 +474,7 @@
       const section31 = document.getElementById("section_form_31");
       const section32 = document.getElementById("section_form_32");
       const borrowerSection = document.getElementById("section_borrower_info");
-      const requesterInput = document.getElementById("requester_input");
+      const requesterIsEditable = requesterInput && requesterInput.tagName === "SELECT";
       const receiptContainer = document.getElementById("receiptTableContainer");
       const borrowingTicketSelect = document.getElementById("borrowing_ticket_id");
       const borrowingTicketBorrowerPreview = document.getElementById("borrowing_ticket_borrower_preview");
@@ -334,6 +483,8 @@
       const borrowingTicketAmountPreview = document.getElementById("borrowing_ticket_amount_preview");
       
       const inputPurpose = document.getElementById("purpose");
+      const requestDateInput = document.getElementById("request_date");
+      const borrowingRequestDateInput = document.getElementById("borrowing_request_date");
       const mainForm = document.getElementById("fundRequestForm");
       const userTotalInput = document.getElementById("user_total_amount");
       const receiptAddButton = receiptContainer.querySelector('button[onclick="addReceiptRow()"]');
@@ -363,9 +514,15 @@
         }
 
         if (radio32 && radio32.checked && option) {
-          if (requesterInput) requesterInput.value = borrower;
-          const requesterPositionInput = document.getElementById("requester_position_input");
-          if (requesterPositionInput) requesterPositionInput.value = option.dataset.position || "";
+          if (requesterIsEditable && requesterInput) {
+            const borrowerId = option.dataset.borrowerId || "";
+            if (borrowerId && !Array.from(requesterInput.options).some(item => item.value === borrowerId)) {
+              requesterInput.add(new Option(borrower, borrowerId));
+            }
+            requesterInput.value = borrowerId;
+            onBorrowerChange();
+            if (window.jQuery) $(requesterInput).trigger("change.select2");
+          }
           const departmentInput = document.getElementById("department_input");
           if (departmentInput) departmentInput.value = option.dataset.department || "";
           const accountNumberInput = document.getElementById("account_number_input");
@@ -422,7 +579,17 @@
 
       function toggleFormFields() {
         const proofFileInput = document.getElementById("withdrawal_proof_file");
+        if (requestDateInput) {
+          requestDateInput.required = radio30.checked;
+          requestDateInput.disabled = !radio30.checked;
+        }
+        if (borrowingRequestDateInput) {
+          borrowingRequestDateInput.required = radio32.checked;
+          borrowingRequestDateInput.disabled = !radio32.checked;
+        }
         const isBorrowingTicketForm = radio32 && radio32.checked;
+        updateBorrowingCategoryOptions();
+        if (!isBorrowingTicketForm) onBorrowerChange();
 
         if (radio30.checked) {
           section30.style.display = "block";
@@ -432,7 +599,7 @@
           receiptContainer.style.display = "block";
           
           if (inputPurpose) inputPurpose.setAttribute("required", "required");
-          if (requesterInput) requesterInput.setAttribute("required", "required");
+          if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
           if (proofFileInput) proofFileInput.removeAttribute("required"); // Disable requirement for Form 30
           
           toggleTableRequired(true);
@@ -446,7 +613,7 @@
           receiptContainer.style.display = "block";
 
           if (inputPurpose) inputPurpose.setAttribute("required", "required");
-          if (requesterInput) requesterInput.setAttribute("required", "required");
+          if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
           if (proofFileInput) proofFileInput.removeAttribute("required");
 
           toggleTableRequired(false);
@@ -466,12 +633,13 @@
           setBorrowingTicketMode(false);
           
           if (inputPurpose) inputPurpose.removeAttribute("required");
-          if (requesterInput) requesterInput.setAttribute("required", "required");
+          if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
           if (proofFileInput) proofFileInput.setAttribute("required", "required"); // Enable requirement for Form 31
           
           toggleTableRequired(false);
           document.getElementById("amount_mismatch_alert").style.display = "none";
         }
+        updateBudgetLimitState();
       }
 
       function toggleTableRequired(isRequired) {
@@ -500,12 +668,19 @@
       mainForm.addEventListener("submit", function(e) {
         e.preventDefault();
 
-        if (mainForm.dataset.popupConfirmed === "true") {
+        const budgetState = updateBudgetLimitState();
+        if (radio30.checked && (budgetState.isOverBudget || (budgetState.availableBudget <= 0 && budgetState.requestedAmount > 0))) {
+          alert("ยอดที่ขอเบิกเกินยอดคงเหลือ กรุณาปรับจำนวนเงินก่อนส่งแบบฟอร์ม");
+          userTotalInput.focus();
+          return false;
+        }
+
+        if (radio30.checked && mainForm.dataset.popupConfirmed === "true") {
           delete mainForm.dataset.popupConfirmed;
-        } else {
+        } else if (radio30.checked) {
           window.openAppPopup({
             title: "ยืนยันการส่งแบบฟอร์ม",
-            message: "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาท",
+            message: "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาทต่อหนึ่งใบเสร็จ",
             targetFormId: mainForm.id,
             requireAcknowledgement: true,
             acknowledgementLabel: "ข้าพเจ้าได้อ่านและรับทราบเงื่อนไขข้างต้นแล้ว",
@@ -545,10 +720,13 @@
         }
 
         userTotalInput.value = userTotalInput.value.replace(/,/g, "");
+        updateBudgetLimitState();
 
         // 3. Unlock input เพื่อให้ส่งค่าได้
         const lockedInputs = mainForm.querySelectorAll("input[disabled], select[disabled], input[readonly], select[readonly]");
         lockedInputs.forEach(input => {
+          if (input === requestDateInput && !radio30.checked) return;
+          if (input === borrowingRequestDateInput && !radio32.checked) return;
           input.removeAttribute("disabled");
           input.removeAttribute("readonly");
         });
@@ -593,6 +771,18 @@
       toggleFormFields(); 
     });
 
+    function updateBorrowingCategoryOptions() {
+      const isBorrowingTicketForm = document.getElementById("form_type_32").checked;
+      document.querySelectorAll('#receiptBody select[name="item_category[]"]').forEach(select => {
+        const borrowingOption = select.querySelector('option[value="5"]');
+        borrowingOption.hidden = !isBorrowingTicketForm;
+        borrowingOption.disabled = !isBorrowingTicketForm;
+        if (!isBorrowingTicketForm && select.value === "5") {
+          select.value = "";
+        }
+      });
+    }
+
     function addReceiptRow() {
       const tbody = document.getElementById("receiptBody");
       const newRow = document.createElement("tr");
@@ -606,7 +796,7 @@
             <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
             <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
             <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-            <option value="5">อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
+            <option value="5" hidden disabled>อื่น ๆ (สัญญาเงินยืม บย.01/2569)</option>
           </select>
         </td>
         <td>
@@ -622,6 +812,7 @@
         </td>
       `;
       tbody.appendChild(newRow);
+      updateBorrowingCategoryOptions();
       
       const newAmountInput = newRow.querySelector(".item-amount-input");
       newAmountInput.addEventListener("blur", function() {
@@ -673,6 +864,7 @@
       }
 
       validateAmountMatch();
+      updateBudgetLimitState();
     }
 
     function validateAmountMatch() {
@@ -689,6 +881,8 @@
       } else {
         alertBox.style.display = "none";
       }
+
+      updateBudgetLimitState();
     }
   </script>
   {% endif %}

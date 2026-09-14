@@ -9,11 +9,10 @@
   </a>
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ตรวจสอบหลักฐาน</p>
   <h1 class="fw-bold display-6 mb-2">รายละเอียดไฟล์หลักฐานเอกสารส่งใช้เงินยืม</h1>
-  <a href="{{ url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id) }}"
-     class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
-    <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลด PDF
-  </a>
 </header>
+{% with document=return_detail, pdf_export_url=url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id), pdf_reference_editable=False %}
+  {% include 'advance_payment/_pdf_reference_modal.html' %}
+{% endwith %}
 
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
   <div class="row align-items-center g-3">
@@ -35,6 +34,7 @@
             {% elif return_detail.status|lower == 'กำลังตรวจสอบ' %}{% set r_badge = 'bg-warning text-dark' %}{% set r_status = 'กำลังตรวจสอบ' %}
             {% elif return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
             {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-primary text-white' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
+            {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
             {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
             {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธ' %}{% endif %}
             <span class="badge {{ r_badge }} mt-1">{{ r_status }}</span>
@@ -59,11 +59,42 @@
         {% endif %}
       </div>
     </div>
-    
+    {% if session.get('user_role') != 'finance' %}
+      <div class="d-flex gap-2 justify-content-md-end mt-3">
+          <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
+            <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลด PDF
+          </button>
+      </div>
+    {% endif %}
     {% if session.get('user_role') == 'finance' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3">
+        {% if return_detail.old_document_number and return_detail.status|lower == 'ผ่านการตรวจสอบ' %}
+            <button type="button" class="btn btn-danger btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#bounceReturnModal">
+                ฎีกาถูกตีกลับจากกองคลัง
+            </button>
+            <div class="modal fade text-start" id="bounceReturnModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold text-dark">ยืนยันการตีกลับเอกสาร</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-dark">
+                            เอกสารนี้มีเลขฎีกาเก่าแล้ว ระบบจะเปลี่ยนสถานะเป็น <strong>"ฎีกาถูกตีกลับจากกองคลัง"</strong> และเปิดให้ผู้ใช้งานแก้ไขข้อมูล inline ได้อีกครั้ง
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                            <form method="POST" action="{{ url_for('advance_payment.mark_return_bounced', return_id=return_detail.id) }}" class="m-0">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-warning fw-bold">ยืนยันตีกลับ</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
         {% if return_detail.status|lower == 'รอตรวจสอบ' %}
-            <button type="button" class="btn btn-warning btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmCheckingModal">
+            <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmCheckingModal">
                 เริ่มการตรวจสอบ
             </button>
             <div class="modal fade" id="confirmCheckingModal" tabindex="-1" aria-hidden="true">
@@ -196,15 +227,20 @@
                 <td class="fw-bold text-secondary">
                     {{ "{:,.2f}".format(file.receipt_item.amount or 0) if file.receipt_item else '0.00' }} บาท
                 </td>
-                
+
                 <td>
-                    <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ file.original_filename }}">
-                    {% if file.proof_reference and file.proof_reference.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
+                  {% if file.proof_reference %}
+                    <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ file.original_filename or file.filename }}">
+                    {% set proof_filename = file.filename or file.proof_reference or '' %}
+                    {% if proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
                         <img src="{{ url_for('static', filename=file.proof_reference) }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
                     {% else %}
-                        <i class="bi bi-file-earmark-pdf fs-2 text-danger"></i>
+                        <i class="bi bi-file-earmark fs-2 text-primary"></i>
                     {% endif %}
                     </div>
+                  {% else %}
+                    <span class="text-muted small">ไม่มีไฟล์หลักฐาน</span>
+                  {% endif %}
                 </td>
                 
                 <td>
@@ -222,25 +258,26 @@
                 </td>
                 
                 <td>
-                  {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
-                    <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ file.id }}">
+                  {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}
+                    <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ file.id or file.receipt_item.id }}">
                         <i class="bi bi-pencil-square"></i> แก้ไข
                     </button>
                     {% endif %}
                 </td>
                 </tr>
 
-                {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
-                <div class="modal fade text-start" id="editModalInRow{{ file.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ file.id }}" aria-hidden="true">
+                {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}
+                <div class="modal fade text-start" id="editModalInRow{{ file.id or file.receipt_item.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ file.id or file.receipt_item.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">
                     <div class="modal-header">
-                        <h5 class="modal-title fw-bold" id="editRowLabel{{ file.id }}"><i class="bi bi-pencil-square text-warning me-2"></i>แก้ไขข้อมูลใบเสร็จในแถว</h5>
+                        <h5 class="modal-title fw-bold" id="editRowLabel{{ file.id or file.receipt_item.id }}"><i class="bi bi-pencil-square text-warning me-2"></i>แก้ไขข้อมูลใบเสร็จในแถว</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=file.id) }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=file.id or file.receipt_item.id) }}" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="source" value="return_detail">
+                        <input type="hidden" name="receipt_item_id" value="{{ file.receipt_item.id if file.receipt_item else '' }}">
                         <div class="modal-body">
                         
                         <div class="mb-3">
@@ -300,11 +337,6 @@
     <h3 class="h5 fw-bold mb-0">
       <i class="bi bi-file-earmark-text text-primary me-2"></i>ประกาศที่เกี่ยวข้อง
     </h3>
-    {% if return_detail.documents %}
-      <button type="button" class="btn btn-sm btn-primary fw-semibold px-3" onclick="downloadAllAnnouncements()">
-        <i class="bi bi-download me-1"></i> ดาวน์โหลดทั้งหมด
-      </button>
-    {% endif %}
   </div>
 
   {% if return_detail.documents %}
@@ -333,6 +365,7 @@
                     {% if doc.download_url or doc.url or doc.file_path %}
                       <a href="{{ doc.download_url or doc.url or doc.file_path }}"
                          download="{{ doc.title }}.pdf"
+                         target="_blank" rel="noopener"
                          class="btn btn-sm btn-outline-primary fw-semibold px-3 announcement-download-btn">
                         <i class="bi bi-download me-1"></i> ดาวน์โหลด
                       </a>
@@ -358,6 +391,8 @@
             const link = document.createElement('a');
             link.href = btn.getAttribute('href');
             link.download = btn.getAttribute('download') || 'announcement.pdf';
+            link.target = '_blank';
+            link.rel = 'noopener';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

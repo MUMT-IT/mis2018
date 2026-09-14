@@ -32,6 +32,18 @@
       body, button, input, select, textarea {
         font-size: 1rem; 
       }
+      .rejected-followup-message {
+        animation: rejected-followup-blink 1.2s ease-in-out infinite;
+      }
+      @keyframes rejected-followup-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.25; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .rejected-followup-message {
+          animation: none;
+        }
+      }
       /* สไตล์ตกแต่งภายใน Drawer (Offcanvas) */
       .drawer-navigation .nav-link {
         color: #cbd5e1;
@@ -48,6 +60,17 @@
       .drawer-navigation .nav-link.active {
         background: #3b82f6;
         color: #ffffff;
+      }
+      .drawer-navigation .nav-section-title {
+        color: #cbd5e1;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        margin: 18px 8px 6px;
+      }
+      .drawer-navigation .nav-subitem {
+        font-size: 0.9rem;
+        padding-left: 28px;
       }
       *, *::before, *::after {
         box-sizing: border-box;
@@ -316,37 +339,42 @@
             {% if session.get('user_role') == 'finance' %}
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.finance_dashboard') }}" class="nav-link {% if request.endpoint == 'advance_payment.finance_dashboard' %}active{% endif %}">
-                  <i class="bi bi-speedometer2 me-2"></i> แดชบอร์ดการเงิน
+                  <i class="bi bi-clipboard-check me-2"></i> เอกสารรอการตรวจสอบ
                 </a>
               </li>
+
+              <li class="nav-section-title">ระบบเงินทดรองจ่าย</li>
               <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'advance_payment.tickets_view' %}active{% endif %}" 
+                <a class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.tickets_view' %}active{% endif %}"
                   href="{{ url_for('advance_payment.tickets_view') }}">
                   <i class="bi bi-file-earmark-text me-2"></i>
                   <span>รายการสัญญาเงินยืม</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="{{ url_for('advance_payment.return_records_history') }}" class="nav-link {% if request.endpoint == 'advance_payment.return_records_history' %}active{% endif %}">
+                <a href="{{ url_for('advance_payment.return_records_history') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.return_records_history' %}active{% endif %}">
                   <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งใช้เงินยืมเงินทดรองจ่าย
                 </a>
               </li>
+
+              <li class="nav-section-title">ระบบเงินสดย่อย</li>
               <li class="nav-item">
-                <a href="{{ url_for('advance_payment.petty_cash_claim_history') }}" class="nav-link {% if request.endpoint == 'advance_payment.petty_cash_claim_history' %}active{% endif %}">
-                  <i class="bi bi-receipt-cutoff me-2"></i> ประวัติเอกสารส่งเบิกเงินสดย่อย
+                <a href="{{ url_for('advance_payment.petty_cash_claim_history') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.petty_cash_claim_history' %}active{% endif %}">
+                  <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งเบิกเงินสดย่อย
                 </a>
               </li>
-              <li>
+              <li class="nav-item">
+                <a href="{{ url_for('advance_payment.petty_cash_settings') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.petty_cash_settings' %}active{% endif %}">
+                  <i class="bi bi-gear-fill me-2"></i> การจัดการงบประมาณเงินสดย่อย
+                </a>
+              </li>
+
+              <li class="nav-item">
                 <a href="{{ url_for('advance_payment.closing_management') }}" class="nav-link {% if request.endpoint == 'advance_payment.closing_management' %}active{% endif %}">
                   <i class="bi bi-file-earmark-plus-fill me-2"></i> จัดการตั้งฎีกา
                 </a>
               </li>
-              <li>
-                <a href="{{ url_for('advance_payment.petty_cash_settings') }}" class="nav-link {% if request.endpoint == 'advance_payment.petty_cash_settings' %}active{% endif %}">
-                  <i class="bi bi-gear-fill me-2"></i> การจัดการเงินสดย่อย
-                </a>
-              </li>
-              <li>
+              <li class="nav-item">
                 <a href="{{ url_for('advance_payment.finance_bank_account_registry') }}" class="nav-link {% if request.endpoint == 'advance_payment.finance_bank_account_registry' %}active{% endif %}">
                   <i class="bi bi-bank me-2"></i> ข้อมูลบัญชีธนาคาร
                 </a>
@@ -356,7 +384,7 @@
             {% if session.get('advance_payment_system') == 'petty_cash' %}
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" class="nav-link {% if request.endpoint == 'advance_payment.staff_fund_request_history' %}active{% endif %}">
-                  <i class="bi bi-clock-history me-2"></i> ประวัติใบยืมเงินสดย่อย
+                  <i class="bi bi-clock-history me-2"></i> รายการเงินสดย่อย
                 </a>
               </li>
               <li class="nav-item">
@@ -515,6 +543,12 @@
           titleElement.textContent = config.title || "ยืนยันการทำรายการ";
           messageElement.textContent = config.message || "";
           fieldWrapElement.innerHTML = buildField(config);
+          if (config.extraFieldsTemplateId) {
+            const template = document.getElementById(config.extraFieldsTemplateId);
+            if (template instanceof HTMLTemplateElement) {
+              fieldWrapElement.appendChild(template.content.cloneNode(true));
+            }
+          }
           acknowledgementWrapElement.innerHTML = buildAcknowledgement(config);
           acknowledgementWrapElement.classList.toggle("d-none", !config.requireAcknowledgement);
           formElement.action = config.action || "";
@@ -633,6 +667,7 @@
             inputLabel: trigger.dataset.popupInputLabel,
             inputRows: trigger.dataset.popupInputRows,
             inputRequired: trigger.dataset.popupInputRequired === "true",
+            extraFieldsTemplateId: trigger.dataset.popupExtraFieldsTemplateId,
             requireAcknowledgement: trigger.dataset.popupRequireAcknowledgement === "true",
             acknowledgementLabel: trigger.dataset.popupAcknowledgementLabel,
             targetFormId: trigger.dataset.popupTargetFormId,
@@ -651,6 +686,18 @@
           });
         }
       })();
+
+      {% if request.args.get('limit_popup') %}
+      document.addEventListener("DOMContentLoaded", function () {
+        window.openAppPopup({
+          title: "ไม่สามารถบันทึกข้อมูลได้",
+          message: {{ request.args.get('limit_popup')|tojson }},
+          confirmText: "ตกลง",
+          confirmClass: "btn-primary",
+          alertOnly: true,
+        });
+      });
+      {% endif %}
     </script>
   </body>
 </html>
