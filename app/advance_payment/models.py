@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, text
 from sqlalchemy.orm import declared_attr, object_session, relationship
@@ -341,6 +342,17 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
         return _query_related_list(self, ReturnReceiptItem, "return_detail_id")
 
     @property
+    def closing_amount(self):
+        """Amount eligible for a closing document, excluding cash returns."""
+        items = self.receipt_items
+        if not items:
+            return Decimal(str(self.amount_spent or 0))
+        return sum(
+            (Decimal(str(item.amount or 0)) for item in items if not item.is_cash),
+            Decimal("0"),
+        )
+
+    @property
     def documents(self):
         return _query_many_to_many_list(self, document_return_association, "return_id", Document)
 
@@ -355,7 +367,8 @@ class ReturnReceiptItem(db.Model):
     description = Column(String(255), nullable=False, default="")
     amount = Column(Numeric(12, 2), nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
-    # TODO add is_cash
+    is_cash = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+
     @property
     def proof_files(self):
         return _query_related_list(self, ReturnProofFile, "return_receipt_item_id")

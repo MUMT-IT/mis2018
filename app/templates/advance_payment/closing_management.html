@@ -89,7 +89,7 @@
                 {% set ns.has_items = true %}
                 <tr>
                   <td class="ps-3">
-                    <input type="checkbox" name="return_ids[]" value="{{ record.id }}" class="form-check-input row-checkbox normal-row-checkbox" data-amount="{{ record.amount_spent }}" onclick="updateSummary()">
+                    <input type="checkbox" name="return_ids[]" value="{{ record.id }}" class="form-check-input row-checkbox normal-row-checkbox" data-amount="{{ record.closing_amount }}" onclick="updateSummary()">
                   </td>
                   <td>
                     <span class="badge bg-info-subtle text-info-emphasis border px-2.5 py-1">ส่งใช้เงินยืม</span>
@@ -101,7 +101,13 @@
                     <div class="fw-bold text-dark">{{ record.borrower_name }}</div>
                     <small class="text-muted">{{ record.borrowing_ticket_name }}</small>
                   </td>
-                  <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(record.amount_spent) }}</td>
+                  <td class="text-end">
+                    <div class="fw-bold">ยอดส่งใช้ทั้งหมด {{ "{:,.2f}".format(record.amount_spent) }}</div>
+                    {% if record.cash_amount %}
+                      <div class="small text-muted">เงินสดคืน {{ "{:,.2f}".format(record.cash_amount) }} (ไม่รวมในฎีกา)</div>
+                    {% endif %}
+                    <div class="fw-bold text-primary">ยอดตั้งฎีกา {{ "{:,.2f}".format(record.closing_amount) }}</div>
+                  </td>
                   <td class="text-center small">{{ record.created_at|thai_date }}</td>
                   <td class="text-center">
                     <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=record.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
@@ -315,7 +321,7 @@
                             <td class="ps-3"><span class="badge bg-info-subtle text-info-emphasis border px-2.5 py-1">ส่งใช้เงินยืม</span></td>
                             <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.number if ret.borrowing_ticket else '-' }}</div></td>
                             <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.borrower_name if ret.borrowing_ticket else '-' }}</div><small class="text-muted">{{ ret.borrowing_ticket.borrowing_ticket_name if ret.borrowing_ticket else '-' }}</small></td>
-                            <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(ret.amount_spent or 0) }}</td>
+                            <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(ret.closing_amount) }}</td>
                             <td class="text-center small">{{ ret.created_at|thai_date if ret.created_at else '-' }}</td>
                             <td class="text-center"><span class="badge bg-secondary text-white px-2.5 py-1">{{ ret.status or '-' }}</span>{% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif ret.id in result.historical_return_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}</td>
                             <td class="text-center">
@@ -430,7 +436,7 @@
                     <div class="small text-danger">ประวัติฎีกาเดิม (ยกเลิกหรือย้ายรายการ): {{ ret.old_document_number }}</div>
                   {% endif %}
                 </td>
-                <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(ret.amount_spent or 0) }}</td>
+                <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(ret.closing_amount) }}</td>
                 <td class="text-center small">{{ ret.created_at|thai_date if ret.created_at else '-' }}</td>
                 <td class="text-center">
                   {% if ret.status == "ล้างลูกหนี้เงินยืม" %}

@@ -1657,8 +1657,8 @@ def _redirect_with_limit_popup(location, message):
     return redirect(popup_location)
 
 
-def _is_return_amount_limit_exempt(description):
-    return "เงินเหลือส่งใช้เงินยืม" in (description or "")
+def _is_return_amount_limit_exempt(is_cash):
+    return is_cash is True
 
 
 def _proof_file_validation_error(row_count, *, is_draft):
@@ -3180,7 +3180,8 @@ def submit_return_details():
             amt = 0.0
 
         description = descriptions[i].strip() if i < len(descriptions) else ""
-        if not is_draft and amt > 100000 and not _is_return_amount_limit_exempt(description):
+        is_cash = request.form.get(f"is_cash_{i}") == "true"
+        if not is_draft and amt > 100000 and not _is_return_amount_limit_exempt(is_cash):
             flash(f"รายการที่ {i + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก", "danger")
             return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
 
@@ -3193,6 +3194,7 @@ def submit_return_details():
                 "receipt_date": r_date,
                 "store_name": store_names[i].strip() if i < len(store_names) else "",
                 "description": description,
+                "is_cash": is_cash,
                 "amount": amt,
             }
         )
@@ -3243,6 +3245,7 @@ def submit_return_details():
             receipt_date=row["receipt_date"],
             store_name=row["store_name"],
             description=row["description"],
+            is_cash=row["is_cash"],
             amount=row["amount"]
         )
         db.session.add(receipt_obj)
@@ -3454,7 +3457,7 @@ def edit_receipt_item_inline(file_id):
         amount_str = request.form.get("amount")
         if amount_str:
             parsed_item_amount = float(amount_str.replace(",", ""))
-            if not _is_return_amount_limit_exempt(receipt_item.description) and parsed_item_amount > 100000:
+            if not _is_return_amount_limit_exempt(getattr(receipt_item, "is_cash", False)) and parsed_item_amount > 100000:
                 flash("รายการนี้มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก", "danger")
                 redirect_target = (
                     url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_detail.id)
@@ -3607,6 +3610,7 @@ def autosave_return_draft(ticket_id):
             receipt_date=r_date,
             store_name=(item.get("store_name") or "").strip(),
             description=(item.get("description") or "").strip(),
+            is_cash=item.get("is_cash") is True,
             amount=amt
         )
         db.session.add(receipt_obj)
@@ -4389,7 +4393,7 @@ def closing_management():
                 "historical_claim_ids": {link.claim_id for link in searched_doc.links if not link.is_active},
                 "petty_cash_total": sum(petty.total_amount or 0 for petty in doc_petty_cash),
                 "loan_total": (
-                    sum(ret.amount_spent or 0 for ret in doc_returns)
+                    sum(ret.closing_amount for ret in doc_returns)
                     + sum(pr.amount_spent or 0 for pr in doc_parcel_returns)
                 ),
             })
@@ -4425,6 +4429,7 @@ def closing_management():
             selected_records.extend(records)
 
         total_amount = sum((record.total_amount if isinstance(record, PettyCashClaimDetail)
+                            else record.closing_amount if isinstance(record, ReturnDetail)
                             else record.amount_spent) or Decimal("0") for record in selected_records)
         new_closing_doc = ClosingDocument(
             document_number=document_number, filing_date=filing_date,
@@ -4455,6 +4460,8 @@ def closing_management():
             "borrowing_ticket_number": ticket.number if ticket else "N/A",
             "borrower_name": (ticket.borrower_name or getattr(_get_user_by_id(getattr(ticket, "borrower_id", None)), "name", "")) if ticket else "N/A",
             "amount_spent": float(record.amount_spent or 0),
+            "closing_amount": float(record.closing_amount),
+            "cash_amount": float(sum(item.amount or 0 for item in record.receipt_items if item.is_cash)),
             "status": record.status,
             "created_at": record.created_at,
         })
@@ -4553,8 +4560,8 @@ def update_return_closing_doc(return_id):
 
     if current_doc:
         current_doc = db.session.query(ClosingDocument).filter_by(id=current_doc.id).with_for_update().first()
-        current_doc.total_amount = max(0, current_doc.total_amount - return_detail.amount_spent)
-    target_doc.total_amount += return_detail.amount_spent
+        current_doc.total_amount = max(0, current_doc.total_amount - return_detail.closing_amount)
+    target_doc.total_amount += return_detail.closing_amount
     return_detail.closing_document = target_doc
     return_detail.status = "เอกสารตั้งฎีกา"
 

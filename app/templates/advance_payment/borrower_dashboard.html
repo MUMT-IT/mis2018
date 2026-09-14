@@ -282,6 +282,10 @@
                               </td>
                               <td>
                                 <textarea name="description[]" class="form-control form-control-sm" style="resize: vertical; min-height: 31px;">{{ item.description }}</textarea>
+                                <label class="form-check mt-2">
+                                  <input type="checkbox" name="is_cash_{{ row_index }}" value="true" class="form-check-input receipt-is-cash" {% if item.is_cash %}checked{% endif %}>
+                                  <span class="form-check-label">คืนเงินยืม</span>
+                                </label>
                               </td>
                               <td>
                                 <input type="text" name="amount[]" step="0.01" min="0.00" class="form-control form-control-sm item-amount-input" value="{{ item.amount }}" oninput="calculateTotalSpent({{ borrowing_ticket.id }})">
@@ -337,7 +341,7 @@
                 </div>
                 <div class="row g-3 mb-3 align-items-end">
                   <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-                    <span class="fw-bold text-danger text-center me-3">กรณีเงินคืนเงินยืมทดรองจ่าย ให้ทำการใส่ไฟล์ข้อมูลสลิปการโอนลงในตาราง<br> ในช่องรายการให้กรอกคำว่า "เงินเหลือส่งใช้เงินยืม" และอัปโหลดสลิปการโอนประกอบ</span>  
+                    <span class="fw-bold text-danger text-center me-3">กรณีเงินคืนเงินยืมทดรองจ่าย ให้ทำการใส่ไฟล์ข้อมูลสลิปการโอนลงในตาราง<br> เลือกช่อง "คืนเงินยืม" ในรายการนั้น และอัปโหลดสลิปการโอนประกอบ</span>
 
                     <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
                       <i class="bi bi-save me-1"></i> บันทึกร่าง (ฉบับร่าง)
@@ -769,11 +773,10 @@
 
       for (let index = 0; index < rows.length; index += 1) {
         const amountInput = rows[index].querySelector('input[name="amount[]"]');
-        const descriptionInput = rows[index].querySelector('textarea[name="description[]"]');
+        const isCash = rows[index].querySelector(".receipt-is-cash")?.checked === true;
         const amount = parseFloat((amountInput?.value || "0").replace(/,/g, "")) || 0;
-        const description = (descriptionInput?.value || "").trim();
 
-        if (amount > 100000 && !description.includes("เงินเหลือส่งใช้เงินยืม")) {
+        if (amount > 100000 && !isCash) {
           alert(`รายการที่ ${index + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก`);
           amountInput?.focus();
           amountInput?.select();
@@ -840,6 +843,10 @@
         <td><textarea name="store_name[]" class="form-control form-control-sm" placeholder="เช่น ร้านค้า A" style="resize: vertical; min-height: 31px;" required></textarea></td>
         <td>
           <textarea name="description[]" class="form-control form-control-sm" placeholder="ระบุรายละเอียดรายการ..." style="resize: vertical; min-height: 31px;" required></textarea>
+          <label class="form-check mt-2">
+            <input type="checkbox" value="true" class="form-check-input receipt-is-cash">
+            <span class="form-check-label">คืนเงินยืม</span>
+          </label>
         </td>
         <td><input type="text" name="amount[]" class="form-control form-control-sm item-amount-input" value="0.00" required></td>
         <td>
@@ -881,6 +888,7 @@
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
       if (!tbody) return;
       Array.from(tbody.rows).forEach((row, index) => {
+        row.querySelector(".receipt-is-cash").name = `is_cash_${index}`;
         row.querySelectorAll('input[type="file"]').forEach(input => {
           input.name = `proof_files_${index}[]`;
         });
@@ -1160,6 +1168,7 @@
           receipt_date: receiptDate,
           store_name: storeName,
           description: description,
+          is_cash: row.querySelector(".receipt-is-cash")?.checked === true,
           amount: amountVal
         });
       });
