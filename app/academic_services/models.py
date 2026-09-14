@@ -251,6 +251,15 @@ class ServiceCustomerContact(db.Model):
         }
 
 
+class ServiceCustomerAttachment(db.Model):
+    __tablename__ = 'service_customer_attachments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String())
+    note = db.Column('note', db.String())
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('attachments', cascade='all, delete-orphan'))
+
+
 class ServiceCustomerAddress(db.Model):
     __tablename__ = 'service_customer_addresses'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
