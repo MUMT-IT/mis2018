@@ -233,7 +233,7 @@
     {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
       <div class="d-flex justify-content-end mt-3">
         <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-danger" style="border-radius:6px;" target="_blank">
-          <i class="bi bi-file-earmark-pdf-fill me-1"></i> Export PDF
+          <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน
         </a>
       </div>
     {% endif %}

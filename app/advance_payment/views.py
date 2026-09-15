@@ -40,7 +40,7 @@ from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association
 from .email_utils import generate_notification_email_content
-from . import advance_payment as bp
+from . import advance_payment as bp, thai_date
 from app.models import CostCenter, IOCode, Org, ProductCode
 from app.staff.models import StaffHeadPosition
 from app.docs_query.models import DocsQueryDocument, DocsQueryTag
@@ -6280,21 +6280,25 @@ def petty_cash_ledger():
         if _claim_has_only_category_six(claim):
             continue
         _attach_petty_cash_claim_context(claim)
-        if claim.documents:
-            doc_no = ", ".join([doc.title for doc in claim.documents if doc.title])
+
+        # กำหนด doc_no ตามเลขที่อ้างอิงและวันที่อ้างอิงของ PettyCashClaimDetail
+        if claim.reference_number:
+            ref_date_str = thai_date(claim.reference_date) if claim.reference_date else "-"
+            doc_no = f"{claim.reference_number} ลงวันที่ {ref_date_str}"
         else:
-            doc_no = claim.closing_document.document_number if claim.closing_document else "-"
+            doc_no = "-"
 
         # ยอดรับเงินคืนเข้าบัญชีธนาคาร (คำนวณจากหมวด 1-5)
-        claim_total = float(claim.total_amount or sum(float(i.amount or 0) for i in claim.items if str(i.category_type) != "6"))
-        
+        claim_total = float(
+            claim.total_amount or sum(float(i.amount or 0) for i in claim.items if str(i.category_type) != "6"))
+
         # คำนวณยอดแยกตามหมวดหมู่เฉพาะของ Claim (หมวด 1-5)
         cat_7 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "1")
         cat_8 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "2")
         cat_9 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "3")
         cat_10 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "4")
         cat_11 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "5")
-        
+
         # เพิ่ม Row หลักสำหรับเงินที่ได้รับโอนคืนจากคณะ (หมวด 1-5)
         _append_ledger_row(
             receipt_date=claim.transferred_at or claim.created_at.date(),
