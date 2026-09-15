@@ -687,7 +687,7 @@ def save_lab_approvals_api():
                     result_url=result_url,
                 )
                 message = (
-                    'เรียน ผู้รับบริการ\n\n'
+                    'เรียน ท่านผู้รับการตรวจสุขภาพ\n\n'
                     'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณาคลิกลิงก์ด้านล่าง:\n'
                     f'{result_url}\n\n'
                     'ลิงก์นี้สามารถใช้งานได้ภายใน 7 วันนับจากเวลาที่ส่งอีเมลนี้\n'
@@ -1087,25 +1087,52 @@ def send_email_registration_verification(customer_id):
 
     title = 'Email Verification / ยืนยันอีเมล'
     message = (
-        'Dear {},\n'
-        'A request was made to change your email in the Community Health system to: {}\n'
-        'Please verify this email by clicking the link below within 24 hours:\n'
+        'เรียน ท่านผู้รับการตรวจสุขภาพ\n'
+        'ท่านได้ระบุที่อยู่อีเมลล์นี้เป็นการยืนยันตัวตน\n'
         '{}\n\n'
-        'If you did not request this change, please ignore this message.\n'
-        'Your email will not be changed until verification is completed.\n\n'
-        'เรียน {}\n'
-        'ระบบได้รับคำขอเปลี่ยนอีเมลของท่านในระบบงานบริการสุขภาพชุมชนเป็น: {}\n'
+        'เพื่อรับผลการตรวจสุขภาพออนไลน์\n'
+        'เมื่อรายการตรวจของท่านได้รับการตรวจสอบเรียบร้อยแล้ว\n'
+        'ท่านจะสามารถเข้าดูผลการตรวจสุขภาพออนไลน์ของท่านได้ทันที\n'
+        'โดยจะส่งผ่านที่อยู่อีเมลล์ที่ท่านได้ทำการยืนยันตัวตนไว้แล้วเท่านั้น\n'
+        'หากต้องการเปลี่ยนที่อยู่อีเมลล์ กรุณาติดต่อเจ้าหน้าที่ '
+        'เพื่อยืนยันตัวตนผ่านอีเมลล์ใหม่อีกครั้ง\n\n'
+        'Dear Health Checkup Recipient\n'
+        'You have provided this email address for identity verification\n'
+        'to access your health check-up results online.\n'
+        'Once your test results have been reviewed and verified,\n'
+        'you will be able to view your health check-up results online immediately.\n'
+        'Your results will be sent only to the email address\n'
+        'that has been verified for identity confirmation.\n'
+        'To change your email address, please contact our staff\n'
+        'to verify your identity using the new email address.\n\n'
         'กรุณายืนยันอีเมลโดยคลิกลิงก์ด้านล่างภายใน 24 ชั่วโมง:\n'
         '{}\n\n'
-        'หากท่านไม่ได้เป็นผู้ร้องขอ กรุณาละเว้นอีเมลฉบับนี้\n'
-        'อีเมลของท่านจะยังไม่ถูกเปลี่ยนจนกว่าจะยืนยันสำเร็จ\n\n'
         'This email was sent by an automated system. Please do not reply.\n'
         'อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ'
-    ).format(
-        customer.fullname, email, verify_url,
-        customer.fullname, email, verify_url
+    ).format(email, verify_url)
+    html_message = render_template(
+        'comhealth/emails/email_verification.html',
+        subject=title,
+        email=email,
+        verify_url=verify_url,
     )
-    send_mail([email], title, message)
+    with current_app.open_resource(
+        'static/img/LOGO_MT-Mahidol.png',
+        mode='rb',
+    ) as logo_file:
+        logo_data = logo_file.read()
+    send_mail(
+        [email],
+        title,
+        message,
+        html=html_message,
+        inline_images=[{
+            'filename': 'LOGO_MT-Mahidol.png',
+            'content_type': 'image/png',
+            'data': logo_data,
+            'content_id': 'comhealth-logo',
+        }],
+    )
 
     return render_template('comhealth/email_registration_verification_result.html',
                            status='success',

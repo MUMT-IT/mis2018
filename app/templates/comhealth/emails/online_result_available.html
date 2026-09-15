@@ -12,15 +12,18 @@
     .email-card, .force-white { background-color:#ffffff !important; background-image:linear-gradient(#ffffff,#ffffff) !important; }
     .force-light-text { color:#17345f !important; }
     .force-blue-text { color:#173f83 !important; }
+    .force-white-text, .force-white-text * { color:#ffffff !important; -webkit-text-fill-color:#ffffff !important; }
     [data-ogsb] .email-page { background-color:#eef3f9 !important; }
     [data-ogsb] .email-card, [data-ogsb] .force-white { background-color:#ffffff !important; }
     [data-ogsc] .force-light-text { color:#17345f !important; }
     [data-ogsc] .force-blue-text { color:#173f83 !important; }
+    [data-ogsc] .force-white-text, [data-ogsc] .force-white-text * { color:#ffffff !important; }
     @media (prefers-color-scheme: dark) {
       body, .email-page { background-color:#eef3f9 !important; background-image:linear-gradient(#eef3f9,#eef3f9) !important; }
       .email-card, .force-white { background-color:#ffffff !important; background-image:linear-gradient(#ffffff,#ffffff) !important; }
       .force-light-text { color:#17345f !important; }
       .force-blue-text { color:#173f83 !important; }
+      .force-white-text, .force-white-text * { color:#ffffff !important; -webkit-text-fill-color:#ffffff !important; }
     }
   </style>
 </head>
@@ -34,16 +37,16 @@
         <table class="email-card" role="presentation" width="760" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width:100%; max-width:760px; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); border-radius:20px; overflow:hidden; box-shadow:0 6px 24px rgba(20,54,101,.12);">
           <tr>
             <td align="center" style="padding:38px 38px 34px; background:#123c80; background-image:linear-gradient(135deg,#173f83,#3159a5); color:#ffffff;">
-              <table class="force-white" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="max-width:650px; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); border-radius:12px;">
+              <table class="force-white" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="max-width:650px; border-collapse:separate; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); border-radius:18px; overflow:hidden;">
                 <tr>
-                  <td class="force-white" align="center" bgcolor="#ffffff" style="padding:14px 22px; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff);">
+                  <td class="force-white" align="center" bgcolor="#ffffff" style="padding:14px 22px; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); border-radius:18px; overflow:hidden;">
                     <img src="cid:comhealth-logo" width="590" alt="คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล" style="display:block; width:100%; max-width:590px; height:auto; margin:0 auto;">
                   </td>
                 </tr>
               </table>
               <div style="margin-top:32px; font-size:30px; font-weight:700; line-height:1.4;">ผลการตรวจสุขภาพออนไลน์</div>
               <div style="font-size:18px; line-height:1.65; opacity:.94;">Online Health Examination Results</div>
-              <div style="margin-top:20px; font-size:16px; font-weight:600; line-height:1.75;">งานบริการสุขภาพองค์กร<br>ศูนย์สุขภาพองค์กรและเวชศาสตร์ชันสูตร</div>
+              <div style="margin-top:20px; font-size:16px; font-weight:600; line-height:1.75;">งานบริการสุขภาพองค์รวม<br>ศูนย์สุขภาพองค์รวมและเวชศาสตร์ชันสูตร</div>
             </td>
           </tr>
           <tr>
@@ -59,7 +62,7 @@
                   </td>
                 </tr>
               </table>
-              <p style="margin:30px 0 8px; font-size:17px; line-height:1.8;">เรียน ผู้รับบริการ</p>
+              <p style="margin:30px 0 8px; font-size:17px; line-height:1.8;">เรียน ท่านผู้รับการตรวจสุขภาพ</p>
               <p style="margin:0 0 18px; font-size:17px; line-height:1.8;">ผลการตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณากดปุ่มด้านล่างเพื่อเปิดผลการตรวจ</p>
               <p style="margin:0 0 26px; font-size:16px; line-height:1.75; color:#536b8e;">Dear customer, your online health examination results are now available. Please use the button below to view them.</p>
 
@@ -87,13 +90,13 @@
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding:28px 32px; background:#123c80; background-image:linear-gradient(90deg,#123c80,#1765bd); color:#ffffff; font-size:13px; line-height:1.9;">
+            <td class="force-white-text" align="center" style="padding:28px 32px; background:#123c80; background-image:linear-gradient(90deg,#123c80,#1765bd); color:#ffffff !important; -webkit-text-fill-color:#ffffff; font-size:13px; line-height:1.9;">
               <strong style="font-size:15px;">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</strong><br>
               <a href="https://mt.mahidol.ac.th" style="color:#ffffff; text-decoration:none;">mt.mahidol.ac.th</a>
               &nbsp;|&nbsp; <a href="mailto:mumthealthcare@gmail.com" style="color:#ffffff; text-decoration:none;">mumthealthcare@gmail.com</a><br>
               โทร. 0-2411-2347, 0-2419-7167, 0-8198-58029<br>
               2 ถนนวังหลัง แขวงศิริราช เขตบางกอกน้อย กรุงเทพมหานคร 10700
-              <div style="margin-top:12px; opacity:.8; font-size:12px;">อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ</div>
+              <div style="margin-top:12px; color:#ffffff !important; -webkit-text-fill-color:#ffffff; opacity:.85; font-size:12px;">อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ</div>
             </td>
           </tr>
         </table>

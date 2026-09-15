@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
+  <title>{{ subject }}</title>
+  <style>
+    :root { color-scheme:light only; supported-color-schemes:light only; }
+    .email-page { background-color:#eef3f9 !important; background-image:linear-gradient(#eef3f9,#eef3f9) !important; }
+    .email-card, .force-white { background-color:#ffffff !important; background-image:linear-gradient(#ffffff,#ffffff) !important; }
+    .force-text { color:#17345f !important; }
+    .force-blue { color:#173f83 !important; }
+    .force-white-text, .force-white-text * { color:#ffffff !important; -webkit-text-fill-color:#ffffff !important; }
+    [data-ogsb] .email-page { background-color:#eef3f9 !important; }
+    [data-ogsb] .email-card, [data-ogsb] .force-white { background-color:#ffffff !important; }
+    [data-ogsc] .force-text { color:#17345f !important; }
+    [data-ogsc] .force-blue { color:#173f83 !important; }
+    [data-ogsc] .force-white-text, [data-ogsc] .force-white-text * { color:#ffffff !important; }
+    @media (prefers-color-scheme:dark) {
+      body, .email-page { background-color:#eef3f9 !important; background-image:linear-gradient(#eef3f9,#eef3f9) !important; }
+      .email-card, .force-white { background-color:#ffffff !important; background-image:linear-gradient(#ffffff,#ffffff) !important; }
+      .force-text { color:#17345f !important; }
+      .force-blue { color:#173f83 !important; }
+      .force-white-text, .force-white-text * { color:#ffffff !important; -webkit-text-fill-color:#ffffff !important; }
+    }
+  </style>
+</head>
+<body class="email-page" style="margin:0; padding:0; background-color:#eef3f9; background-image:linear-gradient(#eef3f9,#eef3f9); color:#17345f; font-family:Tahoma,Arial,sans-serif;">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">กรุณายืนยันอีเมลภายใน 24 ชั่วโมงเพื่อดำเนินการอัปเดตอีเมล</div>
+  <table class="email-page" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#eef3f9" style="background-color:#eef3f9; background-image:linear-gradient(#eef3f9,#eef3f9);">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table class="email-card" role="presentation" width="760" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width:100%; max-width:760px; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); border-radius:20px; overflow:hidden; box-shadow:0 6px 24px rgba(20,54,101,.12);">
+          <tr>
+            <td align="center" style="padding:38px 38px 34px; background:#123c80; background-image:linear-gradient(135deg,#173f83,#3159a5); color:#ffffff;">
+              <table class="force-white" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="max-width:650px; border-collapse:separate; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); border-radius:18px; overflow:hidden;">
+                <tr>
+                  <td class="force-white" align="center" bgcolor="#ffffff" style="padding:14px 22px; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); border-radius:18px; overflow:hidden;">
+                    <img src="cid:comhealth-logo" width="590" alt="คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล" style="display:block; width:100%; max-width:590px; height:auto; margin:0 auto;">
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top:32px; font-size:30px; font-weight:700; line-height:1.4;">ยืนยันอีเมล</div>
+              <div style="font-size:18px; line-height:1.65; opacity:.94;">Email Verification</div>
+              <div style="margin-top:20px; font-size:16px; font-weight:600; line-height:1.75;">งานบริการสุขภาพองค์รวม<br>ศูนย์สุขภาพองค์รวมและเวชศาสตร์ชันสูตร</div>
+            </td>
+          </tr>
+          <tr>
+            <td class="force-white force-text" bgcolor="#ffffff" style="padding:38px 44px 22px; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); color:#17345f;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td width="74" valign="middle"><div style="width:56px; height:56px; border-radius:50%; background:#edf5ff; color:#1550a0; font-size:27px; line-height:56px; text-align:center;">✉</div></td>
+                  <td>
+                    <div class="force-blue" style="font-size:24px; font-weight:700; line-height:1.45; color:#173f83;">ยืนยันอีเมลของท่าน</div>
+                    <div style="font-size:17px; line-height:1.6; color:#536b8e;">Verify your email address</div>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:30px 0 10px; font-size:17px; line-height:1.8;">เรียน ท่านผู้รับการตรวจสุขภาพ</p>
+              <p style="margin:0 0 10px; font-size:17px; line-height:1.8;">ท่านได้ระบุที่อยู่อีเมลล์นี้เป็นการยืนยันตัวตน</p>
+              <div style="margin:0 0 20px; padding:12px 16px; border:1px solid #cbdcf2; border-radius:10px; background:#f4f8fd; color:#173f83; font-size:17px; font-weight:700; text-align:center; word-break:break-all;">{{ email }}</div>
+              <p style="margin:0 0 22px; font-size:16px; line-height:1.85; color:#17345f;">
+                เพื่อรับผลการตรวจสุขภาพออนไลน์<br>
+                เมื่อรายการตรวจของท่านได้รับการตรวจสอบเรียบร้อยแล้ว<br>
+                ท่านจะสามารถเข้าดูผลการตรวจสุขภาพออนไลน์ของท่านได้ทันที<br>
+                โดยจะส่งผ่านที่อยู่อีเมลล์ที่ท่านได้ทำการยืนยันตัวตนไว้แล้วเท่านั้น<br>
+                หากต้องการเปลี่ยนที่อยู่อีเมลล์ กรุณาติดต่อเจ้าหน้าที่ เพื่อยืนยันตัวตนผ่านอีเมลล์ใหม่อีกครั้ง
+              </p>
+              <p style="margin:0 0 24px; font-size:16px; line-height:1.85; color:#536b8e;">
+                Dear Health Checkup Recipient<br>
+                You have provided this email address for identity verification to access your health check-up results online.<br>
+                Once your test results have been reviewed and verified, you will be able to view your health check-up results online immediately.<br>
+                Your results will be sent only to the email address that has been verified for identity confirmation.<br>
+                To change your email address, please contact our staff to verify your identity using the new email address.
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="border-radius:32px; background:#1551ae; background-image:linear-gradient(90deg,#1551ae,#2270d2);">
+                    <a href="{{ verify_url }}" style="display:block; padding:17px 20px; color:#ffffff; font-size:18px; font-weight:700; line-height:1.5; text-align:center; text-decoration:none;">ยืนยันอีเมล / Verify Email&nbsp;&nbsp;›</a>
+                  </td>
+                </tr>
+              </table>
+              <div style="margin:20px 0 24px; padding:16px 18px; border:1px solid #f1c65c; border-radius:12px; background:#fff7d9; color:#694f10; font-size:15px; line-height:1.75; text-align:center;">
+                ◷&nbsp; กรุณายืนยันอีเมลภายใน <strong>24 ชั่วโมง</strong><br>This verification link is valid for <strong>24 hours</strong>.
+              </div>
+              <p style="margin:0; font-size:12px; line-height:1.65; color:#70819a; word-break:break-all;">หากปุ่มไม่ทำงาน ให้คัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์:<br><a href="{{ verify_url }}" style="color:#3159a5;">{{ verify_url }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td class="force-white force-text" bgcolor="#ffffff" style="padding:10px 44px 36px; background-color:#ffffff; background-image:linear-gradient(#ffffff,#ffffff); color:#17345f;">
+              <div style="padding:22px 24px; border:1px solid #cbdcf2; border-radius:14px; background:#eef6ff; font-size:14px; line-height:1.75; color:#4d6383;">
+                <strong style="display:block; margin-bottom:7px; color:#173f83; font-size:15px;">คำแนะนำด้านความปลอดภัย</strong>
+                อีเมลของท่านจะยังไม่ถูกเปลี่ยนจนกว่าจะกดลิงก์ยืนยัน หากท่านไม่ได้ส่งคำขอนี้ กรุณาไม่ต้องดำเนินการใด ๆ และอย่าส่งต่อลิงก์นี้ให้ผู้อื่น<br><br>
+                <strong>Security notice:</strong> Your email will not be changed until verification is completed. If you did not make this request, ignore this message and do not share the link.
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="force-white-text" align="center" style="padding:28px 32px; background:#123c80; background-image:linear-gradient(90deg,#123c80,#1765bd); color:#ffffff !important; -webkit-text-fill-color:#ffffff; font-size:13px; line-height:1.9;">
+              <strong style="font-size:15px;">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</strong><br>
+              <a href="https://mt.mahidol.ac.th" style="color:#ffffff; text-decoration:none;">mt.mahidol.ac.th</a> &nbsp;|&nbsp; <a href="mailto:mumthealthcare@gmail.com" style="color:#ffffff; text-decoration:none;">mumthealthcare@gmail.com</a><br>
+              โทร. 0-2411-2347, 0-2419-7167, 0-8198-58029<br>2 ถนนวังหลัง แขวงศิริราช เขตบางกอกน้อย กรุงเทพมหานคร 10700
+              <div style="margin-top:12px; color:#ffffff !important; -webkit-text-fill-color:#ffffff; opacity:.85; font-size:12px;">อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
