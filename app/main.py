@@ -3004,16 +3004,21 @@ def import_pre_register_seminar_data():
         seminar = StaffSeminar.query.filter_by(topic=row['seminar']).first()
         if staff_account:
             if seminar:
-                attend = StaffSeminarPreRegister(
-                    seminar_id=seminar.id,
-                    staff_account_id=staff_account.id,
-                    created_at=tz.localize(datetime.today()),
-                )
-                db.session.add(attend)
+                is_recorded = (StaffSeminarPreRegister.query.filter_by
+                               (staff_account_id=staff_account.id, seminar_id=seminar.id).first())
+                if is_recorded:
+                    print('Duplicate email of {}'.format(staff_account.email))
+                else:
+                    attend = StaffSeminarPreRegister(
+                        seminar_id=seminar.id,
+                        staff_account_id=staff_account.id,
+                        created_at=tz.localize(datetime.today()),
+                    )
+                    db.session.add(attend)
             else:
                 print('Not found seminar topic of {}'.format(staff_account.email))
         else:
-            print(u'Cannot save data of email: {}'.format(row['seminar']))
+            print(u'Cannot save data of email: {}'.format(row['email']))
     db.session.commit()
 
 
