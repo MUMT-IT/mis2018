@@ -109,7 +109,7 @@
               <td class="text-end fw-bold text-dark">{{ "{:,.2f}".format(request.amount) }}</td>
               <td class="text-center">
                 {% if request.form_type == '30' %}
-                  {% if request.status == 'กำลังดำเนินการ' and session.get('user_role') == 'secretary' %}
+                  {% if request.status == 'กำลังดำเนินการ' and is_secretary %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
                       {% if request.has_rejected_followup %}

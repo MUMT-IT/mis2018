@@ -491,8 +491,24 @@ def _is_current_coordinator():
     return _selected_system() == ADVANCE_PAYMENT_SYSTEM and _is_coordinator_role(session.get("user_role"))
 
 
-def _is_current_secretary():
-    return _selected_system() == PETTY_CASH_SYSTEM and _is_petty_cash_role(session.get("user_role"))
+def _is_current_secretary(user=None, setting=None):
+    """Require a current secretary role and the account's custodian assignment."""
+    if _selected_system() != PETTY_CASH_SYSTEM:
+        return False
+    if user is None:
+        user = _module_user_from_session()
+    if not user or SECRETARY_ROLE not in _available_module_roles(user):
+        return False
+    if setting is None:
+        setting = _resolve_petty_cash_setting(user)
+    return bool(
+        setting
+        and getattr(setting, "id", None)
+        and getattr(setting, "valid", False)
+        and getattr(setting, "fiscal_year", None) == _current_petty_cash_fiscal_year()
+        and getattr(user, "id", None) is not None
+        and user.id == getattr(setting, "custodian_id", None)
+    )
 
 
 def _get_user_by_id(user_id):
@@ -4725,10 +4741,10 @@ def staff_fund_request():
     if not user:
         abort(404)
 
-    is_secretary = _is_current_secretary()
     user_display_name = getattr(user, "name", None) or getattr(user, "fullname", None) or getattr(user, "email", None) or "ไม่พบข้อมูลชื่อ"
     user_display_position = getattr(user, "position", None) or "ไม่พบข้อมูลตำแหน่ง"
     setting = _resolve_petty_cash_setting(user)
+    is_secretary = _is_current_secretary(user, setting)
     _attach_petty_cash_setting_people(setting)
     approved_borrowing_tickets = _get_approved_borrowing_tickets_for_setting(setting)
     dept_summary = _calculate_petty_cash_balance_summary(
@@ -4974,7 +4990,8 @@ def staff_fund_request_history():
         abort(404)
 
     setting = _resolve_petty_cash_setting(user)
-    is_staff_user = not _is_current_secretary()
+    is_secretary = _is_current_secretary(user, setting)
+    is_staff_user = not is_secretary
 
     fund_requests_query = db.session.query(FundRequest)
     history_org = _get_staff_org(user)
@@ -5068,6 +5085,7 @@ def staff_fund_request_history():
 
     return render_template(
         "staff_fund_request_history.html",
+        is_secretary=is_secretary,
         setting=setting,
         fund_requests=fund_requests,
         claim_history=claim_history,
