@@ -256,11 +256,6 @@
                                 <span class="icon"><i class="fa-solid fa-circle-check"></i></span>
                                 <span>รายการนี้ได้รับการยืนยันแล้ว</span>
                             </div>
-                        {% else %}
-                            <div class="event-status-chip is-warning">
-                                <span class="icon"><i class="fa-regular fa-clock"></i></span>
-                                <span>รายการนี้กำลังรอการยืนยัน</span>
-                            </div>
                         {% endif %}
                     </div>
                 </div>
@@ -275,8 +270,8 @@
                                 <p>{{ event_start|localdatetime }} - {{ event_end|localdatetime }}</p>
                             </div>
                             <div class="event-meta-card">
-                                <strong>ห้องประชุม</strong>
-                                <p>ห้อง {{ event.room.number }} ณ {{ event.room.location }}</p>
+                                <strong>ห้อง</strong>
+                                <p>ห้อง {{ event.room_names }} ณ {{ event.room.location }}</p>
                             </div>
                             <div class="event-meta-card">
                                 <strong>หน่วยงาน</strong>
@@ -374,11 +369,20 @@
                             {% endif %}
                         </div>
                     </div>
-                    <div style="margin-top: 1rem;">
-                        <a href="{{ url_for('room.index') }}" class="button is-light is-fullwidth is-rounded">
-                            <span class="icon"><i class="fas fa-chevron-left"></i></span>
-                            <span>กลับ</span>
-                        </a>
+                    <div class="columns is-mobile is-variable is-2" style="margin-top: 1rem;">
+                        <div class="column">
+                            <a href="{{ url_for('room.index') }}" class="button is-dark is-outlined is-fullwidth is-rounded">
+                                <span class="icon"><i class="fas fa-chevron-left"></i></span>
+                                <span>กลับ</span>
+                            </a>
+                        </div>
+                        <div class="column">
+                            <a href="{{ url_for('room.room_directory') }}"
+                               class="button is-link is-light is-outlined is-fullwidth is-rounded">
+                                <span class="icon"><i class="fa-solid fa-list"></i></span>
+                                <span>รายการห้องทั้งหมด</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

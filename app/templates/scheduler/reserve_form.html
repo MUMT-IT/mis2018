@@ -137,6 +137,43 @@
             border-radius: 16px;
         }
 
+        .reserve-field-card label.checkbox {
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex !important;
+            gap: 0.7rem;
+            padding: 0.55rem 0.75rem;
+            transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+            width: fit-content;
+        }
+
+        .reserve-field-card label.checkbox:hover {
+            background: rgba(26, 61, 124, 0.06);
+            border-color: rgba(26, 61, 124, 0.14);
+        }
+
+        .reserve-field-card label.checkbox:has(input[type="checkbox"]:checked) {
+            background: rgba(26, 61, 124, 0.09);
+            border-color: rgba(26, 61, 124, 0.24);
+            color: var(--theme-navy-deep);
+        }
+
+        .reserve-field-card input[type="checkbox"] {
+            accent-color: var(--theme-navy);
+            cursor: pointer;
+            flex: 0 0 auto;
+            height: 1.35rem;
+            margin: 0;
+            width: 1.35rem;
+        }
+
+        .reserve-field-card input[type="checkbox"]:focus-visible {
+            outline: 3px solid rgba(202, 168, 74, 0.45);
+            outline-offset: 3px;
+        }
+
         .reserve-static {
             color: var(--theme-text);
             font-weight: 600;
@@ -257,13 +294,31 @@
                 <div class="reserve-panel">
                     <form method="post">
                         {{ form.hidden_tag() }}
+                        {% if return_url %}
+                            <input type="hidden" name="next" value="{{ return_url }}">
+                        {% endif %}
 
                         <div class="reserve-section">
                             <h2 class="title is-4 reserve-section-title">ข้อมูลห้องและสถานะ</h2>
                             <div class="reserve-grid">
-                                <div class="reserve-field-card">
+                                <div class="reserve-field-card{% if room.conjoined_rooms %} is-full{% endif %}">
                                     <label class="label">ห้อง</label>
                                     <div class="reserve-static">{{ room.number }}</div>
+                                    {% if room.conjoined_rooms %}
+                                        <div style="border-top: 1px solid rgba(18, 39, 84, 0.1); margin-top: 0.85rem; padding-top: 0.85rem;">
+                                            <label class="label">ห้องที่เชื่อมต่อกัน</label>
+                                        {% for conjoined_room in room.conjoined_rooms %}
+                                            <label class="checkbox" style="display: block; margin-bottom: 0.5rem;">
+                                                <input type="checkbox" name="conjoined_room_ids"
+                                                       value="{{ conjoined_room.id }}"
+                                                       {% if event and conjoined_room in event.booked_rooms %}checked{% endif %}>
+                                                จองห้อง {{ conjoined_room.number }} พร้อมกัน
+                                                (รองรับ {{ conjoined_room.occupancy }} คน)
+                                            </label>
+                                        {% endfor %}
+                                            <p class="reserve-help">ระบบจะตรวจสอบและจองทุกห้องพร้อมกัน</p>
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <div class="reserve-field-card">
                                     <label class="label">วิทยาเขต</label>
@@ -413,7 +468,7 @@
                         </div>
 
                         <div class="reserve-actions">
-                            <a href="{{ url_for('room.index') }}" class="button is-light">
+                            <a href="{{ return_url or url_for('room.index') }}" class="button is-light">
                                 ยกเลิก
                             </a>
                             <button type="submit" class="button is-success">
@@ -463,6 +518,9 @@
         let checkAvailability = function (e) {
             let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
             let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+            let conjoinedRooms = Array.from(
+                document.querySelectorAll('input[name="conjoined_room_ids"]:checked')
+            ).map(input => input.value).join(',')
 
             htmx.ajax('GET',
                 '{{ url_for("room.check_room_availability") }}',
@@ -471,6 +529,7 @@
                     target: '#availability',
                     values: {
                         'room': {{ room.id|tojson|safe }},
+                        'conjoined_rooms': conjoinedRooms,
                         'start': startDateTime.format(),
                         'end': endDateTime.format(),
                         'session_id': null,
@@ -482,6 +541,9 @@
             )
         }
         $(document).ready(() => {
+            document.querySelectorAll('input[name="conjoined_room_ids"]').forEach(input => {
+                input.addEventListener('change', triggerAvailabilityCheck)
+            })
             $('.js-example-basic-multiple').select2({
                 width: '100%',
             });

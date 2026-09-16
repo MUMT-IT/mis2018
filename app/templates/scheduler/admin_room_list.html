@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}ระบบจัดการห้อง{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .room-admin-table-container,
+        .room-admin-table-container .dataTables_wrapper,
+        .room-admin-table-container table.table {
+            border-radius: 0 !important;
+        }
+
+        .room-admin-table-container {
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .room-admin-table-container table.table,
+        .room-admin-table-container table.table th,
+        .room-admin-table-container table.table td {
+            border: 0 !important;
+        }
+
+        .room-edit-button {
+            border-radius: 999px;
+            font-size: 0.72rem;
+            height: auto;
+            min-height: 1.75rem;
+            padding: 0.25rem 0.75rem;
+        }
+
+        .room-edit-button .icon {
+            font-size: 0.7rem;
+            height: 1rem;
+            width: 1rem;
+        }
+    </style>
+{% endblock %}
+
+{% include "scheduler/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container is-fluid">
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div>
+                        <p class="heading">Administrator</p>
+                        <h1 class="title">ระบบจัดการห้อง</h1>
+                        <p class="subtitle is-6">รายการห้องทั้งหมดในระบบจองห้อง</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="table-container room-admin-table-container">
+                    <table id="rooms" class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>หมายเลขห้อง</th>
+                            <th>วิทยาเขต</th>
+                            <th>ชั้น</th>
+                            <th>ความจุ</th>
+                            <th>ประเภทห้อง</th>
+                            <th>ความพร้อมใช้</th>
+                            <th>เวลาทำการ</th>
+                            <th>ห้องที่เชื่อมต่อกัน</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#rooms').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                ajax: {{ url_for('room.get_admin_rooms')|tojson|safe }},
+                order: [[1, 'asc']],
+                scrollX: true,
+                autoWidth: false,
+                columns: [
+                    {data: 'id'},
+                    {data: 'number', render: $.fn.dataTable.render.text()},
+                    {data: 'location', render: $.fn.dataTable.render.text()},
+                    {data: 'floor', defaultContent: '-', render: $.fn.dataTable.render.text()},
+                    {data: 'occupancy'},
+                    {data: 'room_type', defaultContent: '-', render: $.fn.dataTable.render.text()},
+                    {data: 'availability', defaultContent: '-', render: $.fn.dataTable.render.text()},
+                    {data: 'business_hours', orderable: false, searchable: false,
+                        render: $.fn.dataTable.render.text()},
+                    {data: 'conjoined_rooms', orderable: false, searchable: false, defaultContent: '-',
+                        render: $.fn.dataTable.render.text()},
+                    {
+                        data: 'edit_url',
+                        orderable: false,
+                        searchable: false,
+                        render: function (data) {
+                            return `<a class="button is-small is-info room-edit-button" href="${data}">
+                                <span class="icon"><i class="fa-solid fa-pen-to-square"></i></span>
+                                <span>แก้ไข</span>
+                            </a>`
+                        }
+                    }
+                ],
+                language: {
+                    processing: 'กำลังโหลด...',
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีข้อมูลห้อง',
+                    zeroRecords: 'ไม่พบห้องที่ตรงกับการค้นหา',
+                    paginate: {
+                        first: 'หน้าแรก',
+                        previous: 'ก่อนหน้า',
+                        next: 'ถัดไป',
+                        last: 'หน้าสุดท้าย'
+                    }
+                }
+            })
+        })
+    </script>
+{% endblock %}

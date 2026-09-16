@@ -226,6 +226,7 @@
             </div>
         </div>
         <div class="home-link-list">
+            <a class="home-link-item" href="{{ url_for('room.admin_room_list') }}"><span class="home-link-copy"><span class="icon"><i class="fa-solid fa-door-open"></i></span><span>ระบบจัดการห้อง</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('comp_tracker.admin_index', tab='new') }}"><span class="home-link-copy"><span class="icon"><i class="fas fa-user-clock"></i></span><span>ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('comp_tracker.admin_record_complaint_index', menu='all') }}"><span class="home-link-copy"><span class="icon"><i class="fas fa-user-clock"></i></span><span>สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('software_request.admin_index', tab='pending') }}"><span class="home-link-copy"><span class="icon"><i class="fas fa-user-clock"></i></span><span>ระบบขอรับบริการพัฒนา Software</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
