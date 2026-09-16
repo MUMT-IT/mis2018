@@ -693,6 +693,92 @@ def save_xray_approval_api():
     return _save_service_section_approval('/XRays/approval')
 
 
+def _send_health_result_email(customer_email, service_no, service_date, customer_age=''):
+    customer_email = str(customer_email or '').strip().lower()
+    service_no = str(service_no or '').strip()
+    service_date = str(service_date or '').strip()
+    customer_age = str(customer_age or '').strip()
+    if not customer_email or not service_no.isdigit() or not service_date:
+        return {
+            'sent': False,
+            'error': 'Missing customer email, service number, or service date.',
+        }
+
+    try:
+        serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
+        token = serializer.dumps({
+            'email': customer_email,
+            'serviceNo': service_no,
+            'serviceDate': service_date,
+            'age': customer_age,
+        })
+        result_url = url_for(
+            'comhealth.open_approved_result_from_email',
+            token=token,
+            _external=True,
+        )
+        title = 'ผลตรวจสุขภาพออนไลน์พร้อมดูแล้ว / Online health results available'
+        html_message = render_template(
+            'comhealth/emails/online_result_available.html',
+            subject=title,
+            result_url=result_url,
+        )
+        message = (
+            'เรียน ท่านผู้รับการตรวจสุขภาพ\n\n'
+            'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณาคลิกลิงก์ด้านล่าง:\n'
+            f'{result_url}\n\n'
+            'ลิงก์นี้สามารถใช้งานได้ภายใน 7 วันนับจากเวลาที่ส่งอีเมลนี้\n'
+            'ลิงก์นี้มีข้อมูลสำหรับเข้าถึงผลตรวจส่วนบุคคล กรุณาอย่าส่งต่อให้ผู้อื่น\n\n'
+            'Dear customer,\n\n'
+            'Your online health examination results are available at the link below:\n'
+            f'{result_url}\n\n'
+            'This link is valid for 7 days from the time this email is sent.\n'
+            'This link provides access to personal health information. Please do not share it.\n\n'
+            'อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ'
+        )
+        with current_app.open_resource(
+            'static/img/LOGO_MT-Mahidol.png',
+            mode='rb',
+        ) as logo_file:
+            logo_data = logo_file.read()
+        send_mail(
+            [customer_email],
+            title,
+            message,
+            html=html_message,
+            inline_images=[{
+                'filename': 'LOGO_MT-Mahidol.png',
+                'content_type': 'image/png',
+                'data': logo_data,
+                'content_id': 'comhealth-logo',
+            }],
+        )
+        return {'sent': True, 'recipient': customer_email}
+    except Exception:
+        current_app.logger.exception(
+            'Unable to send health result email for serviceNo=%s',
+            service_no,
+        )
+        return {
+            'sent': False,
+            'recipient': customer_email,
+            'error': 'Approval saved, but email could not be sent.',
+        }
+
+
+@comhealth.route('/api/health-result-notification', methods=['POST'])
+@login_required
+def send_health_result_notification_api():
+    payload = request.get_json(silent=True) or {}
+    notification = _send_health_result_email(
+        payload.get('customerEmail'),
+        payload.get('serviceNo'),
+        payload.get('serviceDate'),
+        payload.get('customerAge'),
+    )
+    return {'emailNotification': notification}
+
+
 @comhealth.route('/api/lab-approvals', methods=['POST'])
 @login_required
 def save_lab_approvals_api():
@@ -721,48 +807,12 @@ def save_lab_approvals_api():
 
     email_notification = {'sent': False}
     if response.ok:
-        if customer_email and service_no.isdigit() and service_date:
-            try:
-                serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
-                token = serializer.dumps({
-                    'email': customer_email,
-                    'serviceNo': service_no,
-                    'serviceDate': service_date,
-                    'age': customer_age,
-                })
-                result_url = url_for(
-                    'comhealth.open_approved_result_from_email',
-                    token=token,
-                    _external=True,
-                )
-                title = 'ผลตรวจสุขภาพออนไลน์พร้อมดูแล้ว / Online health results available'
-                message = (
-                    'เรียน ผู้รับบริการ\n\n'
-                    'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณาคลิกลิงก์ด้านล่าง:\n'
-                    f'{result_url}\n\n'
-                    'ลิงก์นี้สามารถใช้งานได้ภายใน 7 วันนับจากเวลาที่ส่งอีเมลนี้\n'
-                    'ลิงก์นี้มีข้อมูลสำหรับเข้าถึงผลตรวจส่วนบุคคล กรุณาอย่าส่งต่อให้ผู้อื่น\n\n'
-                    'Dear customer,\n\n'
-                    'Your online health examination results are available at the link below:\n'
-                    f'{result_url}\n\n'
-                    'This link is valid for 7 days from the time this email is sent.\n'
-                    'This link provides access to personal health information. Please do not share it.\n\n'
-                    'อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ'
-                )
-                send_mail([customer_email], title, message)
-                email_notification = {'sent': True, 'recipient': customer_email}
-            except Exception:
-                current_app.logger.exception(
-                    'Unable to send approved lab result email for serviceNo=%s',
-                    service_no,
-                )
-                email_notification = {
-                    'sent': False,
-                    'recipient': customer_email,
-                    'error': 'Approval saved, but email could not be sent.',
-                }
-        else:
-            email_notification['error'] = 'Missing customer email, service number, or service date.'
+        email_notification = _send_health_result_email(
+            customer_email,
+            service_no,
+            service_date,
+            customer_age,
+        )
 
     try:
         api_response = response.json()
@@ -1217,25 +1267,52 @@ def send_email_registration_verification(customer_id):
 
     title = 'Email Verification / ยืนยันอีเมล'
     message = (
-        'Dear {},\n'
-        'A request was made to change your email in the Community Health system to: {}\n'
-        'Please verify this email by clicking the link below within 24 hours:\n'
+        'เรียน ท่านผู้รับการตรวจสุขภาพ\n'
+        'ท่านได้ระบุที่อยู่อีเมลล์นี้เป็นการยืนยันตัวตน\n'
         '{}\n\n'
-        'If you did not request this change, please ignore this message.\n'
-        'Your email will not be changed until verification is completed.\n\n'
-        'เรียน {}\n'
-        'ระบบได้รับคำขอเปลี่ยนอีเมลของท่านในระบบงานบริการสุขภาพชุมชนเป็น: {}\n'
+        'เพื่อรับผลการตรวจสุขภาพออนไลน์\n'
+        'เมื่อรายการตรวจของท่านได้รับการตรวจสอบเรียบร้อยแล้ว\n'
+        'ท่านจะสามารถเข้าดูผลการตรวจสุขภาพออนไลน์ของท่านได้ทันที\n'
+        'โดยจะส่งผ่านที่อยู่อีเมลล์ที่ท่านได้ทำการยืนยันตัวตนไว้แล้วเท่านั้น\n'
+        'หากต้องการเปลี่ยนที่อยู่อีเมลล์ กรุณาติดต่อเจ้าหน้าที่ '
+        'เพื่อยืนยันตัวตนผ่านอีเมลล์ใหม่อีกครั้ง\n\n'
+        'Dear Health Checkup Recipient\n'
+        'You have provided this email address for identity verification\n'
+        'to access your health check-up results online.\n'
+        'Once your test results have been reviewed and verified,\n'
+        'you will be able to view your health check-up results online immediately.\n'
+        'Your results will be sent only to the email address\n'
+        'that has been verified for identity confirmation.\n'
+        'To change your email address, please contact our staff\n'
+        'to verify your identity using the new email address.\n\n'
         'กรุณายืนยันอีเมลโดยคลิกลิงก์ด้านล่างภายใน 24 ชั่วโมง:\n'
         '{}\n\n'
-        'หากท่านไม่ได้เป็นผู้ร้องขอ กรุณาละเว้นอีเมลฉบับนี้\n'
-        'อีเมลของท่านจะยังไม่ถูกเปลี่ยนจนกว่าจะยืนยันสำเร็จ\n\n'
         'This email was sent by an automated system. Please do not reply.\n'
         'อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ'
-    ).format(
-        customer.fullname, email, verify_url,
-        customer.fullname, email, verify_url
+    ).format(email, verify_url)
+    html_message = render_template(
+        'comhealth/emails/email_verification.html',
+        subject=title,
+        email=email,
+        verify_url=verify_url,
     )
-    send_mail([email], title, message)
+    with current_app.open_resource(
+        'static/img/LOGO_MT-Mahidol.png',
+        mode='rb',
+    ) as logo_file:
+        logo_data = logo_file.read()
+    send_mail(
+        [email],
+        title,
+        message,
+        html=html_message,
+        inline_images=[{
+            'filename': 'LOGO_MT-Mahidol.png',
+            'content_type': 'image/png',
+            'data': logo_data,
+            'content_id': 'comhealth-logo',
+        }],
+    )
 
     return render_template('comhealth/email_registration_verification_result.html',
                            status='success',
@@ -3976,8 +4053,20 @@ def enter_password_for_sign_digital(receipt_id):
     return render_template('comhealth/password_modal.html', form=form, receipt_id=receipt_id)
 
 
-def send_mail(recp, title, message, attached_file=None, filename=None):
+def send_mail(
+        recp, title, message, attached_file=None, filename=None, html=None,
+        inline_images=None):
     message = Message(subject=title, body=message, recipients=recp)
+    if html:
+        message.html = html
+    for image in inline_images or []:
+        message.attach(
+            filename=image['filename'],
+            content_type=image['content_type'],
+            data=image['data'],
+            disposition='inline',
+            headers=[('Content-ID', '<{}>'.format(image['content_id']))],
+        )
     if attached_file:
         message.attach(filename=filename, data=attached_file, content_type='application/pdf')
     mail.send(message)
