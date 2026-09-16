@@ -2316,6 +2316,13 @@ def search_customer():
     )
 
 
+@service_admin.route('/customer/register/detail/<int:customer_id>')
+@login_required
+def customer_detail(customer_id):
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    return render_template('service_admin/customer_detail.html', customer=customer)
+
+
 @service_admin.route('/customer/register/closing-page')
 def closing_page():
     return render_template('service_admin/closing_page.html')
