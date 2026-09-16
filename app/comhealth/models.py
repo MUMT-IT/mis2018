@@ -124,6 +124,22 @@ class ComHealthDivision(db.Model):
         return u'{}'.format(self.name)
 
 
+class ComHealthOnlineResultAccessToken(db.Model):
+    """Server-side state for short-lived, single-use report access links."""
+    __tablename__ = 'comhealth_online_result_access_tokens'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(255), nullable=False, index=True)
+    token_hash = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
+    used_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
 class ComHealthCustomer(db.Model):
     __tablename__ = 'comhealth_customers'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)

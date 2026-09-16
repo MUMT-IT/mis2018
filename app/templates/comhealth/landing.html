@@ -485,16 +485,12 @@
                                 </div>
                                 <div class="comhealth-action-title">Online Results</div>
                                 <div class="comhealth-action-copy">
-                                    เลือกช่องทางสำหรับดูผลตรวจสุขภาพออนไลน์ตามประเภทผู้ใช้งาน
+                                    เข้าสู่หน้าสำหรับผู้รับบริการ เพื่อเลือกช่องทางดูผลตรวจสุขภาพออนไลน์ตามประเภทผู้ใช้งาน
                                 </div>
                                 <div class="comhealth-action-buttons">
-                                    <a class="button is-danger is-light comhealth-action-button" href="{{ url_for('comhealth.online_results_mahidol_google_start') }}">
-                                        <span class="icon"><i class="fab fa-google"></i></span>
-                                        <span>บุคลากรม.มหิดล</span>
-                                    </a>
-                                    <a class="button is-link is-light comhealth-action-button" href="{{ url_for('comhealth.online_results_general_public') }}">
-                                        <span class="icon"><i class="fas fa-user"></i></span>
-                                        <span>บุคคลทั่วไป</span>
+                                    <a class="button is-link comhealth-action-button" href="{{ url_for('comhealth.customer_landing') }}">
+                                        <span class="icon"><i class="fas fa-arrow-right"></i></span>
+                                        <span>เข้าสู่หน้าผู้รับบริการ</span>
                                     </a>
                                 </div>
                             </div>
