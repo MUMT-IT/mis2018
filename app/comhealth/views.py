@@ -51,6 +51,10 @@ from app.roles import admin_permission, approve_lab_permission
 from .concern_engine import build_health_risk_report
 from .health_risk_copy import get_health_risk_copy
 from .health_risk_summary import build_health_risk_summary
+from .online_result_security import (
+    access_token_hash as _online_results_access_token_hash,
+    normalize_pending_result as _normalize_pending_result,
+)
 from .apis import *
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm, PasswordOfSignDigitalForm, SendMailToCustomerForm,
@@ -85,6 +89,8 @@ SERVICE_CUSTOMERS_PAGE_SIZE_MAX = 100
 # use their normal Flask-Login session lifetime.
 PUBLIC_RESULTS_IDLE_TIMEOUT = 30 * 60
 PUBLIC_RESULTS_MAX_LIFETIME = 2 * 60 * 60
+PUBLIC_RESULTS_ACCESS_TOKEN_MAX_AGE = 10 * 60
+RESULT_NOTIFICATION_MAX_AGE = 7 * 24 * 60 * 60
 
 
 def _is_google_verification_enabled():
@@ -126,6 +132,45 @@ def _clear_online_results_session():
         'comhealth_online_results_last_seen_at',
     ):
         session.pop(key, None)
+
+
+def _online_results_identity_email():
+    if current_user.is_authenticated:
+        email = str(current_user.email or '').strip().lower()
+        if email and '@' not in email:
+            email = '{}@mahidol.ac.th'.format(email)
+        return email
+    return str(session.get('comhealth_online_results_email') or '').strip().lower()
+
+
+def _redirect_after_online_results_access(email, pending_result=None):
+    pending = _normalize_pending_result(pending_result, email)
+    if pending is None:
+        pending = _normalize_pending_result(
+            session.get('comhealth_pending_result'),
+            email,
+        )
+    session.pop('comhealth_pending_result', None)
+    if pending:
+        return redirect(url_for(
+            'comhealth.customer_result',
+            serviceNo=int(pending['serviceNo']),
+            email=pending['email'],
+            servicedate=pending['serviceDate'],
+            **({'age': pending['age']} if pending['age'] else {}),
+        ))
+    return redirect(url_for('comhealth.customers_result_list'))
+
+
+@comhealth.after_request
+def _protect_online_results_token_urls(response):
+    if request.endpoint in {
+        'comhealth.open_approved_result_from_email',
+        'comhealth.online_results_general_public_access',
+    }:
+        response.headers['Referrer-Policy'] = 'no-referrer'
+        response.headers['Cache-Control'] = 'no-store, max-age=0'
+    return response
 
 
 def _require_online_results_access():
@@ -497,6 +542,11 @@ def landing():
     return render_template('comhealth/landing.html')
 
 
+@comhealth.route('/customer-portal')
+def customer_landing():
+    return render_template('comhealth/customer_landing.html')
+
+
 @comhealth.route('/schedules-lab')
 @login_required
 @approve_lab_permission.require(http_exception=403)
@@ -727,13 +777,13 @@ def _send_health_result_email(customer_email, service_no, service_date, customer
             'เรียน ท่านผู้รับการตรวจสุขภาพ\n\n'
             'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณาคลิกลิงก์ด้านล่าง:\n'
             f'{result_url}\n\n'
-            'ลิงก์นี้สามารถใช้งานได้ภายใน 7 วันนับจากเวลาที่ส่งอีเมลนี้\n'
-            'ลิงก์นี้มีข้อมูลสำหรับเข้าถึงผลตรวจส่วนบุคคล กรุณาอย่าส่งต่อให้ผู้อื่น\n\n'
+            'ลิงก์แจ้งเตือนนี้สามารถใช้งานได้ภายใน 7 วันนับจากเวลาที่ส่งอีเมลนี้\n'
+            'ระบบจะขอให้ท่านยืนยันอีเมลก่อนเข้าดูผลตรวจ กรุณาอย่าส่งต่ออีเมลนี้ให้ผู้อื่น\n\n'
             'Dear customer,\n\n'
             'Your online health examination results are available at the link below:\n'
             f'{result_url}\n\n'
-            'This link is valid for 7 days from the time this email is sent.\n'
-            'This link provides access to personal health information. Please do not share it.\n\n'
+            'This notification link is valid for 7 days from the time this email is sent.\n'
+            'You will be asked to verify your email before viewing the report. Please do not share this email.\n\n'
             'อีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ'
         )
         with current_app.open_resource(
@@ -831,7 +881,7 @@ def save_lab_approvals_api():
 def open_approved_result_from_email(token):
     serializer = TimedJSONWebSignatureSerializer(current_app.config.get('SECRET_KEY'))
     try:
-        token_data = serializer.loads(token, max_age=604800)
+        token_data = serializer.loads(token, max_age=RESULT_NOTIFICATION_MAX_AGE)
         email = str(token_data.get('email') or '').strip().lower()
         service_no = str(token_data.get('serviceNo') or '').strip()
         service_date = str(token_data.get('serviceDate') or '').strip()
@@ -842,14 +892,25 @@ def open_approved_result_from_email(token):
         flash('ลิงก์ดูผลตรวจไม่ถูกต้องหรือหมดอายุ กรุณาติดต่อเจ้าหน้าที่', 'danger')
         return redirect(url_for('comhealth.landing'))
 
-    session['comhealth_online_results_email'] = email
-    return redirect(url_for(
-        'comhealth.customer_result',
-        serviceNo=int(service_no),
-        email=email,
-        servicedate=service_date,
-        **({'age': age} if age.isdigit() else {}),
-    ))
+    pending_result = {
+        'email': email,
+        'serviceNo': service_no,
+        'serviceDate': service_date,
+        'age': age if age.isdigit() else '',
+    }
+    session['comhealth_pending_result'] = pending_result
+
+    if _has_online_results_access():
+        access_response = _require_online_results_access()
+        if access_response is None and _online_results_identity_email() == email:
+            return _redirect_after_online_results_access(email, pending_result)
+
+    flash(
+        'Please verify your registered email before viewing this report. '
+        '/ กรุณายืนยันอีเมลที่ลงทะเบียนไว้ก่อนดูผลตรวจ',
+        'info',
+    )
+    return redirect(url_for('comhealth.online_results_general_public'))
 
 
 @comhealth.route('/finance', methods=('GET', 'POST'))
@@ -897,11 +958,34 @@ def online_results_general_public():
                 current_app.config.get('SECRET_KEY'),
                 salt='comhealth-online-results-access'
             )
-            token = serializer.dumps({
+            pending_result = _normalize_pending_result(
+                session.get('comhealth_pending_result'),
+                email,
+            )
+            token_payload = {
                 'email': email,
                 'display_name': customer.fullname,
                 'nonce': secrets.token_urlsafe(24),
-            })
+            }
+            if pending_result:
+                token_payload['pending_result'] = pending_result
+            token = serializer.dumps(token_payload)
+            now = dt_module.datetime.now(dt_module.timezone.utc)
+            ComHealthOnlineResultAccessToken.query.filter_by(
+                email=email,
+                used_at=None,
+            ).update(
+                {'used_at': now},
+                synchronize_session=False,
+            )
+            db.session.add(ComHealthOnlineResultAccessToken(
+                email=email,
+                token_hash=_online_results_access_token_hash(token),
+                expires_at=now + dt_module.timedelta(
+                    seconds=PUBLIC_RESULTS_ACCESS_TOKEN_MAX_AGE,
+                ),
+            ))
+            db.session.commit()
             access_url = url_for(
                 'comhealth.online_results_general_public_access',
                 token=token,
@@ -944,7 +1028,10 @@ def online_results_general_public_access():
         salt='comhealth-online-results-access'
     )
     try:
-        token_data = serializer.loads(token, max_age=600)
+        token_data = serializer.loads(
+            token,
+            max_age=PUBLIC_RESULTS_ACCESS_TOKEN_MAX_AGE,
+        )
         email = (token_data.get('email') or '').strip().lower()
         if not email:
             raise ValueError('Missing email in access token')
@@ -958,6 +1045,29 @@ def online_results_general_public_access():
                 'ลิงก์นี้ไม่ถูกต้องหรือหมดอายุแล้ว กรุณาขอลิงก์ใหม่'
             )
         ), 400
+
+    now = dt_module.datetime.now(dt_module.timezone.utc)
+    consumed = ComHealthOnlineResultAccessToken.query.filter(
+        ComHealthOnlineResultAccessToken.token_hash == _online_results_access_token_hash(token),
+        ComHealthOnlineResultAccessToken.email == email,
+        ComHealthOnlineResultAccessToken.used_at.is_(None),
+        ComHealthOnlineResultAccessToken.expires_at >= now,
+    ).update(
+        {'used_at': now},
+        synchronize_session=False,
+    )
+    if consumed != 1:
+        db.session.rollback()
+        return render_template(
+            'comhealth/email_registration_verification_result.html',
+            status='danger',
+            title='Access link unavailable / ลิงก์ไม่สามารถใช้งานได้',
+            message=(
+                'This access link has expired or has already been used. Please request a new link.\n'
+                'ลิงก์นี้หมดอายุหรือถูกใช้แล้ว กรุณาขอลิงก์ใหม่'
+            )
+        ), 400
+    db.session.commit()
 
     customer = ComHealthCustomer.query.filter(
         db.func.lower(ComHealthCustomer.email) == email
@@ -974,7 +1084,10 @@ def online_results_general_public_access():
         ), 400
 
     _set_online_results_session(email, token_data.get('display_name') or customer.fullname)
-    return redirect(url_for('comhealth.customers_result_list'))
+    return _redirect_after_online_results_access(
+        email,
+        token_data.get('pending_result'),
+    )
 
 
 @comhealth.route('/email-registration/mahidol-staff/search')
@@ -1207,7 +1320,7 @@ def online_results_mahidol_google_callback():
         return redirect(url_for('comhealth.email_registration_landing'))
 
     _set_online_results_session(email, display_name)
-    return redirect(url_for('comhealth.customers_result_list'))
+    return _redirect_after_online_results_access(email)
 
 
 @comhealth.route('/email-registration/customers/<int:customer_id>/send-verification', methods=['POST'])
