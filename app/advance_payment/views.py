@@ -69,24 +69,6 @@ FUND_REQUEST_FORM_BORROWING_TICKET = "32"
 FUND_REQUEST_NUMBERED_STATUSES = {"อนุมัติแล้ว", "เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}
 FUND_REQUEST_STATUS_STEPS = ["อนุมัติแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"]
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
-STATUS_NORMALIZATION_MAP = {
-    "waiting": "รอตรวจสอบ",
-    "pending": "รอตรวจสอบ",
-    "checking": "กำลังตรวจสอบ",
-    "draft": "ฉบับร่าง",
-    "proofed": "ผ่านการตรวจสอบ",
-    "received": "ได้รับเอกสารแล้ว",
-    "reject": "ปฏิเสธ",
-    "rejected": "ปฏิเสธ",
-    "รอตรวจสอบ": "รอตรวจสอบ",
-    "กำลังส่งคำขอ": "รอตรวจสอบ",
-    "กำลังตรวจสอบ": "กำลังตรวจสอบ",
-    "ฉบับร่าง": "ฉบับร่าง",
-    "ผ่านการตรวจสอบ": "ผ่านการตรวจสอบ",
-    "ได้รับเอกสารแล้ว": "ได้รับเอกสารแล้ว",
-    "ปฏิเสธ": "ปฏิเสธ",
-    RETURN_DETAIL_BOUNCED_STATUS: RETURN_DETAIL_BOUNCED_STATUS,
-}
 
 INTEREST_PERIOD_MONTH_LABELS = {
     "06": "มิถุนายน",
@@ -150,34 +132,6 @@ def _dashboard_party_label(role):
     if _is_petty_cash_role(role):
         return "ผู้ดูแลเงินสดย่อย"
     return "ผู้ใช้งาน"
-
-
-def _normalize_status_label(status_value, default=None):
-    normalized = (status_value or "").strip()
-    if not normalized:
-        return default
-    return STATUS_NORMALIZATION_MAP.get(normalized.lower(), STATUS_NORMALIZATION_MAP.get(normalized, normalized))
-
-
-def _normalize_history_status(status):
-    raw_status = (status or "").strip()
-    if raw_status in {"รอตรวจสอบ", "รอการตรวจสอบ", "กำลังส่งคำขอ"}:
-        return "รอตรวจสอบ"
-    if raw_status == "พัสดุกำลังดำเนินการ":
-        return "พัสดุกำลังดำเนินการ"
-    if raw_status == "กำลังตรวจสอบ":
-        return "กำลังตรวจสอบ"
-    if raw_status in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว"}:
-        return "ผ่านการตรวจสอบ"
-    if raw_status == "เอกสารตั้งฎีกา":
-        return "เอกสารตั้งฎีกา"
-    if raw_status == "ฎีกาถูกตีกลับจากกองคลัง":
-        return "ฎีกาถูกตีกลับจากกองคลัง"
-    if raw_status in {"ล้างลูกหนี้เงินยืม", "ได้รับเงินคืนแล้ว"}:
-        return "ล้างลูกหนี้เงินยืม"
-    if raw_status == "ปฏิเสธ":
-        return "ปฏิเสธ"
-    return raw_status
 
 
 def _bank_account_type_label(record_type):
@@ -2246,9 +2200,6 @@ def finance_dashboard():
             else (borrowing_ticket.aip_ref_no if borrowing_ticket and borrowing_ticket.aip_ref_no else "-")
         )
 
-    for ticket in borrowing_tickets:
-        ticket.status = _normalize_status_label(ticket.status, default="กำลังส่งคำขอ")
-
     for claim in petty_cash_claims:
         _attach_petty_cash_claim_context(claim)
         fund_request = claim.fund_request
@@ -2293,8 +2244,6 @@ def finance_dashboard():
     # ==========================================
     for ticket in borrowing_tickets:
         raw_status = (ticket.status or "").strip()
-        normalized_status = _normalize_status_label(raw_status, default="กำลังส่งคำขอ")
-        ticket.status = normalized_status
         ticket.calculated_days_remaining = None
         ticket.calculated_overdue_days = None
 
@@ -3938,12 +3887,12 @@ def return_records_history():
     pending_review_count = sum(
         1
         for record in processed_records
-        if _normalize_history_status(record.get("status")) in {"รอตรวจสอบ", "กำลังตรวจสอบ"}
+        if (record.get("status") or "").strip() in {"รอตรวจสอบ", "กำลังตรวจสอบ"}
     )
     proofed_count = sum(
         1
         for record in processed_records
-        if _normalize_history_status(record.get("status")) == "ผ่านการตรวจสอบ"
+        if (record.get("status") or "").strip() in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว"}
     )
 
     return render_template(
@@ -4062,12 +4011,12 @@ def petty_cash_claim_history():
     pending_review_count = sum(
         1
         for record in processed_claims
-        if _normalize_history_status(record.get("status")) in {"รอตรวจสอบ", "กำลังตรวจสอบ"}
+        if (record.get("status") or "").strip() in {"รอตรวจสอบ", "กำลังตรวจสอบ"}
     )
     proofed_count = sum(
         1
         for record in processed_claims
-        if _normalize_history_status(record.get("status")) == "ผ่านการตรวจสอบ"
+        if (record.get("status") or "").strip() in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว"}
     )
 
     current_year_be = datetime.now().year + 543
