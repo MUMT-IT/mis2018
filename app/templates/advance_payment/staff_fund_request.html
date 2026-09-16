@@ -58,6 +58,9 @@
                           <option value="{{ emp.id }}" {% if form.requester_name.data == emp.name %}selected{% endif %}>{{ emp.name }}</option>
                         {% endfor %}
                       </select>
+                      {% if not department_employees %}
+                        <div class="form-text text-danger">ไม่พบรายชื่อบุคลากรในหน่วยงาน กรุณาตรวจสอบข้อมูลหน่วยงานของบัญชีผู้ใช้</div>
+                      {% endif %}
                     {% else %}
                       <input type="text" id="requester_input" class="form-control bg-light" value="{{ current_user_display_name }}" readonly>
                       <input type="hidden" name="requester_id" value="{{ session.get('user_id') }}">
@@ -287,7 +290,7 @@
               <!-- ปุ่มบันทึก -->
               <div class="col-md-auto text-end">
                 <button type="submit" class="btn btn-success btn-lg fw-bold mt-2 px-4" style="border-radius: 12px;" id="fundRequestSubmitBtn">
-                  <i class="bi bi-file-earmark-check me-2"></i> บันทึกและสร้างแบบฟอร์ม
+                  <i class="bi bi-file-earmark-check me-2"></i> บันทึก
                 </button>
               </div>
             </div>

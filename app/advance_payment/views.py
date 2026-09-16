@@ -40,7 +40,7 @@ from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association
 from .email_utils import generate_notification_email_content
-from . import advance_payment as bp
+from . import advance_payment as bp, thai_date
 from app.models import CostCenter, IOCode, Org, ProductCode
 from app.staff.models import StaffHeadPosition
 from app.docs_query.models import DocsQueryDocument, DocsQueryTag
@@ -491,8 +491,24 @@ def _is_current_coordinator():
     return _selected_system() == ADVANCE_PAYMENT_SYSTEM and _is_coordinator_role(session.get("user_role"))
 
 
-def _is_current_secretary():
-    return _selected_system() == PETTY_CASH_SYSTEM and _is_petty_cash_role(session.get("user_role"))
+def _is_current_secretary(user=None, setting=None):
+    """Require a current secretary role and the account's custodian assignment."""
+    if _selected_system() != PETTY_CASH_SYSTEM:
+        return False
+    if user is None:
+        user = _module_user_from_session()
+    if not user or SECRETARY_ROLE not in _available_module_roles(user):
+        return False
+    if setting is None:
+        setting = _resolve_petty_cash_setting(user)
+    return bool(
+        setting
+        and getattr(setting, "id", None)
+        and getattr(setting, "valid", False)
+        and getattr(setting, "fiscal_year", None) == _current_petty_cash_fiscal_year()
+        and getattr(user, "id", None) is not None
+        and user.id == getattr(setting, "custodian_id", None)
+    )
 
 
 def _get_user_by_id(user_id):
@@ -4725,10 +4741,10 @@ def staff_fund_request():
     if not user:
         abort(404)
 
-    is_secretary = _is_current_secretary()
     user_display_name = getattr(user, "name", None) or getattr(user, "fullname", None) or getattr(user, "email", None) or "ไม่พบข้อมูลชื่อ"
     user_display_position = getattr(user, "position", None) or "ไม่พบข้อมูลตำแหน่ง"
     setting = _resolve_petty_cash_setting(user)
+    is_secretary = _is_current_secretary(user, setting)
     _attach_petty_cash_setting_people(setting)
     approved_borrowing_tickets = _get_approved_borrowing_tickets_for_setting(setting)
     dept_summary = _calculate_petty_cash_balance_summary(
@@ -4974,7 +4990,8 @@ def staff_fund_request_history():
         abort(404)
 
     setting = _resolve_petty_cash_setting(user)
-    is_staff_user = not _is_current_secretary()
+    is_secretary = _is_current_secretary(user, setting)
+    is_staff_user = not is_secretary
 
     fund_requests_query = db.session.query(FundRequest)
     history_org = _get_staff_org(user)
@@ -5068,6 +5085,7 @@ def staff_fund_request_history():
 
     return render_template(
         "staff_fund_request_history.html",
+        is_secretary=is_secretary,
         setting=setting,
         fund_requests=fund_requests,
         claim_history=claim_history,
@@ -6262,21 +6280,25 @@ def petty_cash_ledger():
         if _claim_has_only_category_six(claim):
             continue
         _attach_petty_cash_claim_context(claim)
-        if claim.documents:
-            doc_no = ", ".join([doc.title for doc in claim.documents if doc.title])
+
+        # กำหนด doc_no ตามเลขที่อ้างอิงและวันที่อ้างอิงของ PettyCashClaimDetail
+        if claim.reference_number:
+            ref_date_str = thai_date(claim.reference_date) if claim.reference_date else "-"
+            doc_no = f"{claim.reference_number} ลงวันที่ {ref_date_str}"
         else:
-            doc_no = claim.closing_document.document_number if claim.closing_document else "-"
+            doc_no = "-"
 
         # ยอดรับเงินคืนเข้าบัญชีธนาคาร (คำนวณจากหมวด 1-5)
-        claim_total = float(claim.total_amount or sum(float(i.amount or 0) for i in claim.items if str(i.category_type) != "6"))
-        
+        claim_total = float(
+            claim.total_amount or sum(float(i.amount or 0) for i in claim.items if str(i.category_type) != "6"))
+
         # คำนวณยอดแยกตามหมวดหมู่เฉพาะของ Claim (หมวด 1-5)
         cat_7 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "1")
         cat_8 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "2")
         cat_9 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "3")
         cat_10 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "4")
         cat_11 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "5")
-        
+
         # เพิ่ม Row หลักสำหรับเงินที่ได้รับโอนคืนจากคณะ (หมวด 1-5)
         _append_ledger_row(
             receipt_date=claim.transferred_at or claim.created_at.date(),

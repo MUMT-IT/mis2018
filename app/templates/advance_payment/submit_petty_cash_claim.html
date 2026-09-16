@@ -5,7 +5,7 @@
 {% block content %}
 <header class="mb-4 pb-2 border-bottom">
   <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
-  <h1 class="fw-bold display-6 mb-2">บันทึกใบส่งเบิกเงินสดย่อย</h1>
+  <h1 class="fw-bold display-6 mb-2">ใบส่งเบิกเงินสดย่อย</h1>
   <p class="text-muted mb-0">หน่วยงาน: {{ setting.department_name if setting else '-' }} | เลขที่บัญชี: {{ setting.account_number if setting else '-' }}</p>
 </header>
 {% if verification_fund_request or claim_detail %}
@@ -39,7 +39,7 @@
           <p class="mb-0 text-dark fw-semibold">{{ verification_creator_name if verification_creator_name is not none else '-' }}</p>
         </div>
         <div class="col-6 col-md-4">
-          <p class="text-muted small mb-1"><strong>ผู้ขอเบิก</strong></p>
+          <p class="text-muted small mb-1"><strong>ผู้ยืม</strong></p>
           <p class="mb-0 text-dark fw-semibold">{{ verification_requester_name if verification_requester_name is not none else '-' }}</p>
         </div>
         <div class="col-6 col-md-4">
@@ -99,7 +99,7 @@
   {% if verification_fund_request and fund_request_status not in ['ยกเลิก', 'ส่งเบิกแล้ว', 'ส่งเบิกครบแล้ว', 'เบิกเงินสำเร็จ', 'เคลียร์ยอดสำเร็จ'] and session.get('user_role') == 'secretary' %}
   <div class="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
     <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
-      <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+      <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
     </a>
     <button type="button"
             class="btn btn-outline-danger btn-sm fw-bold px-3 py-1.5"
@@ -195,9 +195,9 @@
         <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addDocumentRow()">
           + เพิ่มประกาศอื่น
         </button>
-        <div class="col-md-12 mt-2">
-          <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบการเบิกเงินยืมด้วย *</small>
-        </div>
+<!--        <div class="col-md-12 mt-2">-->
+<!--          <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบการเบิกเงินยืมด้วย *</small>-->
+<!--        </div>-->
       </div>
 
       <h5 class="fw-bold text-dark mb-3"><i class="bi bi-receipt me-2 text-primary"></i>รายการหลักฐานใบเสร็จส่งเบิก</h5>
@@ -361,16 +361,16 @@
       <input type="hidden" name="fund_request_id" value="{{ parcel_return_fund_request_id }}">
       <div class="row g-3">
         <div class="col-md-4">
-          <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
-          <input type="text" name="amount" id="parcel_amount" class="form-control parcel-amount-input" required placeholder="0.00">
-        </div>
-        <div class="col-md-4">
           <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
           <input type="date" name="sent_date" class="form-control" required>
         </div>
         <div class="col-md-4">
           <label class="form-label fw-bold">รายการ</label>
-          <textarea name="items_description" class="form-control" placeholder="รายละเอียดรายการ..." required></textarea>
+          <input name="items_description" class="form-control" placeholder="รายละเอียดรายการ..." required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+          <input type="text" name="amount" id="parcel_amount" class="form-control parcel-amount-input" required placeholder="0.00">
         </div>
       </div>
       <div class="text-end mt-3">

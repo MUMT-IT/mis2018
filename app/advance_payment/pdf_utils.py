@@ -2,12 +2,10 @@ import os
 import re
 from calendar import monthrange
 from decimal import Decimal
-from xml.sax.saxutils import escape
 from io import BytesIO
 from datetime import datetime
 from bahttext import bahttext
 
-from flask import current_app
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -15,10 +13,15 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.graphics.shapes import Drawing, Circle, Rect
+from reportlab.graphics.shapes import Drawing, Circle
 from .models import db, BankAccountInfo, StaffAccount, PettyCashSetting
 from app.models import Org
 from app.staff.models import StaffHeadPosition, StaffLeaveApprover
+
+
+# Non-breaking spaces keep a writable gap in ReportLab paragraphs.
+# Unicode whitespace also remains empty under strip() in data checks.
+PDF_BLANK = "\u00a0" * 24
 
 
 INTEREST_PERIOD_MONTH_LABELS = {
@@ -30,7 +33,7 @@ INTEREST_PERIOD_MONTH_LABELS = {
 def _format_interest_period_label(period_value):
     normalized = (period_value or "").strip()
     if not normalized:
-        return ""
+        return PDF_BLANK
 
     short_match = re.fullmatch(r"(\d{2})/(\d{4})", normalized)
     if short_match:
@@ -98,59 +101,49 @@ styles.add(ParagraphStyle(
 # =========================================================================
 # 2. HELPER FUNCTIONS
 # =========================================================================
+def _pdf_text(value):
+    """Leave room to handwrite missing data while preserving real values such as zero."""
+    if value is None:
+        return PDF_BLANK
+    text = str(value)
+    if not text.strip() or re.fullmatch(r"[.\s]+", text) or text.strip().startswith("ไม่พบข้อมูล"):
+        return PDF_BLANK
+    return text
+
+
+def _pdf_amount(value):
+    return PDF_BLANK if not _pdf_text(value).strip() else f"{Decimal(str(value)):,.2f}"
+
+
 def get_department_info_from_api(dept_name):
     """ ดึงข้อมูลจาก Service โดยใช้ชื่อหน่วยงาน (dept_name) เป็น Key """
     from .views import get_department_data_service
 
-    dept_data = get_department_data_service(dept_name)
+    dept_data = get_department_data_service(dept_name) if str(dept_name or "").strip() else None
     
     if dept_data:
-        head_info = dept_data.get("head_of_department", {})
-        controller_info = dept_data.get("account_controller", {})
+        controller_info = dept_data.get("account_controller") or {}
+        if not _pdf_text(controller_info.get("name")).strip():
+            controller_info = {}
 
-        # Signature data must come from staff_head_positions, not the staff
-        # member's personal position or the legacy Org.head email field.
-        org = None
-        raw_dept_name = str(dept_name or "").strip()
-        if raw_dept_name.isdigit():
-            org = Org.query.get(int(raw_dept_name))
-        if org is None:
-            org = Org.query.filter_by(name=raw_dept_name).first()
-        head_position_record = (
-            StaffHeadPosition.query
-            .filter_by(org_id=org.id)
-            .order_by(StaffHeadPosition.id.desc())
-            .first()
-            if org else None
-        )
-        if head_position_record:
-            head_staff = head_position_record.staff
-            head_info = {
-                "name": (
-                    getattr(head_staff, "name", None)
-                    or getattr(head_staff, "fullname", None)
-                    or head_info.get("name", "")
-                ),
-                "position": head_position_record.position,
-            }
         return {
-            "head": head_info.get("name", "......................................................."),
-            "head_position": head_info.get("position", "หัวหน้าฝ่าย"),
-            "keeper": controller_info.get("name", "......................................................."),
-            "position": controller_info.get("position", "เจ้าหน้าที่")
+            "head": PDF_BLANK,
+            "head_position": PDF_BLANK,
+            "keeper": _pdf_text(controller_info.get("name")),
+            "position": _pdf_text(controller_info.get("position"))
         }
     
-    # กรณีหาชื่อหน่วยงานไม่พบใน mock data
+    # Leave missing department fields blank.
     return {
-        "head": ".......................................................",
-        "head_position": "หัวหน้าฝ่าย",
-        "keeper": ".......................................................",
-        "position": "เจ้าหน้าที่"
+        "head": PDF_BLANK,
+        "head_position": PDF_BLANK,
+        "keeper": PDF_BLANK,
+        "position": PDF_BLANK
     }
 
 def get_thai_month_year(date_obj):
     if not date_obj:
-        return ""
+        return PDF_BLANK
     th_months = [
         "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
         "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
@@ -161,7 +154,7 @@ def get_thai_month_year(date_obj):
 def _format_fiscal_year_for_pdf(value):
     """Format stored fiscal-year values as the Buddhist year used in PDFs."""
     if value is None or str(value).strip() == "":
-        return "................"
+        return PDF_BLANK
     try:
         fiscal_year = int(value)
     except (TypeError, ValueError):
@@ -173,7 +166,7 @@ def draw_dotted_line():
 
 
 def missing_department_notice():
-    return "!!! ไม่พบข้อมูลหน่วยงาน !!!"
+    return PDF_BLANK
 
 
 def _get_user_by_id(user_id):
@@ -183,7 +176,11 @@ def _get_user_by_id(user_id):
 
 
 def _get_middle_level_head(staff_account_id):
-    """Resolve the active middle-level head configured for a borrower."""
+    """Resolve signatures only through the borrower's active middle-level approver.
+
+    Both the name and the head-position record must belong to that approver.
+    Department heads must never be used as a fallback.
+    """
     if not staff_account_id:
         return None
 
@@ -201,30 +198,40 @@ def _get_middle_level_head(staff_account_id):
         return None
 
     head_account = approver.account
+    if not head_account:
+        return None
+
     head_position = (
         db.session.query(StaffHeadPosition)
         .filter_by(staff_account_id=approver.approver_account_id)
         .order_by(StaffHeadPosition.id.desc())
         .first()
     )
-    if not head_account:
-        return None
-
     return {
         "head": getattr(head_account, "name", None) or getattr(head_account, "fullname", None),
         "head_position": getattr(head_position, "position", None),
     }
 
 
-def _apply_borrower_head(dept_info, staff_account_id):
-    """Prefer the configured borrower-specific head when one exists."""
-    head_info = _get_middle_level_head(staff_account_id)
-    if head_info and head_info.get("head"):
-        dept_info = dict(dept_info)
-        dept_info["head"] = head_info["head"]
-        if head_info.get("head_position"):
-            dept_info["head_position"] = head_info["head_position"]
-    return dept_info
+def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_account_id=None):
+    """Use the FNAR02 signature source for every PDF.
+
+    Resolve the original ticket borrower first, then the fund requester, then
+    the standalone claim requester. A claim's recorder must not replace the
+    borrower/requester when a linked document identifies that person.
+    """
+    if fund_request is None and claim is not None:
+        fund_request = getattr(claim, "fund_request", None)
+    if ticket is None and fund_request is not None:
+        ticket = getattr(fund_request, "borrowing_ticket", None)
+    borrower_id = (
+        getattr(ticket, "borrower_id", None)
+        or getattr(fund_request, "requester_id", None)
+        or getattr(claim, "user_id", None)
+        or staff_account_id
+    )
+    head_info = _get_middle_level_head(borrower_id) or {}
+    return _pdf_text(head_info.get("head")), _pdf_text(head_info.get("head_position"))
 
 
 def _get_bank_account_info_for_ticket(ticket):
@@ -316,20 +323,18 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     from reportlab.platypus import Image
 
     department_name = setting.department_name or missing_department_notice()
-    department = escape(str(department_name))
-    dept_info = get_department_info_from_api(department_name)
-    dept_info = _apply_borrower_head(dept_info, getattr(setting, "custodian_id", None))
-    head_name = escape(str(dept_info.get("head") or "......................................................."))
-    head_pos = escape(str(dept_info.get("head_position") or "........................................"))
-    telephone = escape(str(telephone_number or "................................"))
+    department = str(department_name)
+    head_name, head_position = _get_head_signature(staff_account_id=getattr(setting, "custodian_id", None))
+    telephone = str(telephone_number or PDF_BLANK)
     last_day = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
     month_label = get_thai_month_year(month_start).split(" ", 1)[1]
     last_day_label = get_thai_month_year(last_day)
-    budget = Decimal(str(setting.budget or 0))
-    balance = Decimal(str(remaining_budget)).quantize(Decimal("0.01"))
-    submitted = Decimal(str(summary["submitted_amount"]))
-    pending = Decimal(str(summary["pending_amount"]))
-    total = balance + submitted + pending
+    budget = setting.budget
+    balance = Decimal(str(remaining_budget)).quantize(Decimal("0.01")) if remaining_budget is not None else None
+    submitted = summary.get("submitted_amount")
+    pending = summary.get("pending_amount")
+    total = (sum(Decimal(str(value)) for value in (balance, submitted, pending))
+             if all(value is not None for value in (balance, submitted, pending)) else None)
     normal = ParagraphStyle("MonthlyNormal", parent=styles["ThaiNormal"], fontSize=14, leading=18, wordWrap="CJK")
     right = ParagraphStyle("MonthlyRight", parent=normal, alignment=TA_RIGHT)
     center = ParagraphStyle("MonthlyCenter", parent=normal, alignment=TA_CENTER)
@@ -360,15 +365,15 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     story.extend([attachments, Spacer(1, 16), p(
         f"ตามที่ {department} ได้รับจัดสรรเงินสดย่อยจากเงินทดรองจ่ายของคณะฯ "
         f"ประจำปีงบประมาณ {_format_fiscal_year_for_pdf(setting.fiscal_year)} "
-        f"เป็นจำนวนเงิน {budget:,.2f} บาท ({escape(bahttext(budget))}) "
+        f"เป็นจำนวนเงิน {_pdf_amount(budget)} บาท ({bahttext(budget) if budget is not None else PDF_BLANK}) "
         f"{department} ขอรายงานสถานะเงินสดย่อย ณ วันที่ {last_day_label} ดังนี้", official),
         Spacer(1, 4)])
     rows = [
         [p("ลำดับที่", center), p("รายการ", center), p("จำนวนเงิน", center)],
-        [p("1", center), p("เงินฝากอยู่ในบัญชีเงินฝากออมทรัพย์ 1 เล่ม"), p(f"{balance:,.2f}", right)],
-        [p("2", center), p(f'เอกสารเบิกจ่ายที่ส่งเบิกมาแล้ว รวม {summary["submitted_count"]} ฉบับ'), p(f"{submitted:,.2f}", right)],
-        [p("3", center), p(f'เอกสารเบิกจ่ายที่ยังไม่ส่งเบิก รวม {summary["pending_count"]} ฉบับ'), p(f"{pending:,.2f}", right)],
-        ["", p(f"ตัวอักษร ({escape(bahttext(total))}) <b>รวมทั้งสิ้น</b>", right), p(f"<b>{total:,.2f}</b>", right)],
+        [p("1", center), p("เงินฝากอยู่ในบัญชีเงินฝากออมทรัพย์ 1 เล่ม"), p(f"{_pdf_amount(balance)}", right)],
+        [p("2", center), p(f'เอกสารเบิกจ่ายที่ส่งเบิกมาแล้ว รวม {_pdf_text(summary.get("submitted_count"))} ฉบับ'), p(f"{_pdf_amount(submitted)}", right)],
+        [p("3", center), p(f'เอกสารเบิกจ่ายที่ยังไม่ส่งเบิก รวม {_pdf_text(summary.get("pending_count"))} ฉบับ'), p(f"{_pdf_amount(pending)}", right)],
+        ["", p(f"ตัวอักษร ({bahttext(total) if total is not None else PDF_BLANK}) <b>รวมทั้งสิ้น</b>", right), p(f"<b>{_pdf_amount(total)}</b>", right)],
     ]
     table = Table(rows, colWidths=[44, doc.width - 156, 112])
     table.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.black),
@@ -376,7 +381,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
                                ("TOPPADDING", (0, 0), (-1, -1), 3),
                                ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
     story.extend([table, p("จึงเรียนมาเพื่อโปรดทราบ", official), Spacer(1, 40)])
-    signature = Table([["", p(f"({head_name})<br/>{head_pos}", center)]],
+    signature = Table([["", p(f"({head_name})<br/>{head_position}", center)]],
                       colWidths=[doc.width * 0.45, doc.width * 0.55])
     story.append(signature)
     doc.build(story)
@@ -393,7 +398,7 @@ def generate_fnar02_pdf(ticket):
     """
     borrower_name = (
         getattr(ticket, "borrower_name", None)
-        or ".........................................................."
+        or PDF_BLANK
     )
     
     borrower_user = getattr(ticket, "borrower_user", None) or _get_user_by_id(getattr(ticket, "borrower_id", None))
@@ -405,38 +410,33 @@ def generate_fnar02_pdf(ticket):
         getattr(borrower_org, "name", None)
         or getattr(borrower_user, "department", None)
         or getattr(ticket, "borrower_department", None)
-        or "........................................"
+        or PDF_BLANK
     )
 
     # 2. ค้นหาข้อมูลผู้บังคับบัญชา (head_of_department) และผู้ดูแลบัญชี โดยใช้ชื่อหน่วยงาน
-    dept_info = get_department_info_from_api(department_name)
-    dept_info = _apply_borrower_head(dept_info, getattr(ticket, "borrower_id", None))
-    
-    # 3. Map ค่าเพื่อนำไปใช้ในเอกสาร
-    head_name = dept_info.get("head", ".......................................................")
-    head_pos = dept_info.get("head_position", "........................................")
+    head_name, head_position = _get_head_signature(ticket=ticket)
 
     # แปลงข้อมูลวันที่ และงบประมาณ
-    date_thai = get_thai_month_year(ticket.request_date) if hasattr(ticket, 'request_date') and ticket.request_date else "........................................"
-    due_date_thai = get_thai_month_year(ticket.due_date) if ticket.due_date else "........................................"
+    date_thai = get_thai_month_year(ticket.request_date) if hasattr(ticket, 'request_date') and ticket.request_date else PDF_BLANK
+    due_date_thai = get_thai_month_year(ticket.due_date) if ticket.due_date else PDF_BLANK
     
-    start_date_str = get_thai_month_year(ticket.borrowing_ticket_start_date) if hasattr(ticket, 'borrowing_ticket_start_date') and ticket.borrowing_ticket_start_date else "........................................"
-    end_date_str = get_thai_month_year(ticket.borrowing_ticket_end_date) if hasattr(ticket, 'borrowing_ticket_end_date') and ticket.borrowing_ticket_end_date else "........................................"
+    start_date_str = get_thai_month_year(ticket.borrowing_ticket_start_date) if hasattr(ticket, 'borrowing_ticket_start_date') and ticket.borrowing_ticket_start_date else PDF_BLANK
+    end_date_str = get_thai_month_year(ticket.borrowing_ticket_end_date) if hasattr(ticket, 'borrowing_ticket_end_date') and ticket.borrowing_ticket_end_date else PDF_BLANK
     
-    req_budget = getattr(ticket, 'required_budget', 0) or 0
-    amount_numeric = f"{req_budget:,.2f}" if req_budget else "................"
-    amount_text = bahttext(req_budget) if req_budget else "........................................................"
+    req_budget = getattr(ticket, 'required_budget', None)
+    amount_numeric = _pdf_amount(req_budget)
+    amount_text = bahttext(req_budget) if req_budget is not None else PDF_BLANK
     
     bank_account_info = _get_bank_account_info_for_ticket(ticket)
     account_number = (getattr(ticket, 'account_number', '') or '').strip() or (
-        bank_account_info.account_number if bank_account_info else 'ไม่พบข้อมูล'
+        _pdf_text(bank_account_info.account_number) if bank_account_info else PDF_BLANK
     )
     account_name = (
         bank_account_info.thai_name
         if bank_account_info and bank_account_info.thai_name
-        else 'ไม่พบข้อมูล'
+        else PDF_BLANK
     )
-    borrowing_purpose = getattr(ticket, 'borrowing_ticket_purpose', None) or getattr(ticket, 'borrowing_ticket_name', None) or "........................................................"
+    borrowing_purpose = getattr(ticket, 'borrowing_ticket_purpose', None) or getattr(ticket, 'borrowing_ticket_name', None) or PDF_BLANK
     
     buffer = BytesIO()
     
@@ -471,7 +471,7 @@ def generate_fnar02_pdf(ticket):
 
     story.append(Spacer(1, 10))
     from .views import get_department_data_service
-    telephone_number = get_department_data_service(department_name).get("telephone_number", "................................")
+    telephone_number = _pdf_text((get_department_data_service(department_name) or {}).get("telephone_number"))
     
     # 2. ข้อมูลส่วนหัว (ชื่อหน่วยงาน และที่อยู่ชิดขวา)
     header_info_html = f"""
@@ -502,7 +502,7 @@ def generate_fnar02_pdf(ticket):
     story.append(Spacer(1, 15))
 
     # 4. เนื้อหาบันทึกข้อความ (ย่อหน้า)
-    p1_html = f"ด้วย {department_name} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric}- บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} – {end_date_str}"
+    p1_html = f"ด้วย {department_name} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric} บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} – {end_date_str}"
     story.append(Paragraph(p1_html, styles['ThaiOfficial']))
     story.append(Spacer(1, 12))
 
@@ -517,7 +517,7 @@ def generate_fnar02_pdf(ticket):
     # 5. ส่วนลงนาม (ชิดขวา/กึ่งกลางขวา)
     sign_html = f"""
     ({head_name})<br/>
-    {head_pos}
+    {head_position}
     """
     p_sign = Paragraph(sign_html, styles['ThaiCenter'])
     
@@ -545,7 +545,7 @@ def generate_fnar02_pdf(ticket):
         or getattr(ticket, "created_at", None)
     )
     fiscal_year_be = convert_to_fiscal_year(fiscal_year_date) + 543 if fiscal_year_date else None
-    fiscal_year_label = fiscal_year_be or "................"
+    fiscal_year_label = fiscal_year_be or PDF_BLANK
     p_no = Paragraph(f"เลขที่................................./{fiscal_year_label}", styles['ThaiCenter'])
     p_due_lbl = Paragraph("<b>วันครบกำหนด</b>", styles['ThaiCenterBold'])
     p_due_line = Paragraph(f"{due_date_thai}", styles['ThaiCenter'])
@@ -553,14 +553,14 @@ def generate_fnar02_pdf(ticket):
     borrower_position = (
         getattr(borrower_user, "position", None)
         or getattr(ticket, "borrower_position", None)
-        or "........................"
+        or PDF_BLANK
     )
 
     borrower_html = f"""
     ข้าพเจ้า &nbsp;&nbsp;{borrower_name}&nbsp;&nbsp; ตำแหน่ง &nbsp;&nbsp;{borrower_position}<br/>
     สังกัด &nbsp;&nbsp;{department_name} มหาวิทยาลัยมหิดล<br/>
     มีความประสงค์ขอยืมเงินจาก คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    เพื่อเป็นค่าใช้จ่ายใน&nbsp;&nbsp;{getattr(ticket, 'borrowing_ticket_purpose', None) or ticket.borrowing_ticket_name or '..................................................................'}
+    เพื่อเป็นค่าใช้จ่ายใน&nbsp;&nbsp;{getattr(ticket, 'borrowing_ticket_purpose', None) or ticket.borrowing_ticket_name or PDF_BLANK}
     """
     p_borrower = Paragraph(borrower_html, styles['ThaiNormal'])
     p_amt_txt = Paragraph(f"(ตัวอักษร) ( &nbsp;&nbsp;{amount_text} &nbsp;&nbsp;)", styles['ThaiCenter'])
@@ -669,7 +669,7 @@ def generate_petty_claim(claim, claim_type="1"):
     setting = getattr(claim, "setting", None)
     if setting is None:
         setting = db.session.query(PettyCashSetting).get(getattr(claim, "petty_cash_setting_id", None))
-    requester = getattr(claim, "user", None)
+    requester = getattr(claim, "user", None) or _get_user_by_id(getattr(claim, "user_id", None))
 
     requester_org = getattr(getattr(requester, "personal_info", None), "org", None)
     fund_request_org = getattr(fund_request, "org", None) or db.session.query(Org).get(getattr(fund_request, "org_id", None))
@@ -681,54 +681,47 @@ def generate_petty_claim(claim, claim_type="1"):
         or (getattr(setting, "department_name", None) or "").strip()
         or (getattr(fund_request, "department_name", None) or "").strip()
         or (getattr(requester, "department", None) or "").strip()
-        or "ไม่พบข้อมูล"
+        or PDF_BLANK
     )
 
     borrowing_ticket = getattr(fund_request, "borrowing_ticket", None) if fund_request else None
-    borrower_account_id = (
-        getattr(borrowing_ticket, "borrower_id", None)
-        or getattr(requester, "id", None)
-    )
-    dept_info = get_department_info_from_api(department_name)
-    dept_info = _apply_borrower_head(dept_info, borrower_account_id)
-    head_name = dept_info.get("head", "ไม่พบข้อมูล")
-    head_pos = dept_info.get("head_position", "ไม่พบข้อมูล")
+    head_name, head_position = _get_head_signature(claim=claim, fund_request=fund_request)
 
     requester_name = (
         getattr(requester, "name", None)
         or getattr(requester, "fullname", None)
         or getattr(claim, "requester_name", None)
         or getattr(fund_request, "requester_name", None)
-        or "ไม่พบข้อมูล"
+        or PDF_BLANK
     )
 
     requester_position = (
         getattr(requester, "position", None)
         or getattr(claim, "requester_position", None)
         or getattr(fund_request, "requester_position", None)
-        or "ไม่พบข้อมูล"
+        or PDF_BLANK
     )
 
     request_date = (
         getattr(fund_request, "approved_at", None)
         or getattr(claim, "created_at", None)
     )
-    date_thai = get_thai_month_year(request_date.date()) if request_date else "ไม่พบข้อมูล"
+    date_thai = get_thai_month_year(request_date.date()) if request_date else PDF_BLANK
 
     claim_number = (
         getattr(claim, "claim_number", None)
         or getattr(fund_request, "ticket_number", None)
-        or f"PC-{getattr(claim, 'id', '')}"
+        or PDF_BLANK
     )
 
     claim_date = getattr(claim, "created_at", None)
-    claim_date_thai = get_thai_month_year(claim_date.date()) if claim_date else date_thai
+    claim_date_thai = get_thai_month_year(claim_date.date()) if claim_date else PDF_BLANK
 
     request_purpose = (
         getattr(fund_request, "purpose", None)
         or getattr(fund_request, "borrowing_ticket_name", None)
         or getattr(fund_request, "claim_name", None)
-        or "วัตถุประสงค์ของการขอเบิกเงินสดย่อย"
+        or PDF_BLANK
     )
     subject_text = (f"ขออนุมัติเบิกค่าใช้จ่าย{request_purpose}")
 
@@ -742,8 +735,8 @@ def generate_petty_claim(claim, claim_type="1"):
         (Decimal(str(getattr(item, "amount", 0) or 0)) for item in display_items),
         Decimal("0.00"),
     )
-    amount_numeric = f"{amount_value:,.2f}" if amount_value else "................"
-    amount_text = bahttext(amount_value) if amount_value else "........................................................"
+    amount_numeric = f"{amount_value:,.2f}" if amount_value else PDF_BLANK
+    amount_text = bahttext(amount_value) if amount_value else PDF_BLANK
 
     if claim_items:
         first_receipt = min(
@@ -765,7 +758,7 @@ def generate_petty_claim(claim, claim_type="1"):
         )
     else:
         end_receipt = None
-    end_date_str = get_thai_month_year(end_receipt) if end_receipt else date_thai
+    end_date_str = get_thai_month_year(end_receipt) if end_receipt else PDF_BLANK
 
     bank_account_info = None
     request_account_number = getattr(borrowing_ticket, "account_number", None) if borrowing_ticket else None
@@ -783,21 +776,21 @@ def generate_petty_claim(claim, claim_type="1"):
     account_number = (
         (request_account_number or "").strip()
         or setting_account_number.strip()
-        or (bank_account_info.account_number if bank_account_info else "....................................")
+        or (_pdf_text(bank_account_info.account_number) if bank_account_info else PDF_BLANK)
     )
     account_name = (
         bank_account_info.thai_name
         if bank_account_info and bank_account_info.thai_name
-        else "...................................."
+        else PDF_BLANK
     )
 
     fiscal_year_label = _format_fiscal_year_for_pdf(getattr(claim, "fiscal_year", None))
-    reference_number = getattr(claim, "reference_number", None) or claim_number
+    reference_number = getattr(claim, "reference_number", None) or PDF_BLANK
     reference_date = getattr(claim, "reference_date", None)
-    reference_date_label = get_thai_month_year(reference_date) if reference_date else date_thai
-    product_name = getattr(getattr(claim, "product_code", None), "id", None) or "........................................"
-    cost_center_label = getattr(getattr(claim, "cost_center", None), "id", None) or "........................................"
-    mission_label = getattr(getattr(claim, "iocode", None), "mission_id", None) or "........................................"
+    reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
+    product_name = getattr(getattr(claim, "product_code", None), "id", None) or PDF_BLANK
+    cost_center_label = getattr(getattr(claim, "cost_center", None), "id", None) or PDF_BLANK
+    mission_label = getattr(getattr(claim, "iocode", None), "mission_id", None) or PDF_BLANK
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -864,20 +857,20 @@ def generate_petty_claim(claim, claim_type="1"):
         getattr(org, "phone_number", None)
         or dept_service_data.get("telephone_number")
         or dept_service_data.get("phone_number")
-        or "........................"
+        or PDF_BLANK
     )
 
     header_right = Paragraph(
-        f"{department_name}<br/>"
+        f"<br/>{department_name}<br/>"
         f"คณะเทคนิคการแพทย์<br/>"
-        f"มหาวิทยาลัยมหิดล<br/>{telephone_number}",
+        f"มหาวิทยาลัยมหิดล<br/>โทร. {telephone_number}",
         claim_right,
     )
     if no_approval_letter:
         header_right = Paragraph(
-            f"{escape(department_name)}<br/>"
+            f"{department_name}<br/>"
             f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
-            f"โทร. {escape(str(telephone_number))}", claim_right,
+            f"โทร. {telephone_number}", claim_right,
         )
     header_table = Table([["", logo_img, header_right]], colWidths=[170, 110, 175])
     header_table.setStyle(TableStyle([
@@ -928,8 +921,8 @@ def generate_petty_claim(claim, claim_type="1"):
 
     if no_approval_letter:
         story.append(Paragraph(
-            f"ด้วย{escape(department_name)} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ"
-            f"{escape(request_purpose)} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
+            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ"
+            f"{request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
             claim_body,
         ))
     else:
@@ -944,11 +937,11 @@ def generate_petty_claim(claim, claim_type="1"):
             Paragraph(f"{idx}.", claim_center),
             Paragraph(
                 getattr(item, "description", None)
-                or "........................................................",
+                or PDF_BLANK,
                 claim_style,
             ),
             Paragraph(
-                f"{float(getattr(item, 'amount', 0) or 0):,.2f}" + (" บาท" if no_approval_letter else ""),
+                _pdf_amount(getattr(item, "amount", None)) + (" บาท" if no_approval_letter else ""),
                 claim_right,
             ),
         ])
@@ -998,12 +991,12 @@ def generate_petty_claim(claim, claim_type="1"):
     )
     if no_approval_letter:
         story.append(Paragraph(
-            f"ในการนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{escape(request_purpose)} "
+            f"ในการนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} "
             f"จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
             f"ประจำปีงบประมาณ {fiscal_year_label} "
             f"ผลผลิต {product_name} "
-            f"รหัสศูนย์ต้นทุน {escape(str(cost_center_label))} "
-            f"รหัสใบสั่งงานภายใน {escape(str(mission_label))} "
+            f"รหัสศูนย์ต้นทุน {cost_center_label} "
+            f"รหัสใบสั่งงานภายใน {mission_label} "
             f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} "
             f"เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป "
             f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
@@ -1017,7 +1010,7 @@ def generate_petty_claim(claim, claim_type="1"):
 
     sign_right = Paragraph(
         f"({head_name})<br/>"
-        f"{head_pos}",
+        f"{head_position}",
         claim_center,
     )
     head_sign_table = Table([["", sign_right]], colWidths=[170, 285])
@@ -1068,11 +1061,11 @@ def generate_ticket_return(return_detail):
     borrower = getattr(ticket, "borrower_user", None)
     borrower_org = getattr(getattr(borrower, "personal_info", None), "org", None)
     department_name = getattr(borrower_org, "name", None) or getattr(borrower, "department", None)
-    department_name = department_name or "........................................"
-    ticket_number = getattr(ticket, "number", None) or f"บ.ย.-{getattr(ticket, 'id', '')}"
+    department_name = department_name or PDF_BLANK
+    ticket_number = getattr(ticket, "number", None) or PDF_BLANK
     ticket_date = getattr(ticket, "approved_at", None) or getattr(ticket, "created_at", None)
-    request_purpose = getattr(ticket, "borrowing_ticket_purpose", None) or "........................................"
-    date_thai = get_thai_month_year(ticket_date.date()) if ticket_date else "........................................"
+    request_purpose = getattr(ticket, "borrowing_ticket_purpose", None) or PDF_BLANK
+    date_thai = get_thai_month_year(ticket_date.date()) if ticket_date else PDF_BLANK
     return_items = [
         item for item in (getattr(return_detail, "receipt_items", None) or [])
         if not getattr(item, "is_cash", False)
@@ -1081,16 +1074,16 @@ def generate_ticket_return(return_detail):
         (Decimal(str(item.amount or 0)) for item in return_items),
         Decimal("0.00"),
     )
-    amount_numeric = f"{amount_value:,.2f}" if amount_value else "................"
-    amount_text = bahttext(amount_value) if amount_value else "........................................................"
+    amount_numeric = f"{amount_value:,.2f}" if amount_value else PDF_BLANK
+    amount_text = bahttext(amount_value) if amount_value else PDF_BLANK
 
     fiscal_year_label = _format_fiscal_year_for_pdf(getattr(return_detail, "fiscal_year", None))
-    reference_number = getattr(ticket, "aip_ref_no", None) or getattr(return_detail, "reference_number", None) or "                 "
-    reference_date = getattr(ticket, "aip_ref_date", None) or getattr(return_detail, "reference_date", None) or "                 "
-    reference_date_label = get_thai_month_year(reference_date) if reference_date else date_thai
-    product_name = getattr(getattr(return_detail, "product_code", None), "name", None) or "........................................"
-    cost_center_label = getattr(getattr(return_detail, "cost_center", None), "id", None) or "........................................"
-    mission_label = getattr(getattr(return_detail, "iocode", None), "mission_id", None) or "........................................"
+    reference_number = getattr(ticket, "aip_ref_no", None) or getattr(return_detail, "reference_number", None) or PDF_BLANK
+    reference_date = getattr(ticket, "aip_ref_date", None) or getattr(return_detail, "reference_date", None)
+    reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
+    product_name = getattr(getattr(return_detail, "product_code", None), "name", None) or PDF_BLANK
+    cost_center_label = getattr(getattr(return_detail, "cost_center", None), "id", None) or PDF_BLANK
+    mission_label = getattr(getattr(return_detail, "iocode", None), "mission_id", None) or PDF_BLANK
 
     return_body = ParagraphStyle(
         name="ThaiTicketReturnBody",
@@ -1152,7 +1145,7 @@ def generate_ticket_return(return_detail):
         getattr(borrower_org, "phone_number", None)
         or dept_service_data.get("telephone_number")
         or dept_service_data.get("phone_number")
-        or "........................"
+        or PDF_BLANK
     )
     header_right = Paragraph(
         f"<br/>{department_name}<br/>"
@@ -1171,10 +1164,7 @@ def generate_ticket_return(return_detail):
     ]))
     story.extend([header_table, Spacer(1, 10)])
 
-    dept_info = get_department_info_from_api(department_name)
-    dept_info = _apply_borrower_head(dept_info, getattr(ticket, "borrower_id", None))
-    head_name = dept_info.get("head", ".......................................................")
-    head_position = dept_info.get("head_position", "หัวหน้าหน่วยงาน")
+    head_name, head_position = _get_head_signature(ticket=ticket)
 
     info_table = Table([
         [Paragraph("ที่", return_left)],
@@ -1211,8 +1201,8 @@ def generate_ticket_return(return_detail):
     for index, item in enumerate(return_items, 1):
         item_rows.append([
             Paragraph(f"{index}.", return_center),
-            Paragraph(item.description or "........................................................", return_left),
-            Paragraph(f"{float(item.amount or 0):,.2f}", return_right),
+            Paragraph(item.description or PDF_BLANK, return_left),
+            Paragraph(_pdf_amount(item.amount), return_right),
         ])
     if item_rows:
         item_table = Table(item_rows, colWidths=[35, 270, 80])
@@ -1302,36 +1292,33 @@ def generate_fund_request_pdf(fund_request):
 
     date_thai = get_thai_month_year(fund_request.request_date)
     requester_user = _get_user_by_id(getattr(fund_request, "requester_id", None))
-    requester = getattr(requester_user, "name", "") or ""
-    requester_pos = getattr(requester_user, "position", "") or ""
-    purpose = fund_request.purpose or ""
-    ticket_number = fund_request.ticket_number or ""
+    requester = getattr(requester_user, "name", "") or PDF_BLANK
+    requester_pos = getattr(requester_user, "position", "") or PDF_BLANK
+    purpose = fund_request.purpose or PDF_BLANK
+    ticket_number = fund_request.ticket_number or PDF_BLANK
 
     if is_type_32 and borrowing_ticket:
         requester = borrowing_ticket.borrower_name or requester
         requester_user = getattr(borrowing_ticket, "borrower_user", None) or _get_user_by_id(getattr(borrowing_ticket, "borrower_id", None))
         requester_pos = getattr(requester_user, "position", "") or requester_pos
-        purpose = f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {borrowing_ticket.number}"
+        purpose = f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {_pdf_text(borrowing_ticket.number)}"
         if borrowing_ticket.approved_at:
             date_thai = get_thai_month_year(borrowing_ticket.approved_at.date())
     
     # Resolve the organization by its stable ID; department_name is legacy display data.
     org = db.session.query(Org).get(getattr(fund_request, "org_id", None))
     dept_lookup = getattr(fund_request, "org_id", None) or getattr(org, "name", None)
-    borrower_account_id = (
-        getattr(borrowing_ticket, "borrower_id", None)
-        or getattr(requester_user, "id", None)
-    )
     dept_info = get_department_info_from_api(dept_lookup)
-    dept_info = _apply_borrower_head(dept_info, borrower_account_id)
-    head_name = dept_info.get("head", ".......................................................")
-    head_pos = dept_info.get("head_position", "ไม่พบข้อมูล")
-    keeper_name = dept_info.get("keeper", ".......................................................")
-    keeper_pos = dept_info.get("position", "ไม่พบข้อมูล")
+    head_name, head_position = _get_head_signature(fund_request=fund_request)
+    keeper_name = _pdf_text(dept_info.get("keeper"))
+    keeper_pos = _pdf_text(dept_info.get("position"))
     
-    amount_val = float(fund_request.amount or (borrowing_ticket.required_budget if borrowing_ticket else 0) or 0)
-    amount_str = f"{amount_val:,.2f}" if amount_val > 0 else "                  "
-    amount_text_th = bahttext(amount_val) if amount_val > 0 else "................................................................................"
+    amount_source = fund_request.amount
+    if amount_source is None and borrowing_ticket:
+        amount_source = borrowing_ticket.required_budget
+    amount_val = float(amount_source) if amount_source is not None else None
+    amount_str = _pdf_amount(amount_val)
+    amount_text_th = bahttext(amount_val) if amount_val is not None else PDF_BLANK
 
     # Header & Logo
     logo_path = os.path.join(BASE_DIR, 'static', 'logo-MU_black-white-2-1.png')
@@ -1379,8 +1366,8 @@ def generate_fund_request_pdf(fund_request):
     story.append(Spacer(1, 2))
 
     sec1_body = Paragraph(
-        f"ข้าพเจ้า {requester or 'ไม่พบข้อมูล'} ตำแหน่ง {requester_pos} มีความประสงค์ขอยืมเงินสดย่อย<br/>"
-        f"เพื่อ{purpose  if not is_type_31 else 'ไม่พบข้อมูลว'} มีรายละเอียดดังนี้",
+        f"ข้าพเจ้า {requester} ตำแหน่ง {requester_pos} มีความประสงค์ขอยืมเงินสดย่อย<br/>"
+        f"เพื่อ{purpose if not is_type_31 else PDF_BLANK} มีรายละเอียดดังนี้",
         styles['ThaiNormal']
     )
     story.append(sec1_body)
@@ -1397,24 +1384,29 @@ def generate_fund_request_pdf(fund_request):
 
     items = fund_request.items if hasattr(fund_request, 'items') and fund_request.items else []
     total_amount = 0.0
+    has_total_amount = False
 
     if is_type_32 and not items and borrowing_ticket:
-        ticket_no = getattr(borrowing_ticket, "number", None) or "-"
-        ticket_amount = float(borrowing_ticket.required_budget or amount_val or 0)
+        ticket_no = getattr(borrowing_ticket, "number", None) or PDF_BLANK
+        ticket_amount = borrowing_ticket.required_budget
+        if ticket_amount is None:
+            ticket_amount = amount_val
         table_data.append([
             Paragraph("1", styles['ThaiCenter']),
             Paragraph(f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {ticket_no}", styles['ThaiNormal']),
-            Paragraph(f"{ticket_amount:,.2f}", styles['ThaiRight'])
+            Paragraph(_pdf_amount(ticket_amount), styles['ThaiRight'])
         ])
-        total_amount = ticket_amount
+        total_amount = float(ticket_amount) if ticket_amount is not None else 0.0
+        has_total_amount = ticket_amount is not None
     elif not is_type_31 and items:
         for idx, item in enumerate(items, 1):
             amt = float(item.amount or 0)
             total_amount += amt
+            has_total_amount = has_total_amount or item.amount is not None
             table_data.append([
                 Paragraph(str(idx), styles['ThaiCenter']),
-                Paragraph(item.description or "", styles['ThaiNormal']),
-                Paragraph(f"{amt:,.2f}", styles['ThaiRight'])
+                Paragraph(item.description or PDF_BLANK, styles['ThaiNormal']),
+                Paragraph(_pdf_amount(item.amount), styles['ThaiRight'])
             ])
     else:
         table_data.append([
@@ -1426,7 +1418,7 @@ def generate_fund_request_pdf(fund_request):
     table_data.append([
         Paragraph("<b>รวมเป็นเงินทั้งสิ้น</b>", styles['ThaiRightBold']),
         "",
-        Paragraph(f"<b>{total_amount:,.2f}</b>", styles['ThaiRightBold'])
+        Paragraph(f"<b>{_pdf_amount(total_amount if has_total_amount else None)}</b>", styles['ThaiRightBold'])
     ])
 
     last_row_idx = len(table_data) - 1
@@ -1448,7 +1440,7 @@ def generate_fund_request_pdf(fund_request):
         [
             Paragraph(f"ลงชื่อผู้ขอยืม<br/><br/>.......................................................<br/>( {requester} )<br/>ตำแหน่ง {requester_pos}<br/>วันที่ .................................................", styles['ThaiCenter']),
             Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>.......................................................<br/>( {keeper_name} )<br/>ตำแหน่ง {keeper_pos}<br/>วันที่ .................................................", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติให้ยืม<br/><br/>.......................................................<br/>( {head_name} )<br/>ตำแหน่ง {head_pos}<br/>วันที่ .................................................", styles['ThaiCenter'])
+            Paragraph(f"ลงชื่อผู้อนุมัติให้ยืม<br/><br/>.......................................................<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ .................................................", styles['ThaiCenter'])
         ]
     ]
     t_sig1 = Table(sig_box_data_1, colWidths=[175, 175, 175])
@@ -1498,12 +1490,12 @@ def generate_fund_request_pdf(fund_request):
     acc_num = (
         bank_account_info.account_number
         if bank_account_info and bank_account_info.account_number
-        else (request_account_number or "........................")
+        else (request_account_number or PDF_BLANK)
     )
     acc_name = (
         bank_account_info.thai_name
         if bank_account_info and bank_account_info.thai_name
-        else "........................"
+        else PDF_BLANK
     )
     chk_box = '<font name="DejaVuSans">&#x2610;</font>'
     chk_box_checked = '<font name="DejaVuSans">&#x2611;</font>'
@@ -1512,7 +1504,7 @@ def generate_fund_request_pdf(fund_request):
         box_petty_cash = chk_box_checked
         p_dept_1 = dept_name
         p_acc_1 = acc_num
-        p_amt_str_1 = f"-{amount_str}-"
+        p_amt_str_1 = f"-{amount_str}-" if amount_str.strip() else PDF_BLANK
         p_amt_text_1 = amount_text_th
         p_borrow_no = ticket_number
         p_borrow_date = get_thai_month_year(borrowing_ticket.approved_at.date()) if is_type_32 and borrowing_ticket and borrowing_ticket.approved_at else date_thai
@@ -1521,21 +1513,21 @@ def generate_fund_request_pdf(fund_request):
         box_interest = chk_box
         box_june = chk_box
         box_dec = chk_box
-        p_period_yr = date_thai.split()[-1] if date_thai else "................"
-        p_dept_2 = "........................"
-        p_acc_2 = "........................"
-        p_amt_str_2 = "........................"
-        p_amt_text_2 = "........................"
+        p_period_yr = date_thai.split()[-1] if date_thai.strip() else PDF_BLANK
+        p_dept_2 = PDF_BLANK
+        p_acc_2 = PDF_BLANK
+        p_amt_str_2 = PDF_BLANK
+        p_amt_text_2 = PDF_BLANK
 
     else:
         box_petty_cash = chk_box
-        p_dept_1 = "........................"
+        p_dept_1 = PDF_BLANK
         p_acc_1 = acc_num
-        p_amt_str_1 = "........................"
-        p_amt_text_1 = "........................"
+        p_amt_str_1 = PDF_BLANK
+        p_amt_text_1 = PDF_BLANK
         p_borrow_no = ticket_number
-        p_borrow_date = "........................"
-        p_borrower_name = "........................"
+        p_borrow_date = PDF_BLANK
+        p_borrower_name = PDF_BLANK
 
         # ส่วนดอกเบี้ยเติมข้อมูลจริง
         box_interest = chk_box_checked
@@ -1548,18 +1540,18 @@ def generate_fund_request_pdf(fund_request):
         box_june = chk_box_checked if period_value.startswith("06/") or "มิถุนายน" in period_label else chk_box
         box_dec = chk_box_checked if period_value.startswith("12/") or "ธันวาคม" in period_label else chk_box
 
-        # สกัดเฉพาะเลขปี พ.ศ. ออกมาจากสตริง (เช่น "2567") หากไม่มีจะใช้เส้นประ
+        # สกัดเฉพาะเลขปี พ.ศ. ออกมาจากสตริง (เช่น "2567") หากไม่มีจะเว้นว่าง
         year_match = re.search(r'\d{4}', period_label or period_value)
-        p_period_yr = year_match.group(0) if year_match else "................"
+        p_period_yr = year_match.group(0) if year_match else PDF_BLANK
 
         p_dept_2 = dept_name
         p_acc_2 = acc_num
-        p_amt_str_2 = f"-{amount_str}-"
+        p_amt_str_2 = f"-{amount_str}-" if amount_str.strip() else PDF_BLANK
         p_amt_text_2 = amount_text_th
 
     # ประกอบ Text ในรูปแบบเดียวกันทั้งหมด
     sec2_body_text = Paragraph(
-        f"<b>เรียน</b> &nbsp;&nbsp;{head_pos}<br/>"
+        f"<b>เรียน</b> &nbsp;&nbsp;{head_position}<br/>"
         f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{box_petty_cash} ขออนุมัติเบิกเงินสดย่อยจากบัญชี{acc_name} "
         f"เลขที่บัญชี {p_acc_1} เป็นจำนวนเงิน {p_amt_str_1} บาท "
         f"({p_amt_text_1}) ตามใบยืมเงินสดย่อยเลขที่ {p_borrow_no} "
@@ -1577,7 +1569,7 @@ def generate_fund_request_pdf(fund_request):
     sig_box_data_2 = [
         [
             Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>.......................................................<br/>( {keeper_name} )<br/>ตำแหน่ง {keeper_pos}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>.......................................................<br/>( {head_name} )<br/>ตำแหน่ง {head_pos}", styles['ThaiCenter'])
+            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>.......................................................<br/>( {head_name} )<br/>ตำแหน่ง {head_position}", styles['ThaiCenter'])
         ]
     ]
     t_sig2 = Table(sig_box_data_2, colWidths=[220, 220])
@@ -1628,14 +1620,14 @@ def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
     header = ParagraphStyle("LedgerHeader", parent=center, fontName="SarabunBold")
 
     def cell(value, style=body):
-        return Paragraph(escape(str(value if value is not None else "")), style)
+        return Paragraph(_pdf_text(value), style)
 
     def heading(value):
         return Paragraph(value, header)
 
     def amount(row, key):
         value = row.get(key) or 0
-        return cell(f"{value:,.2f}" if value > 0 else "", right)
+        return cell(f"{value:,.2f}" if value > 0 else PDF_BLANK, right)
 
     rows = [
         [heading(text) for text in [
@@ -1668,17 +1660,17 @@ def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
         created_at = row.get("created_at")
         balance = row.get("running_balance")
         rows.append([
-            cell(receipt_date.strftime("%m/%Y") if receipt_date else "-", center),
-            cell(1 if row.get("is_opening_row") else receipt_date.day if receipt_date else "-", center),
-            cell(row.get("description")), cell(row.get("doc_number") or ""),
+            cell(receipt_date.strftime("%m/%Y") if receipt_date else PDF_BLANK, center),
+            cell(1 if row.get("is_opening_row") else receipt_date.day if receipt_date else PDF_BLANK, center),
+            cell(row.get("description")), cell(row.get("doc_number") or PDF_BLANK),
             amount(row, "bank_income"), amount(row, "bank_expense"), "", "",
             *[amount(row, key) for key in ["cat_7", "cat_8", "cat_9", "cat_10"]],
-            cell(row.get("custom_category") or ""), amount(row, "cat_11"), amount(row, "cat_12"),
-            cell(f"{balance:,.2f}" if balance is not None else "-", right),
-            cell(created_at.strftime("%d/%m/%Y") if created_at else "-", center),
+            cell(row.get("custom_category") or PDF_BLANK), amount(row, "cat_11"), amount(row, "cat_12"),
+            cell(f"{_pdf_amount(balance)}" if balance is not None else PDF_BLANK, right),
+            cell(created_at.strftime("%d/%m/%Y") if created_at else PDF_BLANK, center),
         ])
     if len(rows) == 3:
-        rows.append([cell(f"ไม่พบรายการบัญชีประจำเดือน {month_start:%m/%Y}", center)] + [""] * 16)
+        rows.append([cell(PDF_BLANK, center)] + [""] * 16)
         commands.append(("SPAN", (0, 3), (-1, 3)))
     widths = [33, 23, 100, 63, 49, 49, 28, 28, 44, 44, 44, 46, 56, 44, 47, 53, 50]
     widths = [width * doc.width / sum(widths) for width in widths]
@@ -1697,18 +1689,16 @@ def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
         ("TOPPADDING", (0, 0), (-1, -1), 8),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
     ]))
-    department = escape(str(setting.department_name or ""))
+    department = str(setting.department_name or PDF_BLANK)
     info = get_department_info_from_api(setting.department_name)
-    info = _apply_borrower_head(info, getattr(setting, "custodian_id", None))
-    keeper_name = escape(str(info.get("keeper") or "......................................................."))
-    keeper_pos = escape(str(info.get("position") or "........................................"))
-    head_name = escape(str(info.get("head") or "......................................................."))
-    head_pos = escape(str(info.get("head_position") or "........................................"))
+    keeper_name = str(info.get("keeper") or PDF_BLANK)
+    keeper_pos = str(info.get("position") or PDF_BLANK)
+    head_name, head_position = _get_head_signature(staff_account_id=getattr(setting, "custodian_id", None))
     signature_style = ParagraphStyle("LedgerSignature", parent=center, fontSize=11, leading=14)
     dotted_line = ".......................................................<br/>"
     signatures = Table([[
         Paragraph(dotted_line + f"({keeper_name})<br/>ตำแหน่ง {keeper_pos} - ผู้เก็บรักษาเงินสดย่อย{department}", signature_style),
-        Paragraph(dotted_line + f"({head_name})<br/>ตำแหน่ง {head_pos}", signature_style),
+        Paragraph(dotted_line + f"({head_name})<br/>ตำแหน่ง {head_position}", signature_style),
         Paragraph(dotted_line + "(&nbsp;" + "&nbsp;" * 55 + ")<br/>ตำแหน่ง นักวิชาการเงินและบัญชี", signature_style),
     ]], colWidths=[doc.width * 0.38, doc.width * 0.30, doc.width * 0.32])
     signatures.setStyle(TableStyle([
@@ -1735,10 +1725,11 @@ def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
         canvas.saveState()
         width, height = landscape(A4)
         title_style = ParagraphStyle("LedgerTitle", parent=center, fontSize=12, leading=14)
+        month_label = get_thai_month_year(month_start).split(" ", 1)[1]
         title = Paragraph(
             "<b>ทะเบียนคุมเงินสดย่อย</b><br/>"
-            f"{escape(str(setting.department_name or ''))} ประจำเดือน "
-            f"{get_thai_month_year(month_start).split(' ', 1)[1]}", title_style)
+            f"{setting.department_name or PDF_BLANK} ประจำเดือน "
+            f"{month_label}", title_style)
         _, title_height = title.wrap(document.width, 40)
         title.drawOn(canvas, document.leftMargin, height - 18 - title_height)
         canvas.setFont("Sarabun", 9)
