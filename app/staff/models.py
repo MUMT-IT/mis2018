@@ -979,7 +979,7 @@ class StaffSeminarApproval(db.Model):
     attend = db.relationship('StaffSeminarAttend',
                              secondary=seminar_approval_attend_assoc_table,
                              backref=db.backref('seminar_approval_attendee', lazy='dynamic'))
-
+    is_final_approved = db.Column('is_final_approved', db.Boolean())
 
 class StaffWorkLogin(db.Model):
     __tablename__ = 'staff_work_logins'
