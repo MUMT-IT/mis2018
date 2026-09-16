@@ -81,6 +81,7 @@
                                 <th>เลขประจำตัวผู้เสียภาษี</th>
                                 <th>อีเมล</th>
                                 <th>เบอร์โทรศัพท์</th>
+                                <th class="customer-search-action-heading">รายละเอียด</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -96,10 +97,17 @@
                                     <td>{{ customer.taxpayer_identification_no or '-' }}</td>
                                     <td>{{ customer.email or '-' }}</td>
                                     <td>{{ customer.phone_number or '-' }}</td>
+                                    <td class="customer-search-action-cell">
+                                        <a class="button is-small customer-search-detail-button"
+                                           href="{{ url_for('service_admin.customer_detail', customer_id=customer.id) }}">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                            <span>รายละเอียด</span>
+                                        </a>
+                                    </td>
                                 </tr>
                             {% else %}
                                 <tr>
-                                    <td colspan="5">
+                                    <td colspan="6">
                                         <div class="customer-search-no-results">
                                             <span class="customer-search-no-results-icon" aria-hidden="true">
                                                 <i class="fas fa-user-slash"></i>
@@ -376,6 +384,27 @@
         .customer-search-results tbody td:first-child {
             color: #1e3152;
             min-width: 14rem;
+        }
+
+        .customer-search-action-heading,
+        .customer-search-action-cell {
+            text-align: center !important;
+            white-space: nowrap;
+        }
+
+        .customer-search-detail-button {
+            background: #eef6ff;
+            border-color: #cfe5fb;
+            border-radius: 9px;
+            color: #2677b8;
+            font-weight: 700;
+        }
+
+        .customer-search-detail-button:hover,
+        .customer-search-detail-button:focus-visible {
+            background: #dfefff;
+            border-color: #9dc8ed;
+            color: #155a91;
         }
 
         .customer-search-name-icon {
