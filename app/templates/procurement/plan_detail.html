@@ -51,12 +51,12 @@
                         <div class="column is-one-quarter"><p class="plan-detail-label">แหล่งงบประมาณ</p><p>{{ plan.funding_source }}</p></div>
                         <div class="column is-one-quarter"><p class="plan-detail-label">ศูนย์ต้นทุน</p><p>{{ plan.cost_center_id }}</p></div>
                         <div class="column is-one-quarter"><p class="plan-detail-label">จำนวนเงิน</p><p class="is-size-5 has-text-weight-semibold">{{ "{:,.2f}".format(plan.amount) }} บาท</p></div>
-                        <div class="column is-full"><p class="plan-detail-label">ผลผลิต/โครงการ/รายงาน</p><p>{{ plan.output_project_report }}</p></div>
+                        <div class="column is-full"><p class="plan-detail-label">ผลผลิต/โครงการ/รายงาน</p><p>{{ plan.product_code.product_code if plan.product_code else (plan.output_project_report or '-') }}</p></div>
                         <div class="column is-full"><p class="plan-detail-label">รายการพัสดุ/รายการจัดซื้อจัดจ้าง</p><p>{{ plan.item or '-' }}</p></div>
                         <div class="column is-one-third"><p class="plan-detail-label">วิธีการจัดซื้อจัดจ้าง</p><p>{{ plan.procurement_method }}</p></div>
-                        <div class="column is-one-third"><p class="plan-detail-label">รหัสทุน</p><p>{{ plan.fund_code or '-' }}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">รหัส IO ครุภัณฑ์</p><p>{{ plan.fund_code or '-' }}</p></div>
+                        <div class="column is-one-third"><p class="plan-detail-label">ชื่อผู้เสนอของบประมาณ</p><p>{{ plan.budget_proposer.fullname if plan.budget_proposer else '-' }}</p></div>
                         <div class="column is-one-third"><p class="plan-detail-label">สถานะ</p><p><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span>{% if plan.status_date %}<br><small>อัปเดตจากวันที่ {{ plan.status_date }}</small>{% endif %}</p></div>
-                        <div class="column is-one-third"><p class="plan-detail-label">หน่วยงานผู้รับผิดชอบ</p><p>{{ plan.responsible_org.display_name if plan.responsible_org else '-' }}</p></div>
                         <div class="column is-one-third"><p class="plan-detail-label">วันที่ตรวจรับ</p><p>{{ plan.inspection_date or '-' }}</p></div>
                     </div>
                     <hr>

@@ -21,7 +21,7 @@ from wtforms.validators import DataRequired, Length, Optional
 from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
-from ..models import Org, CostCenter
+from ..models import Org, CostCenter, ProductCode
 from ..staff.models import StaffPersonalInfo, StaffAccount
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -93,12 +93,10 @@ class ProcurementPlanForm(FlaskForm):
         allow_blank=False,
     )
     item = StringField(u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง', validators=[DataRequired(), Length(max=255)])
-    output_project_report = QuerySelectField(
+    product_code = QuerySelectField(
         u'ผลผลิต/โครงการ/รายงาน',
-        query_factory=lambda: ProcurementOutputProjectReport.query.order_by(
-            ProcurementOutputProjectReport.name.asc()
-        ).all(),
-        get_label='name',
+        query_factory=lambda: ProductCode.query.order_by(ProductCode.id.asc()).all(),
+        get_label='product_code',
         allow_blank=False,
     )
     cost_center = QuerySelectField(
@@ -119,18 +117,18 @@ class ProcurementPlanForm(FlaskForm):
         validators=[DataRequired()],
     )
     amount = DecimalField(u'จำนวนเงิน', places=2, validators=[DataRequired()])
-    fund_code = StringField(u'รหัสทุน', validators=[Optional(), Length(max=64)])
+    fund_code = StringField(u'รหัส IO ครุภัณฑ์', validators=[Optional(), Length(max=64)])
+    budget_proposer = QuerySelectField(
+        u'ชื่อผู้เสนอของบประมาณ',
+        query_factory=lambda: StaffAccount.get_active_accounts(),
+        get_label='fullname',
+        allow_blank=True,
+        blank_text='ค้นหาบุคลากร',
+    )
     responsible_staff = QuerySelectField(
         u'เจ้าหน้าที่พัสดุที่รับผิดชอบ',
         query_factory=lambda: StaffAccount.get_active_accounts(),
         get_label='fullname',
-        allow_blank=True,
-        blank_text='ยังไม่ระบุ',
-    )
-    responsible_org = QuerySelectField(
-        u'หน่วยงานผู้รับผิดชอบ',
-        query_factory=lambda: Org.query.order_by(Org.name.asc()).all(),
-        get_label='display_name',
         allow_blank=True,
         blank_text='ยังไม่ระบุ',
     )

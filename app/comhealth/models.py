@@ -157,6 +157,10 @@ class ComHealthCustomer(db.Model):
     dob = db.Column('dob', db.Date())
     gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
     phone = db.Column('phone', db.String())
+    # TODO(comhealth-email-uniqueness): After resolving existing shared/duplicate
+    # addresses, enforce uniqueness on lower(trim(email)) for non-empty values
+    # with a database migration and matching form validation. Report access
+    # should ultimately remain bound to customer_id rather than email alone.
     email = db.Column('email', db.String())
     emptype_id = db.Column('emptype_id', db.ForeignKey('comhealth_customer_employment_types.id'))
     emptype = db.relationship('ComHealthCustomerEmploymentType',
