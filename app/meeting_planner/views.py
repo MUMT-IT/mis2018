@@ -5,8 +5,6 @@ from flask import (render_template, make_response, request,
                    redirect, url_for, flash, jsonify, current_app)
 from flask_login import login_required, current_user
 from psycopg2.extras import DateTimeRange
-from unicodedata import category
-
 from app.meeting_planner import meeting_planner
 from app.meeting_planner.forms import *
 from app.meeting_planner.models import *
@@ -518,9 +516,13 @@ def edit_topic_form(topic_id):
         template = '''
         <tr>
             <td style="width: 10%">{}</td>
-            <td>{}
-            <hr>
-            <label class="label">มติที่ประชุม</label>{}</td>
+            <td>
+                {}
+                <hr>
+                <label class="label">รายละเอียดเพิ่มเติม</label>{}
+                <hr>
+                <label class="label">มติที่ประชุม</label>{}
+            </td>
             <td style="width: 10%">
                 <a class="button is-success is-outlined"
                     hx-post="{}" hx-include="closest tr">
@@ -530,12 +532,14 @@ def edit_topic_form(topic_id):
         </tr>
         '''.format(form.number(class_="input"),
                    form.detail(class_="textarea"),
+                   form.note(class_="textarea"),
                    form.consensus(class_="textarea"),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
                    )
     if request.method == 'POST':
         topic.number = request.form.get('number')
         topic.detail = request.form.get('detail')
+        topic.note = request.form.get('note')
         topic.consensus = request.form.get('consensus')
         db.session.add(topic)
         db.session.commit()
@@ -544,6 +548,9 @@ def edit_topic_form(topic_id):
             <td style="width: 10%">{}</td>
             <td>
             {}
+            <hr>
+            <label class="label">รายละเอียดเพิ่มเติม</label>
+            <p class="notification">{}</p>
             <hr>
             <label class="label">มติที่ประชุม</label>
             <p class="notification">{}</p>
@@ -573,6 +580,7 @@ def edit_topic_form(topic_id):
         </tr>
         '''.format(topic.number,
                    topic.detail,
+                   topic.note or '',
                    topic.consensus,
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id)
