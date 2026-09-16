@@ -98,6 +98,7 @@ class MeetingAgenda(db.Model):
     number = db.Column('number', db.String(), info={'label': 'ลำดับ'})
     detail = db.Column('detail', db.Text(), info={'label': 'หัวข้อ'})
     consensus = db.Column('consensus', db.Text())
+    note = db.Column('note', db.Text())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True),
                            onupdate=func.now())
     consensus_updated_at = db.Column('consensus_updated_at', db.DateTime(timezone=True),
