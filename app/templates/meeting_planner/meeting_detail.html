@@ -108,6 +108,11 @@
                                                 <td>
                                                     {{ topic.detail }}
                                                     <hr>
+                                                    <label class="label">รายละเอียดเพิ่มเติม</label>
+                                                    <p class="notification">
+                                                        {{ topic.note or '' }}
+                                                    </p>
+                                                    <hr>
                                                     <label class="label">มติที่ประชุม</label>
                                                     <p class="notification">
                                                         {{ topic.consensus }}
