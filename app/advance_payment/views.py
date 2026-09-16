@@ -6,16 +6,6 @@ from functools import wraps
 import re
 from types import SimpleNamespace
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-from .pdf_utils import (
-    generate_fnar02_pdf,
-    generate_fund_request_pdf,
-    generate_petty_claim,
-    generate_ticket_return,
-    generate_petty_cash_monthly_report_pdf,
-    append_petty_cash_monthly_attachments,
-    summarize_petty_cash_month,
-)
-
 from flask import (
     after_this_request,
     Blueprint,
@@ -65,10 +55,22 @@ ADVANCE_PAYMENT_SYSTEM = "advance_payment"
 PETTY_CASH_SYSTEM = "petty_cash"
 FINANCE_SYSTEM = "finance"
 AVAILABLE_SYSTEMS = (FINANCE_SYSTEM, PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM)
-FUND_REQUEST_FORM_BORROWING_TICKET = "32"
+FUND_REQUEST_FORM_PETTY_CASH = "petty_cash"
+FUND_REQUEST_FORM_INTEREST = "interest"
+FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
 FUND_REQUEST_NUMBERED_STATUSES = {"อนุมัติแล้ว", "เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}
 FUND_REQUEST_STATUS_STEPS = ["อนุมัติแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"]
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
+
+from .pdf_utils import (
+    generate_fnar02_pdf,
+    generate_fund_request_pdf,
+    generate_petty_claim,
+    generate_ticket_return,
+    generate_petty_cash_monthly_report_pdf,
+    append_petty_cash_monthly_attachments,
+    summarize_petty_cash_month,
+)
 
 INTEREST_PERIOD_MONTH_LABELS = {
     "06": "มิถุนายน",
@@ -2279,7 +2281,7 @@ def finance_dashboard():
     # 4. ดึง FundRequest (ฟอร์ม 31) มาตรวจสอบ
     # ==========================================
     approved_interest_requests = db.session.query(FundRequest).filter(
-        FundRequest.form_type == "31",
+        FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
     ).all()
 
     matched_requests = []
@@ -4034,7 +4036,7 @@ def petty_cash_claim_history():
         _attach_petty_cash_setting_people(setting)
 
     approved_interest_requests = db.session.query(FundRequest).filter(
-        FundRequest.form_type == "31",
+        FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
     ).all()
 
     matched_requests = []
@@ -4211,7 +4213,7 @@ def petty_cash_settings():
     setting_org_ids = {setting.id: setting.org_id for setting in display_settings if getattr(setting, "id", None)}
     setting_custodian_ids = {setting.id: setting.custodian_id for setting in display_settings if getattr(setting, "id", None)}
 
-    # Summarize petty-cash requests (form type 30) across all fiscal years by department.
+    # Summarize petty-cash requests across all fiscal years by department.
     # Seed the summary from every setting so years/departments with no requests
     # yet are still shown with zero totals.
     request_summary = {}
@@ -4227,7 +4229,7 @@ def petty_cash_settings():
     history_requests = (
         db.session.query(FundRequest)
         .filter(
-            FundRequest.form_type == "30",
+            FundRequest.form_type == FUND_REQUEST_FORM_PETTY_CASH,
             FundRequest.status.notin_(["กำลังดำเนินการ", "ปฏิเสธ", "ยกเลิก"]),
             FundRequest.request_date.isnot(None),
         )
@@ -4735,7 +4737,7 @@ def staff_fund_request():
         return redirect(
             url_for(
                 "advance_payment.staff_fund_request",
-                form_type=request.values.get("form_type", "30"),
+                form_type=request.values.get("form_type", FUND_REQUEST_FORM_PETTY_CASH),
             )
         )
 
@@ -4828,7 +4830,7 @@ def staff_fund_request():
             if form_type == FUND_REQUEST_FORM_BORROWING_TICKET and selected_borrowing_ticket:
                 requested_amount = float(selected_borrowing_ticket.required_budget or 0.0)
 
-            if form_type not in {'31', FUND_REQUEST_FORM_BORROWING_TICKET} and requested_amount > available_budget:
+            if form_type not in {FUND_REQUEST_FORM_INTEREST, FUND_REQUEST_FORM_BORROWING_TICKET} and requested_amount > available_budget:
                 flash(
                     f"ยอดขอเบิก {requested_amount:,.2f} บาท เกินยอดคงเหลือ {available_budget:,.2f} บาท กรุณาปรับจำนวนเงินก่อนส่งแบบฟอร์ม",
                     "danger",
@@ -4838,7 +4840,7 @@ def staff_fund_request():
                     redirect_kwargs["borrowing_ticket_id"] = selected_borrowing_ticket.id
                 return redirect(url_for("advance_payment.staff_fund_request", **redirect_kwargs))
 
-            # รายการใหม่ออกเลขที่ใบเบิกทันที โดย type 32 ถือว่าเบิกเงินแล้ว
+            # รายการใหม่ออกเลขที่ใบเบิกทันที โดยประเภทเบิกเงินยืมถือว่าเบิกเงินแล้ว
             new_request = FundRequest(
                 requester_id=requester_id,
                 creator_id=user.id,
@@ -4846,11 +4848,11 @@ def staff_fund_request():
                 form_type=form_type,
                 ticket_number=None,  # ระบบจะออกเลขที่ให้ทันทีหลังสร้างรายการ
                 request_date=req_date,
-                receive_interest=receive_interest if form_type == '31' else None,
-                withdraw_intrest=withdraw_intrest if form_type == '31' else None,
+                receive_interest=receive_interest if form_type == FUND_REQUEST_FORM_INTEREST else None,
+                withdraw_intrest=withdraw_intrest if form_type == FUND_REQUEST_FORM_INTEREST else None,
                 amount=form.amount.data,
-                purpose=form.purpose.data if form_type == '30' else ("ขออนุมัติเบิกดอกเบี้ย" if form_type == '31' else ""),
-                period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == '31' else "",
+                purpose=form.purpose.data if form_type == FUND_REQUEST_FORM_PETTY_CASH else ("ขออนุมัติเบิกดอกเบี้ย" if form_type == FUND_REQUEST_FORM_INTEREST else ""),
+                period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == FUND_REQUEST_FORM_INTEREST else "",
                 borrowing_ticket_id=selected_borrowing_ticket.id if selected_borrowing_ticket else None,
                 created_at=datetime.now(),
                 status="เบิกเงินแล้ว" if form_type == FUND_REQUEST_FORM_BORROWING_TICKET else "อนุมัติแล้ว"
@@ -4859,7 +4861,7 @@ def staff_fund_request():
             db.session.add(new_request)
             db.session.flush()
 
-            if form_type == '30':
+            if form_type == FUND_REQUEST_FORM_PETTY_CASH:
                 descriptions = request.form.getlist("item_description[]")
                 amounts = request.form.getlist("item_amount[]")
                 categories = request.form.getlist("item_category[]")
@@ -4897,7 +4899,7 @@ def staff_fund_request():
                     )
                 )
 
-            if form_type == '31':
+            if form_type == FUND_REQUEST_FORM_INTEREST:
                 # 1. ดึงค่าจาก Radio Button (จะได้ เช่น "มิถุนายน พ.ศ. 2567" หรือ "ธันวาคม พ.ศ. 2567")
                 selected_period = request.form.get("period_year_radio", "")
                 period_year_val = _normalize_interest_period_value(selected_period)
@@ -4935,7 +4937,7 @@ def staff_fund_request():
             traceback.print_exc()
             return f"เกิดข้อผิดพลาด: {str(e)}", 500
 
-    selected_form_type = request.args.get("form_type", form.form_type.data or "30")
+    selected_form_type = request.args.get("form_type", form.form_type.data or FUND_REQUEST_FORM_PETTY_CASH)
     selected_borrowing_ticket_id = request.args.get("borrowing_ticket_id", type=int)
     return render_template(
         "staff_fund_request.html",
@@ -6117,7 +6119,7 @@ def petty_cash_ledger():
             amt = float(getattr(fr.borrowing_ticket, "required_budget", 0) or 0)
         ticket_label = f"({fr.ticket_number or '-'})"
 
-        if str(fr.form_type) == "31":
+        if str(fr.form_type) == FUND_REQUEST_FORM_INTEREST:
             fund_in_date = _coerce_date(fr.receive_interest)
             withdrawal_date = _coerce_date(fr.withdraw_intrest)
             created_at = fr.created_at or datetime.now()

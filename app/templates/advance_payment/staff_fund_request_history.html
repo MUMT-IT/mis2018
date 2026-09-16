@@ -96,11 +96,11 @@
               <td>{{ request.request_date|thai_date if request.request_date else '-' }}</td>
               <td class="text-center">{{ request.display_requester_name }}</td>
               <td class="text-center">
-                {% if request.form_type == '30' %}
+                {% if request.form_type == 'petty_cash' %}
                   <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกเงินสดย่อย</span>
-                {% elif request.form_type == '31' %}
+                {% elif request.form_type == 'interest' %}
                   <span class="badge bg-info-subtle text-info border border-info-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกดอกเบี้ย</span>
-                {% elif request.form_type == '32' %}
+                {% elif request.form_type == 'borrowing' %}
                   <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1.5 fw-bold">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</span>
                 {% else %}
                   <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 fw-bold">{{ request.form_type }}</span>
@@ -108,7 +108,7 @@
               </td>
               <td class="text-end fw-bold text-dark">{{ "{:,.2f}".format(request.amount) }}</td>
               <td class="text-center">
-                {% if request.form_type == '30' %}
+                {% if request.form_type == 'petty_cash' %}
                   {% if request.status == 'กำลังดำเนินการ' and is_secretary %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
@@ -166,7 +166,7 @@
                       {% endif %}
                     </div>
                   {% endif %}
-                {% elif request.form_type == '31' %}
+                {% elif request.form_type == 'interest' %}
                   {% if request.status == 'กำลังดำเนินการ' %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
@@ -196,7 +196,7 @@
                       {% endif %}
                     </div>
                   {% endif %}
-                {% elif request.form_type == '32' %}
+                {% elif request.form_type == 'borrowing' %}
                   {% if request.status == 'กำลังดำเนินการ' %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
@@ -230,7 +230,7 @@
               </td>
               <td class="text-center">
                 <div class="d-flex justify-content-center align-items-center gap-2">
-                  {% if request.form_type == '30' and request.status not in ['ปฏิเสธ', 'ยกเลิก', 'กำลังดำเนินการ'] %}
+                  {% if request.form_type == 'petty_cash' and request.status not in ['ปฏิเสธ', 'ยกเลิก', 'กำลังดำเนินการ'] %}
                   <div class="d-flex justify-content-center align-items-center gap-1">
                     <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=request.id) }}" 
                       class="btn btn-sm btn-outline-primary">

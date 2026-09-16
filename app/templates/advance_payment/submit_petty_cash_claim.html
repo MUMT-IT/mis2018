@@ -19,7 +19,7 @@
         </div>
         <div class="d-flex flex-column align-items-md-end gap-2 flex-wrap">
           <div class="text-md-end">
-            {% if verification_fund_request and verification_fund_request.form_type == '31' and verification_fund_request.withdrawal_proof_reference %}
+            {% if verification_fund_request and verification_fund_request.form_type == 'interest' and verification_fund_request.withdrawal_proof_reference %}
               <a href="{{ url_for('static', filename=verification_fund_request.withdrawal_proof_reference) }}" class="btn btn-outline-primary btn-sm fw-bold" target="_blank">
                 <i class="bi bi-paperclip me-1"></i>{{ verification_fund_request.withdrawal_proof_filename or 'หลักฐานการเบิก' }}
               </a>

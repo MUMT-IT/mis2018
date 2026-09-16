@@ -22,6 +22,7 @@ from .models import (
     document_return_association,
 )
 from app.models import Org
+from .views import FUND_REQUEST_FORM_INTEREST, FUND_REQUEST_FORM_PETTY_CASH
 
 
 def _money(value):
@@ -785,7 +786,7 @@ def seed_demo_data(session):
     _ensure_fund_request(
         session,
         user=coordinator_ops,
-        form_type="31",
+        form_type=FUND_REQUEST_FORM_INTEREST,
         requester_name=coordinator_ops.name,
         requester_position=coordinator_ops.position or "ผู้ประสานงาน",
         department_name=coordinator_ops.department or "ฝ่ายวิจัย",
@@ -801,7 +802,7 @@ def seed_demo_data(session):
     regular_request = _ensure_fund_request(
         session,
         user=custodian,
-        form_type="30",
+        form_type=FUND_REQUEST_FORM_PETTY_CASH,
         requester_name=custodian.name,
         requester_position="เจ้าหน้าที่พัสดุ",
         department_name=setting.department_name,
@@ -837,7 +838,7 @@ def seed_demo_data(session):
     transferred_request = _ensure_fund_request(
         session,
         user=custodian,
-        form_type="30",
+        form_type=FUND_REQUEST_FORM_PETTY_CASH,
         requester_name=custodian.name,
         requester_position="เจ้าหน้าที่พัสดุ",
         department_name=setting.department_name,
@@ -866,7 +867,7 @@ def seed_demo_data(session):
     draft_request = _ensure_fund_request(
         session,
         user=custodian,
-        form_type="30",
+        form_type=FUND_REQUEST_FORM_PETTY_CASH,
         requester_name=custodian.name,
         requester_position="เจ้าหน้าที่พัสดุ",
         department_name=setting.department_name,

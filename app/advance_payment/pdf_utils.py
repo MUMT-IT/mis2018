@@ -15,6 +15,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Circle
 from .models import db, BankAccountInfo, StaffAccount, PettyCashSetting
+from .views import FUND_REQUEST_FORM_BORROWING_TICKET, FUND_REQUEST_FORM_INTEREST
 from app.models import Org
 from app.staff.models import StaffHeadPosition, StaffLeaveApprover
 
@@ -1286,8 +1287,8 @@ def generate_fund_request_pdf(fund_request):
     story = []
     
     form_type = str(fund_request.form_type or "")
-    is_type_31 = form_type == "31"
-    is_type_32 = form_type == "32"
+    is_interest_form = form_type == FUND_REQUEST_FORM_INTEREST
+    is_borrowing_form = form_type == FUND_REQUEST_FORM_BORROWING_TICKET
     borrowing_ticket = getattr(fund_request, "borrowing_ticket", None)
 
     date_thai = get_thai_month_year(fund_request.request_date)
@@ -1297,7 +1298,7 @@ def generate_fund_request_pdf(fund_request):
     purpose = fund_request.purpose or PDF_BLANK
     ticket_number = fund_request.ticket_number or PDF_BLANK
 
-    if is_type_32 and borrowing_ticket:
+    if is_borrowing_form and borrowing_ticket:
         requester = borrowing_ticket.borrower_name or requester
         requester_user = getattr(borrowing_ticket, "borrower_user", None) or _get_user_by_id(getattr(borrowing_ticket, "borrower_id", None))
         requester_pos = getattr(requester_user, "position", "") or requester_pos
@@ -1367,7 +1368,7 @@ def generate_fund_request_pdf(fund_request):
 
     sec1_body = Paragraph(
         f"ข้าพเจ้า {requester} ตำแหน่ง {requester_pos} มีความประสงค์ขอยืมเงินสดย่อย<br/>"
-        f"เพื่อ{purpose if not is_type_31 else PDF_BLANK} มีรายละเอียดดังนี้",
+        f"เพื่อ{purpose if not is_interest_form else PDF_BLANK} มีรายละเอียดดังนี้",
         styles['ThaiNormal']
     )
     story.append(sec1_body)
@@ -1386,7 +1387,7 @@ def generate_fund_request_pdf(fund_request):
     total_amount = 0.0
     has_total_amount = False
 
-    if is_type_32 and not items and borrowing_ticket:
+    if is_borrowing_form and not items and borrowing_ticket:
         ticket_no = getattr(borrowing_ticket, "number", None) or PDF_BLANK
         ticket_amount = borrowing_ticket.required_budget
         if ticket_amount is None:
@@ -1398,7 +1399,7 @@ def generate_fund_request_pdf(fund_request):
         ])
         total_amount = float(ticket_amount) if ticket_amount is not None else 0.0
         has_total_amount = ticket_amount is not None
-    elif not is_type_31 and items:
+    elif not is_interest_form and items:
         for idx, item in enumerate(items, 1):
             amt = float(item.amount or 0)
             total_amount += amt
@@ -1500,14 +1501,14 @@ def generate_fund_request_pdf(fund_request):
     chk_box = '<font name="DejaVuSans">&#x2610;</font>'
     chk_box_checked = '<font name="DejaVuSans">&#x2611;</font>'
 
-    if not is_type_31:
+    if not is_interest_form:
         box_petty_cash = chk_box_checked
         p_dept_1 = dept_name
         p_acc_1 = acc_num
         p_amt_str_1 = f"-{amount_str}-" if amount_str.strip() else PDF_BLANK
         p_amt_text_1 = amount_text_th
         p_borrow_no = ticket_number
-        p_borrow_date = get_thai_month_year(borrowing_ticket.approved_at.date()) if is_type_32 and borrowing_ticket and borrowing_ticket.approved_at else date_thai
+        p_borrow_date = get_thai_month_year(borrowing_ticket.approved_at.date()) if is_borrowing_form and borrowing_ticket and borrowing_ticket.approved_at else date_thai
         p_borrower_name = requester
 
         box_interest = chk_box
