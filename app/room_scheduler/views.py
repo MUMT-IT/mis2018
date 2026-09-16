@@ -10,24 +10,83 @@ from datetime import datetime, timedelta
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for, current_app, make_response
 from flask_login import login_required, current_user
+from flask_admin.helpers import is_safe_url
 from app.linebot_compat import LineBotApiError, TextSendMessage
 from psycopg2.extras import DateTimeRange
 from sqlalchemy import or_
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import text
 from app.main import mail
-from .forms import RoomEventForm
+from .forms import RoomAdminForm, RoomEventForm
 from ..auth.views import line_bot_api
 from ..complaint_tracker.models import ComplaintRecord, ComplaintStatus, ComplaintTopic
 from ..main import db
 from . import roombp as room
-from .models import RoomResource, RoomEvent, EventCategory, room_coordinator_assoc
+from .models import (
+    EventCategory,
+    RoomAvailability,
+    RoomEvent,
+    RoomResource,
+    RoomType,
+    room_conjoined_assoc,
+    room_coordinator_assoc,
+)
 from .normalizer import normalize_user_request
 from ..models import IOCode
+from ..roles import admin_permission
 from flask_mail import Message
 
 from ..staff.models import StaffAccount, StaffGroupDetail
 
 localtz = pytz.timezone('Asia/Bangkok')
+
+
+def _event_rooms(event):
+    return event.booked_rooms
+
+
+def _room_names(rooms):
+    return ' + '.join(room.number for room in rooms)
+
+
+def _selected_rooms(primary_room):
+    """Return the primary room plus valid conjoined rooms selected by the user."""
+    allowed = {room.id: room for room in primary_room.conjoined_rooms}
+    selected_ids = {
+        int(value) for value in request.form.getlist('conjoined_room_ids')
+        if value.isdigit()
+    }
+    return [primary_room] + [allowed[room_id] for room_id in sorted(selected_ids) if room_id in allowed]
+
+
+def _set_event_rooms(event, rooms):
+    event.room_id = rooms[0].id
+    event.rooms = rooms
+
+
+def _lock_rooms(rooms):
+    """Lock selected room rows in a stable order to serialize competing bookings."""
+    room_ids = sorted(room.id for room in rooms)
+    locked = (
+        RoomResource.query
+        .filter(RoomResource.id.in_(room_ids))
+        .order_by(RoomResource.id)
+        .with_for_update()
+        .all()
+    )
+    locked_by_id = {room.id: room for room in locked}
+    return [locked_by_id[room.id] for room in rooms]
+
+
+def get_room_set_overlaps(rooms, start, end, excluded_event_id=None):
+    overlaps = {}
+    for booked_room in rooms:
+        events = get_overlaps(booked_room.id, start, end)
+        if excluded_event_id is not None:
+            events = {event for event in events if event.id != excluded_event_id}
+        if events:
+            overlaps[booked_room] = events
+    return overlaps
 
 
 def _ics_escape(value):
@@ -63,7 +122,7 @@ def build_room_event_ics(events, method='REQUEST'):
     for event in events:
         start_dt = event.start if event.start.tzinfo else localtz.localize(event.start)
         end_dt = event.end if event.end.tzinfo else localtz.localize(event.end)
-        room_name = f'{event.room.number} {event.room.location}'
+        room_name = ' + '.join(f'{room.number} {room.location}' for room in _event_rooms(event))
         organizer = event.creator or current_user
         organizer_email = system_mail
         organizer_name = _ics_param_escape('MUMT-MIS')
@@ -599,9 +658,16 @@ def _fallback_room_query_sql():
             OR NOT EXISTS (
                 SELECT 1
                 FROM scheduler_room_reservations AS e
-                WHERE e.room_id = r.id
+                WHERE (
+                    e.room_id = r.id
+                    OR EXISTS (
+                        SELECT 1
+                        FROM scheduler_room_reservation_rooms AS err
+                        WHERE err.event_id = e.id AND err.room_id = r.id
+                    )
+                  )
                   AND e.cancelled_at IS NULL
-                  AND e.datetime && tsrange(:start_at, :end_at, '[]')
+                  AND e.datetime && tsrange(:start_at, :end_at, '[)')
             )
           )
         ORDER BY
@@ -828,16 +894,16 @@ def _execute_ai_room_search(criteria):
     return rooms, fallback_used
 
 
-def create_event(startdatetime, enddatetime, repeat_end, master_id, room_id, form):
+def create_event(startdatetime, enddatetime, repeat_end, master_id, rooms, form):
     event = RoomEvent()
     form.populate_obj(event)
-    event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
+    event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[)')
     event.start = startdatetime
     event.end = enddatetime
     event.repeat_end = repeat_end
     event.created_at = arrow.now('Asia/Bangkok').datetime
     event.creator = current_user
-    event.room_id = room_id
+    _set_event_rooms(event, rooms)
     event.master_id = master_id
     if request.form.getlist('groups'):
         for group_id in request.form.getlist('groups'):
@@ -915,32 +981,33 @@ def get_events():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     all_events = []
-    query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=cal_start, upper=cal_end, bounds='[]')))
+    query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=cal_start, upper=cal_end, bounds='[)')))
     text_color = '#000000'
     for event in query.filter_by(cancelled_at=None):
-        if cal_query == 'some' and event.room not in current_user.rooms:
+        if cal_query == 'some' and not any(room in current_user.rooms for room in _event_rooms(event)):
             # only return event with the room coordinated by the user.
             continue
 
         # The event object is a dict object with a 'summary' key.
         start = localtz.localize(event.datetime.lower)
         end = localtz.localize(event.datetime.upper)
-        room = event.room
-
-        evt = {
-            'location': room.location,
-            'title': u'({} {})({}) {} ({} คน): {}'.format(room.number, room.location, event.creator.fullname[:14] + '..' if len(event.creator.fullname) >= 14 else event.creator.fullname, event.title, event.occupancy, event.note),
-            'description': event.note,
-            'start': start.isoformat(),
-            'end': end.isoformat(),
-            'resourceId': room.id,
-            'status': event.approved,
-            'borderColor': '#000000',
-            'backgroundColor': room.type.color if room.type else '#fafbfc',
-            'textColor': text_color,
-            'id': event.id,
-        }
-        all_events.append(evt)
+        event_rooms = _event_rooms(event)
+        room_label = _room_names(event_rooms)
+        for booked_room in event_rooms:
+            evt = {
+                'location': booked_room.location,
+                'title': u'({} {})({}) {} ({} คน): {}'.format(room_label, booked_room.location, event.creator.fullname[:14] + '..' if len(event.creator.fullname) >= 14 else event.creator.fullname, event.title, event.occupancy, event.note),
+                'description': event.note,
+                'start': start.isoformat(),
+                'end': end.isoformat(),
+                'resourceId': booked_room.id,
+                'status': event.approved,
+                'borderColor': '#000000',
+                'backgroundColor': booked_room.type.color if booked_room.type else '#fafbfc',
+                'textColor': text_color,
+                'id': event.id,
+            }
+            all_events.append(evt)
     return jsonify(all_events)
 
 
@@ -1088,10 +1155,12 @@ def cancel(event_id=None):
     end = localtz.localize(event.datetime.upper)
     event_time = f'{start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}'
     text = f' เวลา {event_time}'
-    msg = f'{event.creator.fullname} ได้ยกเลิกการจอง {event.room.number} สำหรับ {event.title} เวลา {event_time}.'
+    event_rooms = _event_rooms(event)
+    msg = f'{event.creator.fullname} ได้ยกเลิกการจอง {_room_names(event_rooms)} สำหรับ {event.title} เวลา {event_time}.'
     if not current_app.debug:
         if event.note:
-            for coord in event.room.coordinators:
+            coordinators = {coord.id: coord for booked_room in event_rooms for coord in booked_room.coordinators}
+            for coord in coordinators.values():
                 try:
                     line_bot_api.push_message(to=coord.line_id, messages=TextSendMessage(text=msg))
                 except LineBotApiError:
@@ -1101,7 +1170,7 @@ def cancel(event_id=None):
             title = f'แจ้งยกเลิกการนัดหมาย{event.category}'
             message = f'ขอแจ้งยกเลิกคำเชิญเข้าร่วม {event.title}'
             message += text
-            message += f' ณ ห้อง {event.room.number} {event.room.location}'
+            message += f' ณ ห้อง {_room_names(event_rooms)} {event.room.location}'
             message += f'\n\nขออภัยในความไม่สะดวก'
             send_mail(participant_emails, title, message)
     else:
@@ -1149,19 +1218,20 @@ def edit_detail(event_id):
         end = arrow.get(form.end.data, 'Asia/Bangkok')
         event_start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         event_end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
-        overlaps = get_overlaps(event.room.id, event_start, event_end)
-        overlaps = [evt for evt in overlaps if evt.id != event_id]
+        selected_rooms = _lock_rooms(_selected_rooms(event.room))
+        overlaps = get_room_set_overlaps(selected_rooms, event_start, event_end, event_id)
         if overlaps:
-            flash(f'ไม่สามารถจองได้เนื่องจากมีการจองในช่วงเวลาเดียวกัน', 'danger')
+            flash('ไม่สามารถจองได้ ห้องที่ไม่ว่าง: {}'.format(_room_names(overlaps)), 'danger')
             return redirect(url_for('room.edit_detail', event_id=event_id))
 
         form.populate_obj(event)
         repeat_end = arrow.get(form.repeat_end.data, 'Asia/Bangkok').date() if form.repeat_end.data else None
-        event.datetime = DateTimeRange(lower=event_start, upper=event_end, bounds='[]')
+        event.datetime = DateTimeRange(lower=event_start, upper=event_end, bounds='[)')
         event.start = event_start
         event.end = event_end
         event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
+        _set_event_rooms(event, selected_rooms)
 
         if not form.is_repeat_booking.data:
             event.booking = None
@@ -1187,18 +1257,18 @@ def edit_detail(event_id):
                     if calendar.weekday(current_start.year, current_start.month, current_start.day) < 5:
                         current_startdatetime = current_start.datetime
                         current_enddatetime = current_end.datetime
-                        event_overlaps = get_overlaps(event.room_id, current_startdatetime, current_enddatetime)
+                        event_overlaps = get_room_set_overlaps(selected_rooms, current_startdatetime, current_enddatetime)
                         if not event_overlaps:
                             new_evts = create_event(current_startdatetime, current_enddatetime, repeat_end, master_id,
-                                                    event.room_id, form)
+                                                    selected_rooms, form)
                             new_events.append(new_evts)
                 else:
                     current_startdatetime = current_start.datetime
                     current_enddatetime = current_end.datetime
-                    event_overlaps = get_overlaps(event.room_id, current_startdatetime, current_enddatetime)
+                    event_overlaps = get_room_set_overlaps(selected_rooms, current_startdatetime, current_enddatetime)
                     if not event_overlaps:
                         new_evts = create_event(current_startdatetime, current_enddatetime, repeat_end, master_id,
-                                                    event.room_id, form)
+                                                selected_rooms, form)
                         new_events.append(new_evts)
                 current_start = current_start.shift(days=day)
                 current_end = current_end.shift(days=day)
@@ -1210,7 +1280,7 @@ def edit_detail(event_id):
             title = f'แจ้งแก้ไขการนัดหมาย{event.category}'
             message = f'ท่านได้รับเชิญให้เข้าร่วม {event.title}'
             message += f' เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}'
-            message += f' ณ ห้อง {event.room.number} {event.room.location}'
+            message += f' ณ ห้อง {_room_names(selected_rooms)} {event.room.location}'
             message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
             if not current_app.debug:
                 send_mail(
@@ -1222,7 +1292,7 @@ def edit_detail(event_id):
             else:
                 print(message)
 
-        msg = (f'{event.creator.fullname} ได้แก้ไขการจองห้อง {event.room} สำหรับ {event.title} '
+        msg = (f'{event.creator.fullname} ได้แก้ไขการจองห้อง {_room_names(selected_rooms)} สำหรับ {event.title} '
                    f'เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - '
                    f'{event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.')
         if event.note:
@@ -1230,9 +1300,10 @@ def edit_detail(event_id):
 
         if not current_app.debug:
             coordinators = []
-            if event.room.coordinator:
-                coordinators.append(event.room.coordinator)
-            coordinators.extend(event.room.coordinators)
+            for booked_room in selected_rooms:
+                if booked_room.coordinator:
+                    coordinators.append(booked_room.coordinator)
+                coordinators.extend(booked_room.coordinators)
             sent_ids = set()
             for coord in coordinators:
                 if coord and coord.line_id and coord.id not in sent_ids:
@@ -1303,12 +1374,253 @@ def room_list():
     return render_template('scheduler/room_list.html', rooms=rooms)
 
 
+@room.route('/rooms')
+@login_required
+def room_directory():
+    return render_template(
+        'scheduler/room_directory.html',
+        room_types=RoomType.query.order_by(RoomType.type).all(),
+    )
+
+
+@room.route('/api/room-directory')
+@login_required
+def get_room_directory():
+    """Return all rooms using the DataTables server-side response format."""
+    draw = request.args.get('draw', type=int, default=0)
+    start = max(request.args.get('start', type=int, default=0), 0)
+    length = min(max(request.args.get('length', type=int, default=10), 1), 100)
+    search = (request.args.get('search[value]') or '').strip()
+    room_type_id = request.args.get('room_type_id', type=int)
+
+    query = RoomResource.query.options(
+        selectinload(RoomResource.availability),
+        selectinload(RoomResource.type),
+        selectinload(RoomResource.conjoined_rooms_forward),
+        selectinload(RoomResource.conjoined_rooms_reverse),
+    )
+    records_total = RoomResource.query.count()
+    if room_type_id:
+        query = query.filter(RoomResource.type_id == room_type_id)
+    if search:
+        pattern = '%{}%'.format(search)
+        query = query.outerjoin(RoomAvailability).outerjoin(RoomType).filter(or_(
+            RoomResource.number.ilike(pattern),
+            RoomResource.location.ilike(pattern),
+            RoomResource.floor.ilike(pattern),
+            RoomResource.desc.ilike(pattern),
+            RoomAvailability.availability.ilike(pattern),
+            RoomType.type.ilike(pattern),
+        ))
+    records_filtered = query.count()
+
+    order_columns = {
+        0: RoomResource.number,
+        1: RoomResource.location,
+        2: RoomResource.floor,
+        3: RoomResource.occupancy,
+        4: RoomType.type,
+        5: RoomAvailability.availability,
+    }
+    order_index = request.args.get('order[0][column]', type=int, default=0)
+    order_direction = request.args.get('order[0][dir]', default='asc')
+    order_column = order_columns.get(order_index, RoomResource.number)
+    if order_index in (4, 5) and not search:
+        query = query.outerjoin(RoomType if order_index == 4 else RoomAvailability)
+    query = query.order_by(
+        order_column.desc() if order_direction == 'desc' else order_column.asc(),
+        RoomResource.location.asc(),
+        RoomResource.id.asc(),
+    )
+
+    rooms = query.offset(start).limit(length).all()
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': [{
+            'number': listed_room.number or '',
+            'location': listed_room.location or '',
+            'floor': listed_room.floor or '',
+            'occupancy': listed_room.occupancy,
+            'room_type': listed_room.type.type if listed_room.type else '',
+            'availability': (
+                listed_room.availability.availability if listed_room.availability else ''
+            ),
+            'business_hours': '{} - {}'.format(
+                listed_room.business_hour_start.strftime('%H:%M')
+                if listed_room.business_hour_start else '-',
+                listed_room.business_hour_end.strftime('%H:%M')
+                if listed_room.business_hour_end else '-',
+            ),
+            'conjoined_rooms': ', '.join(
+                conjoined.number for conjoined in listed_room.conjoined_rooms
+            ),
+            'reserve_url': url_for('room.room_reserve', room_id=listed_room.id),
+        } for listed_room in rooms],
+    })
+
+
+@room.route('/admin/rooms')
+@login_required
+@admin_permission.require(http_exception=403)
+def admin_room_list():
+    return render_template('scheduler/admin_room_list.html')
+
+
+@room.route('/admin/rooms/<int:room_id>/edit', methods=['GET', 'POST'])
+@login_required
+@admin_permission.require(http_exception=403)
+def edit_admin_room(room_id):
+    managed_room = RoomResource.query.get_or_404(room_id)
+    form = RoomAdminForm(obj=managed_room)
+    if request.method == 'GET':
+        form.conjoined_rooms.data = managed_room.conjoined_rooms
+
+    if form.validate_on_submit():
+        selected_conjoined_rooms = [
+            selected_room for selected_room in form.conjoined_rooms.data
+            if selected_room.id != managed_room.id
+        ]
+        has_custom_error = False
+        if len(selected_conjoined_rooms) != len(form.conjoined_rooms.data):
+            form.conjoined_rooms.errors.append('ไม่สามารถเชื่อมห้องเข้ากับตัวเองได้')
+            has_custom_error = True
+        if (form.business_hour_start.data and form.business_hour_end.data
+                and form.business_hour_start.data >= form.business_hour_end.data):
+            form.business_hour_end.errors.append('เวลาปิดต้องอยู่หลังเวลาเปิด')
+            has_custom_error = True
+        if not has_custom_error:
+            managed_room.number = form.number.data.strip()
+            managed_room.location = form.location.data.strip()
+            managed_room.floor = form.floor.data.strip() if form.floor.data else None
+            managed_room.occupancy = form.occupancy.data
+            managed_room.desc = form.desc.data
+            managed_room.business_hour_start = form.business_hour_start.data
+            managed_room.business_hour_end = form.business_hour_end.data
+            managed_room.availability = form.availability.data
+            managed_room.type = form.type.data
+
+            db.session.execute(room_conjoined_assoc.delete().where(or_(
+                room_conjoined_assoc.c.room_id == managed_room.id,
+                room_conjoined_assoc.c.conjoined_room_id == managed_room.id,
+            )))
+            for conjoined_room in selected_conjoined_rooms:
+                first_id, second_id = sorted((managed_room.id, conjoined_room.id))
+                db.session.execute(room_conjoined_assoc.insert().values(
+                    room_id=first_id,
+                    conjoined_room_id=second_id,
+                ))
+            db.session.commit()
+            flash('แก้ไขข้อมูลห้องเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('room.admin_room_list'))
+
+    return render_template(
+        'scheduler/admin_room_edit.html',
+        form=form,
+        room=managed_room,
+    )
+
+
+@room.route('/api/admin/rooms')
+@login_required
+@admin_permission.require(http_exception=403)
+def get_admin_rooms():
+    """Return rooms using the DataTables server-side response format."""
+    draw = request.args.get('draw', type=int, default=0)
+    start = max(request.args.get('start', type=int, default=0), 0)
+    length = request.args.get('length', type=int, default=10)
+    length = min(max(length, 1), 100)
+    search = (request.args.get('search[value]') or '').strip()
+
+    query = RoomResource.query.options(
+        selectinload(RoomResource.availability),
+        selectinload(RoomResource.type),
+        selectinload(RoomResource.conjoined_rooms_forward),
+        selectinload(RoomResource.conjoined_rooms_reverse),
+    )
+    records_total = RoomResource.query.count()
+
+    if search:
+        pattern = '%{}%'.format(search)
+        query = query.outerjoin(RoomAvailability).outerjoin(RoomType).filter(or_(
+            RoomResource.number.ilike(pattern),
+            RoomResource.location.ilike(pattern),
+            RoomResource.floor.ilike(pattern),
+            RoomResource.desc.ilike(pattern),
+            RoomAvailability.availability.ilike(pattern),
+            RoomType.type.ilike(pattern),
+        ))
+
+    records_filtered = query.count()
+    order_columns = {
+        0: RoomResource.id,
+        1: RoomResource.number,
+        2: RoomResource.location,
+        3: RoomResource.floor,
+        4: RoomResource.occupancy,
+        5: RoomType.type,
+        6: RoomAvailability.availability,
+    }
+    order_index = request.args.get('order[0][column]', type=int, default=1)
+    order_direction = request.args.get('order[0][dir]', default='asc')
+    order_column = order_columns.get(order_index, RoomResource.number)
+    if order_index in (5, 6) and not search:
+        query = query.outerjoin(
+            RoomType if order_index == 5 else RoomAvailability
+        )
+    query = query.order_by(
+        order_column.desc() if order_direction == 'desc' else order_column.asc(),
+        RoomResource.id.asc(),
+    )
+
+    rooms = query.offset(start).limit(length).all()
+    data = []
+    for listed_room in rooms:
+        data.append({
+            'id': listed_room.id,
+            'number': listed_room.number or '',
+            'location': listed_room.location or '',
+            'floor': listed_room.floor or '',
+            'occupancy': listed_room.occupancy,
+            'room_type': listed_room.type.type if listed_room.type else '',
+            'availability': (
+                listed_room.availability.availability if listed_room.availability else ''
+            ),
+            'business_hours': '{} - {}'.format(
+                listed_room.business_hour_start.strftime('%H:%M')
+                if listed_room.business_hour_start else '-',
+                listed_room.business_hour_end.strftime('%H:%M')
+                if listed_room.business_hour_end else '-',
+            ),
+            'conjoined_rooms': ', '.join(
+                conjoined.number for conjoined in listed_room.conjoined_rooms
+            ),
+            'edit_url': url_for('room.edit_admin_room', room_id=listed_room.id),
+        })
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+    })
+
+
 @room.route('/reserve/<room_id>', methods=['GET', 'POST'])
 @login_required
 def room_reserve(room_id):
     form = RoomEventForm()
     start = None
     end = None
+    default_return_url = url_for('room.index')
+    if request.method == 'POST':
+        return_url = request.form.get('next')
+    else:
+        return_url = request.args.get('next') or request.referrer
+    if (not return_url or not is_safe_url(return_url)
+            or return_url.rstrip('/') == request.url.rstrip('/')):
+        return_url = default_return_url
     if request.method == 'GET':
         _prefill_room_reserve_form(form)
         start = form.start.data
@@ -1335,18 +1647,28 @@ def room_reserve(room_id):
             enddatetime = None
 
         if room_id and startdatetime and enddatetime:
-            if get_overlaps(room_id, startdatetime, enddatetime):
-                flash(f'ไม่สามารถจองได้เนื่องจากมีการจองในช่วงเวลาเดียวกัน', 'danger')
-                return render_template('scheduler/reserve_form.html', room=room, form=form, start=start, end=end)
+            selected_rooms = _lock_rooms(_selected_rooms(room))
+            overlaps = get_room_set_overlaps(selected_rooms, startdatetime, enddatetime)
+            if overlaps:
+                flash('ไม่สามารถจองได้ ห้องที่ไม่ว่าง: {}'.format(_room_names(overlaps)), 'danger')
+                return render_template(
+                    'scheduler/reserve_form.html',
+                    room=room,
+                    complaints=complaints,
+                    form=form,
+                    start=start,
+                    end=end,
+                    return_url=return_url,
+                )
 
             form.populate_obj(new_event)
             repeat_end = arrow.get(form.repeat_end.data, 'Asia/Bangkok').date() if form.repeat_end.data else None
-            new_event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
+            new_event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[)')
             new_event.start = startdatetime
             new_event.end = enddatetime
             new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
-            new_event.room_id = room.id
+            _set_event_rooms(new_event, selected_rooms)
 
             if not form.is_repeat_booking.data:
                 new_event.booking = None
@@ -1372,16 +1694,16 @@ def room_reserve(room_id):
                         if calendar.weekday(current_start.year, current_start.month, current_start.day) < 5:
                             current_startdatetime = current_start.datetime
                             current_enddatetime = current_end.datetime
-                            event_overlaps = get_overlaps(room_id, current_startdatetime, current_enddatetime)
+                            event_overlaps = get_room_set_overlaps(selected_rooms, current_startdatetime, current_enddatetime)
                             if not event_overlaps:
                                 create_event(current_startdatetime, current_enddatetime, repeat_end, new_event.id,
-                                             room_id, form)
+                                             selected_rooms, form)
                     else:
                         current_startdatetime = current_start.datetime
                         current_enddatetime = current_end.datetime
-                        event_overlaps = get_overlaps(room_id, current_startdatetime, current_enddatetime)
+                        event_overlaps = get_room_set_overlaps(selected_rooms, current_startdatetime, current_enddatetime)
                         if not event_overlaps:
-                            create_event(current_startdatetime, current_enddatetime, repeat_end, new_event.id, room_id,
+                            create_event(current_startdatetime, current_enddatetime, repeat_end, new_event.id, selected_rooms,
                                          form)
                     current_start = current_start.shift(days=day)
                     current_end = current_end.shift(days=day)
@@ -1405,7 +1727,7 @@ def room_reserve(room_id):
                     message += f' เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}, {event_times}'
                 else:
                     message += f' เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}'
-                message += f' ณ ห้อง {room.number} {room.location}'
+                message += f' ณ ห้อง {_room_names(selected_rooms)} {room.location}'
                 message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
                 if not current_app.debug:
                     send_mail(
@@ -1417,18 +1739,23 @@ def room_reserve(room_id):
                 else:
                     print(message)
             if event_times:
-                msg = (f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} '
+                msg = (f'{new_event.creator.fullname} ได้จองห้อง {_room_names(selected_rooms)} สำหรับ {new_event.title} '
                        f'เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}, {event_times}.'
                        f'มีความต้องการเพิ่มเติมคือ {new_event.note}'
                        )
             else:
-                msg = (f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} '
+                msg = (f'{new_event.creator.fullname} ได้จองห้อง {_room_names(selected_rooms)} สำหรับ {new_event.title} '
                        f'เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
                        f'มีความต้องการเพิ่มเติมคือ {new_event.note}'
                        )
             if not current_app.debug:
                 if new_event.note:
-                    for coord in room.coordinators:
+                    coordinators = {
+                        coord.id: coord
+                        for booked_room in selected_rooms
+                        for coord in booked_room.coordinators
+                    }
+                    for coord in coordinators.values():
                         try:
                             line_bot_api.push_message(to=coord.line_id, messages=TextSendMessage(text=msg))
                         except LineBotApiError:
@@ -1443,7 +1770,8 @@ def room_reserve(room_id):
 
     if room:
         return render_template('scheduler/reserve_form.html',
-                               room=room, complaints=complaints, form=form, start=start, end=end)
+                               room=room, complaints=complaints, form=form, start=start, end=end,
+                               return_url=return_url)
     else:
         flash('Room not found.', 'danger')
 
@@ -1461,10 +1789,13 @@ def get_room_event_list():
     if room_query == 'some':
         query = query.join(RoomResource).join(room_coordinator_assoc).join(StaffAccount).filter_by(email=current_user.email)
     if search:
-        query = query.filter(db.or_(
-            RoomEvent.room.has(RoomEvent.room == room),
-            RoomEvent.title.like(f'%{search}%')
-        ))
+        room_filters = [RoomEvent.title.like(f'%{search}%')]
+        if room:
+            room_filters.extend([
+                RoomEvent.room_id == room.id,
+                RoomEvent.rooms.any(RoomResource.id == room.id),
+            ])
+        query = query.filter(db.or_(*room_filters))
     total_filtered = query.count()
     query = query.offset(start).limit(length)
 
@@ -1481,7 +1812,7 @@ def get_room_event_list():
 def room_event_list():
     today = datetime.today()
     enddate = today + timedelta(days=7)
-    _daterange = DateTimeRange(lower=today, upper=enddate, bounds='[]')
+    _daterange = DateTimeRange(lower=today, upper=enddate, bounds='[)')
     query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(_daterange)).filter_by(cancelled_at=None)
     for event in query:
         if event.note:
@@ -1502,9 +1833,12 @@ def remove_coordinated_room(room_id):
 
 
 def get_overlaps(room_id, start, end, session_id=None, session_attr=None, no_cancellation=True):
-    query = RoomEvent.query.filter_by(room_id=room_id)
+    query = RoomEvent.query.filter(or_(
+        RoomEvent.room_id == room_id,
+        RoomEvent.rooms.any(RoomResource.id == room_id),
+    ))
     events = set()
-    for evt in query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start, upper=end, bounds='[]'))):
+    for evt in query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start, upper=end, bounds='[)'))):
         events.add(evt)
     if no_cancellation:
         return set([e for e in events if e.cancelled_at is None])
@@ -1517,23 +1851,35 @@ def check_room_availability():
     session_attr = request.args.get('session_attr')
     session_id = request.args.get('session_id', type=int)
     room_id = request.args.get('room', type=int)
+    conjoined_room_ids = {
+        int(value) for value in request.args.get('conjoined_rooms', '').split(',')
+        if value.isdigit()
+    }
     event_id = request.args.get('event_id', type=int)
     start = request.args.get('start')
     end = request.args.get('end')
     start = dateutil.parser.isoparse(start).astimezone(pytz.timezone('Asia/Bangkok'))
     end = dateutil.parser.isoparse(end).astimezone(pytz.timezone('Asia/Bangkok'))
     if start < end:
-        overlaps = get_overlaps(room_id, start, end, session_id, session_attr)
-        overlaps = [evt for evt in overlaps if evt.id != event_id]
+        primary_room = RoomResource.query.get(room_id)
+        allowed = {room.id: room for room in primary_room.conjoined_rooms}
+        rooms = [primary_room] + [allowed[value] for value in sorted(conjoined_room_ids) if value in allowed]
+        overlaps_by_room = get_room_set_overlaps(rooms, start, end, event_id)
+        overlaps = [
+            (booked_room, event)
+            for booked_room, events in overlaps_by_room.items()
+            for event in events
+        ]
     else:
         overlaps = None
     if overlaps:
-        temp = '<span class="tag is-warning">{}-{} {}</span>'
+        temp = '<span class="tag is-warning">{} {}-{} {}</span>'
         template = '<span class="tag is-danger">ห้องไม่ว่าง</span>'
         template += '<span id="overlaps" hx-swap-oob="true" class="tags">'
-        template += ''.join([temp.format(localtz.localize(evt.datetime.lower).strftime('%H:%M'),
+        template += ''.join([temp.format(booked_room.number,
+                                         localtz.localize(evt.datetime.lower).strftime('%H:%M'),
                                          localtz.localize(evt.datetime.upper).strftime('%H:%M'),
-                                         evt.title) for evt in overlaps])
+                                         evt.title) for booked_room, evt in overlaps])
         template += '</span>'
     else:
         template = '<span class="tag is-success">ห้องว่าง</span>'

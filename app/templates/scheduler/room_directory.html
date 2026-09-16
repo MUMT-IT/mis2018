@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}รายการห้องทั้งหมด{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .room-directory-table-container {
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .room-directory-table-container .dataTables_wrapper,
+        .room-directory-table-container table.table,
+        .room-directory-table-container table.table th,
+        .room-directory-table-container table.table td {
+            border: 0 !important;
+            border-radius: 0 !important;
+        }
+
+        .room-directory-filter {
+            min-width: 16rem;
+        }
+    </style>
+{% endblock %}
+
+{% include "scheduler/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container is-fluid">
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div>
+                        <p class="heading">Room Scheduler</p>
+                        <h1 class="title">รายการห้องทั้งหมด</h1>
+                        <p class="subtitle is-6">ค้นหาข้อมูลห้องและเริ่มทำรายการจอง</p>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <a class="button is-light is-rounded" href="{{ url_for('room.index') }}">
+                        <span class="icon"><i class="fa-solid fa-arrow-left"></i></span>
+                        <span>กลับหน้าหลัก</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="field is-grouped mb-4">
+                <div class="control room-directory-filter">
+                    <label class="label" for="room-type-filter">ประเภทห้อง</label>
+                    <div class="select is-fullwidth">
+                        <select id="room-type-filter">
+                            <option value="">ทุกประเภทห้อง</option>
+                            {% for room_type in room_types %}
+                                <option value="{{ room_type.id }}">{{ room_type.type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container room-directory-table-container">
+                <table id="room-directory" class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>หมายเลขห้อง</th>
+                        <th>วิทยาเขต</th>
+                        <th>ชั้น</th>
+                        <th>ความจุ</th>
+                        <th>ประเภทห้อง</th>
+                        <th>ความพร้อมใช้</th>
+                        <th>เวลาทำการ</th>
+                        <th>ห้องที่เชื่อมต่อกัน</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            const roomTypeStorageKey = 'room-directory-room-type'
+            const roomTypeFilter = $('#room-type-filter')
+            let savedRoomType = ''
+
+            try {
+                savedRoomType = localStorage.getItem(roomTypeStorageKey) || ''
+            } catch (error) {
+                savedRoomType = ''
+            }
+
+            const savedOptionExists = roomTypeFilter.find('option').filter(function () {
+                return this.value === savedRoomType
+            }).length > 0
+
+            if (savedRoomType && savedOptionExists) {
+                roomTypeFilter.val(savedRoomType)
+            } else if (savedRoomType) {
+                try {
+                    localStorage.removeItem(roomTypeStorageKey)
+                } catch (error) {
+                    // The filter still works when browser storage is unavailable.
+                }
+            }
+
+            const table = $('#room-directory').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                ajax: {
+                    url: {{ url_for('room.get_room_directory')|tojson|safe }},
+                    data: function (data) {
+                        data.room_type_id = roomTypeFilter.val()
+                    }
+                },
+                order: [[0, 'asc']],
+                scrollX: true,
+                autoWidth: false,
+                columns: [
+                    {data: 'number', render: $.fn.dataTable.render.text()},
+                    {data: 'location', render: $.fn.dataTable.render.text()},
+                    {data: 'floor', defaultContent: '-', render: $.fn.dataTable.render.text()},
+                    {data: 'occupancy'},
+                    {data: 'room_type', defaultContent: '-', render: $.fn.dataTable.render.text()},
+                    {data: 'availability', defaultContent: '-', render: $.fn.dataTable.render.text()},
+                    {data: 'business_hours', orderable: false, searchable: false,
+                        render: $.fn.dataTable.render.text()},
+                    {data: 'conjoined_rooms', orderable: false, searchable: false, defaultContent: '-',
+                        render: $.fn.dataTable.render.text()},
+                    {
+                        data: 'reserve_url',
+                        orderable: false,
+                        searchable: false,
+                        render: function (data) {
+                            return `<a class="button is-small is-success is-rounded px-4" href="${data}">
+                                <span class="icon"><i class="fa-regular fa-calendar-plus"></i></span>
+                                <span>จอง</span>
+                            </a>`
+                        }
+                    }
+                ],
+                language: {
+                    processing: 'กำลังโหลด...',
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีข้อมูลห้อง',
+                    zeroRecords: 'ไม่พบห้องที่ตรงกับการค้นหา',
+                    paginate: {
+                        first: 'หน้าแรก',
+                        previous: 'ก่อนหน้า',
+                        next: 'ถัดไป',
+                        last: 'หน้าสุดท้าย'
+                    }
+                }
+            })
+
+            roomTypeFilter.on('change', function () {
+                try {
+                    localStorage.setItem(roomTypeStorageKey, this.value)
+                } catch (error) {
+                    // Keep filtering even if browser storage is unavailable.
+                }
+                table.ajax.reload(null, true)
+            })
+        })
+    </script>
+{% endblock %}

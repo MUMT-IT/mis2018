@@ -54,7 +54,7 @@
                             <tr>
                                         <td>{{ plan.fiscal_year }}</td>
                                         <td><a href="{{ url_for('procurement.procurement_plan_detail', plan_id=plan.id) }}"><strong>{{ plan.item or '-' }}</strong></a><br><small>{{ plan.procurement_method }}</small></td>
-                                        <td>{{ plan.output_project_report }}</td>
+                                        <td>{{ plan.product_code.product_code if plan.product_code else (plan.output_project_report or '-') }}</td>
                                         <td>{{ plan.funding_source }}</td>
                                         <td>{{ plan.cost_center_id }}</td>
                                         <td class="has-text-right">{{ "{:,.2f}".format(plan.amount) }}</td>

@@ -676,6 +676,42 @@
             .title:not(.is-spaced) + .subtitle {
                 margin-top: 0.7rem !important;
             }
+
+            :where(input[type="checkbox"], input[type="radio"]):not([class]):not([style]):not([role="switch"]) {
+                accent-color: var(--theme-navy);
+                cursor: pointer;
+                height: 1.35rem;
+                margin: 0;
+                vertical-align: middle;
+                width: 1.35rem;
+            }
+
+            :where(input[type="checkbox"], input[type="radio"]):not([class]):not([style]):not([role="switch"]):focus-visible {
+                outline: 3px solid rgba(202, 168, 74, 0.45);
+                outline-offset: 3px;
+            }
+
+            :where(label.checkbox, label.radio):has(> input:not([class]):not([style]):not([role="switch"])) {
+                align-items: center;
+                border: 1px solid transparent;
+                border-radius: 14px;
+                cursor: pointer;
+                display: inline-flex;
+                gap: 0.7rem;
+                padding: 0.55rem 0.75rem;
+                transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+            }
+
+            :where(label.checkbox, label.radio):has(> input:not([class]):not([style]):not([role="switch"])):hover {
+                background: rgba(26, 61, 124, 0.06);
+                border-color: rgba(26, 61, 124, 0.14);
+            }
+
+            :where(label.checkbox, label.radio):has(> input:not([class]):not([style]):not([role="switch"]):checked) {
+                background: rgba(26, 61, 124, 0.09);
+                border-color: rgba(26, 61, 124, 0.24);
+                color: var(--theme-navy-deep);
+            }
         </style>
     {% endblock %}
 </head>

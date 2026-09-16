@@ -261,7 +261,7 @@
             text-align: center;
         }
 
-        .room-empty-state .icon {
+        .room-empty-state > .icon {
             background: rgba(255, 255, 255, 0.9);
             border-radius: 50%;
             box-shadow: 0 14px 30px rgba(18, 39, 84, 0.08);
@@ -490,6 +490,13 @@
                                 </h1>
                                 <p class="subtitle is-5">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.2</p>
                                 <div class="buttons">
+                                    <a class="button is-info is-medium is-rounded"
+                                       href="{{ url_for('room.room_directory') }}">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-door-open"></i>
+                                        </span>
+                                        <span>รายการห้องทั้งหมด</span>
+                                    </a>
                                     <a class="button is-warning is-medium is-rounded"
                                        href="{{ url_for('room.room_event_list') }}">
                                         <span class="icon">
@@ -579,6 +586,11 @@
                             <div>
                                 <p class="title is-5">เริ่มจากการค้นหาห้อง</p>
                                 <p>เมื่อพิมพ์หมายเลขห้อง ระบบจะแสดงข้อมูลห้อง เวลาทำการ และปุ่มจองทันที</p>
+                                <a href="{{ url_for('room.room_directory') }}"
+                                   class="button is-link is-rounded has-text-weight-semibold mt-4 px-5">
+                                    <span class="icon"><i class="fa-solid fa-door-open"></i></span>
+                                    <span>ดูรายการห้องทั้งหมด</span>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -610,7 +622,7 @@
                              <tbody>
                              {% for event in recent_reservations %}
                                  <tr>
-                                     <td>{{ event.room }}</td>
+                                     <td>{{ event.room_names }}</td>
                                      <td>{{ event.title }}</td>
                                      <td>{{ event.start|localdatetime }} - {{ event.end|localdatetime }}</td>
                                      <td>{{ event.created_at|humanizedt }}</td>

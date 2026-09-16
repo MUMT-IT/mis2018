@@ -2068,6 +2068,9 @@ app.register_blueprint(shorturl_blueprint)
 from app.staff.commands import register_commands as register_staff_commands
 
 register_staff_commands(app)
+from app.room_scheduler.commands import register_commands as register_room_scheduler_commands
+
+register_room_scheduler_commands(app)
 
 from app.software_request.models import *
 

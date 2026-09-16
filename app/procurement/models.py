@@ -92,10 +92,19 @@ class ProcurementPlan(db.Model):
     output_project_report_id = db.Column(
         'output_project_report_id',
         db.ForeignKey('procurement_output_project_reports.id'),
-        nullable=False,
+        nullable=True,
     )
     output_project_report = db.relationship(
         'ProcurementOutputProjectReport',
+        backref=db.backref('procurement_plans', lazy='dynamic'),
+    )
+    product_code_id = db.Column(
+        'product_code_id',
+        db.ForeignKey('product_codes.id'),
+        nullable=True,
+    )
+    product_code = db.relationship(
+        'ProductCode',
         backref=db.backref('procurement_plans', lazy='dynamic'),
     )
     cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'), nullable=False,
@@ -105,7 +114,17 @@ class ProcurementPlan(db.Model):
                                    info={'label': u'วิธีการจัดซื้อจัดจ้าง'})
     amount = db.Column('amount', db.Numeric(14, 2), nullable=False,
                        info={'label': u'จำนวนเงิน'})
-    fund_code = db.Column('fund_code', db.String(64), info={'label': u'รหัสทุน'})
+    fund_code = db.Column('fund_code', db.String(64), info={'label': u'รหัส IO ครุภัณฑ์'})
+    budget_proposer_id = db.Column(
+        'budget_proposer_id',
+        db.ForeignKey('staff_account.id'),
+        nullable=True,
+    )
+    budget_proposer = db.relationship(
+        'StaffAccount',
+        foreign_keys=[budget_proposer_id],
+        backref=db.backref('proposed_procurement_plans', lazy='dynamic'),
+    )
     responsible_staff_id = db.Column('responsible_staff_id', db.ForeignKey('staff_account.id'), nullable=True)
     responsible_staff = db.relationship('StaffAccount', foreign_keys=[responsible_staff_id],
                                          backref=db.backref('procurement_plans', lazy='dynamic'))
@@ -134,7 +153,7 @@ class ProcurementPlan(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
 
     def __str__(self):
-        return u'{}: {}'.format(self.fiscal_year, str(self.output_project_report)[:80])
+        return u'{}: {}'.format(self.fiscal_year, str(self.product_code or self.output_project_report)[:80])
 
     @property
     def status_date(self):

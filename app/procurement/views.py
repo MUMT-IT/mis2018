@@ -479,7 +479,7 @@ def new_procurement_plan_poll(plan_id):
                 if member.role != 'chairman']
     today = date.today()
     form.title.data = u'ประชุมคณะกรรมการจัดซื้อจัดจ้าง: {}'.format(
-        plan.item or plan.output_project_report
+        plan.item or plan.product_code or plan.output_project_report
     )
     form.vote_start_date.data = today
     form.vote_end_date.data = today + timedelta(days=7)
@@ -488,7 +488,7 @@ def new_procurement_plan_poll(plan_id):
 ปีงบประมาณ: {}
 จำนวนเงิน: {:,.2f} บาท'''.format(
         plan.item or '-',
-        plan.output_project_report or '-',
+        plan.product_code or plan.output_project_report or '-',
         plan.fiscal_year,
         plan.amount or 0,
     )
@@ -642,7 +642,7 @@ def _procurement_plan_committee_email_defaults(plan, due_date=None):
 
 ขอแสดงความนับถือ
 หน่วยงานผู้รับผิดชอบ'''.format(
-        plan.item, plan.output_project_report, plan.fiscal_year, due_date.strftime('%d/%m/%Y')
+        plan.item, plan.product_code or plan.output_project_report, plan.fiscal_year, due_date.strftime('%d/%m/%Y')
     )
     return title, message, due_date
 
