@@ -542,7 +542,7 @@ def landing():
     return render_template('comhealth/landing.html')
 
 
-@comhealth.route('/customer')
+@comhealth.route('/customer-portal')
 def customer_landing():
     return render_template('comhealth/customer_landing.html')
 
