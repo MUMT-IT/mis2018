@@ -1515,20 +1515,20 @@ def generate_fund_request_pdf(fund_request):
         box_june = chk_box
         box_dec = chk_box
         p_period_yr = date_thai.split()[-1] if date_thai.strip() else PDF_BLANK
-        p_dept_2 = PDF_BLANK
-        p_acc_2 = PDF_BLANK
-        p_amt_str_2 = PDF_BLANK
-        p_amt_text_2 = PDF_BLANK
+        p_dept_2 = dept_name
+        p_acc_2 = ".................."
+        p_amt_str_2 = ".................."
+        p_amt_text_2 = ".................."
 
     else:
         box_petty_cash = chk_box
-        p_dept_1 = PDF_BLANK
+        p_dept_1 = ".................."
         p_acc_1 = acc_num
-        p_amt_str_1 = PDF_BLANK
-        p_amt_text_1 = PDF_BLANK
+        p_amt_str_1 = ".................."
+        p_amt_text_1 = ".................."
         p_borrow_no = ticket_number
-        p_borrow_date = PDF_BLANK
-        p_borrower_name = PDF_BLANK
+        p_borrow_date = ".................."
+        p_borrower_name = ".................."
 
         # ส่วนดอกเบี้ยเติมข้อมูลจริง
         box_interest = chk_box_checked
@@ -1559,7 +1559,7 @@ def generate_fund_request_pdf(fund_request):
         f"ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม<br/>"
         f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{box_interest} ขออนุมัติเบิกดอกเบี้ย &nbsp;{box_june} งวดเดือน มิถุนายน พ.ศ. {p_period_yr} "
         f"&nbsp;{box_dec} งวดเดือน ธันวาคม พ.ศ. {p_period_yr} จากบัญชี {p_dept_2} "
-        f"เลขที่บัญชี {p_acc_1} ชื่อบัญชี{acc_name} เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
+        f"เลขที่บัญชี {p_acc_1} ชื่อบัญชี {acc_name} เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
         f"และขออนุมัตินำส่งดอกเบี้ยเข้าเป็นเงินรายได้คณะฯ โอนเข้าบัญชี เลขที่ 016-300-325-6 "
         f"ชื่อบัญชีมหาวิทยาลัยมหิดล",
         styles['ThaiJustify']
