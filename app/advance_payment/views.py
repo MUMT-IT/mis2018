@@ -4152,6 +4152,7 @@ def petty_cash_settings():
         bank_account_info_ids = request.form.getlist("bank_account_info_id[]")
         valid_dept_names = request.form.getlist("valid_dept[]")
 
+        errors = []
         row_count = max(len(dept_names), len(org_ids))
         for i in range(row_count):
             raw_setting_id = setting_ids[i].strip() if i < len(setting_ids) else ""
@@ -4191,23 +4192,22 @@ def petty_cash_settings():
 
                 # The settings form accepts Buddhist Era years; persist Gregorian years internally.
                 requested_fiscal_year = int(fy_str) - 543
-                existing = None
-                if raw_setting_id.isdigit():
-                    existing = db.session.query(PettyCashSetting).filter_by(id=int(raw_setting_id)).first()
-                if existing is None:
-                    existing = (
-                        db.session.query(PettyCashSetting)
-                        .filter_by(org_id=selected_org.id, fiscal_year=requested_fiscal_year)
-                        .first()
-                    )
+
+                # ค้นหาว่ามี Setting ของ (หน่วยงานนี้ + ปีงบประมาณนี้) อยู่แล้วหรือไม่
+                existing = (
+                    db.session.query(PettyCashSetting)
+                    .filter_by(org_id=selected_org.id, fiscal_year=requested_fiscal_year)
+                    .first()
+                )
 
                 if existing:
-                    existing.fiscal_year = requested_fiscal_year
+                    # ถ้ามีข้อมูลของปีงบประมาณนี้อยู่แล้ว ให้ UPDATE ข้อมูล
                     existing.custodian_id = selected_custodian.id if selected_custodian else None
                     existing.budget = Decimal(bg_str)
                     existing.bank_account_info_id = bank_account_info_id
                     existing.valid = is_valid
                 else:
+                    # ถ้ายังไม่มีข้อมูลของปีงบประมาณนี้ ให้ INSERT เป็นรายการใหม่
                     new_setting = PettyCashSetting(
                         fiscal_year=requested_fiscal_year,
                         org_id=selected_org.id,
@@ -4228,16 +4228,29 @@ def petty_cash_settings():
 
         return redirect(url_for("advance_payment.petty_cash_settings"))
 
+    # ดึง Setting ทั้งหมดเรียงตาม org_id
     all_settings = (
         db.session.query(PettyCashSetting)
         .order_by(PettyCashSetting.org_id.asc(), PettyCashSetting.fiscal_year.desc(), PettyCashSetting.id.desc())
         .all()
     )
-    latest_settings_by_org = {}
-    for setting in all_settings:
-        latest_settings_by_org.setdefault(setting.org_id, setting)
 
-    display_settings = list(latest_settings_by_org.values())
+    # จัดกลุ่ม Setting ตาม org_id
+    settings_by_org = {}
+    for setting in all_settings:
+        settings_by_org.setdefault(setting.org_id, []).append(setting)
+
+    # เลือก Setting ที่จะนำมาแสดงผล:
+    # 1. ยึดข้อมูลของปีงบประมาณปัจจุบัน (current_fiscal_year) ก่อน
+    # 2. ถ้ายังไม่มีของปีปัจจุบัน ให้เลือกปีล่าสุดที่มีแทน
+    display_settings = []
+    for org_id, org_settings in settings_by_org.items():
+        current_setting = next((s for s in org_settings if s.fiscal_year == current_fiscal_year), None)
+        if current_setting:
+            display_settings.append(current_setting)
+        elif org_settings:
+            display_settings.append(org_settings[0]) # org_settings ถูกเรียง fiscal_year.desc() ไว้แล้ว
+
     display_settings.sort(
         key=lambda setting: (
             getattr(setting, "department_name", "ไม่พบข้อมูลหน่วยงาน") or "ไม่พบข้อมูลหน่วยงาน",
@@ -4250,6 +4263,18 @@ def petty_cash_settings():
     setting_custodian_ids = {setting.id: setting.custodian_id for setting in display_settings if getattr(setting, "id", None)}
 
     # Summarize petty-cash requests (form type 30) across all fiscal years by department.
+    # Seed the summary from every setting so years/departments with no requests
+    # yet are still shown with zero totals.
+    request_summary = {}
+    for setting in all_settings:
+        key = (setting.fiscal_year, setting.org_id)
+        request_summary[key] = {
+            "fiscal_year": setting.fiscal_year,
+            "department_name": setting.department_name or "ไม่พบข้อมูลหน่วยงาน",
+            "request_count": 0,
+            "used_amount": Decimal("0.00"),
+        }
+
     history_requests = (
         db.session.query(FundRequest)
         .filter(
@@ -4259,7 +4284,7 @@ def petty_cash_settings():
         )
         .all()
     )
-    request_summary = {}
+
     for fund_request in history_requests:
         fiscal_year = convert_to_fiscal_year(fund_request.request_date)
         key = (fiscal_year, getattr(fund_request, "org_id", None))
@@ -4744,6 +4769,27 @@ def staff_fund_request():
     user_display_name = getattr(user, "name", None) or getattr(user, "fullname", None) or getattr(user, "email", None) or "ไม่พบข้อมูลชื่อ"
     user_display_position = getattr(user, "position", None) or "ไม่พบข้อมูลตำแหน่ง"
     setting = _resolve_petty_cash_setting(user)
+
+    # A fund request must always be backed by an active petty-cash setting
+    # for the current fiscal year. The UI disables the button when there is
+    # no setting, but this backend check also blocks direct POST requests.
+    if request.method == "POST" and (
+        not setting
+        or not getattr(setting, "id", None)
+        or not getattr(setting, "valid", False)
+        or getattr(setting, "fiscal_year", None) != _current_petty_cash_fiscal_year()
+    ):
+        flash(
+            "ไม่พบการตั้งค่าเงินสดย่อยของหน่วยงานหรือปีงบประมาณปัจจุบัน",
+            "danger",
+        )
+        return redirect(
+            url_for(
+                "advance_payment.staff_fund_request",
+                form_type=request.values.get("form_type", "30"),
+            )
+        )
+
     is_secretary = _is_current_secretary(user, setting)
     _attach_petty_cash_setting_people(setting)
     approved_borrowing_tickets = _get_approved_borrowing_tickets_for_setting(setting)
