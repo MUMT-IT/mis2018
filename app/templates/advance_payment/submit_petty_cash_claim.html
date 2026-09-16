@@ -30,14 +30,10 @@
 
       <div class="col-12 col-md-4 mb-3">
         <p class="text-muted small mb-1"><strong>เลขที่ใบเบิก</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ verification_ticket_number }}</p>
+        <h5 class="mb-0 text-dark fw-semibold">{{ verification_ticket_number }}</h5>
       </div>
 
       <div class="row g-3 text-start mb-3">
-        <div class="col-6 col-md-4">
-          <p class="text-muted small mb-1"><strong>ผู้สร้างรายการ</strong></p>
-          <p class="mb-0 text-dark fw-semibold">{{ verification_creator_name if verification_creator_name is not none else '-' }}</p>
-        </div>
         <div class="col-6 col-md-4">
           <p class="text-muted small mb-1"><strong>ผู้ยืม</strong></p>
           <p class="mb-0 text-dark fw-semibold">{{ verification_requester_name if verification_requester_name is not none else '-' }}</p>
@@ -53,6 +49,10 @@
         <div class="col-12 col-md-4">
           <p class="text-muted small mb-1"><strong>วันที่สร้างรายการ</strong></p>
           <p class="mb-0 text-dark fw-semibold">{{ verification_created_at|thai_date if verification_created_at else '-' }}</p>
+        </div>
+        <div class="col-6 col-md-4">
+          <p class="text-muted small mb-1"><strong>ผู้สร้างรายการ</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ verification_creator_name if verification_creator_name is not none else '-' }}</p>
         </div>
       </div>
 
@@ -96,7 +96,7 @@
       </div>
     </div>
   </div>
-  {% if verification_fund_request and fund_request_status not in ['ยกเลิก', 'ส่งเบิกแล้ว', 'ส่งเบิกครบแล้ว', 'เบิกเงินสำเร็จ', 'เคลียร์ยอดสำเร็จ'] and session.get('user_role') == 'secretary' %}
+  {% if verification_fund_request and fund_request_status == 'อนุมัติแล้ว' and session.get('user_role') == 'secretary' %}
   <div class="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
     <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
       <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
