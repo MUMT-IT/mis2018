@@ -16,7 +16,23 @@
             <tbody>
             {% for request in leaves|sort(attribute='start_datetime') %}
                 <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
-                    <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.total_leave_days }} วัน)</td>
+                    <td>
+                        <a href="{{ url_for('staff.record_each_request_leave_request', request_id=request.id) }}">
+                                <span class="icon">
+                                        <i class="far fa-calendar-alt"></i>
+                                </span>
+                                <span class="title is-size-6">
+                                    {{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }}
+                                    ({{ request.total_leave_days }} วัน)
+                                    {% if request.country %}
+                                        Download เอกสาร
+                                    {% endif %}
+                                </span>
+
+                        </a>
+
+
+                    </td>
                     <td>
                         {% if not request.cancelled_at %}
                         <div class="field is-grouped is-grouped-multiline">
