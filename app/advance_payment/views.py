@@ -355,7 +355,7 @@ def _serialize_org_department(org):
         },
         "account_controller": controller or {
             "name": ".......................................................",
-            "position": "เจ้าหน้าที่",
+            "position": "ไม่พบข้อมูลตำแหน่ง",
             "email": "",
         },
         "staff_members": staff_members,
