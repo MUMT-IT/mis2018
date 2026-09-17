@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, text
 from flask import g, has_request_context
@@ -108,7 +109,7 @@ def _query_many_to_many_list(parent, association_table, parent_fk_name, model):
 class FinanceEditMixin:
     """Latest finance edit, persisted in the same transaction as the change."""
 
-    last_edited_at = Column(DateTime, nullable=True)
+    last_edited_at = Column(DateTime(timezone=True), nullable=True)
 
     @declared_attr
     def last_edited_by_id(cls):
@@ -122,7 +123,7 @@ def _stamp_finance_edits(session, flush_context, instances):
     actor_id = getattr(g, "advance_payment_finance_actor_id", None)
     if actor_id is None:
         return
-    edited_at = datetime.now()
+    edited_at = datetime.now(ZoneInfo("Asia/Bangkok"))
     for record in set(session.new).union(session.dirty):
         if not isinstance(record, FinanceEditMixin) or record in session.deleted:
             continue

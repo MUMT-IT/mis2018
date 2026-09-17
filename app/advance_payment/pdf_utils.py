@@ -15,6 +15,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Circle
 from .models import db, BankAccountInfo, StaffAccount, PettyCashSetting
+from .views import FUND_REQUEST_FORM_BORROWING_TICKET, FUND_REQUEST_FORM_INTEREST
 from app.models import Org
 from app.staff.models import StaffHeadPosition, StaffLeaveApprover
 
@@ -502,7 +503,7 @@ def generate_fnar02_pdf(ticket):
     story.append(Spacer(1, 15))
 
     # 4. เนื้อหาบันทึกข้อความ (ย่อหน้า)
-    p1_html = f"ด้วย {department_name} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric} บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} – {end_date_str}"
+    p1_html = f"ด้วย{department_name}มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric} บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} – {end_date_str}"
     story.append(Paragraph(p1_html, styles['ThaiOfficial']))
     story.append(Spacer(1, 12))
 
@@ -908,21 +909,15 @@ def generate_petty_claim(claim, claim_type="1"):
     story.append(Spacer(1, 18))
 
     body_1 = (
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} "
-        f"ซึ่งคณะได้รับการอนุมัติให้ดำเนินการแล้ว"
+        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้{request_purpose}นั้น"
     )
     body_2 = (
-        f"ในการนี้ {department_name} ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว "
-        f"จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} "
-        f"เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) "
-        f"โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง "
-        f"โดยมีรายละเอียดดังนี้"
+        f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
     )
 
     if no_approval_letter:
         story.append(Paragraph(
-            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ"
-            f"{request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
+            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ{request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
             claim_body,
         ))
     else:
@@ -962,7 +957,7 @@ def generate_petty_claim(claim, claim_type="1"):
 
     total_table = Table(
         [[
-            Paragraph("รวมทั้งสิ้น ", claim_right),
+            Paragraph("<u>รวมทั้งสิ้น</u> ", claim_right),
             Paragraph(f"{amount_text}", claim_left),
             Paragraph(f"{amount_numeric} บาท", claim_right),
         ]],
@@ -981,25 +976,14 @@ def generate_petty_claim(claim, claim_type="1"):
     story.append(Spacer(1, 10))
 
     ref_text = (
-        f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} "
-        f"ผลผลิต {product_name} "
-        f"รหัสศูนย์ต้นทุน {cost_center_label} "
-        f"รหัสใบสั่งงานภายใน {mission_label} "
-        f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} "
-        f"เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป "
-        f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
+        f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
+        f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
     )
     if no_approval_letter:
         story.append(Paragraph(
-            f"ในการนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} "
-            f"จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
-            f"ประจำปีงบประมาณ {fiscal_year_label} "
-            f"ผลผลิต {product_name} "
-            f"รหัสศูนย์ต้นทุน {cost_center_label} "
-            f"รหัสใบสั่งงานภายใน {mission_label} "
-            f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} "
-            f"เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป "
-            f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
+            f"ในการนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
+            f"ประจำปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
+            f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
             , claim_body,
         ))
     else:
@@ -1182,17 +1166,12 @@ def generate_ticket_return(return_detail):
     story.extend([info_table, Spacer(1, 18)])
 
     story.append(Paragraph(
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} "
-        f"ซึ่งคณะได้อนุมัติให้{request_purpose}นั้น",
+        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้{request_purpose}นั้น",
         return_body,
     ))
     story.append(Spacer(1, 8))
     story.append(Paragraph(
-        f"ในการนี้ {department_name} ดำเนินการดังกล่าวเสร็จสิ้นแล้ว "
-        f"จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} "
-        f"โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัดโครงการดังกล่าว "
-        f"เป็นจำนวน {amount_numeric} บาท ({amount_text}) "
-        f"โดยมีรายละเอียดดังนี้",
+        f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัดโครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
         return_body,
     ))
     story.append(Spacer(1, 10))
@@ -1216,7 +1195,7 @@ def generate_ticket_return(return_detail):
         story.extend([item_table, Spacer(1, 4)])
 
     total_table = Table([[
-        Paragraph("รวมทั้งสิ้น  ", return_right),
+        Paragraph("<u>รวมทั้งสิ้น</u> ", return_right),
         Paragraph(amount_text, return_left),
         Paragraph(f"{amount_numeric} บาท", return_right),
     ]], colWidths=[55, 250, 80])
@@ -1229,12 +1208,8 @@ def generate_ticket_return(return_detail):
     story.extend([total_table, Spacer(1, 10)])
 
     story.append(Paragraph(
-        f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} "
-        f"รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
-        f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม "
-        f"บย.{ticket_number} "
-        f"เพื่อทำการขอเบิกเงินคืนต่อไป "
-        f"ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้",
+        f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
+        f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้",
         return_left,
     ))
     story.extend([
@@ -1286,8 +1261,8 @@ def generate_fund_request_pdf(fund_request):
     story = []
     
     form_type = str(fund_request.form_type or "")
-    is_type_31 = form_type == "31"
-    is_type_32 = form_type == "32"
+    is_interest_form = form_type == FUND_REQUEST_FORM_INTEREST
+    is_borrowing_form = form_type == FUND_REQUEST_FORM_BORROWING_TICKET
     borrowing_ticket = getattr(fund_request, "borrowing_ticket", None)
 
     date_thai = get_thai_month_year(fund_request.request_date)
@@ -1297,7 +1272,7 @@ def generate_fund_request_pdf(fund_request):
     purpose = fund_request.purpose or PDF_BLANK
     ticket_number = fund_request.ticket_number or PDF_BLANK
 
-    if is_type_32 and borrowing_ticket:
+    if is_borrowing_form and borrowing_ticket:
         requester = borrowing_ticket.borrower_name or requester
         requester_user = getattr(borrowing_ticket, "borrower_user", None) or _get_user_by_id(getattr(borrowing_ticket, "borrower_id", None))
         requester_pos = getattr(requester_user, "position", "") or requester_pos
@@ -1367,7 +1342,7 @@ def generate_fund_request_pdf(fund_request):
 
     sec1_body = Paragraph(
         f"ข้าพเจ้า {requester} ตำแหน่ง {requester_pos} มีความประสงค์ขอยืมเงินสดย่อย<br/>"
-        f"เพื่อ{purpose if not is_type_31 else PDF_BLANK} มีรายละเอียดดังนี้",
+        f"เพื่อ{purpose if not is_interest_form else PDF_BLANK} มีรายละเอียดดังนี้",
         styles['ThaiNormal']
     )
     story.append(sec1_body)
@@ -1386,7 +1361,7 @@ def generate_fund_request_pdf(fund_request):
     total_amount = 0.0
     has_total_amount = False
 
-    if is_type_32 and not items and borrowing_ticket:
+    if is_borrowing_form and not items and borrowing_ticket:
         ticket_no = getattr(borrowing_ticket, "number", None) or PDF_BLANK
         ticket_amount = borrowing_ticket.required_budget
         if ticket_amount is None:
@@ -1398,7 +1373,7 @@ def generate_fund_request_pdf(fund_request):
         ])
         total_amount = float(ticket_amount) if ticket_amount is not None else 0.0
         has_total_amount = ticket_amount is not None
-    elif not is_type_31 and items:
+    elif not is_interest_form and items:
         for idx, item in enumerate(items, 1):
             amt = float(item.amount or 0)
             total_amount += amt
@@ -1500,34 +1475,34 @@ def generate_fund_request_pdf(fund_request):
     chk_box = '<font name="DejaVuSans">&#x2610;</font>'
     chk_box_checked = '<font name="DejaVuSans">&#x2611;</font>'
 
-    if not is_type_31:
+    if not is_interest_form:
         box_petty_cash = chk_box_checked
         p_dept_1 = dept_name
         p_acc_1 = acc_num
         p_amt_str_1 = f"-{amount_str}-" if amount_str.strip() else PDF_BLANK
         p_amt_text_1 = amount_text_th
         p_borrow_no = ticket_number
-        p_borrow_date = get_thai_month_year(borrowing_ticket.approved_at.date()) if is_type_32 and borrowing_ticket and borrowing_ticket.approved_at else date_thai
+        p_borrow_date = get_thai_month_year(borrowing_ticket.approved_at.date()) if is_borrowing_form and borrowing_ticket and borrowing_ticket.approved_at else date_thai
         p_borrower_name = requester
 
         box_interest = chk_box
         box_june = chk_box
         box_dec = chk_box
         p_period_yr = date_thai.split()[-1] if date_thai.strip() else PDF_BLANK
-        p_dept_2 = PDF_BLANK
-        p_acc_2 = PDF_BLANK
-        p_amt_str_2 = PDF_BLANK
-        p_amt_text_2 = PDF_BLANK
+        p_dept_2 = dept_name
+        p_acc_2 = ".................."
+        p_amt_str_2 = ".................."
+        p_amt_text_2 = ".................."
 
     else:
         box_petty_cash = chk_box
-        p_dept_1 = PDF_BLANK
+        p_dept_1 = ".................."
         p_acc_1 = acc_num
-        p_amt_str_1 = PDF_BLANK
-        p_amt_text_1 = PDF_BLANK
+        p_amt_str_1 = ".................."
+        p_amt_text_1 = ".................."
         p_borrow_no = ticket_number
-        p_borrow_date = PDF_BLANK
-        p_borrower_name = PDF_BLANK
+        p_borrow_date = ".................."
+        p_borrower_name = ".................."
 
         # ส่วนดอกเบี้ยเติมข้อมูลจริง
         box_interest = chk_box_checked
@@ -1558,7 +1533,7 @@ def generate_fund_request_pdf(fund_request):
         f"ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม<br/>"
         f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{box_interest} ขออนุมัติเบิกดอกเบี้ย &nbsp;{box_june} งวดเดือน มิถุนายน พ.ศ. {p_period_yr} "
         f"&nbsp;{box_dec} งวดเดือน ธันวาคม พ.ศ. {p_period_yr} จากบัญชี {p_dept_2} "
-        f"เลขที่บัญชี {p_acc_1} ชื่อบัญชี{acc_name} เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
+        f"เลขที่บัญชี {p_acc_1} ชื่อบัญชี {acc_name} เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
         f"และขออนุมัตินำส่งดอกเบี้ยเข้าเป็นเงินรายได้คณะฯ โอนเข้าบัญชี เลขที่ 016-300-325-6 "
         f"ชื่อบัญชีมหาวิทยาลัยมหิดล",
         styles['ThaiJustify']

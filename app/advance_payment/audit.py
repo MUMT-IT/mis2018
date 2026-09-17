@@ -5,6 +5,7 @@ other roles leave the last finance edit intact. This is latest-edit metadata,
 not an append-only history. Bulk SQL writes bypass this ORM listener.
 """
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from flask import g, has_request_context
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, event
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session, declared_attr
 
 
 class FinanceEditMixin:
-    last_edited_at = Column(DateTime, nullable=True)
+    last_edited_at = Column(DateTime(timezone=True), nullable=True)
 
     @declared_attr
     def last_edited_by_id(cls):
@@ -27,8 +28,8 @@ def stamp_finance_edits(session, flush_context, instances):
     if actor_id is None:
         return
 
-    # Match the module's existing naive local timestamps. A flush shares one time.
-    edited_at = datetime.now()
+    # Store an aware ICT timestamp. A flush shares one time for all records.
+    edited_at = datetime.now(ZoneInfo("Asia/Bangkok"))
     for record in set(session.new).union(session.dirty):
         if not isinstance(record, FinanceEditMixin) or record in session.deleted:
             continue

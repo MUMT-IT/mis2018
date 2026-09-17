@@ -28,8 +28,8 @@
       </div>
     </div>
     <div class="col-6 col-md-4">
-        <p class="text-muted small mb-1"><strong>เลขที่บย.</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{borrowing_ticket.number}}</p>
+        <h4 class="text-muted small mb-1"><strong>เลขที่บย.</strong></h4>
+        <h5 class="mb-0 text-dark fw-semibold">{{borrowing_ticket.number}}</h5>
     </div></br>
     <div class="row g-3 text-start mb-3">
       <div class="col-12 col-md-4">
@@ -47,31 +47,16 @@
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrower_name }}</p>
       </div>
       <div class="col-6 col-md-4">
-        <p class="text-muted small mb-1"><strong>ผู้ดำเนินการ</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.creator_name }}</p>
-      </div>
-      <div class="col-6 col-md-4">
         <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(borrowing_ticket.required_budget or 0) }}</p>
-      </div>
-      <div class="col-6 col-md-4">
-        <p class="text-muted small mb-1"><strong>เลขที่บัญชี</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.account_number }}</p>
       </div>
       <div class="col-12 col-md-4">
         <p class="text-muted small mb-1"><strong>ระยะเวลาโครงการ</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_ticket_start_date|thai_date }} ถึง {{ borrowing_ticket.borrowing_ticket_end_date|thai_date }}</p>
       </div>
-    </div>
-    <div class="my-4"></div>
-    <div class="row g-2 text-start mb-3">
       <div class="col-6 col-md-4">
-        <p class="text-muted small mb-1"><strong>เลขที่อนุมัติในหลักการ</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.aip_ref_no }}</p>
-      </div>
-      <div class="col-12 col-md-4">
-        <p class="text-muted small mb-1"><strong>วันที่หนังสือได้รับการอนุมัติ</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.aip_ref_date|thai_date }}</p>
+        <p class="text-muted small mb-1"><strong>เลขที่บัญชี</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.account_number }}</p>
       </div>
       {% if borrowing_ticket.status|lower == "ปฏิเสธ" %}
       <div class="col-12 col-md-4">
@@ -84,6 +69,21 @@
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.approved_at|thai_date }}</p>
       </div>
       {% endif %}
+    </div>
+    <div class="my-4"></div>
+    <div class="row g-2 text-start mb-3">
+      <div class="col-6 col-md-4">
+        <p class="text-muted small mb-1"><strong>เลขที่อนุมัติในหลักการ</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.aip_ref_no }}</p>
+      </div>
+      <div class="col-12 col-md-4">
+        <p class="text-muted small mb-1"><strong>วันที่หนังสือได้รับการอนุมัติ</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.aip_ref_date|thai_date }}</p>
+      </div>
+      <div class="col-6 col-md-4">
+        <p class="text-muted small mb-1"><strong>ผู้ดำเนินการ</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.creator_name }}</p>
+      </div>
     </div>
 
     {% if borrowing_ticket.status|lower not in ["กำลังส่งคำขอ", "ปฏิเสธ"]  %}
@@ -169,15 +169,6 @@
           </button>
         </div>
       {% endif %}
-      <div class="d-flex justify-content-end w-100">
-        <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <textarea name="finance_note" class="form-control flex-grow-1" rows="1" placeholder="เพิ่มบันทึกช่วยจำเกี่ยวกับสัญญานี้...">{{ borrowing_ticket.finance_note or '' }}</textarea>
-          <button class="btn btn-primary fw-bold px-4 text-nowrap" style="border-radius: 6px;">
-              บันทึกโน๊ต
-          </button>
-        </form>
-      </div>
     {% endif %}
       </div>
 
@@ -230,9 +221,20 @@
         </div>
       </div>
     </div>
+    {% if borrowing_ticket.status|lower != "กำลังส่งคำขอ" %}
+      <div class="d-flex justify-content-end w-100">
+          <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <textarea name="finance_note" class="form-control flex-grow-1" rows="1" placeholder="เพิ่มบันทึกช่วยจำเกี่ยวกับสัญญานี้...">{{ borrowing_ticket.finance_note or '' }}</textarea>
+            <button class="btn btn-primary fw-bold px-4 text-nowrap" style="border-radius: 6px;">
+                บันทึกโน๊ต
+            </button>
+          </form>
+      </div>
+    {% endif %}
     {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
       <div class="d-flex justify-content-end mt-3">
-        <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-danger" style="border-radius:6px;" target="_blank">
+        <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
           <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน
         </a>
       </div>
