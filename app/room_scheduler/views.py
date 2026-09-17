@@ -1024,6 +1024,68 @@ def index():
     )
 
 
+@room.route('/reservation-history')
+@login_required
+def reservation_history():
+    return render_template('scheduler/reservation_history.html')
+
+
+@room.route('/api/reservation-history')
+@login_required
+def get_reservation_history():
+    """Return the signed-in user's reservations for server-side DataTables."""
+    draw = request.args.get('draw', type=int, default=0)
+    start = max(request.args.get('start', type=int, default=0), 0)
+    length = request.args.get('length', type=int, default=10)
+    length = min(max(length, 1), 100)
+    search = (request.args.get('search[value]') or '').strip()
+
+    query = RoomEvent.query.options(
+        selectinload(RoomEvent.room),
+        selectinload(RoomEvent.rooms),
+        selectinload(RoomEvent.category),
+    ).filter(RoomEvent.created_by == current_user.id)
+    records_total = query.count()
+
+    if search:
+        pattern = f'%{search}%'
+        query = query.filter(or_(
+            RoomEvent.title.ilike(pattern),
+            RoomEvent.room.has(RoomResource.number.ilike(pattern)),
+            RoomEvent.rooms.any(RoomResource.number.ilike(pattern)),
+            RoomEvent.category.has(EventCategory.category.ilike(pattern)),
+        ))
+
+    records_filtered = query.count()
+    reservations = (
+        query
+        .order_by(RoomEvent.start.desc(), RoomEvent.end.desc(), RoomEvent.id.desc())
+        .offset(start)
+        .limit(length)
+        .all()
+    )
+
+    data = []
+    for event in reservations:
+        data.append({
+            'room_names': event.room_names,
+            'title': event.title,
+            'category': event.category.category if event.category else '-',
+            'start': event.start.isoformat(),
+            'end': event.end.isoformat(),
+            'created_at': event.created_at.isoformat() if event.created_at else None,
+            'detail_url': url_for('room.show_event_detail', event_id=event.id),
+            'reserve_url': url_for('room.room_reserve', room_id=event.room_id),
+        })
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+    })
+
+
 @room.route('/ai-room-search')
 @login_required
 def ai_room_search():
