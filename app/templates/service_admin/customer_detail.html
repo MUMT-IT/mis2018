@@ -258,9 +258,9 @@
         .customer-detail-info-item strong { color: #1e3152; display: block; overflow-wrap: anywhere; }
         .customer-detail-info-label { display: block; }
         .customer-detail-info-label i, .customer-detail-section-heading h2 i, .customer-detail-contact-meta i, .customer-detail-address-meta i { color: #2f80c9; margin-right: .25rem; }
-        .customer-detail-columns { margin: 0 auto !important; max-width: 70rem; }
-        .customer-detail-columns > .column { padding-bottom: 0; padding-left: 0; padding-right: 0; }
-        .customer-detail-columns > .column + .column { padding-left: .75rem; }
+        .customer-detail-columns.columns { display: grid; gap: 1.5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 auto !important; max-width: 70rem; }
+        .customer-detail-columns.columns > .column { display: flex; min-width: 0; padding: 0 !important; width: 100% !important; }
+        .customer-detail-columns.columns > .column > .customer-detail-section-card { flex: 1; width: 100%; }
         .customer-detail-section-card { margin-top: 1.25rem; padding: 1.35rem; }
         .customer-detail-section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1rem; }
         .customer-detail-section-heading h2 { color: #1e3152; font-size: 1.08rem; font-weight: 800; margin: 0; }
@@ -303,7 +303,8 @@
         .customer-payment-status-panel strong { font-size: 1rem; line-height: 1.2; }
         .customer-payment-lab-detail { color: #66738d; font-size: .72rem; line-height: 1.4; margin: 0; }
         .customer-payment-lab-detail i { color: #718099; margin-right: .25rem; }
-        @media screen and (max-width: 900px) { .customer-detail-info-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .customer-detail-columns > .column + .column { padding-left: 0; } }
+        @media screen and (max-width: 900px) { .customer-detail-info-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media screen and (max-width: 768px) { .customer-detail-columns { grid-template-columns: 1fr; } }
         @media screen and (max-width: 768px) { .customer-detail-page { padding: 2rem 0; } .customer-detail-heading { align-items: flex-start; flex-direction: column; } .customer-detail-heading-actions { width: 100%; } .customer-detail-heading-actions .button { flex: 1; } }
         @media screen and (max-width: 480px) { .customer-detail-heading-copy { align-items: flex-start; flex-direction: column; } .customer-detail-info-grid { grid-template-columns: 1fr; } .customer-detail-profile-header, .customer-detail-address-topline { align-items: flex-start; flex-direction: column; } }
     </style>
