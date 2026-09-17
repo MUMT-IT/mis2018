@@ -2358,7 +2358,7 @@ def _build_customer_lab_payments(customer):
 
         for quotation in service_request.quotations:
             for invoice in quotation.invoices:
-                if invoice.due_date and not invoice.payments:
+                if invoice.due_date and not invoice.payments.first():
                     due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
                     overdue_days = (today - due_date).days
                     if overdue_days > 90:
