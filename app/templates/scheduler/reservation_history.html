@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}ประวัติการจองทั้งหมด{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .reservation-history-table-container,
+        .reservation-history-table-container .dataTables_wrapper,
+        .reservation-history-table-container table.table,
+        .reservation-history-table-container table.table th,
+        .reservation-history-table-container table.table td {
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .reservation-history-actions {
+            white-space: nowrap;
+        }
+    </style>
+{% endblock %}
+
+{% include "scheduler/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container is-fluid">
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div>
+                        <p class="heading">Room Scheduler</p>
+                        <h1 class="title">ประวัติการจองทั้งหมด</h1>
+                        <p class="subtitle is-6">รายการจองของคุณ เรียงจากวันและเวลาล่าสุด</p>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <a class="button is-dark is-outlined is-rounded" href="{{ url_for('room.index') }}">
+                        <span class="icon"><i class="fas fa-chevron-left"></i></span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="table-container reservation-history-table-container">
+                <table id="reservation-history" class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                    <tr>
+                        <th>ห้อง</th>
+                        <th>กิจกรรม</th>
+                        <th>ประเภท</th>
+                        <th>วันและเวลา</th>
+                        <th>จองเมื่อ</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const textRenderer = $.fn.dataTable.render.text()
+
+            $('#reservation-history').DataTable({
+                processing: true,
+                serverSide: true,
+                pageLength: 10,
+                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+                ajax: {{ url_for('room.get_reservation_history')|tojson|safe }},
+                order: [[3, 'desc']],
+                scrollX: true,
+                autoWidth: false,
+                columns: [
+                    {data: 'room_names', render: textRenderer},
+                    {data: 'title', render: textRenderer},
+                    {data: 'category', render: textRenderer},
+                    {
+                        data: 'start',
+                        render: function (data, type, row) {
+                            if (type === 'sort' || type === 'type') return data
+                            return `${moment(data).format('DD/MM/YYYY HH:mm')} - ${moment(row.end).format('DD/MM/YYYY HH:mm')}`
+                        }
+                    },
+                    {
+                        data: 'created_at',
+                        render: function (data, type) {
+                            if (!data) return '-'
+                            if (type === 'sort' || type === 'type') return data
+                            return moment(data).format('DD/MM/YYYY HH:mm')
+                        }
+                    },
+                    {
+                        data: null,
+                        orderable: false,
+                        searchable: false,
+                        className: 'reservation-history-actions',
+                        render: function (data, type, row) {
+                            return `<div class="buttons are-small">
+                                <a class="button is-info is-light is-rounded" href="${row.detail_url}">รายละเอียด</a>
+                                <a class="button is-success is-light is-rounded" href="${row.reserve_url}">จองอีกครั้ง</a>
+                            </div>`
+                        }
+                    }
+                ],
+                language: {
+                    processing: 'กำลังโหลด...',
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ',
+                    infoEmpty: 'ไม่มีประวัติการจอง',
+                    zeroRecords: 'ไม่พบรายการจองที่ตรงกับการค้นหา',
+                    paginate: {
+                        first: 'หน้าแรก',
+                        previous: 'ก่อนหน้า',
+                        next: 'ถัดไป',
+                        last: 'หน้าสุดท้าย'
+                    }
+                }
+            })
+        })
+    </script>
+{% endblock %}
