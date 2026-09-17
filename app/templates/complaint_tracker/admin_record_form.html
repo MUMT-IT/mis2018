@@ -157,7 +157,8 @@
                             <div class="field">
                                 <label class="label">หมวด</label>
                                 <div class="control">
-                                    <input class="input" readonly value="{{ record.topic.category }}">
+                                    <input class="input" readonly value="{{ record.topic.category }}"
+                                           style="background-color: #e5e7eb">
                                 </div>
                             </div>
                             <div class="field">
@@ -166,7 +167,8 @@
                                     {% if record.is_editable %}
                                         {{ form.topic(class="js-example-basic-single") }}
                                     {% else %}
-                                        <input class="input" readonly value="{{ record.topic.topic }}">
+                                        <input class="input" readonly value="{{ record.topic.topic }}"
+                                               style="background-color: #e5e7eb">
                                     {% endif %}
                                 </div>
                             </div>
@@ -174,14 +176,15 @@
                                 <div class="field">
                                     <label class="label">พันธกิจ/หัวข้อย่อย</label>
                                     <div class="control">
-                                        <input class="input" readonly value="{{ record.subtopic }}">
+                                        <input class="input" readonly value="{{ record.subtopic }}"
+                                               style="background-color: #e5e7eb">
                                     </div>
                                 </div>
                             {% elif record.room or record.rooms %}
                                 <div class="field">
                                     <label class="label">ห้อง</label>
                                     <div class="control">
-                                        <input class="input" readonly value="{% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
+                                        <input class="input" style="background-color: #e5e7eb" readonly value="{% if record.room %}{{ record.room }}{% else %}{% for room in record.rooms %}{{ room }}{% endfor %}{% endif %}">
                                     </div>
                                 </div>
                             {% endif %}
@@ -218,7 +221,7 @@
                                     <div class="field">
                                         <label class="label">สถานที่ตั้งครุภัณฑ์ปัจจุบัน</label>
                                         <div class="control">
-                                            <input class="input" readonly
+                                            <input class="input" readonly style="background-color: #e5e7eb"
                                                    value="{% if record.procurement_location %} {{ record.procurement_location }}
                                                           {% else %} {{ 'ไม่ระบุ' }} {% endif %}">
                                         </div>
@@ -299,7 +302,7 @@
                             <div class="field">
                                 <label class="label">รายละเอียด</label>
                                 <div class="control">
-                                    <textarea class="textarea" readonly>{{ record.desc }}</textarea>
+                                    <textarea class="textarea" readonly style="background-color: #e5e7eb">{{ record.desc }}</textarea>
                                 </div>
                             </div>
                             {% if record.url %}
@@ -317,7 +320,7 @@
                             <div class="field">
                                 <label class="label">ช่องทางรับเรื่อง</label>
                                 <div class="control">
-                                    <input class="input" readonly value="{{ record.channel_receive or '' }}">
+                                    <input class="input" readonly style="background-color: #e5e7eb" value="{{ record.channel_receive or '' }}">
                                 </div>
                             </div>
                             {% if record.fl_name %}
@@ -375,7 +378,7 @@
                                 <div class="field">
                                     <label class="label">ชื่อผู้แจ้ง</label>
                                     <div class="control">
-                                        <input class="input" readonly value="{{ record.complainant.fullname }}">
+                                        <input class="input" readonly style="background-color: #e5e7eb" value="{{ record.complainant.fullname }}">
                                     </div>
                                 </div>
                             {% endif %}
