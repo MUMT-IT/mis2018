@@ -195,6 +195,44 @@
                     </div>
                 </div>
             {% endif %}
+            <div class="customer-detail-section-card customer-detail-payment-card">
+                <div class="customer-detail-section-heading">
+                    <div>
+                        <p class="customer-detail-section-eyebrow">PAYMENT STATUS</p>
+                        <h2><i class="fas fa-file-invoice-dollar"></i> สถานะการค้างชำระ</h2>
+                    </div>
+                </div>
+                {% if lab_payments %}
+                    <div class="customer-payment-lab-grid">
+                        {% for lab_payment in lab_payments %}
+                            <div class="customer-payment-lab-card {% if lab_payment.overdue_invoice_count %}is-overdue{% else %}is-clear{% endif %}">
+                                <div class="customer-payment-lab-card-topline">
+                                    <span class="customer-payment-lab-icon"><i class="fas fa-flask-vial"></i></span>
+                                    <h3>{{ lab_payment.lab_name }}</h3>
+                                </div>
+                                <div class="customer-payment-status-panel">
+                                    <span class="customer-payment-status-icon">
+                                        {% if lab_payment.overdue_invoice_count %}<i class="fas fa-triangle-exclamation"></i>{% else %}<i class="fas fa-circle-check"></i>{% endif %}
+                                    </span>
+                                    <div>
+                                        <span>สถานะการชำระเงิน</span>
+                                        <strong>{{ lab_payment.status }}</strong>
+                                    </div>
+                                </div>
+                                <p class="customer-payment-lab-detail">
+                                    {% if lab_payment.overdue_invoice_count %}
+                                        ใบแจ้งหนี้เกิน 90 วัน {{ lab_payment.overdue_invoice_count }} รายการ
+                                    {% else %}
+                                        ไม่มีใบแจ้งหนี้ค้างชำระเกิน 90 วัน
+                                    {% endif %}
+                                </p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="customer-detail-empty">ยังไม่มีประวัติการใช้บริการห้องปฏิบัติการ</div>
+                {% endif %}
+            </div>
         </div>
     </section>
     <style>
@@ -245,6 +283,26 @@
         .customer-detail-small-button { margin-right: .5rem; }
         .customer-detail-attachment-table th { background: #f3f6fc; color: #425675; font-size: .8rem; }
         .customer-detail-attachment-table td { color: #425675; vertical-align: middle; }
+        .customer-detail-payment-card { margin-top: 1.25rem; }
+        .customer-payment-lab-grid { display: grid; gap: .85rem; grid-template-columns: 1fr; width: 100%; }
+        .customer-payment-lab-card { background: #fff; border: 1px solid #cfe5fb; border-radius: 14px; padding: .9rem; position: relative; width: 100%; }
+        .customer-payment-lab-card::before { background: #77b8ee; border-radius: 14px 0 0 14px; content: ''; inset: 0 auto 0 0; position: absolute; width: 4px; }
+        .customer-payment-lab-card.is-clear, .customer-payment-lab-card.is-overdue { background: #fff; border-color: #cfe5fb; }
+        .customer-payment-lab-card-topline { align-items: center; display: flex; gap: .7rem; margin-bottom: .7rem; }
+        .customer-payment-lab-icon { align-items: center; background: #eef6ff; border-radius: 9px; color: #2f80c9; display: inline-flex; height: 2rem; justify-content: center; width: 2rem; }
+        .customer-payment-lab-label { color: #718099; font-size: .7rem; font-weight: 800; letter-spacing: .14em; }
+        .customer-payment-lab-card h3 { color: #172f55; font-size: 1.08rem; font-weight: 800; line-height: 1.4; margin: 0; }
+        .customer-payment-status-panel { align-items: center; border: 1px solid; border-radius: 10px; display: flex; gap: .6rem; margin-bottom: .6rem; padding: .55rem .7rem; }
+        .customer-payment-lab-card.is-clear .customer-payment-status-panel { background: #e9f8ed; border-color: #c7e9d0; color: #16733a; }
+        .customer-payment-lab-card.is-overdue .customer-payment-status-panel { background: #ffe9e6; border-color: #f2c2bd; color: #bd3027; }
+        .customer-payment-status-icon { align-items: center; border-radius: 50%; display: inline-flex; flex: 0 0 1.75rem; font-size: .85rem; height: 1.75rem; justify-content: center; }
+        .customer-payment-lab-card.is-clear .customer-payment-status-icon { background: #c9eed3; }
+        .customer-payment-lab-card.is-overdue .customer-payment-status-icon { background: #ffc9c4; }
+        .customer-payment-status-panel div { display: flex; flex-direction: column; gap: .12rem; }
+        .customer-payment-status-panel span { font-size: .68rem; font-weight: 600; }
+        .customer-payment-status-panel strong { font-size: 1rem; line-height: 1.2; }
+        .customer-payment-lab-detail { color: #66738d; font-size: .72rem; line-height: 1.4; margin: 0; }
+        .customer-payment-lab-detail i { color: #718099; margin-right: .25rem; }
         @media screen and (max-width: 900px) { .customer-detail-info-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .customer-detail-columns > .column + .column { padding-left: 0; } }
         @media screen and (max-width: 768px) { .customer-detail-page { padding: 2rem 0; } .customer-detail-heading { align-items: flex-start; flex-direction: column; } .customer-detail-heading-actions { width: 100%; } .customer-detail-heading-actions .button { flex: 1; } }
         @media screen and (max-width: 480px) { .customer-detail-heading-copy { align-items: flex-start; flex-direction: column; } .customer-detail-info-grid { grid-template-columns: 1fr; } .customer-detail-profile-header, .customer-detail-address-topline { align-items: flex-start; flex-direction: column; } }
