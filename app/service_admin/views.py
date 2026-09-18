@@ -2338,6 +2338,7 @@ def customer_detail(customer_id):
             ServiceRequest.request_no.desc(),
         )
         .distinct(ServiceSubLab.lab_id)
+        .all()
     )
     return render_template(
         'service_admin/customer_detail.html',
