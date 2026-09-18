@@ -201,45 +201,45 @@
                     <div class="customer-detail-empty">ยังไม่มีเอกสารเพิ่มเติม</div>
                 {% endif %}
             </div>
-            <div class="customer-detail-section-card customer-detail-payment-card">
-                <div class="customer-detail-section-heading">
-                    <div>
-                        <p class="customer-detail-section-eyebrow">PAYMENT STATUS</p>
-                        <h2><i class="fas fa-file-invoice-dollar"></i> สถานะการค้างชำระ</h2>
-                    </div>
-                </div>
-                {% if lab_payments %}
-                    <div class="customer-payment-lab-grid">
-                        {% for lab_payment in lab_payments %}
-                            <div class="customer-payment-lab-card {% if lab_payment.overdue_invoice_count %}is-overdue{% else %}is-clear{% endif %}">
-                                <div class="customer-payment-lab-card-topline">
-                                    <span class="customer-payment-lab-icon"><i class="fas fa-flask-vial"></i></span>
-                                    <h3>{{ lab_payment.lab_name }}</h3>
-                                </div>
-                                <div class="customer-payment-status-panel">
-                                    <span class="customer-payment-status-icon">
-                                        {% if lab_payment.overdue_invoice_count %}<i class="fas fa-triangle-exclamation"></i>{% else %}<i class="fas fa-circle-check"></i>{% endif %}
-                                    </span>
-                                    <div>
-                                        <span>สถานะการชำระเงิน</span>
-                                        <strong>{{ lab_payment.status }}</strong>
-                                    </div>
-                                </div>
-                                <p class="customer-payment-lab-detail">
-                                    {% if lab_payment.overdue_invoice_count %}
-                                        ใบแจ้งหนี้เกิน 90 วัน {{ lab_payment.overdue_invoice_count }} รายการ
-                                        <a class="customer-payment-view-invoices" href="#customer-overdue-invoices">ดูรายละเอียด</a>
-                                    {% else %}
-                                        ไม่มีใบแจ้งหนี้ค้างชำระเกิน 90 วัน
-                                    {% endif %}
-                                </p>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="customer-detail-empty">ยังไม่มีประวัติการใช้บริการห้องปฏิบัติการ</div>
-                {% endif %}
-            </div>
+{#            <div class="customer-detail-section-card customer-detail-payment-card">#}
+{#                <div class="customer-detail-section-heading">#}
+{#                    <div>#}
+{#                        <p class="customer-detail-section-eyebrow">PAYMENT STATUS</p>#}
+{#                        <h2><i class="fas fa-file-invoice-dollar"></i> สถานะการค้างชำระ</h2>#}
+{#                    </div>#}
+{#                </div>#}
+{#                {% if lab_payments %}#}
+{#                    <div class="customer-payment-lab-grid">#}
+{#                        {% for lab_payment in lab_payments %}#}
+{#                            <div class="customer-payment-lab-card {% if lab_payment.overdue_invoice_count %}is-overdue{% else %}is-clear{% endif %}">#}
+{#                                <div class="customer-payment-lab-card-topline">#}
+{#                                    <span class="customer-payment-lab-icon"><i class="fas fa-flask-vial"></i></span>#}
+{#                                    <h3>{{ lab_payment.lab_name }}</h3>#}
+{#                                </div>#}
+{#                                <div class="customer-payment-status-panel">#}
+{#                                    <span class="customer-payment-status-icon">#}
+{#                                        {% if lab_payment.overdue_invoice_count %}<i class="fas fa-triangle-exclamation"></i>{% else %}<i class="fas fa-circle-check"></i>{% endif %}#}
+{#                                    </span>#}
+{#                                    <div>#}
+{#                                        <span>สถานะการชำระเงิน</span>#}
+{#                                        <strong>{{ lab_payment.status }}</strong>#}
+{#                                    </div>#}
+{#                                </div>#}
+{#                                <p class="customer-payment-lab-detail">#}
+{#                                    {% if lab_payment.overdue_invoice_count %}#}
+{#                                        ใบแจ้งหนี้เกิน 90 วัน {{ lab_payment.overdue_invoice_count }} รายการ#}
+{#                                        <a class="customer-payment-view-invoices" href="#customer-overdue-invoices">ดูรายละเอียด</a>#}
+{#                                    {% else %}#}
+{#                                        ไม่มีใบแจ้งหนี้ค้างชำระเกิน 90 วัน#}
+{#                                    {% endif %}#}
+{#                                </p>#}
+{#                            </div>#}
+{#                        {% endfor %}#}
+{#                    </div>#}
+{#                {% else %}#}
+{#                    <div class="customer-detail-empty">ยังไม่มีประวัติการใช้บริการห้องปฏิบัติการ</div>#}
+{#                {% endif %}#}
+{#            </div>#}
             {% if overdue_invoices %}
                 <div class="customer-detail-section-card customer-detail-overdue-card" id="customer-overdue-invoices">
                     <div class="customer-detail-section-heading">
