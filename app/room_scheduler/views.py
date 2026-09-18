@@ -1562,6 +1562,7 @@ def edit_admin_room(room_id):
             managed_room.business_hour_end = form.business_hour_end.data
             managed_room.availability = form.availability.data
             managed_room.type = form.type.data
+            managed_room.coordinators = form.coordinators.data
 
             db.session.execute(room_conjoined_assoc.delete().where(or_(
                 room_conjoined_assoc.c.room_id == managed_room.id,
@@ -1875,7 +1876,16 @@ def room_event_list():
     today = datetime.today()
     enddate = today + timedelta(days=7)
     _daterange = DateTimeRange(lower=today, upper=enddate, bounds='[)')
-    query = RoomEvent.query.filter(RoomEvent.datetime.op('&&')(_daterange)).filter_by(cancelled_at=None)
+    managed_room_ids = [managed_room.id for managed_room in current_user.rooms]
+    query = (
+        RoomEvent.query
+        .filter(RoomEvent.datetime.op('&&')(_daterange))
+        .filter(RoomEvent.cancelled_at.is_(None))
+        .filter(or_(
+            RoomEvent.room_id.in_(managed_room_ids),
+            RoomEvent.rooms.any(RoomResource.id.in_(managed_room_ids)),
+        ))
+    )
     for event in query:
         if event.note:
             flash(f'ห้อง{event.room} เวลา{event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m %H:%M")} ต้องการ{event.note}', 'warning')

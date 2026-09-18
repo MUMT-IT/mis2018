@@ -362,7 +362,7 @@ def procurement_planning_landing():
     ]
     funding_summary = {}
     for plan in plans:
-        label = str(plan.funding_source)
+        label = plan.funding_source_label
         summary = funding_summary.setdefault(label, {'label': label, 'count': 0, 'amount': 0})
         summary['count'] += 1
         summary['amount'] += plan.amount or 0

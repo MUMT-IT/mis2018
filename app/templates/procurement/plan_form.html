@@ -103,6 +103,9 @@
                                     {{ form.funding_source.label(class="label") }}
                                     <div class="select is-fullwidth">{{ form.funding_source() }}</div>
                                     {% for error in form.funding_source.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                    <label class="checkbox mt-3">
+                                        {{ form.is_unforecasted() }} {{ form.is_unforecasted.label.text }}
+                                    </label>
                                 </div>
                             </div>
                         </div>

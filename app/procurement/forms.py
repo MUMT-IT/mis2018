@@ -93,6 +93,7 @@ class ProcurementPlanForm(FlaskForm):
         get_label=lambda source: str(source),
         allow_blank=False,
     )
+    is_unforecasted = BooleanField(u'ไม่คาดการณ์')
     item = StringField(u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง', validators=[DataRequired(), Length(max=255)])
     product_code = QuerySelectField(
         u'ผลผลิต/โครงการ/รายงาน',
