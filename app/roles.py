@@ -19,6 +19,9 @@ with app.app_context():
         hr_confidential_role = Role.query.filter_by(role_need='hr_confidential', action_need=None, resource_id=None).first()
         finance_role = Role.query.filter_by(role_need='finance', action_need=None, resource_id=None).first()
         procurement_role = Role.query.filter_by(role_need='procurement', action_need=None, resource_id=None).first()
+        procurement_planning_role = Role.query.filter_by(
+            role_need='procurement_planning', action_need=None, resource_id=None
+        ).first()
         software_request_role = Role.query.filter_by(role_need='software_request', action_need=None, resource_id=None).first()
         # ot_secretary = Role.query.filter_by(role_need='secretary', action_need='ot', resource_id=None).first()
         procurement_committee_role = Role.query.filter_by(role_need='procurement_committee',
@@ -43,6 +46,7 @@ with app.app_context():
         hr_confidential_role = None
         finance_role = None
         procurement_role = None
+        procurement_planning_role = None
         software_request_role = None
         # ot_secretary = Role.query.filter_by(role_need='secretary', action_need='ot', resource_id=None).first()
         procurement_committee_role = None
@@ -61,6 +65,9 @@ with app.app_context():
     hr_confidential = Permission() if not hr_confidential_role else Permission(hr_confidential_role.to_tuple())
     finance_permission = Permission() if not finance_role else Permission(finance_role.to_tuple())
     procurement_permission = Permission() if not procurement_role else Permission(procurement_role.to_tuple())
+    procurement_planning_permission = Permission(('procurement_planning', None, None)) if not \
+        procurement_planning_role else Permission(procurement_planning_role.to_tuple())
+    procurement_plan_permission = procurement_permission.union(procurement_planning_permission)
     software_request_permission = Permission() if not software_request_role else Permission(software_request_role.to_tuple())
     # ot_secretary_permission = Permission()
     finance_procurement_permission = finance_permission.union(procurement_permission)

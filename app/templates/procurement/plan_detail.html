@@ -41,7 +41,7 @@
                 <div class="level mb-5">
                     <div><p class="heading">Procurement Planning</p><h1 class="title is-3 mb-2">รายละเอียดแผนจัดซื้อจัดจ้าง</h1></div>
                     <div>
-                        {% if can_manage_procurement %}<a class="button is-info is-light" href="{{ url_for('procurement.edit_procurement_plan', plan_id=plan.id) }}">แก้ไข</a>{% endif %}
+                        {% if can_edit_plan %}<a class="button is-info is-light" href="{{ url_for('procurement.edit_procurement_plan', plan_id=plan.id) }}">แก้ไข</a>{% endif %}
                         <a class="button is-light" href="{{ back_url or url_for('procurement.procurement_plans') }}">กลับรายการ</a>
                     </div>
                 </div>

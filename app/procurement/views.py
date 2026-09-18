@@ -41,7 +41,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from app.google_credential_utils import load_google_credentials_json
 
 from ..main import csrf, mail
-from ..roles import procurement_committee_permission, procurement_permission, finance_permission, \
+from ..roles import procurement_committee_permission, procurement_permission, procurement_plan_permission, finance_permission, \
     center_standardization_product_validation_permission
 
 style_sheet = getSampleStyleSheet()
@@ -314,6 +314,7 @@ def landing():
 
 @procurement.route('/planning')
 @login_required
+@procurement_plan_permission.require()
 def procurement_planning_landing():
     return render_template('procurement/procurement_planning_landing.html', active_page='dashboard')
 
@@ -331,6 +332,7 @@ def _procurement_plan_query():
 
 @procurement.route('/planning/plans')
 @login_required
+@procurement_plan_permission.require()
 def procurement_plans():
     plans = _procurement_plan_query().all()
     status = request.args.get('status')
@@ -347,6 +349,7 @@ def procurement_plans():
 
 @procurement.route('/planning/plans/new', methods=['GET', 'POST'])
 @login_required
+@procurement_plan_permission.require()
 def new_procurement_plan():
     form = ProcurementPlanForm()
     if form.validate_on_submit():
@@ -365,6 +368,7 @@ def new_procurement_plan():
 
 @procurement.route('/planning/plans/import', methods=['POST'])
 @login_required
+@procurement_plan_permission.require()
 def import_procurement_plans():
     selected_year = request.form.get('fiscal_year', type=int)
     if not selected_year or selected_year < 2500 or selected_year > 2700:
@@ -476,7 +480,7 @@ def import_procurement_plans():
 
 @procurement.route('/planning/plans/<int:plan_id>/edit', methods=['GET', 'POST'])
 @login_required
-@procurement_permission.require()
+@procurement_plan_permission.require()
 def edit_procurement_plan(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     form = ProcurementPlanForm(obj=plan)
@@ -568,14 +572,24 @@ def _can_create_plan_poll(plan):
     ).first() is not None
 
 
+def _can_view_procurement_plan(plan):
+    return procurement_plan_permission.can() or ProcurementPlanCommitteeMember.query.filter_by(
+        plan_id=plan.id,
+        staff_id=current_user.id,
+    ).first() is not None
+
+
 @procurement.route('/planning/plans/<int:plan_id>')
 @login_required
 def procurement_plan_detail(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
+    if not _can_view_procurement_plan(plan):
+        abort(403)
     committee_form = ProcurementPlanCommitteeMemberForm()
     return render_template('procurement/plan_detail.html', plan=plan, committee_form=committee_form,
                            active_page='plans', gantt_data=_procurement_plan_gantt_data(plan),
                            can_manage_procurement=procurement_permission.can(),
+                           can_edit_plan=procurement_plan_permission.can(),
                            can_create_plan_poll=_can_create_plan_poll(plan))
 
 
@@ -628,6 +642,8 @@ def new_procurement_plan_poll(plan_id):
 @login_required
 def procurement_plan_poll_results(plan_id, poll_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
+    if not _can_view_procurement_plan(plan):
+        abort(403)
     from app.besttime.models import BestTimeDateTimeSlot, BestTimePoll
 
     poll = BestTimePoll.query.filter_by(
@@ -657,6 +673,8 @@ def procurement_plan_poll_results(plan_id, poll_id):
 @login_required
 def procurement_plan_poll_vote(plan_id, poll_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
+    if not _can_view_procurement_plan(plan):
+        abort(403)
     from app.besttime.forms import BestTimePollMessageForm, BestTimePollVoteForm
     from app.besttime.models import BestTimePoll, BestTimePollVote
     from app.besttime.views import _populate_vote_form
