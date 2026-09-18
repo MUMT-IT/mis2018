@@ -5,7 +5,6 @@
     <section class="customer-detail-page section">
         <div class="container is-fluid customer-detail-container">
             {% include 'messages.html' %}
-
             <div class="customer-detail-heading">
                 <div class="customer-detail-heading-copy">
                     <span class="customer-detail-heading-icon" aria-hidden="true">
@@ -71,7 +70,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="columns is-variable is-5 customer-detail-columns">
                 <div class="column is-half">
                     <div class="customer-detail-section-card">
@@ -212,6 +210,52 @@
                     <div class="customer-detail-empty">ยังไม่มีเอกสารเพิ่มเติม</div>
                 {% endif %}
             </div>
+            <div class="customer-detail-section-card customer-detail-request-card">
+                <div class="customer-detail-section-heading">
+                    <div>
+                        <p class="customer-detail-section-eyebrow">LATEST SERVICES</p>
+                        <h2><i class="fas fa-flask-vial"></i> บริการล่าสุด</h2>
+                    </div>
+                    <span class="customer-detail-section-count">{{ latest_service_requests|length }}</span>
+                </div>
+
+                {% if latest_service_requests %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth customer-detail-request-table">
+                            <thead>
+                            <tr>
+                                <th>ห้องปฏิบัติการ</th>
+                                <th>บริการ</th>
+                                <th>เลขที่คำขอ</th>
+                                <th>วันที่ยื่นคำขอ</th>
+                                <th>สถานะ</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for service_request in latest_service_requests %}
+                                <tr>
+                                    <td>{{ service_request.sub_lab.lab.lab if service_request.sub_lab and service_request.sub_lab.lab else '-' }}</td>
+                                    <td>{{ service_request.sub_lab.sub_lab if service_request.sub_lab else '-' }}</td>
+                                    <td><strong>{{ service_request.request_no or '-' }}</strong></td>
+                                    <td>{{ service_request.created_at|localdate if service_request.created_at else '-' }}</td>
+                                    <td>
+                                        {% if service_request.status %}
+                                            <span class="tag {{ service_request.status.customer_status_color or 'is-light' }}">
+                                                {{ service_request.status.customer_status or service_request.status.admin_status or '-' }}
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="customer-detail-empty">ยังไม่มีประวัติการใช้บริการ</div>
+                {% endif %}
+            </div>
 {#            <div class="customer-detail-section-card customer-detail-payment-card">#}
 {#                <div class="customer-detail-section-heading">#}
 {#                    <div>#}
@@ -334,6 +378,10 @@
         .customer-detail-section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1rem; }
         .customer-detail-section-heading h2 { color: #1e3152; font-size: 1.08rem; font-weight: 800; margin: 0; }
         .customer-detail-section-count { align-items: center; display: inline-flex; font-size: .78rem; height: 1.8rem; justify-content: center; min-width: 1.8rem; padding: 0 .5rem; }
+        .customer-detail-request-card { margin-top: 1.25rem; }
+        .customer-detail-request-table th { background: #f3f6fc; color: #425675; font-size: .8rem; }
+        .customer-detail-request-table td { color: #425675; vertical-align: middle; }
+        .customer-detail-request-table td strong { color: #1e3152; }
         .customer-detail-contact-item, .customer-detail-account-item { align-items: flex-start; border-top: 1px solid #edf1f7; display: flex; gap: .75rem; padding-top: 1rem; }
         .customer-detail-contact-item + .customer-detail-contact-item, .customer-detail-account-item + .customer-detail-account-item { margin-top: 1rem; }
         .customer-detail-contact-copy, .customer-detail-account-item > div { min-width: 0; }
