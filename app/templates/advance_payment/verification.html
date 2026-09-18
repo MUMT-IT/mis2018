@@ -29,7 +29,7 @@
     </div>
     <div class="col-6 col-md-4">
         <h4 class="text-muted small mb-1"><strong>เลขที่บย.</strong></h4>
-        <h5 class="mb-0 text-dark fw-semibold">{{borrowing_ticket.number}}</h5>
+        <h5 class="mb-0 text-dark fw-semibold">{{borrowing_ticket.number if borrowing_ticket.number else 'รอการตั้งเลขบย.' }}</h5>
     </div></br>
     <div class="row g-3 text-start mb-3">
       <div class="col-12 col-md-4">
@@ -91,11 +91,19 @@
       <div class="row g-3 text-start">
         <div class="col-4">
           <p class="text-muted small mb-1"><strong>ยอดคืนรวม</strong></p>
-          <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</p>
+          {% if (summary.cumulative_total or 0) >= (borrowing_ticket.required_budget or 0) %}
+            <h4 class="mb-0 text-success fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</h4>
+          {% else %}
+            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</p>
+          {% endif %}
         </div>
         <div class="col-4">
           <p class="text-muted small mb-1"><strong>ยอดคงค้าง</strong></p>
-          <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.remaining_amount or 0) }}</p>
+          {% if (summary.remaining_amount or 0) > 0 %}
+            <h4 class="mb-0 text-danger fw-semibold">{{ "{:,.2f}".format(summary.remaining_amount or 0) }}</h4>
+          {% else %}
+            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.remaining_amount or 0) }}</p>
+          {% endif %}
         </div>
         <div class="col-4">
           <p class="text-muted small mb-1"><strong>วันครบกำหนด</strong></p>
@@ -221,7 +229,7 @@
         </div>
       </div>
     </div>
-    {% if borrowing_ticket.status|lower != "กำลังส่งคำขอ" %}
+    {% if borrowing_ticket.status|lower != "กำลังส่งคำขอ" and session.get("user_role") == "finance" %}
       <div class="d-flex justify-content-end w-100">
           <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -276,7 +284,7 @@
                 {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-secondary text-white' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
                 {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
                 {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
-                {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธ' %}{% endif %}
+                {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
                 
                 <span class="badge {{ r_badge }}">{{ r_status }}</span>
               </td>
