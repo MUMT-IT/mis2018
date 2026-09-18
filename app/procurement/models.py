@@ -3,7 +3,7 @@ import os
 
 import boto3
 import qrcode
-from sqlalchemy import func
+from sqlalchemy import func, text
 from wtforms.validators import DataRequired
 
 from app.main import db
@@ -88,6 +88,8 @@ class ProcurementPlan(db.Model):
                                   db.ForeignKey('procurement_funding_sources.id'), nullable=False)
     funding_source = db.relationship('ProcurementFundingSource',
                                      backref=db.backref('procurement_plans', lazy='dynamic'))
+    is_unforecasted = db.Column('is_unforecasted', db.Boolean(), nullable=False, default=False,
+                                server_default=text('false'), info={'label': u'ไม่คาดการณ์'})
     item = db.Column('item', db.String(255), info={'label': u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง'})
     output_project_report_id = db.Column(
         'output_project_report_id',
@@ -154,6 +156,13 @@ class ProcurementPlan(db.Model):
 
     def __str__(self):
         return u'{}: {}'.format(self.fiscal_year, str(self.product_code or self.output_project_report)[:80])
+
+    @property
+    def funding_source_label(self):
+        label = str(self.funding_source)
+        if self.is_unforecasted:
+            return u'{} (ไม่คาดการณ์)'.format(label)
+        return label
 
     @property
     def status_date(self):

@@ -69,7 +69,7 @@
                                 <tr>
                                     <td><a href="{{ url_for('staff.procurement_budget_plan_detail', plan_id=plan.id, fiscal_year=fiscal_year) }}"><strong>{{ plan.item or '-' }}</strong></a></td>
                                     <td>{{ plan.output_project_report }}</td>
-                                    <td>{{ plan.funding_source }}</td>
+                                    <td>{{ plan.funding_source_label }}</td>
                                     <td>{{ plan.procurement_method }}</td>
                                     <td class="has-text-right">{{ "{:,.2f}".format(plan.amount) }}</td>
                                     <td><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span></td>
