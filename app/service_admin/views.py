@@ -2326,43 +2326,43 @@ def customer_detail(customer_id):
                            lab_payments=lab_payments, overdue_invoices=overdue_invoices)
 
 
-def _build_customer_lab_payments(customer):
-    today = arrow.now('Asia/Bangkok').date()
-    service_requests = (
-        ServiceRequest.query
-        .join(ServiceRequest.customer)
-        .options(
-            joinedload(ServiceRequest.sub_lab).joinedload(ServiceSubLab.lab),
-            selectinload(ServiceRequest.quotations).selectinload(ServiceQuotation.invoices),
-        )
-        .filter(ServiceCustomerAccount.customer_info_id == customer.id)
-    )
-
-    labs = {}
-    for service_request in service_requests:
-        sub_lab = service_request.sub_lab
-        lab = sub_lab.lab if sub_lab else None
-        if not lab:
-            continue
-
-        lab_status = labs.setdefault(lab.id, {
-            'lab_no': lab.no,
-            'lab_name': lab.lab or 'ไม่ระบุห้องปฏิบัติการ',
-            'overdue_invoice_count': 0,
-            'status': 'ไม่ค้างชำระ',
-            'status_color': 'is-success is-light',
-        })
-
-        for quotation in service_request.quotations:
-            for invoice in quotation.invoices:
-                if invoice.due_date and not invoice.payments.first():
-                    due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
-                    overdue_days = (today - due_date).days
-                    if overdue_days > 90:
-                        lab_status['overdue_invoice_count'] += 1
-                        lab_status['status'] = 'ค้างชำระ'
-                        lab_status['status_color'] = 'is-danger is-light'
-    return sorted(labs.values(), key=lambda item:item['lab_no'])
+# def _build_customer_lab_payments(customer):
+#     today = arrow.now('Asia/Bangkok').date()
+#     service_requests = (
+#         ServiceRequest.query
+#         .join(ServiceRequest.customer)
+#         .options(
+#             joinedload(ServiceRequest.sub_lab).joinedload(ServiceSubLab.lab),
+#             selectinload(ServiceRequest.quotations).selectinload(ServiceQuotation.invoices),
+#         )
+#         .filter(ServiceCustomerAccount.customer_info_id == customer.id)
+#     )
+#
+#     labs = {}
+#     for service_request in service_requests:
+#         sub_lab = service_request.sub_lab
+#         lab = sub_lab.lab if sub_lab else None
+#         if not lab:
+#             continue
+#
+#         lab_status = labs.setdefault(lab.id, {
+#             'lab_no': lab.no,
+#             'lab_name': lab.lab or 'ไม่ระบุห้องปฏิบัติการ',
+#             'overdue_invoice_count': 0,
+#             'status': 'ไม่ค้างชำระ',
+#             'status_color': 'is-success is-light',
+#         })
+#
+#         for quotation in service_request.quotations:
+#             for invoice in quotation.invoices:
+#                 if invoice.due_date and not invoice.payments.first():
+#                     due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+#                     overdue_days = (today - due_date).days
+#                     if overdue_days > 90:
+#                         lab_status['overdue_invoice_count'] += 1
+#                         lab_status['status'] = 'ค้างชำระ'
+#                         lab_status['status_color'] = 'is-danger is-light'
+#     return sorted(labs.values(), key=lambda item:item['lab_no'])
 
 
 def _get_customer_overdue_invoices(customer):
