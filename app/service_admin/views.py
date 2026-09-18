@@ -2322,7 +2322,29 @@ def customer_detail(customer_id):
     customer = ServiceCustomerInfo.query.get(customer_id)
     # lab_payments = _build_customer_lab_payments(customer)
     overdue_invoices = _get_customer_overdue_invoices(customer)
-    return render_template('service_admin/customer_detail.html', customer=customer, overdue_invoices=overdue_invoices)
+    latest_service_requests = (
+        ServiceRequest.query
+        .join(ServiceRequest.customer)
+        .join(ServiceRequest.sub_lab)
+        .options(
+            joinedload(ServiceRequest.sub_lab)
+            .joinedload(ServiceSubLab.lab)
+        )
+        .filter(
+            ServiceCustomerAccount.customer_info_id == customer.id
+        )
+        .order_by(
+            ServiceSubLab.lab_id,
+            ServiceRequest.request_no.desc(),
+        )
+        .distinct(ServiceSubLab.lab_id)
+    )
+    return render_template(
+        'service_admin/customer_detail.html',
+        customer=customer,
+        overdue_invoices=overdue_invoices,
+        latest_service_requests=latest_service_requests
+    )
 
 
 # def _build_customer_lab_payments(customer):
