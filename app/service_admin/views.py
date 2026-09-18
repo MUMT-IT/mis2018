@@ -29,7 +29,7 @@ from app.service_admin import service_admin
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
     send_file
 from flask_login import current_user, login_required, login_user
-from sqlalchemy import or_, update, and_, case, func
+from sqlalchemy import or_, update, and_, case, func, cast, Date
 from app.service_admin.forms import *
 from app.main import app, get_credential
 from app.main import mail
@@ -2321,14 +2321,12 @@ def search_customer():
 def customer_detail(customer_id):
     customer = ServiceCustomerInfo.query.get(customer_id)
     lab_payments = _build_customer_lab_payments(customer)
+    overdue_invoices = _get_customer_overdue_invoices(customer)
     return render_template('service_admin/customer_detail.html', customer=customer,
-                           lab_payments=lab_payments)
+                           lab_payments=lab_payments, overdue_invoices=overdue_invoices)
 
 
 def _build_customer_lab_payments(customer):
-    if not customer:
-        return []
-
     today = arrow.now('Asia/Bangkok').date()
     service_requests = (
         ServiceRequest.query
@@ -2338,7 +2336,6 @@ def _build_customer_lab_payments(customer):
             selectinload(ServiceRequest.quotations).selectinload(ServiceQuotation.invoices),
         )
         .filter(ServiceCustomerAccount.customer_info_id == customer.id)
-        .all()
     )
 
     labs = {}
@@ -2366,6 +2363,42 @@ def _build_customer_lab_payments(customer):
                         lab_status['status'] = 'ค้างชำระ'
                         lab_status['status_color'] = 'is-danger is-light'
     return sorted(labs.values(), key=lambda item:item['lab_no'])
+
+
+def _get_customer_overdue_invoices(customer):
+    today = arrow.now('Asia/Bangkok')
+    cutoff_date = today.shift(days=-90).date()
+    invoices = (
+        ServiceInvoice.query
+        .options(
+            joinedload(ServiceInvoice.quotation)
+            .joinedload(ServiceQuotation.request)
+            .joinedload(ServiceRequest.customer)
+        )
+        .filter(ServiceInvoice.due_date.isnot(None),
+                cast(ServiceInvoice.due_date, Date) < cutoff_date,
+                ~ServiceInvoice.payments.any(),
+                ServiceInvoice.quotation.has(
+                    ServiceQuotation.request.has(
+                        ServiceRequest.customer.has(
+                            ServiceCustomerAccount.customer_info_id == customer.id
+                    )
+                )
+            ),
+        )
+        .order_by(ServiceInvoice.due_date.asc())
+    )
+
+    return [
+        {
+            'invoice': invoice,
+            'request_no': invoice.quotation.request.request_no,
+            'lab_name': invoice.quotation.request.sub_lab.lab.lab,
+            'days_overdue': (today.date() - arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+            ).days,
+        }
+        for invoice in invoices
+    ]
 
 
 @service_admin.route('/customer/register/closing-page')
@@ -6913,6 +6946,7 @@ def upload_invoice_file(invoice_id):
 def view_invoice(invoice_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    customer_id = request.args.get('customer_id', type=int)
     invoice = ServiceInvoice.query.get(invoice_id)
     admin_lab = (
         ServiceAdmin.query
@@ -6926,7 +6960,8 @@ def view_invoice(invoice_id):
     dean = invoice.quotation.request.sub_lab.signer if invoice.quotation.request.sub_lab.signer_id == current_user.id else None
     central_admin = any(a for a in admin_lab if a.is_central_admin)
     return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin, menu=menu,
-                           supervisor=supervisor, assistant=assistant, dean=dean, central_admin=central_admin, tab=tab)
+                           supervisor=supervisor, assistant=assistant, dean=dean, central_admin=central_admin, tab=tab,
+                           customer_id=customer_id)
 
 
 @service_admin.route('/central_admin/invoice/view/<int:invoice_id>', methods=['GET'])
