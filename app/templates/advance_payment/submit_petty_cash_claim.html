@@ -127,8 +127,8 @@
 {% set total_parcel_amount = fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 %}
 {% set is_over_request = (total_claimed_amount + total_parcel_amount) > total_request_amount if total_request_amount else false %}
 {% if can_submit_claim %}
-<div class="card shadow-sm border rounded-4 bg-white mb-5">
-  <div class="card-body p-4">
+<div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
+    <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
     <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden"
@@ -185,9 +185,6 @@
                 <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
                   <i class="bi bi-download me-1"></i> ดาวน์โหลด
                 </a>
-                <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
-                  <i class="bi bi-x-circle-fill"></i> ลบ
-                </button>
               </div>
             </div>
           {% endif %}
@@ -199,10 +196,8 @@
 <!--          <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบการเบิกเงินยืมด้วย *</small>-->
 <!--        </div>-->
       </div>
-
-      <h5 class="fw-bold text-dark mb-3"><i class="bi bi-receipt me-2 text-primary"></i>รายการหลักฐานใบเสร็จส่งเบิก</h5>
-      
-      <div class="table-responsive mb-4">
+      <div class="mb-4 border rounded-3 p-3 bg-white">
+      <div class="table-responsive">
         <table class="table table-bordered align-middle" id="claimTable">
           <thead class="table-light small fw-bold">
             <tr>
@@ -302,8 +297,8 @@
         </table>
       </div>
 
-      <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-end justify-content-between p-3 bg-light rounded-3 mb-4 gap-3">
-        <button type="button" class="btn btn-sm btn-success fw-bold" onclick="addRow()">
+      <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-end justify-content-between p-3 bg-light rounded-3 mb-0 gap-3 border">
+        <button type="button" class="btn btn-sm btn-primary text-white px-3 py-2 shadow-sm fw-bold" onclick="addRow()" style="border-radius: 6px;">
           <i class="bi bi-plus-lg me-1"></i> เพิ่มรายการใบเสร็จ
         </button>
       <div class="d-flex flex-column gap-2 ms-lg-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
@@ -330,6 +325,7 @@
           <span class="visually-hidden" id="totalAmountDisplay" data-request-amount="{{ fund_request_total_info.request_amount if fund_request_total_info is defined else 0 }}" data-existing-claim-total="{{ fund_request_total_info.claim_total if fund_request_total_info is defined else 0 }}" data-parcel-total="{{ fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 }}">0.00</span>
         </div>
       </div>
+      </div>
 
       {% if is_over_request %}
       <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
@@ -348,7 +344,6 @@
       </div>
 
     </form>
-  </div>
 </div>
 
 <!-- ส่วนยอดการคืนที่ส่งไปฝ่ายพัสดุ -->

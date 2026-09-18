@@ -190,9 +190,9 @@
                 <p class="text-muted mb-0">ได้ทำการส่งเอกสารเบิกครบแล้ว รอการตรวจสอบจากฝ่ายการเงิน</p>
               </div>
             {% else %}
+            <h2 class="h5 fw-bold text-dark mb-3">ชื่อโครงการ/วัตถุประสงค์: {{ borrowing_ticket.borrowing_ticket_purpose }}</h2>
             <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
-              <h3 class="h5 fw-bold text-dark mb-3">ชื่อโครงการ/วัตถุประสงค์: {{ borrowing_ticket.borrowing_ticket_purpose }}</h3>
-              
+              <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
               <form method="post" action="{{ url_for('advance_payment.submit_return_details', ticket_id=borrowing_ticket.id) }}" enctype="multipart/form-data" id="returnForm_{{ borrowing_ticket.id }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="ticket_id" value="{{ borrowing_ticket.id }}">
@@ -241,9 +241,6 @@
                             <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
                               <i class="bi bi-download me-1"></i> ดาวน์โหลด
                             </a>
-                            <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
-                              <i class="bi bi-x-circle-fill"></i> ลบ
-                            </button>
                           </div>
                         </div>
                       {% endif %}
