@@ -163,15 +163,15 @@
                     {% endfor %}
                 </div>
             </div>
-            {% if customer.attachments %}
-                <div class="customer-detail-section-card customer-detail-attachment-card">
-                    <div class="customer-detail-section-heading">
-                        <div>
-                            <p class="customer-detail-section-eyebrow">DOCUMENTS</p>
-                            <h2><i class="fas fa-paperclip"></i> เอกสารเพิ่มเติม</h2>
-                        </div>
-                        <span class="customer-detail-section-count">{{ customer.attachments|length }}</span>
+            <div class="customer-detail-section-card customer-detail-attachment-card">
+                <div class="customer-detail-section-heading">
+                    <div>
+                        <p class="customer-detail-section-eyebrow">DOCUMENTS</p>
+                        <h2><i class="fas fa-paperclip"></i> เอกสารเพิ่มเติม</h2>
                     </div>
+                    <span class="customer-detail-section-count">{{ customer.attachments|length }}</span>
+                </div>
+                {% if customer.attachments %}
                     <div class="table-container">
                         <table class="table is-fullwidth customer-detail-attachment-table">
                             <thead><tr><th>ชื่อเอกสาร</th><th>รายละเอียด</th><th class="has-text-centered">ไฟล์</th></tr></thead>
@@ -183,7 +183,8 @@
                                     <td class="has-text-centered">
                                         {% if attachment.file %}
                                             <a class="button is-small is-link is-light"
-                                               href="{{ url_for('service_admin.download_file', key=attachment.file, download_filename=attachment.file_name) }}">
+                                               href="{{ url_for('service_admin.download_file', key=attachment.file,
+                                               download_filename=attachment.file_name + '.pdf') }}">
                                                 <span class="icon"><i class="fas fa-download"></i></span><span>ดาวน์โหลด</span>
                                             </a>
                                         {% else %}-{% endif %}
@@ -193,8 +194,10 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-            {% endif %}
+                {% else %}
+                    <div class="customer-detail-empty">ยังไม่มีเอกสารเพิ่มเติม</div>
+                {% endif %}
+            </div>
             <div class="customer-detail-section-card customer-detail-payment-card">
                 <div class="customer-detail-section-heading">
                     <div>
