@@ -2447,7 +2447,7 @@ def create_request_id(sub_lab_id):
         db.session.commit()
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_index', customer_id=customer_id)
-        flash('บันทึกข้อมูลลำเร็จ', 'success')
+        flash('สร้าง Request ID ลำเร็จ', 'success')
         return resp
     return redirect(url_for('service_admin.external_lab_index', customer_id=customer_id))
 
