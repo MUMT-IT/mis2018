@@ -178,11 +178,25 @@
       </div>
       <div class="card-body px-4 pb-4">
         {% set ns = namespace(has_actionable_tickets=false) %}
-        
-        {% for borrowing_ticket in borrowing_ticket_history %}
-          {% set ticket_status = borrowing_ticket.status %}
-          {% if ticket_status in ['อนุมัติจ่ายเงิน', 'มียอดคงค้าง'] %}
-            {% set ns.has_actionable_tickets = true %}
+        {% if actionable_tickets %}
+          <div class="row px-3 w-100 mb-4">
+            <label for="selected_return_ticket_id" class="form-label fw-bold text-dark">
+              <i class="bi bi-file-earmark-text me-1 text-primary"></i> เลือกสัญญาเงินยืม
+            </label>
+            <select id="selected_return_ticket_id" class="form-select border-primary" onchange="switchReturnTicketForm(this.value)">
+              <option value="" selected>โปรดเลือกสัญญาเงินยืม</option>
+              {% for ticket in actionable_tickets %}
+                <option value="{{ ticket.id }}">
+                  เลขที่สัญญา: {{ ticket.number or ticket.id }} | ผู้ยืม: {{ ticket.borrower_name }} - {{ ticket.borrowing_ticket_purpose }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endif %}
+
+        {% for borrowing_ticket in actionable_tickets %}
+          {% set ns.has_actionable_tickets = true %}
+          <div id="returnTicketPanel_{{ borrowing_ticket.id }}" class="return-ticket-panel d-none">
 
             {% if (borrowing_ticket.submitted_return_total or 0)|float >= (borrowing_ticket.required_budget or 0)|float %}
               <div class="text-center my-4">
@@ -378,7 +392,7 @@
               </form>
             </div>
             {% endif %}
-          {% endif %}
+          </div>
         {% endfor %}
 
         {% if not ns.has_actionable_tickets %}
@@ -591,6 +605,12 @@
   </div>
 
   <script>
+    function switchReturnTicketForm(ticketId) {
+      document.querySelectorAll('.return-ticket-panel').forEach(panel => {
+        panel.classList.toggle('d-none', panel.id !== `returnTicketPanel_${ticketId}`);
+      });
+    }
+
     function formatInputNumberWithComma(element) {
       let value = element.value.replace(/,/g, "").replace(/[^0-9.]/g, "");
       const parts = value.split(".");

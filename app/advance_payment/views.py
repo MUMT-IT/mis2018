@@ -32,7 +32,7 @@ from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturn
 from .email_utils import generate_notification_email_content
 from . import advance_payment as bp, thai_date
 from app.models import CostCenter, IOCode, Org, ProductCode
-from app.staff.models import StaffHeadPosition
+from app.staff.models import StaffHeadPosition, StaffPersonalInfo
 from app.docs_query.models import DocsQueryDocument, DocsQueryTag
 
 
@@ -506,7 +506,18 @@ def _can_submit_return_detail(user_id, borrowing_ticket):
     if not user_id or not borrowing_ticket:
         return False
 
-    return user_id in {borrowing_ticket.creator_id, borrowing_ticket.borrower_id}
+    if user_id in {borrowing_ticket.creator_id, borrowing_ticket.borrower_id}:
+        return True
+
+    current_user = _get_user_by_id(user_id)
+    borrower = _get_user_by_id(getattr(borrowing_ticket, "borrower_id", None))
+    current_org = _get_staff_org(current_user)
+    borrower_org = _get_staff_org(borrower)
+    return bool(
+        current_org
+        and borrower_org
+        and getattr(current_org, "id", None) == getattr(borrower_org, "id", None)
+    )
 
 
 def _get_fund_request_by_id(fund_request_id):
@@ -1876,7 +1887,27 @@ def coordinator_dashboard():
         .all()
     )
 
-    for ticket in borrowing_ticket_history:
+    actionable_tickets = []
+    if is_borrower_mode:
+        current_org_id = getattr(_get_staff_org(current_user), "id", None)
+        if current_org_id:
+            actionable_tickets = (
+                db.session.query(BorrowingTicket)
+                .join(StaffAccount, StaffAccount.id == BorrowingTicket.borrower_id)
+                .join(StaffPersonalInfo, StaffPersonalInfo.id == StaffAccount.personal_id)
+                .filter(
+                    StaffPersonalInfo.org_id == current_org_id,
+                    BorrowingTicket.status.in_(["อนุมัติจ่ายเงิน", "มียอดคงค้าง"]),
+                )
+                .order_by(BorrowingTicket.id.desc())
+                .all()
+            )
+
+    tickets_with_return_forms = list({
+        ticket.id: ticket
+        for ticket in borrowing_ticket_history + actionable_tickets
+    }.values())
+    for ticket in tickets_with_return_forms:
         draft_detail = (
             db.session.query(ReturnDetail)
             .filter_by(ticket_id=ticket.id, status="ฉบับร่าง")
@@ -1973,6 +2004,18 @@ def coordinator_dashboard():
                     ticket.summary_days_remaining = rem
                     if summary_days_remaining is None or rem < summary_days_remaining:
                         summary_days_remaining = rem
+
+    history_ticket_ids = {ticket.id for ticket in borrowing_ticket_history}
+    for ticket in actionable_tickets:
+        if ticket.id in history_ticket_ids:
+            continue
+        ticket_display_totals = _calculate_ticket_return_totals_with_parcel(
+            ticket.id,
+            exclude_return_id=ticket.draft_detail.id if ticket.draft_detail else None,
+        )
+        ticket.parcel_return_total = ticket_display_totals["parcel_total"]
+        ticket.submitted_return_total = ticket_display_totals["cumulative_total"]
+        ticket.ticket_remaining = _calculate_ticket_return_totals(ticket.id)["remaining_amount"]
 
     if request.method == "POST":
         post_data = request.form.copy()
@@ -2118,6 +2161,7 @@ def coordinator_dashboard():
         summary_overdue_days=summary_overdue_days,
         dept_users=dept_users,
         current_user=current_user,
+        actionable_tickets=actionable_tickets,
     )
 
 @bp.route("/coordinator/ticket/<int:ticket_id>/pdf", endpoint="coordinator_ticket_pdf")
@@ -2827,6 +2871,12 @@ def _recalculate_fund_request_submission_status(fund_request_id):
 @bp.route("/borrower/tickets/<int:ticket_id>/parcel-return", methods=["POST"])
 @login_required()
 def submit_parcel_return(ticket_id):
+    borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
+    if borrowing_ticket is None:
+        abort(404)
+    if not _can_submit_return_detail(session.get("user_id"), borrowing_ticket):
+        abort(403)
+
     amount = request.form.get("amount", "0").replace(",", "")
     items_description = request.form.get("items_description", "").strip()
     sent_date_str = request.form.get("sent_date")
