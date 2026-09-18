@@ -3110,7 +3110,9 @@ def reject_parcel_return(parcel_return_id):
 @login_required()
 def suggest_documents():
     q = request.args.get("q", "").strip()
-    docs = _list_cash_mng_documents(search_query=q, limit=20)
+    # เปิดช่องค้นหาโดยไม่พิมพ์อะไร ให้แสดงเอกสารทั้งหมดก่อน
+    # ส่วนการค้นหาด้วยข้อความยังจำกัดผลลัพธ์ไว้เพื่อไม่ให้รายการยาวเกินไป
+    docs = _list_cash_mng_documents(search_query=q, limit=20 if q else None)
     return jsonify([
         {
             "id": doc["file_id"] or doc["id"],

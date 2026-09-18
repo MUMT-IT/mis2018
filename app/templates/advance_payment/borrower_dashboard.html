@@ -211,6 +211,7 @@
                                     placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
                                     autocomplete="off"
                                     value="{{ doc.title }}"
+                                    onfocus="showSuggestions(this, {{ borrowing_ticket.id }}, false)"
                                     oninput="showSuggestions(this, {{ borrowing_ticket.id }})">
                               <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
                             </div>
@@ -233,6 +234,7 @@
                                   class="form-control form-control-sm announcement-input" 
                                   placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
                                   autocomplete="off"
+                                  onfocus="showSuggestions(this, {{ borrowing_ticket.id }}, false)"
                                   oninput="showSuggestions(this, {{ borrowing_ticket.id }})">
                             <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
                           </div>
@@ -982,6 +984,7 @@
                 class="form-control form-control-sm announcement-input" 
                 placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
                 autocomplete="off"
+                onfocus="showSuggestions(this, ${ticketId}, false)"
                 oninput="showSuggestions(this, ${ticketId})">
           <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
         </div>
@@ -1009,20 +1012,16 @@
       }
     }
 
-    async function showSuggestions(inputElem, ticketId) {
+    async function showSuggestions(inputElem, ticketId, resetSelection = true) {
       const query = inputElem.value.trim();
       const row = inputElem.closest('.document-input-row');
       const suggestionsBox = row.querySelector('.suggestions-box');
       const downloadBtn = row.querySelector('.download-btn');
       const idInput = row.querySelector('.announcement-id-input');
 
-      downloadBtn.classList.add('d-none');
-      if (idInput) idInput.value = '';
-
-      if (query.length === 0) {
-        suggestionsBox.classList.add('d-none');
-        suggestionsBox.innerHTML = '';
-        return;
+      if (resetSelection) {
+        downloadBtn.classList.add('d-none');
+        if (idInput) idInput.value = '';
       }
 
   try {
