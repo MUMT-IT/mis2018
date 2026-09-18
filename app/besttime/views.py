@@ -14,7 +14,7 @@ from app.besttime.forms import BestTimePollMessageForm, BestTimePollForm, BestTi
 from app.besttime.models import *
 from app.main import mail
 from app.procurement.models import ProcurementPlan, ProcurementPlanCommitteeMember
-from app.roles import procurement_permission
+from app.roles import procurement_plan_permission
 from app.staff.views import send_mail as base_send_mail
 
 VoteHour = namedtuple('VoteHour', ['start', 'end'])
@@ -205,6 +205,7 @@ def add_poll():
     tab = request.args.get('tab')
     procurement_plan_id = request.args.get('procurement_plan_id', type=int)
     return_to_plan = request.args.get('return_to_plan', type=int)
+    return_to_staff = request.args.get('return_to_staff', type=int) == 1
     procurement_plan = None
     if procurement_plan_id:
         procurement_plan = ProcurementPlan.query.get_or_404(procurement_plan_id)
@@ -213,8 +214,12 @@ def add_poll():
             staff_id=current_user.id,
             role='chairman',
         ).first() is not None
-        if not procurement_permission.can() and not is_chairman:
+        if return_to_staff and not is_chairman:
             abort(403)
+        if not return_to_staff and not procurement_plan_permission.can() and not is_chairman:
+            abort(403)
+        if procurement_plan.committee_members.count() == 0:
+            abort(400)
     form = BestTimePollForm()
     if request.method == 'POST':
         add_datetime_slot_choices(form, form.datetime_slots)
@@ -272,6 +277,10 @@ def add_poll():
             else:
                 print('msg', msg, 'user', [c.voter.line_id for c in poll.invitations])
             if return_to_plan and procurement_plan and return_to_plan == procurement_plan.id:
+                if return_to_staff:
+                    return redirect(url_for('staff.procurement_budget_plan_detail',
+                                            plan_id=procurement_plan.id,
+                                            fiscal_year=procurement_plan.fiscal_year))
                 return redirect(url_for('procurement.procurement_plan_detail', plan_id=procurement_plan.id))
             return redirect(url_for('besttime.index', tab=tab))
         else:
@@ -568,19 +577,22 @@ def _populate_vote_form(form, poll, vote=None):
 def vote_poll(poll_id):
     tab = request.args.get('tab')
     return_to_plan = request.args.get('return_to_plan', type=int)
+    return_to_staff = request.args.get('return_to_staff', type=int) == 1
     poll = BestTimePoll.query.get(poll_id)
     today = arrow.now('Asia/Bangkok').date()
     if today < poll.vote_start_date or today > poll.vote_end_date:
         flash('ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของแบบสำรวจ กรุณาตรวจสอบวันที่เปิดโหวตอีกครั้ง', 'danger')
         if return_to_plan and poll.procurement_plan_id == return_to_plan:
             return redirect(url_for('procurement.procurement_plan_poll_results',
-                                    plan_id=return_to_plan, poll_id=poll.id))
+                                    plan_id=return_to_plan, poll_id=poll.id,
+                                    staff_view=1 if return_to_staff else None))
         return redirect(url_for('besttime.index', tab=tab))
     elif poll.closed_at:
         flash('แบบสำรวจนี้ปิดการโหวตแล้ว', 'warning')
         if return_to_plan:
             return redirect(url_for('procurement.procurement_plan_poll_results',
-                                    plan_id=return_to_plan, poll_id=poll.id))
+                                    plan_id=return_to_plan, poll_id=poll.id,
+                                    staff_view=1 if return_to_staff else None))
         return redirect(url_for('besttime.index', tab=tab))
     # If the user has already voted this poll
     vote = BestTimePollVote.query.filter_by(poll_id=poll_id, voter=current_user).first()
@@ -663,7 +675,8 @@ def vote_poll(poll_id):
 
         if return_to_plan:
             return redirect(url_for('procurement.procurement_plan_poll_results',
-                                    plan_id=return_to_plan, poll_id=poll.id))
+                                    plan_id=return_to_plan, poll_id=poll.id,
+                                    staff_view=1 if return_to_staff else None))
         return redirect(url_for('besttime.index', tab=tab))
 
     if request.method == 'GET':
@@ -688,6 +701,7 @@ def delete_message(message_id):
 @login_required
 def send_mail_to_committee(slot_id):
     tab = request.args.get('tab')
+    staff_view = request.args.get('staff_view', type=int) == 1
     slot = BestTimeDateTimeSlot.query.get(slot_id)
     poll = slot.poll
     is_plan_chairman = poll.procurement_plan_id and ProcurementPlanCommitteeMember.query.filter_by(
@@ -695,7 +709,12 @@ def send_mail_to_committee(slot_id):
         staff_id=current_user.id,
         role='chairman',
     ).first() is not None
-    if not poll.has_admin_role(current_user) and not procurement_permission.can() and not is_plan_chairman:
+    if poll.procurement_plan_id:
+        if staff_view and not is_plan_chairman:
+            abort(403)
+        if not staff_view and not procurement_plan_permission.can() and not is_plan_chairman:
+            abort(403)
+    elif not poll.has_admin_role(current_user):
         abort(403)
     form = BestTimeMailForm()
     if request.method == 'POST':
@@ -735,4 +754,5 @@ def send_mail_to_committee(slot_id):
         return resp
     form.message.data = f'''เรียนกรรมการทุกท่าน\n\nขอแจ้งสรุปวันประชุม {slot.poll.title} เป็นวันที่ {slot}\n\nขอแสดงความนับถือ\n\n{slot.poll.creator.fullname}'''
     return render_template('besttime/modals/mail_form.html',
-                           form=form, slot_id=slot_id, poll=slot.poll, tab=tab)
+                           form=form, slot_id=slot_id, poll=slot.poll, tab=tab,
+                           staff_view=staff_view)

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}ระบบติดตามการใช้งบประมาณ{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .budget-tracking-shell { padding: 2.5rem 1rem 4rem; }
+        .budget-tracking-card {
+            border: 1px solid var(--theme-border);
+            border-radius: 1rem;
+            color: inherit;
+            display: block;
+            height: 100%;
+            padding: 2rem;
+            transition: transform 150ms ease, box-shadow 150ms ease;
+        }
+        .budget-tracking-card:hover {
+            box-shadow: 0 0.75rem 1.75rem rgba(18, 39, 84, 0.12);
+            transform: translateY(-2px);
+        }
+        .budget-tracking-card .icon {
+            color: #1a3d7c;
+            margin-bottom: 1.25rem;
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "procurement/nav_for_main.html" %}
+    <main class="container budget-tracking-shell">
+        <div class="has-text-centered mb-6">
+            <p class="heading">Budget Tracking</p>
+            <h1 class="title is-2">ระบบติดตามการใช้งบประมาณ</h1>
+            <p class="subtitle is-5">เลือกระบบตามบทบาทของท่าน</p>
+        </div>
+
+        <div class="columns is-variable is-5 is-centered">
+            <div class="column is-5">
+                <a class="budget-tracking-card box" href="{{ url_for('staff.procurement_budget_tracking') }}">
+                    <span class="icon is-large"><i class="fas fa-users fa-2x"></i></span>
+                    <h2 class="title is-4">บุคลากรทั่วไป</h2>
+                    <p class="has-text-grey">ติดตามแผนและการใช้งบประมาณของรายการที่ท่านเป็นผู้เสนอของบประมาณ</p>
+                </a>
+            </div>
+            <div class="column is-5">
+                <a class="budget-tracking-card box" href="{{ url_for('procurement.procurement_planning_landing') }}">
+                    <span class="icon is-large"><i class="fas fa-clipboard-list fa-2x"></i></span>
+                    <h2 class="title is-4">เจ้าหน้าที่พัสดุและงานยุทธศาสตร์</h2>
+                    <p class="has-text-grey">จัดการแผนการจัดซื้อจัดจ้าง นำเข้าข้อมูล และติดตามความคืบหน้า</p>
+                </a>
+            </div>
+        </div>
+    </main>
+{% endblock %}

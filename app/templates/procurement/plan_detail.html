@@ -41,7 +41,7 @@
                 <div class="level mb-5">
                     <div><p class="heading">Procurement Planning</p><h1 class="title is-3 mb-2">รายละเอียดแผนจัดซื้อจัดจ้าง</h1></div>
                     <div>
-                        {% if can_manage_procurement %}<a class="button is-info is-light" href="{{ url_for('procurement.edit_procurement_plan', plan_id=plan.id) }}">แก้ไข</a>{% endif %}
+                        {% if can_edit_plan %}<a class="button is-info is-light" href="{{ url_for('procurement.edit_procurement_plan', plan_id=plan.id) }}">แก้ไข</a>{% endif %}
                         <a class="button is-light" href="{{ back_url or url_for('procurement.procurement_plans') }}">กลับรายการ</a>
                     </div>
                 </div>
@@ -203,11 +203,16 @@
                 <div class="box plan-detail-card">
                     <div class="level mb-4">
                         <h2 class="title is-5 mb-0">แบบสำรวจวันและเวลาประชุม</h2>
-                        {% if can_create_plan_poll %}
+                        {% if can_create_plan_poll and plan.committee_members.count() > 0 %}
                             <a class="button is-primary" href="{{ url_for('procurement.new_procurement_plan_poll', plan_id=plan.id) }}">
                                 <span class="icon"><i class="fa-solid fa-plus"></i></span>
                                 <span>สร้างแบบสำรวจใหม่</span>
                             </a>
+                        {% elif can_create_plan_poll %}
+                            <button class="button is-primary" type="button" disabled title="ต้องมีคณะกรรมการอย่างน้อย 1 คน">
+                                <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                                <span>สร้างแบบสำรวจใหม่</span>
+                            </button>
                         {% endif %}
                     </div>
                     <div class="table-container">
