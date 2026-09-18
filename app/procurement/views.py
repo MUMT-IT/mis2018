@@ -322,7 +322,65 @@ def landing():
 @login_required
 @procurement_plan_permission.require()
 def procurement_planning_landing():
-    return render_template('procurement/procurement_planning_landing.html', active_page='dashboard')
+    today = date.today()
+    current_fiscal_year = today.year + (1 if today.month >= 10 else 0) + 543
+    selected_fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
+    available_years = [
+        year for year, in ProcurementPlan.query.with_entities(ProcurementPlan.fiscal_year)
+        .distinct()
+        .order_by(ProcurementPlan.fiscal_year.desc())
+        .all()
+    ]
+    if selected_fiscal_year not in available_years:
+        available_years.append(selected_fiscal_year)
+        available_years.sort(reverse=True)
+
+    plans = ProcurementPlan.query.filter_by(fiscal_year=selected_fiscal_year).all()
+    total_amount = sum((plan.amount or 0 for plan in plans), 0)
+    completed_count = sum(plan.inspection_date is not None for plan in plans)
+    unapproved_count = sum(plan.principle_approval_date is None for plan in plans)
+    pending_tor_count = sum(plan.tor_completed_date is None for plan in plans)
+    overdue_tor_count = sum(
+        plan.tor_completed_date is None and plan.tor_due_date is not None and plan.tor_due_date < today
+        for plan in plans
+    )
+    status_order = (
+        ('planned', u'วางแผนแล้ว'),
+        ('principle_approved', u'อนุมัติหลักการแล้ว'),
+        ('tor_completed', u'จัดทำ TOR แล้ว'),
+        ('quotation_submitted', u'ยื่นเสนอราคาแล้ว'),
+        ('contract_signed', u'ลงนามสัญญาแล้ว'),
+        ('completed', u'ตรวจรับแล้ว'),
+    )
+    status_summary = [
+        {
+            'key': status,
+            'label': label,
+            'count': sum(plan.status == status for plan in plans),
+        }
+        for status, label in status_order
+    ]
+    funding_summary = {}
+    for plan in plans:
+        label = str(plan.funding_source)
+        summary = funding_summary.setdefault(label, {'label': label, 'count': 0, 'amount': 0})
+        summary['count'] += 1
+        summary['amount'] += plan.amount or 0
+
+    return render_template(
+        'procurement/procurement_planning_landing.html',
+        active_page='dashboard',
+        fiscal_year=selected_fiscal_year,
+        available_years=available_years,
+        total_plans=len(plans),
+        total_amount=total_amount,
+        completed_count=completed_count,
+        unapproved_count=unapproved_count,
+        pending_tor_count=pending_tor_count,
+        overdue_tor_count=overdue_tor_count,
+        status_summary=status_summary,
+        funding_summary=sorted(funding_summary.values(), key=lambda item: item['amount'], reverse=True),
+    )
 
 
 def _procurement_plan_query():
@@ -344,6 +402,8 @@ def procurement_plans():
     status = request.args.get('status')
     if status:
         plans = [plan for plan in plans if plan.status == status]
+    if request.args.get('approval_status') == 'pending':
+        plans = [plan for plan in plans if plan.principle_approval_date is None]
     funding_sources = ProcurementFundingSource.query.filter_by(is_active=True).order_by(
         ProcurementFundingSource.code.asc()
     ).all()

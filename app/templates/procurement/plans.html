@@ -5,21 +5,24 @@
 {% block head %}
     {{ super() }}
     <style>
-        .procurement-planning-shell { padding: 2rem 1rem 4rem; }
+        .procurement-planning-shell { max-width: 1600px; padding: 2rem 2rem 4rem; }
         .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
         .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
         .plans-card { border-radius: 1rem; }
         .plans-table td, .plans-table th { vertical-align: middle; }
         .committee-summary { font-size: .68rem; line-height: 1.25; }
+        @media screen and (max-width: 768px) {
+            .procurement-planning-shell { padding-left: 1rem; padding-right: 1rem; }
+        }
     </style>
 {% endblock %}
 
 {% block page_content %}
     {% include "nav.html" %}
-    <main class="container procurement-planning-shell">
+    <main class="container is-fluid procurement-planning-shell">
         <div class="columns is-variable is-5">
-            <aside class="column is-3">{% include "procurement/planning_sidebar.html" %}</aside>
-            <section class="column is-9">
+            <aside class="column is-3-tablet is-2-widescreen">{% include "procurement/planning_sidebar.html" %}</aside>
+            <section class="column is-9-tablet is-10-widescreen">
                 <div class="level mb-5">
                     <div>
                         <p class="heading">Procurement Planning</p>
