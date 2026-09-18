@@ -52,7 +52,7 @@
 </div>
 
 <div class="card shadow-sm border rounded-4 bg-white mb-4">
-  <div class="card-header bg-white border-bottom-0 p-0">
+  <div class="card-header border-bottom-0 p-0" style="background-color: #e6e8ed;">
     <ul class="nav nav-tabs nav-fill fund-history-tabs border-bottom-0" role="tablist">
       {% set visible_claim_history = claim_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
       <li class="nav-item" role="presentation">
