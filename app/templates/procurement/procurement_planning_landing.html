@@ -6,7 +6,8 @@
     {{ super() }}
     <style>
         .procurement-planning-shell {
-            padding: 2rem 1rem 4rem;
+            max-width: 1600px;
+            padding: 2rem 2rem 4rem;
         }
 
         .procurement-planning-hero {
@@ -26,18 +27,39 @@
             margin-top: 1.5rem;
             padding: 2rem;
         }
+
+        .dashboard-stat {
+            border-radius: 1rem;
+            height: 100%;
+        }
+
+        .dashboard-stat .title {
+            color: #122754;
+        }
+
+        .dashboard-table td,
+        .dashboard-table th {
+            vertical-align: middle;
+        }
+
+        @media screen and (max-width: 768px) {
+            .procurement-planning-shell {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
     </style>
 {% endblock %}
 
 {% block page_content %}
     {% include "nav.html" %}
 
-    <main class="container procurement-planning-shell">
+    <main class="container is-fluid procurement-planning-shell">
         <div class="columns is-variable is-5">
-            <aside class="column is-3">
+            <aside class="column is-3-tablet is-2-widescreen">
                 {% include "procurement/planning_sidebar.html" %}
             </aside>
-            <section class="column is-9">
+            <section class="column is-9-tablet is-10-widescreen">
                 <section class="procurement-planning-hero">
                     <p class="is-size-7 has-text-weight-semibold is-uppercase">Experimental</p>
                     <h1 class="title is-2">แผนการจัดซื้อจัดจ้าง</h1>
@@ -45,13 +67,61 @@
                 </section>
 
                 <section class="box procurement-planning-card">
-                    <h2 class="title is-4">แดชบอร์ดภาพรวม</h2>
-                    <p class="subtitle is-6">พื้นที่สำหรับสรุปภาพรวมแผนการจัดซื้อจัดจ้าง จะเปิดใช้งานในขั้นตอนถัดไป</p>
-                    <div class="notification is-info is-light">
-                        กำลังเตรียมข้อมูลแผนการจัดซื้อจัดจ้างและตัวกรองตามปีงบประมาณ แหล่งงบประมาณ และศูนย์ต้นทุน
+                    <div class="level mb-5">
+                        <div>
+                            <h2 class="title is-4 mb-2">แดชบอร์ดภาพรวม</h2>
+                            <p class="subtitle is-6 mb-0">ข้อมูลแผนการจัดซื้อจัดจ้าง ปีงบประมาณ {{ fiscal_year }}</p>
+                        </div>
+                        <form method="get">
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <div class="select">
+                                        <select name="fiscal_year" aria-label="ปีงบประมาณ">
+                                            {% for year in available_years %}<option value="{{ year }}" {% if year == fiscal_year %}selected{% endif %}>ปีงบประมาณ {{ year }}</option>{% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="control"><button class="button is-link" type="submit">แสดงข้อมูล</button></div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="columns is-multiline">
+                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">จำนวนแผนทั้งหมด</p><p class="title is-3">{{ total_plans }}</p><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year) }}">ดูแผนทั้งหมด</a></div></div>
+                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">วงเงินรวม</p><p class="title is-4">{{ "{:,.2f}".format(total_amount) }}</p><p class="is-size-7 has-text-grey">บาท</p></div></div>
+                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ยังไม่ได้อนุมัติหลักการ</p><p class="title is-3 has-text-warning">{{ unapproved_count }}</p><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year, approval_status='pending') }}">ดูรายการรออนุมัติ</a></div></div>
+                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ตรวจรับแล้ว</p><p class="title is-3 has-text-success">{{ completed_count }}</p><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year, status='completed') }}">ดูรายการที่เสร็จสิ้น</a></div></div>
+                        <div class="column is-half-tablet is-one-fifth-desktop"><div class="box dashboard-stat"><p class="heading">ยังไม่จัดทำ TOR แล้วเสร็จ</p><p class="title is-3 {% if overdue_tor_count %}has-text-danger{% else %}has-text-warning{% endif %}">{{ pending_tor_count }}</p><p class="is-size-7 {% if overdue_tor_count %}has-text-danger{% else %}has-text-grey{% endif %}">เกินกำหนด {{ overdue_tor_count }} รายการ</p></div></div>
+                    </div>
+
+                    <div class="columns is-variable is-5 mt-2">
+                        <div class="column is-half">
+                            <h3 class="title is-5">สถานะแผน</h3>
+                            <div class="table-container"><table class="table is-fullwidth is-hoverable dashboard-table">
+                                <thead><tr><th>สถานะ</th><th class="has-text-right">จำนวน</th></tr></thead>
+                                <tbody>
+                                    {% for item in status_summary %}
+                                        <tr><td><a href="{{ url_for('procurement.procurement_plans', fiscal_year=fiscal_year, status=item.key) }}">{{ item.label }}</a></td><td class="has-text-right"><span class="tag is-link is-light is-rounded">{{ item.count }}</span></td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table></div>
+                        </div>
+                        <div class="column is-half">
+                            <h3 class="title is-5">วงเงินตามแหล่งงบประมาณ</h3>
+                            <div class="table-container"><table class="table is-fullwidth is-hoverable dashboard-table">
+                                <thead><tr><th>แหล่งงบประมาณ</th><th class="has-text-centered">แผน</th><th class="has-text-right">วงเงิน (บาท)</th></tr></thead>
+                                <tbody>
+                                    {% for item in funding_summary %}
+                                        <tr><td>{{ item.label }}</td><td class="has-text-centered">{{ item.count }}</td><td class="has-text-right">{{ "{:,.2f}".format(item.amount) }}</td></tr>
+                                    {% else %}
+                                        <tr><td colspan="3" class="has-text-centered has-text-grey">ยังไม่มีข้อมูลในปีงบประมาณนี้</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table></div>
+                        </div>
                     </div>
                 </section>
-            </div>
+            </section>
         </div>
     </main>
 {% endblock %}
