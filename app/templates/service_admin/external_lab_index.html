@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: เลือกบริการ{% endblock %}
+{% block page_content %}
+    {% include "nav.html" %}
+    <section class="external-lab-page section">
+        <div class="container external-lab-container">
+            {% include "messages.html" %}
+            <div class="external-lab-heading">
+                <div class="external-lab-heading-copy">
+                    <span class="external-lab-heading-icon" aria-hidden="true">
+                        <i class="fas fa-flask-vial"></i>
+                    </span>
+                    <div>
+                        <p class="external-lab-eyebrow">SERVICE REQUEST</p>
+                        <h1 class="title external-lab-title">รายชื่อบริการตรวจวิเคราะห์</h1>
+                        <p class="external-lab-subtitle">เลือกห้องปฏิบัติการและบริการที่ต้องการสร้าง Request ID</p>
+                    </div>
+                </div>
+                {% if customer_id %}
+                    <a class="button external-lab-back"
+                       href="{{ url_for('service_admin.customer_detail', customer_id=customer_id) }}">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>กลับ</span>
+                    </a>
+                {% endif %}
+            </div>
+            <div class="external-lab-list">
+                {% for lab in labs|sort(attribute='no') %}
+                    <article class="external-lab-card">
+                        <div class="external-lab-card-heading">
+                            <div class="external-lab-card-heading-copy">
+                                <span class="external-lab-card-icon" aria-hidden="true">
+                                    <i class="fas fa-building-columns"></i>
+                                </span>
+                                <div>
+                                    <p class="external-lab-card-kicker">LABORATORY</p>
+                                    <h2>{{ lab.lab or 'ไม่ระบุชื่อ Lab' }}</h2>
+                                </div>
+                            </div>
+                            <span class="external-lab-count">{{ lab.sub_labs|length }} บริการ</span>
+                        </div>
+
+                        <div class="external-service-grid">
+                            {% for sub_lab in lab.sub_labs|sort(attribute='no') %}
+                                <a class="external-service-card"
+                                   hx-post="{{ url_for('service_admin.create_request_id', customer_id=customer_id,
+                                   sub_lab_id=sub_lab.id) }}"
+                                   hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                                   hx-confirm="ท่านต้องการสร้าง Request ID ของบริการนี้ใช่หรือไม่"
+                                >
+                                    <span class="external-service-icon" aria-hidden="true">
+                                        <i class="fas fa-vial"></i>
+                                    </span>
+                                    <span class="external-service-copy">
+                                        <strong>{{ sub_lab.sub_lab }}</strong>
+                                        <small>{{ sub_lab.code or 'บริการตรวจวิเคราะห์' }}</small>
+                                        {% if sub_lab.requests %}
+                                            <small> Request ล่าสุด : {{ sub_lab.requests|max(attribute='request_no')  }}</small>
+                                        {% else %}
+                                            <small> Request ล่าสุด : -</small>
+                                        {% endif %}
+                                    </span>
+                                </a>
+                            {% else %}
+                                <div class="external-lab-empty">ยังไม่มีบริการใน Lab นี้</div>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% else %}
+                    <div class="external-lab-empty-card">
+                        <span class="external-lab-empty-icon"><i class="fas fa-flask"></i></span>
+                        <h2>ยังไม่มีบริการภายนอก</h2>
+                        <p>ไม่พบห้องปฏิบัติการที่เปิดให้สร้างคำขอในขณะนี้</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .external-lab-page { min-height: 38rem; padding: 3.5rem 0 4rem; }
+        .external-lab-container { max-width: 76rem; }
+        .external-lab-heading { align-items: center; display: flex; gap: 1.5rem; justify-content: space-between; margin: 0 auto 1.5rem; max-width: 70rem; }
+        .external-lab-heading-copy { align-items: center; display: flex; gap: 1rem; min-width: 0; }
+        .external-lab-heading-icon { align-items: center; background: #eef6ff; border: 1px solid #cfe5fb; border-radius: 17px; color: #2f80c9; display: inline-flex; flex: 0 0 3.5rem; font-size: 1.35rem; height: 3.5rem; justify-content: center; }
+        .external-lab-eyebrow { color: #6e7f99; font-size: .7rem; font-weight: 800; letter-spacing: .17em; margin-bottom: .35rem; }
+        .external-lab-title { color: #15284d; font-size: clamp(1.65rem, 3vw, 2.2rem); margin-bottom: .35rem !important; }
+        .external-lab-subtitle { color: #66738d; font-size: .9rem; margin: 0; }
+        .external-lab-back { border-radius: 10px; color: #294a78; font-weight: 700; }
+        .external-lab-notice { align-items: flex-start; background: linear-gradient(135deg, #f4f9ff, #edf6ff); border: 1px solid #d4e7fb; border-radius: 16px; display: flex; gap: .85rem; margin: 0 auto 1.25rem; max-width: 70rem; padding: 1rem 1.15rem; }
+        .external-lab-notice-icon { align-items: center; background: #dceeff; border-radius: 10px; color: #2f80c9; display: inline-flex; flex: 0 0 2.2rem; height: 2.2rem; justify-content: center; }
+        .external-lab-notice strong { color: #1e4677; display: block; font-size: .9rem; }
+        .external-lab-notice p { color: #667d9b; font-size: .82rem; margin: .15rem 0 0; }
+        .external-lab-list { display: grid; gap: 1.25rem; margin: 0 auto; max-width: 70rem; }
+        .external-lab-card { background: rgba(255,255,255,.96); border: 1px solid rgba(58,101,184,.17); border-radius: 18px; box-shadow: 0 14px 32px rgba(18,39,84,.08); padding: 1.35rem; }
+        .external-lab-card-heading { align-items: center; border-bottom: 1px solid #edf1f7; display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; }
+        .external-lab-card-heading-copy { align-items: center; display: flex; gap: .75rem; min-width: 0; }
+        .external-lab-card-icon { align-items: center; background: #eef6ff; border-radius: 11px; color: #2f80c9; display: inline-flex; flex: 0 0 2.6rem; height: 2.6rem; justify-content: center; }
+        .external-lab-card-kicker { color: #8292a9; font-size: .66rem; font-weight: 800; letter-spacing: .15em; margin-bottom: .15rem; }
+        .external-lab-card h2 { color: #1e3152; font-size: 1.1rem; font-weight: 800; margin: 0; }
+        .external-lab-count { background: #edf8f0; border-radius: 999px; color: #237348; font-size: .78rem; font-weight: 700; padding: .35rem .7rem; white-space: nowrap; }
+        .external-service-grid { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .external-service-card { align-items: center; background: #fbfdff; border: 1px solid #dceafa; border-radius: 13px; color: inherit; display: flex; gap: .75rem; min-width: 0; padding: .8rem .9rem; text-decoration: none; transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+        .external-service-card:hover { border-color: #82b7e9; box-shadow: 0 8px 18px rgba(47,128,201,.12); color: inherit; transform: translateY(-2px); }
+        .external-service-icon { align-items: center; background: #eef6ff; border-radius: 9px; color: #2f80c9; display: inline-flex; flex: 0 0 2rem; height: 2rem; justify-content: center; }
+        .external-service-copy { display: flex; flex-direction: column; min-width: 0; }
+        .external-service-copy strong { color: #1e3152; font-size: .9rem; overflow-wrap: anywhere; }
+        .external-service-copy small { color: #8292a9; font-size: .72rem; margin-top: .12rem; }
+        .external-service-arrow { color: #78a9d7; margin-left: auto; }
+        .external-lab-empty { color: #8292a9; font-size: .85rem; padding: .5rem 0; }
+        .external-lab-empty-card { background: rgba(255,255,255,.96); border: 1px dashed #b8cde3; border-radius: 18px; color: #667d9b; padding: 3rem 1rem; text-align: center; }
+        .external-lab-empty-icon { align-items: center; background: #eef6ff; border-radius: 50%; color: #2f80c9; display: inline-flex; font-size: 1.4rem; height: 3rem; justify-content: center; width: 3rem; }
+        .external-lab-empty-card h2 { color: #1e3152; font-size: 1.1rem; margin: .8rem 0 .25rem; }
+        .external-lab-empty-card p { font-size: .85rem; margin: 0; }
+        @media screen and (max-width: 700px) {
+            .external-lab-page { padding-top: 2rem; }
+            .external-lab-heading { align-items: flex-start; flex-direction: column; }
+            .external-lab-back { align-self: flex-start; }
+            .external-service-grid { grid-template-columns: 1fr; }
+        }
+        @media screen and (max-width: 480px) {
+            .external-lab-heading-copy { align-items: flex-start; flex-direction: column; }
+            .external-lab-heading-icon { flex-basis: 3rem; height: 3rem; }
+            .external-lab-card-heading { align-items: flex-start; flex-direction: column; gap: .75rem; }
+        }
+    </style>
+{% endblock %}
