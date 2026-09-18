@@ -294,6 +294,12 @@ def main_procurement_page():
                            center_standardization_product_validation_permission=center_standardization_product_validation_permission)
 
 
+@procurement.route('/budget-tracking')
+@login_required
+def procurement_budget_tracking_landing():
+    return render_template('procurement/budget_tracking_landing.html')
+
+
 @procurement.route('/official/login')
 @login_required
 def first_page():
@@ -565,7 +571,7 @@ def _procurement_plan_gantt_data(plan):
 
 
 def _can_create_plan_poll(plan):
-    return procurement_permission.can() or ProcurementPlanCommitteeMember.query.filter_by(
+    return procurement_plan_permission.can() or ProcurementPlanCommitteeMember.query.filter_by(
         plan_id=plan.id,
         staff_id=current_user.id,
         role='chairman',
@@ -573,7 +579,7 @@ def _can_create_plan_poll(plan):
 
 
 def _can_view_procurement_plan(plan):
-    return procurement_plan_permission.can() or ProcurementPlanCommitteeMember.query.filter_by(
+    return procurement_plan_permission.can() or plan.budget_proposer_id == current_user.id or ProcurementPlanCommitteeMember.query.filter_by(
         plan_id=plan.id,
         staff_id=current_user.id,
     ).first() is not None
@@ -588,18 +594,27 @@ def procurement_plan_detail(plan_id):
     committee_form = ProcurementPlanCommitteeMemberForm()
     return render_template('procurement/plan_detail.html', plan=plan, committee_form=committee_form,
                            active_page='plans', gantt_data=_procurement_plan_gantt_data(plan),
-                           can_manage_procurement=procurement_permission.can(),
+                           can_manage_procurement=procurement_plan_permission.can(),
                            can_edit_plan=procurement_plan_permission.can(),
                            can_create_plan_poll=_can_create_plan_poll(plan))
 
 
 @procurement.route('/planning/plans/<int:plan_id>/polls/new')
 @login_required
-@procurement_permission.require()
 def new_procurement_plan_poll(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
-    if not _can_create_plan_poll(plan):
+    staff_view = request.args.get('staff_view', type=int) == 1
+    is_committee_chairman = ProcurementPlanCommitteeMember.query.filter_by(
+        plan_id=plan.id, staff_id=current_user.id, role='chairman'
+    ).first() is not None
+    if (staff_view and not is_committee_chairman) or (not staff_view and not _can_create_plan_poll(plan)):
         abort(403)
+    if plan.committee_members.count() == 0:
+        flash(u'ต้องมีคณะกรรมการอย่างน้อย 1 คนก่อนสร้างแบบสำรวจ', 'warning')
+        if staff_view:
+            return redirect(url_for('staff.procurement_budget_plan_detail',
+                                    plan_id=plan.id, fiscal_year=plan.fiscal_year))
+        return redirect(url_for('procurement.procurement_plan_detail', plan_id=plan.id))
     from app.besttime.forms import BestTimePollForm
 
     form = BestTimePollForm()
@@ -632,8 +647,12 @@ def new_procurement_plan_poll(plan_id):
         poll_id=None,
         tab='voter',
         form_action=url_for('besttime.add_poll', procurement_plan_id=plan.id,
-                            return_to_plan=plan.id),
-        cancel_url=url_for('procurement.procurement_plan_detail', plan_id=plan.id),
+                            return_to_plan=plan.id,
+                            return_to_staff=1 if staff_view else None),
+        cancel_url=(url_for('staff.procurement_budget_plan_detail', plan_id=plan.id,
+                            fiscal_year=plan.fiscal_year)
+                    if staff_view
+                    else url_for('procurement.procurement_plan_detail', plan_id=plan.id)),
         procurement_plan=plan,
     )
 
@@ -657,6 +676,7 @@ def procurement_plan_poll_results(plan_id, poll_id):
         poll_id=poll.id,
         is_best=True,
     ).first()
+    staff_view = request.args.get('staff_view', type=int) == 1
     return render_template(
         'procurement/plan_poll_results.html',
         plan=plan,
@@ -664,8 +684,16 @@ def procurement_plan_poll_results(plan_id, poll_id):
         slots=slots,
         selected_slot=selected_slot,
         tab='voter',
-        can_select_best_slot=poll.has_admin_role(current_user) or _can_create_plan_poll(plan),
-        back_url=url_for('procurement.procurement_plan_detail', plan_id=plan.id),
+        can_select_best_slot=(
+            ProcurementPlanCommitteeMember.query.filter_by(
+                plan_id=plan.id, staff_id=current_user.id, role='chairman'
+            ).first() is not None
+            if staff_view else _can_create_plan_poll(plan)
+        ),
+        staff_view=staff_view,
+        back_url=(url_for('staff.procurement_budget_plan_detail', plan_id=plan.id,
+                          fiscal_year=plan.fiscal_year)
+                  if staff_view else url_for('procurement.procurement_plan_detail', plan_id=plan.id)),
     )
 
 
@@ -683,6 +711,7 @@ def procurement_plan_poll_vote(plan_id, poll_id):
         id=poll_id,
         procurement_plan_id=plan.id,
     ).first_or_404()
+    staff_view = request.args.get('staff_view', type=int) == 1
     today = arrow.now('Asia/Bangkok').date()
     if today < poll.vote_start_date or today > poll.vote_end_date:
         flash(u'ขณะนี้ไม่อยู่ในช่วงระยะเวลาการโหวตของแบบสำรวจ', 'danger')
@@ -705,16 +734,18 @@ def procurement_plan_poll_vote(plan_id, poll_id):
         tab='voter',
         message_form=BestTimePollMessageForm(),
         form_action=url_for('besttime.vote_poll', poll_id=poll.id,
-                            tab='voter', return_to_plan=plan.id),
+                            tab='voter', return_to_plan=plan.id,
+                            return_to_staff=1 if staff_view else None),
         cancel_url=url_for('procurement.procurement_plan_poll_results',
-                           plan_id=plan.id, poll_id=poll.id),
+                           plan_id=plan.id, poll_id=poll.id,
+                           staff_view=1 if staff_view else None),
         procurement_plan=plan,
     )
 
 
 @procurement.route('/planning/plans/<int:plan_id>/committee', methods=['POST'])
 @login_required
-@procurement_permission.require()
+@procurement_plan_permission.require()
 def add_procurement_plan_committee_member(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     form = ProcurementPlanCommitteeMemberForm()
@@ -751,7 +782,7 @@ def add_procurement_plan_committee_member(plan_id):
 
 @procurement.route('/planning/plans/<int:plan_id>/committee/<int:member_id>/delete', methods=['POST'])
 @login_required
-@procurement_permission.require()
+@procurement_plan_permission.require()
 def delete_procurement_plan_committee_member(plan_id, member_id):
     member = ProcurementPlanCommitteeMember.query.filter_by(
         id=member_id, plan_id=plan_id
@@ -764,7 +795,10 @@ def delete_procurement_plan_committee_member(plan_id, member_id):
 
 def _procurement_plan_committee_email_defaults(plan, due_date=None):
     due_date = due_date or plan.tor_due_date or date(plan.fiscal_year, 12, 31)
-    short_item = plan.item if len(plan.item) <= 100 else '{}...'.format(plan.item[:97])
+    item = plan.item or '-'
+    short_item = item if len(item) <= 100 else '{}...'.format(item[:97])
+    plan_url = url_for('staff.procurement_budget_plan_detail', plan_id=plan.id,
+                       fiscal_year=plan.fiscal_year, _external=True)
     title = u'แจ้งคณะกรรมการจัดทำ TOR: {}'.format(short_item)
     message = u'''เรียน คณะกรรมการ
 
@@ -775,16 +809,20 @@ def _procurement_plan_committee_email_defaults(plan, due_date=None):
 ขอเรียนแจ้งว่าท่านต้องดำเนินการจัดทำ TOR ภายในวันที่ {}
 กรุณาดำเนินการและเตรียมข้อมูลที่เกี่ยวข้องภายในกำหนดเวลา
 
+ดูรายละเอียดแผนจัดซื้อจัดจ้างได้ที่
+{}
+
 ขอแสดงความนับถือ
 หน่วยงานผู้รับผิดชอบ'''.format(
-        plan.item, plan.product_code or plan.output_project_report, plan.fiscal_year, due_date.strftime('%d/%m/%Y')
+        item, plan.product_code or plan.output_project_report, plan.fiscal_year,
+        due_date.strftime('%d/%m/%Y'), plan_url
     )
     return title, message, due_date
 
 
 @procurement.route('/planning/plans/<int:plan_id>/tor-reminder/email', methods=['GET', 'POST'])
 @login_required
-@procurement_permission.require()
+@procurement_plan_permission.require()
 def send_procurement_plan_tor_reminder(plan_id):
     plan = ProcurementPlan.query.get_or_404(plan_id)
     if plan.tor_completed_date:

@@ -9,11 +9,31 @@
         <div class="container">
             <div class="level mb-5">
                 <div>
-                    <p class="heading">สำหรับหัวหน้าส่วนงาน</p>
+                    <p class="heading">สำหรับบุคลากรทั่วไป</p>
                     <h1 class="title is-3 mb-2">ติดตามการใช้งบประมาณจัดซื้อครุภัณฑ์ตามแผน</h1>
-                    <p class="subtitle is-6 mb-0">หน่วยงาน: {{ organization.display_name }} | ปีงบประมาณ {{ fiscal_year }}</p>
+                    <p class="subtitle is-6 mb-0">แผนที่เกี่ยวข้องกับ {{ current_user.fullname }} | ปีงบประมาณ {{ fiscal_year }}</p>
                 </div>
-                <a class="button is-light" href="{{ url_for('staff.index') }}">กลับหน้าบุคลากร</a>
+                <a class="button is-light" href="{{ url_for('procurement.procurement_budget_tracking_landing') }}">กลับหน้าเลือกระบบ</a>
+            </div>
+
+            <div class="box">
+                <form method="get">
+                    <div class="field is-grouped is-align-items-flex-end">
+                        <div class="control">
+                            <label class="label" for="fiscal-year">ปีงบประมาณ</label>
+                            <div class="select">
+                                <select id="fiscal-year" name="fiscal_year">
+                                    {% for year in available_years %}
+                                        <option value="{{ year }}" {% if year == fiscal_year %}selected{% endif %}>{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="control">
+                            <button class="button is-link" type="submit">แสดงข้อมูล</button>
+                        </div>
+                    </div>
+                </form>
             </div>
 
             <div class="columns">
@@ -47,7 +67,7 @@
                         <tbody>
                             {% for plan in plans %}
                                 <tr>
-                                    <td><a href="{{ url_for('staff.procurement_budget_plan_detail', plan_id=plan.id) }}"><strong>{{ plan.item or '-' }}</strong></a></td>
+                                    <td><a href="{{ url_for('staff.procurement_budget_plan_detail', plan_id=plan.id, fiscal_year=fiscal_year) }}"><strong>{{ plan.item or '-' }}</strong></a></td>
                                     <td>{{ plan.output_project_report }}</td>
                                     <td>{{ plan.funding_source }}</td>
                                     <td>{{ plan.procurement_method }}</td>
@@ -55,7 +75,7 @@
                                     <td><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span></td>
                                 </tr>
                             {% else %}
-                                <tr><td colspan="6" class="has-text-centered has-text-grey">ยังไม่มีแผนจัดซื้อครุภัณฑ์ของหน่วยงานในปีงบประมาณนี้</td></tr>
+                                <tr><td colspan="6" class="has-text-centered has-text-grey">ยังไม่มีแผนจัดซื้อครุภัณฑ์ที่ท่านเป็นผู้เสนอของบประมาณหรือเป็นคณะกรรมการในปีงบประมาณ {{ fiscal_year }}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>

@@ -44,7 +44,7 @@ from app.auth.views import _normalize_staff_email
 from app.google_credential_utils import load_google_credentials_json
 
 from app.comhealth.views import allowed_file
-from app.procurement.models import ProcurementPlan
+from app.procurement.models import ProcurementPlan, ProcurementPlanCommitteeMember
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'}
 
@@ -1063,20 +1063,33 @@ def index():
 @staff.route('/procurement-budget-tracking')
 @login_required
 def procurement_budget_tracking():
-    organization = current_user.personal_info.org
-    if not organization or organization.head != current_user.email:
-        abort(403)
-
     current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
-    plans = ProcurementPlan.query.filter_by(
-        fiscal_year=current_fiscal_year,
-        responsible_org_id=organization.id,
+    fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
+    related_plan_filter = or_(
+        ProcurementPlan.budget_proposer_id == current_user.id,
+        ProcurementPlan.committee_members.any(
+            ProcurementPlanCommitteeMember.staff_id == current_user.id
+        ),
+    )
+    available_years = [
+        year for year, in ProcurementPlan.query.with_entities(ProcurementPlan.fiscal_year)
+        .filter(related_plan_filter)
+        .distinct()
+        .order_by(ProcurementPlan.fiscal_year.desc())
+        .all()
+    ]
+    if fiscal_year not in available_years:
+        available_years.append(fiscal_year)
+        available_years.sort(reverse=True)
+    plans = ProcurementPlan.query.filter(
+        ProcurementPlan.fiscal_year == fiscal_year,
+        related_plan_filter,
     ).order_by(ProcurementPlan.id.asc()).all()
     total_amount = sum((plan.amount or 0 for plan in plans), 0)
     return render_template(
         'staff/procurement_budget_tracking.html',
-        organization=organization,
-        fiscal_year=current_fiscal_year,
+        fiscal_year=fiscal_year,
+        available_years=available_years,
         plans=plans,
         total_amount=total_amount,
     )
@@ -1085,27 +1098,29 @@ def procurement_budget_tracking():
 @staff.route('/procurement-budget-tracking/plans/<int:plan_id>')
 @login_required
 def procurement_budget_plan_detail(plan_id):
-    organization = current_user.personal_info.org
-    if not organization or organization.head != current_user.email:
-        abort(403)
-
-    current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
-    plan = ProcurementPlan.query.filter_by(
-        id=plan_id,
-        fiscal_year=current_fiscal_year,
-        responsible_org_id=organization.id,
+    plan = ProcurementPlan.query.filter(
+        ProcurementPlan.id == plan_id,
+        or_(
+            ProcurementPlan.budget_proposer_id == current_user.id,
+            ProcurementPlan.committee_members.any(
+                ProcurementPlanCommitteeMember.staff_id == current_user.id
+            ),
+        ),
     ).first_or_404()
-    from app.procurement.views import _can_create_plan_poll, _procurement_plan_gantt_data
-    from app.procurement.forms import ProcurementPlanCommitteeMemberForm
+    fiscal_year = request.args.get('fiscal_year', type=int) or plan.fiscal_year
+    from app.procurement.views import _procurement_plan_gantt_data
+    is_committee_chairman = ProcurementPlanCommitteeMember.query.filter_by(
+        plan_id=plan.id,
+        staff_id=current_user.id,
+        role='chairman',
+    ).first() is not None
     return render_template(
-        'procurement/plan_detail.html',
+        'staff/procurement_budget_plan_detail.html',
         plan=plan,
-        committee_form=ProcurementPlanCommitteeMemberForm(),
         active_page='plans',
         gantt_data=_procurement_plan_gantt_data(plan),
-        can_manage_procurement=False,
-        can_create_plan_poll=_can_create_plan_poll(plan),
-        back_url=url_for('staff.procurement_budget_tracking'),
+        can_create_plan_poll=is_committee_chairman,
+        back_url=url_for('staff.procurement_budget_tracking', fiscal_year=fiscal_year),
     )
 
 

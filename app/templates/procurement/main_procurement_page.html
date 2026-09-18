@@ -21,6 +21,13 @@
                     </span>
                         <span class="is-size-5">ระบบติดตามการจัดซื้อจัดจ้าง</span><br>
                     </a>
+                    <a class="panel-block" href="{{ url_for('procurement.procurement_budget_tracking_landing') }}">
+                    <span class="panel-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </span>
+                        <span class="is-size-5">ระบบติดตามการใช้งบประมาณ</span>
+                        <span class="tag is-success is-rounded ml-2">new</span><br>
+                    </a>
                     {% if finance_permission.can() %}
                         <a href="{{ url_for('receipt_printing.landing') }}" class="panel-block">
                         <span class="panel-icon">

@@ -203,11 +203,16 @@
                 <div class="box plan-detail-card">
                     <div class="level mb-4">
                         <h2 class="title is-5 mb-0">แบบสำรวจวันและเวลาประชุม</h2>
-                        {% if can_create_plan_poll %}
+                        {% if can_create_plan_poll and plan.committee_members.count() > 0 %}
                             <a class="button is-primary" href="{{ url_for('procurement.new_procurement_plan_poll', plan_id=plan.id) }}">
                                 <span class="icon"><i class="fa-solid fa-plus"></i></span>
                                 <span>สร้างแบบสำรวจใหม่</span>
                             </a>
+                        {% elif can_create_plan_poll %}
+                            <button class="button is-primary" type="button" disabled title="ต้องมีคณะกรรมการอย่างน้อย 1 คน">
+                                <span class="icon"><i class="fa-solid fa-plus"></i></span>
+                                <span>สร้างแบบสำรวจใหม่</span>
+                            </button>
                         {% endif %}
                     </div>
                     <div class="table-container">
