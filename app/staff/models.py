@@ -966,6 +966,7 @@ class StaffSeminarApproval(db.Model):
     seminar_attend = db.relationship('StaffSeminarAttend', backref=db.backref('seminar_approval')
                                      , foreign_keys=[seminar_attend_id])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    approved_at = db.Column('approved_at', db.Date())
     is_approved = db.Column('is_approved', db.Boolean(), default=True)
     approval_comment = db.Column('approval_comment', db.String())
     final_approver_account_id = db.Column('final_approver_account_id', db.ForeignKey('staff_account.id'))
