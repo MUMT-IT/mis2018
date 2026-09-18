@@ -3021,6 +3021,27 @@ def import_pre_register_seminar_data():
             print(u'Cannot save data of email: {}'.format(row['email']))
     db.session.commit()
 
+@dbutils.command('import-sap-data')
+def import_sap_data():
+    sheetid = '1GzNUS14c6dkUNh1Xz5cis1IXlPGtZTlGHgeU_3HS7HQ'
+    print('Authorizing with Google..')
+    gc = get_credential()
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("sap")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        staff_account = StaffAccount.query.filter_by(email=row['email']).first()
+        if staff_account:
+            personal_info = StaffPersonalInfo.query.filter_by(id=staff_account.personal_id).first()
+            if personal_info:
+                personal_info.sap_id = row['sap']
+                db.session.add(personal_info)
+            else:
+                print(u'Not found personal info data of email: {}'.format(row['email']))
+        else:
+            print(u'Cannot save data of email: {}'.format(row['email']))
+    db.session.commit()
+
 
 @dbutils.command('add-pa-head-id')
 @click.argument('pa_round_id')
