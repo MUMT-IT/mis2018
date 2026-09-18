@@ -238,7 +238,7 @@
                   </td>
                   <td>
                     <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" 
-                          value="{{ '%.2f'|format(item.amount or 0) }}" placeholder="0.00" oninput="calculateTotal()" required>
+                          value="{{ '%.2f'|format(item.amount) if item.amount else '' }}" placeholder="0.00" oninput="calculateTotal()" required>
                   </td>
                   <td>
                     <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item.proof_files %}required{% endif %}>
@@ -282,7 +282,7 @@
                   </td>
                   <td>
                     <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" 
-                          value="{{ '%.2f'|format(item.amount or 0) }}" placeholder="0.00" oninput="calculateTotal()" required>
+                          value="{{ '%.2f'|format(item.amount) if item.amount else '' }}" placeholder="0.00" oninput="calculateTotal()" required>
                   </td>
                   <td>
                     <input type="file" name="proof_files_{{ loop.index0 }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if loop.index0 == 0 %}required{% endif %}>
@@ -604,7 +604,7 @@
                   </div>
                   <div class="mb-3">
                     <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
-                    <input type="text" name="amount" class="form-control" value="{{ '{:,.2f}'.format(pr.amount_spent or 0) }}" required>
+                    <input type="text" name="amount" class="form-control" value="{{ '{:,.2f}'.format(pr.amount_spent) if pr.amount_spent else '' }}" placeholder="0.00" required>
                   </div>
                 </div>
                 <div class="modal-footer">

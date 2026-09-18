@@ -287,7 +287,7 @@
                                 </label>
                               </td>
                               <td>
-                                <input type="text" name="amount[]" step="0.01" min="0.00" class="form-control form-control-sm item-amount-input" value="{{ item.amount }}" oninput="calculateTotalSpent({{ borrowing_ticket.id }})">
+                                <input type="text" name="amount[]" step="0.01" min="0.00" class="form-control form-control-sm item-amount-input" value="{{ item.amount if item.amount else '' }}" placeholder="0.00" oninput="calculateTotalSpent({{ borrowing_ticket.id }})">
                               </td>
                               <td>
                                 <input type="file" name="proof_files_{{ row_index }}[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm" {% if row_index == 0 and not item.proof_files %}required{% endif %}>
@@ -369,7 +369,7 @@
                   </div>
                   <div class="col-md-4">
                     <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
-                    <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input" required>
+                    <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input" required placeholder="0.00">
                   </div>
                 </div>
                 <div class="text-end mt-3">
@@ -858,7 +858,7 @@
             <span class="form-check-label">เงินเหลือส่งใช้เงินยืม</span>
           </label>
         </td>
-        <td><input type="text" name="amount[]" class="form-control form-control-sm item-amount-input" value="0.00" required></td>
+        <td><input type="text" name="amount[]" class="form-control form-control-sm item-amount-input" placeholder="0.00" required></td>
         <td>
           <input type="file" name="proof_files_${document.getElementById(`receiptBody_${ticketId}`).rows.length}[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm">
         </td>
