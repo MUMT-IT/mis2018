@@ -321,6 +321,7 @@ class ServiceLab(db.Model):
     service_rate = db.Column('service_rate', db.String())
     phone_number = db.Column('phone_number', db.String())
     email = db.Column('email', db.String())
+    is_external = db.Column('is_external', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime())
     updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
     updater = db.relationship(StaffAccount, backref=db.backref('service_labs'))
