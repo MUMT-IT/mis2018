@@ -115,6 +115,19 @@ class MeetingTask(db.Model):
     agenda_id = db.Column('agenda_id', db.ForeignKey('meeting_agendas.id'))
     agenda = db.relationship(MeetingAgenda, backref=db.backref('tasks', cascade='all, delete-orphan'))
 
+    def __str__(self):
+        return str(self.detail)
+
+class MeetingAdmin(db.Model):
+    __tablename__ = 'meeting_admins'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    task_id = db.Column('task_id', db.ForeignKey('meeting_tasks.id'))
+    task = db.relationship(MeetingTask, backref=db.backref('admins', cascade='all, delete-orphan'))
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
+    admin = db.relationship(StaffAccount, backref=db.backref('tasks'))
+
+    def __str__(self):
+        return str(self.admin.fullname)
 
 
 class MeetingAgendaNote(db.Model):
