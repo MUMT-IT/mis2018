@@ -34,6 +34,7 @@
                                     <div class="control">
                                         <input class="input" placeholder="เช่น อว 78.041/100"
                                                name="document_no" type="text"
+                                               value="{{ attend.document_no or '' }}"
                                                required>
                                     </div>
                                 </div>
@@ -50,7 +51,8 @@
                                     <div class="select">
                                         <select name="approver_id">
                                             {% for approver in approvers %}
-                                            <option value="{{ approver.id }}">
+                                            <option value="{{ approver.id }}"
+                                                    {% if current_approval and current_approval.final_approver_account_id == approver.id %}selected{% endif %}>
                                                 {{ approver.personal_info }}
                                             </option>
                                             {% endfor %}
@@ -61,21 +63,29 @@
                         </div>
                     </div>
                     <b-field label="การอนุมัติ">
-                        <b-select placeholder="เลือกประเภท" name="approval" id="approval" required>
-                            <option value="True">อนุมัติตามที่เสนอ</option>
-                            <option value="False">ไม่อนุมัติ</option>
-                            <option value="Other">อนุมัติแบบมีเงื่อนไข</option>
+                        <b-select v-model="approval" placeholder="เลือกประเภท" name="approval" id="approval" required>
+                            <option value="True">
+                                อนุมัติตามที่เสนอ
+                            </option>
+                            <option value="False">
+                                ไม่อนุมัติ
+                            </option>
+                            <option value="Other">
+                                อนุมัติแบบมีเงื่อนไข
+                            </option>
                         </b-select>
                     </b-field>
                     <b-field>
                         <b-input id="other_approval"
                                  type="text"
                                  name="other_approval"
+                                 v-model="approvalComment"
+                                 :required="approval === 'Other'"
                                  placeholder="โปรดระบุข้อคิดเห็นของคณบดี"
                         >
                         </b-input>
                     </b-field>
-                    <b-field label="วันที่อนุมัติ">
+                    <b-field label="วันที่อนุมัติ/ไม่อนุมัติ">
                         <b-datepicker
                                 required
                                 v-model="startDateTime"
@@ -85,7 +95,7 @@
                                 icon="calendar-alt">
                         </b-datepicker>
                     </b-field>
-                    <input type="hidden" name="update_at" v-model="formattedStartDateTime">
+                    <input type="hidden" name="approved_at" v-model="formattedStartDateTime">
                     <div class="columns">
                         <div class="column">
                             <label class="label">ข้อมูลค่าใช้จ่าย</label>
@@ -102,29 +112,29 @@
                                 </thead>
                                 <tbody>
                                 <tr>
-                                    <td>
-                                        {{ attend.registration_fee }}
+                                    <td>{% if attend.registration_fee %}
+                                        {{ attend.registration_fee }}{% endif %}
                                     </td>
-                                    <td>
-                                        {{ attend.accommodation_cost }}
+                                    <td>{% if attend.accommodation_cost %}
+                                        {{ attend.accommodation_cost }}{% endif %}
                                     </td>
-                                    <td>
-                                        {{ attend.fuel_cost }}
+                                    <td>{% if attend.fuel_cost %}
+                                        {{ attend.fuel_cost }}{% endif %}
                                     </td>
-                                    <td>
-                                        {{ attend.train_ticket_cost }}
+                                    <td>{% if attend.train_ticket_cost %}
+                                        {{ attend.train_ticket_cost }}{% endif %}
                                     </td>
-                                    <td>
-                                        {{ attend.taxi_cost }}
+                                    <td>{% if attend.taxi_cost %}
+                                        {{ attend.taxi_cost }}{% endif %}
                                     </td>
-                                    <td>
-                                        {{ attend.flight_ticket_cost }}
+                                    <td>{% if attend.flight_ticket_cost %}
+                                        {{ attend.flight_ticket_cost }}{% endif %}
                                     </td>
-                                    <td>
-                                        {{ attend.transaction_fee }}
+                                    <td>{% if attend.transaction_fee %}
+                                        {{ attend.transaction_fee }}{% endif %}
                                     </td>
-                                    <td>
-                                        {{ attend.budget }}
+                                    <td>{% if attend.budget %}
+                                        {{ attend.budget }}{% endif %}
                                     </td>
                                 </tr>
                                 </tbody>
@@ -144,8 +154,8 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                           name="topic" type="text"
-                                           value="{{ attend.registration_fee }}">
+                                           name="registration_fee" type="text"
+                                           value="{{ attend.registration_fee if attend.registration_fee is not none else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -158,8 +168,8 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                           name="topic" type="text"
-                                           value="{{ attend.accommodation_cost }}">
+                                           name="accommodation_cost" type="text"
+                                           value="{{ attend.accommodation_cost if attend.accommodation_cost is not none else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -172,8 +182,8 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                           name="topic" type="text"
-                                           value="{{ attend.fuel_cost }}">
+                                           name="fuel_cost" type="text"
+                                           value="{{ attend.fuel_cost if attend.fuel_cost is not none else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -186,8 +196,8 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                           name="topic" type="text"
-                                           value="{{ attend.train_ticket_cost }}">
+                                           name="train_ticket_cost" type="text"
+                                           value="{{ attend.train_ticket_cost if attend.train_ticket_cost is not none else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -200,8 +210,8 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                           name="topic" type="text"
-                                           value="{{ attend.taxi_cost }}">
+                                           name="taxi_cost" type="text"
+                                           value="{{ attend.taxi_cost if attend.taxi_cost is not none else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -214,8 +224,8 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                           name="topic" type="text"
-                                           value="{{ attend.flight_ticket_cost }}">
+                                           name="flight_ticket_cost" type="text"
+                                           value="{{ attend.flight_ticket_cost if attend.flight_ticket_cost is not none else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -228,8 +238,8 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                           name="topic" type="text"
-                                           value="{{ attend.transaction_fee }}">
+                                           name="transaction_fee" type="text"
+                                           value="{{ attend.transaction_fee if attend.transaction_fee is not none else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -242,8 +252,10 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                           name="topic" type="text"
-                                           value="{{ attend.budget }}" required>
+                                           name="budget" type="text"
+                                           data-has-initial-value="{{ 'true' if attend.budget is not none and attend.budget != '' else 'false' }}"
+                                           :required="approval === 'Other' && {{ 'true' if attend.budget is not none and attend.budget != '' else 'false' }}"
+                                           value="{{ attend.budget if attend.budget is not none else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -340,11 +352,12 @@
         delimiters: ['<%', '%>'],
         data() {
             return {
-                startDateTime: new Date({{ attend.start_datetime.isoformat()|tojson|safe }}),
+                startDateTime: new Date({{ approved_at_value|tojson|safe }}),
+                approval: {{ approval_value|default('True')|tojson|safe }},
+                approvalComment: {{ approval_comment|default('')|tojson|safe }},
                 payment: "unpaid",
                     data: [],
                     attend: [],
-                    approval: "others",
                     transportation: "no_cost",
 
         }
@@ -371,7 +384,7 @@
                 $('#attendees').show()
                 $('#edit_payment').hide()
             }
-        })
+        }).trigger('change')
     })
 </script>
 {% endblock %}

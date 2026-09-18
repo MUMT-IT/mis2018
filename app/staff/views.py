@@ -5102,21 +5102,77 @@ def seminar():
     return render_template('staff/seminar.html')
 
 
-@staff.route('/for-hr/seminar/approval')
+@staff.route('/for-hr/seminar/approval', methods=['GET', 'POST'])
 @hr_permission.require()
 @login_required
 def seminar_approval_records():
-    seminar_attend = []
-    for seminars in StaffSeminarAttend.query.filter(StaffSeminarAttend.id ==
-                                                    StaffSeminarProposal.seminar_attend_id).all():
-        seminar_attend.append(seminars)
+    # this is for correct loop of approval
+    # for seminars in StaffSeminarAttend.query.filter(StaffSeminarAttend.id ==
+    #                                                 StaffSeminarProposal.seminar_attend_id).all():
+    #     seminar_attend.append(seminars)
+    start_fiscal_date, end_fiscal_date = get_fiscal_date(datetime.today())
+    selected_dates = '{} - {}'.format(
+        start_fiscal_date.strftime('%d/%m/%Y'),
+        end_fiscal_date.strftime('%d/%m/%Y')
+    )
+    personal_info_id = ''
+    selected_org = ''
+    selected_staff_name = ''
 
-    seminar_approval_records = []
-    for seminar_approval in StaffSeminarAttend.query.join(StaffSeminar).filter(StaffSeminar.cancelled_at == None).all():
-        if seminar_approval.seminar_approval:
-            seminar_approval_records.append(seminar_approval)
-    return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records
-                           , seminar_approval_records=seminar_approval_records, seminar_attend=seminar_attend)
+    query = StaffSeminarAttend.query.join(StaffSeminar).filter(
+        StaffSeminar.cancelled_at.is_(None),
+        func.date(StaffSeminarAttend.end_datetime) >= start_fiscal_date.date(),
+        func.date(StaffSeminarAttend.start_datetime) <= end_fiscal_date.date(),
+    )
+
+    if request.method == 'POST':
+        selected_dates = request.form.get('dates') or selected_dates
+        start_text, end_text = selected_dates.split(' - ')
+        start_date = datetime.strptime(start_text, '%d/%m/%Y').date()
+        end_date = datetime.strptime(end_text, '%d/%m/%Y').date()
+        personal_info_id = request.form.get('staff') or ''
+        selected_org = request.form.get('org') or ''
+
+        query = StaffSeminarAttend.query.join(StaffSeminar).filter(
+            StaffSeminar.cancelled_at.is_(None),
+            func.date(StaffSeminarAttend.end_datetime) >= start_date,
+            func.date(StaffSeminarAttend.start_datetime) <= end_date,
+        )
+
+        if selected_org:
+            org = Org.query.filter_by(name=selected_org).first()
+            if org:
+                org_ids = get_org_and_children_ids(org)
+                query = query.join(StaffSeminarAttend.staff).join(StaffAccount.personal_info).filter(
+                    StaffPersonalInfo.org_id.in_(org_ids)
+                )
+
+        if personal_info_id:
+            query = query.filter(StaffSeminarAttend.staff.has(
+                StaffAccount.personal_id == personal_info_id
+            ))
+            selected_staff = db.session.get(StaffPersonalInfo, personal_info_id)
+            selected_staff_name = selected_staff.fullname if selected_staff else ''
+
+    seminar_attend = query.order_by(StaffSeminarAttend.start_datetime.asc()).all()
+    approval_query = query.join(StaffSeminarApproval).filter(
+        StaffSeminarApproval.is_final_approved.is_(True)
+    )
+    seminar_approval_records = approval_query.order_by(
+        StaffSeminarAttend.start_datetime.asc()
+    ).distinct().all()
+    distinct_org = db.session.query(Org.name).distinct().order_by(Org.id).all()
+    return render_template(
+        'staff/seminar_approval_info.html',
+        seminar_attend=seminar_attend,
+        seminar_approval_records=seminar_approval_records,
+        selected_dates=selected_dates,
+        personal_info_id=personal_info_id,
+        selected_staff_id=personal_info_id,
+        selected_staff_name=selected_staff_name,
+        selected_org=selected_org,
+        distinct_org=distinct_org,
+    )
 
 
 @staff.route('/for-hr/seminar/approval/add-approval/<int:attend_id>', methods=['GET', 'POST'])
@@ -5126,35 +5182,60 @@ def seminar_add_approval(attend_id):
     attend = StaffSeminarAttend.query.get(attend_id)
     management = StaffSpecialGroup.query.filter_by(group_code='management').first()
     approvers = management.staffs
+    current_approval = StaffSeminarApproval.query.filter_by(
+        seminar_attend_id=attend_id, is_final_approved=True
+    ).order_by(StaffSeminarApproval.id.desc()).first()
+    if not current_approval:
+        current_approval = StaffSeminarApproval.query.filter_by(
+            seminar_attend_id=attend_id
+        ).order_by(StaffSeminarApproval.id.desc()).first()
+    approval_value = 'True'
+    approval_comment = ''
+    approved_at_value = arrow.now('Asia/Bangkok').date()
+    if current_approval:
+        approved_at_value = current_approval.approved_at or approved_at_value
+        approval_comment = current_approval.approval_comment or ''
+        if not current_approval.is_approved:
+            approval_value = 'False'
+        elif approval_comment:
+            approval_value = 'Other'
     if request.method == 'POST':
         form = request.form
-        update_d = form.get('update_at')
-        # TODO: recheck update time
-        update_t = "13:00"
-        update_dt = '{} {}'.format(update_d, update_t)
-        updated_at = datetime.strptime(update_dt, '%d/%m/%Y %H:%M')
-        approval = StaffSeminarApproval(
-            seminar_attend=attend,
-            updated_at=tz.localize(updated_at),
-            recorded_account_id=current_user.id,
-            final_approver_account_id=form.get('approver_id'),
-            is_approved=False if form.get('approval') == 'False' else True,
-            approval_comment=form.get('other_approval') if form.get('other_approval') else ""
-        )
+        approval_comment = (form.get('other_approval') or '').strip()
+        if form.get('approval') == 'Other' and not approval_comment:
+            flash('กรุณาระบุข้อคิดเห็นของคณบดี', 'warning')
+            return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers,
+                                   current_approval=current_approval, approval_value='Other',
+                                   approval_comment=approval_comment, approved_at_value=approved_at_value)
+        if form.get('approval') == 'Other' and attend.budget not in (None, '') and not (form.get('budget') or '').strip():
+            flash('กรุณาระบุรวมทั้งสิ้น', 'warning')
+            return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers,
+                                   current_approval=current_approval, approval_value='Other',
+                                   approval_comment=approval_comment, approved_at_value=approved_at_value)
+        approved_at = datetime.strptime(form.get('approved_at'), '%d/%m/%Y').date()
+        approval_comment = approval_comment if form.get('approval') == 'Other' else ''
+        approval = current_approval or StaffSeminarApproval(seminar_attend=attend)
+        approval.updated_at = arrow.now('Asia/Bangkok').datetime
+        approval.approved_at = approved_at
+        approval.recorded_account_id = current_user.id
+        approval.final_approver_account_id = form.get('approver_id')
+        approval.is_approved = False if form.get('approval') == 'False' else True
+        approval.approval_comment = approval_comment
+        approval.is_final_approved = True
         db.session.add(approval)
         db.session.commit()
         attends = StaffSeminarAttend.query.get(attend_id)
         attends.document_no = form.get('document_no') if form.get('document_no') else ''
-        attends.registration_fee = form.get('registration_fee')
-        attends.budget_type = form.get('budget_type')
-        attends.budget = form.get('budget')
-        attends.accommodation_cost = form.get('accommodation_cost')
-        attends.fuel_cost = form.get('fuel_cost')
-        attends.taxi_cost = form.get('taxi_cost')
-        attends.train_ticket_cost = form.get('train_ticket_cost')
-        attends.flight_ticket_cost = form.get('flight_ticket_cost')
-        attends.transaction_fee = form.get('transaction_fee')
-        db.session.add(attend)
+        attends.registration_fee = form.get('registration_fee') or None
+        attends.budget_type = form.get('budget_type') or attends.budget_type
+        attends.budget = form.get('budget') or None
+        attends.accommodation_cost = form.get('accommodation_cost') or None
+        attends.fuel_cost = form.get('fuel_cost') or None
+        attends.taxi_cost = form.get('taxi_cost') or None
+        attends.train_ticket_cost = form.get('train_ticket_cost') or None
+        attends.flight_ticket_cost = form.get('flight_ticket_cost') or None
+        attends.transaction_fee = form.get('transaction_fee') or None
+        db.session.add(attends)
         db.session.commit()
 
         if form.get('approval') == 'True':
@@ -5187,17 +5268,10 @@ def seminar_add_approval(attend_id):
             print(req_msg, requester_email)
         flash('update รายการอนุมัติเรียบร้อยแล้ว', 'success')
 
-        seminar_records = []
-        for seminars in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
-            if seminars.document_title:
-                seminar_records.append(seminars)
-        seminar_approval_records = []
-        for seminar_approval in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
-            if seminar_approval.seminar_approval:
-                seminar_approval_records.append(seminar_approval)
-        return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records,
-                               seminar_approval_records=seminar_approval_records)
-    return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers)
+        return redirect(url_for('staff.seminar_approval_records'))
+    return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers,
+                           current_approval=current_approval, approval_value=approval_value,
+                           approval_comment=approval_comment, approved_at_value=approved_at_value)
 
 
 @staff.route('/seminar/pre-register/upcoming/records')
