@@ -11,7 +11,13 @@
                 <div class="column">
                     <h3 class="title is-size-3 has-text-centered">ใบแจ้งหนี้</h3>
                 </div>
-                <div class="column is-one-quarter"></div>
+                <div class="column is-one-quarter has-text-right">
+                    <a class="button external-lab-back"
+                       href="{{ url_for('service_admin.customer_detail', customer_id=customer_id) }}">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
             </div>
             <div class="columns is-flex is-align-items-stretch">
                 <div class="column">
@@ -212,19 +218,6 @@
                                     </span>
                                 </p>
                             </div>
-                            <div class="field">
-                                <div class="buttons is-centered">
-                                    {% if invoice.file %}
-                                        <a class="button is-info is-outlined is-rounded is-small mb-2"
-                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
-                                                download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
-                                        >
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>
-                                        </a>
-                                    {% endif %}
-                                </div>
-                            </div>
                         </form>
                     </div>
                 </div>
@@ -265,24 +258,34 @@
                                     {% endif %}
                                 </li>
                             </ul>
+                            <hr>
+                            <p class="menu-label">
+                                ใบแจ้งหนี้
+                            </p>
+                            <ul class="menu-list">
+                                <li>
+                                    {% if invoice.file %}
+                                        <a class="button is-info is-light is-rounded is-small mb-2"
+                                           href="{{ url_for('service_admin.download_file', key=invoice.file,
+                                                   download_filename='Invoice' + ' ' + invoice.invoice_no + '.pdf') }}"
+                                        >
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                            <span>ดาวน์โหลดใบแจ้งหนี้</span>
+                                            </a>
+                                    {% else %}
+                                        ยังไม่ออกใบแจ้งหนี้
+                                    {% endif %}
+                                </li>
+                            </ul>
                         </aside>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="columns">
-            <div class="column is-two-thirds is-offset-2 has-text-centered">
-                <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('service_admin.customer_detail', customer_id=customer_id) }}">
-                            <span class="icon">
-                                <i class="fas fa-chevron-left"></i>
-                            </span>
-                        <span>ย้อนกลับ</span>
-                    </a>
-                </div>
-            </div>
-        </div>
     </section>
+    <style>
+        .external-lab-back { border-radius: 10px; color: #294a78; font-weight: 700; }
+    </style>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
@@ -296,83 +299,6 @@
                     printJS({{ url_for('service_admin.export_invoice_pdf', invoice_id=invoice.id)|tojson|safe }});
                 }
             },
-        });
-    </script>
-    <script>
-        function formatMoney(value) {
-            return Number(value || 0).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-        }
-
-        function calculateDiscount(row, totalPrice) {
-            const discountType = row.dataset.discountType || '';
-            const discountValue = Number(row.dataset.discountValue || 0);
-
-            if (!discountValue) {
-                return 0;
-            }
-
-            if (discountType === 'เปอร์เซ็นต์') {
-                return totalPrice * (discountValue / 100);
-            }
-
-            return discountValue;
-        }
-
-        function calculatePrice() {
-            const rows = document.querySelectorAll('[data-item-row]');
-            let subtotal = 0;
-            let discountTotal = 0;
-            let grandTotal = 0;
-
-            rows.forEach((row) => {
-                const quantityInput = row.querySelector('.quantity-input');
-                const quantityValue = quantityInput ? Number(quantityInput.value || 0) : Number(row.dataset.quantity || 0);
-                const unitPrice = Number(row.dataset.unitPrice || 0);
-                const totalPrice = quantityValue * unitPrice;
-                const discount = calculateDiscount(row, totalPrice);
-                const netPrice = totalPrice - discount;
-
-                const totalPriceData = row.querySelector('[data-total-price]');
-                const discountData = row.querySelector('[data-discount-amount]');
-                const netPriceData = row.querySelector('[data-net-price]');
-
-                if (totalPriceData) {
-                    totalPriceData.textContent = formatMoney(totalPrice);
-                }
-                if (discountData) {
-                    discountData.textContent = formatMoney(discount);                }
-                if (netPriceData) {
-                    netPriceData.textContent = formatMoney(netPrice);
-                }
-
-                subtotal += totalPrice;
-                discountTotal += discount;
-                grandTotal += netPrice;
-            });
-
-            const subtotalData = document.getElementById('subtotal');
-            const discountData = document.getElementById('discount');
-            const grandTotalData = document.getElementById('grand-total');
-
-            if (subtotalData) {
-                subtotalData.textContent = formatMoney(subtotal);
-            }
-            if (discountData) {
-                discountData.textContent = formatMoney(discountTotal);
-            }
-            if (grandTotalData) {
-                grandTotalData.textContent = formatMoney(grandTotal);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.quantity-input').forEach((input) => {
-                input.addEventListener('input', calculatePrice);
-            });
-            calculatePrice();
         });
     </script>
 {% endblock %}
