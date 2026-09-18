@@ -2401,9 +2401,12 @@ def _get_customer_overdue_invoices(customer):
     ]
 
 
-@service_admin.route('/customer/register/closing-page')
-def closing_page():
-    return render_template('service_admin/closing_page.html')
+@service_admin.route('/customer/invoice/overdue/view/<int:invoice_id>')
+def view_overdue_invoice(invoice_id):
+    customer_id = request.args.get('customer_id', type=int)
+    invoice = ServiceInvoice.query.get(invoice_id)
+    return render_template('service_admin/view_overdue_invoice.html', invoice=invoice,
+                           customer_id=customer_id)
 
 
 @service_admin.route('/customer/view')
@@ -2427,7 +2430,6 @@ def create_customer(customer_id=None):
     if form.validate_on_submit():
         if customer_id is None:
             customer = ServiceCustomerInfo()
-        print('f', form.attachments)
         if form.attachments:
             for item in form.attachments:
                 file = request.files.get(f'file_{item.id}')
@@ -2547,6 +2549,11 @@ def remove_attachment():
     for entry in temp_entries:
         form.attachments.append_entry(entry)
     return ""
+
+
+@service_admin.route('/customer/register/closing-page')
+def closing_page():
+    return render_template('service_admin/closing_page.html')
 
 
 # @service_admin.route('/request/index')
