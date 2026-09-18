@@ -222,6 +222,7 @@
                                 <p class="customer-payment-lab-detail">
                                     {% if lab_payment.overdue_invoice_count %}
                                         ใบแจ้งหนี้เกิน 90 วัน {{ lab_payment.overdue_invoice_count }} รายการ
+                                        <a class="customer-payment-view-invoices" href="#customer-overdue-invoices">ดูรายละเอียด</a>
                                     {% else %}
                                         ไม่มีใบแจ้งหนี้ค้างชำระเกิน 90 วัน
                                     {% endif %}
@@ -233,6 +234,55 @@
                     <div class="customer-detail-empty">ยังไม่มีประวัติการใช้บริการห้องปฏิบัติการ</div>
                 {% endif %}
             </div>
+            {% if overdue_invoices %}
+                <div class="customer-detail-section-card customer-detail-overdue-card" id="customer-overdue-invoices">
+                    <div class="customer-detail-section-heading">
+                        <div>
+                            <p class="customer-detail-section-eyebrow">OVERDUE INVOICES</p>
+                            <h2><i class="fas fa-file-invoice"></i> รายละเอียดใบแจ้งหนี้ค้างชำระ</h2>
+                        </div>
+                        <span class="customer-detail-section-count is-danger-count">{{ overdue_invoices|length }}</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="table is-fullwidth customer-detail-overdue-table">
+                            <thead>
+                            <tr>
+                                <th>เลขที่ใบแจ้งหนี้</th>
+                                <th>ห้องปฏิบัติการ</th>
+                                <th>ครบกำหนดชำระ</th>
+                                <th class="has-text-centered">ค้างชำระ</th>
+                                <th class="has-text-right">ยอดเงิน</th>
+                                <th class="has-text-centered">รายละเอียด</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for invoice_item in overdue_invoices %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ invoice_item.invoice.invoice_no or '-' }}</strong>
+                                        <small>คำขอ {{ invoice_item.request_no or '-' }}</small>
+                                    </td>
+                                    <td>{{ invoice_item.lab_name }}</td>
+                                    <td>{{ invoice_item.invoice.due_date|localdate if invoice_item.invoice.due_date else '-' }}</td>
+                                    <td class="has-text-centered">
+                                        <span class="tag is-danger is-light">{{ invoice_item.days_overdue }} วัน</span>
+                                    </td>
+                                    <td class="has-text-right">{{ "{:,.2f}".format(invoice_item.invoice.grand_total) }}</td>
+                                    <td class="has-text-centered">
+                                        <a class="button is-small is-info is-light is-rounded"
+                                           href="{{ url_for('service_admin.view_invoice', invoice_id=invoice_item.invoice.id,
+                                               menu='customer_detail', tab='overdue', customer_id=customer.id) }}">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                            <span>ดูรายละเอียด</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </section>
     <style>
@@ -303,6 +353,13 @@
         .customer-payment-status-panel strong { font-size: 1rem; line-height: 1.2; }
         .customer-payment-lab-detail { color: #66738d; font-size: .72rem; line-height: 1.4; margin: 0; }
         .customer-payment-lab-detail i { color: #718099; margin-right: .25rem; }
+        .customer-payment-view-invoices { color: #bd3027; display: inline-block; font-weight: 700; margin-left: .5rem; }
+        .customer-detail-overdue-card { margin-top: 1.25rem; }
+        .is-danger-count { background: #fff0ef; color: #bd3027; }
+        .customer-detail-overdue-table th { background: #fff7f6; color: #7f3b38; font-size: .8rem; }
+        .customer-detail-overdue-table td { color: #425675; vertical-align: middle; }
+        .customer-detail-overdue-table td:first-child strong { color: #1e3152; display: block; }
+        .customer-detail-overdue-table td:first-child small { color: #8391a8; display: block; margin-top: .15rem; }
         @media screen and (max-width: 900px) { .customer-detail-info-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
         @media screen and (max-width: 768px) { .customer-detail-columns { grid-template-columns: 1fr; } }
         @media screen and (max-width: 768px) { .customer-detail-page { padding: 2rem 0; } .customer-detail-heading { align-items: flex-start; flex-direction: column; } .customer-detail-heading-actions { width: 100%; } .customer-detail-heading-actions .button { flex: 1; } }
