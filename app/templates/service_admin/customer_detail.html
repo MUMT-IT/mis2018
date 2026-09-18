@@ -35,10 +35,13 @@
                         <p class="customer-detail-profile-label">ชื่อบริษัท/ผู้รับบริการ</p>
                         <h2>{{ customer.cus_name or '-' }}</h2>
                     </div>
-                    <span class="tag customer-detail-type-tag">{{ customer.type or '-' }}</span>
                 </div>
 
                 <div class="customer-detail-info-grid">
+                    <div class="customer-detail-info-item">
+                        <span class="customer-detail-info-label"><i class="fas fa-user-tag"></i> ประเภท</span>
+                        <strong><span class="tag customer-detail-type-tag">{{ customer.type or '-' }}</span></strong>
+                    </div>
                     <div class="customer-detail-info-item">
                         <span class="customer-detail-info-label"><i class="fas fa-id-card"></i> เลขประจำตัวผู้เสียภาษี</span>
                         <strong>{{ customer.taxpayer_identification_no or '-' }}</strong>
@@ -306,8 +309,9 @@
         .customer-detail-profile-icon, .customer-detail-contact-avatar, .customer-detail-account-icon { flex: 0 0 2.75rem; height: 2.75rem; }
         .customer-detail-profile-label, .customer-detail-info-label { color: #718099; font-size: .78rem; margin-bottom: .15rem; }
         .customer-detail-profile-header h2 { color: #15284d; font-size: 1.25rem; margin: 0; }
-        .customer-detail-type-tag, .customer-detail-section-count { background: #edf8f0; border-radius: 999px; color: #237348; font-weight: 700; margin-left: auto; }
-        .customer-detail-info-grid { display: grid; gap: 1rem; grid-template-columns: repeat(4, minmax(0,1fr)); padding-top: 1.25rem; }
+        .customer-detail-type-tag, .customer-detail-section-count { background: #edf8f0; border-radius: 999px; color: #237348; font-weight: 700; }
+        .customer-detail-section-count { margin-left: auto; }
+        .customer-detail-info-grid { display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0,1fr)); padding-top: 1.25rem; }
         .customer-detail-info-item strong { color: #1e3152; display: block; overflow-wrap: anywhere; }
         .customer-detail-info-label { display: block; }
         .customer-detail-info-label i, .customer-detail-section-heading h2 i, .customer-detail-contact-meta i, .customer-detail-address-meta i { color: #2f80c9; margin-right: .25rem; }
