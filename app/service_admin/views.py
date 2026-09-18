@@ -2423,7 +2423,16 @@ def _get_customer_overdue_invoices(customer):
     ]
 
 
+@service_admin.route('/external-lab/index')
+@login_required
+def external_lab_index():
+    customer_id = request.args.get('customer_id')
+    labs = ServiceLab.query.filter_by(is_external=True)
+    return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id)
+
+
 @service_admin.route('/customer/invoice/overdue/view/<int:invoice_id>')
+@login_required
 def view_overdue_invoice(invoice_id):
     customer_id = request.args.get('customer_id', type=int)
     invoice = ServiceInvoice.query.get(invoice_id)
