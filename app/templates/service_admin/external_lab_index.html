@@ -24,6 +24,13 @@
                     </a>
                 {% endif %}
             </div>
+            <div class="external-lab-instruction">
+                <span class="external-lab-instruction-step icon"><i class="fas fa-exclamation"></i></span>
+                <div>
+                    <strong>เลือกบริการที่ต้องการสร้างคำขอ</strong>
+                    <p>กดปุ่ม <span>สร้าง Request ID</span> ทางขวาของบริการนั้น เพื่อเริ่มสร้างรายการใหม่</p>
+                </div>
+            </div>
             <div class="external-lab-list">
                 {% for lab in labs|sort(attribute='no') %}
                     <article class="external-lab-card">
@@ -55,10 +62,20 @@
                                         <strong>{{ sub_lab.sub_lab }}</strong>
                                         <small>{{ sub_lab.code or 'บริการตรวจวิเคราะห์' }}</small>
                                         {% if sub_lab.requests %}
-                                            <small> Request ล่าสุด : {{ sub_lab.requests|max(attribute='request_no')  }}</small>
+                                            <small class="external-service-request-no">
+                                                <i class="fas fa-clock-rotate-left"></i>
+                                                Request ล่าสุด: {{ (sub_lab.requests|max(attribute='request_no')).request_no }}
+                                            </small>
                                         {% else %}
-                                            <small> Request ล่าสุด : -</small>
+                                            <small class="external-service-request-no">
+                                                <i class="fas fa-clock-rotate-left"></i>
+                                                ยังไม่มี Request ID
+                                            </small>
                                         {% endif %}
+                                    </span>
+                                    <span class="external-service-create-button">
+                                        <i class="fas fa-plus"></i>
+                                        <span>สร้าง Request ID</span>
                                     </span>
                                 </a>
                             {% else %}
@@ -91,6 +108,11 @@
         .external-lab-notice-icon { align-items: center; background: #dceeff; border-radius: 10px; color: #2f80c9; display: inline-flex; flex: 0 0 2.2rem; height: 2.2rem; justify-content: center; }
         .external-lab-notice strong { color: #1e4677; display: block; font-size: .9rem; }
         .external-lab-notice p { color: #667d9b; font-size: .82rem; margin: .15rem 0 0; }
+        .external-lab-instruction { align-items: center; background: #fff; border: 2px solid #b9daf7; border-radius: 16px; display: flex; gap: .8rem; margin: 0 auto 1.25rem; max-width: 70rem; padding: .85rem 1rem; }
+        .external-lab-instruction-step { align-items: center; background: #2f80c9; border-radius: 50%; color: #fff; display: inline-flex; flex: 0 0 2rem; font-size: .9rem; font-weight: 800; height: 2rem; justify-content: center; }
+        .external-lab-instruction strong { color: #1e4677; display: block; font-size: .9rem; }
+        .external-lab-instruction p { color: #667d9b; font-size: .82rem; margin: .1rem 0 0; }
+        .external-lab-instruction p span { color: #1e67aa; font-weight: 800; }
         .external-lab-list { display: grid; gap: 1.25rem; margin: 0 auto; max-width: 70rem; }
         .external-lab-card { background: rgba(255,255,255,.96); border: 1px solid rgba(58,101,184,.17); border-radius: 18px; box-shadow: 0 14px 32px rgba(18,39,84,.08); padding: 1.35rem; }
         .external-lab-card-heading { align-items: center; border-bottom: 1px solid #edf1f7; display: flex; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; }
@@ -106,7 +128,10 @@
         .external-service-copy { display: flex; flex-direction: column; min-width: 0; }
         .external-service-copy strong { color: #1e3152; font-size: .9rem; overflow-wrap: anywhere; }
         .external-service-copy small { color: #8292a9; font-size: .72rem; margin-top: .12rem; }
-        .external-service-arrow { color: #78a9d7; margin-left: auto; }
+        .external-service-copy .external-service-request-no { color: #8292a9; font-size: .7rem; margin-top: .28rem; }
+        .external-service-request-no i { margin-right: .2rem; }
+        .external-service-create-button { align-items: center; background: #2f80c9; border-radius: 9px; color: #fff; display: inline-flex; flex: 0 0 auto; font-size: .75rem; font-weight: 800; gap: .35rem; justify-content: center; margin-left: auto; padding: .65rem .75rem; white-space: nowrap; }
+        .external-service-card:hover .external-service-create-button { background: #1e67aa; }
         .external-lab-empty { color: #8292a9; font-size: .85rem; padding: .5rem 0; }
         .external-lab-empty-card { background: rgba(255,255,255,.96); border: 1px dashed #b8cde3; border-radius: 18px; color: #667d9b; padding: 3rem 1rem; text-align: center; }
         .external-lab-empty-icon { align-items: center; background: #eef6ff; border-radius: 50%; color: #2f80c9; display: inline-flex; font-size: 1.4rem; height: 3rem; justify-content: center; width: 3rem; }
