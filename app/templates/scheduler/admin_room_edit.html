@@ -87,6 +87,15 @@
                         </div>
 
                         <div class="field">
+                            {{ form.coordinators.label(class="label") }}
+                            <div class="control">
+                                {{ form.coordinators(class="js-coordinator-select", multiple="multiple") }}
+                            </div>
+                            <p class="help">เลือกผู้ประสานงานที่ดูแลห้องนี้</p>
+                            {% for error in form.coordinators.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                        </div>
+
+                        <div class="field">
                             {{ form.conjoined_rooms.label(class="label") }}
                             <div class="control">
                                 {{ form.conjoined_rooms(class="js-room-select", multiple="multiple") }}
@@ -118,7 +127,7 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
-            $('.js-room-select').select2({width: '100%'})
+            $('.js-room-select, .js-coordinator-select').select2({width: '100%'})
         })
     </script>
 {% endblock %}

@@ -69,6 +69,11 @@ class RoomAdminForm(FlaskForm):
         allow_blank=True,
         blank_text='ไม่ระบุ',
     )
+    coordinators = QuerySelectMultipleField(
+        'ผู้ประสานงาน',
+        query_factory=lambda: StaffAccount.get_active_accounts(),
+        get_label='fullname',
+    )
     conjoined_rooms = QuerySelectMultipleField(
         'ห้องที่เชื่อมต่อกัน',
         query_factory=lambda: RoomResource.query.order_by(
