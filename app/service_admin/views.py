@@ -2426,9 +2426,30 @@ def _get_customer_overdue_invoices(customer):
 @service_admin.route('/external-lab/index')
 @login_required
 def external_lab_index():
-    customer_id = request.args.get('customer_id')
+    customer_id = request.args.get('customer_id', type=int)
     labs = ServiceLab.query.filter_by(is_external=True)
     return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id)
+
+
+@service_admin.route('/request/external-lab/add/<int:sub_lab_id>', methods=['GET', 'POST'])
+@login_required
+def create_request_id(sub_lab_id):
+    customer_id = request.args.get('customer_id', type=int)
+    sub_lab = ServiceSubLab.query.get(sub_lab_id)
+    customer_account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
+    if request.method == 'POST':
+        request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+        service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_account.id,
+                                         created_at=arrow.now('Asia/Bangkok').datetime, sub_lab_id=sub_lab_id,
+                                         request_no=request_no.number)
+        request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('service_admin.customer_detail', customer_id=customer_id)
+        flash('บันทึกข้อมูลำเร็จ', 'success')
+        return resp
+    return redirect(url_for('service_admin.external_lab_index', customer_id=customer_id))
 
 
 @service_admin.route('/customer/invoice/overdue/view/<int:invoice_id>')
