@@ -2,6 +2,7 @@
 import datetime
 
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField as FlaskFileField
 from wtforms import (SelectMultipleField,
                      widgets,
                      FileField,
@@ -149,6 +150,12 @@ class ProcurementPlanForm(FlaskForm):
     inspection_date = DatePickerField(u'วันที่ตรวจรับ')
     note = TextAreaField(u'หมายเหตุ', validators=[Optional()])
     submit = SubmitField(u'บันทึก')
+
+
+class ProcurementPlanUploadForm(FlaskForm):
+    """Provides an independent CSRF context for the bulk-upload form."""
+    fiscal_year = IntegerField(u'ปีงบประมาณ', validators=[DataRequired()])
+    workbook = FlaskFileField(u'ไฟล์ Excel แผนจัดซื้อจัดจ้าง')
 
 
 class ProcurementPlanCommitteeMemberForm(FlaskForm):

@@ -26,6 +26,11 @@ from sqlalchemy.sql import func
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
+from .plan_import import (
+    ProcurementPlanImportError,
+    normalise_procurement_method,
+    parse_procurement_plan_workbook,
+)
 from datetime import datetime, date, timedelta
 from pytz import timezone
 from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
@@ -353,8 +358,120 @@ def new_procurement_plan():
         db.session.commit()
         flash(u'เพิ่มแผนการจัดซื้อจัดจ้างเรียบร้อยแล้ว', 'success')
         return redirect(url_for('procurement.procurement_plans'))
-    return render_template('procurement/plan_form.html', form=form, active_page='plans',
+    return render_template('procurement/plan_form.html', form=form,
+                           upload_form=ProcurementPlanUploadForm(), active_page='plans',
                            page_title=u'เพิ่มแผนการจัดซื้อจัดจ้าง')
+
+
+@procurement.route('/planning/plans/import', methods=['POST'])
+@login_required
+def import_procurement_plans():
+    selected_year = request.form.get('fiscal_year', type=int)
+    if not selected_year or selected_year < 2500 or selected_year > 2700:
+        flash(u'กรุณาระบุปีงบประมาณเป็นปี พ.ศ. ระหว่าง 2500 ถึง 2700', 'danger')
+        return redirect(url_for('procurement.new_procurement_plan'))
+
+    uploaded_workbook = request.files.get('workbook')
+    if not uploaded_workbook or not uploaded_workbook.filename:
+        flash(u'กรุณาเลือกไฟล์ Excel', 'danger')
+        return redirect(url_for('procurement.new_procurement_plan'))
+    if not uploaded_workbook.filename.lower().endswith('.xlsx'):
+        flash(u'รองรับเฉพาะไฟล์ .xlsx', 'danger')
+        return redirect(url_for('procurement.new_procurement_plan'))
+
+    upload_stream = uploaded_workbook.stream
+    upload_stream.seek(0, os.SEEK_END)
+    upload_size = upload_stream.tell()
+    upload_stream.seek(0)
+    if upload_size > 10 * 1024 * 1024:
+        flash(u'ไฟล์ Excel ต้องมีขนาดไม่เกิน 10 MB', 'danger')
+        return redirect(url_for('procurement.new_procurement_plan'))
+
+    try:
+        _, imported_rows = parse_procurement_plan_workbook(upload_stream, selected_year)
+    except ProcurementPlanImportError as exc:
+        for message in str(exc).splitlines()[:20]:
+            flash(message, 'danger')
+        return redirect(url_for('procurement.new_procurement_plan'))
+
+    funding_codes = {row['funding_source'] for row in imported_rows}
+    product_codes = {row['product_code'] for row in imported_rows}
+    cost_center_codes = {row['cost_center'] for row in imported_rows}
+    funding_sources = {
+        source.code: source for source in ProcurementFundingSource.query.filter(
+            ProcurementFundingSource.code.in_(funding_codes)).all()
+    }
+    products = {
+        product.id: product for product in ProductCode.query.filter(ProductCode.id.in_(product_codes)).all()
+    }
+    cost_centers = {
+        center.id: center for center in CostCenter.query.filter(CostCenter.id.in_(cost_center_codes)).all()
+    }
+
+    reference_errors = []
+    for row in imported_rows:
+        if row['funding_source'] not in funding_sources:
+            reference_errors.append(u'แถวที่ {}: ไม่พบแหล่งงบประมาณ "{}"'.format(
+                row['row_number'], row['funding_source']))
+        if row['cost_center'] not in cost_centers:
+            reference_errors.append(u'แถวที่ {}: ไม่พบศูนย์ต้นทุน "{}"'.format(
+                row['row_number'], row['cost_center']))
+    if reference_errors:
+        for message in reference_errors[:20]:
+            flash(message, 'danger')
+        flash(u'ยกเลิกการนำเข้า ยังไม่มีรายการใดถูกบันทึก', 'danger')
+        return redirect(url_for('procurement.new_procurement_plan'))
+
+    fiscal_years = {row['fiscal_year'] for row in imported_rows}
+    existing_plans = ProcurementPlan.query.filter(ProcurementPlan.fiscal_year.in_(fiscal_years)).all()
+    existing_signatures = {
+        (plan.fiscal_year, plan.funding_source_id, plan.item, plan.product_code_id,
+         plan.cost_center_id, plan.amount, plan.fund_code)
+        for plan in existing_plans
+    }
+    added_count = 0
+    skipped_count = 0
+    try:
+        for row in imported_rows:
+            code = row['product_code']
+            if code not in products:
+                products[code] = ProductCode(id=code, name=row['product_name'] or code)
+                db.session.add(products[code])
+
+        for row in imported_rows:
+            funding_source = funding_sources[row['funding_source']]
+            product = products[row['product_code']]
+            cost_center = cost_centers[row['cost_center']]
+            signature = (
+                row['fiscal_year'], funding_source.id, row['item'], product.id,
+                cost_center.id, row['amount'], row['fund_code'],
+            )
+            if signature in existing_signatures:
+                skipped_count += 1
+                continue
+            db.session.add(ProcurementPlan(
+                fiscal_year=row['fiscal_year'],
+                funding_source=funding_source,
+                item=row['item'],
+                product_code=product,
+                cost_center=cost_center,
+                procurement_method=normalise_procurement_method(row['procurement_method']),
+                amount=row['amount'],
+                fund_code=row['fund_code'],
+                tor_due_date=date(row['fiscal_year'], 12, 31),
+            ))
+            added_count += 1
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Unable to import procurement plans')
+        flash(u'เกิดข้อผิดพลาดระหว่างบันทึก ยกเลิกการนำเข้าทั้งหมดแล้ว', 'danger')
+        return redirect(url_for('procurement.new_procurement_plan'))
+
+    flash(u'นำเข้าแผนการจัดซื้อจัดจ้าง {} รายการเรียบร้อยแล้ว'.format(added_count), 'success')
+    if skipped_count:
+        flash(u'ข้าม {} รายการที่มีอยู่แล้ว'.format(skipped_count), 'warning')
+    return redirect(url_for('procurement.procurement_plans', fiscal_year=imported_rows[0]['fiscal_year']))
 
 
 @procurement.route('/planning/plans/<int:plan_id>/edit', methods=['GET', 'POST'])

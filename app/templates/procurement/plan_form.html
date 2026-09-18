@@ -41,7 +41,52 @@
                     </div>
                 </div>
 
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="notification {% if category == 'success' %}is-success{% elif category == 'warning' %}is-warning{% else %}is-danger{% endif %} is-light">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
                 <div class="box plan-form-card">
+                    {% if not plan %}
+                        <div class="notification is-info is-light mb-5">
+                            <h2 class="title is-5 mb-2">นำเข้าจาก Excel</h2>
+                            <p class="mb-4">เลือกไฟล์ MT Template เพื่อสร้างรายการแผนทั้งหมดในครั้งเดียว ระบบจะอ่านข้อมูลจากชีต “กรอกข้อมูล”</p>
+                            <form id="procurement-plan-upload-form" method="post" enctype="multipart/form-data"
+                                  action="{{ url_for('procurement.import_procurement_plans') }}">
+                                {{ upload_form.csrf_token(id='upload_csrf_token') }}
+                                <div class="field">
+                                    {{ upload_form.fiscal_year.label(class="label") }}
+                                    <div class="control">
+                                        {{ upload_form.fiscal_year(class="input", min="2500", max="2700", required=true, placeholder="เช่น 2570") }}
+                                    </div>
+                                    <p class="help">ปีที่ระบุจะถูกใช้กับทุกรายการที่นำเข้า</p>
+                                </div>
+                                <div class="field">
+                                    {{ upload_form.workbook.label(class="label") }}
+                                    <div class="file has-name is-fullwidth">
+                                        <label class="file-label">
+                                            {{ upload_form.workbook(class="file-input", accept=".xlsx") }}
+                                            <span class="file-cta"><span class="file-label">เลือกไฟล์</span></span>
+                                            <span class="file-name" id="workbook-file-name">ยังไม่ได้เลือกไฟล์</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <button class="button is-link" id="procurement-plan-import-button" type="submit"
+                                            name="upload_submit" value="1">
+                                        นำเข้ารายการทั้งหมด
+                                    </button>
+                                    <p class="help is-danger is-hidden" id="procurement-plan-import-error">กรุณาเลือกไฟล์ Excel ก่อนนำเข้า</p>
+                                </div>
+                            </form>
+                            <p class="help">ระบบจะไม่บันทึกรายการใดหากพบข้อมูลอ้างอิงที่ไม่มีในระบบ และจะข้ามรายการที่มีอยู่แล้ว</p>
+                        </div>
+                    {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <h2 class="title is-5 mb-4">สำหรับเจ้าหน้าที่หน่วยยุทธศาสตร์</h2>
@@ -164,6 +209,25 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(function () {
+            $('#workbook').on('change', function () {
+                const fileName = this.files.length ? this.files[0].name : 'ยังไม่ได้เลือกไฟล์';
+                $('#workbook-file-name').text(fileName);
+                $('#procurement-plan-import-error').toggleClass('is-hidden', this.files.length > 0);
+            });
+
+            $('#procurement-plan-import-button').on('click', function (event) {
+                const fileInput = document.getElementById('workbook');
+                const error = $('#procurement-plan-import-error');
+                if (!fileInput || !fileInput.files.length) {
+                    event.preventDefault();
+                    error.removeClass('is-hidden');
+                    return;
+                }
+
+                error.addClass('is-hidden');
+                $(this).addClass('is-loading');
+            });
+
             $('.employee-search').select2({
                 allowClear: true,
                 placeholder: 'ค้นหาบุคลากร',
