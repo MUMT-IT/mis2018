@@ -273,8 +273,8 @@
                                     <td class="has-text-right">{{ "{:,.2f}".format(invoice_item.invoice.grand_total) }}</td>
                                     <td class="has-text-centered">
                                         <a class="button is-small is-info is-light is-rounded"
-                                           href="{{ url_for('service_admin.view_invoice', invoice_id=invoice_item.invoice.id,
-                                               menu='customer_detail', tab='overdue', customer_id=customer.id) }}">
+                                           href="{{ url_for('service_admin.view_overdue_invoice',
+                                           invoice_id=invoice_item.invoice.id, customer_id=customer.id) }}">
                                             <span class="icon"><i class="fas fa-eye"></i></span>
                                             <span>ดูรายละเอียด</span>
                                         </a>
