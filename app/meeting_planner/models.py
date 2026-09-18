@@ -104,8 +104,17 @@ class MeetingAgenda(db.Model):
     consensus_updated_at = db.Column('consensus_updated_at', db.DateTime(timezone=True),
                                      onupdate=func.now())
     meeting_id = db.Column('meeting_id', db.ForeignKey('meeting_events.id'))
-    meeting = db.relationship(MeetingEvent, backref=db.backref('agendas',
-                                                               cascade='all, delete-orphan'))
+    meeting = db.relationship(MeetingEvent, backref=db.backref('agendas', cascade='all, delete-orphan'))
+
+
+class MeetingTask(db.Model):
+    __tablename__ = 'meeting_tasks'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียด'})
+    deadline = db.Column('consensus_updated_at', db.DateTime(timezone=True), info={'label': 'Deadline'})
+    agenda_id = db.Column('agenda_id', db.ForeignKey('meeting_agendas.id'))
+    agenda = db.relationship(MeetingAgenda, backref=db.backref('tasks', cascade='all, delete-orphan'))
+
 
 
 class MeetingAgendaNote(db.Model):
