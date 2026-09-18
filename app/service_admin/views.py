@@ -2320,10 +2320,9 @@ def search_customer():
 @login_required
 def customer_detail(customer_id):
     customer = ServiceCustomerInfo.query.get(customer_id)
-    lab_payments = _build_customer_lab_payments(customer)
+    # lab_payments = _build_customer_lab_payments(customer)
     overdue_invoices = _get_customer_overdue_invoices(customer)
-    return render_template('service_admin/customer_detail.html', customer=customer,
-                           lab_payments=lab_payments, overdue_invoices=overdue_invoices)
+    return render_template('service_admin/customer_detail.html', customer=customer, overdue_invoices=overdue_invoices)
 
 
 # def _build_customer_lab_payments(customer):
