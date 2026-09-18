@@ -216,7 +216,14 @@
                         <p class="customer-detail-section-eyebrow">LATEST SERVICES</p>
                         <h2><i class="fas fa-flask-vial"></i> บริการล่าสุด</h2>
                     </div>
-                    <span class="customer-detail-section-count">{{ latest_service_requests|length }}</span>
+                    <div class="buttons mb-0">
+                        <a class="button is-small is-primary is-rounded"
+                           href="{{ url_for('service_admin.external_lab_index', customer_id=customer.id) }}">
+                            <span class="icon"><i class="fas fa-plus"></i></span>
+                            <span>สร้าง Request ID</span>
+                        </a>
+                        <span class="customer-detail-section-count">{{ latest_service_requests|length }}</span>
+                    </div>
                 </div>
 
                 {% if latest_service_requests %}
