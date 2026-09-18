@@ -35,8 +35,19 @@
                         <p class="customer-detail-profile-label">ชื่อบริษัท/ผู้รับบริการ</p>
                         <h2>{{ customer.cus_name or '-' }}</h2>
                     </div>
+                    {% if overdue_invoices %}
+                        <a class="tag customer-detail-payment-status-tag is-danger is-rounded"
+                           href="#customer-overdue-invoices">
+                            <span class="icon"><i class="fas fa-triangle-exclamation"></i></span>
+                            <span>ค้างชำระ {{ overdue_invoices|length }} รายการ</span>
+                        </a>
+                    {% else %}
+                        <span class="tag customer-detail-payment-status-tag is-success is-rounded">
+                            <span class="icon"><i class="fas fa-circle-check"></i></span>
+                            <span>ไม่ค้างชำระ</span>
+                        </span>
+                    {% endif %}
                 </div>
-
                 <div class="customer-detail-info-grid">
                     <div class="customer-detail-info-item">
                         <span class="customer-detail-info-label"><i class="fas fa-user-tag"></i> ประเภท</span>
@@ -309,6 +320,7 @@
         .customer-detail-profile-icon, .customer-detail-contact-avatar, .customer-detail-account-icon { flex: 0 0 2.75rem; height: 2.75rem; }
         .customer-detail-profile-label, .customer-detail-info-label { color: #718099; font-size: .78rem; margin-bottom: .15rem; }
         .customer-detail-profile-header h2 { color: #15284d; font-size: 1.25rem; margin: 0; }
+        .customer-detail-payment-status-tag { margin-left: auto; text-decoration: none; }
         .customer-detail-type-tag, .customer-detail-section-count { background: #edf8f0; border-radius: 999px; color: #237348; font-weight: 700; }
         .customer-detail-section-count { margin-left: auto; }
         .customer-detail-info-grid { display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0,1fr)); padding-top: 1.25rem; }
@@ -361,7 +373,7 @@
         .customer-payment-lab-detail { color: #66738d; font-size: .72rem; line-height: 1.4; margin: 0; }
         .customer-payment-lab-detail i { color: #718099; margin-right: .25rem; }
         .customer-payment-view-invoices { color: #bd3027; display: inline-block; font-weight: 700; margin-left: .5rem; }
-        .customer-detail-overdue-card { margin-top: 1.25rem; }
+        .customer-detail-overdue-card { margin-top: 1.25rem; scroll-margin-top: 1.25rem; }
         .is-danger-count { background: #fff0ef; color: #bd3027; }
         .customer-detail-overdue-table th { background: #fff7f6; color: #7f3b38; font-size: .8rem; }
         .customer-detail-overdue-table td { color: #425675; vertical-align: middle; }
