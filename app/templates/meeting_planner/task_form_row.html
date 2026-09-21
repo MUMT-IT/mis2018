@@ -10,7 +10,11 @@
     </td>
     <td style="width: 10%">
         <a class="button is-success is-outlined"
-           hx-post="{{ url_for('meeting_planner.add_task_form', topic_id=topic_id) }}"
+           {% if task_id %}
+               hx-post="{{ url_for('meeting_planner.edit_task_form', task_id=task_id) }}"
+           {% else %}
+                hx-post="{{ url_for('meeting_planner.add_task_form', topic_id=topic_id) }}"
+           {% endif %}
            hx-include="closest tr">
             <span class="icon"><i class="fas fa-save"></i></span>
         </a>
