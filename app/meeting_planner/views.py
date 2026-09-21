@@ -618,6 +618,7 @@ def _populate_task(task):
 def add_task_form(topic_id):
     topic = MeetingAgenda.query.get(topic_id)
     form = MeetingTaskForm()
+
     if request.method == 'GET':
         return render_template('meeting_planner/task_form_row.html', form=form,
                                topic_id=topic.id)
@@ -637,36 +638,41 @@ def add_task_form(topic_id):
         resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=topic.meeting_id)
         return resp
 
-#
-# @meeting_planner.route('/api/meeting_planner/tasks/<int:task_id>/edit', methods=['GET', 'POST', 'DELETE'])
-# @login_required
-# def edit_task_form(task_id):
-#     task = MeetingTask.query.get(task_id)
-#     if task is None:
-#         return '', 404
-#     if request.method == 'GET':
-#         return render_template(
-#             'meeting_planner/task_form_row.html',
-#             task=task,
-#             action_url=url_for('meeting_planner.edit_task_form', task_id=task.id),
-#         )
-#     if request.method == 'POST':
-#         _populate_task(task)
-#         if not task.no or not task.detail:
-#             response = make_response(render_template(
-#                 'meeting_planner/task_form_row.html',
-#                 task=task,
-#                 action_url=url_for('meeting_planner.edit_task_form', task_id=task.id),
-#             ))
-#             response.status_code = 422
-#             return response
-#         db.session.add(task)
-#         db.session.commit()
-#         return render_template('meeting_planner/task_row.html', task=task)
-#
-#     db.session.delete(task)
-#     db.session.commit()
-#     return ''
+
+@meeting_planner.route('/api/meeting_planner/tasks/edit/<int:task_id>', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def edit_task_form(task_id):
+    task = MeetingTask.query.get(task_id)
+    if task is None:
+        return '', 404
+    form = MeetingTaskForm(obj=task)
+    meeting_id = task.agenda.meeting_id
+
+    if request.method == 'GET':
+        return render_template('meeting_planner/task_form_row.html', form=form, task_id=task_id)
+    if request.method == 'POST':
+        no = form.no.data
+        detail = form.detail.data
+        deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+        if not no or not detail:
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            return resp
+        task.no = no
+        task.detail = detail
+        task.deadline = deadline
+        db.session.add(task)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
+        return resp
+    if request.method == 'DELETE':
+        db.session.delete(task)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
+        return resp
 
 
 @meeting_planner.route('/api/meeting_planner/invites/<int:invite_id>', methods=['PATCH', 'DELETE'])
