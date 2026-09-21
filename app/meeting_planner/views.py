@@ -613,10 +613,11 @@ def add_task_form(topic_id):
             resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=topic.meeting_id)
             flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
             return resp
-        task = MeetingTask(no=no, detail=detail, deadline=deadline, agenda_id=topic.id)
-        for staff in form.admins.data:
-            admin = MeetingAdmin(admin_id=staff.id, task=task)
-            db.session.add(admin)
+        task = MeetingTask(no=no, detail=detail, deadline=deadline, agenda_id=topic.id,
+                           admins=[MeetingAdmin(admin=admin) for admin in (form.admins.data or [])])
+        # for staff in form.admins.data:
+        #     admin = MeetingAdmin(admin_id=staff.id, task=task)
+        #     db.session.add(admin)
         db.session.add(task)
         db.session.commit()
         resp = make_response()
@@ -628,12 +629,11 @@ def add_task_form(topic_id):
 @login_required
 def edit_task_form(task_id):
     task = MeetingTask.query.get(task_id)
-    if task is None:
-        return '', 404
     form = MeetingTaskForm(obj=task)
     meeting_id = task.agenda.meeting_id
 
     if request.method == 'GET':
+        form.admins.data = [meeting_admin.admin for meeting_admin in task.admins]
         return render_template('meeting_planner/task_form_row.html', form=form, task_id=task_id)
     if request.method == 'POST':
         no = form.no.data
@@ -647,6 +647,7 @@ def edit_task_form(task_id):
         task.no = no
         task.detail = detail
         task.deadline = deadline
+        task.admins = [MeetingAdmin(admin=admin) for admin in (form.admins.data or [])]
         db.session.add(task)
         db.session.commit()
         resp = make_response()
