@@ -615,9 +615,6 @@ def add_task_form(topic_id):
             return resp
         task = MeetingTask(no=no, detail=detail, deadline=deadline, agenda_id=topic.id,
                            admins=[MeetingAdmin(admin=admin) for admin in (form.admins.data or [])])
-        # for staff in form.admins.data:
-        #     admin = MeetingAdmin(admin_id=staff.id, task=task)
-        #     db.session.add(admin)
         db.session.add(task)
         db.session.commit()
         resp = make_response()
