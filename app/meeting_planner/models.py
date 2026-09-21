@@ -114,10 +114,11 @@ class MeetingTask(db.Model):
     detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียด'})
     deadline = db.Column('consensus_updated_at', db.DateTime(timezone=True), info={'label': 'Deadline'})
     agenda_id = db.Column('agenda_id', db.ForeignKey('meeting_agendas.id'))
-    agenda = db.relationship(MeetingAgenda, backref=db.backref('tasks', cascade='all, delete-orphan'))
+    agenda = db.relationship(MeetingAgenda, backref=db.backref('tasks'))
 
     def __str__(self):
         return str(self.detail)
+
 
 class MeetingAdmin(db.Model):
     __tablename__ = 'meeting_admins'
