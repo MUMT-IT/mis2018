@@ -84,7 +84,7 @@ styles.add(ParagraphStyle(name='ThaiCenter', fontName='Sarabun', fontSize=DEFAUL
 styles.add(ParagraphStyle(name='ThaiCenterBold', fontName='SarabunBold', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_CENTER))
 styles.add(ParagraphStyle(name='ThaiRight', fontName='Sarabun', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_RIGHT))
 styles.add(ParagraphStyle(name='ThaiRightBold', fontName='SarabunBold', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_RIGHT))
-styles.add(ParagraphStyle(name='ThaiJustify', fontName='Sarabun', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_JUSTIFY))
+styles.add(ParagraphStyle(name='ThaiJustify', fontName='Sarabun', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_JUSTIFY, wordWrap='CJK'))
 
 # สไตล์เฉพาะกรณี (เช่น ข้อความเชิงอรรถ/ตัวอักษรขนาดเล็ก)
 styles.add(ParagraphStyle(name='ThaiSmallRight', fontName='Sarabun', fontSize=13, leading=16, alignment=TA_RIGHT))
@@ -97,6 +97,7 @@ styles.add(ParagraphStyle(
     fontSize=DEFAULT_FONT_SIZE,
     leading=DEFAULT_LEADING,
     alignment=TA_JUSTIFY,
+    wordWrap='CJK',
     firstLineIndent=70  # ปรับระยะย่อหน้าให้เท่ากันทุกพารากราฟที่นี่
 ))
 # =========================================================================
@@ -791,7 +792,7 @@ def generate_petty_claim(claim, claim_type="1"):
     reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(claim, "product_code", None), "id", None) or PDF_BLANK
     cost_center_label = getattr(getattr(claim, "cost_center", None), "id", None) or PDF_BLANK
-    mission_label = getattr(getattr(claim, "iocode", None), "mission_id", None) or PDF_BLANK
+    mission_label = getattr(getattr(claim, "iocode", None), "id", None) or PDF_BLANK # changed from mission_id => id
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -811,6 +812,7 @@ def generate_petty_claim(claim, claim_type="1"):
         fontName="Sarabun",
         fontSize=16,
         leading=20,
+        wordWrap="CJK",
         alignment=TA_JUSTIFY,
         textColor=colors.black,
     )
@@ -909,10 +911,10 @@ def generate_petty_claim(claim, claim_type="1"):
     story.append(Spacer(1, 18))
 
     body_1 = (
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้{request_purpose}นั้น"
+        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น"
     )
     body_2 = (
-        f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
+        f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
     )
 
     if no_approval_letter:
@@ -1008,7 +1010,7 @@ def generate_petty_claim(claim, claim_type="1"):
     story.append(Spacer(1, 45))
 
     approval_sign = Paragraph(
-        "อนุมัติ<br/><br/>"
+        "อนุมัติ<br/><br/><br/>"
         "(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>"
         "คณบดีคณะเทคนิคการแพทย์",
         claim_center,
@@ -1067,13 +1069,14 @@ def generate_ticket_return(return_detail):
     reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(return_detail, "product_code", None), "name", None) or PDF_BLANK
     cost_center_label = getattr(getattr(return_detail, "cost_center", None), "id", None) or PDF_BLANK
-    mission_label = getattr(getattr(return_detail, "iocode", None), "mission_id", None) or PDF_BLANK
+    mission_label = getattr(getattr(return_detail, "iocode", None), "id", None) or PDF_BLANK # changed from mission_id => id
 
     return_body = ParagraphStyle(
         name="ThaiTicketReturnBody",
         fontName="Sarabun",
         fontSize=16,
         leading=20,
+        wordWrap="CJK",
         alignment=TA_JUSTIFY,
         firstLineIndent=70,
         textColor=colors.black,
@@ -1134,7 +1137,7 @@ def generate_ticket_return(return_detail):
     header_right = Paragraph(
         f"<br/>{department_name}<br/>"
         f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
-        f"โทรศัพท์ {telephone_number}",
+        f"โทร. {telephone_number}",
         return_right,
     )
     header_table = Table([["", logo, header_right]], colWidths=[170, 110, 175])
@@ -1166,12 +1169,12 @@ def generate_ticket_return(return_detail):
     story.extend([info_table, Spacer(1, 18)])
 
     story.append(Paragraph(
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้{request_purpose}นั้น",
+        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น",
         return_body,
     ))
     story.append(Spacer(1, 8))
     story.append(Paragraph(
-        f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัดโครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
+        f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัด โครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
         return_body,
     ))
     story.append(Spacer(1, 10))
@@ -1209,7 +1212,7 @@ def generate_ticket_return(return_detail):
 
     story.append(Paragraph(
         f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
-        f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้",
+        f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตาม เอกสารที่แนบมาพร้อมนี้",
         return_left,
     ))
     story.extend([
@@ -1226,7 +1229,7 @@ def generate_ticket_return(return_detail):
     ]))
     story.append(head_sign)
     story.append(Spacer(1, 45))
-    approval_sign = Table([[Paragraph("อนุมัติ<br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์", return_center), ""]], colWidths=[280, 285])
+    approval_sign = Table([[Paragraph("อนุมัติ<br/><br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์", return_center), ""]], colWidths=[280, 285])
     approval_sign.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
