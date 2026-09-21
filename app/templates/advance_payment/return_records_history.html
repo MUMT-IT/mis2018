@@ -198,26 +198,28 @@
               <!-- 6. แสดง Badge ตามสถานะ -->
               <td class="text-center">
                 {% set st = record.status|lower %}
-                {% if st in ['รอตรวจสอบ', 'รอตรวจสอบ', 'รอการตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
+                {% if st in ['รอตรวจสอบ', 'รอตรวจสอบ', 'รอการตรวจสอบ'] %}
                   <span class="badge bg-warning-subtle text-warning-emphasis border">
-                    {% if record.record_type == 'parcel_return' %}พัสดุกำลังดำเนินการ{% else %}รอการตรวจสอบ{% endif %}
+                    รอการตรวจสอบ
                   </span>
+                {% elif st == 'พัสดุกำลังดำเนินการ' %}
+                  <span class="badge bg-info-subtle text-info-emphasis border">พัสดุกำลังดำเนินการ</span>
                 {% elif st in ['กำลังตรวจสอบ', 'กำลังตรวจสอบ'] %}
                   <span class="badge bg-info-subtle text-info-emphasis border">กำลังตรวจสอบ</span>
                 {% elif st in ['ผ่านการตรวจสอบ', 'ผ่านการตรวจสอบ', 'ได้รับเอกสารแล้ว', 'ได้รับเอกสารแล้ว'] %}
-                  <span class="badge bg-info text-dark">
+                  <span class="badge bg-info-subtle text-info-emphasis">
                     {% if record.record_type == 'parcel_return' %}ได้รับเอกสารแล้ว{% else %}ผ่านการตรวจสอบ{% endif %}
                   </span>
                 {% elif st in ['เอกสารตั้งฎีกา', 'เอกสารตั้งฎีกา'] %}
-                  <span class="badge bg-secondary text-white">เอกสารตั้งฎีกา</span>
+                  <span class="badge bg-secondary-subtle text-secondary border">เอกสารตั้งฎีกา</span>
                 {% elif st in ['ฎีกาถูกตีกลับจากกองคลัง', 'ฎีกาถูกตีกลับจากกองคลัง'] %}
-                  <span class="badge bg-danger text-white">ฎีกาถูกตีกลับจากกองคลัง</span>
+                  <span class="badge bg-danger-subtle text-danger border">ฎีกาถูกตีกลับจากกองคลัง</span>
                 {% elif st in ['ล้างลูกหนี้เงินยืม', 'ล้างลูกหนี้เงินยืม', 'ได้รับเงินคืนแล้ว'] %}
-                  <span class="badge bg-success text-white">
+                  <span class="badge bg-success-subtle text-success border">
                     {% if record.record_type == 'petty_cash' %}ได้รับเงินคืนแล้ว{% else %}ล้างลูกหนี้เงินยืม{% endif %}
                   </span>
                 {% elif st in ['ปฏิเสธed', 'ปฏิเสธ', 'ปฏิเสธ'] %}
-                  <span class="badge bg-danger text-white">ปฏิเสธ</span>
+                  <span class="badge bg-danger-subtle text-danger border">ปฏิเสธ</span>
                 {% else %}
                   <span class="badge bg-secondary-subtle text-secondary border">{{ record.status }}</span>
                 {% endif %}
