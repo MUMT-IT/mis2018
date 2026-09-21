@@ -110,6 +110,7 @@ class MeetingAgenda(db.Model):
 class MeetingTask(db.Model):
     __tablename__ = 'meeting_tasks'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    no = db.Column('no', db.String(), info={'label': 'ลำดับ'})
     detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียด'})
     deadline = db.Column('consensus_updated_at', db.DateTime(timezone=True), info={'label': 'Deadline'})
     agenda_id = db.Column('agenda_id', db.ForeignKey('meeting_agendas.id'))
