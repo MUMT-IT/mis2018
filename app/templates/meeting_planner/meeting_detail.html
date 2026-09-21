@@ -127,7 +127,7 @@
                                                                 <th>รายละเอียด</th>
                                                                 <th></th>
                                                             </thead>
-                                                            <tbody id="tasks-{{ topic.id }}" hx-target="closest tr" hx-swap="outerHTML">
+                                                            <tbody id="tasks" hx-target="closest tr" hx-swap="outerHTML">
                                                                 {% for task in topic.tasks %}
                                                                     {% include "meeting_planner/task_row.html" %}
                                                                 {% endfor %}
@@ -136,7 +136,7 @@
                                                         <a class="button is-small is-info is-rounded is-outlined"
                                                            hx-get="{{ url_for('meeting_planner.add_task_form',
                                                            topic_id=topic.id) }}"
-                                                           hx-target="#tasks-{{ topic.id }}"
+                                                           hx-target="#tasks"
                                                            hx-swap="beforeend">
                                                             <span class="icon"><i class="fas fa-plus"></i></span>
                                                             <span>เพิ่ม</span>
@@ -242,18 +242,47 @@
         })
     </script>
     <script>
-        $(document).ready(function () {
+        function initDeadlinePicker(target) {
             moment.locale('th');
-            $('input[name="deadline"]').daterangepicker({
-                singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
-                showDropdowns: true,
-                locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+            $(target).find('input[name="deadline"]').each(function () {
+                const input = $(this);
+                if (input.data('daterangepicker')) {
+                    return;
                 }
+
+                input.daterangepicker({
+                    singleDatePicker: true,
+                    timePicker: true,
+                    timePickerIncrement: 15,
+                    timePicker24Hour: true,
+                    showDropdowns: true,
+                    autoUpdateInput: false,
+                    locale: {
+                        format: 'YYYY-MM-DD HH:mm:ss',
+                        cancelLabel: 'Clear'
+                    }
+                });
+
+                const picker = input.data('daterangepicker');
+                const currentValue = input.val();
+                if (currentValue) {
+                    picker.setStartDate(moment(currentValue, 'YYYY-MM-DD HH:mm:ss'));
+                }
+
+                input.on('apply.daterangepicker', function (ev, picker) {
+                    input.val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+                });
+                input.on('cancel.daterangepicker', function () {
+                    input.val('');
+                });
             });
-        })
+        }
+
+        $(document).ready(function () {
+            initDeadlinePicker(document);
+        });
+        document.body.addEventListener('htmx:afterSwap', function (event) {
+            initDeadlinePicker(event.target);
+        });
     </script>
 {% endblock %}
