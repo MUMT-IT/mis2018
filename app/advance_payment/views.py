@@ -2165,11 +2165,6 @@ def coordinator_dashboard():
     return render_template(
         dashboard_template,
         dashboard_title="แดชบอร์ดผู้ยืม" if is_borrower_mode else f"แดชบอร์ด{_dashboard_party_label(user_role)}",
-        dashboard_description=(
-            "มุมมองส่วนตัวสำหรับจัดการสัญญาเงินยืมและเอกสารส่งใช้ของคุณ"
-            if is_borrower_mode
-            else "ศูนย์กลางจัดการสัญญาเงินยืม การส่งหลักฐาน และรายการรออนุมัติของผู้ประสานงาน"
-        ),
         dashboard_role="Borrower" if is_borrower_mode else "Coordinator",
         dashboard_party_label=_dashboard_party_label(user_role),
         dashboard_party_scope="เฉพาะตัวเอง" if is_borrower_mode else "บุคลากรทั้งองค์กร",
@@ -2384,7 +2379,6 @@ def finance_dashboard():
         "finance_dashboard.html",
         dashboard_title="รายการรอตรวจสอบ",
         dashboard_role="Finance",
-        dashboard_description="เจ้าหน้าที่ฝ่ายการเงินสามารถตรวจสอบการอนุมัติและบันทึกทางการเงินได้จากส่วนนี้",
         borrowing_tickets=borrowing_tickets,
         return_details=return_details,
         parcel_returns=parcel_returns,
@@ -2570,7 +2564,6 @@ def finance_bank_account_registry():
         "bank_account_registry.html",
         dashboard_title="จัดการข้อมูลบัญชีธนาคาร",
         dashboard_role="Finance",
-        dashboard_description="บันทึกข้อมูลบัญชีธนาคารสำหรับเงินสดย่อยและเงินยืมของแต่ละหน่วยงาน",
         form=form,
         records=records,
         edit_rows=edit_rows,

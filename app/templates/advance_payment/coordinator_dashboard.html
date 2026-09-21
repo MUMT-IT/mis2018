@@ -6,7 +6,6 @@
   <header class="mb-4 pb-3 border-bottom">
     <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับผู้ประสานงาน</p>
     <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
-    <p class="text-muted mb-0">{{ dashboard_description }}</p>
     <div class="text-end mt-3">
       <a href="{{ url_for('advance_payment.borrower_dashboard') }}" class="btn btn-outline-primary">
         <i class="bi bi-person me-2" aria-hidden="true"></i>เบิกเงินยืมสำหรับตนเอง
@@ -28,7 +27,7 @@
       </div>
       <div class="col-md-4">
         <div class="card border rounded-4 shadow-sm bg-white p-3 h-100">
-          <div class="text-muted small fw-bold text-uppercase">กำหนดส่งเงินยืม</div>
+          <div class="text-muted small fw-bold text-uppercase">กำหนดส่งเงินยืมที่ใกล้ที่สุด</div>
           <div class="mt-2">
             {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status', 'equalto', 'เอกสารตั้งฎีกา') | rejectattr('status', 'equalto', 'เคลียร์ยอดแล้ว') | rejectattr('status', 'equalto', 'ปฏิเสธ') | list %}
             {% if borrowing_ticket_history %}

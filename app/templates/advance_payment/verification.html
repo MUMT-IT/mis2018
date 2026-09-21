@@ -15,7 +15,6 @@
     {% endif %}
     <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">สัญญาเงินยืม</p>
     <h1 class="fw-bold display-6 mb-2">รายละเอียดสัญญาเงินยืม</h1>
-    <p class="text-muted mb-0">ดูข้อมูลสัญญาเงินยืม, การส่งหลักฐานเอกสารส่งใช้เงินยืม, เอกสารตรวจสอบ และสถานะการอนุมัติ</p>
   </header>
 
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
@@ -260,10 +259,10 @@
             <tr>
               <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
               <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
-              <th scope="col" style="width: 15%;" class="small fw-bold">ยอดที่ใช้จ่าย</th>
-              <th scope="col" style="width: 10%;" class="small fw-bold">สถานะ</th>
+              <th scope="col" style="width: 10%;" class="small fw-bold">ยอดที่ใช้จ่าย</th>
+              <th scope="col" style="width: 5%;" class="small fw-bold">สถานะ</th>
               <th scope="col" style="width: 20%;" class="small fw-bold text-center">หมายเลขฎีกา</th>
-              <th scope="col" class="small fw-bold text-center">การจัดการ</th>
+              <th scope="col"  class="small fw-bold text-center">การจัดการ</th>
             </tr>
           </thead>
           <tbody>
@@ -298,10 +297,17 @@
                   <span class="text-muted small d-block">(เลขเก่า: {{ return_detail.old_document_number }})</span>
                 {% endif %}
               </td>
-              <td class="text-center">
-                <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_detail.id) }}" class="text-primary fw-semibold text-decoration-none" target="_blank">
-                  <i class="bi bi-search"></i> ตรวจสอบหลักฐาน
-                </a>
+              <td class="text-end">
+                <div  class="d-flex flex-row gap-2" >
+                  <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_detail.id) }}" class="btn btn-sm btn-outline-primary px-2" target="_blank">
+                    ตรวจสอบหลักฐาน
+                  </a>
+                  {% if session.get('user_role') != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
+                    <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
+                      ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
+                    </button>
+                  {% endif %}
+                  </div>
               </td>
             </tr>
             {% endfor %}

@@ -6,7 +6,6 @@
   <header class="mb-4 pb-3 border-bottom">
     <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับผู้ยืม</p>
     <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
-    <p class="text-muted mb-0">{{ dashboard_description }}</p>
     {% if dashboard_is_coordinator %}
       <div class="text-end mt-3">
         <a href="{{ url_for('advance_payment.coordinator_dashboard') }}" class="btn btn-outline-primary">
@@ -406,9 +405,6 @@
   <section class="mb-5">
     <div class="mb-3 d-flex flex-wrap justify-content-between align-items-end gap-3">
       <div>
-        <p class="text-uppercase fw-bold text-muted small mb-1" style="letter-spacing: 0.05em;">
-          ประวัติสัญญาเงินยืม
-        </p>
         <h2 class="h4 fw-bold mb-0">
           รายการสัญญาเงินยืมของคุณ
         </h2>
