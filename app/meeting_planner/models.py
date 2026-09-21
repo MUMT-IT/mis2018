@@ -126,7 +126,7 @@ class MeetingAdmin(db.Model):
     task_id = db.Column('task_id', db.ForeignKey('meeting_tasks.id'))
     task = db.relationship(MeetingTask, backref=db.backref('admins', cascade='all, delete-orphan'))
     admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
-    admin = db.relationship(StaffAccount, backref=db.backref('tasks'))
+    admin = db.relationship(StaffAccount, backref=db.backref('admins'))
 
     def __str__(self):
         return str(self.admin.fullname)
