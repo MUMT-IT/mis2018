@@ -282,7 +282,8 @@
                 {% elif return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
                 {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-secondary text-white' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
                 {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
-                {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
+                {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ได้รับเอกสารแล้ว' %}
+                {% elif return_detail.status|lower == 'ล้างลูกหนี้เงินยืม' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
                 {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
                 
                 <span class="badge {{ r_badge }}">{{ r_status }}</span>
