@@ -6221,7 +6221,8 @@ def petty_cash_ledger():
 
             if fund_in_date:
                 _append_ledger_row(
-                    receipt_date=fr.request_date,
+                    # ดอกเบี้ยเข้าบัญชีให้แสดงตามวันที่เงินเข้าจริง
+                    receipt_date=fund_in_date,
                     created_at=created_at,
                     description=f"ดอกเบี้ยจากธนาคาร",
                     bank_income=amt,
@@ -6234,7 +6235,8 @@ def petty_cash_ledger():
 
             if withdrawal_date:
                 _append_ledger_row(
-                    receipt_date=fr.request_date,
+                    # เบิกดอกเบี้ยให้แสดงตามวันที่เบิกจริง
+                    receipt_date=withdrawal_date,
                     created_at=created_at,
                     description=f"เบิกดอกเบี้ย {ticket_label}",
                     bank_expense=amt,
