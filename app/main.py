@@ -1775,11 +1775,12 @@ from app.meeting_planner.models import *
 
 admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
-admin.add_views(ModelView(MeetingAgenda, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingAgenda, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingTask, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPoll, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPollItem, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingPollItemParticipant, db.session, category='Meeting'))
-admin.add_views(ModelView(MeetingPollResult, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingPollResult, db.session, category='Meeting'))
 from app.PA import pa_blueprint
 
 app.register_blueprint(pa_blueprint)
