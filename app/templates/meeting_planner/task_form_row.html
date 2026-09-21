@@ -7,6 +7,9 @@
         <hr>
         <label class="label">วันครบกำหนด</label>
         {{ form.deadline(class='input') }}
+        <hr>
+        <label class="label">ผู้รับผิดชอบ</label>
+        {{ form.admins(class='js-example-basic-multiple', multiple='multiple') }}
     </td>
     <td style="width: 10%">
         <a class="button is-success is-outlined"
