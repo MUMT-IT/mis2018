@@ -340,6 +340,7 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
 
     id = Column(Integer, primary_key=True)
     ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=False)
+    creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
     amount_spent = Column(Numeric(12, 2), nullable=False, default=0)
     proof_reference = Column(String(255), nullable=False, default="")
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")

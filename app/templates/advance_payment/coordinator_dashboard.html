@@ -544,6 +544,84 @@
     {% endif %}
   </section>
 
+  <!-- ReturnDetail records created by the current user -->
+  <section class="mb-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+      <div>
+        <p class="text-uppercase fw-bold text-muted small mb-1" style="letter-spacing: 0.05em;">ประวัติรายการส่งใช้</p>
+        <h2 class="h4 fw-bold mb-0">รายการหลักฐานเอกสารส่งใช้เงินยืมที่คุณเป็นผู้สร้าง</h2>
+      </div>
+    </div>
+    {% if creator_return_details %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-primary text-dark">
+            <tr>
+              <th class="small fw-bold">เลขที่เอกสาร / บย.</th>
+              <th class="small fw-bold">รายละเอียดหลักฐาน</th>
+              <th class="small fw-bold text-center">ประเภทรายการ</th>
+              <th class="small fw-bold text-end">จำนวนเงิน</th>
+              <th class="small fw-bold text-center">วันที่สร้างรายการ</th>
+              <th class="small fw-bold text-center">สถานะ</th>
+              <th class="small fw-bold text-center">หมายเลขฎีกา</th>
+              <th class="small fw-bold text-center">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for return_detail in creator_return_details %}
+              {% set r_badge = 'bg-warning text-dark' %}
+              {% set r_status = return_detail.status %}
+              {% if return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}
+              {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-secondary text-white' %}
+              {% elif return_detail.status|lower in ['ได้รับเอกสารแล้ว', 'ล้างลูกหนี้เงินยืม'] %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
+              {% elif return_detail.status|lower in ['ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}{% set r_badge = 'bg-danger text-white' %}
+              {% endif %}
+              <tr class="align-top">
+                <td>
+                  <div class="text-dark fw-bold">{{ return_detail.borrowing_ticket.number or return_detail.ticket_id }}</div>
+                  <small class="text-muted d-block text-truncate" style="max-width: 180px;" title="{{ return_detail.borrowing_ticket.borrowing_ticket_purpose }}">{{ return_detail.borrowing_ticket.borrowing_ticket_purpose }}</small>
+                </td>
+                <td>
+                  <span class="text-center">{{ return_detail.description }}</span>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                    <i class="bi bi-arrow-return-left me-1"></i>ส่งใช้เงินยืม
+                  </span>
+                </td>
+                <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }}</td>
+                <td class="text-center small text-secondary">{{ return_detail.created_at|thai_date if return_detail.created_at else '-' }}</td>
+                <td class="text-center"><span class="badge {{ r_badge }}">{{ r_status }}</span></td>
+                <td class="text-center">
+                  {% if return_detail.closing_document_name %}
+                    <span class="text-dark d-block fw-medium">{{ return_detail.closing_document_name }}</span>
+                  {% else %}
+                    <span class="text-muted small">-</span>
+                  {% endif %}
+                  {% if return_detail.old_document_number %}<span class="text-muted small d-block">(เก่า: {{ return_detail.old_document_number }})</span>{% endif %}
+                </td>
+                <td class="text-center">
+                  <div  class="d-flex flex-row gap-2" >
+                    <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_detail.id) }}" class="btn btn-sm btn-outline-primary px-2" target="_blank">
+                      ตรวจสอบหลักฐาน
+                    </a>
+                    {% if session.get('user_role') != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
+                      <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
+                        ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
+                      </button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">ยังไม่มีรายการส่งใช้เงินยืมที่คุณเป็นผู้สร้าง</p>
+    {% endif %}
+  </section>
+
   <!-- Search/Filter Modal -->
   <div class="modal fade" id="searchFilterModal" tabindex="-1" aria-labelledby="searchFilterModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">

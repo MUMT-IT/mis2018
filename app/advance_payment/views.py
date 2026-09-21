@@ -1946,6 +1946,31 @@ def coordinator_dashboard():
     else:
         return_details = []
 
+    # รายการแยกตามผู้สร้าง ReturnDetail โดยตรง ไม่ผูกกับผู้สร้างสัญญา/ผู้ยืม
+    creator_return_details = (
+        db.session.query(ReturnDetail)
+        .filter(
+            ReturnDetail.creator_id == current_user.id,
+            ReturnDetail.status != "ฉบับร่าง",
+        )
+        .order_by(ReturnDetail.id.desc())
+        .all()
+    )
+    for return_detail in creator_return_details:
+        numbered_descriptions = []
+        for item in return_detail.receipt_items:
+            desc = (item.description or "").strip()
+            if desc:
+                numbered_descriptions.append(desc)
+
+        if numbered_descriptions:
+            preview_items = numbered_descriptions[:3]
+            if len(numbered_descriptions) > 3:
+                preview_items.append("...")
+            return_detail.description = ", ".join(preview_items)
+        else:
+            return_detail.description = return_detail.proof_reference or "-"
+
     rejected_followup_ticket_ids = {item.ticket_id for item in return_details if (item.status or "").strip() == "ปฏิเสธ"}
     if ticket_ids:
         rejected_followup_ticket_ids.update(
@@ -2152,6 +2177,7 @@ def coordinator_dashboard():
         dashboard_is_coordinator=_is_current_coordinator(),
         borrowing_ticket_history=borrowing_ticket_history,
         return_details=return_details,
+        creator_return_details=creator_return_details,
         borrowing_ticket_form=form,
         borrowing_ticket_form_locked=form_locked,
         bank_account_options=bank_account_options,
@@ -3215,7 +3241,11 @@ def submit_return_details():
 
     # ถ้ามีฉบับร่างเดิมอยู่แล้ว การ submit รอบนี้จะ "แทนที่" รายการเดิม
     # ดังนั้นต้องตัดฉบับร่างออกจากยอดที่ใช้เช็คเพดาน ไม่เช่นนั้นจะนับซ้ำ
-    existing_draft = db.session.query(ReturnDetail).filter_by(ticket_id=ticket_id, status="ฉบับร่าง").first()
+    existing_draft = (
+        db.session.query(ReturnDetail)
+        .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status="ฉบับร่าง")
+        .first()
+    )
     exclude_return_id = existing_draft.id if existing_draft else None
 
     parsed_rows = []
@@ -3286,11 +3316,15 @@ def submit_return_details():
     else:
         return_detail = ReturnDetail(
             ticket_id=ticket_id,
+            creator_id=current_user_id,
             proof_reference="Itemized Details Stored",
             created_at=datetime.now(),
         )
         db.session.add(return_detail)
         db.session.flush()
+
+    if return_detail.creator_id is None:
+        return_detail.creator_id = current_user_id
 
     return_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
     db.session.flush()
@@ -3648,15 +3682,28 @@ def autosave_return_draft(ticket_id):
     announcements = data.get("announcements", [])  # <--- 1. รับค่าประกาศเพิ่มจาก JSON
 
     # ค้นหา ReturnDetail สถานะ Draft เดิม
-    existing_draft = db.session.query(ReturnDetail).filter_by(ticket_id=ticket_id, status="ฉบับร่าง").first()
+    current_user_id = session.get("user_id")
+    existing_draft = (
+        db.session.query(ReturnDetail)
+        .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status="ฉบับร่าง")
+        .first()
+    )
 
     if existing_draft:
         db.session.query(ReturnReceiptItem).filter_by(return_detail_id=existing_draft.id).delete()
         return_detail = existing_draft
     else:
-        return_detail = ReturnDetail(ticket_id=ticket_id, proof_reference="Itemized Details Stored", status="ฉบับร่าง")
+        return_detail = ReturnDetail(
+            ticket_id=ticket_id,
+            creator_id=current_user_id,
+            proof_reference="Itemized Details Stored",
+            status="ฉบับร่าง",
+        )
         db.session.add(return_detail)
         db.session.flush()
+
+    if return_detail.creator_id is None:
+        return_detail.creator_id = current_user_id
 
     db.session.commit()
 
