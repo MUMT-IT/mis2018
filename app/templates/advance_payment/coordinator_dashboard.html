@@ -211,10 +211,6 @@
                   <p class="text-muted text-center my-4">ได้ทำการส่งเอกสารเบิกครบแล้ว รอการตรวจสอบจากฝ่ายการเงิน</p>
                 {% else %}
                 <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
-                  <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                  </div>
-                  
                   <form method="post" action="{{ url_for('advance_payment.coordinator_ticket_returns') }}" enctype="multipart/form-data" id="returnForm_{{ borrowing_ticket.id }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="ticket_id" value="{{ borrowing_ticket.id }}">
@@ -276,7 +272,9 @@
                       <div class="col-md-12 mt-2">
                         <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบการเบิกเงินยืมด้วย *</small>
                       </div>
-                      <div class="py-4"></div>
+                    </div>
+                    <div class="card p-4 mb-4 border rounded-4 shadow-sm">
+                      <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
                       <div class="table-responsive">
                         <table class="table table-bordered align-middle mb-0" id="receiptTable_{{ borrowing_ticket.id }}">
                           <thead class="table-light small fw-bold">
@@ -332,11 +330,30 @@
                           </tbody>
                         </table>
                       </div>
-                      <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light rounded-3 gap-3 border">
-                        <button type="button" class="btn btn-sm btn-primary text-white px-3 py-2 shadow-sm fw-bold" onclick="addReceiptRow({{ borrowing_ticket.id }})" style="border-radius: 6px;">
+                      <div class="text-end py-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary px-2 shadow-sm fw-bold" onclick="addReceiptRow({{ borrowing_ticket.id }})" style="border-radius: 6px;">
                           <i class="bi bi-plus-lg me-1"></i> เพิ่มแถวใบเสร็จ
                         </button>
-                        
+                      </div>
+                    </div>
+                      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
+                        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่งไปฝ่ายพัสดุ</h3>
+                        <div class="row g-3">
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
+                            <input type="date" name="sent_date" class="form-control parcel-return-input" required>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold">รายการ</label>
+                            <input type="text" name="items_description" class="form-control parcel-return-input" placeholder="รายละเอียดรายการ..." required>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+                            <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input parcel-return-input" required placeholder="0.00">
+                          </div>
+                        </div>
+                      </div>
+                      <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
                         <div class="d-flex flex-column gap-2 ms-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
                           <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
                             <span class="fw-bold">ยอดที่ขอไป</span>
@@ -355,50 +372,25 @@
                             <span class="fw-bold">ยอดคงค้าง</span>
                             <span class="fw-bold" id="remainingAmountDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.ticket_remaining or 0) }}</span>
                           </div>
-                          <div class="text-end fw-bold fs-4 lh-1">=====</div>
+                          <div class="text-end fw-bold fs-4 lh-1">==============</div>
                           <span class="visually-hidden" id="sumAmountUnit_{{ borrowing_ticket.id }}">บาท</span>
                         </div>
                       </div>
-                    </div>
-                    <div class="row g-3 mb-3 align-items-end">
-                      <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-                        <span class="fw-bold text-danger text-center me-3">กรณีเงินคืนเงินเหลือใช้เงินทดรองจ่าย ให้ทำการใส่ไฟล์ข้อมูลสลิปการโอนลงในตาราง<br> เลือกช่อง "เงินเหลือส่งใช้เงินยืม" ในรายการนั้น และอัปโหลดสลิปการโอนประกอบ</span>
+                      <div class="row g-3 mb-3 align-items-end">
+                        <div class="col-12 d-flex justify-content-end align-items-center gap-3">
+                          <span class="fw-bold text-danger text-center me-3">กรณีเงินคืนเงินเหลือใช้เงินทดรองจ่าย ให้ทำการใส่ไฟล์ข้อมูลสลิปการโอนลงในตาราง<br> เลือกช่อง "เงินเหลือส่งใช้เงินยืม" ในรายการนั้น และอัปโหลดสลิปการโอนประกอบ</span>
 
-                        <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
-                          <i class="bi bi-save me-1"></i> บันทึกร่าง (ฉบับร่าง)
-                        </button>
-                        
-                        <button class="btn btn-primary fw-bold px-4 py-2" type="button" id="submitReturnBtn_{{ borrowing_ticket.id }}" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'submit')" style="border-radius: 8px;">
-                          ส่งหลักฐานเอกสารส่งใช้เงินยืม
-                        </button>
+                          <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
+                            <i class="bi bi-save me-1"></i> บันทึกร่าง (ฉบับร่าง)
+                          </button>
+
+                          <button class="btn btn-primary fw-bold px-4 py-2" type="button" id="submitReturnBtn_{{ borrowing_ticket.id }}" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'submit')" style="border-radius: 8px;">
+                            ส่งหลักฐานเอกสารส่งใช้เงินยืม
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </form>
-                </div>
-                
-                <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
-                  <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่งไปฝ่ายพัสดุ</h3>
-                  <form method="post" action="{{ url_for('advance_payment.submit_parcel_return', ticket_id=borrowing_ticket.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="row g-3">
-                      <div class="col-md-4">
-                        <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-                        <input type="date" name="sent_date" class="form-control" required>
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label fw-bold">รายการ</label>
-                        <input type="text" name="items_description" class="form-control" placeholder="รายละเอียดรายการ..." required>
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
-                        <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input" required placeholder="0.00">
-                      </div>
-                    </div>
-                    <div class="text-end mt-3">
-                      <button type="submit" class="btn btn-primary fw-bold" id="parcelReturnSubmitBtn_{{ borrowing_ticket.id }}">บันทึกข้อมูลส่งฝ่ายพัสดุ</button>
-                    </div>
-                  </form>
-                </div>
+                </form>
                 {% endif %}
               </div>
             {% endfor %}
@@ -849,12 +841,6 @@
             calculateTotalSpent(ticketId);
           });
 
-          const parcelForm = input.closest("form");
-          if (parcelForm) {
-              parcelForm.addEventListener("submit", function() {
-                  input.value = input.value.replace(/,/g, "");
-              });
-          }
       });
 
       bindReceiptAgeWarnings(document);
@@ -959,22 +945,66 @@
         form.submit();
       } else {
         let isValid = true;
+        const parcelInputs = form.querySelectorAll('.parcel-return-input');
+        const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
+        const returnInputs = form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"], input[type="file"]');
+        const hasReturnData = Array.from(returnInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
+
+        if (!hasParcelData && !hasReturnData) {
+          window.openAppPopup({
+            title: "กรุณากรอกข้อมูล",
+            message: "กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุหรือเพิ่มรายละเอียดใบเสร็จอย่างน้อยหนึ่งรายการ",
+            confirmText: "ตกลง",
+            confirmClass: "btn-primary",
+            alertOnly: true,
+          });
+          return;
+        }
+
+        parcelInputs.forEach(input => {
+          input.required = hasParcelData;
+          input.classList.remove('is-invalid');
+        });
+        if (hasParcelData && !Array.from(parcelInputs).every(input => input.value.trim())) {
+          isValid = false;
+        }
+
+        form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"]').forEach(el => {
+          el.required = hasReturnData;
+        });
+
         if (!validateReturnAmountLimit(form)) {
           return;
         }
-        form.querySelectorAll('input, textarea').forEach(el => {
-          if (['receipt_date[]', 'store_name[]', 'description[]', 'amount[]'].includes(el.name)) {
-            if (!el.value || !el.value.trim()) {
-              isValid = false;
-              el.classList.add('is-invalid');
-            } else {
-              el.classList.remove('is-invalid');
+        if (hasReturnData) {
+          form.querySelectorAll('input, textarea').forEach(el => {
+            if (['receipt_date[]', 'store_name[]', 'description[]', 'amount[]'].includes(el.name)) {
+              if (!el.value || !el.value.trim()) {
+                isValid = false;
+                el.classList.add('is-invalid');
+              } else {
+                el.classList.remove('is-invalid');
+              }
             }
-          }
-        });
-        
+          });
+          form.querySelectorAll('input[type="file"]').forEach((el, index) => {
+            const existingFiles = el.parentElement.querySelectorAll('input[name^="existing_proof_files_"]');
+            el.required = index === 0 && !el.files.length && !existingFiles.length;
+            if (el.required && !el.value) isValid = false;
+          });
+        } else {
+          form.querySelectorAll('[required]').forEach(el => {
+            el.required = false;
+            el.classList.remove('is-invalid');
+          });
+        }
+
+        if (isValid && !form.checkValidity()) {
+          isValid = false;
+        }
+
         if (isValid) {
-          form.querySelectorAll(".item-amount-input").forEach(input => {
+          form.querySelectorAll(".item-amount-input, .parcel-amount-input").forEach(input => {
               input.value = input.value.replace(/,/g, "");
           });
           form.submit();
@@ -1112,9 +1142,8 @@
 
     function updateReturnButtonsState(ticketId, isOverBudget) {
       const submitBtn = document.getElementById(`submitReturnBtn_${ticketId}`);
-      const parcelBtn = document.getElementById(`parcelReturnSubmitBtn_${ticketId}`);
 
-      [submitBtn, parcelBtn].forEach(btn => {
+      [submitBtn].forEach(btn => {
         if (!btn) {
           return;
         }
