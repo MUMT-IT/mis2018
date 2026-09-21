@@ -9,6 +9,12 @@
         <p class="notification">
             {{ task.deadline|localdatetime or '' }}
         </p>
+        <label class="label">ผู้รับผิดชอบ</label>
+        <p class="notification">
+            {% for meeting_admin in task.admins %}
+                {{ meeting_admin.admin.fullname }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
     </td>
     <td style="width: 10%">
         <div class="field has-addons">
