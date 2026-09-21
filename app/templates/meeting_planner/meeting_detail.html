@@ -244,13 +244,23 @@
         })
     </script>
     <script>
-        function initDeadlinePicker(target) {
+        let adminsSelect2Counter = 0;
+        function initSelect2(target) {
+             $(target).find('.js-example-basic-multiple').each(function () {
+                    if (this.id === 'admins' && document.getElementsByName(this.name).length > 1) {
+                        this.id = 'meeting-admins-' + (++adminsSelect2Counter);
+                    }
+
+                    $(this).select2({
+                        width: '100%',
+                        placeholder: 'กรุณาเลือกผู้รับผิดชอบ'
+                    });
+                }
+            );
+        }
+
+        function initPicker(target) {
             moment.locale('th');
-            $(target).find('.js-example-basic-multiple').addBack('.js-example-basic-multiple')
-                .filter(':not(.select2-hidden-accessible)').select2({
-                    width: '100%',
-                    placeholder: 'กรุณาเลือกผู้รับผิดชอบ'
-                });
             $(target).find('input[name="deadline"]').each(function () {
                 const input = $(this);
                 if (input.data('daterangepicker')) {
@@ -286,10 +296,13 @@
         }
 
         $(document).ready(function () {
-            initDeadlinePicker(document);
+            initPicker(document);
         });
         document.body.addEventListener('htmx:afterSwap', function (event) {
-            initDeadlinePicker(event.target);
+            initPicker(event.target);
+        });
+        document.body.addEventListener('htmx:load', function (event) {
+            initSelect2(event.target);
         });
     </script>
 {% endblock %}
