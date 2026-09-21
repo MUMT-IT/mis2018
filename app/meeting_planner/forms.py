@@ -45,6 +45,11 @@ class MeetingAgendaForm(ModelForm):
         }
 
 
+class MeetingTaskForm(ModelForm):
+    class Meta:
+        model = MeetingTask
+
+
 def create_new_meeting(poll_id=None):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)
