@@ -14,8 +14,18 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Circle
-from .models import db, BankAccountInfo, StaffAccount, PettyCashSetting
-from .views import FUND_REQUEST_FORM_BORROWING_TICKET, FUND_REQUEST_FORM_INTEREST
+from .models import (
+    db,
+    BankAccountInfo,
+    StaffAccount,
+    PettyCashSetting,
+    ParcelReturnDetail,
+)
+from .views import (
+    FUND_REQUEST_FORM_BORROWING_TICKET,
+    FUND_REQUEST_FORM_INTEREST,
+    FUND_REQUEST_FORM_PETTY_CASH,
+)
 from app.models import Org
 from app.staff.models import StaffHeadPosition, StaffLeaveApprover
 
@@ -114,7 +124,16 @@ def _pdf_text(value):
 
 
 def _pdf_amount(value):
-    return PDF_BLANK if not _pdf_text(value).strip() else f"{Decimal(str(value)):,.2f}"
+    if not _pdf_text(value).strip():
+        return PDF_BLANK
+    amount = Decimal(str(value))
+    return "-" if amount == 0 else f"{amount:,.2f}"
+
+
+def _pdf_count(value):
+    if not _pdf_text(value).strip():
+        return PDF_BLANK
+    return "-" if Decimal(str(value)) == 0 else str(value)
 
 
 def get_department_info_from_api(dept_name):
@@ -291,28 +310,49 @@ def _get_bank_account_info_for_petty_cash_setting(setting):
 # 3. PDF GENERATION FUNCTIONS
 # =========================================================================
 def summarize_petty_cash_month(month_start, fund_requests, claims):
-    """Summarize the selected month's documents using their current statuses.
+    """Summarize the selected month's petty-cash documents.
 
-    Count FundRequests once, even when several claims belong to one request.
-    Category 6 is money returned to the account, not a reimbursement expense.
+    A submitted document is counted per claim, but only while the claim is in
+    one of the three review statuses. A pending document is a FundRequest that
+    has not been linked to either a claim or a parcel return.
     """
     month_end = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
     requests = [fr for fr in fund_requests
                 if fr.request_date and month_start <= fr.request_date <= month_end]
-    submitted_ids = {fr.id for fr in requests if fr.status == "ส่งเบิกครบแล้ว"}
-    pending = [fr for fr in requests if fr.status == "อนุมัติแล้ว"]
+    request_ids = {fr.id for fr in requests}
+    submitted_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ผ่านการตรวจสอบ"}
+    submitted_claims = [
+        claim for claim in claims
+        if claim.fund_request_id in request_ids
+        and (claim.status or "").strip() in submitted_statuses
+    ]
+    linked_claim_request_ids = {
+        claim.fund_request_id for claim in claims
+        if claim.fund_request_id in request_ids
+    }
+    linked_parcel_request_ids = {
+        parcel.fund_request_id
+        for parcel in db.session.query(ParcelReturnDetail).filter(
+            ParcelReturnDetail.fund_request_id.in_(request_ids)
+        ).all()
+        if parcel.fund_request_id is not None
+    } if request_ids else set()
+    pending = [
+        fr for fr in requests
+        if fr.form_type == FUND_REQUEST_FORM_PETTY_CASH
+        and fr.id not in linked_claim_request_ids
+        and fr.id not in linked_parcel_request_ids
+    ]
     submitted_amount = sum(
         (Decimal(str(item.amount or 0))
-         for claim in claims
-         if claim.fund_request_id in submitted_ids
-         and claim.status not in {"ฉบับร่าง", "ปฏิเสธ", "ยกเลิก"}
+         for claim in submitted_claims
          for item in claim.items
          if str(item.category_type) != "6"
          and item.receipt_date and item.receipt_date <= month_end),
         Decimal("0.00"),
     )
     return {
-        "submitted_count": len(submitted_ids),
+        "submitted_count": len(submitted_claims),
         "submitted_amount": submitted_amount,
         "pending_count": len(pending),
         "pending_amount": sum((Decimal(str(fr.amount or 0)) for fr in pending), Decimal("0.00")),
@@ -373,8 +413,8 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     rows = [
         [p("ลำดับที่", center), p("รายการ", center), p("จำนวนเงิน", center)],
         [p("1", center), p("เงินฝากอยู่ในบัญชีเงินฝากออมทรัพย์ 1 เล่ม"), p(f"{_pdf_amount(balance)}", right)],
-        [p("2", center), p(f'เอกสารเบิกจ่ายที่ส่งเบิกมาแล้ว รวม {_pdf_text(summary.get("submitted_count"))} ฉบับ'), p(f"{_pdf_amount(submitted)}", right)],
-        [p("3", center), p(f'เอกสารเบิกจ่ายที่ยังไม่ส่งเบิก รวม {_pdf_text(summary.get("pending_count"))} ฉบับ'), p(f"{_pdf_amount(pending)}", right)],
+        [p("2", center), p(f'เอกสารเบิกจ่ายที่ส่งเบิกมาแล้ว รวม {_pdf_count(summary.get("submitted_count"))} ฉบับ'), p(f"{_pdf_amount(submitted)}", right)],
+        [p("3", center), p(f'เอกสารเบิกจ่ายที่ยังไม่ส่งเบิก รวม {_pdf_count(summary.get("pending_count"))} ฉบับ'), p(f"{_pdf_amount(pending)}", right)],
         ["", p(f"ตัวอักษร ({bahttext(total) if total is not None else PDF_BLANK}) <b>รวมทั้งสิ้น</b>", right), p(f"<b>{_pdf_amount(total)}</b>", right)],
     ]
     table = Table(rows, colWidths=[44, doc.width - 156, 112])
