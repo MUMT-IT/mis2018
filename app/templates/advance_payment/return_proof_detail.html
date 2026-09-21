@@ -70,32 +70,22 @@
     {% if session.get('user_role') == 'finance' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3">
         {% if return_detail.old_document_number and return_detail.status|lower == 'ผ่านการตรวจสอบ' %}
-            <button type="button" class="btn btn-danger btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#bounceReturnModal">
+            <button
+                type="button"
+                class="btn btn-danger btn-sm fw-bold px-3 py-1.5"
+                data-popup-trigger="true"
+                data-popup-title="สาเหตุของการตีกลับฎีกาจากกองคลัง"
+                data-popup-message="กรุณาระบุเหตุผลเพื่อบันทึกไว้ในระบบ"
+                data-popup-action="{{ url_for('advance_payment.mark_return_bounced', return_id=return_detail.id) }}"
+                data-popup-confirm-text="ยืนยันการตีกลับ"
+                data-popup-confirm-class="btn-danger"
+                data-popup-input-type="textarea"
+                data-popup-input-name="rejection_comment"
+                data-popup-input-placeholder="ระบุเหตุผลที่ตีกลับฎีกาจากกองคลัง..."
+                data-popup-input-required="true"
+                data-popup-input-rows="2">
                 ฎีกาถูกตีกลับจากกองคลัง
             </button>
-            <div class="modal fade text-start" id="bounceReturnModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title fw-bold text-dark">ยืนยันการตีกลับเอกสาร</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body text-dark">
-                            <div class="mt-3">
-                                <label for="bounceRejectionComment" class="form-label fw-bold">เหตุผลที่ตีกลับเอกสาร <span class="text-danger">*</span></label>
-                                <textarea id="bounceRejectionComment" name="rejection_comment" form="bounceReturnForm" class="form-control" rows="3" placeholder="ระบุเหตุผลที่ตีกลับเอกสาร..." required></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form id="bounceReturnForm" method="POST" action="{{ url_for('advance_payment.mark_return_bounced', return_id=return_detail.id) }}" class="m-0">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-danger fw-bold">ยืนยันตีกลับ</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
         {% endif %}
         {% if return_detail.status|lower == 'รอตรวจสอบ' %}
             <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmCheckingModal">
