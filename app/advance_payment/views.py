@@ -1,6 +1,7 @@
 ﻿import os
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 from sqlalchemy import extract
 from functools import wraps
 import re
@@ -1552,6 +1553,7 @@ def bulk_receive_closing_doc(closing_doc_id):
     for ticket_id in updated_tickets:
         _recalculate_borrowing_ticket_status(ticket_id)
 
+    closing_doc.settled_at = datetime.now(ZoneInfo("Asia/Bangkok"))
     db.session.commit()
     flash(f"เปลี่ยนสถานะรายการทั้งหมดรวมถึงเงินสดย่อยในฎีกา {closing_doc.document_number} เป็น 'ล้างลูกหนี้เงินยืม' เรียบร้อยแล้ว", "success")
     return redirect(url_for("advance_payment.closing_management", search_closing_number=closing_doc.document_number))

@@ -472,16 +472,14 @@ class ClosingDocument(FinanceEditMixin, db.Model):
     filing_date = Column(Date, nullable=False)
     total_amount = Column(Numeric(12, 2), nullable=False, default=0)
     is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+    settled_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
     links = relationship("ClosingDocumentLink", back_populates="document", order_by="ClosingDocumentLink.id")
 
     @property
     def is_settled(self):
-        records = [link.record for link in self.links if link.is_active]
-        return self.is_active and bool(records) and all(
-            record.status in ("ล้างลูกหนี้เงินยืม", "เสร็จสิ้นกระบวนการ") for record in records
-        )
+        return self.settled_at is not None
 
 
 class ClosingDocumentLink(FinanceEditMixin, db.Model):
