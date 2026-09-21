@@ -10,6 +10,9 @@ from app.main import db
 from app.staff.models import StaffAccount
 
 
+MONEY_DEFAULT = Decimal("0.00")
+
+
 def _current_fiscal_year():
     today = datetime.now().date()
     return today.year + 1 if today.month >= 10 else today.year
@@ -143,7 +146,7 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     borrower_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     status = Column(String(64), nullable=False, default="กำลังส่งคำขอ")
     borrowing_ticket_purpose = Column(String(255), nullable=False)
-    required_budget = Column(Numeric(12, 2), nullable=False)
+    required_budget = Column(Numeric(12, 2, asdecimal=True), nullable=False)
     account_number = Column(String(100), nullable=False)
     bank_account_info_id = Column(Integer, ForeignKey("cash_mng_bank_account_infos.id"), nullable=True)
     borrowing_ticket_start_date = Column(Date, nullable=False)
@@ -341,7 +344,7 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     id = Column(Integer, primary_key=True)
     ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=False)
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
-    amount_spent = Column(Numeric(12, 2), nullable=False, default=0)
+    amount_spent = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     proof_reference = Column(String(255), nullable=False, default="")
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
@@ -395,7 +398,7 @@ class ReturnReceiptItem(FinanceEditMixin, db.Model):
     receipt_date = Column(Date, nullable=False)
     store_name = Column(String(255), nullable=False, default="")
     description = Column(String(255), nullable=False, default="")
-    amount = Column(Numeric(12, 2), nullable=False, default=0)
+    amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     is_cash = Column(Boolean, nullable=False, default=False, server_default=text("false"))
 
@@ -434,7 +437,7 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     id = Column(Integer, primary_key=True)
     ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
     fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=True)
-    amount_spent = Column(Numeric(12, 2), nullable=False, default=0)
+    amount_spent = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     items_description = Column(String(1000), nullable=False)
     sent_date = Column(Date, nullable=False)
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
@@ -470,7 +473,7 @@ class ClosingDocument(FinanceEditMixin, db.Model):
     id = Column(Integer, primary_key=True)
     document_number = Column(String(255), nullable=False, unique=True)
     filing_date = Column(Date, nullable=False)
-    total_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    total_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     is_active = Column(Boolean, nullable=False, default=True, server_default=text("true"))
     settled_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -529,7 +532,7 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
     id = Column(Integer, primary_key=True)
     fiscal_year = Column(Integer, nullable=False)
     org_id = Column(Integer, ForeignKey("orgs.id"), nullable=False)
-    budget = Column(Numeric(12, 2), nullable=False, default=0)
+    budget = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     bank_account_info_id = Column(Integer, ForeignKey("cash_mng_bank_account_infos.id"), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     valid = Column(Boolean, nullable=False, default=True)
@@ -623,7 +626,7 @@ class FundRequest(FinanceEditMixin, db.Model):
     receive_interest = Column(Date, nullable=True)
     withdraw_intrest = Column(Date, nullable=True)
     status = Column(String(64), nullable=False, default="อนุมัติแล้ว")
-    amount = Column(Numeric(12, 2), nullable=False, default=0)
+    amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     purpose = Column(String(1000), nullable=True)
     period_year = Column(String(10), nullable=True)
@@ -714,7 +717,7 @@ class FundRequestItem(FinanceEditMixin, db.Model):
     id = Column(Integer, primary_key=True)
     fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=False)
     description = Column(String(255), nullable=False)
-    amount = Column(Numeric(12, 2), nullable=False, default=0)
+    amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     category_type = Column(Integer, nullable=False, default=1) # use id instead
 
@@ -738,7 +741,7 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     status = Column(String(32), nullable=False, default="ฉบับร่าง")
     petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=False)
     fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=True)
-    total_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    total_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     rejection_comment = Column(String(4000), nullable=True)
     transferred_at = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
@@ -779,7 +782,7 @@ class PettyCashClaimItem(FinanceEditMixin, db.Model):
     claim_id = Column(Integer, ForeignKey("petty_cash_claim_details.id"), nullable=False)
     receipt_date = Column(Date, nullable=False)
     description = Column(String(255), nullable=False, default="")
-    amount = Column(Numeric(12, 2), nullable=False, default=0)
+    amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     category_type = Column(Integer, nullable=False, default=1)
 
