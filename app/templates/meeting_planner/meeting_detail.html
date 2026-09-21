@@ -127,7 +127,7 @@
                                                                 <th>รายละเอียด</th>
                                                                 <th></th>
                                                             </thead>
-                                                            <tbody id="tasks" hx-target="closest tr" hx-swap="outerHTML">
+                                                            <tbody id="tasks-{{ topic.id }}" hx-target="closest tr" hx-swap="outerHTML">
                                                                 {% for task in topic.tasks %}
                                                                     {% include "meeting_planner/task_row.html" %}
                                                                 {% endfor %}
@@ -136,7 +136,7 @@
                                                         <a class="button is-small is-info is-rounded is-outlined"
                                                            hx-get="{{ url_for('meeting_planner.add_task_form',
                                                            topic_id=topic.id) }}"
-                                                           hx-target="#tasks"
+                                                           hx-target="#tasks-{{ topic.id }}"
                                                            hx-swap="beforeend">
                                                             <span class="icon"><i class="fas fa-plus"></i></span>
                                                             <span>เพิ่ม</span>
