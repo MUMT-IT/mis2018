@@ -1,5 +1,6 @@
 import pytz
 import arrow
+from datetime import datetime
 from typing import Union
 from flask import (render_template, make_response, request,
                    redirect, url_for, flash, jsonify, current_app)
@@ -592,6 +593,73 @@ def edit_topic_form(topic_id):
 
     resp = make_response(template)
     return resp
+
+
+def _parse_task_deadline(value):
+    if not value:
+        return None
+    try:
+        deadline = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    if deadline.tzinfo is None:
+        return localtz.localize(deadline)
+    return deadline
+
+
+def _populate_task(task):
+    task.no = request.form.get('no', '').strip()
+    task.detail = request.form.get('detail', '').strip()
+    task.deadline = _parse_task_deadline(request.form.get('deadline'))
+
+
+@meeting_planner.route('/api/meeting_planner/topics/<int:topic_id>/tasks', methods=['GET', 'POST'])
+@login_required
+def add_task_form(topic_id):
+    topic = MeetingAgenda.query.get(topic_id)
+    if request.method == 'GET':
+        form = MeetingTaskForm()
+        return render_template('meeting_planner/task_form_row.html', form=form,
+                               topic_id=topic.id)
+    else:
+        no = request.form.get('no')
+        detail = request.form.get('detail')
+        deadline = arrow.get(request.form.get('deadline'), 'Asia/Bangkok').datetime
+        task = MeetingTask(no=no, detail=detail, deadline=deadline, agenda_id=topic.id)
+        db.session.add(task)
+        db.session.commit()
+        return render_template('meeting_planner/task_row.html', task=task)
+
+#
+# @meeting_planner.route('/api/meeting_planner/tasks/<int:task_id>/edit', methods=['GET', 'POST', 'DELETE'])
+# @login_required
+# def edit_task_form(task_id):
+#     task = MeetingTask.query.get(task_id)
+#     if task is None:
+#         return '', 404
+#     if request.method == 'GET':
+#         return render_template(
+#             'meeting_planner/task_form_row.html',
+#             task=task,
+#             action_url=url_for('meeting_planner.edit_task_form', task_id=task.id),
+#         )
+#     if request.method == 'POST':
+#         _populate_task(task)
+#         if not task.no or not task.detail:
+#             response = make_response(render_template(
+#                 'meeting_planner/task_form_row.html',
+#                 task=task,
+#                 action_url=url_for('meeting_planner.edit_task_form', task_id=task.id),
+#             ))
+#             response.status_code = 422
+#             return response
+#         db.session.add(task)
+#         db.session.commit()
+#         return render_template('meeting_planner/task_row.html', task=task)
+#
+#     db.session.delete(task)
+#     db.session.commit()
+#     return ''
 
 
 @meeting_planner.route('/api/meeting_planner/invites/<int:invite_id>', methods=['PATCH', 'DELETE'])
