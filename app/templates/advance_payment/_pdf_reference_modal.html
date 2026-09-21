@@ -34,7 +34,7 @@
           {% if pdf_reference_editable is not defined or pdf_reference_editable %}
           <div class="mb-3">
             <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ</label>
-            <input class="form-control" name="reference_number" required value="{{ document.reference_number or '' }}">
+            <input class="form-control" name="reference_number" placeholder="78.04/1" required value="{{ document.reference_number or '' }}">
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
