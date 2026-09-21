@@ -1,5 +1,8 @@
 {% extends "base.html" %}
-
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
 {% block page_content %}
 {% include "meeting_planner/nav.html" %}
 <section class="section">
@@ -101,47 +104,68 @@
                                     <th></th>
                                     </thead>
                                     <tbody hx-target="closest tr" hx-swap="outerHTML">
-                                    {% for topic in meeting.agendas %}
-                                        {% if topic.group == group %}
-                                            <tr>
-                                                <td style="width: 10%">{{ topic.number }}</td>
-                                                <td>
-                                                    {{ topic.detail }}
-                                                    <hr>
-                                                    <label class="label">รายละเอียดเพิ่มเติม</label>
-                                                    <p class="notification">
-                                                        {{ topic.note or '' }}
-                                                    </p>
-                                                    <hr>
-                                                    <label class="label">มติที่ประชุม</label>
-                                                    <p class="notification">
-                                                        {{ topic.consensus }}
-                                                    </p>
-                                                </td>
-                                                <td style="width: 10%">
-                                                    <div class="field has-addons">
-                                                        <div class="control">
-                                                            <a class="button is-light is-outlined"
-                                                               hx-get="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
-                                                                <span class="icon">
-                                                                   <i class="fas fa-pencil has-text-dark"></i>
-                                                                </span>
-                                                            </a>
+                                        {% for topic in meeting.agendas %}
+                                            {% if topic.group == group %}
+                                                <tr>
+                                                    <td style="width: 10%">{{ topic.number }}</td>
+                                                    <td>
+                                                        {{ topic.detail }}
+                                                        <hr>
+                                                        <label class="label">รายละเอียดเพิ่มเติม</label>
+                                                        <p class="notification">
+                                                            {{ topic.note or '' }}
+                                                        </p>
+                                                        <hr>
+                                                        <label class="label">มติที่ประชุม</label>
+                                                        <p class="notification">
+                                                            {{ topic.consensus }}
+                                                        </p>
+                                                        <label class="label">ผลการดำเนินการ</label>
+                                                        <table class="table is-fullwidth">
+                                                            <thead>
+                                                                <th style="width: 10%">ลำดับ</th>
+                                                                <th>รายละเอียด</th>
+                                                                <th></th>
+                                                            </thead>
+                                                            <tbody id="tasks-{{ topic.id }}" hx-target="closest tr" hx-swap="outerHTML">
+                                                                {% for task in topic.tasks %}
+                                                                    {% include "meeting_planner/task_row.html" %}
+                                                                {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                        <a class="button is-small is-info is-rounded is-outlined"
+                                                           hx-get="{{ url_for('meeting_planner.add_task_form',
+                                                           topic_id=topic.id) }}"
+                                                           hx-target="#tasks-{{ topic.id }}"
+                                                           hx-swap="beforeend">
+                                                            <span class="icon"><i class="fas fa-plus"></i></span>
+                                                            <span>เพิ่ม</span>
+                                                        </a>
+                                                    </td>
+                                                    <td style="width: 10%">
+                                                        <div class="field has-addons">
+                                                            <div class="control">
+                                                                <a class="button is-light is-outlined"
+                                                                   hx-get="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
+                                                                    <span class="icon">
+                                                                       <i class="fas fa-pencil has-text-dark"></i>
+                                                                    </span>
+                                                                </a>
+                                                            </div>
+                                                            <div class="control">
+                                                                <a class="button is-light is-outlined"
+                                                                   hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่"
+                                                                   hx-delete="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-trash-alt has-text-danger"></i>
+                                                                    </span>
+                                                                </a>
+                                                            </div>
                                                         </div>
-                                                        <div class="control">
-                                                            <a class="button is-light is-outlined"
-                                                               hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่"
-                                                               hx-delete="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
-                                                                <span class="icon">
-                                                                    <i class="fas fa-trash-alt has-text-danger"></i>
-                                                                </span>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        {% endif %}
-                                    {% endfor %}
+                                                    </td>
+                                                </tr>
+                                            {% endif %}
+                                        {% endfor %}
                                     </tbody>
                                 </table>
                             </td>
@@ -205,15 +229,31 @@
 </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script>
-    $(document).ready(function () {
-        document.addEventListener('notifyAlert', function () {
-            alert('ส่งข้อความเตือนเรียบร้อย')
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            document.addEventListener('notifyAlert', function () {
+                alert('ส่งข้อความเตือนเรียบร้อย')
+            })
+            document.body.addEventListener('htmx:configRequest', function(evt) {
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+            });
         })
-        document.body.addEventListener('htmx:configRequest', function(evt) {
-            evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
-        });
-    })
-</script>
+    </script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="deadline"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+        })
+    </script>
 {% endblock %}
