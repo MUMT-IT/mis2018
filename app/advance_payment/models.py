@@ -774,6 +774,22 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     def documents(self):
         return _query_many_to_many_list(self, document_petty_claim_association, "claim_id", Document)
 
+    @property
+    def reference_files(self):
+        """Files attached to the principle-approval reference, not to a receipt item."""
+        session = object_session(self)
+        if session is None or self.id is None:
+            return []
+        return (
+            session.query(PettyCashClaimProofFile)
+            .filter(
+                PettyCashClaimProofFile.claim_id == self.id,
+                PettyCashClaimProofFile.claim_item_id.is_(None),
+            )
+            .order_by(PettyCashClaimProofFile.id.asc())
+            .all()
+        )
+
 
 class PettyCashClaimItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_claim_items"

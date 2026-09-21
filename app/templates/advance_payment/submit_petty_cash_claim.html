@@ -141,6 +141,31 @@
         </span>
       </div> -->
 
+      <!-- ข้อมูลหนังสืออนุมัติในหลักการ -->
+      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ (ถ้ามี)</h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ</label>
+            <input class="form-control" name="reference_number" placeholder="78.04/1" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
+            <input type="date" class="form-control" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง (ไม่เกิน 2 ไฟล์)</label>
+            <input type="file" class="form-control" name="reference_files[]" accept="image/*,.pdf" multiple>
+            {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
+              <input type="hidden" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
+              <input type="hidden" name="existing_reference_filenames[]" value="{{ reference_file.filename }}">
+              <small class="text-success d-block mt-1"><i class="bi bi-file-earmark-check"></i> {{ reference_file.filename }}</small>
+            {% endfor %}
+            <small class="text-muted d-block mt-1">หากไม่กรอกข้อมูลส่วนนี้ ระบบจะสร้าง PDF แบบไม่มีหนังสืออนุมัติในหลักการโดยอัตโนมัติ</small>
+          </div>
+        </div>
+      </div>
+
       <!-- 2. ส่วนแนบเอกสารประกาศประกอบ -->
       <div class="card p-4 mb-4 border rounded-4 shadow-sm">
         <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h5>
@@ -690,6 +715,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (input.required && !input.value) isValid = false;
       });
 
+      const referenceNumber = claimForm.querySelector('[name="reference_number"]')?.value.trim() || '';
+      const referenceDate = claimForm.querySelector('[name="reference_date"]')?.value.trim() || '';
+      if ((referenceNumber && !referenceDate) || (!referenceNumber && referenceDate)) {
+        isValid = false;
+        claimForm.querySelector('[name="reference_number"]')?.classList.toggle('is-invalid', !referenceNumber);
+        claimForm.querySelector('[name="reference_date"]')?.classList.toggle('is-invalid', !referenceDate);
+      }
+
+      const referenceFileInput = claimForm.querySelector('[name="reference_files[]"]');
+      const existingReferenceFiles = claimForm.querySelectorAll('[name="existing_reference_files[]"]').length;
+      if (referenceFileInput && existingReferenceFiles + referenceFileInput.files.length > 2) {
+        isValid = false;
+        referenceFileInput.classList.add('is-invalid');
+      } else {
+        referenceFileInput?.classList.remove('is-invalid');
+      }
+
       if (hasClaimData && !validateClaimAmountLimit()) isValid = false;
       if (isValid && !validateFundRequestTotal()) isValid = false;
       if (isValid && !claimForm.checkValidity()) isValid = false;
@@ -801,7 +843,9 @@ async function autoSavePettyCashDraft() {
       body: JSON.stringify({
         fund_request_id: fundRequestId,
         items: items,
-        announcements: announcements
+        announcements: announcements,
+        reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
+        reference_date: claimForm.querySelector('[name="reference_date"]')?.value || ''
       })
     });
 

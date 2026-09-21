@@ -5364,6 +5364,12 @@ def _save_pdf_reference_data(document, borrowing_ticket=None, *, require_referen
         require_reference = True
         reference_number = getattr(borrowing_ticket, "aip_ref_no", None) or reference_number
         reference_date = getattr(borrowing_ticket, "aip_ref_date", None) or reference_date
+    else:
+        # The PDF modal no longer collects these fields. Reuse the values
+        # already saved on the claim instead of treating the missing form
+        # fields as an incomplete reference.
+        reference_number = reference_number or getattr(document, "reference_number", None)
+        reference_date = reference_date or getattr(document, "reference_date", None)
     if not all((fiscal_year, product_code_id, cost_center_id, iocode_id)) or (
         require_reference and not all((reference_number, reference_date))
     ):
@@ -5419,7 +5425,9 @@ def export_petty_cash_claim_pdf(claim_id):
     if request.method == "GET":
         return redirect(url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_id))
 
-    claim_type = request.form.get("claim_type", "1")
+    claim_type = request.form.get("claim_type")
+    if claim_type not in ("1", "2"):
+        claim_type = "1" if claim.reference_number and claim.reference_date else "2"
     if claim_type not in ("1", "2"):
         abort(400, description="ประเภทเอกสาร PDF ไม่ถูกต้อง")
     _save_pdf_reference_data(claim, require_reference=claim_type == "1")
@@ -5509,6 +5517,8 @@ def autosave_petty_cash_claim_draft():
     fund_request_id = data.get("fund_request_id")
     items = data.get("items", [])
     announcements = data.get("announcements", [])
+    reference_number = (data.get("reference_number") or "").strip()
+    reference_date_raw = (data.get("reference_date") or "").strip()
 
     # 1. ดึง Setting ของ StaffAccount ปัจจุบันก่อน (ถ้าไม่มีค่อย fallback ไปตัว active ตัวแรก)
     current_user = db.session.query(StaffAccount).get(user_id) if user_id else None
@@ -5579,6 +5589,15 @@ def autosave_petty_cash_claim_draft():
         db.session.add(claim_item)
 
     claim_detail.total_amount = total_amount
+    if reference_number and reference_date_raw:
+        try:
+            claim_detail.reference_date = datetime.strptime(reference_date_raw, "%Y-%m-%d").date()
+            claim_detail.reference_number = reference_number
+        except ValueError:
+            pass
+    elif not reference_number and not reference_date_raw:
+        claim_detail.reference_number = None
+        claim_detail.reference_date = None
 
     # 5. บันทึกเอกสารประกาศประกอบ (Documents)
     _replace_claim_detail_documents(claim_detail, announcements)
@@ -5652,8 +5671,37 @@ def submit_petty_cash_claim():
         amounts = request.form.getlist("amount[]")
         announcement_ids = request.form.getlist("announcement_ids[]")
         announcement_titles = request.form.getlist("announcement_titles[]")
+        reference_number = (request.form.get("reference_number") or "").strip()
+        reference_date_raw = (request.form.get("reference_date") or "").strip()
+        reference_files = [
+            file_storage
+            for file_storage in request.files.getlist("reference_files[]")
+            if file_storage and file_storage.filename
+        ]
+        existing_reference_paths = request.form.getlist("existing_reference_files[]")
+        existing_reference_names = request.form.getlist("existing_reference_filenames[]")
         fund_request_id_raw = (request.form.get("fund_request_id") or "").strip()
         fund_request_id = int(fund_request_id_raw) if fund_request_id_raw.isdigit() else None
+
+        reference_date = None
+        if reference_number or reference_date_raw:
+            if not reference_number or not reference_date_raw:
+                flash("กรุณากรอกเลขที่อนุมัติในหลักการและวันที่หนังสือให้ครบถ้วน หรือเว้นว่างทั้งสองช่อง", "danger")
+                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
+            try:
+                reference_date = datetime.strptime(reference_date_raw, "%Y-%m-%d").date()
+            except ValueError:
+                flash("รูปแบบวันที่หนังสืออนุมัติไม่ถูกต้อง", "danger")
+                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
+
+        existing_reference_files = [
+            (path, existing_reference_names[index] if index < len(existing_reference_names) else "reference")
+            for index, path in enumerate(existing_reference_paths)
+            if path
+        ]
+        if len(existing_reference_files) + len(reference_files) > 2:
+            flash("แนบไฟล์เอกสารอ้างอิงได้ไม่เกิน 2 ไฟล์", "danger")
+            return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
 
         parcel_amount_raw = (request.form.get("parcel_amount") or "").replace(",", "").strip()
         parcel_items_description = (request.form.get("items_description") or "").strip()
@@ -5805,6 +5853,10 @@ def submit_petty_cash_claim():
             for oi in old_items:
                 db.session.query(PettyCashClaimProofFile).filter_by(claim_item_id=oi.id).delete()
             db.session.query(PettyCashClaimItem).filter_by(claim_id=existing_draft.id).delete()
+            db.session.query(PettyCashClaimProofFile).filter_by(
+                claim_id=existing_draft.id,
+                claim_item_id=None,
+            ).delete()
             claim_detail = existing_draft
         else:
             claim_detail = PettyCashClaimDetail(
@@ -5820,6 +5872,8 @@ def submit_petty_cash_claim():
         # บันทึก Fund Request ID ที่ผูกกับเอกสารฉบับนี้
         if hasattr(claim_detail, 'fund_request_id'):
             claim_detail.fund_request_id = fund_request_id
+        claim_detail.reference_number = reference_number or None
+        claim_detail.reference_date = reference_date
 
         legacy_uploaded_files = request.files.getlist("proof_file[]")
         legacy_existing_file_paths = request.form.getlist("existing_proof_files[]")
@@ -5888,6 +5942,31 @@ def submit_petty_cash_claim():
                         created_at=datetime.now()
                     )
                     db.session.add(proof_file_record)
+
+        for file_storage in reference_files:
+            original_filename = os.path.basename(file_storage.filename)
+            if not original_filename:
+                continue
+            upload_folder = os.path.join(_upload_root(), f"petty_cash/{user_id}")
+            os.makedirs(upload_folder, exist_ok=True)
+            reference_path = f"uploads/petty_cash/{user_id}/{original_filename}"
+            file_storage.save(os.path.join(upload_folder, original_filename))
+            db.session.add(PettyCashClaimProofFile(
+                claim_id=claim_detail.id,
+                claim_item_id=None,
+                proof_reference=reference_path,
+                filename=original_filename,
+                created_at=datetime.now(),
+            ))
+
+        for existing_path, existing_name in existing_reference_files:
+            db.session.add(PettyCashClaimProofFile(
+                claim_id=claim_detail.id,
+                claim_item_id=None,
+                proof_reference=existing_path,
+                filename=existing_name,
+                created_at=datetime.now(),
+            ))
 
         # บันทึกยอดรวมเงินเฉพาะส่วนที่จะขอเบิกตั้งเรื่องคืนจากการเงิน (ไม่รวมหมวด 6)
         claim_detail.amount = total_claim_amount
