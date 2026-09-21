@@ -1,0 +1,18 @@
+<tr>
+    <td style="width: 10%">
+        {{ form.no(class='input', required=true) }}
+    </td>
+    <td>
+        {{ form.detail(class='textarea', required=true) }}
+        <hr>
+        <label class="label">วันครบกำหนด</label>
+        {{ form.deadline(class='input') }}
+    </td>
+    <td style="width: 10%">
+        <a class="button is-success is-outlined"
+           hx-post="{{ url_for('meeting_planner.add_task_form', topic_id=topic_id) }}"
+           hx-include="closest tr">
+            <span class="icon"><i class="fas fa-save"></i></span>
+        </a>
+    </td>
+</tr>

@@ -1,0 +1,34 @@
+<tr>
+    <td style="width: 10%">{{ task.no or '' }}</td>
+    <td>
+        <p class="notification">
+            {{ task.detail or '' }}
+        </p>
+        <hr>
+        <label class="label">วันครบกำหนด</label>
+        <p class="notification">
+            {{ task.deadline|localdatetime or '' }}
+        </p>
+    </td>
+    <td style="width: 10%">
+        <div class="field has-addons">
+            <div class="control">
+                <a class="button is-light is-outlined"
+                   hx-get="{{ url_for('meeting_planner.edit_task_form', task_id=task.id) }}">
+                    <span class="icon">
+                        <i class="fas fa-pencil has-text-dark"></i>
+                    </span>
+                </a>
+            </div>
+            <div class="control">
+                <a class="button is-light is-outlined"
+                   hx-confirm="ท่านต้องการลบผลการดำเนินการนี้หรือไม่"
+                   hx-delete="{{ url_for('meeting_planner.edit_task_form', task_id=task.id) }}">
+                    <span class="icon">
+                        <i class="fas fa-trash-alt has-text-danger"></i>
+                    </span>
+                </a>
+            </div>
+        </div>
+    </td>
+</tr>
