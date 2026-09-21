@@ -617,18 +617,25 @@ def _populate_task(task):
 @login_required
 def add_task_form(topic_id):
     topic = MeetingAgenda.query.get(topic_id)
+    form = MeetingTaskForm()
     if request.method == 'GET':
-        form = MeetingTaskForm()
         return render_template('meeting_planner/task_form_row.html', form=form,
                                topic_id=topic.id)
     else:
-        no = request.form.get('no')
-        detail = request.form.get('detail')
-        deadline = arrow.get(request.form.get('deadline'), 'Asia/Bangkok').datetime
+        no = form.no.data
+        detail = form.detail.data
+        deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+        if not no or not detail:
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=topic.meeting_id)
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            return resp
         task = MeetingTask(no=no, detail=detail, deadline=deadline, agenda_id=topic.id)
         db.session.add(task)
         db.session.commit()
-        return render_template('meeting_planner/task_row.html', task=task)
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=topic.meeting_id)
+        return resp
 
 #
 # @meeting_planner.route('/api/meeting_planner/tasks/<int:task_id>/edit', methods=['GET', 'POST', 'DELETE'])
