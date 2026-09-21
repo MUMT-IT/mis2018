@@ -595,24 +595,6 @@ def edit_topic_form(topic_id):
     return resp
 
 
-def _parse_task_deadline(value):
-    if not value:
-        return None
-    try:
-        deadline = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    if deadline.tzinfo is None:
-        return localtz.localize(deadline)
-    return deadline
-
-
-def _populate_task(task):
-    task.no = request.form.get('no', '').strip()
-    task.detail = request.form.get('detail', '').strip()
-    task.deadline = _parse_task_deadline(request.form.get('deadline'))
-
-
 @meeting_planner.route('/api/meeting_planner/topics/<int:topic_id>/tasks', methods=['GET', 'POST'])
 @login_required
 def add_task_form(topic_id):
@@ -632,6 +614,9 @@ def add_task_form(topic_id):
             flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
             return resp
         task = MeetingTask(no=no, detail=detail, deadline=deadline, agenda_id=topic.id)
+        for staff in form.admins.data:
+            admin = MeetingAdmin(admin_id=staff.id, task=task)
+            db.session.add(admin)
         db.session.add(task)
         db.session.commit()
         resp = make_response()
