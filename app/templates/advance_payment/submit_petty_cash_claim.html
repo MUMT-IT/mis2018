@@ -1,4 +1,4 @@
-﻿{% extends "advance_payment/base.html" %}
+{% extends "advance_payment/base.html" %}
 
 {% block title %}แบบฟอร์มส่งเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
 
@@ -99,7 +99,7 @@
       </div>
     </div>
   </div>
-  {% if verification_fund_request and fund_request_status == 'อนุมัติแล้ว' and session.get('user_role') == 'secretary' %}
+  {% if verification_fund_request and fund_request_status == 'อนุมัติแล้ว' and advance_payment_role == 'secretary' %}
   <div class="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
     <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
       <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
@@ -534,7 +534,7 @@
             </td>
             <td class="text-center">
               <div class="d-flex flex-wrap gap-2 justify-content-center">
-                {% if session.get('user_role') == 'finance' and pr.status == 'รอตรวจสอบ' %}
+                {% if advance_payment_role == 'finance' and pr.status == 'รอตรวจสอบ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -550,7 +550,7 @@
                       ยืนยันเอกสารแล้ว
                     </button>
                   </form>
-                {% elif session.get('user_role') == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                {% elif advance_payment_role == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -568,7 +568,7 @@
                   </form>
                 {% endif %}
 
-                {% if session.get('user_role') == 'finance' and pr.status in ['รอตรวจสอบ'] %}
+                {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
                   <button type="button" class="btn btn-sm btn-danger fw-bold" data-bs-toggle="modal" data-bs-target="#parcelRejectModal{{ pr.id }}" style="max-width: 150px;">
                     ปฏิเสธ
                   </button>
@@ -587,7 +587,7 @@
       </table>
     </div>
     {% for pr in parcel_return_history %}
-      {% if session.get('user_role') == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
+      {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
         <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.reject_parcel_return', parcel_return_id=pr.id) }}">

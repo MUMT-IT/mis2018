@@ -1,9 +1,8 @@
-﻿import os
+import os
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 from sqlalchemy import extract
-from functools import wraps
 import re
 from types import SimpleNamespace
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -22,7 +21,12 @@ from flask import (
     send_file,
     url_for,
 )
-from flask_login import current_user
+from flask_login import current_user, login_required as flask_login_required
+from app.roles import (
+    cash_management_coordinator_permission,
+    finance_permission,
+    secretary_permission,
+)
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
@@ -48,6 +52,8 @@ def render_template(template_name, *args, **kwargs):
     """Render AdvancePayment templates without changing every route call."""
     if isinstance(template_name, str) and "/" not in template_name:
         template_name = f"advance_payment/{template_name}"
+    kwargs.setdefault("advance_payment_user", current_user)
+    kwargs.setdefault("advance_payment_role", _current_module_role())
     return _render_template(template_name, *args, **kwargs)
 
 COORDINATOR_ROLE = "cash_management_coordinator"
@@ -122,9 +128,10 @@ def _is_petty_cash_role(role):
 
 
 def _dashboard_endpoint_for_role(role):
-    if session.get("advance_payment_system") == PETTY_CASH_SYSTEM:
+    role = role or _current_module_role()
+    if _selected_system() == PETTY_CASH_SYSTEM:
         return "advance_payment.staff_fund_request_history"
-    if session.get("advance_payment_system") == FINANCE_SYSTEM:
+    if _selected_system() == FINANCE_SYSTEM or role == FINANCE_SYSTEM:
         return "advance_payment.finance_dashboard"
     return "advance_payment.coordinator_dashboard"
 
@@ -389,38 +396,19 @@ def _default_module_role(staff):
     return None
 
 
-def _sync_advance_payment_session(staff, role=None, system=None):
-    if not staff:
-        return
-
-    session["user_id"] = staff.id
-    session["user_email"] = staff.email
+def _set_selected_system(system):
     if system is not None:
         session["advance_payment_system"] = system
-    session["user_role"] = role if role in {
-        COORDINATOR_ROLE,
-        SECRETARY_ROLE,
-        FINANCE_SYSTEM,
-    } else None
+
+
+def _current_module_user():
+    """Return the Flask-Login user; never authenticate from the session."""
+    return current_user if current_user.is_authenticated else None
 
 
 def _module_user_from_session():
-    if current_user.is_authenticated:
-        _sync_advance_payment_session(current_user, session.get("user_role"))
-        return current_user
-
-    user_id = session.get("user_id")
-    if not user_id:
-        return None
-
-    legacy_user = db.session.query(StaffAccount).get(user_id)
-    if not legacy_user:
-        session.pop("user_id", None)
-        session.pop("user_email", None)
-        session.pop("user_role", None)
-        return None
-
-    return legacy_user
+    """Backward-compatible name; authentication still comes only from Flask-Login."""
+    return _current_module_user()
 
 
 def _ensure_module_role(staff, requested_role):
@@ -444,8 +432,29 @@ def _selected_system():
     return session.get("advance_payment_system")
 
 
+def _current_user_id():
+    return current_user.id if current_user.is_authenticated else None
+
+
+def _current_module_role():
+    """Return the current user's role from Flask-Principal, not session data."""
+    if not current_user.is_authenticated:
+        return None
+    if finance_permission.can():
+        return FINANCE_SYSTEM
+    if cash_management_coordinator_permission.can():
+        return COORDINATOR_ROLE
+    if secretary_permission.can():
+        return SECRETARY_ROLE
+    return None
+
+
 def _is_current_coordinator():
-    return _selected_system() == ADVANCE_PAYMENT_SYSTEM and _is_coordinator_role(session.get("user_role"))
+    return (
+        current_user.is_authenticated
+        and _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and cash_management_coordinator_permission.can()
+    )
 
 
 def _is_current_secretary(user=None, setting=None):
@@ -477,7 +486,7 @@ def _get_user_by_id(user_id):
 @bp.app_template_global()
 def finance_last_edit(records):
     """Summarize only the displayed records, and only in the finance view."""
-    if session.get("user_role") != FINANCE_SYSTEM or _selected_system() != FINANCE_SYSTEM:
+    if not current_user.is_authenticated or not finance_permission.can() or _selected_system() != FINANCE_SYSTEM:
         return None
     latest = max(
         (record for record in records if getattr(record, "last_edited_at", None)),
@@ -911,9 +920,13 @@ def _assign_fund_request_ticket_number(fund_request, reference_date=None):
 
 @bp.before_request
 def recheck_overdue_and_upcoming_statuses():
-    user_id = session.get("user_id")
-    if not user_id:
+    g.advance_payment_finance_actor_id = None
+    if not current_user.is_authenticated:
         return
+
+    user_id = current_user.id
+    if finance_permission.can() and request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        g.advance_payment_finance_actor_id = current_user.id
 
     today = datetime.now().date()
 
@@ -923,7 +936,7 @@ def recheck_overdue_and_upcoming_statuses():
         BorrowingTicket.status != "เคลียร์ยอดแล้ว"
     )
 
-    if _is_coordinator_role(session.get("user_role")):
+    if cash_management_coordinator_permission.can():
         query = query.filter(BorrowingTicket.creator_id == user_id)
 
     tickets = query.all()
@@ -962,50 +975,6 @@ def recheck_overdue_and_upcoming_statuses():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-
-def login_required(role=None):
-    def decorator(view_func):
-        @wraps(view_func)
-        def wrapped(*args, **kwargs):
-            staff = _module_user_from_session()
-            if not staff:
-                return redirect(url_for("advance_payment.login"))
-
-            user_role = session.get("user_role")
-            available_roles = _available_module_roles(staff)
-            if user_role not in available_roles and user_role is not None:
-                user_role = None
-                session["user_role"] = None
-
-            if role in {"coordinator", COORDINATOR_ROLE}:
-                if _selected_system() != ADVANCE_PAYMENT_SYSTEM or not _is_coordinator_role(user_role):
-                    abort(403)
-            elif role in {"advance_payment", ADVANCE_PAYMENT_SYSTEM}:
-                if _selected_system() != ADVANCE_PAYMENT_SYSTEM:
-                    abort(403)
-            elif role in {"staff", SECRETARY_ROLE, "petty_cash", PETTY_CASH_SYSTEM}:
-                if _selected_system() != PETTY_CASH_SYSTEM:
-                    abort(403)
-            elif role == FINANCE_SYSTEM or role == "finance":
-                if _selected_system() != FINANCE_SYSTEM or user_role != FINANCE_SYSTEM:
-                    abort(403)
-            elif role is not None and user_role != role:
-                abort(403)
-
-            # Stamp only writes made by authenticated staff in the finance system.
-            g.advance_payment_finance_actor_id = (
-                staff.id
-                if user_role == FINANCE_SYSTEM
-                and _selected_system() == FINANCE_SYSTEM
-                and request.method in {"POST", "PUT", "PATCH", "DELETE"}
-                else None
-            )
-            return view_func(*args, **kwargs)
-
-        return wrapped
-
-    return decorator
-
 
 def _coerce_date(value):
     if isinstance(value, date):
@@ -1428,7 +1397,8 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
         return False
 
 @bp.route("/finance/returns/<int:return_id>/checking", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_return_checking(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
@@ -1443,7 +1413,8 @@ def mark_return_checking(return_id):
     return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
 
 @bp.route("/finance/returns/<int:return_id>/received", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_return_received(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
@@ -1459,7 +1430,8 @@ def mark_return_received(return_id):
     return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
 
 @bp.route("/finance/returns/<int:return_id>/bounced", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_return_bounced(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
@@ -1476,8 +1448,8 @@ def mark_return_bounced(return_id):
 
     existing_comment = return_detail.rejection_comment or ""
     count = existing_comment.count("ครั้งที่") + 1
-    current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-    user_name = current_user.name if current_user else "ไม่ระบุชื่อ"
+    staff = current_user
+    user_name = staff.name if staff else "ไม่ระบุชื่อ"
     formatted_comment = (
         f"ครั้งที่ {count}: {rejection_comment} "
         f"ผู้ตีกลับ: {user_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -1495,7 +1467,8 @@ def mark_return_bounced(return_id):
     return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
 
 @bp.route("/finance/closing-documents/<int:closing_doc_id>/cancel", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def cancel_closing_doc(closing_doc_id):
     """Cancel the document while retaining its associations for history."""
     closing_doc = db.session.query(ClosingDocument).filter_by(id=closing_doc_id).with_for_update().first()
@@ -1531,7 +1504,8 @@ def cancel_closing_doc(closing_doc_id):
     return redirect(url_for("advance_payment.closing_management", search_closing_number=doc_number))
 
 @bp.route("/finance/closing-documents/<int:closing_doc_id>/bulk-receive", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def bulk_receive_closing_doc(closing_doc_id):
     """ เปลี่ยนสถานะเอกสารทุกรายการในฎีกานี้เป็น ล้างลูกหนี้เงินยืม """
     closing_doc = db.session.query(ClosingDocument).filter_by(id=closing_doc_id).with_for_update().first()
@@ -1776,7 +1750,7 @@ def _recalculate_borrowing_ticket_status(ticket_id):
     return borrowing_ticket.status
 
 def _render_role_selection(selected_role=None, error_message=None):
-    staff = _module_user_from_session()
+    staff = _current_module_user()
     if not staff:
         return redirect(url_for("auth.login", next=url_for("advance_payment.login")))
 
@@ -1791,7 +1765,7 @@ def _render_role_selection(selected_role=None, error_message=None):
                 elevated_role = SECRETARY_ROLE
             elif requested_system == FINANCE_SYSTEM:
                 elevated_role = FINANCE_SYSTEM
-            _sync_advance_payment_session(staff, elevated_role, requested_system)
+            _set_selected_system(requested_system)
             return redirect(url_for(_dashboard_endpoint_for_role(elevated_role)))
 
     return render_template(
@@ -1807,7 +1781,7 @@ def _render_role_selection(selected_role=None, error_message=None):
 @bp.route("/", methods=["GET", "POST"])
 @bp.route("/login", methods=["GET", "POST"])
 def login(role=None):
-    if not current_user.is_authenticated and not session.get("user_id"):
+    if not current_user.is_authenticated:
         return redirect(url_for("auth.login", next=request.url))
 
     requested_role = role or request.values.get("system") or request.values.get("role") or request.values.get("login_path")
@@ -1831,6 +1805,8 @@ def finance_login():
 
 @bp.route("/logout")
 def logout():
+    # These pops are a one-time cleanup for legacy Advance Payment sessions;
+    # authentication itself is managed by Flask-Login.
     session.pop("user_id", None)
     session.pop("user_email", None)
     session.pop("user_role", None)
@@ -1842,10 +1818,10 @@ def logout():
 
 @bp.route("/coordinator/dashboard", methods=["GET", "POST"], endpoint="coordinator_dashboard")
 @bp.route("/borrower/dashboard", methods=["GET", "POST"], endpoint="borrower_dashboard")
-@login_required(role=ADVANCE_PAYMENT_SYSTEM)
+@flask_login_required
 def coordinator_dashboard():
-    user_id = session.get("user_id")
-    user_role = session.get("user_role")
+    user_id = current_user.id
+    user_role = _current_module_role()
     is_borrower_mode = (
         request.endpoint == "advance_payment.borrower_dashboard"
         or not _is_current_coordinator()
@@ -1855,13 +1831,11 @@ def coordinator_dashboard():
         if is_borrower_mode
         else "advance_payment.coordinator_dashboard"
     )
-    current_user = db.session.query(StaffAccount).filter_by(id=user_id).first()
-    if not current_user:
-        abort(404)
+    staff = current_user
 
     # ผู้ยืมเห็นเฉพาะของตัวเอง ส่วนผู้ประสานงานยังเลือกแทนคนอื่นได้
     if is_borrower_mode:
-        dept_users = [current_user]
+        dept_users = [staff]
     else:
         dept_users = (
             db.session.query(StaffAccount)
@@ -1869,7 +1843,7 @@ def coordinator_dashboard():
             .all()
         )
     if not dept_users:
-        dept_users = [current_user]
+        dept_users = [staff]
 
     coordinator_user_ids = [user.id for user in dept_users if user.id]
     coordinator_tickets = (
@@ -2206,15 +2180,15 @@ def coordinator_dashboard():
 @bp.route("/coordinator/ticket/<int:ticket_id>/pdf", endpoint="coordinator_ticket_pdf")
 @bp.route("/borrower/ticket/<int:ticket_id>/pdf", endpoint="borrower_ticket_pdf")
 @bp.route("/coordinator/ticket/<int:ticket_id>/pdf", endpoint="export_ticket_pdf")
-@login_required()
+@flask_login_required
 def export_ticket_pdf(ticket_id):
     ticket = db.session.query(BorrowingTicket).get(ticket_id)
     if not ticket:
         abort(404)
 
     if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-        (not _is_current_coordinator() and ticket.borrower_id != session.get("user_id"))
-        or (_is_current_coordinator() and ticket.creator_id != session.get("user_id"))
+        (not _is_current_coordinator() and ticket.borrower_id != _current_user_id())
+        or (_is_current_coordinator() and ticket.creator_id != _current_user_id())
     ):
         abort(403)
 
@@ -2225,7 +2199,8 @@ def export_ticket_pdf(ticket_id):
     return response
 
 @bp.route("/finance/dashboard")
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def finance_dashboard():
     borrowing_tickets = db.session.query(BorrowingTicket).order_by(BorrowingTicket.id.desc()).all()
     return_details = (
@@ -2414,13 +2389,15 @@ def finance_dashboard():
     )
 
 @bp.route("/finance/documents/<file_id>/download", methods=["GET"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def cash_mng_document_download(file_id):
     return _download_cash_mng_document(file_id)
 
 
 @bp.route("/finance/bank-accounts", methods=["GET", "POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def finance_bank_account_registry():
     show_editor = request.method == "POST"
     form = BankAccountInfoForm()
@@ -2592,7 +2569,8 @@ def finance_bank_account_registry():
     )
 
 @bp.route("/finance/tickets", methods=["GET"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def tickets_view():
     filter_type = request.args.get("filter", "").strip()
     today_date = datetime.now().date()
@@ -2724,8 +2702,9 @@ def tickets_view():
     )
 
 @bp.route("/tickets/<int:ticket_id>/verification")
+@flask_login_required
 def verification_view(ticket_id):
-    user_role = session.get("user_role")
+    user_role = _current_module_role()
     if _selected_system() not in {ADVANCE_PAYMENT_SYSTEM, FINANCE_SYSTEM}:
         return redirect(url_for("advance_payment.login"))
 
@@ -2735,7 +2714,7 @@ def verification_view(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and not _is_current_coordinator() and borrowing_ticket.borrower_id != session.get("user_id"):
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id():
         abort(403)
 
     return_details = (
@@ -2906,12 +2885,12 @@ def _recalculate_fund_request_submission_status(fund_request_id):
 
 
 @bp.route("/borrower/tickets/<int:ticket_id>/parcel-return", methods=["POST"])
-@login_required()
+@flask_login_required
 def submit_parcel_return(ticket_id):
     borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if borrowing_ticket is None:
         abort(404)
-    if not _can_submit_return_detail(session.get("user_id"), borrowing_ticket):
+    if not _can_submit_return_detail(_current_user_id(), borrowing_ticket):
         abort(403)
 
     amount = request.form.get("amount", "0").replace(",", "")
@@ -2928,13 +2907,13 @@ def submit_parcel_return(ticket_id):
         parsed_amount = float(amount or 0)
     except (TypeError, ValueError):
         flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
-        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
     ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id)
     projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
     if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
         return _redirect_with_limit_popup(
-            url_for(_dashboard_endpoint_for_role(session.get("user_role"))),
+            url_for(_dashboard_endpoint_for_role(_current_module_role())),
             (
                 "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
                 f"{_format_currency_amount(projected_ticket_total)} บาท "
@@ -2947,7 +2926,7 @@ def submit_parcel_return(ticket_id):
         projected_fund_total = fund_totals["cumulative_total"] + parsed_amount
         if _is_over_limit(projected_fund_total, fund_totals["request_amount"]):
             return _redirect_with_limit_popup(
-                url_for(_dashboard_endpoint_for_role(session.get("user_role"))),
+                url_for(_dashboard_endpoint_for_role(_current_module_role())),
                 (
                     "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
                     f"{_format_currency_amount(projected_fund_total)} บาท "
@@ -2967,11 +2946,11 @@ def submit_parcel_return(ticket_id):
     )
 
     flash("บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว")
-    return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+    return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
 
 @bp.route("/staff/fund-request/<int:fund_request_id>/parcel-return", methods=["GET", "POST"], endpoint="submit_fund_request_parcel_return")
-@login_required()
+@flask_login_required
 def submit_fund_request_parcel_return(fund_request_id):
     fund_request = db.session.query(FundRequest).filter_by(id=fund_request_id).first()
     if request.method == "GET":
@@ -3036,14 +3015,15 @@ def submit_fund_request_parcel_return(fund_request_id):
 
 
 @bp.route("/coordinator/parcel-returns/<int:parcel_return_id>/edit", methods=["POST"], endpoint="coordinator_parcel_return_edit")
-@login_required(role="coordinator")
+@flask_login_required
+@cash_management_coordinator_permission.require()
 def update_parcel_return(parcel_return_id):
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
         abort(404)
 
     borrowing_ticket = db.session.query(BorrowingTicket).get(parcel_return.ticket_id)
-    if borrowing_ticket and borrowing_ticket.creator_id != session.get("user_id"):
+    if borrowing_ticket and borrowing_ticket.creator_id != _current_user_id():
         abort(403)
 
     current_status = (parcel_return.status or "").strip()
@@ -3105,7 +3085,8 @@ def update_parcel_return(parcel_return_id):
     return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/proofed", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_parcel_proofed(parcel_return_id):
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
@@ -3132,7 +3113,8 @@ def mark_parcel_proofed(parcel_return_id):
 
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/received", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_parcel_received(parcel_return_id):
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
@@ -3156,7 +3138,8 @@ def mark_parcel_received(parcel_return_id):
 
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/reject", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def reject_parcel_return(parcel_return_id):
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
@@ -3172,8 +3155,8 @@ def reject_parcel_return(parcel_return_id):
     if new_comment:
         existing_comment = parcel_return.rejection_comment or ""
         count = existing_comment.count("ครั้งที่") + 1
-        current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-        user_name = current_user.name if current_user else "ไม่ระบุชื่อ"
+        staff = current_user
+        user_name = staff.name if staff else "ไม่ระบุชื่อ"
         formatted_new_comment = (
             f"ครั้งที่ {count}: {new_comment} "
             f"ผู้ปฏิเสธ: {user_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -3194,7 +3177,7 @@ def reject_parcel_return(parcel_return_id):
     return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
 
 @bp.route("/api/documents/suggest", methods=["GET"])
-@login_required()
+@flask_login_required
 def suggest_documents():
     q = request.args.get("q", "").strip()
     # เปิดช่องค้นหาโดยไม่พิมพ์อะไร ให้แสดงเอกสารทั้งหมดก่อน
@@ -3219,24 +3202,24 @@ def suggest_documents():
 @bp.route("/coordinator/tickets/returns", methods=["POST"], endpoint="coordinator_ticket_returns")
 @bp.route("/borrower/tickets/returns", methods=["POST"], endpoint="borrower_ticket_returns")
 @bp.route("/coordinator/tickets/returns", methods=["POST"], endpoint="submit_return_details")
-@login_required()
+@flask_login_required
 def submit_return_details():
     ticket_id = request.form.get("ticket_id") or request.args.get("ticket_id")
     if not ticket_id:
         flash("กรุณาระบุเอกสารสัญญาเงินยืมที่ต้องการส่งหลักฐาน", "danger")
-        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
     borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if borrowing_ticket is None:
         abort(404)
 
-    current_user_id = session.get("user_id")
+    current_user_id = _current_user_id()
     if not _can_submit_return_detail(current_user_id, borrowing_ticket):
         abort(403)
 
     if borrowing_ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"}:
         flash("ไม่สามารถดำเนินการสำหรับสัญญาเงินยืมที่มีสถานะนี้ได้", "danger")
-        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
     action = request.form.get("action", "submit")
     is_draft = (action == "draft")
@@ -3251,7 +3234,7 @@ def submit_return_details():
     if not is_draft and has_parcel_data:
         if not parcel_amount_raw or not parcel_items_description or not parcel_sent_date_raw:
             flash("กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุให้ครบถ้วน", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
         try:
             parcel_amount = float(parcel_amount_raw)
             parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
@@ -3259,11 +3242,11 @@ def submit_return_details():
                 raise ValueError
         except (TypeError, ValueError):
             flash("กรุณาระบุข้อมูลส่งคืนฝ่ายพัสดุให้ถูกต้อง", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
     if not is_draft and not has_parcel_data and not request.form.getlist("receipt_date[]"):
         flash("กรุณาเพิ่มข้อมูลส่งคืนฝ่ายพัสดุหรือรายละเอียดใบเสร็จอย่างน้อย 1 รายการ", "warning")
-        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
     receipt_dates = request.form.getlist("receipt_date[]")
     store_names = request.form.getlist("store_name[]")
@@ -3286,7 +3269,7 @@ def submit_return_details():
 
     if not is_draft and not has_receipt_data and not has_parcel_data:
         flash("กรุณาเพิ่มรายละเอียดใบเสร็จอย่างน้อย 1 รายการ", "warning")
-        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
     if not is_draft and not has_receipt_data and parcel_amount is not None:
         _create_parcel_return_record(
@@ -3299,7 +3282,7 @@ def submit_return_details():
         )
         db.session.commit()
         flash("บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว", "success")
-        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
     # ถ้ามีฉบับร่างเดิมอยู่แล้ว การ submit รอบนี้จะ "แทนที่" รายการเดิม
     # ดังนั้นต้องตัดฉบับร่างออกจากยอดที่ใช้เช็คเพดาน ไม่เช่นนั้นจะนับซ้ำ
@@ -3319,7 +3302,7 @@ def submit_return_details():
         r_date = _coerce_date(r_date_raw) if r_date_raw else None
         if not is_draft and not r_date:
             flash("ทุกแถวของรายการใบเสร็จต้องระบุวันที่ที่ถูกต้อง", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
         try:
             amt = float((amounts[i] or "0").replace(",", "")) if i < len(amounts) else 0.0
@@ -3328,18 +3311,18 @@ def submit_return_details():
         except (TypeError, ValueError):
             if not is_draft:
                 flash("ทุกแถวของรายการใบเสร็จต้องระบุจำนวนเงินที่ถูกต้อง", "danger")
-                return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+                return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
             amt = 0.0
 
         description = descriptions[i].strip() if i < len(descriptions) else ""
         store_name = store_names[i].strip() if i < len(store_names) else ""
         if not is_draft and (not store_name or not description):
             flash(f"รายการที่ {i + 1} ต้องระบุชื่อร้านค้าและรายละเอียดรายการให้ครบถ้วน", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
         is_cash = request.form.get(f"is_cash_{i}") == "true"
         if not is_draft and amt > 100000 and not _is_return_amount_limit_exempt(is_cash):
             flash(f"รายการที่ {i + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
         if not is_draft and _receipt_requires_additional_document(r_date):
             old_receipt_count += 1
@@ -3358,14 +3341,14 @@ def submit_return_details():
     proof_file_error = _proof_file_validation_error(len(parsed_rows), is_draft=is_draft)
     if proof_file_error:
         flash(proof_file_error, "danger")
-        return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
     if not is_draft:
         ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id, exclude_return_id=exclude_return_id)
         projected_total = ticket_totals["cumulative_total"] + total_amount_spent + (parcel_amount or 0)
         if _is_over_limit(projected_total, ticket_totals["budget"]):
             return _redirect_with_limit_popup(
-                url_for(_dashboard_endpoint_for_role(session.get("user_role"))),
+                url_for(_dashboard_endpoint_for_role(_current_module_role())),
                 (
                     "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
                     f"{_format_currency_amount(projected_total)} บาท "
@@ -3491,7 +3474,7 @@ def submit_return_details():
         db.session.commit()
         flash("ส่งหลักฐานเอกสารส่งใช้เงินยืมเรียบร้อยแล้ว", "success")
 
-    return redirect(url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+    return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
 @bp.app_template_filter('filter_actionable_tickets')
 def filter_actionable_tickets(tickets):
@@ -3503,7 +3486,7 @@ def filter_actionable_tickets(tickets):
     ]
 
 @bp.route("/proof-file/<int:file_id>/edit-inline", methods=["POST"])
-@login_required()
+@flask_login_required
 def edit_receipt_item_inline(file_id):
     source = (request.form.get("source") or "").strip().lower()
     proof_file = None
@@ -3592,8 +3575,8 @@ def edit_receipt_item_inline(file_id):
             abort(404)
 
         if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-            (not _is_current_coordinator() and borrowing_ticket.borrower_id != session.get("user_id"))
-            or (_is_current_coordinator() and borrowing_ticket.creator_id != session.get("user_id"))
+            (not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id())
+            or (_is_current_coordinator() and borrowing_ticket.creator_id != _current_user_id())
         ):
             abort(403)
 
@@ -3670,10 +3653,10 @@ def edit_receipt_item_inline(file_id):
     # 6. จัดการอัปโหลดไฟล์ใหม่ (ถ้ามีการแนบไฟล์)
     uploaded_file = request.files.get("proof_file")
     if uploaded_file and uploaded_file.filename != "":
-        user_id = session.get("user_id")
+        user_id = _current_user_id()
         original_filename = os.path.basename(uploaded_file.filename)
         if not original_filename:
-            return redirect(request.referrer or url_for(_dashboard_endpoint_for_role(session.get("user_role"))))
+            return redirect(request.referrer or url_for(_dashboard_endpoint_for_role(_current_module_role())))
 
         user_upload_dir = os.path.join(_upload_root(), str(user_id or "claim"))
         os.makedirs(user_upload_dir, exist_ok=True)
@@ -3743,14 +3726,14 @@ def edit_receipt_item_inline(file_id):
 
 @bp.route("/coordinator/tickets/<int:ticket_id>/autosave-draft", methods=["POST"], endpoint="coordinator_autosave_draft")
 @bp.route("/borrower/tickets/<int:ticket_id>/autosave-draft", methods=["POST"], endpoint="borrower_autosave_draft")
-@login_required(role=ADVANCE_PAYMENT_SYSTEM)
+@flask_login_required
 def autosave_return_draft(ticket_id):
     ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if not ticket or ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"}:
         return jsonify({"success": False, "message": "ไม่สามารถบันทึกร่างได้"}), 400
 
     # ผู้ใช้ทั่วไปบันทึกฉบับร่างได้เฉพาะสัญญาที่ตนเป็นผู้ยืม
-    if not _is_current_coordinator() and ticket.borrower_id != session.get("user_id"):
+    if not _is_current_coordinator() and ticket.borrower_id != _current_user_id():
         abort(403)
 
     data = request.get_json() or {}
@@ -3758,7 +3741,7 @@ def autosave_return_draft(ticket_id):
     announcements = data.get("announcements", [])  # <--- 1. รับค่าประกาศเพิ่มจาก JSON
 
     # ค้นหา ReturnDetail สถานะ Draft เดิม
-    current_user_id = session.get("user_id")
+    current_user_id = _current_user_id()
     existing_draft = (
         db.session.query(ReturnDetail)
         .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status="ฉบับร่าง")
@@ -3807,7 +3790,8 @@ def autosave_return_draft(ticket_id):
     return jsonify({"success": True, "saved_at": saved_time})
 
 @bp.route("/finance/returns/<int:return_id>/proofed", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_return_proofed(return_id):
     return_detail = (
         db.session.query(ReturnDetail).filter_by(id=return_id).first()
@@ -3839,7 +3823,8 @@ def mark_return_proofed(return_id):
     )
 
 @bp.route("/finance/returns/<int:return_id>/reject", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def reject_return_detail(return_id):
     return_detail = (
         db.session.query(ReturnDetail).filter_by(id=return_id).first()
@@ -3858,8 +3843,8 @@ def reject_return_detail(return_id):
     if new_comment:
         existing_comment = return_detail.rejection_comment or ""
         count = existing_comment.count("ครั้งที่") + 1
-        current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-        user_name = current_user.name if current_user else "ไม่ระบุชื่อ"
+        staff = current_user
+        user_name = staff.name if staff else "ไม่ระบุชื่อ"
         formatted_new_comment = (
             f"ครั้งที่ {count}: {new_comment} "
             f"ผู้ปฏิเสธ: {user_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -3882,7 +3867,8 @@ def reject_return_detail(return_id):
     )
 
 @bp.route("/finance/tickets/<int:ticket_id>/approve", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def approve_borrowing_ticket(ticket_id):
     borrowing_ticket = (
         db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
@@ -3930,7 +3916,7 @@ def approve_borrowing_ticket(ticket_id):
 def api_login():
     payload = request.get_json(silent=True) or request.form
     requested_role = (payload.get("role") or payload.get("login_path") or "").strip()
-    staff = _module_user_from_session()
+    staff = _current_module_user()
     if not staff:
         return jsonify({"ok": False, "message": "กรุณาเข้าสู่ระบบ MIS ก่อนใช้งาน Advance Payment"}), 401
 
@@ -3938,7 +3924,7 @@ def api_login():
     if not requested_role:
         return jsonify({"ok": False, "message": error_message or "กรุณาเลือกบทบาท"}), 401
 
-    _sync_advance_payment_session(staff, requested_role)
+    _set_selected_system(requested_role)
     dashboard_endpoint = _dashboard_endpoint_for_role(requested_role)
 
     return jsonify(
@@ -3958,7 +3944,8 @@ def register():
 
 
 @bp.route("/finance/tickets/<int:ticket_id>/reject", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def reject_borrowing_ticket(ticket_id):
     borrowing_ticket = (
         db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
@@ -3982,7 +3969,8 @@ def reject_borrowing_ticket(ticket_id):
     return redirect(url_for("advance_payment.finance_dashboard"))
 
 @bp.route("/finance/return-records", methods=["GET"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def return_records_history():
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
     # 1. ดึงข้อมูลประวัติหลักฐานเอกสารส่งใช้เงินยืม (ReturnDetail)
@@ -4083,7 +4071,8 @@ def return_records_history():
 
 
 @bp.route("/finance/petty-cash-claim-records", methods=["GET"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def petty_cash_claim_history():
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
     # 1. ดึงข้อมูลรายการขอเบิกเงินสดย่อย (PettyCashClaimDetail)
@@ -4258,7 +4247,8 @@ def _parcel_return_history_fallback(parcel_return):
     return "advance_payment.return_records_history"
 
 @bp.route("/finance/petty-cash-settings", methods=["GET", "POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def petty_cash_settings():
     bank_account_options = _get_bank_account_dropdown_options()
     bank_account_values = {option["value"] for option in bank_account_options}
@@ -4490,7 +4480,7 @@ def petty_cash_settings():
 
 
 @bp.route("/api/custodian/suggest", methods=["GET"])
-@login_required()
+@flask_login_required
 def suggest_custodian():
     """ API สำหรับแนะนำชื่อผู้รักษาเงินสดย่อย จากชื่อหน่วยงาน """
     dept_name = request.args.get("department_name", "").strip()
@@ -4517,7 +4507,8 @@ def suggest_custodian():
     return jsonify({"custodian_name": ""})
 
 @bp.route("/api/petty-cash-options", methods=["GET"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def api_petty_cash_options():
     q = request.args.get("q", "").strip()
     query = db.session.query(PettyCashSetting).filter(
@@ -4539,7 +4530,8 @@ def api_petty_cash_options():
     return jsonify(results)
 
 @bp.route("/finance/closing-management", methods=["GET", "POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def closing_management():
     search_closing_number = request.args.get("search_closing_number", "").strip()
     searched_closing_results = []
@@ -4734,7 +4726,8 @@ def closing_management():
     )
 
 @bp.route("/finance/returns/<int:return_id>/update-closing-doc", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def update_return_closing_doc(return_id):
     """ แก้ไขเลขฎีกาของใบคืนเงินชิ้นนี้ พร้อมบันทึกประวัติเดิม """
     return_detail = db.session.query(ReturnDetail).filter_by(id=return_id).with_for_update().first()
@@ -4777,7 +4770,7 @@ def update_return_closing_doc(return_id):
 
 @bp.route("/finance/returns/<int:return_id>/proof")
 @bp.route("/finance/returns/<int:return_id>/proof", endpoint="return_proof_detail")
-@login_required()
+@flask_login_required
 def view_return_proof_detail(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
@@ -4788,8 +4781,8 @@ def view_return_proof_detail(return_id):
         abort(404)
 
     if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-        (not _is_current_coordinator() and borrowing_ticket.borrower_id != session.get("user_id"))
-        or (_is_current_coordinator() and borrowing_ticket.creator_id != session.get("user_id"))
+        (not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id())
+        or (_is_current_coordinator() and borrowing_ticket.creator_id != _current_user_id())
     ):
         abort(403)
 
@@ -4858,7 +4851,8 @@ def view_return_proof_detail(return_id):
     "/finance/ticket/<int:ticket_id>/note",
     methods=["POST"]
 )
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def update_finance_note(ticket_id):
 
     ticket = db.session.query(
@@ -4886,9 +4880,9 @@ def forbidden(_exception):
     return render_template("advance_payment/403.html"), 403
 
 @bp.route("/staff/fund-request", methods=["GET", "POST"])
-@login_required(role=PETTY_CASH_SYSTEM)
+@flask_login_required
 def staff_fund_request():
-    user = db.session.query(StaffAccount).filter_by(id=session["user_id"]).first()
+    user = db.session.query(StaffAccount).filter_by(id=_current_user_id()).first()
     if not user:
         abort(404)
 
@@ -5130,10 +5124,11 @@ def staff_fund_request():
     )
 
 @bp.route("/staff/fund-request/<int:request_id>/cancel", methods=["POST"])
-@login_required(role=SECRETARY_ROLE)
+@flask_login_required
+@secretary_permission.require()
 def cancel_fund_request(request_id):
-    current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-    if not current_user or not _is_current_secretary():
+    staff = current_user
+    if not staff.is_authenticated or not _is_current_secretary(staff):
         abort(403)
 
     fund_req = db.session.query(FundRequest).get(request_id)
@@ -5155,9 +5150,9 @@ def cancel_fund_request(request_id):
     return redirect(url_for("advance_payment.staff_fund_request_history"))
 
 @bp.route("/staff/fund-request-history", methods=["GET"])
-@login_required(role=PETTY_CASH_SYSTEM)
+@flask_login_required
 def staff_fund_request_history():
-    user = db.session.query(StaffAccount).filter_by(id=session["user_id"]).first()
+    user = db.session.query(StaffAccount).filter_by(id=_current_user_id()).first()
     if not user:
         abort(404)
 
@@ -5266,11 +5261,9 @@ def staff_fund_request_history():
 
 
 @bp.route("/staff/petty-cash-claims/<int:claim_id>/claim-number", methods=["POST"])
-@login_required(role=PETTY_CASH_SYSTEM)
+@flask_login_required
 def update_petty_cash_claim_number(claim_id):
-    current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-    if not current_user:
-        abort(404)
+    staff = current_user
 
     claim = db.session.query(PettyCashClaimDetail).get(claim_id)
     if not claim:
@@ -5278,12 +5271,12 @@ def update_petty_cash_claim_number(claim_id):
 
     can_edit = False
     if not _is_current_secretary():
-        can_edit = claim.user_id == current_user.id
+        can_edit = claim.user_id == staff.id
     else:
-        setting = _resolve_petty_cash_setting(current_user)
+        setting = _resolve_petty_cash_setting(staff)
         can_edit = bool(
             (setting and setting.id and claim.petty_cash_setting_id == setting.id)
-            or claim.user_id == current_user.id
+            or claim.user_id == staff.id
         )
 
     if not can_edit:
@@ -5300,34 +5293,32 @@ def update_petty_cash_claim_number(claim_id):
     return redirect(request.referrer or url_for("advance_payment.staff_fund_request_history"))
 
 @bp.route("/staff/fund-request/<int:request_id>/pdf")
-@login_required()
+@flask_login_required
 def export_fund_request_pdf(request_id):
     fund_req = db.session.query(FundRequest).get(request_id)
     if not fund_req:
         abort(404)
 
     if _selected_system() == PETTY_CASH_SYSTEM:
-        current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-        if not current_user:
-            abort(403)
-        setting = _resolve_petty_cash_setting(current_user)
-        history_org = _get_staff_org(current_user)
+        staff = current_user
+        setting = _resolve_petty_cash_setting(staff)
+        history_org = _get_staff_org(staff)
         if not history_org and setting:
             history_org = getattr(setting, "org", None) or _resolve_org_by_department_name(getattr(setting, "department_name", None))
         scoped_request = _fund_request_org_filter(
             db.session.query(FundRequest).filter(FundRequest.id == request_id),
             history_org,
-            getattr(setting, "department_name", None) or _get_staff_department_name(current_user),
+            getattr(setting, "department_name", None) or _get_staff_department_name(staff),
         ).first()
         if not _is_current_secretary():
             scoped_request = (
                 _fund_request_org_filter(
                     db.session.query(FundRequest).filter(
                         FundRequest.id == request_id,
-                        FundRequest.requester_id == current_user.id,
+                        FundRequest.requester_id == staff.id,
                     ),
                     history_org,
-                    getattr(setting, "department_name", None) or _get_staff_department_name(current_user),
+                    getattr(setting, "department_name", None) or _get_staff_department_name(staff),
                 )
                 .first()
             )
@@ -5405,18 +5396,18 @@ def _save_pdf_reference_data(document, borrowing_ticket=None, *, require_referen
 
 
 @bp.route("/staff/petty-cash-claim/<int:claim_id>/pdf", methods=["GET", "POST"])
-@login_required()
+@flask_login_required
 def export_petty_cash_claim_pdf(claim_id):
     claim = db.session.query(PettyCashClaimDetail).get(claim_id)
     if not claim:
         abort(404)
 
     if _selected_system() == PETTY_CASH_SYSTEM:
-        current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-        setting = _resolve_petty_cash_setting(current_user) if current_user else None
+        staff = current_user
+        setting = _resolve_petty_cash_setting(staff)
         can_view = bool(
             _is_current_secretary()
-            or (current_user and claim.user_id == current_user.id)
+            or claim.user_id == staff.id
             or (setting and claim.petty_cash_setting_id == setting.id)
         )
         if not can_view:
@@ -5441,7 +5432,7 @@ def export_petty_cash_claim_pdf(claim_id):
 
 
 @bp.route("/finance/returns/<int:return_id>/pdf", methods=["GET", "POST"])
-@login_required()
+@flask_login_required
 def export_ticket_return_pdf(return_id):
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
@@ -5452,8 +5443,8 @@ def export_ticket_return_pdf(return_id):
         abort(404)
 
     if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-        (not _is_current_coordinator() and borrowing_ticket.borrower_id != session.get("user_id"))
-        or (_is_current_coordinator() and borrowing_ticket.creator_id != session.get("user_id"))
+        (not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id())
+        or (_is_current_coordinator() and borrowing_ticket.creator_id != _current_user_id())
     ):
         abort(403)
 
@@ -5485,7 +5476,7 @@ def get_department_data_service(dept_name=None):
     }
 
 @bp.route("/api/employees/departments", methods=["GET"])
-@login_required()
+@flask_login_required
 def api_get_department_employees():
     """ API สำหรับส่ง JSON ไปยังระบบ Frontend """
     dept = request.args.get("department")
@@ -5509,9 +5500,9 @@ CATEGORY_CHOICES = {
 
 @bp.route("/coordinator/petty-cash-claim/autosave-draft", methods=["POST"], endpoint="coordinator_petty_cash_claim_autosave_draft")
 @bp.route("/borrower/petty-cash-claim/autosave-draft", methods=["POST"], endpoint="borrower_petty_cash_claim_autosave_draft")
-@login_required()
+@flask_login_required
 def autosave_petty_cash_claim_draft():
-    user_id = session.get("user_id")
+    user_id = _current_user_id()
     data = request.get_json() or {}
     
     fund_request_id = data.get("fund_request_id")
@@ -5521,8 +5512,8 @@ def autosave_petty_cash_claim_draft():
     reference_date_raw = (data.get("reference_date") or "").strip()
 
     # 1. ดึง Setting ของ StaffAccount ปัจจุบันก่อน (ถ้าไม่มีค่อย fallback ไปตัว active ตัวแรก)
-    current_user = db.session.query(StaffAccount).get(user_id) if user_id else None
-    setting = _resolve_petty_cash_setting(current_user)
+    staff = current_user
+    setting = _resolve_petty_cash_setting(staff)
 
     # 2. ค้นหา PettyCashClaimDetail สถานะ Draft ของ user รายนี้
     query = db.session.query(PettyCashClaimDetail).filter(
@@ -5612,12 +5603,11 @@ def autosave_petty_cash_claim_draft():
     })
 
 @bp.route("/staff/petty-cash/claim", methods=["GET", "POST"])
-@login_required()
+@flask_login_required
 def submit_petty_cash_claim():
-    user_id = session["user_id"]
-    current_user = db.session.query(StaffAccount).get(user_id)
-    current_role = session.get("user_role") or (getattr(current_user, "role", None) if current_user else None)
-    if not current_user or _selected_system() not in {PETTY_CASH_SYSTEM, FINANCE_SYSTEM}:
+    user_id = _current_user_id()
+    current_role = _current_module_role() or getattr(current_user, "role", None)
+    if _selected_system() not in {PETTY_CASH_SYSTEM, FINANCE_SYSTEM}:
         abort(403)
 
     setting = _resolve_petty_cash_setting(current_user)
@@ -6163,14 +6153,14 @@ def submit_petty_cash_claim():
 
 
 @bp.route("/staff/petty-cash/parcel-returns/<int:parcel_return_id>/edit", methods=["POST"], endpoint="staff_parcel_return_edit")
-@login_required(role=PETTY_CASH_SYSTEM)
+@flask_login_required
 def staff_parcel_return_edit(parcel_return_id):
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
         abort(404)
 
-    current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-    if not current_user or _selected_system() != PETTY_CASH_SYSTEM:
+    staff = current_user
+    if not staff.is_authenticated or _selected_system() != PETTY_CASH_SYSTEM:
         abort(403)
 
     fund_request = _get_fund_request_by_id(getattr(parcel_return, "fund_request_id", None))
@@ -6178,7 +6168,7 @@ def staff_parcel_return_edit(parcel_return_id):
         flash("ไม่พบคำขอที่เกี่ยวข้องกับรายการนี้", "warning")
         return redirect(request.referrer or url_for("advance_payment.staff_fund_request_history"))
 
-    if not _is_current_secretary() and fund_request.requester_id != current_user.id:
+    if not _is_current_secretary() and fund_request.requester_id != staff.id:
         abort(403)
 
     current_status = (parcel_return.status or "").strip()
@@ -6237,9 +6227,8 @@ def staff_parcel_return_edit(parcel_return_id):
     return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
 
 @bp.route("/finance/petty-claims/<int:claim_id>/detail", methods=["GET"])
-@login_required()
+@flask_login_required
 def petty_cash_claim_detail(claim_id):
-    current_user = db.session.query(StaffAccount).get(session.get("user_id"))
     claim_detail = db.session.query(PettyCashClaimDetail).get(claim_id)
     if not claim_detail:
         abort(404)
@@ -6252,7 +6241,7 @@ def petty_cash_claim_detail(claim_id):
     if borrowing_ticket is None and getattr(claim_detail, "fund_request", None):
         borrowing_ticket = _get_borrowing_ticket_by_id(getattr(claim_detail.fund_request, "borrowing_ticket_id", None))
 
-    if current_user and _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary() and claim_detail.user_id != current_user.id:
+    if _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary() and claim_detail.user_id != current_user.id:
         abort(403)
         
     return render_template(
@@ -6265,7 +6254,8 @@ def petty_cash_claim_detail(claim_id):
 
 # 1. เปลี่ยนสถานะเป็น "กำลังตรวจสอบ"
 @bp.route("/finance/petty-claims/<int:claim_id>/checking", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_petty_claim_checking(claim_id):
     claim = _get_finance_visible_claim(claim_id)
     
@@ -6277,7 +6267,8 @@ def mark_petty_claim_checking(claim_id):
 
 # 2. ยืนยันการตรวจสอบ (ผ่านการตรวจสอบ)
 @bp.route("/finance/petty-claims/<int:claim_id>/proofed", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_petty_claim_proofed(claim_id):
     claim = _get_finance_visible_claim(claim_id)
 
@@ -6289,7 +6280,8 @@ def mark_petty_claim_proofed(claim_id):
 
 # 3. โอนเงินสดย่อยสำเร็จ (โอนเงินสดย่อยสำเร็จ / transferred + บันทึกวันที่)
 @bp.route("/finance/petty-claims/<int:claim_id>/transfer", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_petty_claim_transferred(claim_id):
     claim = _get_finance_visible_claim(claim_id)
         
@@ -6313,7 +6305,8 @@ def mark_petty_claim_transferred(claim_id):
 
 # 4. เปลี่ยนสถานะเป็น ได้รับเงินแล้ว/ล้างลูกหนี้เสร็จสมบูรณ์
 @bp.route("/finance/petty-claims/<int:claim_id>/received", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def mark_petty_claim_received(claim_id):
     claim = _get_finance_visible_claim(claim_id)
         
@@ -6326,7 +6319,8 @@ def mark_petty_claim_received(claim_id):
 
 # 5. ปฏิเสธรายการเบิกเงินสดย่อย
 @bp.route("/finance/petty-claims/<int:claim_id>/reject", methods=["POST"])
-@login_required(role="finance")
+@flask_login_required
+@finance_permission.require()
 def reject_petty_claim(claim_id):
     claim = _get_finance_visible_claim(claim_id)
 
@@ -6334,8 +6328,8 @@ def reject_petty_claim(claim_id):
     if rejection_comment:
         existing = claim.rejection_comment or ""
         count = existing.count("ครั้งที่") + 1
-        current_user = db.session.query(StaffAccount).get(session.get("user_id"))
-        user_name = current_user.name if current_user else "ไม่ระบุชื่อ"
+        staff = current_user
+        user_name = staff.name if staff else "ไม่ระบุชื่อ"
         formatted_new_comment = (
             f"ครั้งที่ {count}: {rejection_comment} "
             f"ผู้ปฏิเสธ: {user_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -6352,10 +6346,11 @@ def reject_petty_claim(claim_id):
     return redirect(request.referrer or url_for("advance_payment.petty_cash_settings"))
 
 @bp.route("/staff/petty-cash-ledger", methods=["GET"])
-@login_required(role=SECRETARY_ROLE)
+@flask_login_required
+@secretary_permission.require()
 def petty_cash_ledger():
-    user_id = session.get("user_id")
-    current_user = db.session.query(StaffAccount).get(user_id)
+    user_id = _current_user_id()
+    staff = current_user
     selected_month = (request.args.get("month") or "").strip()
     today = datetime.now().date()
     default_month = today.replace(day=1)
@@ -6368,7 +6363,7 @@ def petty_cash_ledger():
 
     selected_month = selected_month_start.strftime("%Y-%m")
     fiscal_year = selected_month_start.year + (selected_month_start.month >= 10)
-    current_setting = _resolve_petty_cash_setting(current_user, fiscal_year=fiscal_year)
+    current_setting = _resolve_petty_cash_setting(staff, fiscal_year=fiscal_year)
 
     if selected_month_start.year == 9999 and selected_month_start.month == 12:
         next_month_start = selected_month_start

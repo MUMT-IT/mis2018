@@ -1,4 +1,4 @@
-﻿{% extends "advance_payment/base.html" %}
+{% extends "advance_payment/base.html" %}
 
 {% block title %}รายละเอียดหลักฐานการส่งใช้เงินยืม | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
@@ -63,14 +63,14 @@
         {% endif %}
       </div>
     </div>
-    {% if session.get('user_role') != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
+    {% if advance_payment_role != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
       <div class="d-flex gap-2 justify-content-md-end mt-3">
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
           </button>
       </div>
     {% endif %}
-    {% if session.get('user_role') != 'finance' and return_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+    {% if advance_payment_role != 'finance' and return_detail.status|lower == 'รอยืนยันการแก้ไข' %}
       <div class="d-flex gap-2 justify-content-md-end mt-3">
         <form method="POST" action="{{ url_for('advance_payment.confirm_return_edit', return_id=return_detail.id) }}" class="m-0">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -78,7 +78,7 @@
         </form>
       </div>
     {% endif %}
-    {% if session.get('user_role') == 'finance' %}
+    {% if advance_payment_role == 'finance' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3">
         {% if return_detail.old_document_number and return_detail.status|lower == 'ผ่านการตรวจสอบ' %}
             <button

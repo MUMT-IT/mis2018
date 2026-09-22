@@ -293,7 +293,7 @@
   <body>
 
     <div class="main-content d-flex flex-column">
-      {% if session.get('user_id') %}
+      {% if (advance_payment_user.id if advance_payment_user.is_authenticated else '') %}
       <header class="navbar navbar-expand navbar-light bg-white border-bottom shadow-sm px-4 py-3 sticky-top">
         <button class="btn btn-outline-dark border-2 me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#appNavigationDrawer" aria-controls="appNavigationDrawer" style="border-radius: 8px;">
           <i class="bi bi-list fs-5 d-flex align-items-center"></i>
@@ -329,7 +329,7 @@
               </li>
             {% endif %}
             
-            {% if session.get('user_role') == 'finance' %}
+            {% if advance_payment_role == 'finance' %}
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.finance_dashboard') }}" class="nav-link {% if request.endpoint == 'advance_payment.finance_dashboard' %}active{% endif %}">
                   <i class="bi bi-clipboard-check me-2"></i> เอกสารรอการตรวจสอบ
@@ -395,12 +395,12 @@
                 <i class="bi bi-person-badge-fill"></i>
               </div>
               <div class="overflow-hidden">
-                <p class="mb-0 text-dark small fw-bold text-truncate" title="{{ session.get('user_email') }}">{{ session.get('user_email') }}</p>
+                <p class="mb-0 text-dark small fw-bold text-truncate" title="{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') }}">{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') }}</p>
                 <!-- แสดงข้อความสิทธิ์ผู้ใช้งานให้สอดคล้องกัน -->
                 <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
                   {% if session.get('advance_payment_system') == 'finance' %}
                     ฝ่ายการเงิน
-                  {% elif session.get('user_role') == 'secretary' %}
+                  {% elif advance_payment_role == 'secretary' %}
                     ผู้ดูแลเงินสดย่อย
                   {% else %}
                     ผู้ใช้งานทั่วไป

@@ -61,7 +61,7 @@
                       {% endif %}
                     {% else %}
                       <input type="text" id="requester_input" class="form-control bg-light" value="{{ current_user_display_name }}" readonly>
-                      <input type="hidden" name="requester_id" value="{{ session.get('user_id') }}">
+                      <input type="hidden" name="requester_id" value="{{ (advance_payment_user.id if advance_payment_user.is_authenticated else '') }}">
                     {% endif %}
                 </div>
                 <div class="col-md-6">

@@ -116,8 +116,8 @@
 
               <fieldset id="borrowingFormFieldset" {% if borrowing_ticket_form_locked %}disabled{% endif %}>
                 <div class="mb-3">
-                  <input type="hidden" id="name" name="name" value="{{ session.get('user_name') or '' }}">
-                  <input type="hidden" id="email" name="email" value="{{ session.get('user_email') or '' }}">
+                  <input type="hidden" id="name" name="name" value="{{ (advance_payment_user.name if advance_payment_user.is_authenticated else '') or '' }}">
+                  <input type="hidden" id="email" name="email" value="{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') or '' }}">
                   <label for="borrowing_ticket_purpose" class="form-label fw-bold">ชื่อโครงการ/วัตถุประสงค์</label>
                   <input id="borrowing_ticket_purpose" name="borrowing_ticket_purpose" type="text" value="{{ borrowing_ticket_form.borrowing_ticket_purpose.data or '' }}" class="form-control" placeholder="ระบุชื่อโครงการ/วัตถุประสงค์">
                   {% for error in borrowing_ticket_form.borrowing_ticket_purpose.errors %}
@@ -601,7 +601,7 @@
                     <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_detail.id) }}" class="btn btn-sm btn-outline-primary px-2" target="_blank">
                       ตรวจสอบหลักฐาน
                     </a>
-                    {% if session.get('user_role') != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
+                    {% if advance_payment_role != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
                       <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
                         ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
                       </button>

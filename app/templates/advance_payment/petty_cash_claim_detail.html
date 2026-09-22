@@ -1,4 +1,4 @@
-﻿{% extends "advance_payment/base.html" %}
+{% extends "advance_payment/base.html" %}
 
 {% from "advance_payment/_finance_last_edit.html" import last_edit with context %}
 
@@ -11,7 +11,7 @@
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
   {% endif %}
-  {% if session.get('user_role') == 'finance' %}
+  {% if advance_payment_role == 'finance' %}
   <a href="{{ url_for('advance_payment.petty_cash_settings') }}" title="กลับไปยังรายการเงินสดย่อย">
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
@@ -29,7 +29,7 @@
           <span class="text-muted small d-block">ยอดรวมที่ขอเบิก</span>
           <strong class="text-success fs-5">{{ "{:,.2f}".format(claim_detail.total_amount or 0) }} บาท</strong>
         </div>
-          {% if session.get('user_role') != 'finance' %}
+          {% if advance_payment_role != 'finance' %}
           <!-- ยอดเงินในคำขออนุมัติ -->
             <div class="col-12 col-sm-6 col-lg-2">
               <span class="text-muted small d-block">ยอดที่อนุมัติ</span>
@@ -113,7 +113,7 @@
       </div>
     </div>
     
-    {% if session.get('user_role') != 'finance' and claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+    {% if advance_payment_role != 'finance' and claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
       <form method="POST" action="{{ url_for('advance_payment.confirm_petty_claim_edit', claim_id=claim_detail.id) }}" class="m-0">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -123,7 +123,7 @@
     {% endif %}
 
     <!-- ปุ่มดำเนินการสำหรับฝ่ายการเงิน (Finance Actions) -->
-    {% if session.get('user_role') == 'finance' %}
+    {% if advance_payment_role == 'finance' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
 
         <!-- 1. สถานะ รอตรวจสอบ -> กดเปลี่ยนเป็น "กำลังตรวจสอบ" -->
@@ -240,7 +240,7 @@
         {% endif %}
     </div>
     {% endif %}
-      {% if session.get('user_role') != 'finance' and claim_detail.status|lower == 'ผ่านการตรวจสอบ'%}
+      {% if advance_payment_role != 'finance' and claim_detail.status|lower == 'ผ่านการตรวจสอบ'%}
         <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดบันทึกขออนุมัติเบิก
@@ -257,7 +257,7 @@
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
   <h3 class="h5 fw-bold mb-4">รายการใบเสร็จหลักฐานที่แนบมา</h3>
   {% set visible_items = claim_detail.items %}
-  {% if session.get('user_role') == 'finance' %}
+  {% if advance_payment_role == 'finance' %}
     {% set visible_items = visible_items|rejectattr('category_type', 'equalto', 6)|list %}
   {% endif %}
   {% if visible_items %}
