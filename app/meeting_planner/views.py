@@ -617,6 +617,7 @@ def add_task_form(topic_id):
                            admins=[MeetingAdmin(admin=admin) for admin in (form.admins.data or [])])
         db.session.add(task)
         db.session.commit()
+        flash('เพิ่มผลการดำเนินการสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=topic.meeting_id)
         return resp
@@ -647,12 +648,14 @@ def edit_task_form(task_id):
         task.admins = [MeetingAdmin(admin=admin) for admin in (form.admins.data or [])]
         db.session.add(task)
         db.session.commit()
+        flash('แก้ไขผลการดำเนินการสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
         return resp
     if request.method == 'DELETE':
         db.session.delete(task)
         db.session.commit()
+        flash('ลบผลการดำเนินการสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
         return resp
