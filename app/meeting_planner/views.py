@@ -618,6 +618,19 @@ def add_task_form(topic_id):
         db.session.add(task)
         db.session.commit()
         flash('เพิ่มผลการดำเนินการสำเร็จ', 'success')
+        if task.admins:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("meeting_planner.detail_meeting", meeting_id=task.agenda.meeting_id, _external=True, _scheme=scheme)
+            title = 'แจ้งเพิ่มรายการผลดำเนินการจากการประชุม'
+            message = ( f'มีการเพิ่มผลดำเนินการสำหรับการประชุม "{task.agenda.meeting.title}"\n' 
+                        f'รายละเอียด: {task.detail}\n' 
+                        f'วันครบกำหนด: {task.deadline.strftime("%d/%m/%Y") if task.deadline else "-"}\n\n' 
+                        f'กรุณาตรวจสอบรายละเอียดและดำเนินการตามรายการที่ได้รับมอบหมายได้ที่ลิงก์ด้านล่าง\n' 
+                        f'{link}' )
+            if not current_app.debug:
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in task.admins], title=title, message=message)
+            else:
+                print(message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=topic.meeting_id)
         return resp
@@ -649,13 +662,41 @@ def edit_task_form(task_id):
         db.session.add(task)
         db.session.commit()
         flash('แก้ไขผลการดำเนินการสำเร็จ', 'success')
+        if task.admins:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("meeting_planner.detail_meeting", meeting_id=task.agenda.meeting_id, _external=True,
+                           _scheme=scheme)
+            title = 'แจ้งแก้ไขรายการผลดำเนินการจากการประชุม'
+            message = (f'มีการแก้ไขผลดำเนินการสำหรับการประชุม "{task.agenda.meeting.title}"\n'
+                       f'รายละเอียด: {task.detail}\n'
+                       f'วันครบกำหนด: {task.deadline.strftime("%d/%m/%Y") if task.deadline else "-"}\n\n'
+                       f'กรุณาตรวจสอบรายละเอียดและดำเนินการตามรายการที่ได้รับมอบหมายได้ที่ลิงก์ด้านล่าง\n'
+                       f'{link}')
+            if not current_app.debug:
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in task.admins], title=title, message=message)
+            else:
+                print(message)
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
         return resp
     if request.method == 'DELETE':
+        if task.admins:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("meeting_planner.detail_meeting", meeting_id=task.agenda.meeting_id, _external=True,
+                           _scheme=scheme)
+            title = 'แจ้งยกเลิกรายการผลดำเนินการจากการประชุม'
+            message = (f'มีการยกเลิกผลดำเนินการสำหรับการประชุม "{task.agenda.meeting.title}"\n'
+                       f'รายละเอียด: {task.detail}\n'
+                       f'วันครบกำหนด: {task.deadline.strftime("%d/%m/%Y") if task.deadline else "-"}\n\n'
+                       f'ท่านสามารถตรวจสอบรายละเอียดได้ที่ลิงก์ด้านล่าง\n'
+                       f'{link}')
+            if not current_app.debug:
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in task.admins], title=title, message=message)
+            else:
+                print(message)
         db.session.delete(task)
         db.session.commit()
-        flash('ลบผลการดำเนินการสำเร็จ', 'success')
+        flash('ยกเลิกผลการดำเนินการสำเร็จ', 'success')
         resp = make_response()
         resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
         return resp
