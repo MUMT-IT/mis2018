@@ -35,8 +35,9 @@
             {% elif return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
             {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-primary text-white' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
             {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
-            {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
-            {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธ' %}{% endif %}
+            {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ได้รับเอกสารแล้ว' %}
+            {% elif return_detail.status|lower == 'ล้างลูกหนี้เงินยืม' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
+            {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
             <span class="badge {{ r_badge }} mt-1">{{ r_status }}</span>
         </div>
         <div class="col-6 col-sm-4 col-md-3">
@@ -59,39 +60,32 @@
         {% endif %}
       </div>
     </div>
-    {% if session.get('user_role') != 'finance' %}
+    {% if session.get('user_role') != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
       <div class="d-flex gap-2 justify-content-md-end mt-3">
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
-            <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลด PDF
+            <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
           </button>
       </div>
     {% endif %}
     {% if session.get('user_role') == 'finance' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3">
         {% if return_detail.old_document_number and return_detail.status|lower == 'ผ่านการตรวจสอบ' %}
-            <button type="button" class="btn btn-danger btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#bounceReturnModal">
+            <button
+                type="button"
+                class="btn btn-danger btn-sm fw-bold px-3 py-1.5"
+                data-popup-trigger="true"
+                data-popup-title="สาเหตุของการตีกลับฎีกาจากกองคลัง"
+                data-popup-message="กรุณาระบุเหตุผลเพื่อบันทึกไว้ในระบบ"
+                data-popup-action="{{ url_for('advance_payment.mark_return_bounced', return_id=return_detail.id) }}"
+                data-popup-confirm-text="ยืนยันการตีกลับ"
+                data-popup-confirm-class="btn-danger"
+                data-popup-input-type="textarea"
+                data-popup-input-name="rejection_comment"
+                data-popup-input-placeholder="ระบุเหตุผลที่ตีกลับฎีกาจากกองคลัง..."
+                data-popup-input-required="true"
+                data-popup-input-rows="2">
                 ฎีกาถูกตีกลับจากกองคลัง
             </button>
-            <div class="modal fade text-start" id="bounceReturnModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title fw-bold text-dark">ยืนยันการตีกลับเอกสาร</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body text-dark">
-                            เอกสารนี้มีเลขฎีกาเก่าแล้ว ระบบจะเปลี่ยนสถานะเป็น <strong>"ฎีกาถูกตีกลับจากกองคลัง"</strong> และเปิดให้ผู้ใช้งานแก้ไขข้อมูล inline ได้อีกครั้ง
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_bounced', return_id=return_detail.id) }}" class="m-0">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-warning fw-bold">ยืนยันตีกลับ</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
         {% endif %}
         {% if return_detail.status|lower == 'รอตรวจสอบ' %}
             <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmCheckingModal">
@@ -156,28 +150,6 @@
                 </div>
             </div>
            {% endif %}
-
-        {% if return_detail.status|lower == 'เอกสารตั้งฎีกา' %}
-            <button type="button" class="btn btn-success btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmReceivedModal">
-                ล้างลูกหนี้เงินยืม
-            </button>
-
-            <div class="modal fade" id="confirmReceivedModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content text-start">
-                        <div class="modal-header"><h5 class="modal-title fw-bold">ยืนยันการสิ้นสุดกระบวนการ</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body text-dark fw-semibold">คุณยืนยันว่ารายการนี้ "ได้รับเงินเรียบร้อยแล้ว" และต้องการเสร็จสิ้นกระบวนการส่งใช้เงินยืมใช่หรือไม่?</div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_received', return_id=return_detail.id) }}" class="m-0">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-success fw-bold">ยืนยันล้างลูกหนี้เงินยืม</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
         </div>
     {% endif %}
     </div>

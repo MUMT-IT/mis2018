@@ -7,7 +7,7 @@
   <div>
     <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
     <h1 class="fw-bold display-6 mb-2">รายการเงินสดย่อย</h1>
-    <p class="text-muted mb-0">ติดตามและตรวจสอบสถานะรายการขอเบิกเงินสดย่อยทั้งหมดของหน่วยงาน</p>
+    <p class="text-muted mb-0">หน่วยงาน: {{ setting.department_name if setting else '-' }} | เลขที่บัญชี: {{ setting.account_number if setting else '-' }}</p>
   </div>
 </header>
 
@@ -52,7 +52,7 @@
 </div>
 
 <div class="card shadow-sm border rounded-4 bg-white mb-4">
-  <div class="card-header bg-white border-bottom-0 p-0">
+  <div class="card-header border-bottom-0 p-0" style="background-color: #e6e8ed;">
     <ul class="nav nav-tabs nav-fill fund-history-tabs border-bottom-0" role="tablist">
       {% set visible_claim_history = claim_history|rejectattr('status', 'equalto', 'ฉบับร่าง')|list %}
       <li class="nav-item" role="presentation">

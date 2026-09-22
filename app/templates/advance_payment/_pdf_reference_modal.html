@@ -8,17 +8,7 @@
       <form method="post" action="{{ pdf_export_url }}" target="_blank">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-body">
-          {% if pdf_reference_editable is defined and not pdf_reference_editable %}
-          <p class="text-muted small">เลขที่อนุมัติในหลักการและวันที่หนังสือจะดึงจากสัญญาเงินยืมโดยอัตโนมัติ</p>
-          {% else %}
-          <p class="text-muted small">ระบบจะจำค่าที่บันทึกไว้ และเปิดให้ตรวจสอบหรือแก้ไขได้ทุกครั้งก่อนส่งออก</p>
-          {% endif %}
-          {% if pdf_allow_no_approval_letter %}
-          <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" id="pdfNoApprovalLetter" name="claim_type" value="2">
-            <label class="form-check-label text-primary fw-bold" for="pdfNoApprovalLetter">สร้างเอกสารเบิกจ่ายกรณีไม่มีหนังสืออนุมัติในหลักการ</label>
-          </div>
-          {% endif %}
+          <p class="text-muted small">ระบบจะใช้ข้อมูลหนังสืออนุมัติในหลักการที่บันทึกไว้ในใบเบิก หากไม่มีข้อมูล ระบบจะสร้างเอกสารกรณีไม่มีหนังสืออนุมัติในหลักการโดยอัตโนมัติ</p>
           {% set fiscal_year_suggested = ((document.fiscal_year if document.fiscal_year >= 2400 else document.fiscal_year + 543) if document.fiscal_year else ((pdf_fiscal_year_default + 543) if pdf_fiscal_year_default else '')) %}
           <div class="mb-3">
             <label class="form-label fw-bold">ปีงบประมาณ</label>
@@ -31,16 +21,6 @@
               required
             >
           </div>
-          {% if pdf_reference_editable is not defined or pdf_reference_editable %}
-          <div class="mb-3">
-            <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ</label>
-            <input class="form-control" name="reference_number" required value="{{ document.reference_number or '' }}">
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
-            <input type="date" class="form-control" name="reference_date" required value="{{ document.reference_date.strftime('%Y-%m-%d') if document.reference_date else '' }}">
-          </div>
-          {% endif %}
           <div class="mb-3">
             <label class="form-label fw-bold">ผลผลิต</label>
             <select class="form-select searchable-select" name="product_code_id" required>
@@ -81,20 +61,6 @@
   document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('pdfReferenceModal');
     if (!modal) return;
-
-    const noApprovalLetter = modal.querySelector('#pdfNoApprovalLetter');
-    if (noApprovalLetter) {
-      const updateReferenceFields = function () {
-        ['reference_number', 'reference_date'].forEach(function (name) {
-          const input = modal.querySelector('[name="' + name + '"]');
-          input.required = !noApprovalLetter.checked;
-          input.disabled = noApprovalLetter.checked;
-          input.closest('.mb-3').hidden = noApprovalLetter.checked;
-        });
-      };
-      noApprovalLetter.addEventListener('change', updateReferenceFields);
-      updateReferenceFields();
-    }
 
     if (typeof $ !== 'undefined' && $.fn.select2) {
       $(modal).find('.searchable-select').select2({

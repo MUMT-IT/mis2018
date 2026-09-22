@@ -14,8 +14,18 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.graphics.shapes import Drawing, Circle
-from .models import db, BankAccountInfo, StaffAccount, PettyCashSetting
-from .views import FUND_REQUEST_FORM_BORROWING_TICKET, FUND_REQUEST_FORM_INTEREST
+from .models import (
+    db,
+    BankAccountInfo,
+    StaffAccount,
+    PettyCashSetting,
+    ParcelReturnDetail,
+)
+from .views import (
+    FUND_REQUEST_FORM_BORROWING_TICKET,
+    FUND_REQUEST_FORM_INTEREST,
+    FUND_REQUEST_FORM_PETTY_CASH,
+)
 from app.models import Org
 from app.staff.models import StaffHeadPosition, StaffLeaveApprover
 
@@ -84,7 +94,7 @@ styles.add(ParagraphStyle(name='ThaiCenter', fontName='Sarabun', fontSize=DEFAUL
 styles.add(ParagraphStyle(name='ThaiCenterBold', fontName='SarabunBold', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_CENTER))
 styles.add(ParagraphStyle(name='ThaiRight', fontName='Sarabun', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_RIGHT))
 styles.add(ParagraphStyle(name='ThaiRightBold', fontName='SarabunBold', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_RIGHT))
-styles.add(ParagraphStyle(name='ThaiJustify', fontName='Sarabun', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_JUSTIFY))
+styles.add(ParagraphStyle(name='ThaiJustify', fontName='Sarabun', fontSize=DEFAULT_FONT_SIZE, leading=DEFAULT_LEADING, alignment=TA_JUSTIFY, wordWrap='CJK'))
 
 # สไตล์เฉพาะกรณี (เช่น ข้อความเชิงอรรถ/ตัวอักษรขนาดเล็ก)
 styles.add(ParagraphStyle(name='ThaiSmallRight', fontName='Sarabun', fontSize=13, leading=16, alignment=TA_RIGHT))
@@ -97,6 +107,7 @@ styles.add(ParagraphStyle(
     fontSize=DEFAULT_FONT_SIZE,
     leading=DEFAULT_LEADING,
     alignment=TA_JUSTIFY,
+    wordWrap='CJK',
     firstLineIndent=70  # ปรับระยะย่อหน้าให้เท่ากันทุกพารากราฟที่นี่
 ))
 # =========================================================================
@@ -113,7 +124,16 @@ def _pdf_text(value):
 
 
 def _pdf_amount(value):
-    return PDF_BLANK if not _pdf_text(value).strip() else f"{Decimal(str(value)):,.2f}"
+    if not _pdf_text(value).strip():
+        return PDF_BLANK
+    amount = Decimal(str(value))
+    return "-" if amount == 0 else f"{amount:,.2f}"
+
+
+def _pdf_count(value):
+    if not _pdf_text(value).strip():
+        return PDF_BLANK
+    return "-" if Decimal(str(value)) == 0 else str(value)
 
 
 def get_department_info_from_api(dept_name):
@@ -290,28 +310,49 @@ def _get_bank_account_info_for_petty_cash_setting(setting):
 # 3. PDF GENERATION FUNCTIONS
 # =========================================================================
 def summarize_petty_cash_month(month_start, fund_requests, claims):
-    """Summarize the selected month's documents using their current statuses.
+    """Summarize the selected month's petty-cash documents.
 
-    Count FundRequests once, even when several claims belong to one request.
-    Category 6 is money returned to the account, not a reimbursement expense.
+    A submitted document is counted per claim, but only while the claim is in
+    one of the three review statuses. A pending document is a FundRequest that
+    has not been linked to either a claim or a parcel return.
     """
     month_end = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
     requests = [fr for fr in fund_requests
                 if fr.request_date and month_start <= fr.request_date <= month_end]
-    submitted_ids = {fr.id for fr in requests if fr.status == "ส่งเบิกครบแล้ว"}
-    pending = [fr for fr in requests if fr.status == "อนุมัติแล้ว"]
+    request_ids = {fr.id for fr in requests}
+    submitted_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ผ่านการตรวจสอบ"}
+    submitted_claims = [
+        claim for claim in claims
+        if claim.fund_request_id in request_ids
+        and (claim.status or "").strip() in submitted_statuses
+    ]
+    linked_claim_request_ids = {
+        claim.fund_request_id for claim in claims
+        if claim.fund_request_id in request_ids
+    }
+    linked_parcel_request_ids = {
+        parcel.fund_request_id
+        for parcel in db.session.query(ParcelReturnDetail).filter(
+            ParcelReturnDetail.fund_request_id.in_(request_ids)
+        ).all()
+        if parcel.fund_request_id is not None
+    } if request_ids else set()
+    pending = [
+        fr for fr in requests
+        if fr.form_type == FUND_REQUEST_FORM_PETTY_CASH
+        and fr.id not in linked_claim_request_ids
+        and fr.id not in linked_parcel_request_ids
+    ]
     submitted_amount = sum(
         (Decimal(str(item.amount or 0))
-         for claim in claims
-         if claim.fund_request_id in submitted_ids
-         and claim.status not in {"ฉบับร่าง", "ปฏิเสธ", "ยกเลิก"}
+         for claim in submitted_claims
          for item in claim.items
          if str(item.category_type) != "6"
          and item.receipt_date and item.receipt_date <= month_end),
         Decimal("0.00"),
     )
     return {
-        "submitted_count": len(submitted_ids),
+        "submitted_count": len(submitted_claims),
         "submitted_amount": submitted_amount,
         "pending_count": len(pending),
         "pending_amount": sum((Decimal(str(fr.amount or 0)) for fr in pending), Decimal("0.00")),
@@ -372,8 +413,8 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     rows = [
         [p("ลำดับที่", center), p("รายการ", center), p("จำนวนเงิน", center)],
         [p("1", center), p("เงินฝากอยู่ในบัญชีเงินฝากออมทรัพย์ 1 เล่ม"), p(f"{_pdf_amount(balance)}", right)],
-        [p("2", center), p(f'เอกสารเบิกจ่ายที่ส่งเบิกมาแล้ว รวม {_pdf_text(summary.get("submitted_count"))} ฉบับ'), p(f"{_pdf_amount(submitted)}", right)],
-        [p("3", center), p(f'เอกสารเบิกจ่ายที่ยังไม่ส่งเบิก รวม {_pdf_text(summary.get("pending_count"))} ฉบับ'), p(f"{_pdf_amount(pending)}", right)],
+        [p("2", center), p(f'เอกสารเบิกจ่ายที่ส่งเบิกมาแล้ว รวม {_pdf_count(summary.get("submitted_count"))} ฉบับ'), p(f"{_pdf_amount(submitted)}", right)],
+        [p("3", center), p(f'เอกสารเบิกจ่ายที่ยังไม่ส่งเบิก รวม {_pdf_count(summary.get("pending_count"))} ฉบับ'), p(f"{_pdf_amount(pending)}", right)],
         ["", p(f"ตัวอักษร ({bahttext(total) if total is not None else PDF_BLANK}) <b>รวมทั้งสิ้น</b>", right), p(f"<b>{_pdf_amount(total)}</b>", right)],
     ]
     table = Table(rows, colWidths=[44, doc.width - 156, 112])
@@ -791,7 +832,7 @@ def generate_petty_claim(claim, claim_type="1"):
     reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(claim, "product_code", None), "id", None) or PDF_BLANK
     cost_center_label = getattr(getattr(claim, "cost_center", None), "id", None) or PDF_BLANK
-    mission_label = getattr(getattr(claim, "iocode", None), "mission_id", None) or PDF_BLANK
+    mission_label = getattr(getattr(claim, "iocode", None), "id", None) or PDF_BLANK # changed from mission_id => id
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -811,6 +852,7 @@ def generate_petty_claim(claim, claim_type="1"):
         fontName="Sarabun",
         fontSize=16,
         leading=20,
+        wordWrap="CJK",
         alignment=TA_JUSTIFY,
         textColor=colors.black,
     )
@@ -909,10 +951,10 @@ def generate_petty_claim(claim, claim_type="1"):
     story.append(Spacer(1, 18))
 
     body_1 = (
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้{request_purpose}นั้น"
+        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น"
     )
     body_2 = (
-        f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
+        f"ในการนี้{department_name}ได้ดำเนินการตามวัตถุประสงค์ดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} เป็นจำนวนเงินรวม {amount_numeric} บาท ({amount_text}) โดยมี {requester_name} ตำแหน่ง {requester_position} เป็นผู้ยื่นเรื่อง โดยมีรายละเอียดดังนี้"
     )
 
     if no_approval_letter:
@@ -1008,7 +1050,7 @@ def generate_petty_claim(claim, claim_type="1"):
     story.append(Spacer(1, 45))
 
     approval_sign = Paragraph(
-        "อนุมัติ<br/><br/>"
+        "อนุมัติ<br/><br/><br/>"
         "(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>"
         "คณบดีคณะเทคนิคการแพทย์",
         claim_center,
@@ -1067,13 +1109,14 @@ def generate_ticket_return(return_detail):
     reference_date_label = get_thai_month_year(reference_date) if reference_date else PDF_BLANK
     product_name = getattr(getattr(return_detail, "product_code", None), "name", None) or PDF_BLANK
     cost_center_label = getattr(getattr(return_detail, "cost_center", None), "id", None) or PDF_BLANK
-    mission_label = getattr(getattr(return_detail, "iocode", None), "mission_id", None) or PDF_BLANK
+    mission_label = getattr(getattr(return_detail, "iocode", None), "id", None) or PDF_BLANK # changed from mission_id => id
 
     return_body = ParagraphStyle(
         name="ThaiTicketReturnBody",
         fontName="Sarabun",
         fontSize=16,
         leading=20,
+        wordWrap="CJK",
         alignment=TA_JUSTIFY,
         firstLineIndent=70,
         textColor=colors.black,
@@ -1134,7 +1177,7 @@ def generate_ticket_return(return_detail):
     header_right = Paragraph(
         f"<br/>{department_name}<br/>"
         f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
-        f"โทรศัพท์ {telephone_number}",
+        f"โทร. {telephone_number}",
         return_right,
     )
     header_table = Table([["", logo, header_right]], colWidths=[170, 110, 175])
@@ -1166,12 +1209,12 @@ def generate_ticket_return(return_detail):
     story.extend([info_table, Spacer(1, 18)])
 
     story.append(Paragraph(
-        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้{request_purpose}นั้น",
+        f"ตามหนังสือที่ {reference_number} ลงวันที่ {reference_date_label} ซึ่งคณะได้อนุมัติให้ {request_purpose}นั้น",
         return_body,
     ))
     story.append(Spacer(1, 8))
     story.append(Paragraph(
-        f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่ายในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัดโครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
+        f"ในการนี้{department_name}ดำเนินการดังกล่าวเสร็จสิ้นแล้ว จึงขออนุมัติเบิกค่าใช้จ่าย ในการ{request_purpose} โดยขออนุมัติเบิกค่าใช้จ่ายสำหรับการจัด โครงการดังกล่าว เป็นจำนวน {amount_numeric} บาท ({amount_text}) โดยมีรายละเอียดดังนี้",
         return_body,
     ))
     story.append(Spacer(1, 10))
@@ -1209,7 +1252,7 @@ def generate_ticket_return(return_detail):
 
     story.append(Paragraph(
         f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
-        f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้",
+        f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตาม เอกสารที่แนบมาพร้อมนี้",
         return_left,
     ))
     story.extend([
@@ -1226,7 +1269,7 @@ def generate_ticket_return(return_detail):
     ]))
     story.append(head_sign)
     story.append(Spacer(1, 45))
-    approval_sign = Table([[Paragraph("อนุมัติ<br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์", return_center), ""]], colWidths=[280, 285])
+    approval_sign = Table([[Paragraph("อนุมัติ<br/><br/><br/>(ผู้ช่วยศาสตราจารย์ ดร.โชติรส พลับพลึง)<br/>คณบดีคณะเทคนิคการแพทย์", return_center), ""]], colWidths=[280, 285])
     approval_sign.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
