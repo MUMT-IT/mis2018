@@ -1575,7 +1575,7 @@ def generate_fund_request_pdf(fund_request):
         f"({p_amt_text_1}) ตามใบยืมเงินสดย่อยเลขที่ {p_borrow_no} "
         f"ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม<br/>"
         f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{box_interest} ขออนุมัติเบิกดอกเบี้ย &nbsp;{box_june} งวดเดือน มิถุนายน พ.ศ. {p_period_yr} "
-        f"&nbsp;{box_dec} งวดเดือน ธันวาคม พ.ศ. {p_period_yr} จากบัญชี {p_dept_2} "
+        f"&nbsp;{box_dec} งวดเดือน ธันวาคม พ.ศ. {p_period_yr} <br/>จากบัญชี {p_dept_2} "
         f"เลขที่บัญชี {p_acc_1} ชื่อบัญชี {acc_name} เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
         f"และขออนุมัตินำส่งดอกเบี้ยเข้าเป็นเงินรายได้คณะฯ โอนเข้าบัญชี เลขที่ 016-300-325-6 "
         f"ชื่อบัญชีมหาวิทยาลัยมหิดล",
