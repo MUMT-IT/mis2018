@@ -5682,6 +5682,14 @@ def submit_petty_cash_claim():
         existing_reference_names = request.form.getlist("existing_reference_filenames[]")
         fund_request_id_raw = (request.form.get("fund_request_id") or "").strip()
         fund_request_id = int(fund_request_id_raw) if fund_request_id_raw.isdigit() else None
+        no_reference_info = request.form.get("has_reference_info") == "true"
+
+        if no_reference_info:
+            reference_number = ""
+            reference_date_raw = ""
+            reference_files = []
+            existing_reference_paths = []
+            existing_reference_names = []
 
         reference_date = None
         if reference_number or reference_date_raw:

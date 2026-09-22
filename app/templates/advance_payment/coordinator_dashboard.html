@@ -3,6 +3,10 @@
 {% block title %}{{ dashboard_title }} | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
+<style>
+  .document-input-row .announcement-input { background-color: #fff !important; color: #212529 !important; border-color: #6c757d !important; }
+  .document-input-row .announcement-input::placeholder { color: #495057; opacity: 1; }
+</style>
   <header class="mb-4 pb-3 border-bottom">
     <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับผู้ประสานงาน</p>
     <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
@@ -266,7 +270,7 @@
                             </div>
                           {% endif %}
                         </div>
-                      <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addDocumentRow({{ borrowing_ticket.id }}, this)">
+                      <button type="button" class="btn btn-sm btn-outline-primary mt-2 add-document-btn {% if not (borrowing_ticket.draft_announcements and borrowing_ticket.draft_announcements|length > 0) %}d-none{% endif %}" onclick="addDocumentRow({{ borrowing_ticket.id }}, this)">
                         + เพิ่มประกาศอื่น
                       </button>
                       <div class="col-md-12 mt-2">
@@ -1188,6 +1192,15 @@
         </div>
       `;
       container.appendChild(row);
+      updateAddDocumentButton(container);
+    }
+
+    function updateAddDocumentButton(container) {
+      const hasSelectedAnnouncement = [...container.querySelectorAll('.document-input-row')].some(row =>
+        row.querySelector('.announcement-id-input')?.value.trim() ||
+        row.querySelector('.announcement-input')?.value.trim()
+      );
+      container.closest('form')?.querySelector('.add-document-btn')?.classList.toggle('d-none', !hasSelectedAnnouncement);
     }
 
     function removeDocumentRow(btn) {
@@ -1200,6 +1213,7 @@
         if (row.querySelector('.announcement-id-input')) row.querySelector('.announcement-id-input').value = '';
         row.querySelector('.download-btn').classList.add('d-none');
       }
+      updateAddDocumentButton(container);
     }
 
     async function showSuggestions(inputElem, ticketId, resetSelection = true) {
@@ -1212,6 +1226,7 @@
       if (resetSelection) {
         downloadBtn.classList.add('d-none');
         if (idInput) idInput.value = '';
+        updateAddDocumentButton(row.parentElement);
       }
 
   try {
@@ -1259,6 +1274,8 @@
       } else {
         downloadBtn.classList.add('d-none');
       }
+
+      updateAddDocumentButton(row.parentElement);
 
       suggestionsBox.classList.add('d-none');
       suggestionsBox.innerHTML = '';

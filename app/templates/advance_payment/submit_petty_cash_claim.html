@@ -3,6 +3,10 @@
 {% block title %}แบบฟอร์มส่งเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
 
 {% block content %}
+<style>
+  .document-input-row .announcement-input { background-color: #fff !important; color: #212529 !important; border-color: #6c757d !important; }
+  .document-input-row .announcement-input::placeholder { color: #495057; opacity: 1; }
+</style>
 <header class="mb-4 pb-2 border-bottom">
   <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
   <h1 class="fw-bold display-6 mb-2">ใบส่งเบิกเงินสดย่อย</h1>
@@ -127,7 +131,7 @@
 {% set is_over_request = (total_claimed_amount + total_parcel_amount) > total_request_amount if total_request_amount else false %}
 {% if can_submit_claim %}
 <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
-    <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm">
+    <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm" novalidate>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden"
        name="fund_request_id"
@@ -143,25 +147,28 @@
 
       <!-- ข้อมูลหนังสืออนุมัติในหลักการ -->
       <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ (ถ้ามี)</h5>
-        <div class="row g-3">
-          <div class="col-md-6">
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h5>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="has_reference_info" id="hasReferenceInfo" value="true">
+          <label class="form-check-label text-muted" for="hasReferenceInfo">ไม่มีหนังสือขออนุมัติในหลักการ</label>
+        </div>
+        <div class="row g-3" id="referenceInfoFields">
+          <div class="col-md-3">
             <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ</label>
-            <input class="form-control" name="reference_number" placeholder="78.04/1" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
+            <input class="form-control reference-info-input" name="reference_number" placeholder="เช่น 78.04/1" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
           </div>
-          <div class="col-md-6">
+          <div class="col-md-3">
             <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
-            <input type="date" class="form-control" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}">
+            <input type="date" class="form-control reference-info-input" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}">
           </div>
-          <div class="col-12">
-            <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง (ไม่เกิน 2 ไฟล์)</label>
-            <input type="file" class="form-control" name="reference_files[]" accept="image/*,.pdf" multiple>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง</label>
+            <input type="file" class="form-control reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
             {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
               <input type="hidden" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
               <input type="hidden" name="existing_reference_filenames[]" value="{{ reference_file.filename }}">
               <small class="text-success d-block mt-1"><i class="bi bi-file-earmark-check"></i> {{ reference_file.filename }}</small>
             {% endfor %}
-            <small class="text-muted d-block mt-1">หากไม่กรอกข้อมูลส่วนนี้ ระบบจะสร้าง PDF แบบไม่มีหนังสืออนุมัติในหลักการโดยอัตโนมัติ</small>
           </div>
         </div>
       </div>
@@ -215,7 +222,7 @@
           {% endif %}
         </div>
         <div class="d-flex justify-content-start align-items-center mt-2">
-          <button type="button" class="btn btn-sm btn-outline-primary w-auto flex-grow-0" onclick="addDocumentRow()" style="width: fit-content !important;">
+          <button type="button" class="btn btn-sm btn-outline-primary w-auto flex-grow-0 add-document-btn {% if not (claim_detail and claim_detail.documents) %}d-none{% endif %}" onclick="addDocumentRow()" style="width: fit-content !important;">
             + เพิ่มประกาศอื่น
           </button>
         </div>
@@ -663,6 +670,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const claimForm = document.getElementById('claimForm');
   if (claimForm) {
+    const referenceToggle = claimForm.querySelector('#hasReferenceInfo');
+    const referenceInfoFields = claimForm.querySelector('#referenceInfoFields');
+    const syncReferenceInfoVisibility = () => {
+      if (!referenceToggle || !referenceInfoFields) return;
+      referenceInfoFields.classList.toggle('d-none', referenceToggle.checked);
+      referenceInfoFields.setAttribute('aria-hidden', referenceToggle.checked ? 'true' : 'false');
+    };
+    referenceToggle?.addEventListener('change', syncReferenceInfoVisibility);
+    syncReferenceInfoVisibility();
+
     claimForm.addEventListener('submit', function(event) {
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
@@ -675,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const parcelInputs = claimForm.querySelectorAll('.parcel-return-input');
       const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
-      const claimInputs = claimForm.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[type="file"]');
+      const claimInputs = claimForm.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]');
       const hasClaimData = Array.from(claimInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
       let isValid = true;
 
@@ -709,7 +726,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       });
 
-      claimForm.querySelectorAll('input[type="file"]').forEach((input, index) => {
+      claimForm.querySelectorAll('input[name^="proof_files_"]').forEach((input, index) => {
         const existingFiles = input.parentElement.querySelectorAll('input[name^="existing_proof_files_"]');
         input.required = hasClaimData && index === 0 && !input.files.length && !existingFiles.length;
         if (input.required && !input.value) isValid = false;
@@ -758,10 +775,6 @@ document.addEventListener('DOMContentLoaded', function() {
     claimForm.addEventListener('change', triggerAutoSave);
   }
 
-  const fundReqSelect = document.getElementById('fund_request_id');
-  if (fundReqSelect) {
-    updateFundRequestInfo(fundReqSelect);
-  }
 });
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -833,12 +846,16 @@ async function autoSavePettyCashDraft() {
   });
 
   const fundRequestId = document.getElementById('fund_request_id')?.value || '';
+  const csrfToken = claimForm.querySelector('input[name="csrf_token"]')?.value || '';
 
   try {
-    const response = await fetch('/coordinator/petty-cash-claim/autosave-draft', {
+    const response = await fetch(
+      "{{ url_for('advance_payment.coordinator_petty_cash_claim_autosave_draft') }}",
+      {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
       },
       body: JSON.stringify({
         fund_request_id: fundRequestId,
@@ -847,9 +864,17 @@ async function autoSavePettyCashDraft() {
         reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
         reference_date: claimForm.querySelector('[name="reference_date"]')?.value || ''
       })
-    });
+      }
+    );
 
-    const result = await response.json();
+    const responseText = await response.text();
+    let result = {};
+    try {
+      result = responseText ? JSON.parse(responseText) : {};
+    } catch (parseError) {
+      throw new Error(`เซิร์ฟเวอร์ตอบกลับไม่ใช่ JSON (HTTP ${response.status})`);
+    }
+
     if (response.ok && result.success) {
       if (statusEl) {
         statusEl.className = "badge bg-success text-white px-3 py-2 border";
@@ -868,6 +893,8 @@ async function autoSavePettyCashDraft() {
 }
 
 function updateFundRequestInfo(selectElem) {
+  if (!selectElem || selectElem.tagName !== 'SELECT') return;
+
   const selectedOption = selectElem.options[selectElem.selectedIndex];
   const box = document.getElementById('fund-request-detail-box');
   
@@ -1249,7 +1276,16 @@ function addDocumentRow() {
     </div>
   `;
   container.appendChild(row);
+  updateAddDocumentButton(container);
   triggerAutoSave();
+}
+
+function updateAddDocumentButton(container) {
+  const hasSelectedAnnouncement = [...container.querySelectorAll('.document-input-row')].some(row =>
+    row.querySelector('.announcement-id-input')?.value.trim() ||
+    row.querySelector('.announcement-input')?.value.trim()
+  );
+  document.querySelector('.add-document-btn')?.classList.toggle('d-none', !hasSelectedAnnouncement);
 }
 
 function removeDocumentRow(btn) {
@@ -1262,6 +1298,7 @@ function removeDocumentRow(btn) {
     if (row.querySelector('.announcement-id-input')) row.querySelector('.announcement-id-input').value = '';
     row.querySelector('.download-btn').classList.add('d-none');
   }
+  updateAddDocumentButton(container);
   triggerAutoSave();
 }
 
@@ -1275,6 +1312,7 @@ async function showSuggestions(inputElem, resetSelection = true) {
   if (resetSelection) {
     downloadBtn.classList.add('d-none');
     if (idInput) idInput.value = '';
+    updateAddDocumentButton(row.parentElement);
   }
 
   try {
@@ -1322,6 +1360,8 @@ function selectAnnouncement(itemElem, docId, docTitle, filePath) {
   } else {
     downloadBtn.classList.add('d-none');
   }
+
+  updateAddDocumentButton(row.parentElement);
 
   suggestionsBox.classList.add('d-none');
   suggestionsBox.innerHTML = '';
