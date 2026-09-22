@@ -55,7 +55,10 @@
         {% if return_detail.rejection_comment %}
         <div class="col-12 mt-3">
             <h6 class="fw-bold text-danger">ประวัติบันทึกข้อเสนอแนะการปฏิเสธ:</h6>
-            <p style="white-space: pre-line;" class="mb-0 text-dark p-2 bg-danger-subtle rounded border border-danger-subtle">{{ return_detail.rejection_comment }}</p>
+            {% set rejection_history = return_detail.rejection_comment.split('ครั้งที่ ')|reject('equalto', '')|list|reverse %}
+            {% for comment in rejection_history %}
+              <p style="white-space: pre-line;" class="mb-2 p-2 rounded border {% if loop.first and return_detail.status|lower == 'ปฏิเสธ' %}text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small bg-light border-secondary-subtle{% endif %}">ครั้งที่ {{ comment }}</p>
+            {% endfor %}
         </div>
         {% endif %}
       </div>
@@ -65,6 +68,14 @@
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
           </button>
+      </div>
+    {% endif %}
+    {% if session.get('user_role') != 'finance' and return_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+      <div class="d-flex gap-2 justify-content-md-end mt-3">
+        <form method="POST" action="{{ url_for('advance_payment.confirm_return_edit', return_id=return_detail.id) }}" class="m-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-1.5"><i class="bi bi-check2-circle me-1"></i>ยืนยันการแก้ไข</button>
+        </form>
       </div>
     {% endif %}
     {% if session.get('user_role') == 'finance' %}
