@@ -27,7 +27,7 @@ from .views import (
     FUND_REQUEST_FORM_PETTY_CASH,
 )
 from app.models import Org
-from app.staff.models import StaffHeadPosition, StaffLeaveApprover
+from app.staff.models import StaffPersonalInfo
 
 
 # Non-breaking spaces keep a writable gap in ReportLab paragraphs.
@@ -196,63 +196,78 @@ def _get_user_by_id(user_id):
     return db.session.query(StaffAccount).get(user_id)
 
 
-def _get_middle_level_head(staff_account_id):
-    """Resolve signatures only through the borrower's active middle-level approver.
-
-    Both the name and the head-position record must belong to that approver.
-    Department heads must never be used as a fallback.
-    """
-    if not staff_account_id:
-        return None
-
-    approver = (
-        db.session.query(StaffLeaveApprover)
-        .filter_by(
-            staff_account_id=staff_account_id,
-            is_active=True,
-            is_middle_level=True,
-        )
-        .order_by(StaffLeaveApprover.id.desc())
-        .first()
-    )
-    if not approver:
-        return None
-
-    head_account = approver.account
-    if not head_account:
-        return None
-
-    head_position = (
-        db.session.query(StaffHeadPosition)
-        .filter_by(staff_account_id=approver.approver_account_id)
-        .order_by(StaffHeadPosition.id.desc())
-        .first()
-    )
-    return {
-        "head": getattr(head_account, "name", None) or getattr(head_account, "fullname", None),
-        "head_position": getattr(head_position, "position", None),
-    }
-
-
 def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_account_id=None):
-    """Use the FNAR02 signature source for every PDF.
-
-    Resolve the original ticket borrower first, then the fund requester, then
-    the standalone claim requester. A claim's recorder must not replace the
-    borrower/requester when a linked document identifies that person.
-    """
+    """Resolve the organization head from ``Org.head`` for PDF signatures."""
     if fund_request is None and claim is not None:
         fund_request = getattr(claim, "fund_request", None)
     if ticket is None and fund_request is not None:
         ticket = getattr(fund_request, "borrowing_ticket", None)
-    borrower_id = (
+
+    staff_account_id = (
         getattr(ticket, "borrower_id", None)
         or getattr(fund_request, "requester_id", None)
         or getattr(claim, "user_id", None)
         or staff_account_id
     )
-    head_info = _get_middle_level_head(borrower_id) or {}
-    return _pdf_text(head_info.get("head")), _pdf_text(head_info.get("head_position"))
+
+    # Prefer the organization explicitly stored on the fund request. For
+    # standalone tickets/reports, derive it from the requesting staff member.
+    org = getattr(fund_request, "org", None)
+    if org is None and getattr(fund_request, "org_id", None):
+        org = db.session.query(Org).get(fund_request.org_id)
+    if org is None and staff_account_id:
+        staff_account = _get_user_by_id(staff_account_id)
+        org = getattr(getattr(staff_account, "personal_info", None), "org", None)
+
+    # If the current organization has no head, walk up its parent hierarchy
+    # until a head email is found. Keep a visited set to avoid malformed cycles.
+    head_email = None
+    current_org = org
+    visited_org_ids = set()
+    while current_org is not None:
+        org_key = getattr(current_org, "id", None) or id(current_org)
+        if org_key in visited_org_ids:
+            break
+        visited_org_ids.add(org_key)
+
+        head_email = (getattr(current_org, "head", None) or "").strip()
+        if head_email:
+            break
+
+        parent_id = getattr(current_org, "parent_id", None)
+        current_org = (
+            db.session.query(Org).get(parent_id)
+            if parent_id
+            else None
+        )
+
+    if not head_email:
+        return _pdf_text(None), _pdf_text(None)
+
+    head_account = (
+        db.session.query(StaffAccount)
+        .filter(StaffAccount.email == head_email)
+        .first()
+    )
+    personal_id = getattr(head_account, "personal_id", None)
+    if not personal_id:
+        return _pdf_text(None), _pdf_text(None)
+
+    head_personal_info = (
+        db.session.query(StaffPersonalInfo)
+        .filter(StaffPersonalInfo.id == personal_id)
+        .first()
+    )
+    if not head_personal_info:
+        return _pdf_text(None), _pdf_text(None)
+
+    head_name = " ".join(
+        value for value in (
+            getattr(head_personal_info, "th_firstname", None),
+            getattr(head_personal_info, "th_lastname", None),
+        ) if value
+    )
+    return _pdf_text(head_name), _pdf_text(getattr(head_personal_info, "position", None))
 
 
 def _get_bank_account_info_for_ticket(ticket):
