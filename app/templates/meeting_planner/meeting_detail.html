@@ -110,7 +110,7 @@
                                     <th></th>
                                     </thead>
                                     <tbody hx-target="closest tr" hx-swap="outerHTML">
-                                        {% for topic in meeting.agendas %}
+                                        {% for topic in meeting.agendas|sort(attribute="number") %}
                                             {% if topic.group == group %}
                                                 <tr>
                                                     <td style="width: 10%">{{ topic.number }}</td>
@@ -134,7 +134,7 @@
                                                                 <th></th>
                                                             </thead>
                                                             <tbody id="tasks-{{ topic.id }}" hx-target="closest tr" hx-swap="outerHTML">
-                                                                {% for task in topic.tasks %}
+                                                                {% for task in topic.tasks|sort(attribute="no") %}
                                                                     {% include "meeting_planner/task_row.html" %}
                                                                 {% endfor %}
                                                             </tbody>
