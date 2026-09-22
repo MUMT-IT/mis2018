@@ -9,6 +9,7 @@
         <p class="notification">
             {{ task.deadline|localdatetime or '' }}
         </p>
+        <hr>
         <label class="label">ผู้รับผิดชอบ</label>
         <p class="notification">
             {% for meeting_admin in task.admins %}
