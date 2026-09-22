@@ -6,7 +6,6 @@
   <header class="mb-4 pb-3 border-bottom">
     <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับฝ่ายการเงิน</p>
     <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
-    <p class="text-muted mb-0">{{ dashboard_description }}</p>
   </header>
 
   <!-- Section กรองและค้นหาข้อมูลแบบ Row -->
@@ -49,7 +48,7 @@
     <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
       
       <!-- Tab Switcher Header (วางติดกับส่วนบนของตาราง) -->
-      <div class="card-header bg-white border-bottom p-0">
+      <div class="card-header border-bottom p-0" style="background-color: #e6e8ed;">
         <ul class="nav nav-tabs nav-fill border-bottom-0" id="financeSystemTabs" role="tablist">
           <li class="nav-item" role="presentation">
             <button class="nav-item-tab nav-link active py-3 fw-bold text-dark" id="tab-all" type="button" onclick="switchSystemTab('all')">

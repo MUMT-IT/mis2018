@@ -16,7 +16,6 @@
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
   {% endif %}
-  <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ตรวจสอบหลักฐานเบิกเงินสดย่อย</p>
   <h1 class="fw-bold display-6 mb-2">รายละเอียดหลักฐานส่งเบิกเงินสดย่อย</h1>
 </header>
 
@@ -229,7 +228,7 @@
         {% endif %}
     </div>
     {% endif %}
-      {% if session.get('user_role') != 'finance' %}
+      {% if session.get('user_role') != 'finance' and claim_detail.status|lower == 'ผ่านการตรวจสอบ'%}
         <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดบันทึกขออนุมัติเบิก
@@ -238,7 +237,7 @@
       {% endif %}
   </div>
 </section>
-{% with document=claim_detail, pdf_export_url=url_for('advance_payment.export_petty_cash_claim_pdf', claim_id=claim_detail.id), pdf_reference_editable=True, pdf_allow_no_approval_letter=True %}
+{% with document=claim_detail, pdf_export_url=url_for('advance_payment.export_petty_cash_claim_pdf', claim_id=claim_detail.id) %}
   {% include 'advance_payment/_pdf_reference_modal.html' %}
 {% endwith %}
 
@@ -386,6 +385,24 @@
     </div>
   {% endif %}
 </section>
+
+{% if claim_detail.reference_number or claim_detail.reference_files %}
+<section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
+  <h3 class="h5 fw-bold mb-3">หนังสืออนุมัติในหลักการ</h3>
+  {% if claim_detail.reference_number %}
+    <p class="mb-2"><strong>เลขที่:</strong> {{ claim_detail.reference_number }}{% if claim_detail.reference_date %} <span class="ms-3"><strong>วันที่:</strong> {{ claim_detail.reference_date|thai_date }}</span>{% endif %}</p>
+  {% endif %}
+  {% if claim_detail.reference_files %}
+    <div class="d-flex flex-wrap gap-2">
+      {% for reference_file in claim_detail.reference_files %}
+        <a href="{{ url_for('static', filename=reference_file.proof_reference) }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+          <i class="bi bi-paperclip me-1"></i>{{ reference_file.filename }}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+{% endif %}
 
 <!-- Section แสดงเอกสารประกาศ/ไฟล์แนบประกอบ -->
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
