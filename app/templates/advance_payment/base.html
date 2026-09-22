@@ -439,7 +439,7 @@
 
     <div class="modal fade app-popup-modal" id="appPopupModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content border-0 shadow-lg" id="appPopupModalForm" method="post">
+        <form class="modal-content border-0 shadow-lg" id="appPopupModalForm" method="post" data-ajax-validation="true">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="modal-header px-4 pt-4 pb-2">
             <h5 class="modal-title fw-bold text-dark" id="appPopupModalTitle"></h5>
@@ -679,6 +679,118 @@
           });
         }
       })();
+
+      // Keep validation failures on the current page so entered form data is not lost.
+      document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("form[data-ajax-validation='true']").forEach(function (form) {
+          form.addEventListener("submit", async function (event) {
+            // The borrowing-ticket form has an existing acknowledgement popup.
+            // Never bypass it when this async handler is installed first.
+            const requiresBorrowingConfirmation = form.id === "createBorrowingTicketForm";
+            if (requiresBorrowingConfirmation && form.dataset.popupConfirmed !== "true") {
+              return;
+            }
+
+            if (form.dataset.ajaxSubmitting === "true") {
+              event.preventDefault();
+              return;
+            }
+
+            event.preventDefault();
+            form.dataset.ajaxSubmitting = "true";
+            const submitter = event.submitter || form.querySelector("button[type='submit']");
+            const originalSubmitterText = submitter ? submitter.innerHTML : "";
+            if (submitter) {
+              submitter.disabled = true;
+              submitter.innerHTML = "กำลังตรวจสอบข้อมูล...";
+            }
+
+            try {
+              // Use the literal form attribute. A form control named `action`
+              // can shadow the DOM form.action property with a RadioNodeList.
+              const formAction = form.getAttribute("action") || window.location.href;
+              const formData = new FormData(form);
+              // Preserve the original submit-button flow (for example
+              // action=draft versus action=submit).
+              if (submitter && submitter.name) {
+                formData.set(submitter.name, submitter.value || "");
+              }
+              const response = await fetch(formAction, {
+                method: "POST",
+                body: formData,
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                credentials: "same-origin",
+              });
+              const contentType = response.headers.get("content-type") || "";
+
+              if (contentType.includes("application/pdf")) {
+                const pdfBlob = await response.blob();
+                const objectUrl = URL.createObjectURL(pdfBlob);
+                const downloadLink = document.createElement("a");
+                const disposition = response.headers.get("content-disposition") || "";
+                const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i);
+                downloadLink.download = decodeURIComponent(
+                  filenameMatch ? (filenameMatch[1] || filenameMatch[2]) : "advance-payment.pdf"
+                );
+                downloadLink.href = objectUrl;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                downloadLink.remove();
+                URL.revokeObjectURL(objectUrl);
+                return;
+              }
+
+              if (contentType.includes("application/json")) {
+                const payload = await response.json();
+                if (!response.ok || payload.ok === false) {
+                  window.openAppPopup({
+                    title: "กรุณาตรวจสอบข้อมูล",
+                    message: payload.message || "ข้อมูลไม่ถูกต้อง กรุณาแก้ไขแล้วลองใหม่",
+                    confirmText: "ตกลง",
+                    confirmClass: "btn-danger",
+                    alertOnly: true,
+                  });
+                  return;
+                }
+              } else if (response.ok) {
+                // Successful POST returns the newly created detail page as HTML.
+                document.open();
+                document.write(await response.text());
+                document.close();
+                return;
+              } else {
+                const responseText = await response.text();
+                let serverMessage = "";
+                try {
+                  serverMessage = responseText ? JSON.parse(responseText).message || "" : "";
+                } catch (parseError) {
+                  serverMessage = "";
+                }
+                throw new Error(
+                  serverMessage || `เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${response.status})`
+                );
+              }
+            } catch (error) {
+              window.openAppPopup({
+                title: "ไม่สามารถบันทึกข้อมูลได้",
+                message: error.message || "กรุณาลองใหม่อีกครั้ง",
+                confirmText: "ตกลง",
+                confirmClass: "btn-danger",
+                alertOnly: true,
+              });
+            } finally {
+              if (requiresBorrowingConfirmation) {
+                delete form.dataset.popupConfirmed;
+              }
+              form.dataset.ajaxSubmitting = "false";
+              if (submitter) {
+                submitter.disabled = false;
+                submitter.innerHTML = originalSubmitterText;
+              }
+            }
+          });
+        });
+      });
 
       {% if request.args.get('limit_popup') %}
       document.addEventListener("DOMContentLoaded", function () {

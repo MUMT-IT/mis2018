@@ -142,7 +142,7 @@
                         <div class="modal-body">คุณต้องการเปลี่ยนสถานะรายการนี้เป็น <strong>"กำลังตรวจสอบ"</strong> ใช่หรือไม่?</div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_checking', claim_id=claim_detail.id) }}" class="m-0">
+                            <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_checking', claim_id=claim_detail.id) }}" class="m-0" data-ajax-validation="true">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-warning fw-bold">ยืนยัน</button>
                             </form>
@@ -172,7 +172,7 @@
                         <div class="modal-body">คุณต้องการส่งเอกสารนี้ไปยังสถานะ <strong>"ผ่านการตรวจสอบ"</strong> ใช่หรือไม่?</div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_proofed', claim_id=claim_detail.id) }}" class="m-0">
+                            <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_proofed', claim_id=claim_detail.id) }}" class="m-0" data-ajax-validation="true">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-primary fw-bold">ยืนยันข้อมูลถูกต้อง</button>
                             </form>
@@ -184,7 +184,7 @@
             <!-- Modal ปฏิเสธหลักฐาน -->
             <div class="modal fade text-start" id="rejectClaimModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
-                <form method="POST" action="{{ url_for('advance_payment.reject_petty_claim', claim_id=claim_detail.id) }}">
+                <form method="POST" action="{{ url_for('advance_payment.reject_petty_claim', claim_id=claim_detail.id) }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-content">
                     <div class="modal-header">
@@ -214,7 +214,7 @@
             <div class="modal fade text-start" id="transferModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
-                        <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_transferred', claim_id=claim_detail.id) }}">
+                        <form method="POST" action="{{ url_for('advance_payment.mark_petty_claim_transferred', claim_id=claim_detail.id) }}" data-ajax-validation="true">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="modal-header">
                                 <h5 class="modal-title fw-bold text-dark"><i class="bi bi-calendar-check text-primary me-2"></i>บันทึกการโอนเงินสดย่อย</h5>
@@ -344,7 +344,7 @@
                         <h5 class="modal-title fw-bold" id="editRowLabel{{ item.id }}"><i class="bi bi-pencil-square text-warning me-2"></i>แก้ไขรายการเบิกเงินสดย่อย</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=proof_file.id if proof_file else item.id) }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=proof_file.id if proof_file else item.id) }}" enctype="multipart/form-data" data-ajax-validation="true">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="source" value="petty_claim">
                         <input type="hidden" name="receipt_item_id" value="{{ item.id }}">

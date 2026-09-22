@@ -131,7 +131,7 @@
 {% set is_over_request = (total_claimed_amount + total_parcel_amount) > total_request_amount if total_request_amount else false %}
 {% if can_submit_claim %}
 <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
-    <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm" novalidate>
+    <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm" novalidate data-ajax-validation="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden"
        name="fund_request_id"
@@ -535,7 +535,7 @@
             <td class="text-center">
               <div class="d-flex flex-wrap gap-2 justify-content-center">
                 {% if advance_payment_role == 'finance' and pr.status == 'รอตรวจสอบ' %}
-                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}">
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
                       type="button"
@@ -551,7 +551,7 @@
                     </button>
                   </form>
                 {% elif advance_payment_role == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
-                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}">
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
                       type="button"
@@ -613,7 +613,7 @@
       {% if session.get('advance_payment_system') == 'petty_cash' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
         <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
-            <form method="post" action="{{ url_for('advance_payment.staff_parcel_return_edit', parcel_return_id=pr.id) }}">
+            <form method="post" action="{{ url_for('advance_payment.staff_parcel_return_edit', parcel_return_id=pr.id) }}" data-ajax-validation="true">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="modal-content">
                 <div class="modal-header">

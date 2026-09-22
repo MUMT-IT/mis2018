@@ -109,7 +109,7 @@
                         <div class="modal-body">คุณต้องการเปลี่ยนสถานะเอกสารนี้เป็น <strong>"กำลังตรวจสอบ"</strong> ใช่หรือไม่?</div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" class="m-0">
+                            <form method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-warning fw-bold">ยืนยัน</button>
                             </form>
@@ -127,7 +127,7 @@
             </button>
             <div class="modal fade text-start" id="rejectReturnModal{{ return_detail.id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog">
-                <form method="post" action="{{ url_for('advance_payment.reject_return_detail', return_id=return_detail.id) }}">
+                <form method="post" action="{{ url_for('advance_payment.reject_return_detail', return_id=return_detail.id) }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-content">
                     <div class="modal-header">
@@ -152,7 +152,7 @@
                         <div class="modal-body">คุณต้องการส่งเอกสารนี้ไปยังสถานะ <strong>"ผ่านการตรวจสอบ"</strong> ใช่หรือไม่?</div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" class="m-0">
+                            <form method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-primary fw-bold">ยืนยันข้อมูลถูกต้อง</button>
                             </form>
@@ -257,7 +257,7 @@
                         <h5 class="modal-title fw-bold" id="editRowLabel{{ file.id or file.receipt_item.id }}"><i class="bi bi-pencil-square text-warning me-2"></i>แก้ไขข้อมูลใบเสร็จในแถว</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=file.id or file.receipt_item.id) }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=file.id or file.receipt_item.id) }}" enctype="multipart/form-data" data-ajax-validation="true">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="source" value="return_detail">
                         <input type="hidden" name="receipt_item_id" value="{{ file.receipt_item.id if file.receipt_item else '' }}">

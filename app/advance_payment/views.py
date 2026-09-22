@@ -3,10 +3,10 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 from sqlalchemy import extract
+from sqlalchemy.exc import IntegrityError
 from functools import wraps
 import re
 from types import SimpleNamespace
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from flask import (
     after_this_request,
     Blueprint,
@@ -56,6 +56,16 @@ def render_template(template_name, *args, **kwargs):
     kwargs.setdefault("advance_payment_user", current_user)
     kwargs.setdefault("advance_payment_role", _current_module_role())
     return _render_template(template_name, *args, **kwargs)
+
+
+def _validation_error_response(message, status_code=422):
+    """Return a non-navigating validation response for AJAX form submissions."""
+    return jsonify(ok=False, message=message), status_code
+
+
+def _validation_redirect_response(message, location=None):
+    """Return validation errors without navigating away from the submitted page."""
+    return _validation_error_response(message)
 
 COORDINATOR_ROLE = "cash_management_coordinator"
 SECRETARY_ROLE = "secretary"
@@ -1442,7 +1452,7 @@ def mark_return_checking(return_id):
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
     _send_notification_email(return_detail, object_type="return")
     flash("เปลี่ยนสถานะเป็น 'กำลังตรวจสอบ' เรียบร้อยแล้ว")
-    return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
+    return view_return_proof_detail(return_id)
 
 @bp.route("/finance/returns/<int:return_id>/received", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -1458,7 +1468,7 @@ def mark_return_received(return_id):
 
 
     flash("เปลี่ยนสถานะเป็น 'ได้รับเงินแล้ว' และสิ้นสุดกระบวนการเรียบร้อย")
-    return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
+    return view_return_proof_detail(return_id)
 
 @bp.route("/finance/returns/<int:return_id>/bounced", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -1468,13 +1478,11 @@ def mark_return_bounced(return_id):
         abort(404)
 
     if not return_detail.old_document_number:
-        flash("ไม่พบเลขฎีกาเก่า จึงยังไม่สามารถตีกลับเอกสารนี้จากกองคลังได้", "warning")
-        return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
+        return _validation_error_response("ไม่พบเลขฎีกาเก่า จึงยังไม่สามารถตีกลับเอกสารนี้จากกองคลังได้")
 
     rejection_comment = request.form.get("rejection_comment", "").strip()
     if not rejection_comment:
-        flash("กรุณาระบุเหตุผลที่ตีกลับเอกสาร", "warning")
-        return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
+        return _validation_error_response("กรุณาระบุเหตุผลที่ตีกลับเอกสาร")
 
     existing_comment = return_detail.rejection_comment or ""
     count = existing_comment.count("ครั้งที่") + 1
@@ -1494,7 +1502,7 @@ def mark_return_bounced(return_id):
 
     db.session.commit()
     flash("เปลี่ยนสถานะเป็น 'ฎีกาถูกตีกลับจากกองคลัง' เรียบร้อยแล้ว", "success")
-    return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_id))
+    return view_return_proof_detail(return_id)
 
 @bp.route("/finance/closing-documents/<int:closing_doc_id>/cancel", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -1691,14 +1699,8 @@ def _is_over_limit(projected_total, limit_total):
 
 
 def _redirect_with_limit_popup(location, message):
-    """Redirect while carrying a one-time limit message for the shared popup."""
-    parts = urlsplit(location)
-    query = parse_qsl(parts.query, keep_blank_values=True)
-    query.append(("limit_popup", message))
-    popup_location = urlunsplit(
-        (parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment)
-    )
-    return redirect(popup_location)
+    """Return limit errors to the current page without a redirect."""
+    return _validation_error_response(message)
 
 
 def _is_return_amount_limit_exempt(is_cash):
@@ -2091,11 +2093,9 @@ def coordinator_dashboard():
 
     if request.method == "POST":
         if is_borrower_mode and form_locked:
-            flash(
-                "คุณยังไม่สามารถสร้างสัญญาเงินยืมใหม่ได้ เนื่องจากมีรายการค้างที่ต้องดำเนินการก่อน",
-                "warning",
+            return _validation_error_response(
+                "คุณยังไม่สามารถสร้างสัญญาเงินยืมใหม่ได้ เนื่องจากมีรายการค้างที่ต้องดำเนินการก่อน"
             )
-            return redirect(url_for(dashboard_endpoint))
 
         # ผู้ยืมสร้างได้เฉพาะของตัวเอง ส่วนผู้ประสานงานเลือกแทนได้
         selected_coordinator_email = (
@@ -2104,8 +2104,9 @@ def coordinator_dashboard():
             else request.form.get("borrower_email", "").strip().lower()
         )
         if not selected_coordinator_email:
-            flash(f"กรุณาเลือก{_dashboard_party_label(user_role)}ก่อนสร้างสัญญาเงินยืม", "danger")
-            return redirect(url_for(dashboard_endpoint))
+            return _validation_error_response(
+                f"กรุณาเลือก{_dashboard_party_label(user_role)}ก่อนสร้างสัญญาเงินยืม"
+            )
 
         coordinator_user = (
             db.session.query(StaffAccount)
@@ -2114,8 +2115,9 @@ def coordinator_dashboard():
         )
 
         if not coordinator_user:
-            flash(f"ไม่พบข้อมูล{_dashboard_party_label(user_role)}ที่ระบุในระบบ", "danger")
-            return redirect(url_for(dashboard_endpoint))
+            return _validation_error_response(
+                f"ไม่พบข้อมูล{_dashboard_party_label(user_role)}ที่ระบุในระบบ"
+            )
 
         allowed_coordinator_emails = {
             user.email.strip().lower()
@@ -2123,8 +2125,9 @@ def coordinator_dashboard():
             if user.email
         }
         if coordinator_user.email.strip().lower() not in allowed_coordinator_emails:
-            flash(f"ไม่พบ{_dashboard_party_label(user_role)}ที่ระบุในระบบ", "danger")
-            return redirect(url_for(dashboard_endpoint))
+            return _validation_error_response(
+                f"ไม่พบ{_dashboard_party_label(user_role)}ที่ระบุในระบบ"
+            )
 
         # ตรวจสอบสิทธิ์ความสามารถในการยืมเงินของผู้ยืมจริง (Borrower) ด้วย calculate_borrowing_ticket_eligibility
         coordinator_eligibility = eligibility_by_email.get(
@@ -2133,12 +2136,10 @@ def coordinator_dashboard():
 
         if not coordinator_eligibility.is_eligible:
             # หากผู้ยืมไม่ผ่านเงื่อนไข ระบบจะแจ้งเตือนและไม่อนุญาตให้สร้างสัญญา
-            flash(
+            return _validation_error_response(
                 f"ไม่สามารถสร้างสัญญาแทนได้: {coordinator_user.name} ไม่ผ่านเงื่อนไขการยืมเงินทดรองจ่าย "
-                f"(สถานะที่ยังค้างอยู่: {', '.join(coordinator_eligibility.blocking_statuses)})",
-                "danger"
+                f"(สถานะที่ยังค้างอยู่: {', '.join(coordinator_eligibility.blocking_statuses)})"
             )
-            return redirect(url_for(dashboard_endpoint))
 
         if form.validate():
             # บันทึกผู้สร้างสัญญาและผู้ยืมจริงแยกกันด้วย creator_id / borrower_id
@@ -2150,8 +2151,12 @@ def coordinator_dashboard():
             if selected_bank_account:
                 selected_account_number = selected_bank_account.account_number
             elif selected_account_number:
-                flash("เลขที่บัญชีนี้ถูกปิดแล้วหรือไม่อยู่ในรายการที่เลือกได้", "danger")
-                selected_account_number = ""
+                return _validation_error_response(
+                    "เลขที่บัญชีนี้ถูกปิดแล้วหรือไม่อยู่ในรายการที่เลือกได้"
+                )
+
+            if request.form.get("validation_only") == "1":
+                return jsonify(ok=True)
 
             if selected_bank_account:
                 new_ticket = BorrowingTicket(
@@ -2172,12 +2177,26 @@ def coordinator_dashboard():
                 new_ticket.creator_user = current_user
                 new_ticket.borrower_user = coordinator_user
                 db.session.add(new_ticket)
-                db.session.commit()
+                try:
+                    db.session.flush()
+                    db.session.commit()
+                    db.session.refresh(new_ticket)
+                except IntegrityError:
+                    db.session.rollback()
+                    return _validation_error_response(
+                        "ไม่สามารถบันทึกสัญญาเงินยืมได้ เนื่องจากข้อมูลซ้ำหรือไม่สอดคล้องกับข้อมูลในระบบ"
+                    )
 
                 flash(f"สร้างสัญญาเงินยืมทดรองจ่ายแทน {coordinator_user.name} เรียบร้อยแล้ว", "success")
                 _send_notification_email(new_ticket)
-                # Show the verification page for the ticket that was just created.
+                # Render the newly-created ticket immediately instead of leaving
+                # the user on the dashboard with the old form still visible.
                 return verification_view(new_ticket.id)
+        form_errors = "; ".join(
+            ", ".join(errors)
+            for errors in form.errors.values()
+        )
+        return _validation_error_response(form_errors or "ข้อมูลไม่ครบหรือไม่ถูกต้อง")
 
     dashboard_template = "borrower_dashboard.html" if is_borrower_mode else "coordinator_dashboard.html"
     bank_account_options = _get_bank_account_dropdown_options()
@@ -2925,14 +2944,18 @@ def submit_parcel_return(ticket_id):
     fund_request_id = int(fund_request_id_raw) if fund_request_id_raw.isdigit() else None
 
     if not items_description or not sent_date_str:
-        flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน")
-        return redirect(url_for("advance_payment.borrower_dashboard"))
+        return _validation_redirect_response(
+            "กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน",
+            url_for("advance_payment.borrower_dashboard"),
+        )
 
     try:
         parsed_amount = float(amount or 0)
     except (TypeError, ValueError):
-        flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
-        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+        return _validation_redirect_response(
+            "กรุณาระบุจำนวนเงินให้ถูกต้อง",
+            url_for(_dashboard_endpoint_for_role(_current_module_role())),
+        )
 
     ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id)
     projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
@@ -2961,14 +2984,20 @@ def submit_parcel_return(ticket_id):
 
     sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
 
-    _create_parcel_return_record(
-        ticket_id=ticket_id,
-        fund_request_id=fund_request_id,
-        amount=parsed_amount,
-        items_description=items_description,
-        sent_date=sent_date,
-        status="รอตรวจสอบ",
-    )
+    try:
+        _create_parcel_return_record(
+            ticket_id=ticket_id,
+            fund_request_id=fund_request_id,
+            amount=parsed_amount,
+            items_description=items_description,
+            sent_date=sent_date,
+            status="รอตรวจสอบ",
+        )
+    except IntegrityError:
+        db.session.rollback()
+        return _validation_error_response(
+            "ไม่สามารถบันทึกรายละเอียดการส่งคืนได้ เนื่องจากข้อมูลไม่สอดคล้องกับข้อมูลในระบบ"
+        )
 
     flash("บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว")
     return verification_view(ticket_id)
@@ -2982,22 +3011,28 @@ def submit_fund_request_parcel_return(fund_request_id):
         return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
 
     if fund_request is None:
-        flash("ไม่พบคำขอที่เลือก")
-        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+        return _validation_redirect_response(
+            "ไม่พบคำขอที่เลือก",
+            url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+        )
 
     amount = request.form.get("amount", "0").replace(",", "")
     items_description = request.form.get("items_description", "").strip()
     sent_date_str = request.form.get("sent_date")
 
     if not items_description or not sent_date_str:
-        flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน")
-        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+        return _validation_redirect_response(
+            "กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน",
+            url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+        )
 
     try:
         parsed_amount = float(amount or 0)
     except (TypeError, ValueError):
-        flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
-        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+        return _validation_redirect_response(
+            "กรุณาระบุจำนวนเงินให้ถูกต้อง",
+            url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+        )
 
     ticket_id = getattr(fund_request, "borrowing_ticket_id", None)
     if ticket_id:
@@ -3052,22 +3087,21 @@ def update_parcel_return(parcel_return_id):
 
     current_status = (parcel_return.status or "").strip()
     if current_status not in {"รอตรวจสอบ", "ปฏิเสธ"}:
-        flash("สามารถแก้ไขรายการส่งคืนพัสดุได้เฉพาะก่อนฝ่ายการเงินตรวจสอบ หรือหลังถูกปฏิเสธเท่านั้น", "warning")
-        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+        return _validation_error_response(
+            "สามารถแก้ไขรายการส่งคืนพัสดุได้เฉพาะก่อนฝ่ายการเงินตรวจสอบ หรือหลังถูกปฏิเสธเท่านั้น"
+        )
 
     amount = request.form.get("amount", "0").replace(",", "")
     items_description = request.form.get("items_description", "").strip()
     sent_date_str = request.form.get("sent_date")
 
     if not items_description or not sent_date_str:
-        flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน", "danger")
-        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+        return _validation_error_response("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน")
 
     try:
         parsed_amount = float(amount or 0)
     except (TypeError, ValueError):
-        flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
-        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+        return _validation_error_response("กรุณาระบุจำนวนเงินให้ถูกต้อง")
 
     ticket_totals = _calculate_ticket_return_totals_with_parcel(parcel_return.ticket_id, exclude_parcel_return_id=parcel_return.id)
     projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
@@ -3106,7 +3140,7 @@ def update_parcel_return(parcel_return_id):
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
 
     flash("แก้ไขรายการส่งคืนพัสดุเรียบร้อยแล้ว", "success")
-    return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+    return verification_view(parcel_return.ticket_id)
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/proofed", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -3117,12 +3151,10 @@ def mark_parcel_proofed(parcel_return_id):
 
     current_status = (parcel_return.status or "").strip()
     if current_status in {"ได้รับเอกสารแล้ว", "เอกสารตั้งฎีกา"}:
-        flash("รายการนี้ผ่านขั้นตอนตรวจสอบแล้ว", "warning")
-        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+        return _validation_error_response("รายการนี้ผ่านขั้นตอนตรวจสอบแล้ว")
 
     if current_status not in {"รอตรวจสอบ", "กำลังตรวจสอบ"}:
-        flash("ต้องอยู่ในสถานะรอตรวจสอบก่อนจึงจะยืนยันการมีอยู่ของเอกสารพัสดุได้", "warning")
-        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+        return _validation_error_response("ต้องอยู่ในสถานะรอตรวจสอบก่อนจึงจะยืนยันการมีอยู่ของเอกสารพัสดุได้")
 
     parcel_return.status = "พัสดุกำลังดำเนินการ"
     db.session.commit()
@@ -3132,7 +3164,9 @@ def mark_parcel_proofed(parcel_return_id):
 
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
     flash("ยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุเรียบร้อยแล้ว", "success")
-    return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+    if parcel_return.ticket_id:
+        return verification_view(parcel_return.ticket_id)
+    return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=parcel_return.fund_request_id))
 
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/received", methods=["POST"])
@@ -3144,8 +3178,7 @@ def mark_parcel_received(parcel_return_id):
 
     current_status = (parcel_return.status or "").strip()
     if current_status not in {"พัสดุกำลังดำเนินการ", "กำลังตรวจสอบ"}:
-        flash("ต้องยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุก่อนรับเอกสารจริง", "danger")
-        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+        return _validation_error_response("ต้องยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุก่อนรับเอกสารจริง")
 
     parcel_return.status = "ได้รับเอกสารแล้ว"
     db.session.commit()
@@ -3156,7 +3189,9 @@ def mark_parcel_received(parcel_return_id):
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
 
     flash("เปลี่ยนสถานะพัสดุเป็น 'ได้รับเอกสารแล้ว' เรียบร้อย")
-    return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+    if parcel_return.ticket_id:
+        return verification_view(parcel_return.ticket_id)
+    return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=parcel_return.fund_request_id))
 
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/reject", methods=["POST"])
@@ -3168,8 +3203,7 @@ def reject_parcel_return(parcel_return_id):
 
     current_status = (parcel_return.status or "").strip()
     if current_status in {"ได้รับเอกสารแล้ว", "เอกสารตั้งฎีกา"}:
-        flash("ไม่สามารถปฏิเสธรายการที่รับเอกสารแล้วหรือปิดรายการแล้วได้", "warning")
-        return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+        return _validation_error_response("ไม่สามารถปฏิเสธรายการที่รับเอกสารแล้วหรือปิดรายการแล้วได้")
 
     new_comment = request.form.get("rejection_comment", "").strip()
 
@@ -3195,7 +3229,9 @@ def reject_parcel_return(parcel_return_id):
 
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
     flash("ปฏิเสธรายการส่งคืนพัสดุเรียบร้อยแล้ว", "success")
-    return _redirect_back_or(_parcel_return_history_fallback(parcel_return))
+    if parcel_return.ticket_id:
+        return verification_view(parcel_return.ticket_id)
+    return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=parcel_return.fund_request_id))
 
 @bp.route("/api/documents/suggest", methods=["GET"])
 @flask_login_required
@@ -3227,8 +3263,7 @@ def suggest_documents():
 def submit_return_details():
     ticket_id = request.form.get("ticket_id") or request.args.get("ticket_id")
     if not ticket_id:
-        flash("กรุณาระบุเอกสารสัญญาเงินยืมที่ต้องการส่งหลักฐาน", "danger")
-        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+        return _validation_error_response("กรุณาระบุเอกสารสัญญาเงินยืมที่ต้องการส่งหลักฐาน")
 
     borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if borrowing_ticket is None:
@@ -3239,8 +3274,7 @@ def submit_return_details():
         abort(403)
 
     if borrowing_ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"}:
-        flash("ไม่สามารถดำเนินการสำหรับสัญญาเงินยืมที่มีสถานะนี้ได้", "danger")
-        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+        return _validation_error_response("ไม่สามารถดำเนินการสำหรับสัญญาเงินยืมที่มีสถานะนี้ได้")
 
     action = request.form.get("action", "submit")
     is_draft = (action == "draft")
@@ -3254,20 +3288,19 @@ def submit_return_details():
 
     if not is_draft and has_parcel_data:
         if not parcel_amount_raw or not parcel_items_description or not parcel_sent_date_raw:
-            flash("กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุให้ครบถ้วน", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+            return _validation_error_response("กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุให้ครบถ้วน")
         try:
             parcel_amount = float(parcel_amount_raw)
             parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
             if parcel_amount < 0:
                 raise ValueError
         except (TypeError, ValueError):
-            flash("กรุณาระบุข้อมูลส่งคืนฝ่ายพัสดุให้ถูกต้อง", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+            return _validation_error_response("กรุณาระบุข้อมูลส่งคืนฝ่ายพัสดุให้ถูกต้อง")
 
     if not is_draft and not has_parcel_data and not request.form.getlist("receipt_date[]"):
-        flash("กรุณาเพิ่มข้อมูลส่งคืนฝ่ายพัสดุหรือรายละเอียดใบเสร็จอย่างน้อย 1 รายการ", "warning")
-        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+        return _validation_error_response(
+            "กรุณาเพิ่มข้อมูลส่งคืนฝ่ายพัสดุหรือรายละเอียดใบเสร็จอย่างน้อย 1 รายการ"
+        )
 
     receipt_dates = request.form.getlist("receipt_date[]")
     store_names = request.form.getlist("store_name[]")
@@ -3289,21 +3322,26 @@ def submit_return_details():
         amounts = []
 
     if not is_draft and not has_receipt_data and not has_parcel_data:
-        flash("กรุณาเพิ่มรายละเอียดใบเสร็จอย่างน้อย 1 รายการ", "warning")
-        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+        return _validation_error_response("กรุณาเพิ่มรายละเอียดใบเสร็จอย่างน้อย 1 รายการ")
 
     if not is_draft and not has_receipt_data and parcel_amount is not None:
-        _create_parcel_return_record(
-            ticket_id=ticket_id,
-            fund_request_id=None,
-            amount=parcel_amount,
-            items_description=parcel_items_description,
-            sent_date=parcel_sent_date,
-            status="รอตรวจสอบ",
-        )
+        try:
+            _create_parcel_return_record(
+                ticket_id=ticket_id,
+                fund_request_id=None,
+                amount=parcel_amount,
+                items_description=parcel_items_description,
+                sent_date=parcel_sent_date,
+                status="รอตรวจสอบ",
+            )
+        except IntegrityError:
+            db.session.rollback()
+            return _validation_error_response(
+                "ไม่สามารถบันทึกรายละเอียดการส่งคืนได้ เนื่องจากข้อมูลไม่สอดคล้องกับข้อมูลในระบบ"
+            )
         db.session.commit()
         flash("บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว", "success")
-        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+        return verification_view(ticket_id)
 
     # ถ้ามีฉบับร่างเดิมอยู่แล้ว การ submit รอบนี้จะ "แทนที่" รายการเดิม
     # ดังนั้นต้องตัดฉบับร่างออกจากยอดที่ใช้เช็คเพดาน ไม่เช่นนั้นจะนับซ้ำ
@@ -3322,8 +3360,7 @@ def submit_return_details():
         r_date_raw = receipt_dates[i]
         r_date = _coerce_date(r_date_raw) if r_date_raw else None
         if not is_draft and not r_date:
-            flash("ทุกแถวของรายการใบเสร็จต้องระบุวันที่ที่ถูกต้อง", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+            return _validation_error_response("ทุกแถวของรายการใบเสร็จต้องระบุวันที่ที่ถูกต้อง")
 
         try:
             amt = float((amounts[i] or "0").replace(",", "")) if i < len(amounts) else 0.0
@@ -3331,19 +3368,20 @@ def submit_return_details():
                 raise ValueError
         except (TypeError, ValueError):
             if not is_draft:
-                flash("ทุกแถวของรายการใบเสร็จต้องระบุจำนวนเงินที่ถูกต้อง", "danger")
-                return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+                return _validation_error_response("ทุกแถวของรายการใบเสร็จต้องระบุจำนวนเงินที่ถูกต้อง")
             amt = 0.0
 
         description = descriptions[i].strip() if i < len(descriptions) else ""
         store_name = store_names[i].strip() if i < len(store_names) else ""
         if not is_draft and (not store_name or not description):
-            flash(f"รายการที่ {i + 1} ต้องระบุชื่อร้านค้าและรายละเอียดรายการให้ครบถ้วน", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+            return _validation_error_response(
+                f"รายการที่ {i + 1} ต้องระบุชื่อร้านค้าและรายละเอียดรายการให้ครบถ้วน"
+            )
         is_cash = request.form.get(f"is_cash_{i}") == "true"
         if not is_draft and amt > 100000 and not _is_return_amount_limit_exempt(is_cash):
-            flash(f"รายการที่ {i + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก", "danger")
-            return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+            return _validation_error_response(
+                f"รายการที่ {i + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก"
+            )
 
         if not is_draft and _receipt_requires_additional_document(r_date):
             old_receipt_count += 1
@@ -3361,8 +3399,7 @@ def submit_return_details():
 
     proof_file_error = _proof_file_validation_error(len(parsed_rows), is_draft=is_draft)
     if proof_file_error:
-        flash(proof_file_error, "danger")
-        return redirect(url_for(_dashboard_endpoint_for_role(_current_module_role())))
+        return _validation_error_response(proof_file_error)
 
     if not is_draft:
         ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id, exclude_return_id=exclude_return_id)
@@ -3479,7 +3516,13 @@ def submit_return_details():
             status="รอตรวจสอบ",
         )
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return _validation_error_response(
+            "ไม่สามารถบันทึกรายละเอียดการส่งคืนได้ เนื่องจากข้อมูลไม่สอดคล้องกับข้อมูลในระบบ"
+        )
 
     if not is_draft and old_receipt_count > 0:
         flash(
@@ -3579,8 +3622,7 @@ def edit_receipt_item_inline(file_id):
             abort(404)
 
         if claim_detail.status.lower() not in ["รอตรวจสอบ", "ปฏิเสธ", "ฉบับร่าง"]:
-            flash("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
-            return redirect(url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_detail.id))
+            return _validation_error_response("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
 
         if not receipt_item and proof_file:
             receipt_item = getattr(proof_file, "claim_item", None)
@@ -3602,8 +3644,7 @@ def edit_receipt_item_inline(file_id):
             abort(403)
 
         if return_detail.status.lower() not in ["รอตรวจสอบ", "ปฏิเสธ", "ฉบับร่าง", RETURN_DETAIL_BOUNCED_STATUS.lower()]:
-            flash("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
-            return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_detail.id))
+            return _validation_error_response("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
 
         if not receipt_item and proof_file:
             receipt_item = getattr(proof_file, "receipt_item", None)
@@ -3632,13 +3673,7 @@ def edit_receipt_item_inline(file_id):
         if amount_str:
             parsed_item_amount = float(amount_str.replace(",", ""))
             if not _is_return_amount_limit_exempt(getattr(receipt_item, "is_cash", False)) and parsed_item_amount > 100000:
-                flash("รายการนี้มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก", "danger")
-                redirect_target = (
-                    url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_detail.id)
-                    if is_claim
-                    else url_for("advance_payment.view_return_proof_detail", return_id=return_detail.id)
-                )
-                return redirect(redirect_target)
+                return _validation_error_response("รายการนี้มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก")
             receipt_item.amount = parsed_item_amount
 
     if is_claim:
@@ -3677,7 +3712,7 @@ def edit_receipt_item_inline(file_id):
         user_id = _current_user_id()
         original_filename = os.path.basename(uploaded_file.filename)
         if not original_filename:
-            return redirect(request.referrer or url_for(_dashboard_endpoint_for_role(_current_module_role())))
+            return _validation_error_response("ไม่พบชื่อไฟล์หลักฐานที่อัปโหลด")
 
         user_upload_dir = os.path.join(_upload_root(), str(user_id or "claim"))
         os.makedirs(user_upload_dir, exist_ok=True)
@@ -3731,7 +3766,7 @@ def edit_receipt_item_inline(file_id):
             flash("ใบเสร็จมีอายุเกิน 10 วัน กรุณาจัดทำเอกสารขออนุมัติเบิกจ่ายล่าช้าประกอบการยื่นเพิ่มเติม", "warning")
 
         flash("แก้ไขข้อมูลรายการเบิกเงินสดย่อยสำเร็จเรียบร้อยแล้ว", "success")
-        return redirect(url_for("advance_payment.petty_cash_claim_detail", claim_id=claim_detail.id))
+        return petty_cash_claim_detail(claim_detail.id)
     else:
         return_detail.status = "รอตรวจสอบ"
         return_detail.amount_spent = total_spent_for_return
@@ -3743,7 +3778,7 @@ def edit_receipt_item_inline(file_id):
             flash("ใบเสร็จมีอายุเกิน 10 วัน กรุณาเตรียมเอกสารเพิ่มเติมประกอบการยื่น", "warning")
 
         flash("แก้ไขข้อมูลรายการใบเสร็จและอัปเดตหลักฐานสำเร็จเรียบร้อยแล้ว", "success")
-        return redirect(url_for("advance_payment.view_return_proof_detail", return_id=return_detail.id))
+        return view_return_proof_detail(return_detail.id)
 
 @bp.route("/coordinator/tickets/<int:ticket_id>/autosave-draft", methods=["POST"], endpoint="coordinator_autosave_draft")
 @bp.route("/borrower/tickets/<int:ticket_id>/autosave-draft", methods=["POST"], endpoint="borrower_autosave_draft")
@@ -3820,16 +3855,10 @@ def mark_return_proofed(return_id):
         abort(404)
 
     if return_detail.status == "เอกสารตั้งฎีกา":
-        flash("ไม่สามารถย้อนกลับรายการหลักฐานเอกสารส่งใช้เงินยืมที่ปิดรายการไปแล้วได้")
-        return redirect(
-            url_for("advance_payment.view_return_proof_detail", return_id=return_detail.ticket_id)
-        )
+        return _validation_error_response("ไม่สามารถย้อนกลับรายการหลักฐานเอกสารส่งใช้เงินยืมที่ปิดรายการไปแล้วได้")
 
     if return_detail.status == "ผ่านการตรวจสอบ":
-        flash("รายการหลักฐานเอกสารส่งใช้เงินยืมนี้ได้รับการตรวจสอบและยืนยันแล้ว")
-        return redirect(
-            url_for("advance_payment.view_return_proof_detail", return_id=return_detail.ticket_id)
-        )
+        return _validation_error_response("รายการหลักฐานเอกสารส่งใช้เงินยืมนี้ได้รับการตรวจสอบและยืนยันแล้ว")
 
     return_detail.status = "ผ่านการตรวจสอบ"
     db.session.commit()
@@ -3838,9 +3867,7 @@ def mark_return_proofed(return_id):
     _send_notification_email(return_detail, object_type="return")
     flash("ทำเครื่องหมายรายการเอกสารส่งใช้เงินยืมเป็น ผ่านการตรวจสอบ เรียบร้อยแล้ว")
 
-    return redirect(
-        url_for("advance_payment.verification_view", ticket_id=return_detail.ticket_id)
-    )
+    return verification_view(return_detail.ticket_id)
 
 @bp.route("/finance/returns/<int:return_id>/reject", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -3852,10 +3879,7 @@ def reject_return_detail(return_id):
         abort(404)
 
     if return_detail.status == "เอกสารตั้งฎีกา":
-        flash("ไม่สามารถแก้ไขรายการหลักฐานเอกสารส่งใช้เงินยืมที่ปิดรายการไปแล้วได้")
-        return redirect(
-            url_for("advance_payment.verification_view", ticket_id=return_detail.ticket_id)
-        )
+        return _validation_error_response("ไม่สามารถแก้ไขรายการหลักฐานเอกสารส่งใช้เงินยืมที่ปิดรายการไปแล้วได้")
 
     new_comment = request.form.get("rejection_comment", "").strip()
 
@@ -3881,9 +3905,7 @@ def reject_return_detail(return_id):
     _send_notification_email(return_detail, object_type="return")
     flash("ปฏิเสธรายการหลักฐานเอกสารส่งใช้เงินยืมเรียบร้อยแล้ว")
 
-    return redirect(
-        url_for("advance_payment.verification_view", ticket_id=return_detail.ticket_id)
-    )
+    return verification_view(return_detail.ticket_id)
 
 @bp.route("/finance/tickets/<int:ticket_id>/approve", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -3895,24 +3917,20 @@ def approve_borrowing_ticket(ticket_id):
         abort(404)
 
     if borrowing_ticket.status != "กำลังส่งคำขอ":
-        flash("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถอนุมัติได้")
-        return redirect(url_for("advance_payment.finance_dashboard"))
+        return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถอนุมัติได้")
 
     raw_number = (request.form.get("number") or "").strip()
     if not raw_number:
-        flash("กรุณาระบุเลขที่สัญญา")
-        return redirect(url_for("advance_payment.verification_view", ticket_id=ticket_id))
+        return _validation_error_response("กรุณาระบุเลขที่สัญญา")
 
     approval_ref_no = (request.form.get("borrowing_approval_ref_no") or "").strip()
     raw_approval_date = (request.form.get("borrowing_approval_date") or "").strip()
     if not approval_ref_no:
-        flash("กรุณาระบุเลขที่อว.อนุมัติยืมเงิน")
-        return redirect(url_for("advance_payment.verification_view", ticket_id=ticket_id))
+        return _validation_error_response("กรุณาระบุเลขที่อว.อนุมัติยืมเงิน")
     try:
         approval_date = datetime.strptime(raw_approval_date, "%Y-%m-%d").date()
     except ValueError:
-        flash("กรุณาระบุวันที่อนุมัติให้ถูกต้อง")
-        return redirect(url_for("advance_payment.verification_view", ticket_id=ticket_id))
+        return _validation_error_response("กรุณาระบุวันที่อนุมัติให้ถูกต้อง")
 
     # Contract numbers may contain prefixes, separators, or leading zeroes.
     number = raw_number
@@ -3928,7 +3946,7 @@ def approve_borrowing_ticket(ticket_id):
 
     flash("อนุมัติสัญญาเงินยืมเงินทดรองจ่ายและส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว")
 
-    return redirect(url_for("advance_payment.finance_dashboard"))
+    return finance_dashboard()
 
 @bp.route("/api/login", methods=["POST"])
 def api_login():
@@ -3971,8 +3989,7 @@ def reject_borrowing_ticket(ticket_id):
         abort(404)
 
     if borrowing_ticket.status != "กำลังส่งคำขอ":
-        flash("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถปฏิเสธได้")
-        return redirect(url_for("advance_payment.finance_dashboard"))
+        return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถปฏิเสธได้")
 
     borrowing_ticket.rejection_comment = request.form.get(
         "rejection_comment",
@@ -3983,7 +4000,7 @@ def reject_borrowing_ticket(ticket_id):
     db.session.commit()
     _send_notification_email(borrowing_ticket)
     flash("ปฏิเสธสัญญาเงินยืมเงินทดรองจ่ายเรียบร้อยแล้ว")
-    return redirect(url_for("advance_payment.finance_dashboard"))
+    return finance_dashboard()
 
 @bp.route("/finance/return-records", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -4909,11 +4926,8 @@ def staff_fund_request():
         or not getattr(setting, "valid", False)
         or getattr(setting, "fiscal_year", None) != _current_petty_cash_fiscal_year()
     ):
-        flash(
+        return _validation_redirect_response(
             "ไม่พบการตั้งค่าเงินสดย่อยของหน่วยงานหรือปีงบประมาณปัจจุบัน",
-            "danger",
-        )
-        return redirect(
             url_for(
                 "advance_payment.staff_fund_request",
                 form_type=request.values.get("form_type", FUND_REQUEST_FORM_PETTY_CASH),
@@ -4965,16 +4979,20 @@ def staff_fund_request():
             if form_type == FUND_REQUEST_FORM_BORROWING_TICKET:
                 borrowing_ticket_id = request.form.get("borrowing_ticket_id", type=int)
                 if not borrowing_ticket_id:
-                    flash("กรุณาเลือกใบยืมเงินที่ต้องการเบิกผ่านบัญชีเงินสดย่อย", "danger")
-                    return redirect(url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_BORROWING_TICKET))
+                    return _validation_redirect_response(
+                        "กรุณาเลือกใบยืมเงินที่ต้องการเบิกผ่านบัญชีเงินสดย่อย",
+                        url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_BORROWING_TICKET),
+                    )
 
                 selected_borrowing_ticket = next(
                     (ticket for ticket in approved_borrowing_tickets if ticket.id == borrowing_ticket_id),
                     None,
                 )
                 if not selected_borrowing_ticket:
-                    flash("ไม่พบใบยืมเงินที่สามารถใช้งานได้สำหรับหน่วยงานนี้ หรือใบยืมเงินถูกใช้สร้างใบเบิกแล้ว", "danger")
-                    return redirect(url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_BORROWING_TICKET))
+                    return _validation_redirect_response(
+                        "ไม่พบใบยืมเงินที่สามารถใช้งานได้สำหรับหน่วยงานนี้ หรือใบยืมเงินถูกใช้สร้างใบเบิกแล้ว",
+                        url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_BORROWING_TICKET),
+                    )
 
                 borrower_user = getattr(selected_borrowing_ticket, "borrower_user", None)
                 if is_secretary:
@@ -4995,8 +5013,10 @@ def staff_fund_request():
                         None,
                     )
                     if not selected_requester:
-                        flash("กรุณาเลือกผู้ขอเบิกจากรายชื่อบุคลากรในหน่วยงาน", "danger")
-                        return redirect(url_for("advance_payment.staff_fund_request", form_type=form_type))
+                        return _validation_redirect_response(
+                            "กรุณาเลือกผู้ขอเบิกจากรายชื่อบุคลากรในหน่วยงาน",
+                            url_for("advance_payment.staff_fund_request", form_type=form_type),
+                        )
                     requester_id = selected_requester_id
                     req_name = selected_requester.get("name", "")
                     req_pos = selected_requester.get("position", "")
@@ -5010,14 +5030,17 @@ def staff_fund_request():
                 requested_amount = float(selected_borrowing_ticket.required_budget or 0.0)
 
             if form_type not in {FUND_REQUEST_FORM_INTEREST, FUND_REQUEST_FORM_BORROWING_TICKET} and requested_amount > available_budget:
-                flash(
-                    f"ยอดขอเบิก {requested_amount:,.2f} บาท เกินยอดคงเหลือ {available_budget:,.2f} บาท กรุณาปรับจำนวนเงินก่อนส่งแบบฟอร์ม",
-                    "danger",
+                error_message = (
+                    f"ยอดขอเบิก {requested_amount:,.2f} บาท เกินยอดคงเหลือ "
+                    f"{available_budget:,.2f} บาท กรุณาปรับจำนวนเงินก่อนส่งแบบฟอร์ม"
                 )
                 redirect_kwargs = {"form_type": form_type}
                 if selected_borrowing_ticket:
                     redirect_kwargs["borrowing_ticket_id"] = selected_borrowing_ticket.id
-                return redirect(url_for("advance_payment.staff_fund_request", **redirect_kwargs))
+                return _validation_redirect_response(
+                    error_message,
+                    url_for("advance_payment.staff_fund_request", **redirect_kwargs),
+                )
 
             # รายการใหม่ออกเลขที่ใบเบิกทันที โดยประเภทเบิกเงินยืมถือว่าเบิกเงินแล้ว
             new_request = FundRequest(
@@ -5114,7 +5137,16 @@ def staff_fund_request():
             db.session.rollback()
             import traceback
             traceback.print_exc()
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return _validation_error_response(f"เกิดข้อผิดพลาด: {str(e)}", 500)
             return f"เกิดข้อผิดพลาด: {str(e)}", 500
+
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        form_errors = "; ".join(
+            ", ".join(errors)
+            for errors in form.errors.values()
+        )
+        return _validation_error_response(form_errors or "กรุณาตรวจสอบข้อมูลในฟอร์ม")
 
     selected_form_type = request.args.get("form_type", form.form_type.data or FUND_REQUEST_FORM_PETTY_CASH)
     selected_borrowing_ticket_id = request.args.get("borrowing_ticket_id", type=int)
@@ -5693,13 +5725,17 @@ def submit_petty_cash_claim():
         reference_date = None
         if reference_number or reference_date_raw:
             if not reference_number or not reference_date_raw:
-                flash("กรุณากรอกเลขที่อนุมัติในหลักการและวันที่หนังสือให้ครบถ้วน หรือเว้นว่างทั้งสองช่อง", "danger")
-                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
+                return _validation_redirect_response(
+                    "กรุณากรอกเลขที่อนุมัติในหลักการและวันที่หนังสือให้ครบถ้วน หรือเว้นว่างทั้งสองช่อง",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
+                )
             try:
                 reference_date = datetime.strptime(reference_date_raw, "%Y-%m-%d").date()
             except ValueError:
-                flash("รูปแบบวันที่หนังสืออนุมัติไม่ถูกต้อง", "danger")
-                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
+                return _validation_redirect_response(
+                    "รูปแบบวันที่หนังสืออนุมัติไม่ถูกต้อง",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
+                )
 
         existing_reference_files = [
             (path, existing_reference_names[index] if index < len(existing_reference_names) else "reference")
@@ -5707,8 +5743,10 @@ def submit_petty_cash_claim():
             if path
         ]
         if len(existing_reference_files) + len(reference_files) > 2:
-            flash("แนบไฟล์เอกสารอ้างอิงได้ไม่เกิน 2 ไฟล์", "danger")
-            return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
+            return _validation_redirect_response(
+                "แนบไฟล์เอกสารอ้างอิงได้ไม่เกิน 2 ไฟล์",
+                request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
+            )
 
         parcel_amount_raw = (request.form.get("parcel_amount") or "").replace(",", "").strip()
         parcel_items_description = (request.form.get("items_description") or "").strip()
@@ -5719,19 +5757,25 @@ def submit_petty_cash_claim():
 
         if not is_draft and has_parcel_data:
             if not fund_request_id:
-                flash("กรุณาเลือกคำขอเบิกเงินก่อนส่งข้อมูลพัสดุ", "danger")
-                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim"))
+                return _validation_redirect_response(
+                    "กรุณาเลือกคำขอเบิกเงินก่อนส่งข้อมูลพัสดุ",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim"),
+                )
             if not parcel_amount_raw or not parcel_items_description or not parcel_sent_date_raw:
-                flash("กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุให้ครบถ้วน", "danger")
-                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+                return _validation_redirect_response(
+                    "กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุให้ครบถ้วน",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
             try:
                 parcel_amount = float(parcel_amount_raw)
                 parcel_sent_date = datetime.strptime(parcel_sent_date_raw, "%Y-%m-%d").date()
                 if parcel_amount < 0:
                     raise ValueError
             except (TypeError, ValueError):
-                flash("กรุณาระบุข้อมูลส่งคืนฝ่ายพัสดุให้ถูกต้อง", "danger")
-                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+                return _validation_redirect_response(
+                    "กรุณาระบุข้อมูลส่งคืนฝ่ายพัสดุให้ถูกต้อง",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
 
         has_claim_data = any(
             value.strip()
@@ -5740,8 +5784,10 @@ def submit_petty_cash_claim():
             if value
         ) or any(file_storage and file_storage.filename for file_storage in request.files.values())
         if not is_draft and not has_claim_data and not has_parcel_data:
-            flash("กรุณากรอกข้อมูลรายการเบิกหรือข้อมูลส่งคืนฝ่ายพัสดุอย่างน้อยหนึ่งรายการ", "warning")
-            return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+            return _validation_redirect_response(
+                "กรุณากรอกข้อมูลรายการเบิกหรือข้อมูลส่งคืนฝ่ายพัสดุอย่างน้อยหนึ่งรายการ",
+                request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+            )
         if not is_draft and not has_claim_data:
             receipt_dates = []
             descriptions = []
@@ -5786,10 +5832,9 @@ def submit_petty_cash_claim():
                 or not (descriptions[i].strip() if i < len(descriptions) else "")
                 or not (amounts[i].strip() if i < len(amounts) else "")
             ):
-                flash(f"รายการที่ {i + 1} ต้องกรอกวันที่ รายละเอียด และจำนวนเงินให้ครบถ้วน", "danger")
-                return redirect(
-                    request.referrer
-                    or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None)
+                return _validation_redirect_response(
+                    f"รายการที่ {i + 1} ต้องกรอกวันที่ รายละเอียด และจำนวนเงินให้ครบถ้วน",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
                 )
 
             try:
@@ -5798,8 +5843,10 @@ def submit_petty_cash_claim():
                 amt = 0.0
 
             if not is_draft and amt > 20000 and cat_val_int != 6:
-                flash("เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาท", "danger")
-                return redirect(request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None))
+                return _validation_redirect_response(
+                    "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาท",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
+                )
 
             if not is_draft and r_date and _receipt_requires_additional_document(r_date):
                 old_receipt_count += 1
@@ -5821,10 +5868,9 @@ def submit_petty_cash_claim():
 
         proof_file_error = _proof_file_validation_error(len(parsed_items), is_draft=is_draft)
         if proof_file_error:
-            flash(proof_file_error, "danger")
-            return redirect(
-                request.referrer
-                or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None)
+            return _validation_redirect_response(
+                proof_file_error,
+                request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
             )
 
         existing_draft_query = db.session.query(PettyCashClaimDetail).filter_by(
@@ -6174,30 +6220,38 @@ def staff_parcel_return_edit(parcel_return_id):
 
     fund_request = _get_fund_request_by_id(getattr(parcel_return, "fund_request_id", None))
     if not fund_request:
-        flash("ไม่พบคำขอที่เกี่ยวข้องกับรายการนี้", "warning")
-        return redirect(request.referrer or url_for("advance_payment.staff_fund_request_history"))
+        return _validation_redirect_response(
+            "ไม่พบคำขอที่เกี่ยวข้องกับรายการนี้",
+            request.referrer or url_for("advance_payment.staff_fund_request_history"),
+        )
 
     if not _is_current_secretary() and fund_request.requester_id != staff.id:
         abort(403)
 
     current_status = (parcel_return.status or "").strip()
     if current_status not in {"รอตรวจสอบ", "ปฏิเสธ"}:
-        flash("สามารถแก้ไขรายการส่งคืนพัสดุได้เฉพาะก่อนฝ่ายการเงินตรวจสอบ หรือหลังถูกปฏิเสธเท่านั้น", "warning")
-        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
+        return _validation_redirect_response(
+            "สามารถแก้ไขรายการส่งคืนพัสดุได้เฉพาะก่อนฝ่ายการเงินตรวจสอบ หรือหลังถูกปฏิเสธเท่านั้น",
+            url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id),
+        )
 
     amount = request.form.get("amount", "0").replace(",", "")
     items_description = request.form.get("items_description", "").strip()
     sent_date_str = request.form.get("sent_date")
 
     if not items_description or not sent_date_str:
-        flash("กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน", "danger")
-        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
+        return _validation_redirect_response(
+            "กรุณากรอกรายละเอียดรายการและวันที่ส่งให้ครบถ้วน",
+            url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id),
+        )
 
     try:
         parsed_amount = float(amount or 0)
     except (TypeError, ValueError):
-        flash("กรุณาระบุจำนวนเงินให้ถูกต้อง", "danger")
-        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
+        return _validation_redirect_response(
+            "กรุณาระบุจำนวนเงินให้ถูกต้อง",
+            url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id),
+        )
 
     ticket_id = getattr(fund_request, "borrowing_ticket_id", None)
     if ticket_id:
@@ -6271,7 +6325,7 @@ def mark_petty_claim_checking(claim_id):
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("เปลี่ยนสถานะเป็น 'กำลังตรวจสอบ' เรียบร้อยแล้ว", "success")
-    return redirect(request.referrer or url_for("advance_payment.petty_cash_settings"))
+    return petty_cash_claim_detail(claim.id)
 
 # 2. ยืนยันการตรวจสอบ (ผ่านการตรวจสอบ)
 @bp.route("/finance/petty-claims/<int:claim_id>/proofed", methods=["POST"])
@@ -6282,7 +6336,7 @@ def mark_petty_claim_proofed(claim_id):
     claim.status = "ผ่านการตรวจสอบ"
     db.session.commit()
     flash("ทำเครื่องหมายรายการเงินสดย่อยเป็น 'ผ่านการตรวจสอบ' เรียบร้อยแล้ว", "success")
-    return redirect(request.referrer or url_for("advance_payment.petty_cash_settings"))
+    return petty_cash_claim_detail(claim.id)
 
 
 # 3. โอนเงินสดย่อยสำเร็จ (โอนเงินสดย่อยสำเร็จ / transferred + บันทึกวันที่)
@@ -6293,8 +6347,7 @@ def mark_petty_claim_transferred(claim_id):
         
     transferred_date_str = request.form.get("transferred_at")
     if not transferred_date_str:
-        flash("กรุณาระบุวันที่หน่วยงานได้รับเงิน/วันที่โอนเงิน", "danger")
-        return redirect(request.referrer or url_for("advance_payment.petty_cash_settings"))
+        return _validation_error_response("กรุณาระบุวันที่หน่วยงานได้รับเงิน/วันที่โอนเงิน")
 
     claim.status = "โอนเงินสดย่อยสำเร็จ"
     claim.transferred_at = datetime.strptime(transferred_date_str, "%Y-%m-%d").date()
@@ -6306,7 +6359,7 @@ def mark_petty_claim_transferred(claim_id):
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("เปลี่ยนสถานะเป็น 'โอนเงินสดย่อยสำเร็จ' และบันทึกวันที่เรียบร้อยแล้ว", "success")
-    return redirect(request.referrer or url_for("advance_payment.petty_cash_settings"))
+    return petty_cash_claim_detail(claim.id)
 
 
 # 4. เปลี่ยนสถานะเป็น ได้รับเงินแล้ว/ล้างลูกหนี้เสร็จสมบูรณ์
@@ -6319,7 +6372,7 @@ def mark_petty_claim_received(claim_id):
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("เปลี่ยนสถานะเป็น 'ได้รับเงินแล้ว' สิ้นสุดกระบวนการเรียบร้อย", "success")
-    return redirect(request.referrer or url_for("advance_payment.petty_cash_settings"))
+    return petty_cash_claim_detail(claim.id)
 
 
 # 5. ปฏิเสธรายการเบิกเงินสดย่อย
@@ -6347,7 +6400,7 @@ def reject_petty_claim(claim_id):
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("ปฏิเสธรายการเบิกเงินสดย่อยเรียบร้อยแล้ว", "info")
-    return redirect(request.referrer or url_for("advance_payment.petty_cash_settings"))
+    return petty_cash_claim_detail(claim.id)
 
 @bp.route("/staff/petty-cash-ledger", methods=["GET"])
 @module_role_required(secretary_permission, SECRETARY_ROLE, PETTY_CASH_SYSTEM)

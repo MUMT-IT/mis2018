@@ -741,9 +741,16 @@
 
         fetch(mainForm.action, {
           method: 'POST',
-          body: formData
+          body: formData,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            return res.json().then(payload => {
+              throw new Error(payload.message || 'กรุณาตรวจสอบข้อมูลในฟอร์ม');
+            });
+          }
           if (!res.ok) throw new Error('เกิดข้อผิดพลาดในการบันทึกเอกสาร');
           return res.blob();
         })
@@ -762,7 +769,13 @@
           }, 300);
         })
         .catch(err => {
-          alert(err.message);
+          window.openAppPopup({
+            title: "กรุณาตรวจสอบข้อมูล",
+            message: err.message,
+            confirmText: "ตกลง",
+            confirmClass: "btn-danger",
+            alertOnly: true,
+          });
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalBtnText;
         });

@@ -1,4 +1,4 @@
-{% extends "advance_payment/base.html" %}
+﻿{% extends "advance_payment/base.html" %}
 
 {% block title %}รายละเอียดสัญญาเงินยืม | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
@@ -239,7 +239,7 @@
           </form>
       </div>
     {% endif %}
-    {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
+    {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" and advance_payment_role != 'finance' %}
       <div class="d-flex justify-content-end mt-3">
         <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
           <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน
@@ -372,7 +372,7 @@
               <td class="text-center">
                 <div class="d-flex flex-wrap gap-2 justify-content-center">
                   {% if advance_payment_role == 'finance' and pr.status == 'รอตรวจสอบ' %}
-                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}">
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
                         type="button"
@@ -388,7 +388,7 @@
                       </button>
                     </form>
                   {% elif advance_payment_role == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
-                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}">
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
                         type="button"
@@ -452,7 +452,7 @@
         {% if session.get('advance_payment_system') == 'advance_payment' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
           <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
-            <form method="post" action="{{ url_for('advance_payment.coordinator_parcel_return_edit', parcel_return_id=pr.id) }}">
+            <form method="post" action="{{ url_for('advance_payment.coordinator_parcel_return_edit', parcel_return_id=pr.id) }}" data-ajax-validation="true">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <div class="modal-content">
                   <div class="modal-header">
