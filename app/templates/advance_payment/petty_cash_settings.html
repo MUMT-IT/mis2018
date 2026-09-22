@@ -225,12 +225,6 @@
                   <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}">{{ account.label }}</option>
                 {% endfor %}
               </template>
-              <div class="d-flex justify-content-end mb-3">
-                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="addSettingRow()">
-                  <i class="bi bi-plus-circle me-1"></i>เพิ่มหน่วยงานใหม่
-                </button>
-              </div>
-
               <div class="table-responsive mb-3">
                 <table class="table table-bordered align-middle bg-white" id="settingsTable">
                   <thead class="table-light small fw-bold">
@@ -307,8 +301,12 @@
                     {% endfor %}
                   </tbody>
                 </table>
+                <div class="d-flex justify-content-end mb-3">
+                  <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="addSettingRow()">
+                    <i class="bi bi-plus-circle me-1"></i>เพิ่มหน่วยงานใหม่
+                  </button>
+                </div>
               </div>
-
               <div class="text-end">
                 <button type="button" class="btn btn-light me-2 fw-bold" onclick="toggleEditSection()">ยกเลิก</button>
                 <button type="submit" class="btn btn-primary px-4 fw-bold">
@@ -443,7 +441,7 @@
         <input type="hidden" name="setting_id[]" value="">
       </td>
       <td>
-        <select name="org_id[]" class="form-select form-select-sm dept-input searchable-select" onchange="syncOrgName(this); fetchCustodianSuggestion(this)" required>
+        <select name="org_id[]" class="form-select form-select-sm dept-input searchable-select" onchange="syncOrgName(this); fetchCustodianSuggestion(this)">
           <option value="">เลือกหน่วยงาน</option>
           {% for org in org_options %}<option value="{{ org.id }}" data-org-name="{{ org.name }}">{{ org.name }}</option>{% endfor %}
         </select>
@@ -457,10 +455,10 @@
         <input type="hidden" name="custodian_name[]" value="">
       </td>
       <td>
-        <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" placeholder="0.00" required>
+        <input type="text" name="budget[]" class="form-control form-control-sm text-end budget-input" placeholder="0.00">
       </td>
       <td>
-        <select name="account_number[]" class="form-select form-select-sm account-number-input searchable-select" onchange="syncBankAccountInfo(this)" required>
+        <select name="account_number[]" class="form-select form-select-sm account-number-input searchable-select" onchange="syncBankAccountInfo(this)">
           <option value="">โปรดเลือกเลขที่บัญชี</option>
           {% for account in bank_account_options %}<option value="{{ account.value }}" data-bank-account-id="{{ account.id }}">{{ account.label }}</option>{% endfor %}
         </select>
@@ -489,10 +487,7 @@
       const select = $(this);
       if (select.hasClass('select2-hidden-accessible')) return;
 
-      let placeholder = 'พิมพ์เพื่อค้นหาหรือเลือกข้อมูล...';
-      if (select.hasClass('dept-input')) placeholder = 'พิมพ์เพื่อค้นหาหน่วยงาน...';
-      if (select.hasClass('custodian-input')) placeholder = 'พิมพ์เพื่อค้นหาผู้ดูแลบัญชี...';
-      if (select.hasClass('account-number-input')) placeholder = 'พิมพ์เพื่อค้นหาเลขที่บัญชี...';
+      let placeholder = ' ';
 
       select.select2({
         theme: 'bootstrap-5',
