@@ -298,7 +298,16 @@
         <button class="btn btn-outline-dark border-2 me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#appNavigationDrawer" aria-controls="appNavigationDrawer" style="border-radius: 8px;">
           <i class="bi bi-list fs-5 d-flex align-items-center"></i>
         </button>
-        <span class="navbar-brand mb-0 h1 fs-5 fw-bold text-dark">
+        {% if session.get('advance_payment_system') == 'petty_cash' %}
+          {% set advance_payment_home_url = url_for('advance_payment.staff_fund_request_history') %}
+        {% elif session.get('advance_payment_system') == 'advance_payment' %}
+          {% set advance_payment_home_url = url_for('advance_payment.coordinator_dashboard') %}
+        {% elif session.get('advance_payment_system') == 'finance' %}
+          {% set advance_payment_home_url = url_for('advance_payment.finance_dashboard') %}
+        {% else %}
+          {% set advance_payment_home_url = url_for('advance_payment.login') %}
+        {% endif %}
+        <a class="navbar-brand mb-0 h1 fs-5 fw-bold text-dark text-decoration-none" href="{{ advance_payment_home_url }}">
           <i class="text-primary"></i>
           {% if session.get('advance_payment_system') == 'petty_cash' %}
             ระบบเงินสดย่อย
@@ -309,7 +318,7 @@
           {% else %}
             ระบบ Advance Payment
           {% endif %}
-        </span>
+        </a>
       </header>
 
       <div class="offcanvas offcanvas-start drawer-navigation" tabindex="-1" id="appNavigationDrawer" aria-labelledby="appNavigationDrawerLabel" style="background: #1e293b; color: #f8fafc; max-width: 280px;">
@@ -408,8 +417,8 @@
                 </span>
               </div>
             </div>
-            <a class="btn btn-danger btn-sm w-100 mt-2 fw-bold" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 8px;">
-              <i class="bi bi-box-arrow-right me-1"></i> ออกจาก Advance Payment
+            <a class="btn btn-primary btn-sm w-100 mt-2 fw-bold" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 8px;">
+              <i class="bi bi-box-arrow-right me-1"></i> ออกไปเมนูระบบ
             </a>
           </div>
         </div>
