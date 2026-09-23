@@ -3646,7 +3646,7 @@ def edit_receipt_item_inline(file_id):
         if not claim_detail:
             abort(404)
 
-        if claim_detail.status.lower() not in ["รอตรวจสอบ", "ปฏิเสธ", "ฉบับร่าง"]:
+        if claim_detail.status.lower() not in ["รอตรวจสอบ", "ปฏิเสธ", "ฉบับร่าง", "รอยืนยันการแก้ไข"]:
             return _validation_error_response("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
 
         if not receipt_item and proof_file:
@@ -3668,11 +3668,31 @@ def edit_receipt_item_inline(file_id):
         ):
             abort(403)
 
-        if return_detail.status.lower() not in ["รอตรวจสอบ", "ปฏิเสธ", "ฉบับร่าง", RETURN_DETAIL_BOUNCED_STATUS.lower()]:
+        if return_detail.status.lower() not in ["รอตรวจสอบ", "ปฏิเสธ", "ฉบับร่าง", "รอยืนยันการแก้ไข", RETURN_DETAIL_BOUNCED_STATUS.lower()]:
             return _validation_error_response("ไม่สามารถแก้ไขได้ เนื่องจากสถานะเอกสารถูกเปลี่ยนแปลงไปแล้ว")
 
         if not receipt_item and proof_file:
             receipt_item = getattr(proof_file, "receipt_item", None)
+
+    # Keep the first save as a real change-detection step.  The item must not
+    # move to a new workflow state when the submitted values are identical.
+    submitted_receipt_date = _coerce_date(request.form.get("receipt_date")) if request.form.get("receipt_date") else None
+    submitted_store_name = request.form.get("store_name", "").strip()
+    submitted_description = request.form.get("description", "").strip()
+    submitted_amount = Decimal(request.form.get("amount", "0").replace(",", ""))
+    uploaded_file = request.files.get("proof_file")
+    has_new_file = bool(uploaded_file and uploaded_file.filename)
+
+    current_amount = Decimal(str(receipt_item.amount or 0)) if receipt_item else Decimal("0")
+    has_changes = bool(receipt_item) and any((
+        receipt_item.receipt_date != submitted_receipt_date,
+        hasattr(receipt_item, "store_name") and (receipt_item.store_name or "") != submitted_store_name,
+        (receipt_item.description or "") != submitted_description,
+        current_amount != submitted_amount,
+        has_new_file,
+    ))
+    if not has_changes:
+        return _validation_error_response("ไม่มีการเปลี่ยนแปลงข้อมูล โปรดทำการแก้ไขก่อนบันทึก")
 
     # ==========================================
     # 5. อัปเดตข้อมูลรายละเอียด และ ตรวจสอบอายุใบเสร็จ
@@ -3680,8 +3700,8 @@ def edit_receipt_item_inline(file_id):
     receipt_is_old = False  # ตัวแปรสถานะตรวจสอบอายุใบเสร็จเกิน 10 วัน
 
     if receipt_item:
-        if hasattr(receipt_item, "store_name") and request.form.get("store_name"):
-            receipt_item.store_name = request.form.get("store_name", "").strip()
+        if hasattr(receipt_item, "store_name"):
+            receipt_item.store_name = submitted_store_name
 
         receipt_item.description = request.form.get("description", "").strip()
 
@@ -3732,7 +3752,6 @@ def edit_receipt_item_inline(file_id):
             )
 
     # 6. จัดการอัปโหลดไฟล์ใหม่ (ถ้ามีการแนบไฟล์)
-    uploaded_file = request.files.get("proof_file")
     if uploaded_file and uploaded_file.filename != "":
         user_id = _current_user_id()
         original_filename = os.path.basename(uploaded_file.filename)
@@ -3774,12 +3793,11 @@ def edit_receipt_item_inline(file_id):
     # ==========================================
     # 7. บันทึกข้อมูลและแจ้งเตือน Warning หากใบเสร็จเกิน 10 วัน
     # ==========================================
+    # created_at ของรายการใช้เป็นวันที่แก้ไขล่าสุดด้วย เมื่อมีการเปลี่ยนแปลงจริงเท่านั้น.
+    receipt_item.created_at = datetime.now()
+
     if is_claim:
-        claim_detail.status = (
-            "เสร็จสิ้นกระบวนการ"
-            if _claim_has_only_category_six(claim_detail)
-            else "รอตรวจสอบ"
-        )
+        claim_detail.status = "รอยืนยันการแก้ไข"
         claim_detail.total_amount = total_spent_for_claim
 
         db.session.commit()
@@ -3790,20 +3808,46 @@ def edit_receipt_item_inline(file_id):
         if receipt_is_old:
             flash("ใบเสร็จมีอายุเกิน 10 วัน กรุณาจัดทำเอกสารขออนุมัติเบิกจ่ายล่าช้าประกอบการยื่นเพิ่มเติม", "warning")
 
-        flash("แก้ไขข้อมูลรายการเบิกเงินสดย่อยสำเร็จเรียบร้อยแล้ว", "success")
+        flash("แก้ไขข้อมูลแล้ว กรุณาตรวจสอบและกดยืนยันการแก้ไขเพื่อส่งกลับไปตรวจสอบ", "success")
         return petty_cash_claim_detail(claim_detail.id)
     else:
-        return_detail.status = "รอตรวจสอบ"
+        return_detail.status = "รอยืนยันการแก้ไข"
         return_detail.amount_spent = total_spent_for_return
-        _send_notification_email(return_detail, object_type="return")
 
         db.session.commit()
 
         if receipt_is_old:
             flash("ใบเสร็จมีอายุเกิน 10 วัน กรุณาเตรียมเอกสารเพิ่มเติมประกอบการยื่น", "warning")
 
-        flash("แก้ไขข้อมูลรายการใบเสร็จและอัปเดตหลักฐานสำเร็จเรียบร้อยแล้ว", "success")
+        flash("แก้ไขข้อมูลแล้ว กรุณาตรวจสอบและกดยืนยันการแก้ไขเพื่อส่งกลับไปตรวจสอบ", "success")
         return view_return_proof_detail(return_detail.id)
+
+
+@bp.route("/finance/returns/<int:return_id>/confirm-edit", methods=["POST"])
+@flask_login_required
+def confirm_return_edit(return_id):
+    if _selected_system() == FINANCE_SYSTEM:
+        abort(403)
+    return_detail = db.session.query(ReturnDetail).get(return_id)
+    if not return_detail:
+        abort(404)
+    borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
+    if not borrowing_ticket:
+        abort(404)
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
+        (not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id())
+        or (_is_current_coordinator() and borrowing_ticket.creator_id != _current_user_id())
+    ):
+        abort(403)
+    if (return_detail.status or "").strip().lower() != "รอยืนยันการแก้ไข":
+        return _validation_error_response("รายการนี้ไม่มีการแก้ไขที่รอการยืนยัน")
+
+    return_detail.status = "รอตรวจสอบ"
+    db.session.commit()
+    _recalculate_borrowing_ticket_status(return_detail.ticket_id)
+    _send_notification_email(return_detail, object_type="return")
+    flash("ยืนยันการแก้ไขเรียบร้อยแล้ว และส่งรายการกลับไปรอตรวจสอบ", "success")
+    return view_return_proof_detail(return_detail.id)
 
 @bp.route("/coordinator/tickets/<int:ticket_id>/autosave-draft", methods=["POST"], endpoint="coordinator_autosave_draft")
 @bp.route("/borrower/tickets/<int:ticket_id>/autosave-draft", methods=["POST"], endpoint="borrower_autosave_draft")
@@ -6448,6 +6492,28 @@ def reject_petty_claim(claim_id):
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("ปฏิเสธรายการเบิกเงินสดย่อยเรียบร้อยแล้ว", "info")
+    return petty_cash_claim_detail(claim.id)
+
+
+@bp.route("/finance/petty-claims/<int:claim_id>/confirm-edit", methods=["POST"])
+@flask_login_required
+def confirm_petty_claim_edit(claim_id):
+    if _selected_system() == FINANCE_SYSTEM:
+        abort(403)
+    claim = db.session.query(PettyCashClaimDetail).get(claim_id)
+    if not claim:
+        abort(404)
+    if _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary() and claim.user_id != _current_user_id():
+        abort(403)
+    if (claim.status or "").strip().lower() != "รอยืนยันการแก้ไข":
+        return _validation_error_response("รายการนี้ไม่มีการแก้ไขที่รอการยืนยัน")
+
+    claim.status = "รอตรวจสอบ"
+    db.session.commit()
+    if claim.fund_request_id:
+        _recalculate_fund_request_submission_status(claim.fund_request_id)
+    _send_notification_email(claim, object_type="petty_claim")
+    flash("ยืนยันการแก้ไขเรียบร้อยแล้ว และส่งรายการกลับไปรอตรวจสอบ", "success")
     return petty_cash_claim_detail(claim.id)
 
 @bp.route("/staff/petty-cash-ledger", methods=["GET"])

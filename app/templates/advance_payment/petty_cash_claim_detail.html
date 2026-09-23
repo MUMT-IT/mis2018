@@ -79,6 +79,10 @@
             {% set c_badge = 'bg-danger text-white' %}
             {% set c_status = 'ปฏิเสธ' %}
           {% endif %}
+          {% if claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+            {% set c_badge = 'bg-warning text-dark' %}
+            {% set c_status = 'รอยืนยันการแก้ไข' %}
+          {% endif %}
           
           <span class="badge {{ c_badge }} mt-1 px-2 py-1">{{ c_status }}</span>
         </div>
@@ -117,7 +121,7 @@
     <div class="d-flex gap-2 justify-content-md-end mt-3 flex-wrap">
       <form method="POST" action="{{ url_for('advance_payment.confirm_petty_claim_edit', claim_id=claim_detail.id) }}" class="m-0">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-2"><i class="bi bi-check2-circle me-1"></i>ยืนยันการแก้ไข</button>
+        <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-2"><i class="bi bi-check2-circle me-1"></i>ยืนยันการแก้ไขข้อมูล</button>
       </form>
     </div>
     {% endif %}
@@ -327,7 +331,7 @@
                 </td>
                 
                 <td class="text-end">
-                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
+                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ', 'รอยืนยันการแก้ไข'] %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ item.id }}">
                         <i class="bi bi-pencil-square"></i> แก้ไข
                     </button>
@@ -336,7 +340,7 @@
                 </tr>
 
                 <!-- Modal สำหรับแก้ไขรายการแบบ Inline (สำหรับผู้ขอเบิก) -->
-                    {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ'] %}
+                {% if session.get('advance_payment_system') == 'petty_cash' and claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'ปฏิเสธ', 'รอยืนยันการแก้ไข'] %}
                 <div class="modal fade text-start" id="editModalInRow{{ item.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ item.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">
