@@ -29,7 +29,7 @@ from app.service_admin import service_admin
 from flask import render_template, flash, redirect, url_for, request, session, make_response, jsonify, current_app, \
     send_file
 from flask_login import current_user, login_required, login_user
-from sqlalchemy import or_, update, and_, case, func
+from sqlalchemy import or_, update, and_, case, func, cast, Date
 from app.service_admin.forms import *
 from app.main import app, get_credential
 from app.main import mail
@@ -668,7 +668,7 @@ def _normalize_customer_email(email_value):
 
 
 def _get_service_admin_invoice_overdue_days(invoice, today=None):
-    if not invoice or not invoice.due_date:
+    if not invoice.due_date:
         return None
     today = today or arrow.now('Asia/Bangkok').date()
     due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
@@ -2285,6 +2285,182 @@ def menu():
                 invoice_count_for_central_admin=invoice_count_for_central_admin)
 
 
+@service_admin.route('/customer/register/index')
+def customer_register_index():
+    return render_template('service_admin/customer_register_index.html')
+
+
+@service_admin.route('/customer/register/search')
+@login_required
+def search_customer():
+    customer_name = request.args.get('customer_name', '').strip()
+    customers = []
+    if customer_name:
+        search_term = f'%{customer_name}%'
+        customers = (
+            ServiceCustomerInfo.query
+            .filter(or_(
+                ServiceCustomerInfo.cus_name.ilike(search_term),
+                ServiceCustomerInfo.taxpayer_identification_no.ilike(search_term),
+                ServiceCustomerInfo.email.ilike(search_term),
+                ServiceCustomerInfo.phone_number.ilike(search_term),
+            ))
+            .order_by(ServiceCustomerInfo.cus_name.asc())
+            .limit(100)
+            .all()
+        )
+    return render_template(
+        'service_admin/search_customer.html',
+        customers=customers,
+        customer_name=customer_name,
+    )
+
+
+@service_admin.route('/customer/register/detail/<int:customer_id>')
+@login_required
+def customer_detail(customer_id):
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    # lab_payments = _build_customer_lab_payments(customer)
+    overdue_invoices = _get_customer_overdue_invoices(customer)
+    latest_service_requests = (
+        ServiceRequest.query
+        .join(ServiceRequest.customer)
+        .join(ServiceRequest.sub_lab)
+        .options(
+            joinedload(ServiceRequest.sub_lab)
+            .joinedload(ServiceSubLab.lab)
+        )
+        .filter(
+            ServiceCustomerAccount.customer_info_id == customer.id
+        )
+        .order_by(
+            ServiceSubLab.lab_id,
+            ServiceRequest.request_no.desc(),
+        )
+        .distinct(ServiceSubLab.lab_id)
+        .all()
+    )
+    return render_template(
+        'service_admin/customer_detail.html',
+        customer=customer,
+        overdue_invoices=overdue_invoices,
+        latest_service_requests=latest_service_requests
+    )
+
+
+# def _build_customer_lab_payments(customer):
+#     today = arrow.now('Asia/Bangkok').date()
+#     service_requests = (
+#         ServiceRequest.query
+#         .join(ServiceRequest.customer)
+#         .options(
+#             joinedload(ServiceRequest.sub_lab).joinedload(ServiceSubLab.lab),
+#             selectinload(ServiceRequest.quotations).selectinload(ServiceQuotation.invoices),
+#         )
+#         .filter(ServiceCustomerAccount.customer_info_id == customer.id)
+#     )
+#
+#     labs = {}
+#     for service_request in service_requests:
+#         sub_lab = service_request.sub_lab
+#         lab = sub_lab.lab if sub_lab else None
+#         if not lab:
+#             continue
+#
+#         lab_status = labs.setdefault(lab.id, {
+#             'lab_no': lab.no,
+#             'lab_name': lab.lab or 'ไม่ระบุห้องปฏิบัติการ',
+#             'overdue_invoice_count': 0,
+#             'status': 'ไม่ค้างชำระ',
+#             'status_color': 'is-success is-light',
+#         })
+#
+#         for quotation in service_request.quotations:
+#             for invoice in quotation.invoices:
+#                 if invoice.due_date and not invoice.payments.first():
+#                     due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+#                     overdue_days = (today - due_date).days
+#                     if overdue_days > 90:
+#                         lab_status['overdue_invoice_count'] += 1
+#                         lab_status['status'] = 'ค้างชำระ'
+#                         lab_status['status_color'] = 'is-danger is-light'
+#     return sorted(labs.values(), key=lambda item:item['lab_no'])
+
+
+def _get_customer_overdue_invoices(customer):
+    today = arrow.now('Asia/Bangkok')
+    cutoff_date = today.shift(days=-90).date()
+    invoices = (
+        ServiceInvoice.query
+        .options(
+            joinedload(ServiceInvoice.quotation)
+            .joinedload(ServiceQuotation.request)
+            .joinedload(ServiceRequest.customer)
+        )
+        .filter(ServiceInvoice.due_date.isnot(None),
+                cast(ServiceInvoice.due_date, Date) < cutoff_date,
+                ~ServiceInvoice.payments.any(),
+                ServiceInvoice.quotation.has(
+                    ServiceQuotation.request.has(
+                        ServiceRequest.customer.has(
+                            ServiceCustomerAccount.customer_info_id == customer.id
+                    )
+                )
+            ),
+        )
+        .order_by(ServiceInvoice.due_date.asc())
+    )
+
+    return [
+        {
+            'invoice': invoice,
+            'request_no': invoice.quotation.request.request_no,
+            'lab_name': invoice.quotation.request.sub_lab.lab.lab,
+            'days_overdue': (today.date() - arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+            ).days,
+        }
+        for invoice in invoices
+    ]
+
+
+@service_admin.route('/external-lab/index')
+@login_required
+def external_lab_index():
+    customer_id = request.args.get('customer_id', type=int)
+    labs = ServiceLab.query.filter_by(is_external=True)
+    return render_template('service_admin/external_lab_index.html', labs=labs, customer_id=customer_id)
+
+
+@service_admin.route('/request/external-lab/add/<int:sub_lab_id>', methods=['GET', 'POST'])
+@login_required
+def create_request_id(sub_lab_id):
+    customer_id = request.args.get('customer_id', type=int)
+    sub_lab = ServiceSubLab.query.get(sub_lab_id)
+    customer_account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
+    if request.method == 'POST':
+        request_no = ServiceNumberID.get_number('Request', db, lab=sub_lab.ref)
+        service_request = ServiceRequest(admin_id=current_user.id, customer_id=customer_account.id,
+                                         created_at=arrow.now('Asia/Bangkok').datetime, sub_lab_id=sub_lab_id,
+                                         request_no=request_no.number)
+        request_no.count += 1
+        db.session.add(service_request)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('service_admin.external_lab_index', customer_id=customer_id)
+        flash('สร้าง Request ID ลำเร็จ', 'success')
+        return resp
+    return redirect(url_for('service_admin.external_lab_index', customer_id=customer_id))
+
+
+@service_admin.route('/customer/invoice/overdue/view/<int:invoice_id>')
+@login_required
+def view_overdue_invoice(invoice_id):
+    customer_id = request.args.get('customer_id', type=int)
+    invoice = ServiceInvoice.query.get(invoice_id)
+    return render_template('service_admin/view_overdue_invoice.html', invoice=invoice,
+                           customer_id=customer_id)
+
+
 @service_admin.route('/customer/view')
 @login_required
 def view_customer():
@@ -2295,7 +2471,6 @@ def view_customer():
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
 @service_admin.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
-@login_required
 def create_customer(customer_id=None):
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
@@ -2307,17 +2482,28 @@ def create_customer(customer_id=None):
     if form.validate_on_submit():
         if customer_id is None:
             customer = ServiceCustomerInfo()
+        if form.attachments:
+            for item in form.attachments:
+                file = request.files.get(f'file_{item.id}')
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    file_name = '{}.{}'.format(f'{item.file_name.data}', file.filename.split('.')[-1])
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    item.file.data = file_name
         form.populate_obj(customer)
         if customer_id is None:
-            customer.creator_id = current_user.id
+            if current_user.is_authenticated:
+                customer.creator_id = current_user.id
             account = ServiceCustomerAccount(email=form.email.data, customer_info=customer,
                                              verify_datetime=arrow.now('Asia/Bangkok').datetime)
         else:
             account.email = form.email.data
-        # if request.form.getlist('verify_email'):
-        #     account.verify_datetime = arrow.now('Asia/Bangkok').datetime
-        # else:
-        #     account.verify_datetime = None
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
@@ -2325,12 +2511,101 @@ def create_customer(customer_id=None):
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
             flash('เพิ่มลูกค้าสำเร็จ', 'success')
-        return redirect(url_for('service_admin.view_customer'))
+        if current_user.is_authenticated:
+            return redirect(url_for('service_admin.view_customer'))
+        else:
+            return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_customer.html', customer_id=customer_id,
                            form=form, account=account)
+
+
+@service_admin.route('/api/customer/account/file/add', methods=['POST'])
+def add_attachment():
+    form = ServiceCustomerInfoForm()
+    form.attachments.append_entry()
+    item_form = form.attachments[-1]
+    index = len(form.attachments)
+    template = """
+            <div id="{}" class="attachment-item">
+                <hr style="background-color: #F3F3F3">
+                <p><strong>รายการที่ {}</strong></p>
+                <div class="field" style="margin-top: .8em">
+                    <label class="label">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="file" style="margin-bottom: .5em">
+                        <label class="file-label">
+                            <input class="file-input" type="file" name="file_{}" id="file_{}"
+                                required>
+                            <span class="file-cta">
+                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                <span class="file-label">เลือกไฟล์…</span>
+                            </span>
+                            <span class="file-name">กรุณาอัปโหลดไฟล์</span>
+                        </label>
+                        <a class="button is-danger is-outlined" style="margin-left: .5em"
+                            hx-delete="{}"
+                            hx-target="closest .attachment-item"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.file_name.label,
+                           item_form.file_name(class_='input', required=True),
+                           item_form.note.label,
+                           item_form.note(class_='input'),
+                           item_form.file.label,
+                           item_form.id,
+                           item_form.id,
+                           url_for('service_admin.remove_attachment', name=item_form.id)
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/api/customer/account/file/remove', methods=['DELETE'])
+def remove_attachment():
+    field_name = request.args.get('name')
+    form = ServiceCustomerInfoForm()
+    temp_entries = []
+    for entry in form.attachments:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.attachments) > 0:
+        form.attachments.pop_entry()
+    for entry in temp_entries:
+        form.attachments.append_entry(entry)
+    return ""
+
+
+@service_admin.route('/customer/register/closing-page')
+def closing_page():
+    return render_template('service_admin/closing_page.html')
 
 
 # @service_admin.route('/request/index')
@@ -6730,6 +7005,7 @@ def upload_invoice_file(invoice_id):
 def view_invoice(invoice_id):
     tab = request.args.get('tab')
     menu = request.args.get('menu')
+    customer_id = request.args.get('customer_id', type=int)
     invoice = ServiceInvoice.query.get(invoice_id)
     admin_lab = (
         ServiceAdmin.query
@@ -6743,7 +7019,8 @@ def view_invoice(invoice_id):
     dean = invoice.quotation.request.sub_lab.signer if invoice.quotation.request.sub_lab.signer_id == current_user.id else None
     central_admin = any(a for a in admin_lab if a.is_central_admin)
     return render_template('service_admin/view_invoice.html', invoice=invoice, admin=admin, menu=menu,
-                           supervisor=supervisor, assistant=assistant, dean=dean, central_admin=central_admin, tab=tab)
+                           supervisor=supervisor, assistant=assistant, dean=dean, central_admin=central_admin, tab=tab,
+                           customer_id=customer_id)
 
 
 @service_admin.route('/central_admin/invoice/view/<int:invoice_id>', methods=['GET'])

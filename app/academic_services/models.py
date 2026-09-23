@@ -251,6 +251,19 @@ class ServiceCustomerContact(db.Model):
         }
 
 
+class ServiceCustomerAttachment(db.Model):
+    __tablename__ = 'service_customer_attachments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
+    note = db.Column('note', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
+    file = db.Column('file', db.String(), info={'label': 'ไฟล์'})
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('attachments', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return self.name
+
+
 class ServiceCustomerAddress(db.Model):
     __tablename__ = 'service_customer_addresses'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -308,6 +321,7 @@ class ServiceLab(db.Model):
     service_rate = db.Column('service_rate', db.String())
     phone_number = db.Column('phone_number', db.String())
     email = db.Column('email', db.String())
+    is_external = db.Column('is_external', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime())
     updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
     updater = db.relationship(StaffAccount, backref=db.backref('service_labs'))

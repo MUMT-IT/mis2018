@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}ลงทะเบียนลูกค้าสำเร็จ{% endblock %}
+{% block page_content %}
+    <section class="customer-closing-page section">
+        <div class="customer-closing-orb customer-closing-orb-left" aria-hidden="true"></div>
+        <div class="customer-closing-orb customer-closing-orb-right" aria-hidden="true"></div>
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-10-tablet is-8-desktop is-7-widescreen">
+                    <div class="customer-closing-card" role="status" aria-live="polite">
+                        <span class="customer-closing-icon" aria-hidden="true">
+                            <i class="fas fa-check"></i>
+                        </span>
+                        <p class="customer-closing-eyebrow">CUSTOMER REGISTRATION</p>
+                        <h1 class="title customer-closing-title">ลงทะเบียนสำเร็จ</h1>
+                        <p class="customer-closing-subtitle">
+                            ระบบบันทึกข้อมูลของท่านเรียบร้อยแล้ว
+                        </p>
+                        <div class="customer-closing-divider" aria-hidden="true"></div>
+                        <p class="customer-closing-message">
+                            ขอบพระคุณสำหรับการลงทะเบียน
+                        </p>
+                        <p class="customer-closing-note">
+                            <span class="icon" aria-hidden="true"><i class="fas fa-window-close"></i></span>
+                            <span>ท่านสามารถปิดหน้านี้ได้เลย</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <style>
+        .customer-closing-page {
+            min-height: 31rem;
+            overflow: hidden;
+            padding-bottom: 4rem;
+            padding-top: 4rem;
+            position: relative;
+        }
+
+        .customer-closing-page .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .customer-closing-orb {
+            border-radius: 999px;
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .customer-closing-orb-left {
+            background: rgba(44, 119, 202, 0.12);
+            height: 18rem;
+            left: -9rem;
+            top: 4rem;
+            width: 18rem;
+        }
+
+        .customer-closing-orb-right {
+            background: rgba(83, 201, 138, 0.14);
+            height: 15rem;
+            right: -6rem;
+            top: 1rem;
+            width: 15rem;
+        }
+
+        .customer-closing-card {
+            align-items: center;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(58, 101, 184, 0.18);
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(18, 39, 84, 0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: clamp(2rem, 5vw, 3.5rem) clamp(1.5rem, 5vw, 3rem);
+            position: relative;
+            text-align: center;
+        }
+
+        .customer-closing-card::before {
+            background: linear-gradient(90deg, #2f80c9, #53c98a);
+            content: "";
+            height: 5px;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+
+        .customer-closing-icon {
+            align-items: center;
+            background: linear-gradient(135deg, #e6f8ee, #eef8ff);
+            border: 1px solid #c9ecd8;
+            border-radius: 999px;
+            color: #31a866;
+            display: inline-flex;
+            font-size: 1.8rem;
+            height: 4.5rem;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+            width: 4.5rem;
+        }
+
+        .customer-closing-eyebrow {
+            color: #6e7f99;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            margin-bottom: 0.65rem;
+        }
+
+        .customer-closing-title {
+            color: #15284d;
+            font-size: clamp(1.9rem, 4vw, 2.55rem);
+            margin-bottom: 0.6rem !important;
+        }
+
+        .customer-closing-subtitle {
+            color: #425675;
+            font-size: clamp(1rem, 2vw, 1.15rem);
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .customer-closing-divider {
+            background: #e8edf5;
+            height: 1px;
+            margin: 1.8rem 0 1.25rem;
+            max-width: 32rem;
+            width: 100%;
+        }
+
+        .customer-closing-message {
+            color: #237348;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .customer-closing-note {
+            align-items: center;
+            color: #718099;
+            display: flex;
+            font-size: 0.78rem;
+            gap: 0.45rem;
+            line-height: 1.5;
+            margin: 1.15rem 0 0;
+        }
+
+        .customer-closing-note .icon {
+            color: #6e7f99;
+        }
+
+        @media screen and (max-width: 768px) {
+            .customer-closing-page {
+                padding-bottom: 2rem;
+                padding-top: 2rem;
+            }
+
+            .customer-closing-card {
+                border-radius: 22px;
+            }
+        }
+    </style>
+{% endblock %}
+{% block footer %}
+{% endblock %}
