@@ -97,13 +97,13 @@
               <td class="text-center">{{ request.display_requester_name }}</td>
               <td class="text-center">
                 {% if request.form_type == 'petty_cash' %}
-                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกเงินสดย่อย</span>
+                  <span class="badge bg-opacity-10 bg-primary text-primary border border-primary-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกเงินสดย่อย</span>
                 {% elif request.form_type == 'interest' %}
-                  <span class="badge bg-info-subtle text-info border border-info-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกดอกเบี้ย</span>
+                  <span class="badge bg-opacity-10 bg-info text-info border border-info-subtle px-2.5 py-1.5 fw-bold">ขออนุมัติเบิกดอกเบี้ย</span>
                 {% elif request.form_type == 'borrowing' %}
-                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2.5 py-1.5 fw-bold">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</span>
+                  <span class="badge bg-opacity-10 bg-warning text-warning border border-warning-subtle px-2.5 py-1.5 fw-bold">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</span>
                 {% else %}
-                  <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 fw-bold">{{ request.form_type }}</span>
+                  <span class="badge bg-opacity-10 bg-secondary text-secondary px-2.5 py-1.5 fw-bold">{{ request.form_type }}</span>
                 {% endif %}
               </td>
               <td class="text-end fw-bold text-dark">{{ "{:,.2f}".format(request.amount) }}</td>
