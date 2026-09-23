@@ -61,7 +61,7 @@
                       {% endif %}
                     {% else %}
                       <input type="text" id="requester_input" class="form-control bg-light" value="{{ current_user_display_name }}" readonly>
-                      <input type="hidden" name="requester_id" value="{{ session.get('user_id') }}">
+                      <input type="hidden" name="requester_id" value="{{ (advance_payment_user.id if advance_payment_user.is_authenticated else '') }}">
                     {% endif %}
                 </div>
                 <div class="col-md-6">
@@ -681,7 +681,7 @@
         } else if (pettyCashRadio.checked) {
           window.openAppPopup({
             title: "ยืนยันการส่งแบบฟอร์ม",
-            message: "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาทต่อหนึ่งใบเสร็จ",
+            message: "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาทต่อใบเสร็จ",
             targetFormId: mainForm.id,
             requireAcknowledgement: true,
             acknowledgementLabel: "ข้าพเจ้าได้อ่านและรับทราบเงื่อนไขข้างต้นแล้ว",
@@ -741,9 +741,16 @@
 
         fetch(mainForm.action, {
           method: 'POST',
-          body: formData
+          body: formData,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(res => {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            return res.json().then(payload => {
+              throw new Error(payload.message || 'กรุณาตรวจสอบข้อมูลในฟอร์ม');
+            });
+          }
           if (!res.ok) throw new Error('เกิดข้อผิดพลาดในการบันทึกเอกสาร');
           return res.blob();
         })
@@ -762,7 +769,13 @@
           }, 300);
         })
         .catch(err => {
-          alert(err.message);
+          window.openAppPopup({
+            title: "กรุณาตรวจสอบข้อมูล",
+            message: err.message,
+            confirmText: "ตกลง",
+            confirmClass: "btn-danger",
+            alertOnly: true,
+          });
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalBtnText;
         });

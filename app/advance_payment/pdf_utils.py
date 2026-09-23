@@ -7,7 +7,7 @@ from datetime import datetime
 from bahttext import bahttext
 
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
@@ -27,7 +27,7 @@ from .views import (
     FUND_REQUEST_FORM_PETTY_CASH,
 )
 from app.models import Org
-from app.staff.models import StaffHeadPosition, StaffLeaveApprover
+from app.staff.models import StaffPersonalInfo
 
 
 # Non-breaking spaces keep a writable gap in ReportLab paragraphs.
@@ -186,6 +186,42 @@ def draw_dotted_line():
     return Paragraph("....................................................................................................................................................", styles['ThaiCenter'])
 
 
+def _build_global_header(department_name, telephone_number, paragraph_style, *, logo_size=78):
+    """Build the shared university letterhead with a fixed text column width."""
+    logo_path = os.path.join(BASE_DIR, "static", "logo-MU_black-white-2-1.png")
+    if os.path.exists(logo_path):
+        logo = Image(logo_path, width=logo_size, height=logo_size)
+        logo.hAlign = "CENTER"
+    else:
+        logo = Drawing(logo_size, logo_size)
+        radius = logo_size / 2 - 4
+        logo.add(Circle(logo_size / 2, logo_size / 2, radius,
+                        strokeColor=colors.black, strokeWidth=1,
+                        fillColor=colors.white))
+
+    header_right = Paragraph(
+        f"<br/><br/>{department_name}<br/>"
+        f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
+        f"โทร. {telephone_number}",
+        paragraph_style,
+    )
+    header_table = Table(
+        [["", logo, header_right]],
+        # Keep the right-hand text in a dedicated column so it cannot overlap
+        # the logo when a department name is long.
+        colWidths=[170, 110, 165],
+    )
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (1, 0), (1, 0), "CENTER"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    return header_table
+
+
 def missing_department_notice():
     return PDF_BLANK
 
@@ -196,63 +232,78 @@ def _get_user_by_id(user_id):
     return db.session.query(StaffAccount).get(user_id)
 
 
-def _get_middle_level_head(staff_account_id):
-    """Resolve signatures only through the borrower's active middle-level approver.
-
-    Both the name and the head-position record must belong to that approver.
-    Department heads must never be used as a fallback.
-    """
-    if not staff_account_id:
-        return None
-
-    approver = (
-        db.session.query(StaffLeaveApprover)
-        .filter_by(
-            staff_account_id=staff_account_id,
-            is_active=True,
-            is_middle_level=True,
-        )
-        .order_by(StaffLeaveApprover.id.desc())
-        .first()
-    )
-    if not approver:
-        return None
-
-    head_account = approver.account
-    if not head_account:
-        return None
-
-    head_position = (
-        db.session.query(StaffHeadPosition)
-        .filter_by(staff_account_id=approver.approver_account_id)
-        .order_by(StaffHeadPosition.id.desc())
-        .first()
-    )
-    return {
-        "head": getattr(head_account, "name", None) or getattr(head_account, "fullname", None),
-        "head_position": getattr(head_position, "position", None),
-    }
-
-
 def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_account_id=None):
-    """Use the FNAR02 signature source for every PDF.
-
-    Resolve the original ticket borrower first, then the fund requester, then
-    the standalone claim requester. A claim's recorder must not replace the
-    borrower/requester when a linked document identifies that person.
-    """
+    """Resolve the organization head from ``Org.head`` for PDF signatures."""
     if fund_request is None and claim is not None:
         fund_request = getattr(claim, "fund_request", None)
     if ticket is None and fund_request is not None:
         ticket = getattr(fund_request, "borrowing_ticket", None)
-    borrower_id = (
+
+    staff_account_id = (
         getattr(ticket, "borrower_id", None)
         or getattr(fund_request, "requester_id", None)
         or getattr(claim, "user_id", None)
         or staff_account_id
     )
-    head_info = _get_middle_level_head(borrower_id) or {}
-    return _pdf_text(head_info.get("head")), _pdf_text(head_info.get("head_position"))
+
+    # Prefer the organization explicitly stored on the fund request. For
+    # standalone tickets/reports, derive it from the requesting staff member.
+    org = getattr(fund_request, "org", None)
+    if org is None and getattr(fund_request, "org_id", None):
+        org = db.session.query(Org).get(fund_request.org_id)
+    if org is None and staff_account_id:
+        staff_account = _get_user_by_id(staff_account_id)
+        org = getattr(getattr(staff_account, "personal_info", None), "org", None)
+
+    # If the current organization has no head, walk up its parent hierarchy
+    # until a head email is found. Keep a visited set to avoid malformed cycles.
+    head_email = None
+    current_org = org
+    visited_org_ids = set()
+    while current_org is not None:
+        org_key = getattr(current_org, "id", None) or id(current_org)
+        if org_key in visited_org_ids:
+            break
+        visited_org_ids.add(org_key)
+
+        head_email = (getattr(current_org, "head", None) or "").strip()
+        if head_email:
+            break
+
+        parent_id = getattr(current_org, "parent_id", None)
+        current_org = (
+            db.session.query(Org).get(parent_id)
+            if parent_id
+            else None
+        )
+
+    if not head_email:
+        return _pdf_text(None), _pdf_text(None)
+
+    head_account = (
+        db.session.query(StaffAccount)
+        .filter(StaffAccount.email == head_email)
+        .first()
+    )
+    personal_id = getattr(head_account, "personal_id", None)
+    if not personal_id:
+        return _pdf_text(None), _pdf_text(None)
+
+    head_personal_info = (
+        db.session.query(StaffPersonalInfo)
+        .filter(StaffPersonalInfo.id == personal_id)
+        .first()
+    )
+    if not head_personal_info:
+        return _pdf_text(None), _pdf_text(None)
+
+    head_name = " ".join(
+        value for value in (
+            getattr(head_personal_info, "th_firstname", None),
+            getattr(head_personal_info, "th_lastname", None),
+        ) if value
+    )
+    return _pdf_text(head_name), _pdf_text(getattr(head_personal_info, "position", None))
 
 
 def _get_bank_account_info_for_ticket(ticket):
@@ -498,31 +549,15 @@ def generate_fnar02_pdf(ticket):
     # PAGE 1: บันทึกข้อความ
     # =========================================================================
 
-    # 1. โลโก้ตรามหาวิทยาลัย (จัดกลาง)
-    logo_path = os.path.join(BASE_DIR, 'static', 'logo-MU_black-white-2-1.png')
-    if os.path.exists(logo_path):
-        from reportlab.platypus import Image
-        logo_img = Image(logo_path, width=75, height=75)
-        logo_img.hAlign = 'CENTER'
-        story.append(logo_img)
-    else:
-        d = Drawing(75, 75)
-        d.add(Circle(37.5, 37.5, 35, strokeColor=colors.black, strokeWidth=1, fillColor=colors.white))
-        d.hAlign = 'CENTER'
-        story.append(d)
-
-    story.append(Spacer(1, 10))
     from .views import get_department_data_service
     telephone_number = _pdf_text((get_department_data_service(department_name) or {}).get("telephone_number"))
-    
-    # 2. ข้อมูลส่วนหัว (ชื่อหน่วยงาน และที่อยู่ชิดขวา)
-    header_info_html = f"""
-    {department_name}<br/>
-    คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    999 ถ.พุทธมณฑลสาย4 ศาลายา พุทธมณฑล นครปฐม 73170<br/>
-    โทร. {telephone_number}
-    """
-    story.append(Paragraph(header_info_html, styles['ThaiRight']))
+
+    story.append(_build_global_header(
+        department_name,
+        telephone_number,
+        styles['ThaiRight'],
+        logo_size=75,
+    ))
     story.append(Spacer(1, 6))
 
     # 3. ข้อมูลเลขที่, วันที่, เรื่อง, เรียน
@@ -544,7 +579,7 @@ def generate_fnar02_pdf(ticket):
     story.append(Spacer(1, 15))
 
     # 4. เนื้อหาบันทึกข้อความ (ย่อหน้า)
-    p1_html = f"ด้วย{department_name}มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric} บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} – {end_date_str}"
+    p1_html = f"ด้วย{department_name} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric} บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} – {end_date_str}"
     story.append(Paragraph(p1_html, styles['ThaiOfficial']))
     story.append(Spacer(1, 12))
 
@@ -885,15 +920,6 @@ def generate_petty_claim(claim, claim_type="1"):
         alignment=TA_LEFT,
         textColor=colors.black,
     )
-    logo_path = os.path.join(BASE_DIR, 'static', 'logo-MU_black-white-2-1.png')
-    if os.path.exists(logo_path):
-        from reportlab.platypus import Image
-        logo_img = Image(logo_path, width=78, height=78)
-        logo_img.hAlign = 'CENTER'
-    else:
-        logo_img = Drawing(78, 78)
-        logo_img.add(Circle(39, 39, 35, strokeColor=colors.black, strokeWidth=1, fillColor=colors.white))
-
     dept_service_data = get_department_data_service(department_name) or {}
     org = getattr(getattr(requester, "personal_info", None), "org", None)
     telephone_number = (
@@ -903,33 +929,14 @@ def generate_petty_claim(claim, claim_type="1"):
         or PDF_BLANK
     )
 
-    header_right = Paragraph(
-        f"<br/>{department_name}<br/>"
-        f"คณะเทคนิคการแพทย์<br/>"
-        f"มหาวิทยาลัยมหิดล<br/>โทร. {telephone_number}",
+    header_table = _build_global_header(
+        department_name,
+        telephone_number,
         claim_right,
     )
+    story.append(header_table)
     if no_approval_letter:
-        header_right = Paragraph(
-            f"{department_name}<br/>"
-            f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
-            f"โทร. {telephone_number}", claim_right,
-        )
-    header_table = Table([["", logo_img, header_right]], colWidths=[170, 110, 175])
-    header_table.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-    ]))
-    if no_approval_letter:
-        story.append(logo_img)
-        story.append(header_right)
         story.append(Spacer(1, 20))
-    else:
-        story.append(header_table)
     story.append(Spacer(1, 10))
 
     info_data = [
@@ -1158,15 +1165,6 @@ def generate_ticket_return(return_detail):
     )
     story = []
 
-    logo_path = os.path.join(BASE_DIR, "static", "logo-MU_black-white-2-1.png")
-    if os.path.exists(logo_path):
-        from reportlab.platypus import Image
-        logo = Image(logo_path, width=78, height=78)
-        logo.hAlign = "CENTER"
-    else:
-        logo = Drawing(78, 78)
-        logo.add(Circle(39, 39, 35, strokeColor=colors.black, strokeWidth=1, fillColor=colors.white))
-
     dept_service_data = get_department_data_service(department_name) or {}
     telephone_number = (
         getattr(borrower_org, "phone_number", None)
@@ -1174,21 +1172,11 @@ def generate_ticket_return(return_detail):
         or dept_service_data.get("phone_number")
         or PDF_BLANK
     )
-    header_right = Paragraph(
-        f"<br/>{department_name}<br/>"
-        f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
-        f"โทร. {telephone_number}",
+    header_table = _build_global_header(
+        department_name,
+        telephone_number,
         return_right,
     )
-    header_table = Table([["", logo, header_right]], colWidths=[170, 110, 175])
-    header_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (1, 0), (1, 0), "CENTER"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-    ]))
     story.extend([header_table, Spacer(1, 10)])
 
     head_name, head_position = _get_head_signature(ticket=ticket)
@@ -1294,10 +1282,10 @@ def generate_fund_request_pdf(fund_request):
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        leftMargin=35,
-        rightMargin=35,
-        topMargin=15,
-        bottomMargin=15,
+        leftMargin=45,
+        rightMargin=45,
+        topMargin=24,
+        bottomMargin=24,
         title=f"MT-Petty-Cash-02_{fund_request.id}"
     )
     
@@ -1344,8 +1332,8 @@ def generate_fund_request_pdf(fund_request):
         from reportlab.platypus import Image
         logo_flowable = Image(logo_path, width=70, height=70)
     else:
-        d = Drawing(100, 100)
-        d.add(Circle(50, 50, 40, strokeColor=colors.black, strokeWidth=1, fillColor=colors.white))
+        d = Drawing(70, 70)
+        d.add(Circle(35, 35, 31, strokeColor=colors.black, strokeWidth=1, fillColor=colors.white))
         logo_flowable = d
 
     dept_display = getattr(org, "name", None) or missing_department_notice()
@@ -1357,7 +1345,7 @@ def generate_fund_request_pdf(fund_request):
     )
     header_code = Paragraph("MT-Petty Cash-02", styles['ThaiSmallRight'])
     
-    header_table = Table([[logo_flowable, header_title, header_code]], colWidths=[60, 365, 100])
+    header_table = Table([[logo_flowable, header_title, header_code]], colWidths=[60, 345, 100])
     header_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
@@ -1375,7 +1363,7 @@ def generate_fund_request_pdf(fund_request):
         f"วันที่ {date_thai}", 
         styles['ThaiSmallRight']
     )
-    sec1_header_table = Table([[sec1_title_l, sec1_title_r]], colWidths=[250, 275])
+    sec1_header_table = Table([[sec1_title_l, sec1_title_r]], colWidths=[240, 265])
     sec1_header_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
@@ -1441,7 +1429,7 @@ def generate_fund_request_pdf(fund_request):
 
     last_row_idx = len(table_data) - 1
 
-    item_table = Table(table_data, colWidths=[50, 350, 120])
+    item_table = Table(table_data, colWidths=[50, 325, 120])
     item_table.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -1461,7 +1449,7 @@ def generate_fund_request_pdf(fund_request):
             Paragraph(f"ลงชื่อผู้อนุมัติให้ยืม<br/><br/>.......................................................<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ .................................................", styles['ThaiCenter'])
         ]
     ]
-    t_sig1 = Table(sig_box_data_1, colWidths=[175, 175, 175])
+    t_sig1 = Table(sig_box_data_1, colWidths=[165, 165, 165])
     t_sig1.setStyle(TableStyle([
         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -1483,7 +1471,7 @@ def generate_fund_request_pdf(fund_request):
         f"วันที่ {date_thai}", 
         styles['ThaiSmallRight']
     )
-    sec2_header_table = Table([[sec2_title_l, sec2_title_r]], colWidths=[250, 275])
+    sec2_header_table = Table([[sec2_title_l, sec2_title_r]], colWidths=[240, 265])
     sec2_header_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
@@ -1567,21 +1555,28 @@ def generate_fund_request_pdf(fund_request):
         p_amt_str_2 = f"-{amount_str}-" if amount_str.strip() else PDF_BLANK
         p_amt_text_2 = amount_text_th
 
-    # ประกอบ Text ในรูปแบบเดียวกันทั้งหมด
-    sec2_body_text = Paragraph(
-        f"<b>เรียน</b> &nbsp;&nbsp;{head_position}<br/>"
-        f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{box_petty_cash} ขออนุมัติเบิกเงินสดย่อยจากบัญชี{acc_name} "
-        f"เลขที่บัญชี {p_acc_1} เป็นจำนวนเงิน {p_amt_str_1} บาท "
-        f"({p_amt_text_1}) ตามใบยืมเงินสดย่อยเลขที่ {p_borrow_no} "
-        f"ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม<br/>"
-        f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{box_interest} ขออนุมัติเบิกดอกเบี้ย &nbsp;{box_june} งวดเดือน มิถุนายน พ.ศ. {p_period_yr} "
-        f"&nbsp;{box_dec} งวดเดือน ธันวาคม พ.ศ. {p_period_yr} จากบัญชี {p_dept_2} "
-        f"เลขที่บัญชี {p_acc_1} ชื่อบัญชี {acc_name} เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
-        f"และขออนุมัตินำส่งดอกเบี้ยเข้าเป็นเงินรายได้คณะฯ โอนเข้าบัญชี เลขที่ 016-300-325-6 "
-        f"ชื่อบัญชีมหาวิทยาลัยมหิดล",
-        styles['ThaiJustify']
-    )
-    story.append(sec2_body_text)
+    # ใช้ Paragraph แยกเป็นย่อหน้า และใช้ firstLineIndent จาก ThaiOfficial
+    # แทนการนับ &nbsp; เพื่อให้ checkbox ของแต่ละรายการเริ่มตำแหน่งเดียวกัน
+    sec2_body_paragraphs = [
+        Paragraph(f"<b>เรียน</b> &nbsp;&nbsp;{head_position}", styles['ThaiJustify']),
+        Paragraph(
+            f"{box_petty_cash} ขออนุมัติเบิกเงินสดย่อยจากบัญชี{acc_name} "
+            f"เลขที่บัญชี {p_acc_1} เป็นจำนวนเงิน {p_amt_str_1} บาท "
+            f"({p_amt_text_1}) ตามใบยืมเงินสดย่อยเลขที่ {p_borrow_no} "
+            f"ลงวันที่ {p_borrow_date} โดยมี {p_borrower_name} เป็นผู้ยืม",
+            styles['ThaiOfficial'],
+        ),
+        Paragraph(
+            f"{box_interest} ขออนุมัติเบิกดอกเบี้ย &nbsp;{box_june} งวดเดือน มิถุนายน พ.ศ. {p_period_yr} "
+            f"&nbsp;{box_dec} งวดเดือน ธันวาคม พ.ศ. {p_period_yr}<br/>"
+            f"จากบัญชี {p_dept_2} เลขที่บัญชี {p_acc_1} ชื่อบัญชี {acc_name} "
+            f"เป็นจำนวนเงิน {p_amt_str_2} บาท ({p_amt_text_2}) "
+            f"และขออนุมัตินำส่งดอกเบี้ยเข้าเป็นเงินรายได้คณะฯ "
+            f"โอนเข้าบัญชี เลขที่ 016-300-325-6 ชื่อบัญชีมหาวิทยาลัยมหิดล",
+            styles['ThaiOfficial'],
+        ),
+    ]
+    story.extend(sec2_body_paragraphs)
     story.append(Spacer(1, 6))
 
     sig_box_data_2 = [
@@ -1598,7 +1593,7 @@ def generate_fund_request_pdf(fund_request):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     
-    t_sig2_container = Table([[t_sig2]], colWidths=[525])
+    t_sig2_container = Table([[t_sig2]], colWidths=[505])
     t_sig2_container.setStyle(TableStyle([
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),

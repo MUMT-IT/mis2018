@@ -1,4 +1,4 @@
-﻿{% extends "advance_payment/base.html" %}
+{% extends "advance_payment/base.html" %}
 
 {% block title %}รายละเอียดหลักฐานการส่งใช้เงินยืม | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
@@ -55,19 +55,30 @@
         {% if return_detail.rejection_comment %}
         <div class="col-12 mt-3">
             <h6 class="fw-bold text-danger">ประวัติบันทึกข้อเสนอแนะการปฏิเสธ:</h6>
-            <p style="white-space: pre-line;" class="mb-0 text-dark p-2 bg-danger-subtle rounded border border-danger-subtle">{{ return_detail.rejection_comment }}</p>
+            {% set rejection_history = return_detail.rejection_comment.split('ครั้งที่ ')|reject('equalto', '')|list|reverse %}
+            {% for comment in rejection_history %}
+              <p style="white-space: pre-line;" class="mb-2 p-2 rounded border {% if loop.first and return_detail.status|lower == 'ปฏิเสธ' %}text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small bg-light border-secondary-subtle{% endif %}">ครั้งที่ {{ comment }}</p>
+            {% endfor %}
         </div>
         {% endif %}
       </div>
     </div>
-    {% if session.get('user_role') != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
+    {% if advance_payment_role != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
       <div class="d-flex gap-2 justify-content-md-end mt-3">
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
           </button>
       </div>
     {% endif %}
-    {% if session.get('user_role') == 'finance' %}
+    {% if advance_payment_role != 'finance' and return_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+      <div class="d-flex gap-2 justify-content-md-end mt-3">
+        <form method="POST" action="{{ url_for('advance_payment.confirm_return_edit', return_id=return_detail.id) }}" class="m-0">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-1.5"><i class="bi bi-check2-circle me-1"></i>ยืนยันการแก้ไข</button>
+        </form>
+      </div>
+    {% endif %}
+    {% if advance_payment_role == 'finance' %}
     <div class="d-flex gap-2 justify-content-md-end mt-3">
         {% if return_detail.old_document_number and return_detail.status|lower == 'ผ่านการตรวจสอบ' %}
             <button
@@ -98,7 +109,7 @@
                         <div class="modal-body">คุณต้องการเปลี่ยนสถานะเอกสารนี้เป็น <strong>"กำลังตรวจสอบ"</strong> ใช่หรือไม่?</div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" class="m-0">
+                            <form method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-warning fw-bold">ยืนยัน</button>
                             </form>
@@ -116,7 +127,7 @@
             </button>
             <div class="modal fade text-start" id="rejectReturnModal{{ return_detail.id }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog">
-                <form method="post" action="{{ url_for('advance_payment.reject_return_detail', return_id=return_detail.id) }}">
+                <form method="post" action="{{ url_for('advance_payment.reject_return_detail', return_id=return_detail.id) }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-content">
                     <div class="modal-header">
@@ -141,7 +152,7 @@
                         <div class="modal-body">คุณต้องการส่งเอกสารนี้ไปยังสถานะ <strong>"ผ่านการตรวจสอบ"</strong> ใช่หรือไม่?</div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" class="m-0">
+                            <form method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-primary fw-bold">ยืนยันข้อมูลถูกต้อง</button>
                             </form>
@@ -246,7 +257,7 @@
                         <h5 class="modal-title fw-bold" id="editRowLabel{{ file.id or file.receipt_item.id }}"><i class="bi bi-pencil-square text-warning me-2"></i>แก้ไขข้อมูลใบเสร็จในแถว</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=file.id or file.receipt_item.id) }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ url_for('advance_payment.edit_receipt_item_inline', file_id=file.id or file.receipt_item.id) }}" enctype="multipart/form-data" data-ajax-validation="true">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="source" value="return_detail">
                         <input type="hidden" name="receipt_item_id" value="{{ file.receipt_item.id if file.receipt_item else '' }}">
