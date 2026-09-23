@@ -1512,8 +1512,7 @@ def cancel_closing_doc(closing_doc_id):
     if not closing_doc:
         abort(404)
     if not closing_doc.is_active:
-        flash("ฎีกานี้ถูกยกเลิกแล้ว", "info")
-        return redirect(url_for("advance_payment.closing_management", search_closing_number=closing_doc.document_number))
+        return _validation_error_response("ฎีกานี้ถูกยกเลิกแล้ว")
 
     doc_number = closing_doc.document_number
     updated_tickets = set()
@@ -1538,7 +1537,10 @@ def cancel_closing_doc(closing_doc_id):
 
     db.session.commit()
     flash(f"ยกเลิกฎีกาเลขที่ {doc_number} เรียบร้อยแล้ว (สถานะเปลี่ยนเป็น 'ถูกยกเลิก' และคงยอดเงินประวัติไว้)", "success")
-    return redirect(url_for("advance_payment.closing_management", search_closing_number=doc_number))
+    return closing_management(
+        _render_after_post=True,
+        _forced_search_closing_number=doc_number,
+    )
 
 @bp.route("/finance/closing-documents/<int:closing_doc_id>/bulk-receive", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -1561,8 +1563,9 @@ def bulk_receive_closing_doc(closing_doc_id):
                    and link.claim.status != "เสร็จสิ้นกระบวนการ"]
 
     if not returns_in_doc and not petty_in_doc and not parcel_in_doc:
-        flash("ไม่มีรายการเอกสารส่งใช้เงินยืม พัสดุ หรือเงินสดย่อยที่ต้องล้างลูกหนี้ในฎีกานี้เพิ่มเติม", "info")
-        return redirect(url_for("advance_payment.closing_management", search_closing_number=closing_doc.document_number))
+        return _validation_error_response(
+            "ไม่มีรายการเอกสารส่งใช้เงินยืม พัสดุ หรือเงินสดย่อยที่ต้องล้างลูกหนี้ในฎีกานี้เพิ่มเติม"
+        )
 
     updated_tickets = set()
     for ret in returns_in_doc:
@@ -1582,7 +1585,10 @@ def bulk_receive_closing_doc(closing_doc_id):
     closing_doc.settled_at = datetime.now(ZoneInfo("Asia/Bangkok"))
     db.session.commit()
     flash(f"เปลี่ยนสถานะรายการทั้งหมดรวมถึงเงินสดย่อยในฎีกา {closing_doc.document_number} เป็น 'ล้างลูกหนี้เงินยืม' เรียบร้อยแล้ว", "success")
-    return redirect(url_for("advance_payment.closing_management", search_closing_number=closing_doc.document_number))
+    return closing_management(
+        _render_after_post=True,
+        _forced_search_closing_number=closing_doc.document_number,
+    )
 
 def _calculate_ticket_return_totals(ticket_id):
     cumulative_normal = (
@@ -2445,8 +2451,8 @@ def cash_mng_document_download(file_id):
 
 @bp.route("/finance/bank-accounts", methods=["GET", "POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
-def finance_bank_account_registry():
-    show_editor = request.method == "POST"
+def finance_bank_account_registry(_render_after_post=False):
+    show_editor = request.method == "POST" and not _render_after_post
     form = BankAccountInfoForm()
     form.record_type.choices = list(BANK_ACCOUNT_TYPE_LABELS.items())
 
@@ -2460,10 +2466,9 @@ def finance_bank_account_registry():
             return None
 
 
-    if request.method == "POST":
+    if request.method == "POST" and not _render_after_post:
         if request.form.get("edit_mode") != "1":
-            flash("กรุณากดแก้ไขข้อมูลบัญชีธนาคารก่อน", "warning")
-            return redirect(url_for("advance_payment.finance_bank_account_registry"))
+            return _validation_error_response("กรุณากดแก้ไขข้อมูลบัญชีธนาคารก่อน")
 
         row_ids = request.form.getlist("record_id[]")
         row_types = request.form.getlist("record_type[]")
@@ -2517,7 +2522,18 @@ def finance_bank_account_registry():
                 ),
                 None,
             )
-            if duplicate_record:
+            # An unchanged row must not be reported as a duplicate of itself.
+            # This also keeps legacy data (created before the unique constraint
+            # was enforced) editable when another old row has the same number.
+            current_record = next(
+                (record for record in existing_accounts if str(record.id) == record_id),
+                None,
+            )
+            unchanged_account_number = (
+                current_record is not None
+                and (current_record.account_number or "").strip() == account_digits
+            )
+            if duplicate_record and not unchanged_account_number:
                 errors.append(f"แถวที่ {index} เลขที่บัญชีนี้มีอยู่ในระบบแล้ว")
                 continue
 
@@ -2547,14 +2563,13 @@ def finance_bank_account_registry():
 
         if errors:
             db.session.rollback()
-            for error in errors:
-                flash(error, "danger")
+            return _validation_error_response("; ".join(errors))
         elif processed > 0:
             db.session.commit()
             flash("บันทึกข้อมูลบัญชีธนาคารเรียบร้อยแล้ว", "success")
-            return redirect(url_for("advance_payment.finance_bank_account_registry"))
+            return finance_bank_account_registry(_render_after_post=True)
         else:
-            flash("ไม่มีข้อมูลที่ต้องบันทึก", "warning")
+            return _validation_error_response("ไม่มีข้อมูลที่ต้องบันทึก")
 
     records = (
         db.session.query(BankAccountInfo)
@@ -2841,10 +2856,6 @@ def _create_parcel_return_record(*, ticket_id=None, fund_request_id=None, amount
     return parcel_return
 
 
-def _redirect_back_or(default_endpoint):
-    return redirect(request.referrer or url_for(default_endpoint))
-
-
 def _recalculate_fund_request_submission_status(fund_request_id):
     fund_request = db.session.query(FundRequest).get(fund_request_id)
     if not fund_request:
@@ -3073,7 +3084,10 @@ def submit_fund_request_parcel_return(fund_request_id):
     )
 
     flash("บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว")
-    return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
+    return submit_petty_cash_claim(
+        _render_after_post=True,
+        _forced_fund_request_id=fund_request_id,
+    )
 
 
 @bp.route("/coordinator/parcel-returns/<int:parcel_return_id>/edit", methods=["POST"], endpoint="coordinator_parcel_return_edit")
@@ -3168,7 +3182,10 @@ def mark_parcel_proofed(parcel_return_id):
     flash("ยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุเรียบร้อยแล้ว", "success")
     if parcel_return.ticket_id:
         return verification_view(parcel_return.ticket_id)
-    return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=parcel_return.fund_request_id))
+    return submit_petty_cash_claim(
+        _render_after_post=True,
+        _forced_fund_request_id=parcel_return.fund_request_id,
+    )
 
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/received", methods=["POST"])
@@ -3193,7 +3210,10 @@ def mark_parcel_received(parcel_return_id):
     flash("เปลี่ยนสถานะพัสดุเป็น 'ได้รับเอกสารแล้ว' เรียบร้อย")
     if parcel_return.ticket_id:
         return verification_view(parcel_return.ticket_id)
-    return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=parcel_return.fund_request_id))
+    return submit_petty_cash_claim(
+        _render_after_post=True,
+        _forced_fund_request_id=parcel_return.fund_request_id,
+    )
 
 
 @bp.route("/finance/parcel-returns/<int:parcel_return_id>/reject", methods=["POST"])
@@ -3233,7 +3253,10 @@ def reject_parcel_return(parcel_return_id):
     flash("ปฏิเสธรายการส่งคืนพัสดุเรียบร้อยแล้ว", "success")
     if parcel_return.ticket_id:
         return verification_view(parcel_return.ticket_id)
-    return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=parcel_return.fund_request_id))
+    return submit_petty_cash_claim(
+        _render_after_post=True,
+        _forced_fund_request_id=parcel_return.fund_request_id,
+    )
 
 @bp.route("/api/documents/suggest", methods=["GET"])
 @flask_login_required
@@ -4282,14 +4305,14 @@ def _parcel_return_history_fallback(parcel_return):
 
 @bp.route("/finance/petty-cash-settings", methods=["GET", "POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
-def petty_cash_settings():
+def petty_cash_settings(_render_after_post=False):
     bank_account_options = _get_bank_account_dropdown_options()
     bank_account_values = {option["value"] for option in bank_account_options}
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
     staff_options = StaffAccount.get_active_accounts()
     current_fiscal_year = _current_petty_cash_fiscal_year()
 
-    if request.method == "POST":
+    if request.method == "POST" and not _render_after_post:
         setting_ids = request.form.getlist("setting_id[]")
         fiscal_years = request.form.getlist("fiscal_year[]")
         dept_names = request.form.getlist("dept_name[]")
@@ -4319,9 +4342,29 @@ def petty_cash_settings():
                 if selected_custodian
                 else (custodian_names[i].strip() if i < len(custodian_names) else "")
             )
-            bg_str = budgets[i].strip().replace(",", "")
+            bg_str = (budgets[i].strip().replace(",", "") if i < len(budgets) else "")
             acc = acc_numbers[i].strip() if i < len(acc_numbers) else ""
             raw_bank_account_info_id = bank_account_info_ids[i].strip() if i < len(bank_account_info_ids) else ""
+
+            # A row containing anything besides fiscal year or the valid flag
+            # is an actual setting row and must be complete before saving.
+            # This prevents partially filled new rows from being silently
+            # ignored by the condition below.
+            row_has_setting_data = any(
+                (
+                    raw_org_id,
+                    name,
+                    raw_custodian_id,
+                    custodian,
+                    bg_str,
+                    acc,
+                    raw_bank_account_info_id,
+                )
+            )
+            if row_has_setting_data and not all((name, custodian, bg_str, acc)):
+                errors.append(f"แถวที่ {i + 1} กรุณากรอกข้อมูลให้ครบทุกช่อง")
+                continue
+
             selected_bank_account = _get_bank_account_info(
                 bank_account_info_id=raw_bank_account_info_id,
                 account_number=acc,
@@ -4373,9 +4416,9 @@ def petty_cash_settings():
             flash("บันทึกข้อมูลตั้งต้นเงินสดย่อยเรียบร้อยแล้ว", "success")
         except Exception as e:
             db.session.rollback()
-            flash(f"เกิดข้อผิดพลาดในการบันทึก: {str(e)}", "danger")
+            return _validation_error_response(f"เกิดข้อผิดพลาดในการบันทึก: {str(e)}", 500)
 
-        return redirect(url_for("advance_payment.petty_cash_settings"))
+        return petty_cash_settings(_render_after_post=True)
 
     # ดึง Setting ทั้งหมดเรียงตาม org_id
     all_settings = (
@@ -4563,8 +4606,12 @@ def api_petty_cash_options():
 
 @bp.route("/finance/closing-management", methods=["GET", "POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
-def closing_management():
-    search_closing_number = request.args.get("search_closing_number", "").strip()
+def closing_management(_render_after_post=False, _forced_search_closing_number=None):
+    search_closing_number = (
+        _forced_search_closing_number
+        if _forced_search_closing_number is not None
+        else request.args.get("search_closing_number", "").strip()
+    )
     searched_closing_results = []
     searched_returns = []
     searched_parcel_returns = []
@@ -4626,7 +4673,7 @@ def closing_management():
                 ),
             })
 
-    if request.method == "POST":
+    if request.method == "POST" and not _render_after_post:
         document_number = request.form.get("document_number", "").strip()
         try:
             filing_date = datetime.strptime(request.form.get("filing_date", ""), "%Y-%m-%d").date()
@@ -4636,14 +4683,11 @@ def closing_management():
                 (PettyCashClaimDetail, {int(value) for value in request.form.getlist("petty_claim_ids[]")}, "โอนเงินสดย่อยสำเร็จ"),
             ]
         except (ValueError, TypeError):
-            flash("วันที่หรือรายการตั้งฎีกาไม่ถูกต้อง", "danger")
-            return redirect(url_for("advance_payment.closing_management"))
+            return _validation_error_response("วันที่หรือรายการตั้งฎีกาไม่ถูกต้อง")
         if not document_number or len(document_number) > 255 or not any(ids for _, ids, _ in selections):
-            flash("กรุณาระบุเลขที่ฎีกาและเลือกรายการตั้งฎีกา", "danger")
-            return redirect(url_for("advance_payment.closing_management"))
+            return _validation_error_response("กรุณาระบุเลขที่ฎีกาและเลือกรายการตั้งฎีกา")
         if db.session.query(ClosingDocument).filter_by(document_number=document_number).first():
-            flash("เลขที่ฎีกานี้มีอยู่แล้ว กรุณาใช้เลขที่ใหม่", "danger")
-            return redirect(url_for("advance_payment.closing_management"))
+            return _validation_error_response("เลขที่ฎีกานี้มีอยู่แล้ว กรุณาใช้เลขที่ใหม่")
 
         selected_records = []
         for model, ids, status in selections:
@@ -4652,8 +4696,7 @@ def closing_management():
                 record.status != status or record.closing_document is not None for record in records
             ):
                 db.session.rollback()
-                flash("มีรายการที่ไม่พร้อมตั้งฎีกาหรือผูกกับฎีกาอื่นแล้ว กรุณาตรวจสอบอีกครั้ง", "danger")
-                return redirect(url_for("advance_payment.closing_management"))
+                return _validation_error_response("มีรายการที่ไม่พร้อมตั้งฎีกาหรือผูกกับฎีกาอื่นแล้ว กรุณาตรวจสอบอีกครั้ง")
             selected_records.extend(records)
 
         total_amount = sum((record.total_amount if isinstance(record, PettyCashClaimDetail)
@@ -4674,7 +4717,7 @@ def closing_management():
             _recalculate_borrowing_ticket_status(ticket_id)
         db.session.commit()
         flash(f"บันทึกเอกสารตั้งฎีกาเลขที่ {document_number} ยอดรวม {total_amount:,.2f} บาท สำเร็จ")
-        return redirect(url_for("advance_payment.closing_management"))
+        return closing_management(_render_after_post=True)
 
     # --- ส่วนการดึงข้อมูลเพื่อแสดงผล (GET) ---
     proofed_records = db.session.query(ReturnDetail).filter(ReturnDetail.status == "ผ่านการตรวจสอบ", ~ReturnDetail.closing_links.any(is_active=True)).all()
@@ -4897,12 +4940,7 @@ def update_finance_note(ticket_id):
 
     flash("Note saved")
 
-    return redirect(
-        url_for(
-            "advance_payment.verification_view",
-            ticket_id=ticket_id
-        )
-    )
+    return verification_view(ticket_id)
 
 @bp.errorhandler(403)
 def forbidden(_exception):
@@ -5179,8 +5217,7 @@ def cancel_fund_request(request_id):
         abort(404)
 
     if fund_req.status in {"ยกเลิก", "ส่งเบิกแล้ว", "ส่งเบิกครบแล้ว", "เบิกเงินสำเร็จ", "เคลียร์ยอดสำเร็จ"}:
-        flash("ไม่สามารถยกเลิกรายการที่สิ้นสุดกระบวนการแล้วได้", "warning")
-        return redirect(url_for("advance_payment.staff_fund_request_history"))
+        return _validation_error_response("ไม่สามารถยกเลิกรายการที่สิ้นสุดกระบวนการแล้วได้")
 
     cancellation_reason = request.form.get("cancellation_reason", "").strip()
 
@@ -5190,7 +5227,7 @@ def cancel_fund_request(request_id):
 
     db.session.commit()
     flash("ยกเลิกใบเบิกเรียบร้อยแล้ว (สิ้นสุดกระบวนการ)", "info")
-    return redirect(url_for("advance_payment.staff_fund_request_history"))
+    return staff_fund_request_history()
 
 @bp.route("/staff/fund-request-history", methods=["GET"])
 @module_system_required(PETTY_CASH_SYSTEM)
@@ -5327,13 +5364,12 @@ def update_petty_cash_claim_number(claim_id):
 
     claim_number = request.form.get("claim_number", "").strip()
     if not claim_number:
-        flash("กรุณาระบุเลขอว.", "warning")
-        return redirect(request.referrer or url_for("advance_payment.staff_fund_request_history"))
+        return _validation_error_response("กรุณาระบุเลขอว.")
 
     claim.claim_number = claim_number
     db.session.commit()
     flash("บันทึกเลขอว. เรียบร้อยแล้ว", "success")
-    return redirect(request.referrer or url_for("advance_payment.staff_fund_request_history"))
+    return staff_fund_request_history()
 
 @bp.route("/staff/fund-request/<int:request_id>/pdf")
 @module_system_required(PETTY_CASH_SYSTEM)
@@ -5647,7 +5683,7 @@ def autosave_petty_cash_claim_draft():
 
 @bp.route("/staff/petty-cash/claim", methods=["GET", "POST"])
 @module_system_required({PETTY_CASH_SYSTEM, FINANCE_SYSTEM})
-def submit_petty_cash_claim():
+def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=None):
     user_id = _current_user_id()
     current_role = _current_module_role() or getattr(current_user, "role", None)
     if _selected_system() not in {PETTY_CASH_SYSTEM, FINANCE_SYSTEM}:
@@ -5687,14 +5723,18 @@ def submit_petty_cash_claim():
 
     # 2. ตรวจสอบการเลือก Fund Request เพื่อ Auto-fill ในหน้า Submit Claim
     selected_fund_request = None
-    selected_fr_id = request.args.get("fund_request_id", type=int)
+    selected_fr_id = (
+        _forced_fund_request_id
+        if _forced_fund_request_id is not None
+        else request.args.get("fund_request_id", type=int)
+    )
     if selected_fr_id:
         selected_request_query = db.session.query(FundRequest).filter_by(id=selected_fr_id)
         if not can_submit_claim and not is_finance_user:
             selected_request_query = selected_request_query.filter_by(requester_id=user_id)
         selected_fund_request = selected_request_query.first()
 
-    if request.method == "POST":
+    if request.method == "POST" and not _render_after_post:
         action = request.form.get("action", "submit")
         is_draft = (action == "draft")
 
@@ -5818,7 +5858,10 @@ def submit_petty_cash_claim():
             )
             db.session.commit()
             flash("บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว", "success")
-            return redirect(url_for("advance_payment.staff_fund_request_history"))
+            return submit_petty_cash_claim(
+                _render_after_post=True,
+                _forced_fund_request_id=fund_request_id,
+            )
 
         parsed_items = []
         total_claim_amount = 0.0
@@ -6289,7 +6332,10 @@ def staff_parcel_return_edit(parcel_return_id):
     _send_notification_email(parcel_return, object_type="parcel_return")
 
     flash("แก้ไขรายการส่งคืนพัสดุเรียบร้อยแล้ว", "success")
-    return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request.id))
+    return submit_petty_cash_claim(
+        _render_after_post=True,
+        _forced_fund_request_id=fund_request.id,
+    )
 
 @bp.route("/finance/petty-claims/<int:claim_id>/detail", methods=["GET"])
 @module_system_required({PETTY_CASH_SYSTEM, FINANCE_SYSTEM})
