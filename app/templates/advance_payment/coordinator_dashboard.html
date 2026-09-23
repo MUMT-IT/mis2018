@@ -464,7 +464,7 @@
                     {% set badge_class = 'bg-info text-dark' %}
                     {% set display_status = 'มียอดคงค้าง' %}
                   {% elif borrowing_ticket.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}
-                    {% set badge_class = 'bg-warning text-dark' %}
+                    {% set badge_class = 'bg-danger text-white' %}
                     {% set display_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
                   {% elif borrowing_ticket.status|lower in ['ปฏิเสธ'] %}
                     {% set badge_class = 'bg-danger text-white' %}
