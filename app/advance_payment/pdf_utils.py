@@ -27,7 +27,7 @@ from .views import (
     FUND_REQUEST_FORM_PETTY_CASH,
 )
 from app.models import Org
-from app.staff.models import StaffPersonalInfo
+from app.staff.models import StaffHeadPosition, StaffPersonalInfo
 
 
 # Non-breaking spaces keep a writable gap in ReportLab paragraphs.
@@ -233,17 +233,27 @@ def _get_user_by_id(user_id):
 
 
 def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_account_id=None):
-    """Resolve the organization head from ``Org.head`` for PDF signatures."""
+    """Resolve the organization head and position for PDF signatures.
+
+    ``StaffHeadPosition`` is organization-specific.  In particular, the same
+    staff member can be the head of two organizations, so the borrower's
+    organization must be used when selecting the record.
+    """
     if fund_request is None and claim is not None:
         fund_request = getattr(claim, "fund_request", None)
     if ticket is None and fund_request is not None:
         ticket = getattr(fund_request, "borrowing_ticket", None)
 
-    staff_account_id = (
+    borrower_account_id = (
         getattr(ticket, "borrower_id", None)
         or getattr(fund_request, "requester_id", None)
         or getattr(claim, "user_id", None)
         or staff_account_id
+    )
+
+    borrower_account = _get_user_by_id(borrower_account_id)
+    borrower_org_id = getattr(
+        getattr(borrower_account, "personal_info", None), "org_id", None
     )
 
     # Prefer the organization explicitly stored on the fund request. For
@@ -251,9 +261,68 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
     org = getattr(fund_request, "org", None)
     if org is None and getattr(fund_request, "org_id", None):
         org = db.session.query(Org).get(fund_request.org_id)
-    if org is None and staff_account_id:
-        staff_account = _get_user_by_id(staff_account_id)
+    if org is None and borrower_account:
+        org = getattr(getattr(borrower_account, "personal_info", None), "org", None)
+    if org is None and borrower_account_id:
+        staff_account = _get_user_by_id(borrower_account_id)
         org = getattr(getattr(staff_account, "personal_info", None), "org", None)
+
+    # Re-check the borrower's org before resolving the head position.  This
+    # exact-org lookup is important when one head has records for two orgs.
+    candidate_org_ids = []
+    if borrower_org_id is not None:
+        candidate_org_ids.append(borrower_org_id)
+    if getattr(org, "id", None) is not None and org.id not in candidate_org_ids:
+        candidate_org_ids.append(org.id)
+
+    for candidate_org_id in candidate_org_ids:
+        candidate_org = (
+            org if getattr(org, "id", None) == candidate_org_id
+            else db.session.query(Org).get(candidate_org_id)
+        )
+        head_identifier = (getattr(candidate_org, "head", None) or "").strip()
+        head_account = (
+            db.session.query(StaffAccount)
+            .filter(StaffAccount.email == head_identifier)
+            .first()
+            if head_identifier else None
+        )
+
+        head_position_query = db.session.query(StaffHeadPosition).filter(
+            StaffHeadPosition.org_id == candidate_org_id
+        )
+        # Match the head account as well as org_id.  This prevents selecting
+        # the other position when the same person heads multiple orgs.
+        if head_account is not None:
+            head_position_query = head_position_query.filter(
+                StaffHeadPosition.staff_account_id == head_account.id
+            )
+        head_position_record = (
+            head_position_query
+            .order_by(StaffHeadPosition.id.desc())
+            .first()
+        )
+        if head_position_record is None:
+            continue
+
+        head_account = getattr(head_position_record, "staff", None) or head_account
+        head_personal_info = getattr(head_account, "personal_info", None)
+        if head_personal_info is None and getattr(head_account, "personal_id", None):
+            head_personal_info = (
+                db.session.query(StaffPersonalInfo)
+                .filter(StaffPersonalInfo.id == head_account.personal_id)
+                .first()
+            )
+        if head_personal_info is None:
+            continue
+
+        head_name = " ".join(
+            value for value in (
+                getattr(head_personal_info, "th_firstname", None),
+                getattr(head_personal_info, "th_lastname", None),
+            ) if value
+        )
+        return _pdf_text(head_name), _pdf_text(head_position_record.position)
 
     # If the current organization has no head, walk up its parent hierarchy
     # until a head email is found. Keep a visited set to avoid malformed cycles.
@@ -303,7 +372,17 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
             getattr(head_personal_info, "th_lastname", None),
         ) if value
     )
-    return _pdf_text(head_name), _pdf_text(getattr(head_personal_info, "position", None))
+    # The position is organization-specific and must come from
+    # staff_head_positions, never from the staff member's generic position.
+    head_position_record = (
+        db.session.query(StaffHeadPosition)
+        .filter_by(org_id=getattr(current_org, "id", None), staff_account_id=head_account.id)
+        .order_by(StaffHeadPosition.id.desc())
+        .first()
+        if getattr(current_org, "id", None) and head_account is not None
+        else None
+    )
+    return _pdf_text(head_name), _pdf_text(getattr(head_position_record, "position", None))
 
 
 def _get_bank_account_info_for_ticket(ticket):
