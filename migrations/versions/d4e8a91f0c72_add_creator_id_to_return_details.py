@@ -1,6 +1,6 @@
 """Track the user who creates each return detail.
 
-Revision ID: m1a2b3c4d5e6
+Revision ID: d4e8a91f0c72
 Revises: l0f1a2b3c4d5
 """
 
@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "m1a2b3c4d5e6"
+revision = "d4e8a91f0c72"
 down_revision = "l0f1a2b3c4d5"
 branch_labels = None
 depends_on = None
