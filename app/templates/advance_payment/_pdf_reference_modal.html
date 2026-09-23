@@ -79,5 +79,14 @@
       fiscalYearInput.value = currentFiscalYear + 543;
     }
 
+    const form = modal.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function () {
+        if (window.bootstrap && bootstrap.Modal) {
+          bootstrap.Modal.getOrCreateInstance(modal).hide();
+        }
+      });
+    }
+
   });
 </script>
