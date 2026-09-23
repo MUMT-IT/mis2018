@@ -293,12 +293,21 @@
   <body>
 
     <div class="main-content d-flex flex-column">
-      {% if session.get('user_id') %}
+      {% if (advance_payment_user.id if advance_payment_user.is_authenticated else '') %}
       <header class="navbar navbar-expand navbar-light bg-white border-bottom shadow-sm px-4 py-3 sticky-top">
         <button class="btn btn-outline-dark border-2 me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#appNavigationDrawer" aria-controls="appNavigationDrawer" style="border-radius: 8px;">
           <i class="bi bi-list fs-5 d-flex align-items-center"></i>
         </button>
-        <span class="navbar-brand mb-0 h1 fs-5 fw-bold text-dark">
+        {% if session.get('advance_payment_system') == 'petty_cash' %}
+          {% set advance_payment_home_url = url_for('advance_payment.staff_fund_request_history') %}
+        {% elif session.get('advance_payment_system') == 'advance_payment' %}
+          {% set advance_payment_home_url = url_for('advance_payment.coordinator_dashboard') %}
+        {% elif session.get('advance_payment_system') == 'finance' %}
+          {% set advance_payment_home_url = url_for('advance_payment.finance_dashboard') %}
+        {% else %}
+          {% set advance_payment_home_url = url_for('advance_payment.login') %}
+        {% endif %}
+        <a class="navbar-brand mb-0 h1 fs-5 fw-bold text-dark text-decoration-none" href="{{ advance_payment_home_url }}">
           <i class="text-primary"></i>
           {% if session.get('advance_payment_system') == 'petty_cash' %}
             ระบบเงินสดย่อย
@@ -309,7 +318,7 @@
           {% else %}
             ระบบ Advance Payment
           {% endif %}
-        </span>
+        </a>
       </header>
 
       <div class="offcanvas offcanvas-start drawer-navigation" tabindex="-1" id="appNavigationDrawer" aria-labelledby="appNavigationDrawerLabel" style="background: #1e293b; color: #f8fafc; max-width: 280px;">
@@ -329,7 +338,7 @@
               </li>
             {% endif %}
             
-            {% if session.get('user_role') == 'finance' %}
+            {% if advance_payment_role == 'finance' %}
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.finance_dashboard') }}" class="nav-link {% if request.endpoint == 'advance_payment.finance_dashboard' %}active{% endif %}">
                   <i class="bi bi-clipboard-check me-2"></i> เอกสารรอการตรวจสอบ
@@ -395,12 +404,12 @@
                 <i class="bi bi-person-badge-fill"></i>
               </div>
               <div class="overflow-hidden">
-                <p class="mb-0 text-dark small fw-bold text-truncate" title="{{ session.get('user_email') }}">{{ session.get('user_email') }}</p>
+                <p class="mb-0 text-dark small fw-bold text-truncate" title="{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') }}">{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') }}</p>
                 <!-- แสดงข้อความสิทธิ์ผู้ใช้งานให้สอดคล้องกัน -->
                 <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
                   {% if session.get('advance_payment_system') == 'finance' %}
                     ฝ่ายการเงิน
-                  {% elif session.get('user_role') == 'secretary' %}
+                  {% elif advance_payment_role == 'secretary' %}
                     ผู้ดูแลเงินสดย่อย
                   {% else %}
                     ผู้ใช้งานทั่วไป
@@ -408,8 +417,8 @@
                 </span>
               </div>
             </div>
-            <a class="btn btn-danger btn-sm w-100 mt-2 fw-bold" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 8px;">
-              <i class="bi bi-box-arrow-right me-1"></i> ออกจาก Advance Payment
+            <a class="btn btn-primary btn-sm w-100 mt-2 fw-bold" href="{{ url_for('advance_payment.logout') }}" style="border-radius: 8px;">
+              <i class="bi bi-box-arrow-right me-1"></i> ออกไปเมนูระบบ
             </a>
           </div>
         </div>
@@ -439,7 +448,7 @@
 
     <div class="modal fade app-popup-modal" id="appPopupModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content border-0 shadow-lg" id="appPopupModalForm" method="post">
+        <form class="modal-content border-0 shadow-lg" id="appPopupModalForm" method="post" data-ajax-validation="true">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="modal-header px-4 pt-4 pb-2">
             <h5 class="modal-title fw-bold text-dark" id="appPopupModalTitle"></h5>
@@ -679,6 +688,118 @@
           });
         }
       })();
+
+      // Keep validation failures on the current page so entered form data is not lost.
+      document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("form[data-ajax-validation='true']").forEach(function (form) {
+          form.addEventListener("submit", async function (event) {
+            // The borrowing-ticket form has an existing acknowledgement popup.
+            // Never bypass it when this async handler is installed first.
+            const requiresBorrowingConfirmation = form.id === "createBorrowingTicketForm";
+            if (requiresBorrowingConfirmation && form.dataset.popupConfirmed !== "true") {
+              return;
+            }
+
+            if (form.dataset.ajaxSubmitting === "true") {
+              event.preventDefault();
+              return;
+            }
+
+            event.preventDefault();
+            form.dataset.ajaxSubmitting = "true";
+            const submitter = event.submitter || form.querySelector("button[type='submit']");
+            const originalSubmitterText = submitter ? submitter.innerHTML : "";
+            if (submitter) {
+              submitter.disabled = true;
+              submitter.innerHTML = "กำลังตรวจสอบข้อมูล...";
+            }
+
+            try {
+              // Use the literal form attribute. A form control named `action`
+              // can shadow the DOM form.action property with a RadioNodeList.
+              const formAction = form.getAttribute("action") || window.location.href;
+              const formData = new FormData(form);
+              // Preserve the original submit-button flow (for example
+              // action=draft versus action=submit).
+              if (submitter && submitter.name) {
+                formData.set(submitter.name, submitter.value || "");
+              }
+              const response = await fetch(formAction, {
+                method: "POST",
+                body: formData,
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                credentials: "same-origin",
+              });
+              const contentType = response.headers.get("content-type") || "";
+
+              if (contentType.includes("application/pdf")) {
+                const pdfBlob = await response.blob();
+                const objectUrl = URL.createObjectURL(pdfBlob);
+                const downloadLink = document.createElement("a");
+                const disposition = response.headers.get("content-disposition") || "";
+                const filenameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i);
+                downloadLink.download = decodeURIComponent(
+                  filenameMatch ? (filenameMatch[1] || filenameMatch[2]) : "advance-payment.pdf"
+                );
+                downloadLink.href = objectUrl;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                downloadLink.remove();
+                URL.revokeObjectURL(objectUrl);
+                return;
+              }
+
+              if (contentType.includes("application/json")) {
+                const payload = await response.json();
+                if (!response.ok || payload.ok === false) {
+                  window.openAppPopup({
+                    title: "กรุณาตรวจสอบข้อมูล",
+                    message: payload.message || "ข้อมูลไม่ถูกต้อง กรุณาแก้ไขแล้วลองใหม่",
+                    confirmText: "ตกลง",
+                    confirmClass: "btn-danger",
+                    alertOnly: true,
+                  });
+                  return;
+                }
+              } else if (response.ok) {
+                // Successful POST returns the newly created detail page as HTML.
+                document.open();
+                document.write(await response.text());
+                document.close();
+                return;
+              } else {
+                const responseText = await response.text();
+                let serverMessage = "";
+                try {
+                  serverMessage = responseText ? JSON.parse(responseText).message || "" : "";
+                } catch (parseError) {
+                  serverMessage = "";
+                }
+                throw new Error(
+                  serverMessage || `เซิร์ฟเวอร์ตอบกลับผิดพลาด (HTTP ${response.status})`
+                );
+              }
+            } catch (error) {
+              window.openAppPopup({
+                title: "ไม่สามารถบันทึกข้อมูลได้",
+                message: error.message || "กรุณาลองใหม่อีกครั้ง",
+                confirmText: "ตกลง",
+                confirmClass: "btn-danger",
+                alertOnly: true,
+              });
+            } finally {
+              if (requiresBorrowingConfirmation) {
+                delete form.dataset.popupConfirmed;
+              }
+              form.dataset.ajaxSubmitting = "false";
+              if (submitter) {
+                submitter.disabled = false;
+                submitter.innerHTML = originalSubmitterText;
+              }
+            }
+          });
+        });
+      });
 
       {% if request.args.get('limit_popup') %}
       document.addEventListener("DOMContentLoaded", function () {

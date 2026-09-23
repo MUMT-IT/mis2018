@@ -35,6 +35,11 @@ with app.app_context():
                                                                               action_need=None, resource_id=None).first()
         continuing_edu_admin_role = Role.query.filter_by(role_need='continuing_edu_admin', 
                                                           action_need=None, resource_id=None).first()
+        cash_management_coordinator_role = Role.query.filter_by(
+            role_need='cash_management_coordinator',
+            action_need=None,
+            resource_id=None,
+        ).first()
 
     except (ProgrammingError, OperationalError):
         executive_role = None
@@ -56,6 +61,7 @@ with app.app_context():
         event_staff =  None
         center_standardization_product_validation_role = None
         continuing_edu_admin_role = None
+        cash_management_coordinator_role = None
 
     executive_permission = Permission() if not executive_role else Permission(executive_role.to_tuple())
     admin_permission = Permission() if not admin_role else Permission(admin_role.to_tuple())
@@ -90,3 +96,8 @@ with app.app_context():
     education_permission = Permission() if not education_role else Permission(education_role.to_tuple())
     continuing_edu_admin_permission = Permission() if not continuing_edu_admin_role else \
         Permission(continuing_edu_admin_role.to_tuple())
+    cash_management_coordinator_permission = (
+        Permission(('cash_management_coordinator', None, None))
+        if not cash_management_coordinator_role
+        else Permission(cash_management_coordinator_role.to_tuple())
+    )

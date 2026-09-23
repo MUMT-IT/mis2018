@@ -76,7 +76,7 @@
        aria-labelledby="tab-advance" 
        tabindex="0">
     
-    <form id="closingActionForm" method="post" action="{{ url_for('advance_payment.closing_management') }}">
+    <form id="closingActionForm" method="post" action="{{ url_for('advance_payment.closing_management') }}" data-ajax-validation="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <section class="mb-5 p-4 border rounded-4 bg-white shadow-sm">
         <div class="d-flex justify-content-between align-items-center mb-3">
