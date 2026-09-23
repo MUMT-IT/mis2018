@@ -230,7 +230,7 @@
     </div>
     {% if borrowing_ticket.status|lower != "กำลังส่งคำขอ" and advance_payment_role == 'finance' %}
       <div class="d-flex justify-content-end w-100">
-          <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2">
+          <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2" data-ajax-validation="true">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <textarea name="finance_note" class="form-control flex-grow-1" rows="1" placeholder="เพิ่มบันทึกช่วยจำเกี่ยวกับสัญญานี้...">{{ borrowing_ticket.finance_note or '' }}</textarea>
             <button class="btn btn-primary fw-bold px-4 text-nowrap" style="border-radius: 6px;">

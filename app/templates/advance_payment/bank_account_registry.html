@@ -30,7 +30,7 @@
       </div>
     </div>
 
-    <form method="post" action="{{ url_for('advance_payment.finance_bank_account_registry') }}" id="bankAccountForm">
+    <form method="post" action="{{ url_for('advance_payment.finance_bank_account_registry') }}" id="bankAccountForm" data-ajax-validation="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="edit_mode" id="editModeInput" value="{% if show_editor %}1{% else %}0{% endif %}">
 
