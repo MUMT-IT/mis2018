@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS | ค้นหาข้อมูลลูกค้า{% endblock %}
+{% block page_content %}
+    {% include "nav.html" %}
+    <section class="customer-search-page section">
+        <div class="customer-search-orb customer-search-orb-left" aria-hidden="true"></div>
+        <div class="customer-search-orb customer-search-orb-right" aria-hidden="true"></div>
+        <div class="container is-fluid customer-search-container">
+            {% include 'messages.html' %}
+            <div class="customer-search-heading">
+                <div class="customer-search-heading-copy">
+                    <span class="customer-search-heading-icon" aria-hidden="true">
+                        <i class="fas fa-users"></i>
+                    </span>
+                    <div>
+                        <p class="customer-search-system-name">
+                            <i class="fas fa-layer-group" aria-hidden="true"></i>
+                            MUMT-MIS · ระบบขึ้นทะเบียนผู้รับบริการ
+                        </p>
+                        <p class="customer-search-eyebrow">CUSTOMER DIRECTORY</p>
+                        <h1 class="title customer-search-title">ค้นหาข้อมูลผู้รับบริการ</h1>
+                        <p class="customer-search-subtitle">
+                            ค้นหาด้วยชื่อบริษัท ชื่อบุคคล เลขประจำตัวผู้เสียภาษี อีเมล หรือเบอร์โทรศัพท์
+                        </p>
+                    </div>
+                </div>
+                <a class="button customer-search-back" href="{{ url_for('service_admin.customer_register_index') }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+
+            <form method="get" class="customer-search-form" role="search">
+                <div class="customer-search-form-label">
+                    <span class="icon"><i class="fas fa-search"></i></span>
+                    <span>ค้นหาผู้รับบริการ</span>
+                </div>
+                <div class="field has-addons mb-0">
+                    <div class="control is-expanded has-icons-left">
+                        <input class="input customer-search-input" type="search" name="customer_name"
+                               value="{{ customer_name }}"
+                               placeholder="เช่น บริษัท มหิดล จำกัด หรือ สมชาย มั่นดี"
+                               aria-label="คำค้นหาลูกค้า" autofocus>
+                        <span class="icon is-small is-left"><i class="fas fa-search"></i></span>
+                    </div>
+                    <div class="control">
+                        <button class="button customer-search-submit" type="submit">
+                            <span class="icon"><i class="fas fa-search"></i></span>
+                            <span>ค้นหา</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="customer-search-hint">
+                    <i class="fas fa-circle-info" aria-hidden="true"></i>
+                    สามารถใช้คำค้นหาเพียงบางส่วนได้
+                </p>
+            </form>
+
+            {% if customer_name %}
+                <div class="customer-search-result-heading">
+                    <div>
+                        <p class="customer-search-result-label">ผลการค้นหา</p>
+                        <p class="customer-search-result-query">สำหรับคำค้นหา “{{ customer_name }}”</p>
+                    </div>
+                    <div class="customer-search-result-meta">
+                        <span class="customer-search-count">{{ customers|length }}</span>
+                        <span>รายการ</span>
+                        {% if customers|length == 100 %}
+                            <span class="tag is-warning customer-search-limit-tag">แสดงสูงสุด 100 รายการ</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="customer-search-results">
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-hoverable">
+                            <thead>
+                            <tr>
+                                <th>ชื่อบริษัท/ผู้รับบริการ</th>
+                                <th>ประเภท</th>
+                                <th>เลขประจำตัวผู้เสียภาษี</th>
+                                <th>อีเมล</th>
+                                <th>เบอร์โทรศัพท์</th>
+                                <th class="customer-search-action-heading">รายละเอียด</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for customer in customers %}
+                                <tr>
+                                    <td>
+                                        <span class="customer-search-name-icon" aria-hidden="true">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                        <strong>{{ customer.cus_name }}</strong>
+                                    </td>
+                                    <td><span class="tag customer-search-type-tag">{{ customer.type or '-' }}</span></td>
+                                    <td>{{ customer.taxpayer_identification_no or '-' }}</td>
+                                    <td>{{ customer.email or '-' }}</td>
+                                    <td>{{ customer.phone_number or '-' }}</td>
+                                    <td class="customer-search-action-cell">
+                                        <a class="button is-small customer-search-detail-button"
+                                           href="{{ url_for('service_admin.customer_detail', customer_id=customer.id) }}">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                            <span>รายละเอียด</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="customer-search-no-results">
+                                            <span class="customer-search-no-results-icon" aria-hidden="true">
+                                                <i class="fas fa-user-slash"></i>
+                                            </span>
+                                            <strong>ไม่พบข้อมูลลูกค้า</strong>
+                                            <span>ลองตรวจสอบคำค้นหาหรือใช้คำค้นหาอื่น</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% else %}
+                <div class="customer-search-empty">
+                    <span class="customer-search-empty-icon" aria-hidden="true">
+                        <i class="fas fa-magnifying-glass"></i>
+                    </span>
+                    <strong>เริ่มค้นหาข้อมูลผู้รับบริการ</strong>
+                    <span>กรอกชื่อหรือข้อมูลที่ต้องการค้นหาในช่องด้านบน</span>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+    <style>
+        .customer-search-page {
+            min-height: 34rem;
+            overflow: hidden;
+            padding-bottom: 4rem;
+            padding-top: 3.5rem;
+            position: relative;
+        }
+
+        .customer-search-container {
+            max-width: 76rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .customer-search-orb {
+            border-radius: 999px;
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .customer-search-orb-left {
+            background: rgba(44, 119, 202, 0.1);
+            height: 21rem;
+            left: -11rem;
+            top: 5rem;
+            width: 21rem;
+        }
+
+        .customer-search-orb-right {
+            background: rgba(202, 168, 74, 0.12);
+            height: 17rem;
+            right: -7rem;
+            top: 0;
+            width: 17rem;
+        }
+
+        .customer-search-heading {
+            align-items: center;
+            display: flex;
+            gap: 1.5rem;
+            justify-content: space-between;
+            margin: 0 auto 1.75rem;
+            max-width: 70rem;
+        }
+
+        .customer-search-heading-copy {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .customer-search-heading-icon {
+            align-items: center;
+            background: linear-gradient(135deg, #e8f4ff, #eef8ff);
+            border: 1px solid #cfe5fb;
+            border-radius: 17px;
+            color: #2f80c9;
+            display: inline-flex;
+            flex: 0 0 3.5rem;
+            font-size: 1.35rem;
+            height: 3.5rem;
+            justify-content: center;
+        }
+
+        .customer-search-eyebrow {
+            color: #6e7f99;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.17em;
+            margin-bottom: 0.35rem;
+        }
+
+        .customer-search-system-name {
+            align-items: center;
+            color: #2f80c9;
+            display: flex;
+            font-size: 0.78rem;
+            font-weight: 700;
+            gap: 0.35rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .customer-search-title {
+            color: #15284d;
+            font-size: clamp(1.65rem, 3vw, 2.2rem);
+            margin-bottom: 0.35rem !important;
+        }
+
+        .customer-search-subtitle {
+            color: #66738d;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .customer-search-back {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid #d7e0ee;
+            border-radius: 12px;
+            color: #425675;
+            flex: 0 0 auto;
+            font-weight: 600;
+        }
+
+        .customer-search-back:hover,
+        .customer-search-back:focus-visible {
+            background: #fff;
+            border-color: #9db8d8;
+            color: #15284d;
+        }
+
+        .customer-search-form {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(58, 101, 184, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 14px 32px rgba(18, 39, 84, 0.1);
+            margin: 0 auto;
+            max-width: 70rem;
+            padding: 1.15rem 1.25rem 1rem;
+        }
+
+        .customer-search-form-label {
+            align-items: center;
+            color: #1e3152;
+            display: flex;
+            font-size: 0.9rem;
+            font-weight: 700;
+            gap: 0.45rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .customer-search-form-label .icon,
+        .customer-search-hint i {
+            color: #2f80c9;
+        }
+
+        .customer-search-input {
+            border-color: #d7e0ee;
+            box-shadow: none;
+            height: 3rem;
+        }
+
+        .customer-search-input:focus {
+            border-color: #2f80c9;
+            box-shadow: 0 0 0 0.125em rgba(47, 128, 201, 0.16);
+        }
+
+        .customer-search-submit {
+            background: linear-gradient(135deg, #2f8fd4, #2779bd);
+            border: 0;
+            color: #fff;
+            font-weight: 700;
+            height: 3rem;
+            padding-left: 1.25rem;
+            padding-right: 1.25rem;
+        }
+
+        .customer-search-submit:hover,
+        .customer-search-submit:focus-visible {
+            background: linear-gradient(135deg, #2779bd, #1f5f98);
+            color: #fff;
+        }
+
+        .customer-search-hint {
+            color: #718099;
+            font-size: 0.75rem;
+            margin: 0.65rem 0 0;
+        }
+
+        .customer-search-hint i {
+            margin-right: 0.25rem;
+        }
+
+        .customer-search-result-heading {
+            align-items: end;
+            display: flex;
+            justify-content: space-between;
+            margin: 2rem auto 0.9rem;
+            max-width: 70rem;
+        }
+
+        .customer-search-result-label {
+            color: #15284d;
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .customer-search-result-query {
+            color: #718099;
+            font-size: 0.8rem;
+            margin: 0.2rem 0 0;
+        }
+
+        .customer-search-result-meta {
+            align-items: center;
+            color: #718099;
+            display: flex;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            gap: 0.35rem;
+            justify-content: flex-end;
+        }
+
+        .customer-search-count {
+            color: #2f80c9;
+            font-size: 1.35rem;
+            font-weight: 800;
+        }
+
+        .customer-search-limit-tag {
+            margin-left: 0.35rem;
+        }
+
+        .customer-search-results {
+            margin: 0 auto;
+            max-width: 70rem;
+        }
+
+        .customer-search-results .table-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 18px;
+        }
+
+        .customer-search-results table {
+            margin-bottom: 0;
+        }
+
+        .customer-search-results thead th {
+            background: #f3f6fc;
+            color: #425675;
+            font-size: 0.78rem;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+
+        .customer-search-results tbody td {
+            color: #425675;
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+
+        .customer-search-results tbody tr:hover {
+            background: #f8fbff !important;
+        }
+
+        .customer-search-results tbody td:first-child {
+            color: #1e3152;
+            min-width: 14rem;
+        }
+
+        .customer-search-action-heading,
+        .customer-search-action-cell {
+            text-align: center !important;
+            white-space: nowrap;
+        }
+
+        .customer-search-detail-button {
+            background: #eef6ff;
+            border-color: #cfe5fb;
+            border-radius: 9px;
+            color: #2677b8;
+            font-weight: 700;
+        }
+
+        .customer-search-detail-button:hover,
+        .customer-search-detail-button:focus-visible {
+            background: #dfefff;
+            border-color: #9dc8ed;
+            color: #155a91;
+        }
+
+        .customer-search-name-icon {
+            align-items: center;
+            background: #eef6ff;
+            border-radius: 8px;
+            color: #2f80c9;
+            display: inline-flex;
+            font-size: 0.7rem;
+            height: 1.8rem;
+            justify-content: center;
+            margin-right: 0.45rem;
+            width: 1.8rem;
+        }
+
+        .customer-search-type-tag {
+            background: #eef8f3;
+            color: #237348;
+        }
+
+        .customer-search-empty,
+        .customer-search-no-results {
+            align-items: center;
+            color: #718099;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .customer-search-empty {
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px dashed #cbd8e9;
+            border-radius: 18px;
+            margin: 1.5rem auto 0;
+            max-width: 70rem;
+            min-height: 11rem;
+            padding: 1.5rem;
+        }
+
+        .customer-search-empty strong,
+        .customer-search-no-results strong {
+            color: #425675;
+            font-size: 0.95rem;
+        }
+
+        .customer-search-empty-icon,
+        .customer-search-no-results-icon {
+            align-items: center;
+            background: #eef6ff;
+            border-radius: 999px;
+            color: #2f80c9;
+            display: inline-flex;
+            font-size: 1.3rem;
+            height: 3.2rem;
+            justify-content: center;
+            margin-bottom: 0.35rem;
+            width: 3.2rem;
+        }
+
+        .customer-search-no-results {
+            min-height: 12rem;
+            padding: 1.5rem;
+        }
+
+        .customer-search-no-results-icon {
+            background: #f3f6fc;
+            color: #8391a8;
+        }
+
+        @media screen and (max-width: 768px) {
+            .customer-search-page {
+                padding-bottom: 2rem;
+                padding-top: 2rem;
+            }
+
+            .customer-search-heading,
+            .customer-search-result-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .customer-search-back {
+                align-self: flex-start;
+            }
+
+            .customer-search-result-meta {
+                justify-content: flex-start;
+            }
+
+            .customer-search-form {
+                padding: 1rem;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .customer-search-heading-copy {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .customer-search-heading-icon {
+                flex-basis: 3rem;
+                height: 3rem;
+                width: 3rem;
+            }
+
+            .customer-search-form .field.has-addons {
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            .customer-search-form .field.has-addons .control.is-expanded {
+                flex-basis: 100%;
+            }
+
+            .customer-search-form .field.has-addons .control:last-child,
+            .customer-search-submit {
+                width: 100%;
+            }
+
+            .customer-search-form .field.has-addons .control:last-child {
+                margin-top: 0.55rem;
+            }
+        }
+    </style>
+{% endblock %}

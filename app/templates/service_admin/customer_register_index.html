@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}ลงทะเบียนลูกหนี้{% endblock %}
+{% block page_content %}
+    <section class="customer-register-page section">
+        <div class="customer-register-orb customer-register-orb-left" aria-hidden="true"></div>
+        <div class="customer-register-orb customer-register-orb-right" aria-hidden="true"></div>
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-10-tablet is-8-desktop is-7-widescreen">
+                    <div class="customer-register-card">
+                        <div class="customer-register-header has-text-centered">
+                            <span class="customer-register-icon" aria-hidden="true">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                            </span>
+                            <p class="customer-register-eyebrow">CUSTOMER REGISTRATION</p>
+                            <h1 class="title customer-register-title">ระบบขึ้นทะเบียนผู้รับบริการ</h1>
+                            <p class="customer-register-subtitle">
+                                จัดเก็บข้อมูลผู้รับบริการสำหรับใช้อ้างอิงในงานบริการตรวจวิเคราะห์
+                            </p>
+                        </div>
+                        <div class="customer-register-divider" aria-hidden="true"></div>
+                        <div class="customer-register-actions">
+                            <a class="customer-register-action customer-register-action-search"
+                               href="{{ url_for('service_admin.search_customer') }}">
+                                <span class="customer-register-action-icon" aria-hidden="true">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <span class="customer-register-action-copy">
+                                    <strong>ค้นหาข้อมูลผู้รับบริการ</strong>
+                                    <small>ตรวจสอบข้อมูลผู้รับบริการที่มีอยู่ในระบบ</small>
+                                </span>
+                            </a>
+
+                            <a class="customer-register-action customer-register-action-create"
+                               href="{{ url_for('service_admin.create_customer') }}">
+                                <span class="customer-register-action-icon" aria-hidden="true">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                                <span class="customer-register-action-copy">
+                                    <strong>ลงทะเบียนผู้รับบริการ</strong>
+                                    <small>เพิ่มข้อมูลบุคคล บริษัท หรือหน่วยงาน</small>
+                                </span>
+                            </a>
+                        </div>
+
+                        <div class="customer-register-note">
+                            <span class="icon" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+                            <span>ข้อมูลจะถูกจัดเก็บเพื่อใช้ประกอบการให้บริการและการออกเอกสารที่เกี่ยวข้อง</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <style>
+        .customer-register-page {
+            min-height: 31rem;
+            overflow: hidden;
+            padding-bottom: 4rem;
+            padding-top: 4rem;
+            position: relative;
+        }
+
+        .customer-register-page .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .customer-register-orb {
+            border-radius: 999px;
+            filter: blur(1px);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .customer-register-orb-left {
+            background: rgba(44, 119, 202, 0.12);
+            height: 18rem;
+            left: -9rem;
+            top: 5rem;
+            width: 18rem;
+        }
+
+        .customer-register-orb-right {
+            background: rgba(202, 168, 74, 0.14);
+            height: 14rem;
+            right: -5rem;
+            top: 1rem;
+            width: 14rem;
+        }
+
+        .customer-register-card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(58, 101, 184, 0.18);
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(18, 39, 84, 0.12);
+            overflow: hidden;
+            padding: clamp(1.75rem, 4vw, 3rem);
+            position: relative;
+        }
+
+        .customer-register-card::before {
+            background: linear-gradient(90deg, #2f80c9, #53c98a);
+            content: "";
+            height: 5px;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
+
+        .customer-register-header {
+            margin: 0 auto;
+            max-width: 38rem;
+        }
+
+        .customer-register-icon {
+            align-items: center;
+            background: linear-gradient(135deg, #e8f4ff, #e5f8ef);
+            border: 1px solid rgba(47, 128, 201, 0.15);
+            border-radius: 20px;
+            color: #2779bd;
+            display: inline-flex;
+            font-size: 1.8rem;
+            height: 4.25rem;
+            justify-content: center;
+            margin-bottom: 1.15rem;
+            width: 4.25rem;
+        }
+
+        .customer-register-eyebrow {
+            color: #6e7f99;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            margin-bottom: 0.65rem;
+        }
+
+        .customer-register-title {
+            color: #15284d;
+            font-size: clamp(1.8rem, 4vw, 2.45rem);
+            margin-bottom: 0.55rem !important;
+        }
+
+        .customer-register-subtitle {
+            color: #66738d;
+            font-size: 1rem;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .customer-register-divider {
+            background: #e8edf5;
+            height: 1px;
+            margin: 2rem 0 1.35rem;
+        }
+
+        .customer-register-prompt {
+            color: #425675;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .customer-register-actions {
+            display: grid;
+            gap: 0.85rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .customer-register-action {
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: 18px;
+            display: flex;
+            gap: 0.85rem;
+            min-height: 5.6rem;
+            padding: 1rem 1.1rem;
+            text-decoration: none;
+            transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .customer-register-action:hover,
+        .customer-register-action:focus-visible {
+            box-shadow: 0 12px 24px rgba(18, 39, 84, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .customer-register-action-search {
+            background: #eef6ff;
+            border-color: #cfe5fb;
+            color: #1e5f98;
+        }
+
+        .customer-register-action-create {
+            background: #eefaf4;
+            border-color: #cdeedc;
+            color: #237348;
+        }
+
+        .customer-register-action-icon {
+            align-items: center;
+            border-radius: 14px;
+            display: inline-flex;
+            flex: 0 0 2.8rem;
+            font-size: 1.15rem;
+            height: 2.8rem;
+            justify-content: center;
+        }
+
+        .customer-register-action-search .customer-register-action-icon {
+            background: #2f8fd4;
+            color: #fff;
+        }
+
+        .customer-register-action-create .customer-register-action-icon {
+            background: #42bf78;
+            color: #fff;
+        }
+
+        .customer-register-action-copy {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            gap: 0.2rem;
+            min-width: 0;
+        }
+
+        .customer-register-action-copy strong {
+            color: #1e3152;
+            font-size: 1rem;
+        }
+
+        .customer-register-action-copy small {
+            color: #6e7f99;
+            font-size: 0.76rem;
+            line-height: 1.4;
+        }
+
+        .customer-register-action-arrow {
+            color: #8391a8;
+            font-size: 0.85rem;
+        }
+
+        .customer-register-note {
+            align-items: center;
+            color: #718099;
+            display: flex;
+            font-size: 0.75rem;
+            gap: 0.5rem;
+            justify-content: center;
+            line-height: 1.5;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .customer-register-note .icon {
+            color: #2f80c9;
+            flex: 0 0 auto;
+        }
+
+        @media screen and (max-width: 768px) {
+            .customer-register-page {
+                padding-bottom: 2rem;
+                padding-top: 2rem;
+            }
+
+            .customer-register-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .customer-register-card {
+                border-radius: 22px;
+            }
+        }
+    </style>
+{% endblock %}

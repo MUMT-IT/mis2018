@@ -1,5 +1,14 @@
 {% extends "base.html" %}
-
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <style>
+        tbody[id^="tasks-"] tr:not(:last-child) td {
+            border-bottom: 1px solid #ddd !important;
+        }
+    </style>
+{% endblock %}
 {% block page_content %}
 {% include "meeting_planner/nav.html" %}
 <section class="section">
@@ -101,42 +110,68 @@
                                     <th></th>
                                     </thead>
                                     <tbody hx-target="closest tr" hx-swap="outerHTML">
-                                    {% for topic in meeting.agendas %}
-                                        {% if topic.group == group %}
-                                            <tr>
-                                                <td style="width: 10%">{{ topic.number }}</td>
-                                                <td>
-                                                    {{ topic.detail }}
-                                                    <hr>
-                                                    <label class="label">มติที่ประชุม</label>
-                                                    <p class="notification">
-                                                        {{ topic.consensus }}
-                                                    </p>
-                                                </td>
-                                                <td style="width: 10%">
-                                                    <div class="field has-addons">
-                                                        <div class="control">
-                                                            <a class="button is-light is-outlined"
-                                                               hx-get="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
-                                                                <span class="icon">
-                                                                   <i class="fas fa-pencil has-text-dark"></i>
-                                                                </span>
-                                                            </a>
+                                        {% for topic in meeting.agendas|sort(attribute="number") %}
+                                            {% if topic.group == group %}
+                                                <tr>
+                                                    <td style="width: 10%">{{ topic.number }}</td>
+                                                    <td>
+                                                        {{ topic.detail }}
+                                                        <hr>
+                                                        <label class="label">รายละเอียดเพิ่มเติม</label>
+                                                        <p class="notification">
+                                                            {{ topic.note or '' }}
+                                                        </p>
+                                                        <hr>
+                                                        <label class="label">มติที่ประชุม</label>
+                                                        <p class="notification">
+                                                            {{ topic.consensus }}
+                                                        </p>
+                                                        <label class="label">ผลการดำเนินการ</label>
+                                                        <table class="table is-fullwidth">
+                                                            <thead>
+                                                                <th style="width: 10%">ลำดับ</th>
+                                                                <th>รายละเอียด</th>
+                                                                <th></th>
+                                                            </thead>
+                                                            <tbody id="tasks-{{ topic.id }}" hx-target="closest tr" hx-swap="outerHTML">
+                                                                {% for task in topic.tasks|sort(attribute="no") %}
+                                                                    {% include "meeting_planner/task_row.html" %}
+                                                                {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                        <a class="button is-small is-info is-rounded is-outlined"
+                                                           hx-get="{{ url_for('meeting_planner.add_task_form',
+                                                           topic_id=topic.id) }}"
+                                                           hx-target="#tasks-{{ topic.id }}"
+                                                           hx-swap="beforeend">
+                                                            <span class="icon"><i class="fas fa-plus"></i></span>
+                                                            <span>เพิ่ม</span>
+                                                        </a>
+                                                    </td>
+                                                    <td style="width: 10%">
+                                                        <div class="field has-addons">
+                                                            <div class="control">
+                                                                <a class="button is-light is-outlined"
+                                                                   hx-get="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
+                                                                    <span class="icon">
+                                                                       <i class="fas fa-pencil has-text-dark"></i>
+                                                                    </span>
+                                                                </a>
+                                                            </div>
+                                                            <div class="control">
+                                                                <a class="button is-light is-outlined"
+                                                                   hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่"
+                                                                   hx-delete="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-trash-alt has-text-danger"></i>
+                                                                    </span>
+                                                                </a>
+                                                            </div>
                                                         </div>
-                                                        <div class="control">
-                                                            <a class="button is-light is-outlined"
-                                                               hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่"
-                                                               hx-delete="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
-                                                                <span class="icon">
-                                                                    <i class="fas fa-trash-alt has-text-danger"></i>
-                                                                </span>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        {% endif %}
-                                    {% endfor %}
+                                                    </td>
+                                                </tr>
+                                            {% endif %}
+                                        {% endfor %}
                                     </tbody>
                                 </table>
                             </td>
@@ -180,26 +215,99 @@
                     </form>
                 </div>
             </div>
-        <br>
-        <div class="buttons is-centered">
-            <a href="{{ url_for('meeting_planner.list_meetings') }}"
-               class="button is-light">Back</a>
-        </div>
+            <br>
+            <div class="buttons is-centered">
+                <a href="{{ url_for('meeting_planner.list_meetings') }}" class="button is-light">
+                    Back
+                </a>
+                {% if meeting.active_meeting %}
+                    <a class="button is-warning" href="{{ url_for('meeting_planner.create_meeting', meeting_id=meeting.id) }}">
+                        Edit
+                    </a>
+                    <a class="button is-danger" href="{{ url_for('meeting_planner.cancel_meeting', meeting_id=meeting.id) }}">
+                        Cancel
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>
 </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script>
-    $(document).ready(function () {
-        document.addEventListener('notifyAlert', function () {
-            alert('ส่งข้อความเตือนเรียบร้อย')
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            document.addEventListener('notifyAlert', function () {
+                alert('ส่งข้อความเตือนเรียบร้อย')
+            })
+            document.body.addEventListener('htmx:configRequest', function(evt) {
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+            });
         })
-        document.body.addEventListener('htmx:configRequest', function(evt) {
-            evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+    </script>
+    <script>
+        let adminsSelect2Counter = 0;
+        function initSelect2(target) {
+             $(target).find('.js-example-basic-multiple').each(function () {
+                    if (this.id === 'admins' && document.getElementsByName(this.name).length > 1) {
+                        this.id = 'meeting-admins-' + (++adminsSelect2Counter);
+                    }
+
+                    $(this).select2({
+                        width: '100%',
+                        placeholder: 'กรุณาเลือกผู้รับผิดชอบ'
+                    });
+                }
+            );
+        }
+
+        function initPicker(target) {
+            moment.locale('th');
+            $(target).find('input[name="deadline"]').each(function () {
+                const input = $(this);
+                if (input.data('daterangepicker')) {
+                    return;
+                }
+
+                input.daterangepicker({
+                    singleDatePicker: true,
+                    timePicker: true,
+                    timePickerIncrement: 15,
+                    timePicker24Hour: true,
+                    showDropdowns: true,
+                    autoUpdateInput: false,
+                    locale: {
+                        format: 'YYYY-MM-DD HH:mm:ss',
+                        cancelLabel: 'Clear'
+                    }
+                });
+
+                const picker = input.data('daterangepicker');
+                const currentValue = input.val();
+                if (currentValue) {
+                    picker.setStartDate(moment(currentValue, 'YYYY-MM-DD HH:mm:ss'));
+                }
+
+                input.on('apply.daterangepicker', function (ev, picker) {
+                    input.val(picker.startDate.format('YYYY-MM-DD HH:mm:ss'));
+                });
+                input.on('cancel.daterangepicker', function () {
+                    input.val('');
+                });
+            });
+        }
+
+        $(document).ready(function () {
+            initPicker(document);
         });
-    })
-</script>
+        document.body.addEventListener('htmx:afterSwap', function (event) {
+            initPicker(event.target);
+        });
+        document.body.addEventListener('htmx:load', function (event) {
+            initSelect2(event.target);
+        });
+    </script>
 {% endblock %}

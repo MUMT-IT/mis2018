@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Create Customer Account{% endblock %}
-{% include "service_admin/admin_nav.html" %}
+{% if current_user.is_authenticated %}
+    {% include "service_admin/admin_nav.html" %}
+{% endif %}
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
@@ -8,18 +10,28 @@
 {% block page_content %}
     <section class="section">
         <div class="columns">
-            {% include 'messages.html' %}
+
             <div class="column is-half is-offset-3">
-                {% if customer_id %}
-                    <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
+                {% if current_user.is_authenticated %}
+                    {% if customer_id %}
+                        <h1 class="title has-text-centered">แก้ไขข้อมูล</h1>
+                    {% else %}
+                        <h1 class="title has-text-centered">สร้างลูกค้า/ผู้ประสานงาน</h1>
+                    {% endif %}
                 {% else %}
-                    <h1 class="title has-text-centered">สร้างลูกค้า/ผู้ประสานงาน</h1>
+                    <h1 class="title has-text-centered">ลงทะเบียนผู้รับบริการ</h1>
                 {% endif %}
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
                     <div class="column box">
                         <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
-                            <b class="is-size-5">ข้อมูลลูกค้า</b>
+                            <b class="is-size-5">
+                                {% if current_user.is_authenticated %}
+                                    ข้อมูลลูกค้า
+                                {% else %}
+                                    ข้อมูลผู้รับบริการ
+                                {% endif %}
+                            </b>
                         </div>
                         <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                             <div class="field">
@@ -99,7 +111,7 @@
                         </div>
                         <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                             {% for c_form in form.customer_contacts %}
-                                <div class="field">
+                                <div class="field" style="margin-top: 1.5em">
                                     <label class="label">
                                         {{ c_form.contact_name.label }}
                                         <span class="has-text-danger">*</span>
@@ -156,9 +168,86 @@
 {#                            </label>#}
                         </div>
                     </div>
+                    {% if not current_user.is_authenticated %}
+                        <div class="column box">
+                            <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                                <b class="is-size-5">
+                                    เอกสารเพิ่มเติม
+                                </b>
+                            </div>
+                            <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                                <div id="attachment-field" class="field">
+                                    {% for item_form in form.attachments %}
+                                        <div id="{{ item_form.id }}" class="attachment-item">
+                                            <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                            <div class="field" style="margin-top: .8em">
+                                                <label class="label">
+                                                    {{ item_form.file_name.label }}
+                                                    <span class="has-text-danger">*</span>
+                                                </label>
+                                                <div class="control">
+                                                    {{ item_form.file_name(class="input", required=true) }}
+                                                </div>
+                                            </div>
+                                            <div class="field">
+                                                <label class="label">{{ item_form.note.label }}</label>
+                                                <div class="control">
+                                                    {{ item_form.note(class="input") }}
+                                                </div>
+                                            </div>
+                                            <div class="field">
+                                                <label class="label">
+                                                    {{ item_form.file.label }}
+                                                </label>
+                                                <div class="file" style="margin-bottom: .5em">
+                                                    <label class="file-label">
+                                                        <input class="file-input" type="file"
+                                                               name="file_{{ item_form.id }}" id="file_{{ item_form.id }}"
+                                                               required
+                                                        >
+                                                        <span class="file-cta">
+                                                            <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                                            <span class="file-label">เลือกไฟล์…</span>
+                                                        </span>
+                                                        <span class="file-name">กรุณาอัปโหลดไฟล์</span>
+                                                    </label>
+                                                    <a class="button is-danger is-outlined" style="margin-left: .5em"
+                                                       hx-delete="{{ url_for('service_admin.remove_attachment',
+                                                       name=item_form.name) }}"
+                                                       hx-target="closest .attachment-item"
+                                                       hx-swap="outerHTML"
+                                                    >
+                                                        <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <button type="button" class="button is-info is-small is-light is-rounded"
+                                           hx-post="{{ url_for('service_admin.add_attachment') }}"
+                                           hx-target="#attachment-field" hx-swap="beforeend">
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                            <span>เพิ่ม</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a class="button" href="{{ url_for('service_admin.view_customer') }}">
+                            <a class="button"
+                               {% if current_user.is_authenticated %}
+                                    href="{{ url_for('service_admin.view_customer') }}"
+                               {% else %}
+                                    href="{{ url_for('service_admin.customer_register_index') }}"
+                               {% endif %}
+                            >
                                 ย้อนกลับ
                             </a>
                             <input type="submit" class="button is-success" value="บันทึก">
@@ -178,6 +267,33 @@
                 width: '100%',
                 tags: true
             });
+        });
+    </script>
+    <script>
+        document.addEventListener('change', function (event) {
+            const input = event.target.closest('input[type="file"]');
+            if (!input) return;
+            const span = input.closest('.file-label').querySelector('.file-name');
+            span.textContent = input.files.length > 0 ? input.files[0].name : 'กรุณาอัปโหลดไฟล์';
+        });
+    </script>
+    <script>
+        function renumberItems() {
+            const items = document.querySelectorAll('#attachment-field .attachment-item');
+            items.forEach(function (item, index) {
+                const label = item.querySelector('p strong');
+                if (label) {
+                    label.textContent = `รายการที่ ${index + 1}`;
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            renumberItems();
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function () {
+            renumberItems();
         });
     </script>
     <script>

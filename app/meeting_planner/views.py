@@ -1,12 +1,11 @@
 import pytz
 import arrow
+from datetime import datetime
 from typing import Union
 from flask import (render_template, make_response, request,
                    redirect, url_for, flash, jsonify, current_app)
 from flask_login import login_required, current_user
 from psycopg2.extras import DateTimeRange
-from unicodedata import category
-
 from app.meeting_planner import meeting_planner
 from app.meeting_planner.forms import *
 from app.meeting_planner.models import *
@@ -33,19 +32,25 @@ def index():
 
 
 @meeting_planner.route('/meetings/new', methods=['GET', 'POST'])
+@meeting_planner.route('/meetings/edit/<int:meeting_id>', methods=['GET', 'POST'])
 @meeting_planner.route('/meetings/new_meeting/<int:poll_id>', methods=['GET', 'POST'])
 @login_required
-def create_meeting(poll_id=None):
+def create_meeting(meeting_id=None, poll_id=None):
+    meeting_event = None
+    invitations = []
     if poll_id:
         MeetingEventForm = create_new_meeting(poll_id)
         form = MeetingEventForm()
-        start = form.start.data.astimezone(localtz).isoformat() if form.start.data else None
-        end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
+    elif meeting_id:
+        meeting_event = MeetingEvent.query.get(meeting_id)
+        MeetingEventForm = create_new_meeting()
+        form = MeetingEventForm(obj=meeting_event)
+        invitations = [invitation for invitation in meeting_event.invitations]
     else:
         MeetingEventForm = create_new_meeting()
         form = MeetingEventForm()
-        start = form.start.data.astimezone(localtz).isoformat() if form.start.data else None
-        end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
+    start = form.start.data.astimezone(localtz).isoformat() if form.start.data else None
+    end = form.end.data.astimezone(localtz).isoformat() if form.end.data else None
     if poll_id:
         poll = MeetingPoll.query.filter_by(id=poll_id).first()
         for p in poll.poll_result:
@@ -59,56 +64,77 @@ def create_meeting(poll_id=None):
         else:
             participants = []
             for staff_id in request.form.getlist('participants'):
-                personal_info = StaffPersonalInfo.query.get(int(staff_id))
-                if personal_info and personal_info.staff_account:
-                    participants.append(personal_info.staff_account)
+                staff_personal_info = StaffPersonalInfo.query.get(int(staff_id))
+                participants.append(staff_personal_info.staff_account)
 
         participant_count = len(participants)
         if not participants:
             flash('กรุณาเลือกรายชื่อผู้เข้าร่วม', 'danger')
-            return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id, start=start
-                                   , end=end)
+            return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id,
+                                   meeting_id=meeting_id, invitations=invitations, start=start, end=end)
         startdatetime = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        event_category = EventCategory.query.filter_by(category='ประชุมกลุ่มย่อย').first()
         form.meeting_events.entries = [
             event_form for event_form in form.meeting_events.entries
             if event_form.room.data
         ]
-
-        new_meeting = MeetingEvent()
-        form.populate_obj(new_meeting)
-        for event in new_meeting.meeting_events:
-            event.start = startdatetime
-            event.end = enddatetime
-            event.title = f'ประชุม{form.title.data}'
-            event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
-            event.created_by = current_user.id
-            event.category = EventCategory.query.filter_by(category='ประชุมกลุ่มย่อย').first()
-            event.occupancy = participant_count
-            event.notify_participants = True
-            event.participants = participants
-            event.note = event.request
+        if not meeting_id:
+            meeting_event = MeetingEvent()
+        form.populate_obj(meeting_event)
+        with db.session.no_autoflush:
+            for event in meeting_event.meeting_events:
+                event.start = startdatetime
+                event.end = enddatetime
+                event.title = form.title.data
+                event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
+                event.created_by = current_user.id
+                event.category = event_category
+                event.occupancy = participant_count
+                event.notify_participants = True
+                event.participants = participants
+                event.note = event.request
         if poll_id:
             for staff in participants:
                 invitation = MeetingInvitation(staff_id=staff.id,
-                                               created_at=new_meeting.start,
-                                               meeting=new_meeting)
-                new_meeting.poll_id = poll_id
+                                               created_at=startdatetime,
+                                               meeting=meeting_event)
+                meeting_event.poll_id = poll_id
                 db.session.add(invitation)
+        elif meeting_id:
+            staff_ids = {staff.id for staff in participants}
+            invitation_staff_ids = {invitation.staff_id for invitation in meeting_event.invitations}
+
+            for invitation in meeting_event.invitations:
+                if invitation.staff_id not in staff_ids:
+                    db.session.delete(invitation)
+
+            for staff in participants:
+                if staff.id not in invitation_staff_ids:
+                    invitation = MeetingInvitation(staff_id=staff.id,
+                                                   created_at=startdatetime,
+                                                   meeting=meeting_event)
+                    db.session.add(invitation)
         else:
             for staff in participants:
                 invitation = MeetingInvitation(staff_id=staff.id,
-                                               created_at=new_meeting.start,
-                                               meeting=new_meeting)
+                                               created_at=startdatetime,
+                                               meeting=meeting_event)
                 db.session.add(invitation)
-        new_meeting.creator = current_user
-        new_meeting.start = startdatetime
-        new_meeting.end = enddatetime
-        db.session.add(new_meeting)
+        if meeting_id:
+            meeting_event.updated_at = arrow.now('Asia/Bangkok').datetime
+            meeting_event.updated_by = current_user.id
+        else:
+            meeting_event.created_at = arrow.now('Asia/Bangkok').datetime
+            meeting_event.creator = current_user
+        meeting_event.start = startdatetime
+        meeting_event.end = enddatetime
+        db.session.add(meeting_event)
         db.session.commit()
-        if form.notify_participants.data:
-            meeting_invitation_link = url_for('meeting_planner.show_invitation_detail',
-                                              meeting_id=new_meeting.id, _external=True)
+        if form.notify_participants.data and not meeting_id:
+            scheme = 'http' if current_app.debug else 'https'
+            meeting_invitation_link = url_for('meeting_planner.show_invitation_detail', _scheme=scheme,
+                                              meeting_id=meeting_event.id, _external=True)
             message = f'''
             ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
             ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
@@ -122,7 +148,7 @@ def create_meeting(poll_id=None):
             {meeting_invitation_link}
             '''
             if not current_app.debug:
-                send_mail([invitation.staff.email + '@mahidol.ac.th' for invitation in new_meeting.invitations],
+                send_mail([invitation.staff.email + '@mahidol.ac.th' for invitation in meeting_event.invitations],
                           title=f'MUMT-MIS: เชิญเข้าร่วมประชุม{invitation.meeting.title}',
                           message=message)
             else:
@@ -132,8 +158,9 @@ def create_meeting(poll_id=None):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id, start=start
-                           , end=end)
+    return render_template('meeting_planner/meeting_form.html', form=form, poll_id=poll_id,
+                           meeting_id=meeting_id, invitations=invitations,
+                           start=start, end=end)
 
 
 @meeting_planner.route('/api/meeting_planner/add_event', methods=['POST'])
@@ -289,6 +316,36 @@ def remove_agenda():
     return resp
 
 
+@meeting_planner.route('/meetings/cancel/<int:meeting_id>', methods=['GET', 'POST'])
+@login_required
+def cancel_meeting(meeting_id):
+    meeting = MeetingEvent.query.get(meeting_id)
+    if meeting.meeting_events:
+        for event in meeting.meeting_events:
+            event.cancelled_at = arrow.now('Asia/Bangkok').datetime
+            event.cancelled_by = current_user.id
+            db.session.add_all(event)
+    meeting.cancelled_at = arrow.now('Asia/Bangkok').datetime
+    meeting.cancelled_by = current_user.id
+    db.session.add(meeting)
+    db.session.commit()
+    if meeting.notify_participants:
+        message = f'''
+        ขอแจ้งยกเลิกการนัดหมายประชุม{meeting.title}
+        ในวันที่ {meeting.start.data.strftime('%d/%m/%Y %H:%M')} - {meeting.end.data.strftime('%d/%m/%Y %H:%M')}
+        {meeting.rooms} 
+
+        ขออภัยในความไม่สะดวก
+        '''
+        if not current_app.debug:
+            send_mail([invitation.staff.email + '@mahidol.ac.th' for invitation in meeting.invitations],
+                      title=f'MUMT-MIS: ยกเลิกการนัดหมายประชุม{meeting.title}',
+                      message=message)
+        else:
+            print(message)
+    flash('ยกเลิกการนัดมายประชุมสำเร็จ', 'success')
+    return redirect(url_for('meeting_planner.list_meetings'))
+
 @meeting_planner.route('/invitations/<int:invitation_id>/rsvp', methods=['PATCH'])
 @login_required
 def respond(invitation_id):
@@ -388,10 +445,11 @@ def list_invitations():
 @login_required
 def get_meetings():
     data = []
-    for meeting in MeetingEvent.query.filter_by(creator=current_user).order_by(MeetingEvent.created_at.desc()):
+    # MeetingEvent.query.filter_by(creator=current_user).order_by(MeetingEvent.created_at.desc())
+    for meeting in MeetingEvent.query.filter_by(creator=current_user, cancelled_at=None):
         d_ = meeting.to_dict()
         view_meeting_url = url_for('meeting_planner.detail_meeting', meeting_id=d_['id'])
-        d_['action'] = f'<a class="tag" href={view_meeting_url}>view</a>'
+        d_['action'] = f'<a class="tag " href={view_meeting_url}>view</a>'
         data.append(d_)
     return jsonify({'data': data})
 
@@ -459,9 +517,13 @@ def edit_topic_form(topic_id):
         template = '''
         <tr>
             <td style="width: 10%">{}</td>
-            <td>{}
-            <hr>
-            <label class="label">มติที่ประชุม</label>{}</td>
+            <td>
+                {}
+                <hr>
+                <label class="label">รายละเอียดเพิ่มเติม</label>{}
+                <hr>
+                <label class="label">มติที่ประชุม</label>{}
+            </td>
             <td style="width: 10%">
                 <a class="button is-success is-outlined"
                     hx-post="{}" hx-include="closest tr">
@@ -471,12 +533,14 @@ def edit_topic_form(topic_id):
         </tr>
         '''.format(form.number(class_="input"),
                    form.detail(class_="textarea"),
+                   form.note(class_="textarea"),
                    form.consensus(class_="textarea"),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
                    )
     if request.method == 'POST':
         topic.number = request.form.get('number')
         topic.detail = request.form.get('detail')
+        topic.note = request.form.get('note')
         topic.consensus = request.form.get('consensus')
         db.session.add(topic)
         db.session.commit()
@@ -485,6 +549,9 @@ def edit_topic_form(topic_id):
             <td style="width: 10%">{}</td>
             <td>
             {}
+            <hr>
+            <label class="label">รายละเอียดเพิ่มเติม</label>
+            <p class="notification">{}</p>
             <hr>
             <label class="label">มติที่ประชุม</label>
             <p class="notification">{}</p>
@@ -500,7 +567,10 @@ def edit_topic_form(topic_id):
                         </a>
                     </div>
                     <div class="control">
-                        <a class="button is-light is-outlined">
+                        <a class="button is-light is-outlined"
+                            hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่"
+                            hx-delete="{}"
+                        >
                             <span class="icon">
                                 <i class="fas fa-trash-alt has-text-danger"></i>
                             </span>
@@ -511,8 +581,10 @@ def edit_topic_form(topic_id):
         </tr>
         '''.format(topic.number,
                    topic.detail,
+                   topic.note or '',
                    topic.consensus,
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
+                   url_for('meeting_planner.edit_topic_form', topic_id=topic.id)
                    )
     if request.method == 'DELETE':
         db.session.delete(topic)
@@ -521,6 +593,113 @@ def edit_topic_form(topic_id):
 
     resp = make_response(template)
     return resp
+
+
+@meeting_planner.route('/api/meeting_planner/topics/<int:topic_id>/tasks', methods=['GET', 'POST'])
+@login_required
+def add_task_form(topic_id):
+    topic = MeetingAgenda.query.get(topic_id)
+    form = MeetingTaskForm()
+
+    if request.method == 'GET':
+        return render_template('meeting_planner/task_form_row.html', form=form,
+                               topic_id=topic.id)
+    else:
+        no = form.no.data
+        detail = form.detail.data
+        deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+        if not no or not detail:
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=topic.meeting_id)
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            return resp
+        task = MeetingTask(no=no, detail=detail, deadline=deadline, agenda_id=topic.id,
+                           admins=[MeetingAdmin(admin=admin) for admin in (form.admins.data or [])])
+        db.session.add(task)
+        db.session.commit()
+        flash('เพิ่มผลการดำเนินการสำเร็จ', 'success')
+        if task.admins:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("meeting_planner.detail_meeting", meeting_id=task.agenda.meeting_id, _external=True, _scheme=scheme)
+            title = 'แจ้งเพิ่มรายการผลดำเนินการจากการประชุม'
+            message = ( f'มีการเพิ่มผลดำเนินการสำหรับการประชุม "{task.agenda.meeting.title}"\n' 
+                        f'รายละเอียด: {task.detail}\n' 
+                        f'วันครบกำหนด: {task.deadline.strftime("%d/%m/%Y") if task.deadline else "-"}\n\n' 
+                        f'กรุณาตรวจสอบรายละเอียดและดำเนินการตามรายการที่ได้รับมอบหมายได้ที่ลิงก์ด้านล่าง\n' 
+                        f'{link}' )
+            if not current_app.debug:
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in task.admins], title=title, message=message)
+            else:
+                print(message)
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=topic.meeting_id)
+        return resp
+
+
+@meeting_planner.route('/api/meeting_planner/tasks/edit/<int:task_id>', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def edit_task_form(task_id):
+    task = MeetingTask.query.get(task_id)
+    form = MeetingTaskForm(obj=task)
+    meeting_id = task.agenda.meeting_id
+
+    if request.method == 'GET':
+        form.admins.data = [meeting_admin.admin for meeting_admin in task.admins]
+        return render_template('meeting_planner/task_form_row.html', form=form, task_id=task_id)
+    if request.method == 'POST':
+        no = form.no.data
+        detail = form.detail.data
+        deadline = arrow.get(form.deadline.data, 'Asia/Bangkok').datetime if form.deadline.data else None
+        if not no or not detail:
+            resp = make_response()
+            resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            return resp
+        task.no = no
+        task.detail = detail
+        task.deadline = deadline
+        task.admins = [MeetingAdmin(admin=admin) for admin in (form.admins.data or [])]
+        db.session.add(task)
+        db.session.commit()
+        flash('แก้ไขผลการดำเนินการสำเร็จ', 'success')
+        if task.admins:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("meeting_planner.detail_meeting", meeting_id=task.agenda.meeting_id, _external=True,
+                           _scheme=scheme)
+            title = 'แจ้งแก้ไขรายการผลดำเนินการจากการประชุม'
+            message = (f'มีการแก้ไขผลดำเนินการสำหรับการประชุม "{task.agenda.meeting.title}"\n'
+                       f'รายละเอียด: {task.detail}\n'
+                       f'วันครบกำหนด: {task.deadline.strftime("%d/%m/%Y") if task.deadline else "-"}\n\n'
+                       f'กรุณาตรวจสอบรายละเอียดและดำเนินการตามรายการที่ได้รับมอบหมายได้ที่ลิงก์ด้านล่าง\n'
+                       f'{link}')
+            if not current_app.debug:
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in task.admins], title=title, message=message)
+            else:
+                print(message)
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
+        return resp
+    if request.method == 'DELETE':
+        if task.admins:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("meeting_planner.detail_meeting", meeting_id=task.agenda.meeting_id, _external=True,
+                           _scheme=scheme)
+            title = 'แจ้งยกเลิกรายการผลดำเนินการจากการประชุม'
+            message = (f'มีการยกเลิกผลดำเนินการสำหรับการประชุม "{task.agenda.meeting.title}"\n'
+                       f'รายละเอียด: {task.detail}\n'
+                       f'วันครบกำหนด: {task.deadline.strftime("%d/%m/%Y") if task.deadline else "-"}\n\n'
+                       f'ท่านสามารถตรวจสอบรายละเอียดได้ที่ลิงก์ด้านล่าง\n'
+                       f'{link}')
+            if not current_app.debug:
+                send_mail([a.admin.email + '@mahidol.ac.th' for a in task.admins], title=title, message=message)
+            else:
+                print(message)
+        db.session.delete(task)
+        db.session.commit()
+        flash('ยกเลิกผลการดำเนินการสำเร็จ', 'success')
+        resp = make_response()
+        resp.headers['HX-Redirect'] = url_for('meeting_planner.detail_meeting', meeting_id=meeting_id)
+        return resp
 
 
 @meeting_planner.route('/api/meeting_planner/invites/<int:invite_id>', methods=['PATCH', 'DELETE'])

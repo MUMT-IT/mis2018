@@ -1,3 +1,4 @@
+import arrow
 from pytz import timezone
 from sqlalchemy import func, select
 
@@ -44,6 +45,16 @@ class MeetingEvent(db.Model):
         return [i.paticipants.fullname for i in self.polls]
 
     @property
+    def active_meeting(self):
+        date_time_now = arrow.now('Asia/Bangkok').datetime
+        if self.cancelled_at:
+            return False
+        elif self.end > date_time_now:
+            return True
+        else:
+            return False
+
+    @property
     def rooms(self):
         room_names = f'ห้อง {", ".join([e.room.number for e in self.meeting_events])}' if self.meeting_events else 'ไม่มี'
         return room_names
@@ -54,7 +65,8 @@ class MeetingEvent(db.Model):
             'title': self.title,
             'start': self.start.astimezone(Bangkok).isoformat(),
             'end': self.end.astimezone(Bangkok).isoformat(),
-            'rooms': self.rooms
+            'rooms': self.rooms,
+            'cancelled_at': self.cancelled_at if self.cancelled_at else None,
         }
 
 
@@ -62,7 +74,7 @@ class MeetingInvitation(db.Model):
     __tablename__ = 'meeting_invitations'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     meeting_event_id = db.Column('meeting_event_id', db.ForeignKey('meeting_events.id'))
-    meeting = db.relationship(MeetingEvent, backref=db.backref('invitations'))
+    meeting = db.relationship(MeetingEvent, backref=db.backref('invitations', cascade='all, delete-orphan'))
     note = db.Column('note', db.Text(), default='')
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount,
@@ -86,13 +98,38 @@ class MeetingAgenda(db.Model):
     number = db.Column('number', db.String(), info={'label': 'ลำดับ'})
     detail = db.Column('detail', db.Text(), info={'label': 'หัวข้อ'})
     consensus = db.Column('consensus', db.Text())
+    note = db.Column('note', db.Text())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True),
                            onupdate=func.now())
     consensus_updated_at = db.Column('consensus_updated_at', db.DateTime(timezone=True),
                                      onupdate=func.now())
     meeting_id = db.Column('meeting_id', db.ForeignKey('meeting_events.id'))
-    meeting = db.relationship(MeetingEvent, backref=db.backref('agendas',
-                                                               cascade='all, delete-orphan'))
+    meeting = db.relationship(MeetingEvent, backref=db.backref('agendas', cascade='all, delete-orphan'))
+
+
+class MeetingTask(db.Model):
+    __tablename__ = 'meeting_tasks'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    no = db.Column('no', db.String(), info={'label': 'ลำดับ'})
+    detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียด'})
+    deadline = db.Column('consensus_updated_at', db.DateTime(timezone=True), info={'label': 'Deadline'})
+    agenda_id = db.Column('agenda_id', db.ForeignKey('meeting_agendas.id'))
+    agenda = db.relationship(MeetingAgenda, backref=db.backref('tasks'))
+
+    def __str__(self):
+        return str(self.detail)
+
+
+class MeetingAdmin(db.Model):
+    __tablename__ = 'meeting_admins'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    task_id = db.Column('task_id', db.ForeignKey('meeting_tasks.id'))
+    task = db.relationship(MeetingTask, backref=db.backref('admins', cascade='all, delete-orphan'))
+    admin_id = db.Column('admin_id', db.ForeignKey('staff_account.id'))
+    admin = db.relationship(StaffAccount, backref=db.backref('admins'))
+
+    def __str__(self):
+        return str(self.admin.fullname)
 
 
 class MeetingAgendaNote(db.Model):
