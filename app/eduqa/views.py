@@ -60,6 +60,11 @@ def criteria1_index():
     return render_template('eduqa/QA/mtc/criteria1.html')
 
 
+# TODO(student-outcome): Support multiple evaluation results for each student.
+# TODO(student-outcome): Record repeated evaluation results and provide browsable
+# attempt history for students who fail an evaluation.
+# TODO(student-outcome): Add a dashboard summarizing each student's performance
+# for each skill.
 @edu.route('/qa/student-outcome-monitoring')
 @login_required
 def student_outcome_monitoring():
