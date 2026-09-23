@@ -1,4 +1,5 @@
-<div class="modal fade" id="pdfReferenceModal" tabindex="-1" aria-hidden="true">
+{% set modal_id = pdf_reference_modal_id|default('pdfReferenceModal') %}
+<div class="modal fade text-start" id="{{ modal_id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content text-start">
       <div class="modal-header">
@@ -8,7 +9,6 @@
       <form method="post" action="{{ pdf_export_url }}" target="_blank">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-body">
-          <p class="text-muted small">ระบบจะใช้ข้อมูลหนังสืออนุมัติในหลักการที่บันทึกไว้ในใบเบิก หากไม่มีข้อมูล ระบบจะสร้างเอกสารกรณีไม่มีหนังสืออนุมัติในหลักการโดยอัตโนมัติ</p>
           {% set fiscal_year_suggested = ((document.fiscal_year if document.fiscal_year >= 2400 else document.fiscal_year + 543) if document.fiscal_year else ((pdf_fiscal_year_default + 543) if pdf_fiscal_year_default else '')) %}
           <div class="mb-3">
             <label class="form-label fw-bold">ปีงบประมาณ</label>
@@ -16,7 +16,7 @@
               type="number"
               class="form-control"
               name="fiscal_year"
-              id="pdfFiscalYear"
+              id="{{ modal_id }}FiscalYear"
               value="{{ fiscal_year_suggested }}"
               required
             >
@@ -59,7 +59,7 @@
 </div>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const modal = document.getElementById('pdfReferenceModal');
+    const modal = document.getElementById('{{ modal_id }}');
     if (!modal) return;
 
     if (typeof $ !== 'undefined' && $.fn.select2) {
@@ -72,7 +72,7 @@
       });
     }
 
-    const fiscalYearInput = modal.querySelector('#pdfFiscalYear');
+    const fiscalYearInput = modal.querySelector('#{{ modal_id }}FiscalYear');
     if (fiscalYearInput && !fiscalYearInput.value) {
       const today = new Date();
       const currentFiscalYear = today.getMonth() >= 9 ? today.getFullYear() + 1 : today.getFullYear();

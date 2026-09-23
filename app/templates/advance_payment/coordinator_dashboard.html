@@ -601,10 +601,13 @@
                     <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_detail.id) }}" class="btn btn-sm btn-outline-primary px-2" target="_blank">
                       ตรวจสอบหลักฐาน
                     </a>
-                    {% if advance_payment_role != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
-                      <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
+                    {% if advance_payment_role != 'finance' and return_detail.status|lower == 'ผ่านการตรวจสอบ' %}
+                      <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal{{ return_detail.id }}">
                         ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
                       </button>
+                      {% with document=return_detail, pdf_export_url=url_for('advance_payment.export_ticket_return_pdf', return_id=return_detail.id), pdf_reference_modal_id='pdfReferenceModal' ~ return_detail.id %}
+                        {% include 'advance_payment/_pdf_reference_modal.html' %}
+                      {% endwith %}
                     {% endif %}
                   </div>
                 </td>

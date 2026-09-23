@@ -2223,6 +2223,8 @@ def coordinator_dashboard():
         dept_users=dept_users,
         current_user=current_user,
         actionable_tickets=actionable_tickets,
+        pdf_reference_options=_pdf_reference_options(),
+        pdf_fiscal_year_default=convert_to_fiscal_year(datetime.now().date()),
     )
 
 @bp.route("/coordinator/ticket/<int:ticket_id>/pdf", endpoint="coordinator_ticket_pdf")
