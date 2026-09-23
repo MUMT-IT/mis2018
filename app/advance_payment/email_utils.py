@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 
 
 def thai_date(value):
@@ -106,37 +107,56 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 """
 
     if object_type == "petty_claim":
-        fund_request = ctx.get("fund_request")
-        claim_name = (
-            (fund_request.purpose if fund_request else None)
-            or ctx.get("claim_name")
-            or "รายการเบิกเงินสดย่อย"
-        )
         status = target_object.status
-        claim_amount = target_object.total_amount or 0.0
+        display_items = [
+            item
+            for item in (getattr(target_object, "items", None) or [])
+            if str(getattr(item, "category_type", "")).strip() != "6"
+        ]
+        claim_amount = sum(
+            (Decimal(str(getattr(item, "amount", 0) or 0)) for item in display_items),
+            Decimal("0.00"),
+        )
+        item_lines = "\n".join(
+            f"{idx}. {getattr(item, 'description', None) or '-'}    "
+            f"{Decimal(str(getattr(item, 'amount', 0) or 0)):,.2f} บาท"
+            for idx, item in enumerate(display_items, 1)
+        ) or "-"
+        transferred_at = thai_date(getattr(target_object, "transferred_at", None))
 
         status_mapping = {
-            "รอตรวจสอบ": ("รอตรวจสอบ", f"เรียนคุณ {requester_name},\n\nฝ่ายการเงินได้รับรายการเบิกเงินสดย่อย {claim_name} แล้วและกำลังรอตรวจสอบ"),
-            "กำลังตรวจสอบ": ("กำลังตรวจสอบ", f"เรียนคุณ {requester_name},\n\nรายการเบิกเงินสดย่อย {claim_name} กำลังอยู่ระหว่างการตรวจสอบ"),
-            "ผ่านการตรวจสอบ": ("ผ่านการตรวจสอบ", f"เรียนคุณ {requester_name},\n\nรายการเบิกเงินสดย่อย {claim_name} ผ่านการตรวจสอบเรียบร้อยแล้ว"),
-            "โอนเงินสดย่อยสำเร็จ": ("โอนเงินสดย่อยสำเร็จ", f"เรียนคุณ {requester_name},\n\nรายการเบิกเงินสดย่อย {claim_name} โอนเงินเรียบร้อยแล้ว"),
-            "เสร็จสิ้นกระบวนการ": ("เสร็จสิ้นกระบวนการ", f"เรียนคุณ {requester_name},\n\nรายการเบิกเงินสดย่อย {claim_name} เสร็จสิ้นกระบวนการเรียบร้อยแล้ว"),
-            "ปฏิเสธ": ("ปฏิเสธ", f"เรียนคุณ {requester_name},\n\nรายการเบิกเงินสดย่อย {claim_name} ถูกปฏิเสธ\nเหตุผล: {target_object.rejection_comment or '-'}"),
+            "รอตรวจสอบ": f"เรียนคุณ {requester_name},\n\nรายการขออนุมัติเบิกเงินสดย่อย จำนวนเงิน {claim_amount:,.2f} บาท อยู่ระหว่างรอการตรวจสอบ",
+            "กำลังตรวจสอบ": f"เรียนคุณ {requester_name},\n\nรายการขออนุมัติเบิกเงินสดย่อย จำนวนเงิน {claim_amount:,.2f} บาท กำลังอยู่ระหว่างการตรวจสอบ",
+            "ผ่านการตรวจสอบ": f"เรียนคุณ {requester_name},\n\nรายการขออนุมัติเบิกเงินสดย่อย จำนวนเงิน {claim_amount:,.2f} บาท ผ่านการตรวจสอบเรียบร้อยแล้ว",
+            "โอนเงินสดย่อยสำเร็จ": f"เรียนคุณ {requester_name},\n\nรายการขออนุมัติเบิกเงินสดย่อย จำนวนเงิน {claim_amount:,.2f} บาท โอนเงินสดย่อยสำเร็จแล้ว",
+            "ปฏิเสธ": f"เรียนคุณ {requester_name},\n\nรายการขออนุมัติเบิกเงินสดย่อย จำนวนเงิน {claim_amount:,.2f} บาท ถูกปฏิเสธ",
         }
-
-        status_th, intro_text = status_mapping.get(
+        status_th = status
+        intro_text = status_mapping.get(
             status,
-            (status, f"เรียนคุณ {requester_name},\n\nขอแจ้งอัปเดตสถานะรายการเบิกเงินสดย่อย {claim_name}"),
+            f"เรียนคุณ {requester_name},\n\nขอแจ้งอัปเดตสถานะรายการขออนุมัติเบิกเงินสดย่อย",
         )
-        subject = f"[แจ้งเตือน] อัปเดตสถานะรายการเบิกเงินสดย่อย [{status_th}]"
+        rejection_text = (
+            f"- เหตุผล: {getattr(target_object, 'rejection_comment', None) or '-'}\n"
+            if status == "ปฏิเสธ"
+            else ""
+        )
+        transfer_text = (
+            f"- วันที่โอนเงิน: {transferred_at}\n"
+            if status == "โอนเงินสดย่อยสำเร็จ" and transferred_at
+            else ""
+        )
+        subject = f"[แจ้งเตือน] อัปเดตสถานะรายการขออนุมัติเบิกเงินสดย่อย [{status_th}]"
         body = f"""{intro_text}
 
-รายละเอียดรายการ:
-- ชื่อรายการ: {claim_name}
-- จำนวนเงิน: {claim_amount:,.2f} บาท
 - สถานะปัจจุบัน: {status_th}
+{rejection_text}{transfer_text}
+รายละเอียดรายการขออนุมัติเบิกเงินสดย่อย:
+{item_lines}
 
-หากต้องการตรวจสอบรายละเอียดเพิ่มเติม สามารถดูได้จากระบบตามปกติ
+รวมทั้งสิ้น                                         {claim_amount:,.2f} บาท
+
+กรุณาตรวจสอบรายละเอียดและดำเนินการตามความเหมาะสม
 
 ขอแสดงความนับถือ
 ฝ่ายการเงินและบัญชี
