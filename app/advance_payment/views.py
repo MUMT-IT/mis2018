@@ -4331,7 +4331,7 @@ def approve_borrowing_ticket(ticket_id):
 
     flash("อนุมัติสัญญาเงินยืมเงินทดรองจ่ายและส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว")
 
-    return finance_dashboard()
+    return verification_view(ticket_id)
 
 @bp.route("/api/login", methods=["POST"])
 def api_login():
@@ -4387,7 +4387,7 @@ def reject_borrowing_ticket(ticket_id):
     db.session.commit()
     _send_notification_email(borrowing_ticket)
     flash("ปฏิเสธสัญญาเงินยืมเงินทดรองจ่ายเรียบร้อยแล้ว")
-    return finance_dashboard()
+    return verification_view(ticket_id)
 
 @bp.route("/finance/return-records", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
