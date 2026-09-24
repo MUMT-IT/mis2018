@@ -1729,7 +1729,6 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
         PettyCashClaimDetail.id == PettyCashClaimItem.claim_id,
     ).filter(
         PettyCashClaimDetail.fund_request_id == fund_request_id,
-        PettyCashClaimDetail.status.notin_(["ฉบับร่าง", "ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"]),
     )
     if exclude_claim_id:
         claim_query = claim_query.filter(PettyCashClaimDetail.id != exclude_claim_id)
