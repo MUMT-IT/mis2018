@@ -623,6 +623,7 @@ class FundRequest(FinanceEditMixin, db.Model):
     requester_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
     org_id = Column(Integer, ForeignKey("orgs.id"), nullable=True, index=True)
+    petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=True, index=True)
     borrowing_ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
     form_type = Column(String(10), nullable=False)
     ticket_number = Column(String(64), nullable=True)
@@ -658,6 +659,10 @@ class FundRequest(FinanceEditMixin, db.Model):
     def org(self):
         from app.models import Org
         return _session_get(object_session(self), Org, self.org_id)
+
+    @property
+    def petty_cash_setting(self):
+        return _session_get(object_session(self), PettyCashSetting, self.petty_cash_setting_id)
 
     @property
     def department_name(self):

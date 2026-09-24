@@ -74,6 +74,7 @@ ADVANCE_PAYMENT_SYSTEM = "advance_payment"
 PETTY_CASH_SYSTEM = "petty_cash"
 FINANCE_SYSTEM = "finance"
 AVAILABLE_SYSTEMS = (FINANCE_SYSTEM, PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM)
+PETTY_CASH_SETTING_SESSION_KEY = "advance_payment_petty_cash_setting_id"
 FUND_REQUEST_FORM_PETTY_CASH = "petty_cash"
 FUND_REQUEST_FORM_INTEREST = "interest"
 FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
@@ -225,6 +226,9 @@ def _fund_request_requester_position(fund_request, default=""):
 
 
 def _fund_request_department_name(fund_request, default="ไม่ระบุหน่วยงาน"):
+    setting = getattr(fund_request, "petty_cash_setting", None)
+    if setting:
+        return getattr(setting, "department_name", None) or default
     org = getattr(fund_request, "org", None)
     if org is None:
         org = db.session.query(Org).get(getattr(fund_request, "org_id", None))
@@ -235,20 +239,19 @@ def _fund_request_account_number(fund_request, default=""):
     ticket = getattr(fund_request, "borrowing_ticket", None)
     if ticket and getattr(ticket, "account_number", None):
         return ticket.account_number
-    org_id = getattr(fund_request, "org_id", None)
-    setting = None
-    if org_id:
-        setting = (
-            db.session.query(PettyCashSetting)
-            .filter_by(org_id=org_id, fiscal_year=_current_petty_cash_fiscal_year(), valid=True)
-            .first()
-        )
+    setting = getattr(fund_request, "petty_cash_setting", None)
     if setting is None:
-        legacy_org = _resolve_org_by_department_name(_fund_request_department_name(fund_request, ""))
-        if legacy_org:
+        request_date = _coerce_date(
+            getattr(fund_request, "request_date", None)
+            or getattr(fund_request, "created_at", None)
+        )
+        fiscal_year = convert_to_fiscal_year(request_date) if request_date else _current_petty_cash_fiscal_year()
+        org_id = getattr(fund_request, "org_id", None)
+        if org_id:
             setting = (
                 db.session.query(PettyCashSetting)
-                .filter_by(org_id=legacy_org.id, fiscal_year=_current_petty_cash_fiscal_year(), valid=True)
+                .filter_by(org_id=org_id, fiscal_year=fiscal_year)
+                .order_by(PettyCashSetting.valid.desc(), PettyCashSetting.id.desc())
                 .first()
             )
     return getattr(setting, "account_number", None) or default
@@ -300,6 +303,37 @@ def _fund_request_org_filter(query, org, legacy_department_name=None):
     if org and getattr(org, "id", None):
         return query.filter(FundRequest.org_id == org.id)
     return query.filter(False)
+
+
+def _setting_org(setting):
+    if not setting:
+        return None
+    org = getattr(setting, "org", None)
+    return org or _resolve_org_by_department_name(getattr(setting, "department_name", None))
+
+
+def _fund_request_setting_filter(query, setting, *, include_legacy=True):
+    """Scope fund requests to one petty-cash setting, with a legacy fallback."""
+    setting_id = getattr(setting, "id", None) if setting else None
+    if not setting_id:
+        return query.filter(False)
+
+    scopes = [FundRequest.petty_cash_setting_id == setting_id]
+    if include_legacy:
+        org_id = getattr(setting, "org_id", None)
+        fiscal_year = getattr(setting, "fiscal_year", None)
+        if org_id and fiscal_year:
+            year_start = date(fiscal_year - 1, 10, 1)
+            year_end = date(fiscal_year, 9, 30)
+            scopes.append(
+                and_(
+                    FundRequest.petty_cash_setting_id.is_(None),
+                    FundRequest.org_id == org_id,
+                    FundRequest.request_date >= year_start,
+                    FundRequest.request_date <= year_end,
+                )
+            )
+    return query.filter(or_(*scopes))
 
 
 def _org_account_controller(org):
@@ -462,6 +496,29 @@ def _default_module_role(staff):
 def _set_selected_system(system):
     if system is not None:
         session["advance_payment_system"] = system
+
+
+def _petty_cash_settings_for_custodian(staff, fiscal_year=None):
+    """Return active petty-cash settings assigned to a staff account."""
+    staff_id = getattr(staff, "id", None)
+    if not staff_id:
+        return []
+
+    current_fiscal_year = (
+        fiscal_year
+        if fiscal_year is not None
+        else _current_petty_cash_fiscal_year()
+    )
+    return (
+        db.session.query(PettyCashSetting)
+        .filter(
+            PettyCashSetting.custodian_id == staff_id,
+            PettyCashSetting.fiscal_year == current_fiscal_year,
+            PettyCashSetting.valid == True,
+        )
+        .order_by(PettyCashSetting.org_id.asc(), PettyCashSetting.id.asc())
+        .all()
+    )
 
 
 def _current_module_user():
@@ -794,11 +851,29 @@ def _resolve_petty_cash_setting(user, fiscal_year=None):
         return None
 
     current_fiscal_year = fiscal_year if fiscal_year is not None else _current_petty_cash_fiscal_year()
+    user_id = getattr(user, "id", None)
+    query = db.session.query(PettyCashSetting).filter(
+        PettyCashSetting.valid == True,
+        PettyCashSetting.fiscal_year == current_fiscal_year,
+    )
+
+    # A custodian may be assigned to multiple organizations. Once the user has
+    # selected one, that choice must override any legacy one-to-one relationship.
+    if user_id:
+        selected_setting_id = session.get(PETTY_CASH_SETTING_SESSION_KEY)
+        if selected_setting_id:
+            selected_setting = query.filter(
+                PettyCashSetting.id == selected_setting_id,
+                PettyCashSetting.custodian_id == user_id,
+            ).first()
+            if selected_setting:
+                return selected_setting
+            session.pop(PETTY_CASH_SETTING_SESSION_KEY, None)
+
     setting = getattr(user, "petty_cash_setting", None)
     if setting and getattr(setting, "valid", False) and getattr(setting, "fiscal_year", None) == current_fiscal_year:
         return setting
 
-    user_id = getattr(user, "id", None)
     user_name_candidates = {
         _normalize_lookup_value(getattr(user, "name", None)),
         _normalize_lookup_value(getattr(user, "fullname", None)),
@@ -815,11 +890,6 @@ def _resolve_petty_cash_setting(user, fiscal_year=None):
             org_names.append(org_name)
         if org_en_name and org_en_name not in org_names:
             org_names.append(org_en_name)
-
-    query = db.session.query(PettyCashSetting).filter(
-        PettyCashSetting.valid == True,
-        PettyCashSetting.fiscal_year == current_fiscal_year,
-    )
 
     if user_id:
         setting = query.filter(PettyCashSetting.custodian_id == user_id).first()
@@ -891,16 +961,14 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
         }
 
     initial_budget = float(setting_budget)
-    setting_org = getattr(setting, "org", None)
-    if setting_org is None:
-        setting_org = _resolve_org_by_department_name(getattr(setting, "department_name", ""))
+    setting_org = _setting_org(setting)
     department_name = (getattr(setting_org, "name", "") or getattr(setting, "department_name", "") or "").strip()
     setting_id = getattr(setting, "id", None)
 
     approved_fund_requests = []
-    if getattr(setting_org, "id", None):
-        approved_fund_requests = _fund_request_org_filter(
-            db.session.query(FundRequest), setting_org, department_name
+    if getattr(setting, "id", None):
+        approved_fund_requests = _fund_request_setting_filter(
+            db.session.query(FundRequest), setting
         ).all()
         approved_fund_requests = [
             fund_request
@@ -1885,6 +1953,19 @@ def _render_role_selection(selected_role=None, error_message=None):
         requested_system = (request.form.get("system") or request.form.get("role") or "").strip()
         requested_system, error_message = _ensure_module_role(staff, requested_system)
         if requested_system:
+            if requested_system == PETTY_CASH_SYSTEM:
+                petty_cash_settings = _petty_cash_settings_for_custodian(staff)
+                if len(petty_cash_settings) > 1:
+                    session.pop(PETTY_CASH_SETTING_SESSION_KEY, None)
+                    _set_selected_system(PETTY_CASH_SYSTEM)
+                    return redirect(url_for("advance_payment.petty_cash_setting_selection"))
+                if petty_cash_settings:
+                    session[PETTY_CASH_SETTING_SESSION_KEY] = petty_cash_settings[0].id
+                else:
+                    session.pop(PETTY_CASH_SETTING_SESSION_KEY, None)
+            else:
+                session.pop(PETTY_CASH_SETTING_SESSION_KEY, None)
+
             elevated_role = None
             if requested_system == ADVANCE_PAYMENT_SYSTEM and COORDINATOR_ROLE in _available_module_roles(staff):
                 elevated_role = COORDINATOR_ROLE
@@ -1902,6 +1983,44 @@ def _render_role_selection(selected_role=None, error_message=None):
         selected_role=selected_role,
         current_email=getattr(staff, "email", None),
         error_message=error_message,
+    )
+
+
+@bp.route("/petty-cash/select-setting", methods=["GET", "POST"])
+def petty_cash_setting_selection():
+    staff = _current_module_user()
+    if not staff:
+        return redirect(url_for("auth.login", next=request.url))
+
+    _set_selected_system(PETTY_CASH_SYSTEM)
+    petty_cash_settings = _petty_cash_settings_for_custodian(staff)
+    if len(petty_cash_settings) <= 1:
+        if petty_cash_settings:
+            session[PETTY_CASH_SETTING_SESSION_KEY] = petty_cash_settings[0].id
+        else:
+            session.pop(PETTY_CASH_SETTING_SESSION_KEY, None)
+        _set_selected_system(PETTY_CASH_SYSTEM)
+        return redirect(url_for(_dashboard_endpoint_for_role(SECRETARY_ROLE)))
+
+    error_message = None
+    if request.method == "POST":
+        selected_setting_id = request.form.get("setting_id", type=int)
+        selected_setting = next(
+            (setting for setting in petty_cash_settings if setting.id == selected_setting_id),
+            None,
+        )
+        if selected_setting is None:
+            error_message = "กรุณาเลือกหน่วยงานที่ต้องการเข้าใช้งาน"
+        else:
+            session[PETTY_CASH_SETTING_SESSION_KEY] = selected_setting.id
+            _set_selected_system(PETTY_CASH_SYSTEM)
+            return redirect(url_for(_dashboard_endpoint_for_role(SECRETARY_ROLE)))
+
+    return render_template(
+        "petty_cash_setting_selection.html",
+        petty_cash_settings=petty_cash_settings,
+        error_message=error_message,
+        current_email=getattr(staff, "email", None),
     )
 
 
@@ -1938,6 +2057,7 @@ def logout():
     session.pop("user_email", None)
     session.pop("user_role", None)
     session.pop("advance_payment_system", None)
+    session.pop(PETTY_CASH_SETTING_SESSION_KEY, None)
     flash("ออกจากระบบ Advance Payment เรียบร้อยแล้ว")
     if current_user.is_authenticated:
         return redirect(url_for("advance_payment.login"))
@@ -5222,9 +5342,13 @@ def staff_fund_request():
         setting,
         user_id=user.id if not is_secretary and not (setting and setting.id) else None,
     )
-    staff_department_name = _get_staff_department_name(user)
-    staff_org = _get_staff_org(user) or (setting.org if setting else None) or _resolve_org_by_department_name(staff_department_name)
-    department_employees = _serialize_org_department(staff_org).get("staff_members", []) if staff_org else []
+    # Borrower choices must follow the organization configured for the petty-cash
+    # setting, not the secretary's own organization.
+    setting_org = getattr(setting, "org", None) if setting else None
+    if setting_org is None and setting:
+        setting_org = _resolve_org_by_department_name(getattr(setting, "department_name", None))
+    staff_org = setting_org
+    department_employees = _serialize_org_department(setting_org).get("staff_members", []) if setting_org else []
     for ticket in approved_borrowing_tickets:
         _attach_borrowing_ticket_people(ticket)
     form = FundRequestForm(request.form)
@@ -5232,11 +5356,9 @@ def staff_fund_request():
     if request.method == "GET":
         form.requester_name.data = user_display_name
         form.requester_position.data = user_display_position
-        # Use the staff/org name for employee lookup, and keep petty cash account data from the setting.
-        if staff_org:
-            form.department.data = staff_org.name
-        elif staff_department_name:
-            form.department.data = staff_department_name
+        # Use the petty-cash setting's organization for employee lookup and display.
+        if setting_org:
+            form.department.data = setting_org.name
         elif setting:
             form.department.data = setting.department_name
 
@@ -5328,6 +5450,7 @@ def staff_fund_request():
                 requester_id=requester_id,
                 creator_id=user.id,
                 org_id=getattr(staff_org, "id", None),
+                petty_cash_setting_id=getattr(setting, "id", None),
                 form_type=form_type,
                 ticket_number=None,  # ระบบจะออกเลขที่ให้ทันทีหลังสร้างรายการ
                 request_date=req_date,
@@ -5457,6 +5580,13 @@ def cancel_fund_request(request_id):
     if not fund_req:
         abort(404)
 
+    setting = _resolve_petty_cash_setting(staff)
+    if not _fund_request_setting_filter(
+        db.session.query(FundRequest).filter(FundRequest.id == fund_req.id),
+        setting,
+    ).first():
+        abort(403)
+
     if fund_req.status in {"ยกเลิก", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}:
         return _validation_error_response("ไม่สามารถยกเลิกรายการที่สิ้นสุดกระบวนการแล้วได้")
     if fund_req.status != "อนุมัติแล้ว":
@@ -5504,14 +5634,8 @@ def staff_fund_request_history():
     is_secretary = _is_current_secretary(user, setting)
     is_staff_user = not is_secretary
 
-    fund_requests_query = db.session.query(FundRequest)
-    history_org = _get_staff_org(user)
-    if not history_org and setting:
-        history_org = getattr(setting, "org", None) or _resolve_org_by_department_name(getattr(setting, "department_name", None))
-    fund_requests_query = _fund_request_org_filter(
-        fund_requests_query,
-        history_org,
-        getattr(setting, "department_name", None) or _get_staff_department_name(user),
+    fund_requests_query = _fund_request_setting_filter(
+        db.session.query(FundRequest), setting
     )
     if is_staff_user:
         fund_requests_query = fund_requests_query.filter(FundRequest.requester_id == user.id)
@@ -5519,20 +5643,20 @@ def staff_fund_request_history():
     for fund_request in fund_requests:
         fund_request.display_requester_name = _fund_request_requester_name(fund_request, "-")
 
-    if is_staff_user or not (setting and setting.id):
-        history_items = db.session.query(PettyCashClaimDetail)\
-            .filter(
-                PettyCashClaimDetail.user_id == user.id,
-                PettyCashClaimDetail.status != "ฉบับร่าง",
-            )\
-            .order_by(PettyCashClaimDetail.id.desc()).all()
+    history_items_query = db.session.query(PettyCashClaimDetail).filter(
+        PettyCashClaimDetail.status != "ฉบับร่าง",
+    )
+    if setting and setting.id:
+        history_items_query = history_items_query.filter(
+            PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+        )
     else:
-        history_items = db.session.query(PettyCashClaimDetail)\
-            .filter(
-                PettyCashClaimDetail.petty_cash_setting_id == setting.id,
-                PettyCashClaimDetail.status != "ฉบับร่าง",
-            )\
-            .order_by(PettyCashClaimDetail.id.desc()).all()
+        history_items_query = history_items_query.filter(False)
+    if is_staff_user:
+        history_items_query = history_items_query.filter(
+            PettyCashClaimDetail.user_id == user.id,
+        )
+    history_items = history_items_query.order_by(PettyCashClaimDetail.id.desc()).all()
 
     dept_summary = _calculate_petty_cash_balance_summary(
         setting,
@@ -5541,20 +5665,18 @@ def staff_fund_request_history():
     dept_summary["total_claims"] = len(history_items)
     dept_summary["history"] = history_items
 
-    if is_staff_user or not (setting and setting.id):
-        claim_history = (
-            db.session.query(PettyCashClaimDetail)
-            .filter(PettyCashClaimDetail.user_id == user.id)
-            .order_by(PettyCashClaimDetail.id.desc())
-            .all()
+    claim_history_query = db.session.query(PettyCashClaimDetail)
+    if setting and setting.id:
+        claim_history_query = claim_history_query.filter(
+            PettyCashClaimDetail.petty_cash_setting_id == setting.id,
         )
     else:
-        claim_history = (
-            db.session.query(PettyCashClaimDetail)
-            .filter(PettyCashClaimDetail.petty_cash_setting_id == setting.id)
-            .order_by(PettyCashClaimDetail.id.desc())
-            .all()
+        claim_history_query = claim_history_query.filter(False)
+    if is_staff_user:
+        claim_history_query = claim_history_query.filter(
+            PettyCashClaimDetail.user_id == user.id,
         )
+    claim_history = claim_history_query.order_by(PettyCashClaimDetail.id.desc()).all()
 
     for claim in claim_history:
         _attach_petty_cash_claim_context(claim)
@@ -5637,14 +5759,14 @@ def update_petty_cash_claim_number(claim_id):
         abort(404)
 
     can_edit = False
-    if not _is_current_secretary():
-        can_edit = claim.user_id == staff.id
+    setting = _resolve_petty_cash_setting(staff)
+    same_setting = bool(
+        setting and setting.id and claim.petty_cash_setting_id == setting.id
+    )
+    if _is_current_secretary(staff, setting):
+        can_edit = same_setting
     else:
-        setting = _resolve_petty_cash_setting(staff)
-        can_edit = bool(
-            (setting and setting.id and claim.petty_cash_setting_id == setting.id)
-            or claim.user_id == staff.id
-        )
+        can_edit = same_setting and claim.user_id == staff.id
 
     if not can_edit:
         abort(403)
@@ -5668,26 +5790,13 @@ def export_fund_request_pdf(request_id):
     if _selected_system() == PETTY_CASH_SYSTEM:
         staff = current_user
         setting = _resolve_petty_cash_setting(staff)
-        history_org = _get_staff_org(staff)
-        if not history_org and setting:
-            history_org = getattr(setting, "org", None) or _resolve_org_by_department_name(getattr(setting, "department_name", None))
-        scoped_request = _fund_request_org_filter(
+        scoped_query = _fund_request_setting_filter(
             db.session.query(FundRequest).filter(FundRequest.id == request_id),
-            history_org,
-            getattr(setting, "department_name", None) or _get_staff_department_name(staff),
-        ).first()
-        if not _is_current_secretary():
-            scoped_request = (
-                _fund_request_org_filter(
-                    db.session.query(FundRequest).filter(
-                        FundRequest.id == request_id,
-                        FundRequest.requester_id == staff.id,
-                    ),
-                    history_org,
-                    getattr(setting, "department_name", None) or _get_staff_department_name(staff),
-                )
-                .first()
-            )
+            setting,
+        )
+        if not _is_current_secretary(staff, setting):
+            scoped_query = scoped_query.filter(FundRequest.requester_id == staff.id)
+        scoped_request = scoped_query.first()
         if scoped_request is None:
             abort(403)
         
@@ -5771,10 +5880,15 @@ def export_petty_cash_claim_pdf(claim_id):
     if _selected_system() == PETTY_CASH_SYSTEM:
         staff = current_user
         setting = _resolve_petty_cash_setting(staff)
+        same_setting = bool(
+            setting and setting.id and claim.petty_cash_setting_id == setting.id
+        )
         can_view = bool(
-            _is_current_secretary()
-            or claim.user_id == staff.id
-            or (setting and claim.petty_cash_setting_id == setting.id)
+            same_setting
+            and (
+                _is_current_secretary(staff, setting)
+                or claim.user_id == staff.id
+            )
         )
         if not can_view:
             abort(403)
@@ -5888,6 +6002,13 @@ def autosave_petty_cash_claim_draft():
         PettyCashClaimDetail.user_id == user_id,
         PettyCashClaimDetail.status == "ฉบับร่าง"
     )
+    if setting and setting.id:
+        query = query.filter(
+            or_(
+                PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+                PettyCashClaimDetail.petty_cash_setting_id.is_(None),
+            )
+        )
     
     if fund_request_id and str(fund_request_id).isdigit():
         query = query.filter(PettyCashClaimDetail.fund_request_id == int(fund_request_id))
@@ -5986,17 +6107,14 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     approved_fund_requests = []
     if can_submit_claim:
         fund_request_query = db.session.query(FundRequest).filter(FundRequest.requester_id == user_id)
-        fund_request_query = _fund_request_org_filter(
-            fund_request_query, _get_staff_org(current_user) or getattr(setting, "org", None), getattr(setting, "department_name", None)
-        )
+        fund_request_query = _fund_request_setting_filter(fund_request_query, setting)
         approved_fund_requests = [
             fund_request for fund_request in fund_request_query.order_by(FundRequest.id.desc()).all()
             if (fund_request.status or "").strip() == "อนุมัติแล้ว"
         ]
-    elif setting and setting.id:
-        setting_org = getattr(setting, "org", None) or _resolve_org_by_department_name(setting.department_name)
+    elif setting and setting.id and not is_finance_user:
         fund_request_query = db.session.query(FundRequest).filter(FundRequest.requester_id == user_id)
-        fund_request_query = _fund_request_org_filter(fund_request_query, setting_org, setting.department_name)
+        fund_request_query = _fund_request_setting_filter(fund_request_query, setting)
         approved_fund_requests = [
             fund_request for fund_request in fund_request_query.order_by(FundRequest.id.desc()).all()
             if (fund_request.status or "").strip() == "อนุมัติแล้ว"
@@ -6019,7 +6137,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     )
     if selected_fr_id:
         selected_request_query = db.session.query(FundRequest).filter_by(id=selected_fr_id)
-        if not can_submit_claim and not is_finance_user:
+        if can_submit_claim or (setting and setting.id and not is_finance_user):
+            selected_request_query = _fund_request_setting_filter(selected_request_query, setting)
+        if can_submit_claim or not is_finance_user:
             selected_request_query = selected_request_query.filter_by(requester_id=user_id)
         selected_fund_request = selected_request_query.first()
 
@@ -6045,6 +6165,20 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         fund_request_id_raw = (request.form.get("fund_request_id") or "").strip()
         fund_request_id = int(fund_request_id_raw) if fund_request_id_raw.isdigit() else None
         no_reference_info = request.form.get("has_reference_info") == "true"
+
+        if fund_request_id:
+            posted_request_query = db.session.query(FundRequest).filter(
+                FundRequest.id == fund_request_id,
+            )
+            if can_submit_claim or (setting and setting.id and not is_finance_user):
+                posted_request_query = _fund_request_setting_filter(posted_request_query, setting)
+            if can_submit_claim or not is_finance_user:
+                posted_request_query = posted_request_query.filter(
+                    FundRequest.requester_id == user_id,
+                )
+            selected_fund_request = posted_request_query.first()
+            if selected_fund_request is None:
+                abort(403)
 
         if no_reference_info:
             reference_number = ""
@@ -6211,6 +6345,13 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             user_id=user_id,
             status="ฉบับร่าง",
         )
+        if setting and setting.id:
+            existing_draft_query = existing_draft_query.filter(
+                or_(
+                    PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+                    PettyCashClaimDetail.petty_cash_setting_id.is_(None),
+                )
+            )
         if fund_request_id is not None:
             existing_draft_query = existing_draft_query.filter(
                 PettyCashClaimDetail.fund_request_id == fund_request_id
@@ -6401,6 +6542,13 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         user_id=user_id,
         status="ฉบับร่าง",
     )
+    if setting and setting.id:
+        claim_query = claim_query.filter(
+            or_(
+                PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+                PettyCashClaimDetail.petty_cash_setting_id.is_(None),
+            )
+        )
     if selected_fund_request:
         claim_query = claim_query.filter(PettyCashClaimDetail.fund_request_id == selected_fund_request.id)
     claim_detail = claim_query.first()
@@ -6423,6 +6571,11 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             .filter(
                 PettyCashClaimDetail.fund_request_id == history_fund_request.id,
                 PettyCashClaimDetail.status != "ฉบับร่าง",
+            )
+            .filter(
+                PettyCashClaimDetail.petty_cash_setting_id == setting.id
+                if setting and setting.id
+                else False
             )
             .order_by(PettyCashClaimDetail.created_at.desc())
             .all()
@@ -6455,7 +6608,17 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
 
     fund_request_status = getattr(verification_fund_request, "status", None)
     can_cancel_fund_request = False
-    if verification_fund_request and fund_request_status == "อนุมัติแล้ว" and _is_current_secretary():
+    if (
+        verification_fund_request
+        and fund_request_status == "อนุมัติแล้ว"
+        and _is_current_secretary(current_user, setting)
+        and _fund_request_setting_filter(
+            db.session.query(FundRequest).filter(
+                FundRequest.id == verification_fund_request.id,
+            ),
+            setting,
+        ).first()
+    ):
         has_submitted_claim = db.session.query(PettyCashClaimDetail.id).filter(
             PettyCashClaimDetail.fund_request_id == verification_fund_request.id,
             PettyCashClaimDetail.status != "ฉบับร่าง",
@@ -6562,7 +6725,16 @@ def staff_parcel_return_edit(parcel_return_id):
             request.referrer or url_for("advance_payment.staff_fund_request_history"),
         )
 
-    if not _is_current_secretary() and fund_request.requester_id != staff.id:
+    setting = _resolve_petty_cash_setting(staff)
+    same_setting = bool(
+        _fund_request_setting_filter(
+            db.session.query(FundRequest).filter(FundRequest.id == fund_request.id),
+            setting,
+        ).first()
+    )
+    if not same_setting:
+        abort(403)
+    if not _is_current_secretary(staff, setting) and fund_request.requester_id != staff.id:
         abort(403)
 
     current_status = (parcel_return.status or "").strip()
@@ -6644,8 +6816,17 @@ def petty_cash_claim_detail(claim_id):
     if borrowing_ticket is None and getattr(claim_detail, "fund_request", None):
         borrowing_ticket = _get_borrowing_ticket_by_id(getattr(claim_detail.fund_request, "borrowing_ticket_id", None))
 
-    if _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary() and claim_detail.user_id != current_user.id:
-        abort(403)
+    if _selected_system() == PETTY_CASH_SYSTEM:
+        setting = _resolve_petty_cash_setting(current_user)
+        same_setting = bool(
+            setting
+            and setting.id
+            and claim_detail.petty_cash_setting_id == setting.id
+        )
+        if not same_setting:
+            abort(403)
+        if not _is_current_secretary(current_user, setting) and claim_detail.user_id != current_user.id:
+            abort(403)
         
     return render_template(
         "petty_cash_claim_detail.html", # หรือชื่อไฟล์ HTML template ที่คุณใช้อยู่
@@ -6757,8 +6938,12 @@ def confirm_petty_claim_edit(claim_id):
     claim = db.session.query(PettyCashClaimDetail).get(claim_id)
     if not claim:
         abort(404)
-    if _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary() and claim.user_id != _current_user_id():
-        abort(403)
+    if _selected_system() == PETTY_CASH_SYSTEM:
+        setting = _resolve_petty_cash_setting(current_user)
+        if not setting or not setting.id or claim.petty_cash_setting_id != setting.id:
+            abort(403)
+        if not _is_current_secretary(current_user, setting) and claim.user_id != _current_user_id():
+            abort(403)
     if (claim.status or "").strip().lower() != "รอยืนยันการแก้ไข":
         return _validation_error_response("รายการนี้ไม่มีการแก้ไขที่รอการยืนยัน")
 
@@ -6847,37 +7032,13 @@ def petty_cash_ledger():
         })
 
     # 2. ดึงข้อมูล Fund Request (การเบิก/ยืมเงิน) -> แยกยอดเงินตามหมวดหมู่
-    approved_fund_requests = []
-    if department_name or account_number:
-        fund_request_scope = []
-        if current_setting and getattr(current_setting, "org_id", None):
-            fund_request_scope.append(FundRequest.org_id == current_setting.org_id)
-        elif department_name:
-            fund_request_org = _resolve_org_by_department_name(department_name)
-            if fund_request_org and getattr(fund_request_org, "id", None):
-                fund_request_scope.append(FundRequest.org_id == fund_request_org.id)
-            else:
-                fund_request_scope.append(False)
-        if account_number:
-            # Type 32 is tied to the petty-cash account through its borrowing ticket.
-            fund_request_scope.append(
-                and_(
-                    FundRequest.form_type == FUND_REQUEST_FORM_BORROWING_TICKET,
-                    FundRequest.borrowing_ticket_id.in_(
-                        db.session.query(BorrowingTicket.id).filter(BorrowingTicket.account_number == account_number)
-                    ),
-                )
-            )
-        # Ledger is the bank statement: keep cancelled requests here as well
-        # so the original outgoing transaction remains visible. The refund
-        # for a cancelled request is appended as a separate income row below.
-        approved_fund_requests = (
-            db.session.query(FundRequest)
-            .filter(
-                or_(*fund_request_scope),
-            )
-            .all()
-        )
+    # Ledger entries are scoped to the selected setting. The helper also
+    # includes legacy rows that can still be mapped by org and fiscal year.
+    fund_request_query = _fund_request_setting_filter(
+        db.session.query(FundRequest),
+        current_setting,
+    )
+    approved_fund_requests = fund_request_query.all()
 
     for fr in approved_fund_requests:
         amt = float(fr.amount or 0)
@@ -6976,10 +7137,10 @@ def petty_cash_ledger():
             )
 
     # เงินที่นำกลับเข้าระบบเมื่อยกเลิกใบเบิก
-    if department_name or account_number:
+    if current_setting and current_setting.id:
         cancelled_fund_requests = (
-            db.session.query(FundRequest)
-            .filter(or_(*fund_request_scope), FundRequest.status == "ยกเลิก")
+            _fund_request_setting_filter(db.session.query(FundRequest), current_setting)
+            .filter(FundRequest.status == "ยกเลิก")
             .all()
         )
         for fr in cancelled_fund_requests:
