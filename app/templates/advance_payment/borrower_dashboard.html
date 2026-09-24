@@ -920,25 +920,6 @@
       });
     });
 
-    function validateReturnAmountLimit(form) {
-      const rows = form.querySelectorAll('tbody tr');
-
-      for (let index = 0; index < rows.length; index += 1) {
-        const amountInput = rows[index].querySelector('input[name="amount[]"]');
-        const isCash = rows[index].querySelector(".receipt-is-cash")?.checked === true;
-        const amount = parseFloat((amountInput?.value || "0").replace(/,/g, "")) || 0;
-
-        if (amount > 100000 && !isCash) {
-          alert(`รายการที่ ${index + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก`);
-          amountInput?.focus();
-          amountInput?.select();
-          return false;
-        }
-      }
-
-      return true;
-    }
-
     function submitFormWithAction(ticketId, type) {
       const form = document.getElementById(`returnForm_${ticketId}`);
       document.getElementById(`action_${ticketId}`).value = type;
@@ -979,9 +960,6 @@
           el.required = hasReturnData;
         });
 
-        if (!validateReturnAmountLimit(form)) {
-          return;
-        }
         if (hasReturnData) {
           form.querySelectorAll('input, textarea').forEach(el => {
             if (['receipt_date[]', 'store_name[]', 'description[]', 'amount[]'].includes(el.name)) {
