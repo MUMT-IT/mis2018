@@ -100,35 +100,38 @@
             </button>
         {% endif %}
         {% if return_detail.status|lower == 'รอตรวจสอบ' %}
-            <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmCheckingModal">
+            <form id="returnCheckingForm{{ return_detail.id }}" method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" data-ajax-validation="true" class="d-none">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if return_detail.has_over_limit_item %}<input type="hidden" name="high_amount_acknowledged" value="0">{% endif %}
+            </form>
+            <button type="button" class="btn btn-outline-warning btn-sm fw-bold px-3 py-1.5"
+                data-popup-trigger="true"
+                data-popup-title="ยืนยันการส่งแบบฟอร์ม"
+                data-popup-message="{% if return_detail.has_over_limit_item %}รายการนี้มีใบเสร็จยอดเกิน 100,000 บาท กรุณาตรวจสอบเอกสารอว.ที่อนุมัติโดยอธิการบดี{% else %}คุณต้องการเปลี่ยนสถานะเอกสารนี้เป็น 'กำลังตรวจสอบ' ใช่หรือไม่?{% endif %}"
+                data-popup-target-form-id="returnCheckingForm{{ return_detail.id }}"
+                data-popup-require-acknowledgement="{{ 'true' if return_detail.has_over_limit_item else 'false' }}"
+                data-popup-acknowledgement-field-name="high_amount_acknowledged"
+                data-popup-acknowledgement-label="รับทราบ และจะทำการตรวจสอบเอกสาร"
+                data-popup-confirm-text="เริ่มทำการตรวจสอบ"
+                data-popup-confirm-class="btn-warning">
                 เริ่มการตรวจสอบ
             </button>
-            <div class="modal fade" id="confirmCheckingModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content text-start">
-                        <div class="modal-header"><h5 class="modal-title fw-bold">ยืนยันการเปลี่ยนสถานะ</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">
-                          {% if return_detail.has_over_limit_item %}
-                            รายการนี้มีใบเสร็จยอดเกิน <strong>100,000 บาท</strong> กรุณาตรวจสอบเอกสารประกอบก่อนเริ่มดำเนินการ
-                            <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="detailHighAmountCheck" onchange="document.getElementById('detailHighAmountAcknowledged').value = this.checked ? '1' : '0'"><label class="form-check-label" for="detailHighAmountCheck">รับทราบและจะตรวจสอบเอกสารอนุมัติจากคณบดี</label></div>
-                          {% else %}
-                            คุณต้องการเปลี่ยนสถานะเอกสารนี้เป็น <strong>"กำลังตรวจสอบ"</strong> ใช่หรือไม่?
-                          {% endif %}
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                {% if return_detail.has_over_limit_item %}<input type="hidden" name="high_amount_acknowledged" id="detailHighAmountAcknowledged" value="0">{% endif %}
-                                <button type="submit" class="btn btn-warning fw-bold">ยืนยัน</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
         {% endif %}
         {% if return_detail.status|lower == 'กำลังตรวจสอบ' %}
-            <button type="button" class="btn btn-primary btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#confirmProofedModal">
+            <form id="returnProofedForm{{ return_detail.id }}" method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" data-ajax-validation="true" class="d-none">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% if return_detail.has_over_limit_item %}<input type="hidden" name="dean_document_acknowledged" value="0">{% endif %}
+            </form>
+            <button type="button" class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
+                data-popup-trigger="true"
+                data-popup-title="ยืนยันการส่งแบบฟอร์ม"
+                data-popup-message="{% if return_detail.has_over_limit_item %}กรุณายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีสำหรับใบเสร็จยอดเกิน 100,000 บาทแล้ว{% else %}คุณต้องการส่งเอกสารนี้ไปยังสถานะ 'ผ่านการตรวจสอบ' ใช่หรือไม่?{% endif %}"
+                data-popup-target-form-id="returnProofedForm{{ return_detail.id }}"
+                data-popup-require-acknowledgement="{{ 'true' if return_detail.has_over_limit_item else 'false' }}"
+                data-popup-acknowledgement-field-name="dean_document_acknowledged"
+                data-popup-acknowledgement-label="ยืนยันว่าได้ทำการตรวจสอบแล้ว"
+                data-popup-confirm-text="ตกลงและส่งแบบฟอร์ม"
+                data-popup-confirm-class="btn-warning">
                 ยืนยันการตรวจสอบ
             </button>
             <button type="button" class="btn btn-danger btn-sm fw-bold px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#rejectReturnModal{{ return_detail.id }}">
@@ -152,29 +155,6 @@
                     </div>
                     </div>
                 </form>
-                </div>
-            </div>
-            <div class="modal fade" id="confirmProofedModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content text-start">
-                        <div class="modal-header"><h5 class="modal-title fw-bold">ยืนยันการตรวจสอบหลักฐาน</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                        <div class="modal-body">
-                          {% if return_detail.has_over_limit_item %}
-                            กรุณายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีสำหรับใบเสร็จยอดเกิน <strong>100,000 บาท</strong> แล้ว
-                            <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="detailDeanDocumentCheck" onchange="document.getElementById('detailDeanDocumentAcknowledged').value = this.checked ? '1' : '0'"><label class="form-check-label" for="detailDeanDocumentCheck">ข้าพเจ้ายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีแล้ว</label></div>
-                          {% else %}
-                            คุณต้องการส่งเอกสารนี้ไปยังสถานะ <strong>"ผ่านการตรวจสอบ"</strong> ใช่หรือไม่?
-                          {% endif %}
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                            <form method="POST" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                {% if return_detail.has_over_limit_item %}<input type="hidden" name="dean_document_acknowledged" id="detailDeanDocumentAcknowledged" value="0">{% endif %}
-                                <button type="submit" class="btn btn-primary fw-bold">ยืนยันข้อมูลถูกต้อง</button>
-                            </form>
-                        </div>
-                    </div>
                 </div>
             </div>
            {% endif %}
@@ -205,7 +185,7 @@
             </thead>
             <tbody>
             {% for file in proof_files %}
-                <tr>
+                <tr class="{% if file.receipt_item and (file.receipt_item.amount or 0) > 100000 and not file.receipt_item.is_cash %}table-warning{% endif %}">
                 <td class="fw-bold text-muted" style="width: 60px;">
                     {{ loop.index }}
                 </td>
@@ -226,6 +206,9 @@
                 
                 <td class="fw-bold text-secondary">
                     {{ "{:,.2f}".format(file.receipt_item.amount or 0) if file.receipt_item else '0.00' }} บาท
+                    {% if file.receipt_item and (file.receipt_item.amount or 0) > 100000 and not file.receipt_item.is_cash %}
+                      <span class="badge bg-danger ms-1">เกิน 100,000 บาท</span>
+                    {% endif %}
                 </td>
 
                 <td>

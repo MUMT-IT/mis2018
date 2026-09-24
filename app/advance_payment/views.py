@@ -2978,7 +2978,6 @@ def verification_view(ticket_id):
     )
 
     for return_detail in return_details:
-        return_detail.has_over_limit_item = _return_detail_has_over_limit_item(return_detail)
         numbered_descriptions = []
         for item in return_detail.receipt_items:
             desc = (item.description or "").strip()
@@ -5092,10 +5091,10 @@ def view_return_proof_detail(return_id):
     if not borrowing_ticket:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-        (not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id())
-        or (_is_current_coordinator() and borrowing_ticket.creator_id != _current_user_id())
-    ):
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and _current_user_id() not in {
+        borrowing_ticket.creator_id,
+        borrowing_ticket.borrower_id,
+    }:
         abort(403)
 
     _prepare_document_display_list(return_detail.documents)
