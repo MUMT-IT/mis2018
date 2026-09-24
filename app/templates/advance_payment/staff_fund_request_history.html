@@ -64,7 +64,7 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link fw-bold py-3 text-success" id="tab-claim-history" type="button" data-history-tab="claim-history">
           <i class="bi bi-clock-history me-1"></i>ประวัติการส่งเบิกเงินสดย่อย
-          <span class="badge bg-success rounded-pill ms-1">{{ visible_claim_history|length }}</span>
+          <span class="badge bg-success rounded-pill ms-1">{{ visible_claim_history|length + (parcel_return_history|length if parcel_return_history else 0) }}</span>
         </button>
       </li>
     </ul>
@@ -261,32 +261,30 @@
 <!--    <h3 class="h4 fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>ประวัติรายละเอียดเอกสารส่งเบิกเงินสดย่อย</h3>-->
 <!--  </div>-->
   <div class="card-body px-4 pb-4">
-    {% if visible_claim_history and visible_claim_history|length > 0 %}
+    {% if (visible_claim_history and visible_claim_history|length > 0) or (parcel_return_history and parcel_return_history|length > 0) %}
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light small fw-bold">
             <tr>
-              <th class="text-center">เลขอว.</th>
-              <th>วันที่ยื่นเบิก</th>
-              <th class="text-center">ชื่อผู้ขอเบิก</th>
-              <th class="text-end">ยอดเงินรวม (บาท)</th>
+              <th class="text-start">เลขที่เอกสาร / บย.</th>
+              <th>ชื่อผู้ขอเบิก</th>
+              <th class="text-center">ประเภทรายการ</th>
+              <th>รายละเอียด</th>
+              <th class="text-end">จำนวนเงิน (บาท)</th>
+              <th class="text-center">วันที่สร้างรายการ</th>
               <th class="text-center">สถานะ</th>
-              <th class="text-center">ตรวจสอบ</th>
+              <th class="text-center">การจัดการ</th>
             </tr>
           </thead>
           <tbody>
             {% for claim in visible_claim_history %}
               <tr>
-                <td class="text-center fw-bold">
-                  {{ claim.claim_number if claim.claim_number else '-' }}
-                </td>
-                <td>{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
-                  
-                <td class="text-center">{{ claim.user.name if claim.user_id else '-' }}</td>
-
-                <td class="text-end fw-bold text-primary">
-                  {{ "{:,.2f}".format(claim.amount or claim.total_amount or 0.0) }} บาท
-                </td>
+                <td class="text-start"><div class="text-dark fw-bold">{{ claim.claim_number if claim.claim_number else '-' }}</div></td>
+                <td><span class="text-dark fw-medium">{{ claim.user.name if claim.user_id else '-' }}</span></td>
+                <td class="text-center"><span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1"><i class="bi bi-receipt me-1"></i>ขอเบิกเงินสดย่อย</span></td>
+                <td class="text-start text-dark" style="max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ claim.items_description_summary or '-' }}</div></td>
+                <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(claim.amount or claim.total_amount or 0.0) }}</td>
+                <td class="text-center small text-secondary">{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
                 
                 <td class="text-center">
                   {% if claim.status|lower == 'รอตรวจสอบ' %}{% set r_badge = 'bg-warning text-dark' %}{% set r_status = 'รอตรวจสอบ' %}
@@ -305,7 +303,8 @@
                   </div>
                 </td>
                   
-                <td class="col text-center gap-2">
+                <td class="text-center">
+                  <div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">
                   {% if not claim.claim_number %}
                     <button type="button"
                             class="btn btn-sm btn-outline-secondary"
@@ -329,15 +328,37 @@
                     title="เปิดหน้า petty_cash_claim_detail.html">
                     <i class="bi bi-file-earmark-text me-1"></i>ตรวจสอบ
                   </a>
+                  </div>
                 </td>
               </tr>
+            {% endfor %}
 
+            {% for parcel_return in parcel_return_history %}
+              {% set parcel_status = (parcel_return.status or '')|lower %}
+              <tr class="align-top">
+                <td class="text-start"><div class="text-dark fw-bold">{{ parcel_return.display_ticket_number or '-' }}</div>{% if parcel_return.display_subject_name and parcel_return.display_subject_name != '-' %}<small class="text-muted d-block text-truncate" style="max-width: 180px;" title="{{ parcel_return.display_subject_name }}">{{ parcel_return.display_subject_name }}</small>{% endif %}</td>
+                <td><span class="text-dark fw-medium">{{ parcel_return.display_borrower_name or '-' }}</span></td>
+                <td class="text-center"><span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1"><i class="bi bi-box-seam me-1"></i>ส่งคืนพัสดุ</span></td>
+                <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ parcel_return.items_description or '-' }}</div></td>
+                <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
+                <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
+                <td class="text-center">
+                  {% if parcel_status in ['รอตรวจสอบ', 'รอการตรวจสอบ'] %}<span class="badge bg-warning-subtle text-warning-emphasis border">รอการตรวจสอบ</span>
+                  {% elif parcel_status == 'พัสดุกำลังดำเนินการ' %}<span class="badge bg-info-subtle text-info-emphasis border">พัสดุกำลังดำเนินการ</span>
+                  {% elif parcel_status == 'กำลังตรวจสอบ' %}<span class="badge bg-info-subtle text-info-emphasis border">กำลังตรวจสอบ</span>
+                  {% elif parcel_status in ['ผ่านการตรวจสอบ', 'ได้รับเอกสารแล้ว'] %}<span class="badge bg-info-subtle text-info-emphasis">ได้รับเอกสารแล้ว</span>
+                  {% elif parcel_status == 'เอกสารตั้งฎีกา' %}<span class="badge bg-secondary-subtle text-secondary border">เอกสารตั้งฎีกา</span>
+                  {% elif parcel_status in ['ฎีกาถูกตีกลับจากกองคลัง', 'ปฏิเสธ'] %}<span class="badge bg-danger-subtle text-danger border">{{ parcel_return.status }}</span>
+                  {% else %}<span class="badge bg-secondary-subtle text-secondary border">{{ parcel_return.status }}</span>{% endif %}
+                </td>
+                <td class="text-center"><div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">{% if parcel_return.display_ticket_id %}<a class="btn btn-outline-primary btn-sm px-2" href="{{ url_for('advance_payment.verification_view', ticket_id=parcel_return.display_ticket_id) }}" title="ดูรายละเอียดพัสดุและสัญญา"><i class="bi bi-search me-1"></i>ตรวจสอบหลักฐาน</a>{% else %}<span class="text-muted small">-</span>{% endif %}</div></td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     {% else %}
-      <p class="text-muted text-center my-4">ยังไม่มีประวัติการส่งเบิกเงินสดย่อยในระบบ</p>
+      <p class="text-muted text-center my-4">ยังไม่มีประวัติการส่งเบิกเงินสดย่อยหรือส่งคืนพัสดุในระบบ</p>
     {% endif %}
   </div>
 </div>

@@ -337,7 +337,7 @@
             {% for pr in borrowing_ticket.parcel_returns %}
             <tr class="align-top">
               <td>{{ pr.sent_date|thai_date }}</td>
-              <td>{{ pr.items_description }}</td>
+              <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}</div></td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent) }}</td>
               <td>
                 {% if pr.status == 'รอตรวจสอบ' %}
@@ -571,7 +571,7 @@
                 <tr>
                   <td>{{ row_counter[-1] }}</td>
                   <td>{{ pr.sent_date|thai_date }}</td>
-                  <td class="text-start text-dark">พัสดุ: {{ pr.items_description }}</td>
+                  <td class="text-start text-dark" style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ pr.items_description or '-' }}</div></td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td>
                   <td></td>

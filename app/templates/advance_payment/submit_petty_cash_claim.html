@@ -439,7 +439,7 @@
             <td>{{ claim.created_at|thai_date }}</td>
             <td>
               {% if claim.items_description_summary %}
-                <span class="text-center">{{ claim.items_description_summary }}</span>
+                <span class="text-center" style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ claim.items_description_summary }}</span>
               {% else %}
                 <span class="text-muted small">-</span>
               {% endif %}
@@ -500,7 +500,7 @@
           {% for pr in parcel_return_history %}
           <tr class="align-top">
             <td>{{ pr.sent_date|thai_date }}</td>
-            <td>{{ pr.items_description }}</td>
+            <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}</div></td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
             <td>
               {% if pr.status == 'รอตรวจสอบ' %}
