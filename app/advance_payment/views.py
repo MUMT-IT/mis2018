@@ -56,6 +56,10 @@ def render_template(template_name, *args, **kwargs):
         template_name = f"advance_payment/{template_name}"
     kwargs.setdefault("advance_payment_user", current_user)
     kwargs.setdefault("advance_payment_role", _current_module_role())
+    kwargs.setdefault(
+        "advance_payment_can_switch_systems",
+        SECRETARY_ROLE in _available_module_roles(current_user),
+    )
     return _render_template(template_name, *args, **kwargs)
 
 

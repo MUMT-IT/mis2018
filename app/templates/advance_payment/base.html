@@ -407,7 +407,7 @@
                 </a>
               </li>
             {% endif %}
-            {% if advance_payment_role == 'secretary' %}
+            {% if advance_payment_can_switch_systems %}
               <li class="nav-section-title">สลับระบบ</li>
               {% if session.get('advance_payment_system') == 'advance_payment' %}
                 <li class="nav-item system-switch-form">
