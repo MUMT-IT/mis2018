@@ -1005,19 +1005,27 @@ def _assign_fund_request_ticket_number(fund_request, reference_date=None):
     fiscal_year, year_start, year_end = _get_fiscal_year_date_range(base_date)
     buddhist_year = fiscal_year + 543
 
-    # The sequence belongs to this organization and fiscal year only. Count
-    # every already-numbered request so pending requests reserve their number.
-    issued_query = db.session.query(func.count(FundRequest.id)).filter(
+    # Cancelled requests release their ticket number. Find the first unused
+    # sequence number so a cancelled middle number can be reused.
+    issued_query = db.session.query(FundRequest.ticket_number).filter(
         FundRequest.org_id == org_id,
         FundRequest.request_date >= year_start,
         FundRequest.request_date <= year_end,
+        FundRequest.status != "ยกเลิก",
         func.trim(func.coalesce(FundRequest.ticket_number, "")) != "",
     )
     if getattr(fund_request, "id", None):
         issued_query = issued_query.filter(FundRequest.id != fund_request.id)
-    issued_count = issued_query.scalar() or 0
+    used_numbers = set()
+    for (number,) in issued_query.all():
+        match = re.match(r"^(\d+)/", number or "")
+        if match:
+            used_numbers.add(int(match.group(1)))
+    next_number = 1
+    while next_number in used_numbers:
+        next_number += 1
 
-    ticket_number = f"{issued_count + 1}/{buddhist_year}"
+    ticket_number = f"{next_number}/{buddhist_year}"
     fund_request.ticket_number = ticket_number
     return ticket_number
 
@@ -1506,6 +1514,14 @@ def mark_return_checking(return_id):
     if not return_detail:
         abort(404)
 
+    if (
+        _return_detail_has_over_limit_item(return_detail)
+        and request.form.get("high_amount_acknowledged") != "1"
+    ):
+        return _validation_error_response(
+            "กรุณายืนยันว่าได้รับทราบใบเสร็จยอดเกิน 100,000 บาทแล้ว"
+        )
+
     return_detail.status = "กำลังตรวจสอบ"
     db.session.commit()
 
@@ -1768,6 +1784,15 @@ def _format_currency_amount(amount):
 
 def _is_over_limit(projected_total, limit_total):
     return round(float(projected_total or 0), 2) > round(float(limit_total or 0), 2)
+
+
+def _return_detail_has_over_limit_item(return_detail):
+    """Whether a return contains a non-cash receipt item over 100,000 baht."""
+    return any(
+        float(item.amount or 0) > 100000
+        for item in (return_detail.receipt_items or [])
+        if not getattr(item, "is_cash", False)
+    )
 
 
 def _redirect_with_limit_popup(location, message):
@@ -2953,6 +2978,7 @@ def verification_view(ticket_id):
     )
 
     for return_detail in return_details:
+        return_detail.has_over_limit_item = _return_detail_has_over_limit_item(return_detail)
         numbered_descriptions = []
         for item in return_detail.receipt_items:
             desc = (item.description or "").strip()
@@ -3563,10 +3589,8 @@ def submit_return_details():
                 f"รายการที่ {i + 1} ต้องระบุชื่อร้านค้าและรายละเอียดรายการให้ครบถ้วน"
             )
         is_cash = request.form.get(f"is_cash_{i}") == "true"
-        if not is_draft and amt > 100000 and not _is_return_amount_limit_exempt(is_cash):
-            return _validation_error_response(
-                f"รายการที่ {i + 1} มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก"
-            )
+        # รายการส่งใช้เงินยืมที่มียอดเกิน 100,000 บาทไม่ควรถูกล็อกตอนส่ง
+        # ให้ฝ่ายการเงินตรวจสอบเอกสารอนุมัติจากคณบดีในขั้นตอน verification แทน
 
         if not is_draft and _receipt_requires_additional_document(r_date):
             old_receipt_count += 1
@@ -3877,8 +3901,6 @@ def edit_receipt_item_inline(file_id):
         amount_str = request.form.get("amount")
         if amount_str:
             parsed_item_amount = float(amount_str.replace(",", ""))
-            if not _is_return_amount_limit_exempt(getattr(receipt_item, "is_cash", False)) and parsed_item_amount > 100000:
-                return _validation_error_response("รายการนี้มียอดเกิน 100,000 บาท กรุณาแก้ไขก่อนส่งเบิก")
             receipt_item.amount = parsed_item_amount
 
     if is_claim:
@@ -4088,6 +4110,14 @@ def mark_return_proofed(return_id):
 
     if return_detail.status == "ผ่านการตรวจสอบ":
         return _validation_error_response("รายการหลักฐานเอกสารส่งใช้เงินยืมนี้ได้รับการตรวจสอบและยืนยันแล้ว")
+
+    if (
+        _return_detail_has_over_limit_item(return_detail)
+        and request.form.get("dean_document_acknowledged") != "1"
+    ):
+        return _validation_error_response(
+            "กรุณายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีแล้ว"
+        )
 
     return_detail.status = "ผ่านการตรวจสอบ"
     return_detail.approved_at = datetime.now()
@@ -5082,6 +5112,7 @@ def view_return_proof_detail(return_id):
         .order_by(ReturnReceiptItem.id.asc())
         .all()
     )
+    return_detail.has_over_limit_item = _return_detail_has_over_limit_item(return_detail)
 
     # รองรับไฟล์หลักฐานเก่าที่มี return_detail_id แต่ไม่มี receipt_item_id
     linked_item_ids = {
@@ -5427,11 +5458,33 @@ def cancel_fund_request(request_id):
 
     if fund_req.status in {"ยกเลิก", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}:
         return _validation_error_response("ไม่สามารถยกเลิกรายการที่สิ้นสุดกระบวนการแล้วได้")
+    if fund_req.status != "อนุมัติแล้ว":
+        return _validation_error_response("สามารถยกเลิกได้เฉพาะใบเบิกที่ยังไม่ได้เริ่มส่ง claim หรือส่งคืนพัสดุ")
+
+    submitted_claim_exists = db.session.query(PettyCashClaimDetail.id).filter(
+        PettyCashClaimDetail.fund_request_id == fund_req.id,
+        PettyCashClaimDetail.status != "ฉบับร่าง",
+    ).first() is not None
+    parcel_return_exists = db.session.query(ParcelReturnDetail.id).filter(
+        ParcelReturnDetail.fund_request_id == fund_req.id,
+    ).first() is not None
+    if submitted_claim_exists or parcel_return_exists:
+        return _validation_error_response("ไม่สามารถยกเลิกได้ เนื่องจากมีการส่ง claim หรือส่งคืนพัสดุแล้ว")
+
+    transferred_at_raw = (request.form.get("transferred_at") or "").strip()
+    try:
+        cancel_transferred_at = datetime.strptime(transferred_at_raw, "%Y-%m-%d").date()
+    except ValueError:
+        return _validation_error_response("กรุณาระบุวันที่นำเงินกลับเข้าสู่ระบบให้ถูกต้อง")
 
     cancellation_reason = request.form.get("cancellation_reason", "").strip()
 
+    original_ticket_number = (fund_req.ticket_number or "").strip()
     fund_req.status = "ยกเลิก"
     fund_req.cancel_at = datetime.now()
+    fund_req.cancel_transferred_at = cancel_transferred_at
+    if original_ticket_number and not original_ticket_number.endswith("(ยกเลิก)"):
+        fund_req.ticket_number = f"{original_ticket_number}(ยกเลิก)"
     if hasattr(fund_req, 'rejection_comment'):
         fund_req.rejection_comment = cancellation_reason
 
@@ -6398,6 +6451,16 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_fund_request = getattr(claim_detail, "fund_request", None)
 
     fund_request_status = getattr(verification_fund_request, "status", None)
+    can_cancel_fund_request = False
+    if verification_fund_request and fund_request_status == "อนุมัติแล้ว" and _is_current_secretary():
+        has_submitted_claim = db.session.query(PettyCashClaimDetail.id).filter(
+            PettyCashClaimDetail.fund_request_id == verification_fund_request.id,
+            PettyCashClaimDetail.status != "ฉบับร่าง",
+        ).first() is not None
+        has_parcel_return = db.session.query(ParcelReturnDetail.id).filter(
+            ParcelReturnDetail.fund_request_id == verification_fund_request.id,
+        ).first() is not None
+        can_cancel_fund_request = not has_submitted_claim and not has_parcel_return
     verification_creator_name = None
     if claim_detail and getattr(claim_detail, "user", None) and getattr(claim_detail.user, "name", None):
         verification_creator_name = claim_detail.user.name
@@ -6464,6 +6527,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         parcel_return_history=parcel_return_history,
         fund_request_total_info=fund_request_total_info,
         fund_request_status=fund_request_status,
+        can_cancel_fund_request=can_cancel_fund_request,
         verification_fund_request=verification_fund_request,
         verification_creator_name=verification_creator_name,
         verification_requester_name=verification_requester_name,
@@ -6801,11 +6865,13 @@ def petty_cash_ledger():
                     ),
                 )
             )
+        # Ledger is the bank statement: keep cancelled requests here as well
+        # so the original outgoing transaction remains visible. The refund
+        # for a cancelled request is appended as a separate income row below.
         approved_fund_requests = (
             db.session.query(FundRequest)
             .filter(
                 or_(*fund_request_scope),
-                ~FundRequest.status.in_(["ยกเลิก"]),
             )
             .all()
         )
@@ -6902,6 +6968,34 @@ def petty_cash_ledger():
                 cat_11=borrow_amount,
                 custom_category="สัญญายืมเงิน",
                 submitted_date=approved_at.date(),
+                is_fund_request=False,
+                sort_order=0,
+            )
+
+    # เงินที่นำกลับเข้าระบบเมื่อยกเลิกใบเบิก
+    if department_name or account_number:
+        cancelled_fund_requests = (
+            db.session.query(FundRequest)
+            .filter(or_(*fund_request_scope), FundRequest.status == "ยกเลิก")
+            .all()
+        )
+        for fr in cancelled_fund_requests:
+            refund_date = _coerce_date(
+                getattr(fr, "cancel_transferred_at", None) or getattr(fr, "cancel_at", None)
+            )
+            if not refund_date:
+                continue
+            transaction_time = fr.cancel_at or fr.created_at or datetime.now()
+            refund_amount = float(fr.amount or 0)
+            if str(fr.form_type) == FUND_REQUEST_FORM_BORROWING_TICKET and refund_amount <= 0:
+                refund_amount = float(getattr(fr.borrowing_ticket, "required_budget", 0) or 0)
+            _append_ledger_row(
+                receipt_date=refund_date,
+                created_at=transaction_time,
+                description=f"โอนเงินคืนจากการยกเลิกใบเบิก ({fr.ticket_number or '-'})",
+                bank_income=refund_amount,
+                custom_category="โอนเงินคืนจากการยกเลิกใบเบิก",
+                submitted_date=transaction_time.date(),
                 is_fund_request=False,
                 sort_order=0,
             )
