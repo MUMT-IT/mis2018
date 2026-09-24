@@ -440,52 +440,97 @@ def _get_bank_account_info_for_petty_cash_setting(setting):
 # 3. PDF GENERATION FUNCTIONS
 # =========================================================================
 def summarize_petty_cash_month(month_start, fund_requests, claims):
-    """Summarize the selected month's petty-cash documents.
+    """Summarize petty-cash documents requiring action.
 
     A submitted document is counted per claim, but only while the claim is in
-    one of the three review statuses. A pending document is a FundRequest that
-    has not been linked to either a claim or a parcel return.
+    one of the three review statuses. Parcel-return documents in the
+    ``รอตรวจสอบ``, ``พัสดุกำลังดำเนินการ``, or ``ได้รับเอกสารแล้ว`` statuses
+    are submitted documents as well. The pending amount is the unsubmitted
+    remainder of each petty-cash FundRequest after non-rejected linked
+    documents are accounted for. Requests whose linked documents are all
+    rejected therefore remain pending for their full requested amount.
     """
-    month_end = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
-    requests = [fr for fr in fund_requests
-                if fr.request_date and month_start <= fr.request_date <= month_end]
+    # The report's selected month controls the ledger balance, but documents
+    # requiring action must remain visible even when they were submitted in a
+    # previous month.
+    requests = list(fund_requests)
     request_ids = {fr.id for fr in requests}
     submitted_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ผ่านการตรวจสอบ"}
+    rejected_statuses = {"ปฏิเสธ", "ถูกปฏิเสธ"}
+    non_accounted_claim_statuses = rejected_statuses | {"ฉบับร่าง", "ยกเลิก"}
     submitted_claims = [
         claim for claim in claims
         if claim.fund_request_id in request_ids
         and (claim.status or "").strip() in submitted_statuses
     ]
-    linked_claim_request_ids = {
-        claim.fund_request_id for claim in claims
-        if claim.fund_request_id in request_ids
-    }
-    linked_parcel_request_ids = {
-        parcel.fund_request_id
-        for parcel in db.session.query(ParcelReturnDetail).filter(
-            ParcelReturnDetail.fund_request_id.in_(request_ids)
-        ).all()
-        if parcel.fund_request_id is not None
-    } if request_ids else set()
-    pending = [
-        fr for fr in requests
-        if fr.form_type == FUND_REQUEST_FORM_PETTY_CASH
-        and fr.id not in linked_claim_request_ids
-        and fr.id not in linked_parcel_request_ids
+    parcel_returns = (
+        db.session.query(ParcelReturnDetail)
+        .filter(ParcelReturnDetail.fund_request_id.in_(request_ids))
+        .all()
+        if request_ids else []
+    )
+    submitted_parcel_returns = [
+        parcel for parcel in parcel_returns
+        if (parcel.status or "").strip() in {
+            "รอตรวจสอบ",
+            "พัสดุกำลังดำเนินการ",
+            "ได้รับเอกสารแล้ว",
+        }
     ]
+    # Track the amount already represented by every non-rejected linked
+    # document. This also handles partially submitted FundRequests: the
+    # remaining amount must stay in the "ยังไม่ส่งเบิก" row.
+    accounted_amount_by_request = {}
+    for claim in claims:
+        if claim.fund_request_id not in request_ids:
+            continue
+        if (claim.status or "").strip() in non_accounted_claim_statuses:
+            continue
+        accounted_amount_by_request.setdefault(claim.fund_request_id, Decimal("0.00"))
+        accounted_amount_by_request[claim.fund_request_id] += sum(
+            (Decimal(str(item.amount or 0)) for item in claim.items),
+            Decimal("0.00"),
+        )
+    for parcel in parcel_returns:
+        if parcel.fund_request_id is None:
+            continue
+        if (parcel.status or "").strip() in rejected_statuses | {"ฉบับร่าง"}:
+            continue
+        accounted_amount_by_request.setdefault(parcel.fund_request_id, Decimal("0.00"))
+        accounted_amount_by_request[parcel.fund_request_id] += Decimal(str(parcel.amount_spent or 0))
+
+    pending = []
+    pending_amount = Decimal("0.00")
+    for fr in requests:
+        if fr.form_type != FUND_REQUEST_FORM_PETTY_CASH:
+            continue
+        remaining = max(
+            Decimal(str(fr.amount or 0))
+            - accounted_amount_by_request.get(fr.id, Decimal("0.00")),
+            Decimal("0.00"),
+        )
+        if remaining <= 0:
+            continue
+        pending.append(fr)
+        pending_amount += remaining
     submitted_amount = sum(
         (Decimal(str(item.amount or 0))
          for claim in submitted_claims
          for item in claim.items
          if str(item.category_type) != "6"
-         and item.receipt_date and item.receipt_date <= month_end),
+         and item.receipt_date),
+        Decimal("0.00"),
+    )
+    submitted_parcel_amount = sum(
+        (Decimal(str(parcel.amount_spent or 0)) for parcel in submitted_parcel_returns),
         Decimal("0.00"),
     )
     return {
-        "submitted_count": len(submitted_claims),
+        "submitted_count": len(submitted_claims) + len(submitted_parcel_returns),
         "submitted_amount": submitted_amount,
+        "submitted_parcel_amount": submitted_parcel_amount,
         "pending_count": len(pending),
-        "pending_amount": sum((Decimal(str(fr.amount or 0)) for fr in pending), Decimal("0.00")),
+        "pending_amount": pending_amount,
     }
 
 
@@ -503,7 +548,15 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     last_day_label = get_thai_month_year(last_day)
     budget = setting.budget
     balance = Decimal(str(remaining_budget)).quantize(Decimal("0.01")) if remaining_budget is not None else None
-    submitted = summary.get("submitted_amount")
+    submitted_values = (
+        summary.get("submitted_amount"),
+        summary.get("submitted_parcel_amount"),
+    )
+    submitted = (
+        sum(Decimal(str(value or 0)) for value in submitted_values)
+        if any(value is not None for value in submitted_values)
+        else None
+    )
     pending = summary.get("pending_amount")
     total = (sum(Decimal(str(value)) for value in (balance, submitted, pending))
              if all(value is not None for value in (balance, submitted, pending)) else None)

@@ -2052,6 +2052,39 @@ def coordinator_dashboard():
             ticket.draft_items = []
             ticket.draft_announcements = []
 
+    dashboard_ticket_ids = {
+        ticket.id
+        for ticket in tickets_with_return_forms
+        if getattr(ticket, "id", None)
+    }
+    dashboard_fund_request_ids = {
+        fund_request_id
+        for (fund_request_id,) in (
+            db.session.query(FundRequest.id)
+            .filter(FundRequest.borrowing_ticket_id.in_(dashboard_ticket_ids))
+            .all()
+            if dashboard_ticket_ids
+            else []
+        )
+        if fund_request_id is not None
+    }
+    parcel_return_filters = []
+    if dashboard_ticket_ids:
+        parcel_return_filters.append(ParcelReturnDetail.ticket_id.in_(dashboard_ticket_ids))
+    if dashboard_fund_request_ids:
+        parcel_return_filters.append(ParcelReturnDetail.fund_request_id.in_(dashboard_fund_request_ids))
+
+    parcel_return_history = []
+    if parcel_return_filters:
+        parcel_return_history = (
+            db.session.query(ParcelReturnDetail)
+            .filter(or_(*parcel_return_filters))
+            .order_by(ParcelReturnDetail.sent_date.desc(), ParcelReturnDetail.created_at.desc())
+            .all()
+        )
+        for parcel_return in parcel_return_history:
+            _attach_parcel_return_context(parcel_return)
+
     # ดึงรายการส่งใช้เงินยืม (ReturnDetail) ของสัญญาที่ผู้เข้าสู่ระบบเป็นผู้สร้าง
     ticket_ids = [t.id for t in borrowing_ticket_history]
     if ticket_ids:
@@ -2329,6 +2362,7 @@ def coordinator_dashboard():
         borrowing_ticket_history=borrowing_ticket_history,
         created_borrower_options=created_borrower_options,
         selected_borrower_id=selected_borrower_id,
+        parcel_return_history=parcel_return_history,
         return_details=return_details,
         creator_return_details=creator_return_details,
         borrowing_ticket_form=form,
@@ -2887,8 +2921,16 @@ def verification_view(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id():
-        abort(403)
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
+        can_manage_as_coordinator = (
+            _is_current_coordinator()
+            or (
+                _current_module_role() == SECRETARY_ROLE
+                and borrowing_ticket.creator_id == _current_user_id()
+            )
+        )
+        if not can_manage_as_coordinator and borrowing_ticket.borrower_id != _current_user_id():
+            abort(403)
 
     return_details = (
         db.session.query(ReturnDetail)
@@ -5451,12 +5493,35 @@ def staff_fund_request_history():
     for claim in claim_history:
         _attach_petty_cash_claim_context(claim)
         fund_request = claim.fund_request
+        claim.items_description_summary = ", ".join(
+            item.description
+            for item in getattr(claim, "items", [])
+            if (item.description or "").strip()
+        ) or "-"
         claim.claim_number = (
             claim.claim_number
             or (fund_request.ticket_number if fund_request and fund_request.ticket_number else None)
             or f"PC-{claim.id}"
         )
         claim.has_rejected_followup = (claim.status or "").strip() == "ปฏิเสธ"
+
+    # Include parcel-return records belonging to the same fund requests as the
+    # petty-cash claim history shown on this page.
+    history_fund_request_ids = [
+        fund_request.id
+        for fund_request in fund_requests
+        if getattr(fund_request, "id", None) is not None
+    ]
+    parcel_return_history = []
+    if history_fund_request_ids:
+        parcel_return_history = (
+            db.session.query(ParcelReturnDetail)
+            .filter(ParcelReturnDetail.fund_request_id.in_(history_fund_request_ids))
+            .order_by(ParcelReturnDetail.sent_date.desc(), ParcelReturnDetail.created_at.desc())
+            .all()
+        )
+        for parcel_return in parcel_return_history:
+            _attach_parcel_return_context(parcel_return)
 
     rejected_followup_fund_request_ids = set()
     if fund_requests:
@@ -5492,6 +5557,7 @@ def staff_fund_request_history():
         setting=setting,
         fund_requests=fund_requests,
         claim_history=claim_history,
+        parcel_return_history=parcel_return_history,
         dept_summary=dept_summary
     )
 
@@ -6996,7 +7062,20 @@ def petty_cash_ledger():
         if not current_setting or not getattr(current_setting, "id", None):
             flash("ไม่พบการตั้งค่าเงินสดย่อยสำหรับหน่วยงาน", "warning")
             return redirect(url_for("advance_payment.petty_cash_ledger", month=selected_month))
-        summary = summarize_petty_cash_month(selected_month_start, approved_fund_requests, all_claims)
+        # The ledger keeps its existing accounting scope, but the report
+        # summary must include every non-cancelled/non-rejected document that
+        # still requires action, including requests from previous months.
+        summary_fund_requests = (
+            db.session.query(FundRequest)
+            .filter(
+                or_(*fund_request_scope),
+                ~FundRequest.status.in_(["ปฏิเสธ", "ยกเลิก"]),
+            )
+            .all()
+            if department_name or account_number
+            else approved_fund_requests
+        )
+        summary = summarize_petty_cash_month(selected_month_start, summary_fund_requests, all_claims)
         department_data = get_department_data_service(department_name) or {}
         pdf_bytes = generate_petty_cash_monthly_report_pdf(
             setting=current_setting,
