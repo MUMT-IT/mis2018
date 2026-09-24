@@ -11,6 +11,17 @@
         </div>
         <div class="columns">
             <div class="column is-one-third is-offset-4">
+                <div class="level">
+                    <div class="level-left">
+                        <h1 class="title mb-0">จัดการหลักสูตร</h1>
+                    </div>
+                    <div class="level-right">
+                        <a class="button is-light" href="{{ url_for('eduqa.manage_curricula') }}">
+                            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                            <span>ย้อนกลับ</span>
+                        </a>
+                    </div>
+                </div>
                 <form method="post">
                     {{ form.hidden_tag() }}
                     <div class="field">

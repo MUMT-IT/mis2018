@@ -3,6 +3,21 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@event-calendar/build@2.6.1/event-calendar.min.css">
+    <style>
+        .staff-login-records-button {
+            box-shadow: 0 10px 24px rgba(26, 61, 124, 0.22);
+            font-weight: 800;
+            padding-left: 1.35rem;
+            padding-right: 1.35rem;
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+        }
+
+        .staff-login-records-button:hover,
+        .staff-login-records-button:focus {
+            box-shadow: 0 14px 30px rgba(26, 61, 124, 0.3);
+            transform: translateY(-2px);
+        }
+    </style>
 {% endblock head %}
 {% block page_content %}
     <section class="section" id="app">
@@ -51,6 +66,13 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+                <div class="buttons is-centered mt-5 mb-0">
+                    <a class="button is-info is-medium is-rounded staff-login-records-button"
+                       href="{{ url_for('staff.show_time_report_records') }}">
+                        <span class="icon"><i class="fas fa-list" aria-hidden="true"></i></span>
+                        <span>รายการลงเวลาทั้งหมด</span>
+                    </a>
+                </div>
             </div>
         </div>
     </section>

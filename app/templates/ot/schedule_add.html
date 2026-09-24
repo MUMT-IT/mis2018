@@ -19,10 +19,16 @@
                     <h1 class="title">เพิ่มข้อมูลการปฏิบัติงานนอกเวลา</h1>
                 </div>
             </div>
+            {% if announcement %}
+                <div class="box">
+                    <p><strong>ประกาศ:</strong> {{ announcement.topic }}</p>
+                    <p><strong>หน่วยงานที่ปฏิบัติงาน:</strong> {{ work_at_org.display_name if work_at_org else 'ทุกหน่วยงาน' }}</p>
+                </div>
+            {% endif %}
             <div class="tabs is-boxed">
                 <ul>
                     <li class="is-active"><a>รายวัน</a></li>
-                    <li><a href="{{ url_for('ot.view_shifts', announcement_id=announcement_id) }}">รายเดือน</a></li>
+                    <li><a href="{{ url_for('ot.view_shifts', announcement_id=announcement_id, org_id=work_at_org_id) }}">รายเดือน</a></li>
                     <li><a href="{{ url_for('ot.view_eligible_staff', announcement_id=announcement_id) }}">รายชื่อผู้ได้รับอนุมัติ</a></li>
                     <li><a href="{{ url_for('ot.view_documents', announcement_id=announcement_id) }}">รายการหนังสืออนุมัติหลักการ</a></li>
                 </ul>
@@ -93,7 +99,7 @@
                     { swap: 'innerHTML', target: '#shift-table'})
             },
             eventSources: [
-                { url: {{ url_for('ot.get_shifts', announcement_id=announcement_id)|tojson|safe }} }
+                { url: {{ url_for('ot.get_shifts', announcement_id=announcement_id, org_id=work_at_org_id)|tojson|safe }} }
             ]
         });
         function initSelect2js() {

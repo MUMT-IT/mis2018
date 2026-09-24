@@ -1,6 +1,9 @@
+import json
+
 import click
 from flask import current_app
 from flask.cli import with_appcontext
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.main import db
 
@@ -18,6 +21,65 @@ def register_commands(app):
     @app.cli.group('docs-query')
     def docs_query_cli():
         """Commands for the Docs Query application."""
+
+    @docs_query_cli.command('latest')
+    @click.option('--json', 'as_json', is_flag=True,
+                  help='Print the latest document details as JSON.')
+    @with_appcontext
+    def latest(as_json):
+        """Show the most recently added Docs Query document."""
+        try:
+            document = (
+                DocsQueryDocument.query
+                .order_by(
+                    DocsQueryDocument.created_at.desc(),
+                    DocsQueryDocument.id.desc(),
+                )
+                .first()
+            )
+        except SQLAlchemyError as exc:
+            raise click.ClickException(
+                'Could not read Docs Query documents: {}'.format(
+                    str(exc).splitlines()[0]
+                )
+            )
+
+        if document is None:
+            if as_json:
+                click.echo(json.dumps({'document': None}, ensure_ascii=False))
+            else:
+                click.echo('No Docs Query documents found.')
+            return
+
+        details = {
+            'id': document.id,
+            'drive_file_id': document.drive_file_id,
+            'title': document.document_title,
+            'filename': document.filename,
+            'status': document.status,
+            'created_at': document.created_at.isoformat() if document.created_at else None,
+            'updated_at': document.updated_at.isoformat() if document.updated_at else None,
+            'extracted_at': document.extracted_at.isoformat() if document.extracted_at else None,
+            'extracted_char_count': document.extracted_char_count,
+            'total_chunks': document.total_chunks,
+            'issue_date': document.issue_date.isoformat() if document.issue_date else None,
+            'error_message': document.error_message,
+        }
+        if as_json:
+            click.echo(json.dumps(details, ensure_ascii=False, indent=2))
+            return
+
+        click.echo('Latest Docs Query document')
+        click.echo('  Title: {}'.format(details['title'] or '(untitled)'))
+        click.echo('  Filename: {}'.format(details['filename'] or '(none)'))
+        click.echo('  Drive file ID: {}'.format(details['drive_file_id']))
+        click.echo('  Status: {}'.format(details['status']))
+        click.echo('  Added: {}'.format(details['created_at']))
+        click.echo('  Extracted: {}'.format(details['extracted_at'] or 'not yet'))
+        click.echo('  Chunks: {}'.format(details['total_chunks'] or 0))
+        click.echo('  Characters: {}'.format(details['extracted_char_count'] or 0))
+        if details['error_message']:
+            click.echo('  Error: {}'.format(details['error_message']))
 
     @docs_query_cli.command('backfill-faq-embeddings')
     @with_appcontext

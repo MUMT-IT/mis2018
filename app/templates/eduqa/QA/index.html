@@ -33,7 +33,7 @@
 {#                    </a>#}
 {#                </nav>#}
                 <nav class="panel is-success">
-                    <p class="panel-heading">มาตรฐานคุณวุฒิระดับอุดมศึกษา</p>
+                    <p class="panel-heading">สำหรับอาจารย์</p>
 {#                    <a href="#" class="panel-block">#}
 {#                        <span class="panel-icon">#}
 {#                            <i class="fas fa-tasks"></i>#}
@@ -49,18 +49,27 @@
                             <i class="fas fa-tasks"></i>
                         </span><span class="is-size-5">มม.3</span>
                     </a>
+                    <a href="{{ url_for('eduqa.student_outcome_monitoring') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tasks"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ติดตามผลลัพธ์การเรียนรู้ของนักศึกษา
+                            <span class="tag is-warning is-light ml-2">กำลังพัฒนา</span>
+                        </span>
+                    </a>
                 </nav>
                 <nav class="panel is-success">
                     <p class="panel-heading">สำหรับเจ้าหน้าที่</p>
                     <a href="{{ url_for('eduqa.show_programs') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-tasks"></i>
-                        </span><span class="is-size-5">มม.1</span>
+                        </span><span class="is-size-5">จัดการสาขาวิชา (มม.1)</span>
                     </a>
-                    <a href="{{ url_for('eduqa.show_curriculums') }}" class="panel-block">
+                    <a href="{{ url_for('eduqa.manage_curricula') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-tasks"></i>
-                        </span><span class="is-size-5">มม.2</span>
+                        </span><span class="is-size-5">จัดการหลักสูตร (มม.2)</span>
                     </a>
                     <a href="{{ url_for('eduqa.backoffice_list_curriculums') }}" class="panel-block">
                         <span class="panel-icon">
@@ -82,7 +91,7 @@
                     </a>
                     <a href="{{ url_for('eduqa.teaching_hours_index') }}" class="panel-block">
                         <span class="panel-icon">
-                            <i class="fas fa-chart-pie"></i>
+                            <i class="fas fa-tasks"></i>
                         </span><span class="is-size-5">ภาระงานสอน</span>
                     </a>
                 </nav>

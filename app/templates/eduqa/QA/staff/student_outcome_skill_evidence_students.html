@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}เลือกนักศึกษา | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">เลือกนักศึกษา</h1>
+                    <p class="subtitle">{{ evidence.title }}</p>
+                    <p class="is-size-6 has-text-grey">แบบประเมิน: {{ assignment.version.form.name }} · v{{ assignment.version.version }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.student_skill_evidence_forms', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span><span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+        <div class="box">
+            <h2 class="title is-5">นักศึกษาที่ลงทะเบียนใน {{ clo.course.en_code }}</h2>
+            {% if students %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead><tr><th>รหัสนักศึกษา</th><th>ชื่อ</th><th>สถานะ</th><th></th></tr></thead>
+                    <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ student.student_id }}</td>
+                        <td>{{ student.th_name }}</td>
+                        <td>{% if submissions_by_student.get(student.id) %}<span class="tag is-success is-light">ประเมินแล้ว</span>{% elif student_evidence.get(student.id) %}<span class="tag is-warning is-light">ยังไม่ประเมิน</span>{% endif %}</td>
+                        <td class="has-text-right">
+                            <a class="button is-small is-success" href="{{ url_for('eduqa.fill_student_skill_evidence_form', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, assignment_id=assignment.id, student_id=student.id) }}">
+                                <span class="icon"><i class="fas fa-edit"></i></span><span>{% if submissions_by_student.get(student.id) %}แก้ไขผลประเมิน{% else %}กรอกผลประเมิน{% endif %}</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ไม่พบนักศึกษาที่ลงทะเบียนในรายวิชานี้</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

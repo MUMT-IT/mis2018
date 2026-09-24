@@ -3,7 +3,7 @@ import os
 
 import boto3
 import qrcode
-from sqlalchemy import func
+from sqlalchemy import func, text
 from wtforms.validators import DataRequired
 
 from app.main import db
@@ -88,14 +88,25 @@ class ProcurementPlan(db.Model):
                                   db.ForeignKey('procurement_funding_sources.id'), nullable=False)
     funding_source = db.relationship('ProcurementFundingSource',
                                      backref=db.backref('procurement_plans', lazy='dynamic'))
+    is_unforecasted = db.Column('is_unforecasted', db.Boolean(), nullable=False, default=False,
+                                server_default=text('false'), info={'label': u'ไม่คาดการณ์'})
     item = db.Column('item', db.String(255), info={'label': u'รายการพัสดุ/รายการจัดซื้อจัดจ้าง'})
     output_project_report_id = db.Column(
         'output_project_report_id',
         db.ForeignKey('procurement_output_project_reports.id'),
-        nullable=False,
+        nullable=True,
     )
     output_project_report = db.relationship(
         'ProcurementOutputProjectReport',
+        backref=db.backref('procurement_plans', lazy='dynamic'),
+    )
+    product_code_id = db.Column(
+        'product_code_id',
+        db.ForeignKey('product_codes.id'),
+        nullable=True,
+    )
+    product_code = db.relationship(
+        'ProductCode',
         backref=db.backref('procurement_plans', lazy='dynamic'),
     )
     cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'), nullable=False,
@@ -105,7 +116,17 @@ class ProcurementPlan(db.Model):
                                    info={'label': u'วิธีการจัดซื้อจัดจ้าง'})
     amount = db.Column('amount', db.Numeric(14, 2), nullable=False,
                        info={'label': u'จำนวนเงิน'})
-    fund_code = db.Column('fund_code', db.String(64), info={'label': u'รหัสทุน'})
+    fund_code = db.Column('fund_code', db.String(64), info={'label': u'รหัส IO ครุภัณฑ์'})
+    budget_proposer_id = db.Column(
+        'budget_proposer_id',
+        db.ForeignKey('staff_account.id'),
+        nullable=True,
+    )
+    budget_proposer = db.relationship(
+        'StaffAccount',
+        foreign_keys=[budget_proposer_id],
+        backref=db.backref('proposed_procurement_plans', lazy='dynamic'),
+    )
     responsible_staff_id = db.Column('responsible_staff_id', db.ForeignKey('staff_account.id'), nullable=True)
     responsible_staff = db.relationship('StaffAccount', foreign_keys=[responsible_staff_id],
                                          backref=db.backref('procurement_plans', lazy='dynamic'))
@@ -134,7 +155,14 @@ class ProcurementPlan(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
 
     def __str__(self):
-        return u'{}: {}'.format(self.fiscal_year, str(self.output_project_report)[:80])
+        return u'{}: {}'.format(self.fiscal_year, str(self.product_code or self.output_project_report)[:80])
+
+    @property
+    def funding_source_label(self):
+        label = str(self.funding_source)
+        if self.is_unforecasted:
+            return u'{} (ไม่คาดการณ์)'.format(label)
+        return label
 
     @property
     def status_date(self):

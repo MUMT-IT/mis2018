@@ -562,6 +562,16 @@
                                                   </div>
                                         </div>
                               </div>
+                              {% if config['DEBUG'] %}
+                              <article class="message is-warning mt-4">
+                                        <div class="message-header">
+                                                  DEBUG MODE
+                                        </div>
+                                        <div class="message-body">
+                                                  <strong>Template file:</strong> {{ self._TemplateReference__context.name }}
+                                        </div>
+                              </article>
+                              {% endif %}
                     </div>
           </footer>
 

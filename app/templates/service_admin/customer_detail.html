@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS | รายละเอียดลผู้รับบริการ{% endblock %}
+{% block page_content %}
+    {% include "nav.html" %}
+    <section class="customer-detail-page section">
+        <div class="container is-fluid customer-detail-container">
+            {% include 'messages.html' %}
+            <div class="customer-detail-heading">
+                <div class="customer-detail-heading-copy">
+                    <span class="customer-detail-heading-icon" aria-hidden="true">
+                        <i class="fas fa-user-check"></i>
+                    </span>
+                    <div>
+                        <p class="customer-detail-eyebrow">CUSTOMER PROFILE</p>
+                        <h1 class="title customer-detail-title">รายละเอียดผู้รับบริการ</h1>
+                        <p class="customer-detail-subtitle">ข้อมูลผู้รับบริการและข้อมูลที่เกี่ยวข้อง</p>
+                    </div>
+                </div>
+                <div class="buttons customer-detail-heading-actions">
+                    <a class="button customer-detail-back"
+                       href="{{ url_for('service_admin.search_customer', customer_name=customer.cus_name) }}">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="customer-detail-main-card">
+                <div class="customer-detail-profile-header">
+                    <span class="customer-detail-profile-icon" aria-hidden="true">
+                        <i class="fas fa-building"></i>
+                    </span>
+                    <div>
+                        <p class="customer-detail-profile-label">ชื่อบริษัท/ผู้รับบริการ</p>
+                        <h2>{{ customer.cus_name or '-' }}</h2>
+                    </div>
+                    {% if overdue_invoices %}
+                        <a class="tag customer-detail-payment-status-tag is-danger is-rounded"
+                           href="#customer-overdue-invoices">
+                            <span class="icon"><i class="fas fa-triangle-exclamation"></i></span>
+                            <span>ค้างชำระ {{ overdue_invoices|length }} รายการ</span>
+                        </a>
+                    {% else %}
+                        <span class="tag customer-detail-payment-status-tag is-success is-rounded">
+                            <span class="icon"><i class="fas fa-circle-check"></i></span>
+                            <span>ไม่ค้างชำระ</span>
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="customer-detail-info-grid">
+                    <div class="customer-detail-info-item">
+                        <span class="customer-detail-info-label"><i class="fas fa-user-tag"></i> ประเภท</span>
+                        <strong><span class="tag customer-detail-type-tag">{{ customer.type or '-' }}</span></strong>
+                    </div>
+                    <div class="customer-detail-info-item">
+                        <span class="customer-detail-info-label"><i class="fas fa-id-card"></i> เลขประจำตัวผู้เสียภาษี</span>
+                        <strong>{{ customer.taxpayer_identification_no or '-' }}</strong>
+                    </div>
+                    <div class="customer-detail-info-item">
+                        <span class="customer-detail-info-label"><i class="fas fa-envelope"></i> อีเมล</span>
+                        <strong>{{ customer.email or '-' }}</strong>
+                    </div>
+                    <div class="customer-detail-info-item">
+                        <span class="customer-detail-info-label"><i class="fas fa-phone"></i> เบอร์โทรศัพท์</span>
+                        <strong>{{ customer.phone_number or '-' }}</strong>
+                    </div>
+                    <div class="customer-detail-info-item">
+                        <span class="customer-detail-info-label"><i class="fas fa-fax"></i> โทรสาร</span>
+                        <strong>{{ customer.fax_no or '-' }}</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="columns is-variable is-5 customer-detail-columns">
+                <div class="column is-half">
+                    <div class="customer-detail-section-card">
+                        <div class="customer-detail-section-heading">
+                            <div>
+                                <p class="customer-detail-section-eyebrow">CONTACTS</p>
+                                <h2><i class="fas fa-address-book"></i> ข้อมูลผู้ประสานงาน</h2>
+                            </div>
+                        </div>
+                        {% for contact in customer.customer_contacts %}
+                            <div class="customer-detail-contact-item">
+                                <div class="customer-detail-contact-avatar" aria-hidden="true"><i class="fas fa-user"></i></div>
+                                <div class="customer-detail-contact-copy">
+                                    <strong>{{ contact.contact_name or '-' }}</strong>
+                                    <span>{{ contact.type or 'ผู้ประสานงาน' }}</span>
+                                    <div class="customer-detail-contact-meta">
+                                        <span><i class="fas fa-phone"></i> {{ contact.phone_number or '-' }}</span>
+                                        <span><i class="fas fa-envelope"></i> {{ contact.email or '-' }}</span>
+                                    </div>
+                                    {% if contact.remark %}<small><i class="fas fa-note-sticky"></i> {{ contact.remark }}</small>{% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="customer-detail-empty">ยังไม่มีข้อมูลผู้ประสานงาน</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="column is-half">
+                    <div class="customer-detail-section-card">
+                        <div class="customer-detail-section-heading">
+                            <div>
+                                <p class="customer-detail-section-eyebrow">ACCOUNTS</p>
+                                <h2><i class="fas fa-user-lock"></i> บัญชีผู้ใช้</h2>
+                            </div>
+                        </div>
+                        {% for account in customer.accounts %}
+                            <div class="customer-detail-account-item">
+                                <span class="customer-detail-account-icon" aria-hidden="true"><i class="fas fa-at"></i></span>
+                                <div>
+                                    <strong>{{ account.email or '-' }}</strong>
+                                    <span>
+                                        {% if account.verify_datetime %}
+                                            ยืนยันแล้ว {{ account.verify_datetime.strftime('%d/%m/%Y %H:%M') }}
+                                        {% else %}
+                                            ยังไม่ยืนยันการลงทะเบียน
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="customer-detail-empty">ยังไม่มีบัญชีผู้ใช้</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="customer-detail-section-card customer-detail-address-card">
+                <div class="customer-detail-section-heading">
+                    <div>
+                        <p class="customer-detail-section-eyebrow">ADDRESSES</p>
+                        <h2><i class="fas fa-location-dot"></i> ที่อยู่ผู้รับบริการ</h2>
+                    </div>
+                    <div class="buttons mb-0">
+{#                        <a class="button is-small is-success is-light customer-detail-small-button"#}
+{#                           href="{{ url_for('service_admin.create_customer_address', customer_id=customer.id) }}">#}
+{#                            <span class="icon"><i class="fas fa-plus"></i></span><span>เพิ่มที่อยู่</span>#}
+{#                        </a>#}
+                        <span class="customer-detail-section-count">{{ customer.addresses|length }}</span>
+                    </div>
+                </div>
+
+                <div class="columns is-multiline">
+                    {% for address in customer.addresses %}
+                        <div class="column is-half">
+                            <div class="customer-detail-address-item">
+                                <div class="customer-detail-address-topline">
+                                    <strong>{{ address.name or '-' }}</strong>
+                                    <span class="tag is-light">
+                                        {% if address.address_type == 'document' %}ที่อยู่จัดส่งเอกสาร{% else %}ที่อยู่ใบเสนอราคา/ใบแจ้งหนี้{% endif %}
+                                    </span>
+                                </div>
+                                <p>{{ address.address or '-' }}</p>
+                                <p>
+                                    {% if address.subdistrict %}{{ 'แขวง' if address.province and address.province.name == 'กรุงเทพมหานคร' else 'ตำบล' }}{{ address.subdistrict }} {% endif %}
+                                    {% if address.district %}{{ 'เขต' if address.province and address.province.name == 'กรุงเทพมหานคร' else 'อำเภอ' }}{{ address.district }} {% endif %}
+                                    {% if address.province %}จังหวัด{{ address.province }} {% endif %}
+                                    {{ address.zipcode or '' }}
+                                </p>
+                                <div class="customer-detail-address-meta">
+                                    <span><i class="fas fa-phone"></i> {{ address.phone_number or '-' }}</span>
+                                    <span><i class="fas fa-id-card"></i> {{ address.taxpayer_identification_no or '-' }}</span>
+                                </div>
+                                {% if address.remark %}<small><i class="fas fa-note-sticky"></i> {{ address.remark }}</small>{% endif %}
+{#                                <a class="button is-small is-outlined customer-detail-address-edit"#}
+{#                                   href="{{ url_for('service_admin.create_customer_address', customer_id=customer.id, address_id=address.id) }}">#}
+{#                                    <span class="icon"><i class="fas fa-pen"></i></span><span>แก้ไขที่อยู่</span>#}
+{#                                </a>#}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="column is-full"><div class="customer-detail-empty">ยังไม่มีข้อมูลที่อยู่</div></div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="customer-detail-section-card customer-detail-attachment-card">
+                <div class="customer-detail-section-heading">
+                    <div>
+                        <p class="customer-detail-section-eyebrow">DOCUMENTS</p>
+                        <h2><i class="fas fa-paperclip"></i> เอกสารเพิ่มเติม</h2>
+                    </div>
+                    <span class="customer-detail-section-count">{{ customer.attachments|length }}</span>
+                </div>
+                {% if customer.attachments %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth customer-detail-attachment-table">
+                            <thead><tr><th>ชื่อเอกสาร</th><th>รายละเอียด</th><th class="has-text-centered">ไฟล์</th></tr></thead>
+                            <tbody>
+                            {% for attachment in customer.attachments %}
+                                <tr>
+                                    <td>{{ attachment.file_name or '-' }}</td>
+                                    <td>{{ attachment.note or '-' }}</td>
+                                    <td class="has-text-centered">
+                                        {% if attachment.file %}
+                                            <a class="button is-small is-link is-light"
+                                               href="{{ url_for('service_admin.download_file', key=attachment.file,
+                                               download_filename=attachment.file_name + '.pdf') }}">
+                                                <span class="icon"><i class="fas fa-download"></i></span><span>ดาวน์โหลด</span>
+                                            </a>
+                                        {% else %}-{% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="customer-detail-empty">ยังไม่มีเอกสารเพิ่มเติม</div>
+                {% endif %}
+            </div>
+            <div class="customer-detail-section-card customer-detail-request-card">
+                <div class="customer-detail-section-heading">
+                    <div>
+                        <p class="customer-detail-section-eyebrow">LATEST SERVICES</p>
+                        <h2><i class="fas fa-flask-vial"></i> บริการล่าสุด</h2>
+                    </div>
+                    <div class="buttons mb-0">
+                        <a class="button is-small is-primary is-rounded"
+                           href="{{ url_for('service_admin.external_lab_index', customer_id=customer.id) }}">
+                            <span class="icon"><i class="fas fa-plus"></i></span>
+                            <span>สร้าง Request ID</span>
+                        </a>
+                        <span class="customer-detail-section-count">{{ latest_service_requests|length }}</span>
+                    </div>
+                </div>
+
+                {% if latest_service_requests %}
+                    <div class="table-container">
+                        <table class="table is-fullwidth customer-detail-request-table">
+                            <thead>
+                            <tr>
+                                <th>ห้องปฏิบัติการ</th>
+                                <th>บริการ</th>
+                                <th>เลขที่คำขอ</th>
+                                <th>วันที่ยื่นคำขอ</th>
+                                <th>สถานะ</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for service_request in latest_service_requests %}
+                                <tr>
+                                    <td>{{ service_request.sub_lab.lab.lab if service_request.sub_lab and service_request.sub_lab.lab else '-' }}</td>
+                                    <td>{{ service_request.sub_lab.sub_lab if service_request.sub_lab else '-' }}</td>
+                                    <td><strong>{{ service_request.request_no or '-' }}</strong></td>
+                                    <td>{{ service_request.created_at|localdate if service_request.created_at else '-' }}</td>
+                                    <td>
+                                        {% if service_request.status %}
+                                            <span class="tag {{ service_request.status.customer_status_color or 'is-light' }}">
+                                                {{ service_request.status.customer_status or service_request.status.admin_status or '-' }}
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="customer-detail-empty">ยังไม่มีประวัติการใช้บริการ</div>
+                {% endif %}
+            </div>
+{#            <div class="customer-detail-section-card customer-detail-payment-card">#}
+{#                <div class="customer-detail-section-heading">#}
+{#                    <div>#}
+{#                        <p class="customer-detail-section-eyebrow">PAYMENT STATUS</p>#}
+{#                        <h2><i class="fas fa-file-invoice-dollar"></i> สถานะการค้างชำระ</h2>#}
+{#                    </div>#}
+{#                </div>#}
+{#                {% if lab_payments %}#}
+{#                    <div class="customer-payment-lab-grid">#}
+{#                        {% for lab_payment in lab_payments %}#}
+{#                            <div class="customer-payment-lab-card {% if lab_payment.overdue_invoice_count %}is-overdue{% else %}is-clear{% endif %}">#}
+{#                                <div class="customer-payment-lab-card-topline">#}
+{#                                    <span class="customer-payment-lab-icon"><i class="fas fa-flask-vial"></i></span>#}
+{#                                    <h3>{{ lab_payment.lab_name }}</h3>#}
+{#                                </div>#}
+{#                                <div class="customer-payment-status-panel">#}
+{#                                    <span class="customer-payment-status-icon">#}
+{#                                        {% if lab_payment.overdue_invoice_count %}<i class="fas fa-triangle-exclamation"></i>{% else %}<i class="fas fa-circle-check"></i>{% endif %}#}
+{#                                    </span>#}
+{#                                    <div>#}
+{#                                        <span>สถานะการชำระเงิน</span>#}
+{#                                        <strong>{{ lab_payment.status }}</strong>#}
+{#                                    </div>#}
+{#                                </div>#}
+{#                                <p class="customer-payment-lab-detail">#}
+{#                                    {% if lab_payment.overdue_invoice_count %}#}
+{#                                        ใบแจ้งหนี้เกิน 90 วัน {{ lab_payment.overdue_invoice_count }} รายการ#}
+{#                                        <a class="customer-payment-view-invoices" href="#customer-overdue-invoices">ดูรายละเอียด</a>#}
+{#                                    {% else %}#}
+{#                                        ไม่มีใบแจ้งหนี้ค้างชำระเกิน 90 วัน#}
+{#                                    {% endif %}#}
+{#                                </p>#}
+{#                            </div>#}
+{#                        {% endfor %}#}
+{#                    </div>#}
+{#                {% else %}#}
+{#                    <div class="customer-detail-empty">ยังไม่มีประวัติการใช้บริการห้องปฏิบัติการ</div>#}
+{#                {% endif %}#}
+{#            </div>#}
+            {% if overdue_invoices %}
+                <div class="customer-detail-section-card customer-detail-overdue-card" id="customer-overdue-invoices">
+                    <div class="customer-detail-section-heading">
+                        <div>
+                            <p class="customer-detail-section-eyebrow">OVERDUE INVOICES</p>
+                            <h2><i class="fas fa-file-invoice"></i> ใบแจ้งหนี้ค้างชำระ</h2>
+                        </div>
+                        <span class="customer-detail-section-count is-danger-count">{{ overdue_invoices|length }}</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="table is-fullwidth customer-detail-overdue-table">
+                            <thead>
+                            <tr>
+                                <th>เลขที่ใบแจ้งหนี้</th>
+                                <th>ห้องปฏิบัติการ</th>
+                                <th>ครบกำหนดชำระ</th>
+                                <th class="has-text-centered">ค้างชำระ</th>
+                                <th class="has-text-right">ยอดเงิน</th>
+                                <th class="has-text-centered">รายละเอียด</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for invoice_item in overdue_invoices %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ invoice_item.invoice.invoice_no or '-' }}</strong>
+                                        <small>คำขอ {{ invoice_item.request_no or '-' }}</small>
+                                    </td>
+                                    <td>{{ invoice_item.lab_name }}</td>
+                                    <td>{{ invoice_item.invoice.due_date|localdate if invoice_item.invoice.due_date else '-' }}</td>
+                                    <td class="has-text-centered">
+                                        <span class="tag is-danger is-light">{{ invoice_item.days_overdue }} วัน</span>
+                                    </td>
+                                    <td class="has-text-right">{{ "{:,.2f}".format(invoice_item.invoice.grand_total) }}</td>
+                                    <td class="has-text-centered">
+                                        <a class="button is-small is-info is-light is-rounded"
+                                           href="{{ url_for('service_admin.view_overdue_invoice',
+                                           invoice_id=invoice_item.invoice.id, customer_id=customer.id) }}">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                            <span>ดูรายละเอียด</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+    <style>
+        .customer-detail-page { min-height: 34rem; padding: 3.5rem 0 4rem; }
+        .customer-detail-container { max-width: 76rem; }
+        .customer-detail-heading { align-items: center; display: flex; gap: 1.5rem; justify-content: space-between; margin: 0 auto 1.75rem; max-width: 70rem; }
+        .customer-detail-heading-copy { align-items: center; display: flex; gap: 1rem; min-width: 0; }
+        .customer-detail-heading-icon, .customer-detail-profile-icon, .customer-detail-contact-avatar, .customer-detail-account-icon { align-items: center; background: #eef6ff; border-radius: 12px; color: #2f80c9; display: inline-flex; justify-content: center; }
+        .customer-detail-heading-icon { border: 1px solid #cfe5fb; border-radius: 17px; flex: 0 0 3.5rem; font-size: 1.35rem; height: 3.5rem; }
+        .customer-detail-eyebrow, .customer-detail-section-eyebrow { color: #6e7f99; font-size: .7rem; font-weight: 800; letter-spacing: .17em; margin-bottom: .35rem; }
+        .customer-detail-title { color: #15284d; font-size: clamp(1.65rem, 3vw, 2.2rem); margin-bottom: .35rem !important; }
+        .customer-detail-subtitle { color: #66738d; font-size: .9rem; margin: 0; }
+        .customer-detail-heading-actions { flex: 0 0 auto; margin-bottom: 0 !important; }
+        .customer-detail-back, .customer-detail-edit { border-radius: 10px; font-weight: 700; }
+        .customer-detail-main-card, .customer-detail-section-card { background: rgba(255,255,255,.96); border: 1px solid rgba(58,101,184,.17); border-radius: 18px; box-shadow: 0 14px 32px rgba(18,39,84,.08); margin-left: auto; margin-right: auto; max-width: 70rem; }
+        .customer-detail-main-card { padding: 1.5rem; }
+        .customer-detail-profile-header { align-items: center; border-bottom: 1px solid #edf1f7; display: flex; gap: .9rem; padding-bottom: 1.25rem; }
+        .customer-detail-profile-icon, .customer-detail-contact-avatar, .customer-detail-account-icon { flex: 0 0 2.75rem; height: 2.75rem; }
+        .customer-detail-profile-label, .customer-detail-info-label { color: #718099; font-size: .78rem; margin-bottom: .15rem; }
+        .customer-detail-profile-header h2 { color: #15284d; font-size: 1.25rem; margin: 0; }
+        .customer-detail-payment-status-tag { margin-left: auto; text-decoration: none; }
+        .customer-detail-type-tag, .customer-detail-section-count { background: #edf8f0; border-radius: 999px; color: #237348; font-weight: 700; }
+        .customer-detail-section-count { margin-left: auto; }
+        .customer-detail-info-grid { display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0,1fr)); padding-top: 1.25rem; }
+        .customer-detail-info-item strong { color: #1e3152; display: block; overflow-wrap: anywhere; }
+        .customer-detail-info-label { display: block; }
+        .customer-detail-info-label i, .customer-detail-section-heading h2 i, .customer-detail-contact-meta i, .customer-detail-address-meta i { color: #2f80c9; margin-right: .25rem; }
+        .customer-detail-columns.columns { display: grid; gap: 1.5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 auto !important; max-width: 70rem; }
+        .customer-detail-columns.columns > .column { display: flex; min-width: 0; padding: 0 !important; width: 100% !important; }
+        .customer-detail-columns.columns > .column > .customer-detail-section-card { flex: 1; width: 100%; }
+        .customer-detail-section-card { margin-top: 1.25rem; padding: 1.35rem; }
+        .customer-detail-section-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1rem; }
+        .customer-detail-section-heading h2 { color: #1e3152; font-size: 1.08rem; font-weight: 800; margin: 0; }
+        .customer-detail-section-count { align-items: center; display: inline-flex; font-size: .78rem; height: 1.8rem; justify-content: center; min-width: 1.8rem; padding: 0 .5rem; }
+        .customer-detail-request-card { margin-top: 1.25rem; }
+        .customer-detail-request-table th { background: #f3f6fc; color: #425675; font-size: .8rem; }
+        .customer-detail-request-table td { color: #425675; vertical-align: middle; }
+        .customer-detail-request-table td strong { color: #1e3152; }
+        .customer-detail-contact-item, .customer-detail-account-item { align-items: flex-start; border-top: 1px solid #edf1f7; display: flex; gap: .75rem; padding-top: 1rem; }
+        .customer-detail-contact-item + .customer-detail-contact-item, .customer-detail-account-item + .customer-detail-account-item { margin-top: 1rem; }
+        .customer-detail-contact-copy, .customer-detail-account-item > div { min-width: 0; }
+        .customer-detail-contact-copy strong, .customer-detail-account-item strong { color: #1e3152; display: block; }
+        .customer-detail-contact-copy > span, .customer-detail-account-item span { color: #8391a8; display: block; font-size: .8rem; margin-top: .1rem; }
+        .customer-detail-contact-meta, .customer-detail-address-meta { color: #5c6c86; display: flex; flex-wrap: wrap; font-size: .8rem; gap: .65rem 1rem; margin-top: .45rem; }
+        .customer-detail-contact-copy small, .customer-detail-address-item small { color: #8391a8; display: block; margin-top: .45rem; }
+        .customer-detail-account-icon { background: #f5f1ff; color: #7254b8; }
+        .customer-detail-empty { background: #f8fbff; border: 1px dashed #d7e0ee; border-radius: 10px; color: #8391a8; padding: 1rem; text-align: center; }
+        .customer-detail-address-card .columns { margin-bottom: 0; margin-top: 0; }
+        .customer-detail-address-item { background: #f8fbff; border: 1px solid #e4edf8; border-radius: 12px; height: 100%; padding: 1rem; }
+        .customer-detail-address-topline { align-items: flex-start; display: flex; gap: .5rem; justify-content: space-between; margin-bottom: .6rem; }
+        .customer-detail-address-topline strong, .customer-detail-address-item p { color: #1e3152; }
+        .customer-detail-address-item p { color: #5c6c86; font-size: .85rem; line-height: 1.65; margin-bottom: .15rem; }
+        .customer-detail-address-edit { border-color: #b9cbe0; color: #35658f; margin-top: .8rem; }
+        .customer-detail-small-button { margin-right: .5rem; }
+        .customer-detail-attachment-table th { background: #f3f6fc; color: #425675; font-size: .8rem; }
+        .customer-detail-attachment-table td { color: #425675; vertical-align: middle; }
+        .customer-detail-payment-card { margin-top: 1.25rem; }
+        .customer-payment-lab-grid { display: grid; gap: .85rem; grid-template-columns: 1fr; width: 100%; }
+        .customer-payment-lab-card { background: #fff; border: 1px solid #cfe5fb; border-radius: 14px; padding: .9rem; position: relative; width: 100%; }
+        .customer-payment-lab-card::before { background: #77b8ee; border-radius: 14px 0 0 14px; content: ''; inset: 0 auto 0 0; position: absolute; width: 4px; }
+        .customer-payment-lab-card.is-clear, .customer-payment-lab-card.is-overdue { background: #fff; border-color: #cfe5fb; }
+        .customer-payment-lab-card-topline { align-items: center; display: flex; gap: .7rem; margin-bottom: .7rem; }
+        .customer-payment-lab-icon { align-items: center; background: #eef6ff; border-radius: 9px; color: #2f80c9; display: inline-flex; height: 2rem; justify-content: center; width: 2rem; }
+        .customer-payment-lab-label { color: #718099; font-size: .7rem; font-weight: 800; letter-spacing: .14em; }
+        .customer-payment-lab-card h3 { color: #172f55; font-size: 1.08rem; font-weight: 800; line-height: 1.4; margin: 0; }
+        .customer-payment-status-panel { align-items: center; border: 1px solid; border-radius: 10px; display: flex; gap: .6rem; margin-bottom: .6rem; padding: .55rem .7rem; }
+        .customer-payment-lab-card.is-clear .customer-payment-status-panel { background: #e9f8ed; border-color: #c7e9d0; color: #16733a; }
+        .customer-payment-lab-card.is-overdue .customer-payment-status-panel { background: #ffe9e6; border-color: #f2c2bd; color: #bd3027; }
+        .customer-payment-status-icon { align-items: center; border-radius: 50%; display: inline-flex; flex: 0 0 1.75rem; font-size: .85rem; height: 1.75rem; justify-content: center; }
+        .customer-payment-lab-card.is-clear .customer-payment-status-icon { background: #c9eed3; }
+        .customer-payment-lab-card.is-overdue .customer-payment-status-icon { background: #ffc9c4; }
+        .customer-payment-status-panel div { display: flex; flex-direction: column; gap: .12rem; }
+        .customer-payment-status-panel span { font-size: .68rem; font-weight: 600; }
+        .customer-payment-status-panel strong { font-size: 1rem; line-height: 1.2; }
+        .customer-payment-lab-detail { color: #66738d; font-size: .72rem; line-height: 1.4; margin: 0; }
+        .customer-payment-lab-detail i { color: #718099; margin-right: .25rem; }
+        .customer-payment-view-invoices { color: #bd3027; display: inline-block; font-weight: 700; margin-left: .5rem; }
+        .customer-detail-overdue-card { margin-top: 1.25rem; scroll-margin-top: 1.25rem; }
+        .is-danger-count { background: #fff0ef; color: #bd3027; }
+        .customer-detail-overdue-table th { background: #fff7f6; color: #7f3b38; font-size: .8rem; }
+        .customer-detail-overdue-table td { color: #425675; vertical-align: middle; }
+        .customer-detail-overdue-table td:first-child strong { color: #1e3152; display: block; }
+        .customer-detail-overdue-table td:first-child small { color: #8391a8; display: block; margin-top: .15rem; }
+        @media screen and (max-width: 900px) { .customer-detail-info-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media screen and (max-width: 768px) { .customer-detail-columns { grid-template-columns: 1fr; } }
+        @media screen and (max-width: 768px) { .customer-detail-page { padding: 2rem 0; } .customer-detail-heading { align-items: flex-start; flex-direction: column; } .customer-detail-heading-actions { width: 100%; } .customer-detail-heading-actions .button { flex: 1; } }
+        @media screen and (max-width: 480px) { .customer-detail-heading-copy { align-items: flex-start; flex-direction: column; } .customer-detail-info-grid { grid-template-columns: 1fr; } .customer-detail-profile-header, .customer-detail-address-topline { align-items: flex-start; flex-direction: column; } }
+    </style>
+{% endblock %}

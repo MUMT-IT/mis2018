@@ -13,6 +13,27 @@ room_coordinator_assoc = db.Table('room_coordinator_assoc',
                                   db.Column('room_id', db.Integer, db.ForeignKey('scheduler_room_resources.id'))
                                   )
 
+room_conjoined_assoc = db.Table(
+    'scheduler_room_conjoined_rooms',
+    db.Column('room_id', db.Integer,
+              db.ForeignKey('scheduler_room_resources.id', ondelete='CASCADE'),
+              primary_key=True),
+    db.Column('conjoined_room_id', db.Integer,
+              db.ForeignKey('scheduler_room_resources.id', ondelete='CASCADE'),
+              primary_key=True),
+    db.CheckConstraint('room_id <> conjoined_room_id', name='ck_conjoined_rooms_distinct'),
+)
+
+room_event_room_assoc = db.Table(
+    'scheduler_room_reservation_rooms',
+    db.Column('event_id', db.Integer,
+              db.ForeignKey('scheduler_room_reservations.id', ondelete='CASCADE'),
+              primary_key=True),
+    db.Column('room_id', db.Integer,
+              db.ForeignKey('scheduler_room_resources.id', ondelete='CASCADE'),
+              primary_key=True),
+)
+
 
 class RoomType(db.Model):
     __tablename__ = 'scheduler_room_types'
@@ -57,6 +78,19 @@ class RoomResource(db.Model):
     coordinators = db.relationship('StaffAccount',
                                    backref=db.backref('rooms'),
                                    secondary=room_coordinator_assoc)
+    conjoined_rooms_forward = db.relationship(
+        'RoomResource',
+        secondary=room_conjoined_assoc,
+        primaryjoin=id == room_conjoined_assoc.c.room_id,
+        secondaryjoin=id == room_conjoined_assoc.c.conjoined_room_id,
+        backref=db.backref('conjoined_rooms_reverse'),
+    )
+
+    @property
+    def conjoined_rooms(self):
+        """Return both sides of the undirected conjoined-room relationship."""
+        rooms = list(self.conjoined_rooms_forward) + list(self.conjoined_rooms_reverse)
+        return sorted({room.id: room for room in rooms}.values(), key=lambda room: room.number or '')
 
     def __str__(self):
         if self.desc:
@@ -87,6 +121,11 @@ class RoomEvent(db.Model):
     room = db.relationship(RoomResource, backref=db.backref('reservations',
                                                             lazy='dynamic',
                                                             cascade='all, delete-orphan'))
+    rooms = db.relationship(
+        RoomResource,
+        secondary=room_event_room_assoc,
+        backref=db.backref('room_events', lazy='dynamic'),
+    )
     category_id = db.Column('category_id',
                             db.ForeignKey('scheduler_event_categories.id'))
     category = db.relationship('EventCategory', backref=db.backref('events'))
@@ -147,9 +186,27 @@ class RoomEvent(db.Model):
     master_id = db.Column('master_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
     secondary = db.relationship('RoomEvent', backref=db.backref('master', remote_side=[id]))
 
+    @property
+    def booked_rooms(self):
+        """Rooms held by this event, with a legacy fallback during backfill."""
+        if self.rooms:
+            rooms_by_id = {room.id: room for room in self.rooms}
+            if self.room and self.room.id not in rooms_by_id:
+                rooms_by_id[self.room.id] = self.room
+            ordered = []
+            if self.room_id in rooms_by_id:
+                ordered.append(rooms_by_id.pop(self.room_id))
+            ordered.extend(sorted(rooms_by_id.values(), key=lambda room: room.number or ''))
+            return ordered
+        return [self.room] if self.room else []
+
+    @property
+    def room_names(self):
+        return ' + '.join(room.number for room in self.booked_rooms)
+
     def to_dict(self):
         return {
-            'room_number': self.room.number,
+            'room_number': self.room_names,
             'room_location': self.room.location,
             'title': self.title,
             'created_at': self.created_at.isoformat(),

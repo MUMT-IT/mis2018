@@ -201,6 +201,7 @@
                {% endif %}>
                 <span class="home-link-copy"><span class="icon"><i class="fa fa-exclamation-triangle"></i></span><span>ระบบงานบริการวิชาการ</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span>
             </a>
+            <a class="home-link-item" href="{{ url_for('service_admin.customer_register_index') }}"><span class="home-link-copy"><span class="icon"><i class="fa fa-exclamation-triangle"></i></span><span>ระบบขึ้นทะเบียนผู้รับบริการ</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('continuing_edu_admin.dashboard') }}"><span class="home-link-copy"><span class="icon"><i class="fa fa-exclamation-triangle"></i></span><span>จัดการคอร์สอบรม</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('continuing_edu.index') }}"><span class="home-link-copy"><span class="icon"><i class="fa fa-globe"></i></span><span>หน้าหลักลูกค้า Continuing Education</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('besttime.index', tab='voter') }}"><span class="home-link-copy"><span class="icon"><i class="fa fa-exclamation-triangle"></i></span><span>ระบบนัดหมายการประชุมกรรมการจัดซื้อจัดจ้าง</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
@@ -211,7 +212,6 @@
             <a class="home-link-item" href="{{ url_for('ot.index') }}"><span class="home-link-copy"><span class="icon"><i class="fa fa-exclamation-triangle"></i></span><span>ระบบจัดการข้อมูล OT</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('pdpa.index') }}"><span class="home-link-copy"><span class="icon"><i class="fa fa-exclamation-triangle"></i></span><span>ระบบจัดการข้อมูลส่วนบุคคล</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('maintenance.maintenance_list_room') }}"><span class="home-link-copy"><span class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></span><span>ระบบ Maintenance ห้องเรียน/บรรยาย</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
-            <a class="home-link-item" href="{{ url_for('procurement.procurement_planning_landing') }}"><span class="home-link-copy"><span class="icon"><i class="fa-solid fa-chart-line"></i></span><span>ระบบติดตามแผนการจัดซื้อจัดจ้าง</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('advance_payment.login') }}"><span class="home-link-copy"><span class="icon"><i class="fa-solid fa-money-bill-transfer"></i></span><span>ระบบเงินทดรองจ่าย (AdvancePayment)</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
         </div>
     </section>
@@ -225,6 +225,7 @@
             </div>
         </div>
         <div class="home-link-list">
+            <a class="home-link-item" href="{{ url_for('room.admin_room_list') }}"><span class="home-link-copy"><span class="icon"><i class="fa-solid fa-door-open"></i></span><span>ระบบจัดการห้อง</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('comp_tracker.admin_index', tab='new') }}"><span class="home-link-copy"><span class="icon"><i class="fas fa-user-clock"></i></span><span>ระบบรับแจ้งและติดตามข้อร้องเรียนและปัญหา</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('comp_tracker.admin_record_complaint_index', menu='all') }}"><span class="home-link-copy"><span class="icon"><i class="fas fa-user-clock"></i></span><span>สรุปรายงานการแจ้งปัญหาหรือข้อร้องเรียน</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>
             <a class="home-link-item" href="{{ url_for('software_request.admin_index', tab='pending') }}"><span class="home-link-copy"><span class="icon"><i class="fas fa-user-clock"></i></span><span>ระบบขอรับบริการพัฒนา Software</span></span><span class="icon"><i class="fa-solid fa-arrow-right"></i></span></a>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Dynamic Form Builder{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section"><div class="container">
+    <div class="level">
+        <div class="level-left">
+            <div>
+                <h1 class="title">{{ dynamic_form.name if dynamic_form else 'สร้าง Dynamic Form' }}</h1>
+                {% if version %}<p class="subtitle">Version {{ version.version }} · {{ version.status }}</p>{% endif %}
+            </div>
+        </div>
+        <div class="level-right">
+            <a class="button is-light" href="{{ url_for('dynamic_forms.index') }}">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>ย้อนกลับ</span>
+            </a>
+        </div>
+    </div>
+    <form method="post" class="box">
+        {{ form.hidden_tag() }}
+        {% for field in form if field.name != 'csrf_token' %}<div class="field"><label class="label">{{ field.label }}</label><div class="control">{{ field(class='textarea' if field.type == 'TextAreaField' else 'input' if field.type != 'BooleanField' and field.type != 'SelectField' else '') }}</div>{% if field.description %}<p class="help">{{ field.description }}</p>{% endif %}{% for error in field.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}</div>{% endfor %}
+        <button class="button is-success" type="submit">{{ 'เพิ่ม field' if version else 'สร้าง form' }}</button>
+    </form>
+    {% if version %}<div class="box"><h2 class="title is-5">Fields</h2>{% if version.fields %}<table class="table is-fullwidth"><thead><tr><th>Order</th><th>Label</th><th>Type</th><th>Required</th></tr></thead><tbody>{% for field in version.fields %}<tr><td>{{ field.display_order }}</td><td>{{ field.label }}<br><small>{{ field.key }}</small></td><td>{{ field.field_type }}</td><td>{{ 'Yes' if field.required else 'No' }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="has-text-grey">ยังไม่มี fields</p>{% endif %}</div>{% endif %}
+</div></section>
+{% endblock %}

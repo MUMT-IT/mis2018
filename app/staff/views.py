@@ -44,7 +44,7 @@ from app.auth.views import _normalize_staff_email
 from app.google_credential_utils import load_google_credentials_json
 
 from app.comhealth.views import allowed_file
-from app.procurement.models import ProcurementPlan
+from app.procurement.models import ProcurementPlan, ProcurementPlanCommitteeMember
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'docx', 'doc'}
 
@@ -53,7 +53,9 @@ EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
     'staff.show_qrcode',
     'staff.create_qrcode',
     'staff.show_time_report',
+    'staff.show_time_report_records',
     'staff.send_time_report_data',
+    'staff.send_time_report_records',
     'staff.send_time_report_quota',
     'staff.send_holidays_data',
 }
@@ -865,8 +867,10 @@ def _calculate_work_hours(start_dt, end_dt):
         return None
 
     workday_start = start_dt.replace(hour=8, minute=0, second=0, microsecond=0)
+    workday_end = start_dt.replace(hour=17, minute=0, second=0, microsecond=0)
     effective_start = max(start_dt, workday_start)
-    worked_seconds = max(0, (end_dt - effective_start).total_seconds())
+    effective_end = min(end_dt, workday_end)
+    worked_seconds = max(0, (effective_end - effective_start).total_seconds())
     worked_hours = worked_seconds / 3600.0
     return min(8.0, worked_hours)
 
@@ -1059,20 +1063,33 @@ def index():
 @staff.route('/procurement-budget-tracking')
 @login_required
 def procurement_budget_tracking():
-    organization = current_user.personal_info.org
-    if not organization or organization.head != current_user.email:
-        abort(403)
-
     current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
-    plans = ProcurementPlan.query.filter_by(
-        fiscal_year=current_fiscal_year,
-        responsible_org_id=organization.id,
+    fiscal_year = request.args.get('fiscal_year', type=int) or current_fiscal_year
+    related_plan_filter = or_(
+        ProcurementPlan.budget_proposer_id == current_user.id,
+        ProcurementPlan.committee_members.any(
+            ProcurementPlanCommitteeMember.staff_id == current_user.id
+        ),
+    )
+    available_years = [
+        year for year, in ProcurementPlan.query.with_entities(ProcurementPlan.fiscal_year)
+        .filter(related_plan_filter)
+        .distinct()
+        .order_by(ProcurementPlan.fiscal_year.desc())
+        .all()
+    ]
+    if fiscal_year not in available_years:
+        available_years.append(fiscal_year)
+        available_years.sort(reverse=True)
+    plans = ProcurementPlan.query.filter(
+        ProcurementPlan.fiscal_year == fiscal_year,
+        related_plan_filter,
     ).order_by(ProcurementPlan.id.asc()).all()
     total_amount = sum((plan.amount or 0 for plan in plans), 0)
     return render_template(
         'staff/procurement_budget_tracking.html',
-        organization=organization,
-        fiscal_year=current_fiscal_year,
+        fiscal_year=fiscal_year,
+        available_years=available_years,
         plans=plans,
         total_amount=total_amount,
     )
@@ -1081,27 +1098,29 @@ def procurement_budget_tracking():
 @staff.route('/procurement-budget-tracking/plans/<int:plan_id>')
 @login_required
 def procurement_budget_plan_detail(plan_id):
-    organization = current_user.personal_info.org
-    if not organization or organization.head != current_user.email:
-        abort(403)
-
-    current_fiscal_year = convert_to_fiscal_year(datetime.today()) + 543
-    plan = ProcurementPlan.query.filter_by(
-        id=plan_id,
-        fiscal_year=current_fiscal_year,
-        responsible_org_id=organization.id,
+    plan = ProcurementPlan.query.filter(
+        ProcurementPlan.id == plan_id,
+        or_(
+            ProcurementPlan.budget_proposer_id == current_user.id,
+            ProcurementPlan.committee_members.any(
+                ProcurementPlanCommitteeMember.staff_id == current_user.id
+            ),
+        ),
     ).first_or_404()
-    from app.procurement.views import _can_create_plan_poll, _procurement_plan_gantt_data
-    from app.procurement.forms import ProcurementPlanCommitteeMemberForm
+    fiscal_year = request.args.get('fiscal_year', type=int) or plan.fiscal_year
+    from app.procurement.views import _procurement_plan_gantt_data
+    is_committee_chairman = ProcurementPlanCommitteeMember.query.filter_by(
+        plan_id=plan.id,
+        staff_id=current_user.id,
+        role='chairman',
+    ).first() is not None
     return render_template(
-        'procurement/plan_detail.html',
+        'staff/procurement_budget_plan_detail.html',
         plan=plan,
-        committee_form=ProcurementPlanCommitteeMemberForm(),
         active_page='plans',
         gantt_data=_procurement_plan_gantt_data(plan),
-        can_manage_procurement=False,
-        can_create_plan_poll=_can_create_plan_poll(plan),
-        back_url=url_for('staff.procurement_budget_tracking'),
+        can_create_plan_poll=is_committee_chairman,
+        back_url=url_for('staff.procurement_budget_tracking', fiscal_year=fiscal_year),
     )
 
 
@@ -3450,6 +3469,13 @@ def hr_daily_attendance_report():
             'total': 0,
         })
         row['total'] += 1
+        half_day_period = _approved_half_day_leave_period(
+            personal_info.staff_account, snapshot.attendance_date
+        )
+        # Leave can coexist with a check-in; count its duration independently
+        # of the snapshot's primary attendance status.
+        if half_day_period and snapshot.status not in ('holiday', 'weekend'):
+            row['leave'] += 0.5
         if snapshot.status == 'present':
             if snapshot.source == 'approved_request':
                 row['approved_request'] += 1
@@ -3459,6 +3485,9 @@ def hr_daily_attendance_report():
                 row['normal_checkin'] += 1
             else:
                 row['other_present'] += 1
+        elif snapshot.status == 'leave':
+            if not half_day_period:
+                row['leave'] += 1
         elif snapshot.status in row:
             row[snapshot.status] += 1
 
@@ -3572,6 +3601,12 @@ def hr_daily_attendance_staff_detail(staff_id):
         'staff/hr_daily_attendance_staff_detail.html',
         staff_account=staff_account,
         records=records,
+        half_day_leave_periods={
+            record.attendance_date: _approved_half_day_leave_period(
+                staff_account, record.attendance_date
+            )
+            for record in records
+        },
         start_date=start_date,
         end_date=end_date,
     )
@@ -4151,10 +4186,11 @@ def _handle_login_scan_request(template_name, *, note):
                 note=note,
             )
             try:
+                local_now = _to_bangkok(now)
                 if activity == 'checked in':
-                    msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                    msg = f'ท่านได้ทำสแกนเข้างานล่าสุดเมื่อ {local_now.strftime("%d/%m/%Y %H:%M:%S")}'
                 else:
-                    msg = f'ท่านได้ทำสแกนออกงานล่าสุดเมื่อ {now.strftime("%d/%m/%Y %H:%M:%S")}'
+                    msg = f'ท่านได้ทำสแกนออกงานล่าสุดเมื่อ {local_now.strftime("%d/%m/%Y %H:%M:%S")}'
                 line_bot_api.push_message(to=person.staff_account.line_id, messages=TextSendMessage(text=msg))
             except LineBotApiError:
                 pass
@@ -4552,13 +4588,14 @@ def refresh_daily_attendance(target_date, staff_ids=None):
         if record.start_datetime is not None or record.end_datetime is not None:
             records_by_staff[record.staff_id].append(record)
 
-    day_start = tz.localize(datetime.combine(target_date, datetime.min.time()))
-    day_end = tz.localize(datetime.combine(target_date, datetime.max.time()))
+    # Compare local calendar dates after converting timestamps to Bangkok.
+    # This avoids relying on the production PostgreSQL/session timezone when
+    # matching approved leave and work-from-home requests.
     leave_staff_ids = {
         leave_request.staff_account_id
         for leave_request in StaffLeaveRequest.query.filter(
-            StaffLeaveRequest.start_datetime <= day_end,
-            StaffLeaveRequest.end_datetime >= day_start,
+            cast(func.timezone('Asia/Bangkok', StaffLeaveRequest.start_datetime), Date) <= target_date,
+            cast(func.timezone('Asia/Bangkok', StaffLeaveRequest.end_datetime), Date) >= target_date,
             StaffLeaveRequest.cancelled_at.is_(None),
         ).all()
         if leave_request.staff_account_id in account_ids and leave_request.get_approved
@@ -4566,8 +4603,8 @@ def refresh_daily_attendance(target_date, staff_ids=None):
     wfh_staff_ids = {
         wfh_request.staff_account_id
         for wfh_request in StaffWorkFromHomeRequest.query.filter(
-            StaffWorkFromHomeRequest.start_datetime <= day_end,
-            StaffWorkFromHomeRequest.end_datetime >= day_start,
+            cast(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.start_datetime), Date) <= target_date,
+            cast(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.end_datetime), Date) >= target_date,
             StaffWorkFromHomeRequest.cancelled_at.is_(None),
         ).all()
         if wfh_request.staff_account_id in account_ids and wfh_request.get_approved
@@ -5582,21 +5619,77 @@ def seminar():
     return render_template('staff/seminar.html')
 
 
-@staff.route('/for-hr/seminar/approval')
+@staff.route('/for-hr/seminar/approval', methods=['GET', 'POST'])
 @hr_permission.require()
 @login_required
 def seminar_approval_records():
-    seminar_attend = []
-    for seminars in StaffSeminarAttend.query.filter(StaffSeminarAttend.id ==
-                                                    StaffSeminarProposal.seminar_attend_id).all():
-        seminar_attend.append(seminars)
+    # this is for correct loop of approval
+    # for seminars in StaffSeminarAttend.query.filter(StaffSeminarAttend.id ==
+    #                                                 StaffSeminarProposal.seminar_attend_id).all():
+    #     seminar_attend.append(seminars)
+    start_fiscal_date, end_fiscal_date = get_fiscal_date(datetime.today())
+    selected_dates = '{} - {}'.format(
+        start_fiscal_date.strftime('%d/%m/%Y'),
+        end_fiscal_date.strftime('%d/%m/%Y')
+    )
+    personal_info_id = ''
+    selected_org = ''
+    selected_staff_name = ''
 
-    seminar_approval_records = []
-    for seminar_approval in StaffSeminarAttend.query.join(StaffSeminar).filter(StaffSeminar.cancelled_at == None).all():
-        if seminar_approval.seminar_approval:
-            seminar_approval_records.append(seminar_approval)
-    return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records
-                           , seminar_approval_records=seminar_approval_records, seminar_attend=seminar_attend)
+    query = StaffSeminarAttend.query.join(StaffSeminar).filter(
+        StaffSeminar.cancelled_at.is_(None),
+        func.date(StaffSeminarAttend.end_datetime) >= start_fiscal_date.date(),
+        func.date(StaffSeminarAttend.start_datetime) <= end_fiscal_date.date(),
+    )
+
+    if request.method == 'POST':
+        selected_dates = request.form.get('dates') or selected_dates
+        start_text, end_text = selected_dates.split(' - ')
+        start_date = datetime.strptime(start_text, '%d/%m/%Y').date()
+        end_date = datetime.strptime(end_text, '%d/%m/%Y').date()
+        personal_info_id = request.form.get('staff') or ''
+        selected_org = request.form.get('org') or ''
+
+        query = StaffSeminarAttend.query.join(StaffSeminar).filter(
+            StaffSeminar.cancelled_at.is_(None),
+            func.date(StaffSeminarAttend.end_datetime) >= start_date,
+            func.date(StaffSeminarAttend.start_datetime) <= end_date,
+        )
+
+        if selected_org:
+            org = Org.query.filter_by(name=selected_org).first()
+            if org:
+                org_ids = get_org_and_children_ids(org)
+                query = query.join(StaffSeminarAttend.staff).join(StaffAccount.personal_info).filter(
+                    StaffPersonalInfo.org_id.in_(org_ids)
+                )
+
+        if personal_info_id:
+            query = query.filter(StaffSeminarAttend.staff.has(
+                StaffAccount.personal_id == personal_info_id
+            ))
+            selected_staff = db.session.get(StaffPersonalInfo, personal_info_id)
+            selected_staff_name = selected_staff.fullname if selected_staff else ''
+
+    seminar_attend = query.order_by(StaffSeminarAttend.start_datetime.asc()).all()
+    approval_query = query.join(StaffSeminarApproval).filter(
+        StaffSeminarApproval.is_final_approved.is_(True)
+    )
+    seminar_approval_records = approval_query.order_by(
+        StaffSeminarAttend.start_datetime.asc()
+    ).distinct().all()
+    distinct_org = db.session.query(Org.name).distinct().order_by(Org.id).all()
+    return render_template(
+        'staff/seminar_approval_info.html',
+        seminar_attend=seminar_attend,
+        seminar_approval_records=seminar_approval_records,
+        selected_dates=selected_dates,
+        personal_info_id=personal_info_id,
+        selected_staff_id=personal_info_id,
+        selected_staff_name=selected_staff_name,
+        selected_org=selected_org,
+        distinct_org=distinct_org,
+    )
 
 
 @staff.route('/for-hr/seminar/approval/add-approval/<int:attend_id>', methods=['GET', 'POST'])
@@ -5606,35 +5699,60 @@ def seminar_add_approval(attend_id):
     attend = StaffSeminarAttend.query.get(attend_id)
     management = StaffSpecialGroup.query.filter_by(group_code='management').first()
     approvers = management.staffs
+    current_approval = StaffSeminarApproval.query.filter_by(
+        seminar_attend_id=attend_id, is_final_approved=True
+    ).order_by(StaffSeminarApproval.id.desc()).first()
+    if not current_approval:
+        current_approval = StaffSeminarApproval.query.filter_by(
+            seminar_attend_id=attend_id
+        ).order_by(StaffSeminarApproval.id.desc()).first()
+    approval_value = 'True'
+    approval_comment = ''
+    approved_at_value = arrow.now('Asia/Bangkok').date()
+    if current_approval:
+        approved_at_value = current_approval.approved_at or approved_at_value
+        approval_comment = current_approval.approval_comment or ''
+        if not current_approval.is_approved:
+            approval_value = 'False'
+        elif approval_comment:
+            approval_value = 'Other'
     if request.method == 'POST':
         form = request.form
-        update_d = form.get('update_at')
-        # TODO: recheck update time
-        update_t = "13:00"
-        update_dt = '{} {}'.format(update_d, update_t)
-        updated_at = datetime.strptime(update_dt, '%d/%m/%Y %H:%M')
-        approval = StaffSeminarApproval(
-            seminar_attend=attend,
-            updated_at=tz.localize(updated_at),
-            recorded_account_id=current_user.id,
-            final_approver_account_id=form.get('approver_id'),
-            is_approved=False if form.get('approval') == 'False' else True,
-            approval_comment=form.get('other_approval') if form.get('other_approval') else ""
-        )
+        approval_comment = (form.get('other_approval') or '').strip()
+        if form.get('approval') == 'Other' and not approval_comment:
+            flash('กรุณาระบุข้อคิดเห็นของคณบดี', 'warning')
+            return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers,
+                                   current_approval=current_approval, approval_value='Other',
+                                   approval_comment=approval_comment, approved_at_value=approved_at_value)
+        if form.get('approval') == 'Other' and attend.budget not in (None, '') and not (form.get('budget') or '').strip():
+            flash('กรุณาระบุรวมทั้งสิ้น', 'warning')
+            return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers,
+                                   current_approval=current_approval, approval_value='Other',
+                                   approval_comment=approval_comment, approved_at_value=approved_at_value)
+        approved_at = datetime.strptime(form.get('approved_at'), '%d/%m/%Y').date()
+        approval_comment = approval_comment if form.get('approval') == 'Other' else ''
+        approval = current_approval or StaffSeminarApproval(seminar_attend=attend)
+        approval.updated_at = arrow.now('Asia/Bangkok').datetime
+        approval.approved_at = approved_at
+        approval.recorded_account_id = current_user.id
+        approval.final_approver_account_id = form.get('approver_id')
+        approval.is_approved = False if form.get('approval') == 'False' else True
+        approval.approval_comment = approval_comment
+        approval.is_final_approved = True
         db.session.add(approval)
         db.session.commit()
         attends = StaffSeminarAttend.query.get(attend_id)
         attends.document_no = form.get('document_no') if form.get('document_no') else ''
-        attends.registration_fee = form.get('registration_fee')
-        attends.budget_type = form.get('budget_type')
-        attends.budget = form.get('budget')
-        attends.accommodation_cost = form.get('accommodation_cost')
-        attends.fuel_cost = form.get('fuel_cost')
-        attends.taxi_cost = form.get('taxi_cost')
-        attends.train_ticket_cost = form.get('train_ticket_cost')
-        attends.flight_ticket_cost = form.get('flight_ticket_cost')
-        attends.transaction_fee = form.get('transaction_fee')
-        db.session.add(attend)
+        attends.registration_fee = form.get('registration_fee') or None
+        attends.budget_type = form.get('budget_type') or attends.budget_type
+        attends.budget = form.get('budget') or None
+        attends.accommodation_cost = form.get('accommodation_cost') or None
+        attends.fuel_cost = form.get('fuel_cost') or None
+        attends.taxi_cost = form.get('taxi_cost') or None
+        attends.train_ticket_cost = form.get('train_ticket_cost') or None
+        attends.flight_ticket_cost = form.get('flight_ticket_cost') or None
+        attends.transaction_fee = form.get('transaction_fee') or None
+        db.session.add(attends)
         db.session.commit()
 
         if form.get('approval') == 'True':
@@ -5667,17 +5785,10 @@ def seminar_add_approval(attend_id):
             print(req_msg, requester_email)
         flash('update รายการอนุมัติเรียบร้อยแล้ว', 'success')
 
-        seminar_records = []
-        for seminars in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
-            if seminars.document_title:
-                seminar_records.append(seminars)
-        seminar_approval_records = []
-        for seminar_approval in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
-            if seminar_approval.seminar_approval:
-                seminar_approval_records.append(seminar_approval)
-        return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records,
-                               seminar_approval_records=seminar_approval_records)
-    return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers)
+        return redirect(url_for('staff.seminar_approval_records'))
+    return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers,
+                           current_approval=current_approval, approval_value=approval_value,
+                           approval_comment=approval_comment, approved_at_value=approved_at_value)
 
 
 @staff.route('/seminar/pre-register/upcoming/records')
@@ -6931,6 +7042,68 @@ def send_time_report_quota():
     return jsonify(_build_login_quota_summary(current_user.personal_info))
 
 
+@staff.route('/api/time-report/records')
+@login_required
+def send_time_report_records():
+    draw = request.args.get('draw', 0, type=int)
+    start = max(request.args.get('start', 0, type=int), 0)
+    length = min(max(request.args.get('length', 25, type=int), 1), 100)
+
+    query = StaffWorkLogin.query.filter(StaffWorkLogin.staff_id == current_user.id)
+    records_total = query.count()
+
+    search_value = (request.args.get('search[value]') or '').strip()
+    if search_value:
+        search_pattern = f'%{search_value}%'
+        query = query.filter(or_(
+            StaffWorkLogin.record_source.ilike(search_pattern),
+            StaffWorkLogin.note.ilike(search_pattern),
+        ))
+
+    records_filtered = query.count()
+    order_columns = {
+        0: StaffWorkLogin.id,
+        1: StaffWorkLogin.start_datetime,
+        2: StaffWorkLogin.end_datetime,
+        3: StaffWorkLogin.record_source,
+        4: StaffWorkLogin.note,
+    }
+    order_index = request.args.get('order[0][column]', 1, type=int)
+    order_column = order_columns.get(order_index, StaffWorkLogin.start_datetime)
+    order_direction = request.args.get('order[0][dir]', 'desc')
+    if order_direction == 'asc':
+        query = query.order_by(order_column.asc(), StaffWorkLogin.id.asc())
+    else:
+        query = query.order_by(order_column.desc(), StaffWorkLogin.id.desc())
+
+    def isoformat(value):
+        return _to_bangkok(value).isoformat() if value else None
+
+    data = []
+    for record in query.offset(start).limit(length).all():
+        checkout_datetime = record.end_datetime
+        if checkout_datetime is None and (
+            record.correction_type == 'checkout'
+            or (record.record_source == 'scan' and (record.num_scans or 0) > 1)
+        ):
+            checkout_datetime = record.start_datetime
+
+        data.append({
+            'id': record.id,
+            'checkin': isoformat(record.start_datetime),
+            'checkout': isoformat(checkout_datetime),
+            'record_source': record.record_source or '',
+            'note': record.note or '',
+        })
+
+    return jsonify({
+        'draw': draw,
+        'recordsTotal': records_total,
+        'recordsFiltered': records_filtered,
+        'data': data,
+    })
+
+
 @staff.route('/api/for-hr/login-report/quota/<int:staff_id>')
 @hr_permission.require()
 @login_required
@@ -6972,6 +7145,12 @@ def show_time_report():
                            logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()),
                            pending_clockin_requests=pending_clockin_requests,
                            recent_clockin_requests=recent_clockin_requests)
+
+
+@staff.route('/time-report/records')
+@login_required
+def show_time_report_records():
+    return render_template('staff/time_report_records.html')
 
 
 def _active_staff_filters():

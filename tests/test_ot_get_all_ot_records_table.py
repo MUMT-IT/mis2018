@@ -49,6 +49,9 @@ class FakeShiftQuery:
     def __init__(self, shifts):
         self._shifts = list(shifts)
 
+    def __iter__(self):
+        return iter(self._shifts)
+
     def filter(self, *_args, **_kwargs):
         return self
 
@@ -1105,6 +1108,89 @@ def test_get_all_ot_records_table_does_not_reuse_future_open_checkin_for_past_sh
     assert row["payment"] is None
 
 
+def test_get_all_ot_records_table_does_not_use_previous_day_pair_for_daytime_shift(ot_views):
+    shift_record = _make_record(
+        staff_id=812,
+        fullname="Previous Day Pair Staff",
+        sap_id="SAP-812",
+        shift_start=datetime(2026, 8, 5, 5, 30),
+        shift_end=datetime(2026, 8, 5, 8, 30),
+        rate=750.0,
+        per_period=True,
+    )
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_record.shift.datetime.lower, upper=shift_record.shift.datetime.upper),
+            records=[shift_record],
+        )
+    ]
+    logins = [
+        _make_login(812, 101, _bangkok_dt(2026, 8, 4, 8, 56), None),
+        _make_login(812, 102, _bangkok_dt(2026, 8, 5, 13, 34), None),
+        _make_login(812, 103, _bangkok_dt(2026, 8, 5, 18, 49), None),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2026-08-05T00:00:00%2B07:00&end=2026-08-05T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    row = response.get_json()["data"][0]
+    assert row["checkins"] == "2026-08-05T13:34:00+07:00"
+    assert row["checkouts"] == "2026-08-05T18:49:00+07:00"
+    assert row["payment"] == _expected_pay(180, 750.0)
+
+
+def test_manual_ot_checkin_stores_creator_id(ot_views, monkeypatch):
+    created_records = []
+
+    class FakeStaffWorkLogin:
+        def __init__(self):
+            self.staff_id = None
+            self.start_datetime = None
+            self.creator_id = None
+            self.note = None
+
+    class FakeSession:
+        def add(self, record):
+            created_records.append(record)
+
+        def commit(self):
+            pass
+
+    monkeypatch.setattr(ot_views, "StaffWorkLogin", FakeStaffWorkLogin)
+    monkeypatch.setattr(ot_views, "current_user", SimpleNamespace(id=321))
+    monkeypatch.setattr(ot_views, "db", SimpleNamespace(session=FakeSession()))
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api/staff/812/checkin-records",
+        method="POST",
+        data={
+            "checkin-datetime": "05/08/2026 05:21:00",
+            "note": "manual correction",
+        },
+    ):
+        response = _call_unwrapped_view(ot_views.add_checkin_record)(staff_id=812)
+
+    assert response.status_code == 200
+    assert len(created_records) == 1
+    assert created_records[0].staff_id == 812
+    assert created_records[0].creator_id == 321
+    assert created_records[0].note == "manual correction"
+
+
 def test_get_all_ot_records_table_formats_download_rows_as_strings(ot_views, monkeypatch):
     captured = {}
 
@@ -1154,3 +1240,99 @@ def test_get_all_ot_records_table_formats_download_rows_as_strings(ot_views, mon
     assert captured["df"].iloc[0]["end"] == "2024-01-02 17:00:00"
     assert captured["df"].iloc[0]["checkins"] == "2024-01-02 09:10:00"
     assert captured["df"].iloc[0]["checkouts"] == "2024-01-02 16:50:00"
+
+
+@pytest.mark.parametrize('org_id,expected_staff', [(27, ['Local']), (19, ['Other']), (88, [])])
+def test_monthly_calendar_and_table_filter_work_at(ot_views, org_id, expected_staff):
+    records = []
+    for staff_id, name, work_at in [(101, 'Local', 27), (102, 'Other', 19)]:
+        record = _make_record(
+            staff_id=staff_id, fullname=name, sap_id=str(staff_id),
+            shift_start=datetime(2024, 1, 2, 9),
+            shift_end=datetime(2024, 1, 2, 17),
+        )
+        record.compensation.work_at_org_id = work_at
+        records.append(record)
+    shift = SimpleNamespace(
+        id=1, datetime=records[0].shift.datetime, records=records,
+        timeslot=SimpleNamespace(color='#ffffff'),
+    )
+    ot_views.StaffWorkLogin = SimpleNamespace(query=FakeLoginQuery([]), start_datetime=DummyField())
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery([shift]), datetime=DummyField(), timeslot=DummyField(),
+    )
+    app = Flask('test')
+    with app.test_request_context(
+        f'/api?org_id={org_id}&start=2024-01-02T00:00:00%2B07:00&end=2024-01-02T23:59:59%2B07:00'
+    ):
+        table = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7).get_json()
+        calendar = _call_unwrapped_view(ot_views.get_ot_shifts)(announcement_id=7).get_json()
+        staff_table = _call_unwrapped_view(ot_views.get_all_ot_records_table)(
+            announcement_id=7, staff_id=101,
+        ).get_json()
+    assert len(table['data']) == len(expected_staff)
+    for row, name in zip(table['data'], expected_staff):
+        assert f'>{name}</a>' in row['staff']
+    assert [event['title'] for event in calendar] == (['1 คน'] if expected_staff else [])
+    for event in calendar:
+        assert event['start'] == '2024-01-02T09:00:00+07:00'
+        assert event['end'] == '2024-01-02T17:00:00+07:00'
+    assert [row['staff'] for row in staff_table['data']] == (['Local'] if org_id == 27 else [])
+
+
+@pytest.mark.parametrize('start,end', [
+    ('2024-01-01T17:00:00Z', '2024-01-02T16:59:59.999Z'),
+    ('2024-01-02T00:00:00+07:00', '2024-01-02T23:59:59.999+07:00'),
+    ('2024-01-02T00:00:00', '2024-01-02T23:59:59.999'),
+])
+def test_staff_queries_use_bangkok_wall_time(ot_views, monkeypatch, start, end):
+    from urllib.parse import urlencode
+    import time
+
+    bounds = []
+    ranges = []
+
+    class CaptureExpr:
+        def __ge__(self, value):
+            bounds.append(value)
+            return self
+
+        def __le__(self, value):
+            bounds.append(value)
+            return self
+
+    class CaptureRangeField(DummyField):
+        def op(self, operator):
+            def capture(value):
+                ranges.append(value)
+                return DummyExpr()
+            return capture
+
+    monkeypatch.setattr(ot_views, 'func', SimpleNamespace(
+        timezone=lambda zone, field: CaptureExpr() if zone == 'Asia/Bangkok' else None,
+    ))
+    ot_views.StaffWorkLogin = SimpleNamespace(query=FakeLoginQuery([]), start_datetime=DummyField())
+    ot_views.OtShift = SimpleNamespace(query=FakeShiftQuery([]), datetime=CaptureRangeField(), timeslot=DummyField())
+    ot_views.StaffAccount = SimpleNamespace(query=SimpleNamespace(get=lambda _: SimpleNamespace(fullname='Staff')))
+    previous_tz = os.environ.get('TZ')
+    try:
+        os.environ['TZ'] = 'UTC'
+        time.tzset()
+        with Flask('test').test_request_context('/api?' + urlencode({'start': start, 'end': end})):
+            _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7, staff_id=101)
+            _call_unwrapped_view(ot_views.add_checkin_record)(staff_id=101)
+            _call_unwrapped_view(ot_views.get_ot_shifts)(announcement_id=7)
+    finally:
+        if previous_tz is None:
+            os.environ.pop('TZ', None)
+        else:
+            os.environ['TZ'] = previous_tz
+        time.tzset()
+
+    expected = [datetime(2024, 1, 2), datetime(2024, 1, 2, 23, 59, 59, 999000)]
+    assert bounds == expected * 2
+    assert len(ranges) == 2
+    for query_range in ranges:
+        assert [query_range.lower, query_range.upper] == expected
+    assert ranges[0].upper_inc
+    assert not ranges[1].upper_inc

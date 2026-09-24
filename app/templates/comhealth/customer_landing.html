@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% set customer_banner_url = 'ui-assets/Gemini_Generated_Image_taco3gtaco3gtaco.jpg'|s3_asset %}
+{% block title %}MUMT Health — Online Health Results{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .customer-landing {
+            --customer-ink: #10264c;
+            --customer-blue: #2457a7;
+            --customer-blue-soft: #edf4ff;
+            --customer-gold: #e7b928;
+            --customer-mint: #e9f8f2;
+            overflow: hidden;
+            padding: 2rem 1.25rem 4rem;
+        }
+
+        .customer-shell {
+            margin: 0 auto;
+            max-width: 1440px;
+        }
+
+        .customer-hero {
+            background:
+                radial-gradient(circle at 88% 16%, rgba(231, 185, 40, 0.32), transparent 18rem),
+                radial-gradient(circle at 8% 92%, rgba(97, 180, 151, 0.22), transparent 18rem),
+                linear-gradient(135deg, #f9fbff 0%, #eef4ff 54%, #fffaf0 100%);
+            border: 1px solid rgba(36, 87, 167, 0.12);
+            border-radius: 36px;
+            box-shadow: 0 30px 80px rgba(16, 38, 76, 0.12);
+            padding: clamp(2rem, 5vw, 4.5rem);
+            position: relative;
+        }
+
+        .customer-hero::before,
+        .customer-hero::after {
+            border: 1px solid rgba(36, 87, 167, 0.12);
+            border-radius: 50%;
+            content: "";
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .customer-hero::before {
+            height: 250px;
+            right: -105px;
+            top: -105px;
+            width: 250px;
+        }
+
+        .customer-hero::after {
+            bottom: -130px;
+            height: 280px;
+            left: -130px;
+            width: 280px;
+        }
+
+        .customer-brand,
+        .customer-eyebrow,
+        .customer-trust-row {
+            align-items: center;
+            display: flex;
+        }
+
+        .customer-brand {
+            gap: 0.9rem;
+            margin-bottom: 2.2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .customer-brand-logo {
+            background: #fff;
+            border: 1px solid rgba(16, 38, 76, 0.1);
+            border-radius: 18px;
+            box-shadow: 0 12px 28px rgba(16, 38, 76, 0.1);
+            height: 58px;
+            object-fit: contain;
+            padding: 0.35rem;
+            width: 74px;
+        }
+
+        .customer-brand-name {
+            color: var(--customer-ink);
+            font-size: 1rem;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .customer-brand-subtitle {
+            color: #697791;
+            font-size: 0.82rem;
+        }
+
+        .customer-banner {
+            border: 1px solid rgba(16, 38, 76, 0.1);
+            border-radius: 26px;
+            box-shadow: 0 22px 50px rgba(16, 38, 76, 0.13);
+            margin-bottom: clamp(2rem, 4vw, 3.5rem);
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        .customer-banner::after {
+            background: linear-gradient(90deg, rgba(16, 38, 76, 0.16), transparent 45%);
+            content: "";
+            inset: 0;
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .customer-banner img {
+            display: block;
+            height: auto;
+            width: 100%;
+        }
+
+        .customer-hero-grid {
+            align-items: center;
+            display: grid;
+            gap: clamp(2rem, 5vw, 4.5rem);
+            grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+            position: relative;
+            z-index: 1;
+        }
+
+        .customer-eyebrow {
+            color: var(--customer-blue);
+            font-size: 0.85rem;
+            font-weight: 800;
+            gap: 0.55rem;
+            letter-spacing: 0.09em;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        .customer-eyebrow-dot {
+            background: var(--customer-gold);
+            border-radius: 50%;
+            box-shadow: 0 0 0 6px rgba(231, 185, 40, 0.16);
+            height: 0.55rem;
+            width: 0.55rem;
+        }
+
+        .customer-title {
+            color: var(--customer-ink);
+            font-size: clamp(2.45rem, 5vw, 4.4rem);
+            font-weight: 850;
+            letter-spacing: -0.055em;
+            line-height: 1.03;
+            margin-bottom: 1.25rem;
+        }
+
+        .customer-title-accent {
+            color: var(--customer-blue);
+            display: block;
+        }
+
+        .customer-intro {
+            color: #596983;
+            font-size: 1.08rem;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            max-width: 640px;
+        }
+
+        .customer-trust-row {
+            color: #52627c;
+            flex-wrap: wrap;
+            font-size: 0.91rem;
+            gap: 1rem;
+        }
+
+        .customer-trust-item {
+            align-items: center;
+            display: inline-flex;
+            gap: 0.45rem;
+        }
+
+        .customer-trust-item .icon {
+            color: #2b8768;
+        }
+
+        .customer-choice-panel {
+            backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid rgba(255, 255, 255, 0.92);
+            border-radius: 30px;
+            box-shadow: 0 24px 60px rgba(16, 38, 76, 0.14);
+            padding: 1rem;
+        }
+
+        .customer-choice-heading {
+            color: var(--customer-ink);
+            font-size: 1.12rem;
+            font-weight: 800;
+            padding: 0.65rem 0.7rem 0.9rem;
+        }
+
+        .customer-choice-card {
+            align-items: center;
+            background: #fff;
+            border: 1px solid rgba(16, 38, 76, 0.09);
+            border-radius: 22px;
+            color: inherit;
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: auto 1fr auto;
+            margin-bottom: 0.8rem;
+            padding: 1.15rem;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+        }
+
+        .customer-choice-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .customer-choice-card:hover,
+        .customer-choice-card:focus-visible {
+            border-color: rgba(36, 87, 167, 0.4);
+            box-shadow: 0 16px 34px rgba(16, 38, 76, 0.12);
+            color: inherit;
+            transform: translateY(-3px);
+        }
+
+        .customer-choice-icon {
+            align-items: center;
+            background: var(--customer-blue-soft);
+            border-radius: 18px;
+            color: var(--customer-blue);
+            display: flex;
+            height: 56px;
+            justify-content: center;
+            width: 56px;
+        }
+
+        .customer-choice-card.is-public .customer-choice-icon {
+            background: var(--customer-mint);
+            color: #27785c;
+        }
+
+        .customer-choice-label {
+            color: var(--customer-ink);
+            display: block;
+            font-size: 1.02rem;
+            font-weight: 800;
+            margin-bottom: 0.2rem;
+        }
+
+        .customer-choice-copy {
+            color: #738098;
+            display: block;
+            font-size: 0.86rem;
+            line-height: 1.5;
+        }
+
+        .customer-choice-arrow {
+            align-items: center;
+            background: #f4f6fa;
+            border-radius: 50%;
+            color: var(--customer-blue);
+            display: flex;
+            height: 38px;
+            justify-content: center;
+            width: 38px;
+        }
+
+        .customer-info {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(3, 1fr);
+            margin-top: 1.4rem;
+        }
+
+        .customer-info-card {
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid rgba(16, 38, 76, 0.09);
+            border-radius: 24px;
+            padding: 1.35rem;
+        }
+
+        .customer-info-number {
+            align-items: center;
+            background: var(--customer-blue-soft);
+            border-radius: 13px;
+            color: var(--customer-blue);
+            display: flex;
+            font-size: 0.85rem;
+            font-weight: 800;
+            height: 34px;
+            justify-content: center;
+            margin-bottom: 0.85rem;
+            width: 34px;
+        }
+
+        .customer-info-title {
+            color: var(--customer-ink);
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .customer-info-copy {
+            color: #6d7a91;
+            font-size: 0.9rem;
+            line-height: 1.65;
+        }
+
+        .customer-help {
+            color: #718098;
+            font-size: 0.86rem;
+            margin-top: 1.4rem;
+            text-align: center;
+        }
+
+        @media screen and (max-width: 900px) {
+            .customer-hero-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .customer-info {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media screen and (max-width: 520px) {
+            .customer-landing {
+                padding: 1rem 0.8rem 2.5rem;
+            }
+
+            .customer-hero {
+                border-radius: 26px;
+                padding: 1.4rem;
+            }
+
+            .customer-brand {
+                margin-bottom: 1.7rem;
+            }
+
+            .customer-banner {
+                border-radius: 20px;
+                margin-bottom: 1.8rem;
+            }
+
+            .customer-choice-panel {
+                border-radius: 24px;
+                padding: 0.7rem;
+            }
+
+            .customer-choice-card {
+                gap: 0.75rem;
+                grid-template-columns: auto 1fr;
+                padding: 0.9rem;
+            }
+
+            .customer-choice-arrow {
+                display: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .customer-choice-card {
+                transition: none;
+            }
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<main class="customer-landing">
+    <div class="customer-shell">
+        <section class="customer-hero" aria-labelledby="customer-landing-title">
+            <div class="customer-brand">
+                <img class="customer-brand-logo" src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}" alt="Mahidol University">
+                <div>
+                    <div class="customer-brand-name">MUMT Health</div>
+                    <div class="customer-brand-subtitle">Faculty of Medical Technology, Mahidol University</div>
+                </div>
+            </div>
+
+            {% if customer_banner_url %}
+                <div class="customer-banner">
+                    <img src="{{ customer_banner_url }}"
+                         alt="บริการตรวจสุขภาพสำหรับบุคลากรมหิดลและผู้รับบริการทั่วไป"
+                         decoding="async"
+                         fetchpriority="high">
+                </div>
+            {% endif %}
+
+            <div class="customer-hero-grid">
+                <div>
+                    <div class="customer-eyebrow">
+                        <span class="customer-eyebrow-dot" aria-hidden="true"></span>
+                        Your health, within reach
+                    </div>
+                    <h1 class="customer-title" id="customer-landing-title">
+                        ดูผลตรวจสุขภาพ
+                        <span class="customer-title-accent">ง่าย ปลอดภัย เป็นส่วนตัว</span>
+                    </h1>
+                    <p class="customer-intro">
+                        เลือกช่องทางเข้าสู่ระบบที่ตรงกับคุณ เพื่อดูประวัติและผลตรวจสุขภาพออนไลน์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล
+                    </p>
+                    <div class="customer-trust-row" aria-label="Service benefits">
+                        <span class="customer-trust-item"><span class="icon"><i class="fas fa-shield-alt"></i></span>ยืนยันตัวตนอย่างปลอดภัย</span>
+                        <span class="customer-trust-item"><span class="icon"><i class="fas fa-mobile-alt"></i></span>ใช้งานได้ทุกอุปกรณ์</span>
+                    </div>
+                </div>
+
+                <div class="customer-choice-panel" aria-label="Choose a sign-in method">
+                    <div class="customer-choice-heading">เลือกประเภทผู้รับบริการ</div>
+                    <a class="customer-choice-card" href="{{ url_for('comhealth.online_results_mahidol_google_start') }}">
+                        <span class="customer-choice-icon"><i class="fas fa-university fa-lg"></i></span>
+                        <span>
+                            <span class="customer-choice-label">บุคลากรมหาวิทยาลัยมหิดล</span>
+                            <span class="customer-choice-copy">เข้าสู่ระบบด้วยบัญชี Google @mahidol.ac.th</span>
+                        </span>
+                        <span class="customer-choice-arrow"><i class="fas fa-arrow-right"></i></span>
+                    </a>
+                    <a class="customer-choice-card is-public" href="{{ url_for('comhealth.online_results_general_public') }}">
+                        <span class="customer-choice-icon"><i class="fas fa-user fa-lg"></i></span>
+                        <span>
+                            <span class="customer-choice-label">ผู้รับบริการทั่วไป</span>
+                            <span class="customer-choice-copy">รับลิงก์เข้าใช้งานครั้งเดียวผ่านอีเมลที่ลงทะเบียน</span>
+                        </span>
+                        <span class="customer-choice-arrow"><i class="fas fa-arrow-right"></i></span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="customer-info" aria-label="How to view your results">
+            <div class="customer-info-card">
+                <div class="customer-info-number">01</div>
+                <div class="customer-info-title">เลือกช่องทางของคุณ</div>
+                <div class="customer-info-copy">ใช้บัญชีมหิดล หรืออีเมลที่แจ้งไว้ในวันที่รับบริการ</div>
+            </div>
+            <div class="customer-info-card">
+                <div class="customer-info-number">02</div>
+                <div class="customer-info-title">ยืนยันตัวตน</div>
+                <div class="customer-info-copy">ระบบจะตรวจสอบบัญชีหรือลิงก์แบบใช้ครั้งเดียวก่อนเปิดข้อมูล</div>
+            </div>
+            <div class="customer-info-card">
+                <div class="customer-info-number">03</div>
+                <div class="customer-info-title">ดูผลตรวจออนไลน์</div>
+                <div class="customer-info-copy">เข้าถึงรายการตรวจและคำแนะนำสุขภาพของคุณได้อย่างเป็นส่วนตัว</div>
+            </div>
+        </section>
+
+        <p class="customer-help">หากไม่พบข้อมูล กรุณาติดต่อหน่วยบริการที่ท่านเข้ารับการตรวจสุขภาพ</p>
+    </div>
+</main>
+{% endblock %}

@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import io
 import time
+from uuid import uuid4
 from collections import defaultdict
 
 import pandas as pd
@@ -20,13 +21,17 @@ from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Image, TableStyle, Table, KeepTogether, Spacer
 from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy.orm import make_transient
-from sqlalchemy import extract, or_
+from sqlalchemy import extract, or_, func
 
 from . import eduqa_bp as edu
 from app.eduqa.forms import *
 from app.room_scheduler.models import EventCategory
 from app.staff.models import StaffPersonalInfo
 from app.roles import education_permission
+from app.dynamic_forms.forms import create_assignment_form
+from app.dynamic_forms.models import (DynamicForm, DynamicFormAssignment,
+                                      DynamicFormVersion, DynamicFormSubmission,
+                                      DynamicFormAnswer)
 
 from pytz import timezone
 
@@ -53,6 +58,509 @@ def index():
 @login_required
 def criteria1_index():
     return render_template('eduqa/QA/mtc/criteria1.html')
+
+
+@edu.route('/qa/student-outcome-monitoring')
+@login_required
+def student_outcome_monitoring():
+    programs = EduQAProgram.query.order_by(EduQAProgram.name.asc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_monitoring.html',
+                           programs=programs)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/plos')
+@login_required
+def student_outcome_monitoring_plos(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    plos = EduQAPLO.query.filter_by(revision_id=revision.id).order_by(
+        EduQAPLO.number.asc(), EduQAPLO.id.asc()).all()
+    skills = EduQASkill.query.filter_by(revision_id=revision.id).order_by(
+        EduQASkill.code.asc(), EduQASkill.id.asc()).all()
+    plo_course_counts = {
+        plo.id: len({clo.course_id for clo in plo.clos.all()})
+        for plo in plos
+    }
+    yearly_outcomes = EduQAYearLearningOutcome.query.filter_by(
+        revision_id=revision.id).order_by(
+        EduQAYearLearningOutcome.year_level.asc(),
+        EduQAYearLearningOutcome.number.asc(),
+        EduQAYearLearningOutcome.id.asc()).all()
+    total_courses = revision.courses.count()
+    return render_template('eduqa/QA/staff/student_outcome_monitoring_plos.html',
+                           revision=revision, plos=plos,
+                           yearly_outcomes=yearly_outcomes,
+                           plo_course_counts=plo_course_counts,
+                           total_courses=total_courses,
+                           skills=skills)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/yearly-outcomes')
+@login_required
+def manage_student_outcome_yearly_outcomes(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    yearly_outcomes = EduQAYearLearningOutcome.query.filter_by(
+        revision_id=revision.id).order_by(
+        EduQAYearLearningOutcome.year_level.asc(),
+        EduQAYearLearningOutcome.number.asc(),
+        EduQAYearLearningOutcome.id.asc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_yearly_outcomes.html',
+                           revision=revision, yearly_outcomes=yearly_outcomes)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/yearly-outcomes/add',
+           methods=['GET', 'POST'])
+@login_required
+def add_student_outcome_yearly_outcome(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    OutcomeForm = create_year_learning_outcome_form(revision.id)
+    form = OutcomeForm()
+    if form.validate_on_submit():
+        year_level = int(form.year_level.data)
+        latest_number = db.session.query(func.max(EduQAYearLearningOutcome.number)).filter_by(
+            revision_id=revision.id,
+            year_level=year_level,
+        ).scalar()
+        yearly_outcome = EduQAYearLearningOutcome(
+            revision_id=revision.id,
+            year_level=year_level,
+            number=(latest_number or 0) + 1,
+        )
+        form.populate_obj(yearly_outcome)
+        yearly_outcome.year_level = year_level
+        db.session.add(yearly_outcome)
+        db.session.commit()
+        flash(u'บันทึกผลลัพธ์การเรียนรู้รายปีเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.student_outcome_monitoring_plos',
+                                revision_id=revision.id))
+    return render_template('eduqa/QA/staff/student_outcome_yearly_outcome_edit.html',
+                           form=form, revision=revision)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/yearly-outcomes/<int:yearly_outcome_id>/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_student_outcome_yearly_outcome(revision_id, yearly_outcome_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    yearly_outcome = EduQAYearLearningOutcome.query.filter_by(
+        id=yearly_outcome_id, revision_id=revision.id).first_or_404()
+    OutcomeForm = create_year_learning_outcome_form(revision.id)
+    form = OutcomeForm(obj=yearly_outcome)
+    if form.validate_on_submit():
+        form.populate_obj(yearly_outcome)
+        yearly_outcome.year_level = int(form.year_level.data)
+        db.session.add(yearly_outcome)
+        db.session.commit()
+        flash(u'บันทึกผลลัพธ์การเรียนรู้รายปีเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.manage_student_outcome_yearly_outcomes',
+                                revision_id=revision.id))
+    return render_template('eduqa/QA/staff/student_outcome_yearly_outcome_edit.html',
+                           form=form, revision=revision, yearly_outcome=yearly_outcome)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills')
+@login_required
+def manage_student_outcome_skills(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skills = EduQASkill.query.filter_by(revision_id=revision.id).order_by(
+        EduQASkill.code.asc(), EduQASkill.id.asc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_skills.html',
+                           revision=revision, skills=skills)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>')
+@login_required
+def view_student_outcome_skill(revision_id, skill_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    ylos = sorted(skill.ylos, key=lambda ylo: (ylo.year_level, ylo.number, ylo.id))
+    clos = sorted(
+        skill.clos,
+        key=lambda clo: (clo.course.en_code or '', clo.number or 0, clo.id),
+    )
+    return render_template('eduqa/QA/staff/student_outcome_skill.html',
+                           revision=revision, skill=skill,
+                           ylos=ylos, clos=clos)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/add',
+           methods=['GET', 'POST'])
+@login_required
+def add_student_outcome_skill_evidence(revision_id, skill_id, clo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    EvidenceForm = create_skill_evidence_form(skill.id, clo.id)
+    form = EvidenceForm()
+    if form.validate_on_submit():
+        evidence = EduQASkillEvidence(
+            skill=skill,
+            clo=clo,
+            assessment_pair=form.assessment_pair.data,
+            title=form.title.data,
+            description=form.description.data,
+            created_by=current_user,
+        )
+        db.session.add(evidence)
+        db.session.commit()
+        flash(u'บันทึกหลักฐานเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.view_student_outcome_skill',
+                                revision_id=revision.id, skill_id=skill.id))
+    return render_template('eduqa/QA/staff/student_outcome_skill_evidence_edit.html',
+                           form=form, revision=revision, skill=skill, clo=clo)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/add',
+           methods=['GET', 'POST'])
+@login_required
+def add_student_skill_evidence(revision_id, skill_id, clo_id, evidence_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    assignment = None
+    assignment_id = request.args.get('assignment_id', type=int)
+    if assignment_id:
+        assignment = DynamicFormAssignment.query.filter_by(
+            id=assignment_id, subject_type='eduqa_skill_evidence', subject_id=evidence.id).first_or_404()
+    EvidenceForm = create_student_skill_evidence_form(clo.course.id)
+    form = EvidenceForm()
+    student_id = request.args.get('student_id', type=int)
+    selected_student = None
+    if student_id:
+        selected_student = EduQAStudent.query.join(EduQAEnrollment).filter(
+            EduQAStudent.id == student_id,
+            EduQAEnrollment.course_id == clo.course.id).first_or_404()
+        if request.method == 'GET':
+            form.student.data = selected_student
+    if form.validate_on_submit():
+        student_evidence = EduQAStudentSkillEvidence(
+            evidence=evidence,
+            student=form.student.data,
+            url=form.url.data,
+            created_by=current_user,
+        )
+        db.session.add(student_evidence)
+        db.session.commit()
+        flash(u'บันทึกหลักฐานของนักศึกษาเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.manage_student_outcome_skill_evidence',
+                                revision_id=revision.id, skill_id=skill.id, clo_id=clo.id))
+    return render_template('eduqa/QA/staff/student_outcome_student_evidence_edit.html',
+                           form=form, revision=revision, skill=skill,
+                           clo=clo, evidence=evidence, assignment=assignment,
+                           selected_student=selected_student)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/forms')
+@login_required
+def student_skill_evidence_forms(revision_id, skill_id, clo_id, evidence_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+
+    assignments = DynamicFormAssignment.query.filter_by(
+        subject_type='eduqa_skill_evidence', subject_id=evidence.id).all()
+    assignments.sort(key=lambda assignment: (
+        assignment.version.form.name.lower(), -assignment.version.version))
+    return render_template('eduqa/QA/staff/student_outcome_skill_evidence_forms.html',
+                           revision=revision, skill=skill, clo=clo,
+                           evidence=evidence, assignments=assignments)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/forms/<int:assignment_id>')
+@login_required
+def student_skill_evidence_students(revision_id, skill_id, clo_id, evidence_id, assignment_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    assignment = DynamicFormAssignment.query.filter_by(
+        id=assignment_id, subject_type='eduqa_skill_evidence', subject_id=evidence.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+
+    students = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAEnrollment.course_id == clo.course.id).distinct().order_by(
+        EduQAStudent.student_id.asc()).all()
+    student_evidence = {item.student_id: item for item in evidence.student_evidence}
+    submissions = DynamicFormSubmission.query.filter_by(
+        version_id=assignment.version_id,
+        subject_type='eduqa_student_skill_evidence',
+    ).filter(DynamicFormSubmission.subject_id.in_([
+        item.id for item in student_evidence.values()
+    ] or [-1])).all()
+    submissions_by_student = {
+        next((student_id for student_id, item in student_evidence.items()
+              if item.id == submission.subject_id), None): submission
+        for submission in submissions
+    }
+    return render_template('eduqa/QA/staff/student_outcome_skill_evidence_students.html',
+                           revision=revision, skill=skill, clo=clo,
+                           evidence=evidence, assignment=assignment,
+                           students=students, submissions_by_student=submissions_by_student,
+                           student_evidence=student_evidence)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/forms/<int:assignment_id>/<int:student_id>',
+           methods=['GET', 'POST'])
+@login_required
+def fill_student_skill_evidence_form(revision_id, skill_id, clo_id, evidence_id,
+                                     assignment_id, student_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    assignment = DynamicFormAssignment.query.filter_by(
+        id=assignment_id, subject_type='eduqa_skill_evidence', subject_id=evidence.id).first_or_404()
+    student = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAStudent.id == student_id, EduQAEnrollment.course_id == clo.course.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+
+    student_evidence = EduQAStudentSkillEvidence.query.filter_by(
+        evidence_id=evidence.id, student_id=student.id).first()
+    if student_evidence is None and request.method == 'POST':
+        student_evidence = EduQAStudentSkillEvidence(
+            evidence=evidence, student=student, created_by=current_user,
+            created_at=db.func.now())
+        db.session.add(student_evidence)
+        db.session.flush()
+
+    submission = None
+    if student_evidence:
+        submission = DynamicFormSubmission.query.filter_by(
+            version_id=assignment.version_id,
+            subject_type='eduqa_student_skill_evidence', subject_id=student_evidence.id,
+        ).first()
+    if request.method == 'POST':
+        missing = [field.label for field in assignment.version.fields
+                   if field.required and not request.form.getlist('field_{}'.format(field.id))]
+        if missing:
+            flash('กรุณากรอกข้อมูล: {}'.format(', '.join(missing)), 'warning')
+        else:
+            if submission is None:
+                submission = DynamicFormSubmission(
+                    version=assignment.version,
+                    respondent_type='staff_account', respondent_id=current_user.id,
+                    subject_type='eduqa_student_skill_evidence', subject_id=student_evidence.id,
+                    status='Submitted', submitted_at=db.func.now())
+                db.session.add(submission)
+            else:
+                submission.respondent_type = 'staff_account'
+                submission.respondent_id = current_user.id
+                submission.status = 'Submitted'
+                submission.submitted_at = db.func.now()
+                submission.answers.clear()
+            for field in assignment.version.fields:
+                values = request.form.getlist('field_{}'.format(field.id))
+                if field.field_type == 'multiselect':
+                    value = values
+                elif field.field_type == 'boolean':
+                    value = bool(values and values[0] == 'true')
+                else:
+                    value = values[0] if values else None
+                submission.answers.append(DynamicFormAnswer(field=field, value=value))
+            db.session.commit()
+            flash('บันทึกผลการประเมินของนักศึกษาเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.student_skill_evidence_students',
+                                    revision_id=revision.id, skill_id=skill.id,
+                                    clo_id=clo.id, evidence_id=evidence.id,
+                                    assignment_id=assignment.id))
+
+    existing_answers = {answer.field_id: answer.value for answer in submission.answers} if submission else {}
+    return render_template('eduqa/QA/staff/student_outcome_skill_evidence_form_fill.html',
+                           revision=revision, skill=skill, clo=clo, evidence=evidence,
+                           assignment=assignment, student=student,
+                           existing_answers=existing_answers)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/results')
+@login_required
+def view_student_skill_evidence_results(revision_id, skill_id, clo_id, evidence_id, student_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    student = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAStudent.id == student_id, EduQAEnrollment.course_id == clo.course.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+
+    student_evidence = EduQAStudentSkillEvidence.query.filter_by(
+        evidence_id=evidence.id, student_id=student.id).first()
+    submissions = []
+    if student_evidence:
+        submissions = DynamicFormSubmission.query.filter_by(
+            subject_type='eduqa_student_skill_evidence',
+            subject_id=student_evidence.id,
+        ).order_by(DynamicFormSubmission.submitted_at.desc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_skill_evidence_results.html',
+                           revision=revision, skill=skill, clo=clo, evidence=evidence,
+                           student=student, student_evidence=student_evidence,
+                           submissions=submissions)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/endorse',
+           methods=['POST'])
+@login_required
+def endorse_student_skill_evidence(revision_id, skill_id, clo_id, evidence_id, student_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    student = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAStudent.id == student_id, EduQAEnrollment.course_id == clo.course.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    student_evidence = EduQAStudentSkillEvidence.query.filter_by(
+        evidence_id=evidence.id, student_id=student.id).first_or_404()
+    submission_exists = DynamicFormSubmission.query.filter_by(
+        subject_type='eduqa_student_skill_evidence',
+        subject_id=student_evidence.id, status='Submitted').first()
+    if not submission_exists:
+        flash('ยังไม่สามารถรับรองได้ เนื่องจากยังไม่มีผลการประเมินที่บันทึกไว้', 'warning')
+    elif not student_evidence.endorsed:
+        student_evidence.endorsed = True
+        student_evidence.endorsed_by = current_user
+        student_evidence.endorsed_at = db.func.now()
+        db.session.commit()
+        flash('รับรองผลการประเมินของนักศึกษาเรียบร้อย', 'success')
+    return redirect(url_for('eduqa.view_student_skill_evidence_results',
+                            revision_id=revision.id, skill_id=skill.id,
+                            clo_id=clo.id, evidence_id=evidence.id,
+                            student_id=student.id))
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence')
+@login_required
+def manage_student_outcome_skill_evidence(revision_id, skill_id, clo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    evidence = EduQASkillEvidence.query.filter_by(
+        skill_id=skill.id, clo_id=clo.id).order_by(
+        EduQASkillEvidence.created_at.desc(), EduQASkillEvidence.id.desc()).all()
+    assignments = DynamicFormAssignment.query.filter_by(
+        subject_type='eduqa_skill_evidence').filter(
+        DynamicFormAssignment.subject_id.in_([item.id for item in evidence])).all()
+    assignments_by_evidence = {}
+    for assignment in assignments:
+        assignments_by_evidence.setdefault(assignment.subject_id, []).append(assignment)
+    assignment_form = create_assignment_form()()
+    available_form_versions = DynamicFormVersion.query.join(DynamicForm).filter(
+        DynamicForm.status != 'Archived').order_by(
+        DynamicForm.name.asc(), DynamicFormVersion.version.desc()).all()
+    return render_template('eduqa/QA/staff/student_outcome_skill_evidence.html',
+                           revision=revision, skill=skill, clo=clo, evidence=evidence,
+                           assignments_by_evidence=assignments_by_evidence,
+                           assignment_form=assignment_form,
+                           available_form_versions=available_form_versions)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/add',
+           methods=['GET', 'POST'])
+@login_required
+def add_student_outcome_skill(revision_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    SkillForm = create_skill_form(revision.id)
+    form = SkillForm()
+    if form.validate_on_submit():
+        skill = EduQASkill(revision=revision, code=f'SKL-PENDING-{uuid4().hex}')
+        form.populate_obj(skill)
+        db.session.add(skill)
+        db.session.flush()
+        skill.code = f'SKL-{skill.id:03d}'
+        db.session.commit()
+        flash(u'บันทึกทักษะเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.manage_student_outcome_skills', revision_id=revision.id))
+    return render_template('eduqa/QA/staff/student_outcome_skill_edit.html',
+                           form=form, revision=revision)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_student_outcome_skill(revision_id, skill_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    SkillForm = create_skill_form(revision.id)
+    form = SkillForm(obj=skill)
+    if form.validate_on_submit():
+        form.populate_obj(skill)
+        db.session.add(skill)
+        db.session.commit()
+        flash(u'บันทึกทักษะเรียบร้อย', 'success')
+        return redirect(url_for('eduqa.manage_student_outcome_skills', revision_id=revision.id))
+    return render_template('eduqa/QA/staff/student_outcome_skill_edit.html',
+                           form=form, revision=revision, skill=skill)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/plos/<int:plo_id>/clos/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_student_outcome_plo_clos(revision_id, plo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    plo = EduQAPLO.query.filter_by(id=plo_id, revision_id=revision.id).first_or_404()
+    courses = EduQACourse.query.filter_by(revision_id=revision.id).order_by(
+        EduQACourse.en_code.asc(), EduQACourse.id.asc()).all()
+    available_clos = [clo for course in courses for clo in sorted(
+        course.outcomes, key=lambda outcome: (outcome.number or 0, outcome.id))]
+    available_clo_ids = {clo.id for clo in available_clos}
+
+    if request.method == 'POST':
+        selected_clo_ids = set()
+        for value in request.form.getlist('clo_ids'):
+            try:
+                selected_clo_ids.add(int(value))
+            except (TypeError, ValueError):
+                continue
+        selected_clo_ids &= available_clo_ids
+        for clo in available_clos:
+            is_selected = clo.id in selected_clo_ids
+            is_linked = plo in clo.plos
+            if is_selected and not is_linked:
+                clo.plos.append(plo)
+            elif not is_selected and is_linked:
+                clo.plos.remove(plo)
+            db.session.add(clo)
+        db.session.commit()
+        flash(u'บันทึกความสัมพันธ์ระหว่าง PLO และ CLO เรียบร้อย', 'success')
+        return redirect(url_for('eduqa.student_outcome_monitoring_plos',
+                                revision_id=revision.id))
+
+    selected_clo_ids = {clo.id for clo in plo.clos.all()}
+    total_clos = sum(len(course.outcomes) for course in courses)
+    return render_template('eduqa/QA/staff/student_outcome_plo_clos_edit.html',
+                           revision=revision, plo=plo, courses=courses,
+                           selected_clo_ids=selected_clo_ids,
+                           total_clos=total_clos)
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/plos/<int:plo_id>/clos')
+@login_required
+def student_outcome_plo_clos(revision_id, plo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    plo = EduQAPLO.query.filter_by(id=plo_id, revision_id=revision.id).first_or_404()
+    clos = sorted(
+        plo.clos.all(),
+        key=lambda clo: (clo.course.en_code or '', clo.number or 0, clo.id),
+    )
+    return render_template('eduqa/QA/staff/student_outcome_plo_clos.html',
+                           revision=revision, plo=plo, clos=clos)
 
 
 @edu.route('/qa/academic-staff/')
@@ -193,6 +701,13 @@ def show_curriculums():
     return render_template('eduqa/QA/curriculums.html', programs=programs)
 
 
+@edu.route('/qa/staff/curricula')
+@login_required
+def manage_curricula():
+    programs = EduQAProgram.query.order_by(EduQAProgram.name.asc()).all()
+    return render_template('eduqa/QA/staff/curriculum_management.html', programs=programs)
+
+
 @edu.route('/qa/curriculums/add', methods=['POST', 'GET'])
 @login_required
 def add_curriculum():
@@ -204,11 +719,30 @@ def add_curriculum():
             db.session.add(curriculum)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-            return redirect(url_for('eduqa.show_curriculums'))
+            return redirect(url_for('eduqa.manage_curricula'))
         else:
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('eduqa/QA/curriculumn_edit.html', form=form)
+
+
+@edu.route('/qa/curriculums/<int:curriculum_id>/edit', methods=['POST', 'GET'])
+@login_required
+def edit_curriculum(curriculum_id):
+    curriculum = EduQACurriculum.query.get_or_404(curriculum_id)
+    form = EduCurriculumnForm(obj=curriculum)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(curriculum)
+            db.session.add(curriculum)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.manage_curricula'))
+        else:
+            print(form.errors)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('eduqa/QA/curriculumn_edit.html', form=form,
+                           curriculum=curriculum)
 
 
 @edu.route('/qa/curriculums/list')
@@ -240,6 +774,7 @@ def backoffice_show_revisions(curriculum_id):
 @edu.route('/qa/curriculums/<int:curriculum_id>/revisions/add', methods=['GET', 'POST'])
 @login_required
 def add_revision(curriculum_id):
+    curriculum = EduQACurriculum.query.get_or_404(curriculum_id)
     form = EduCurriculumnRevisionForm()
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -252,7 +787,52 @@ def add_revision(curriculum_id):
         else:
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
-    return render_template('eduqa/QA/curriculum_revision_edit.html', form=form)
+    return render_template('eduqa/QA/curriculum_revision_edit.html', form=form,
+                           curriculum=curriculum,
+                           back_url=url_for('eduqa.show_revisions', curriculum_id=curriculum.id))
+
+
+@edu.route('/qa/curriculums/<int:curriculum_id>/revisions/<int:revision_id>/edit',
+           methods=['GET', 'POST'])
+@login_required
+def edit_revision(curriculum_id, revision_id):
+    revision = EduQACurriculumnRevision.query.filter_by(
+        id=revision_id, curriculum_id=curriculum_id).first_or_404()
+    form = EduCurriculumnRevisionForm(obj=revision)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(revision)
+            db.session.add(revision)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.manage_curricula'))
+        else:
+            print(form.errors)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('eduqa/QA/curriculum_revision_edit.html',
+                           form=form, revision=revision,
+                           back_url=url_for('eduqa.manage_curricula'))
+
+
+@edu.route('/qa/curriculums/<int:curriculum_id>/revisions/<int:revision_id>/delete',
+           methods=['POST'])
+@login_required
+def delete_revision(curriculum_id, revision_id):
+    revision = EduQACurriculumnRevision.query.filter_by(
+        id=revision_id, curriculum_id=curriculum_id).first_or_404()
+
+    linked_courses = revision.courses.count()
+    linked_plos = len(revision.plos)
+    linked_staff = len(revision.staff)
+    if linked_courses or linked_plos or linked_staff:
+        flash(u'ไม่สามารถลบฉบับปรับปรุงที่มีข้อมูลเชื่อมโยงอยู่ได้', 'warning')
+        return redirect(url_for('eduqa.edit_revision', curriculum_id=curriculum_id,
+                                revision_id=revision_id))
+
+    db.session.delete(revision)
+    db.session.commit()
+    flash(u'ลบฉบับปรับปรุงเรียบร้อย', 'success')
+    return redirect(url_for('eduqa.manage_curricula'))
 
 
 @edu.route('/qa/backoffice/revisions/<int:revision_id>')

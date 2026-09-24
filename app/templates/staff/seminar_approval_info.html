@@ -3,11 +3,51 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
 {% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
         {% include "messages.html" %}
+        <form method="post" class="mb-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field-body">
+                <div class="field column">
+                    <label class="label" for="dates">ช่วงเวลา</label>
+                    <div class="control has-icons-left">
+                        <input name="dates" id="dates" class="input" value="{{ selected_dates }}" required>
+                        <span class="icon is-small is-left"><i class="far fa-calendar-alt"></i></span>
+                    </div>
+                </div>
+                <div class="field column">
+                    <label class="label" for="org">สังกัด</label>
+                    <div class="select is-fullwidth">
+                        <select name="org" id="org">
+                            <option value="" {% if not selected_org %}selected{% endif %}>ทุกสังกัด</option>
+                            {% for org in distinct_org %}
+                                <option value="{{ org.name }}" {% if org.name == selected_org %}selected{% endif %}>
+                                    {{ org.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="field column">
+                    <label class="label" for="staff">ชื่อ</label>
+                    <div class="control">
+                        <select class="js-example-basic" name="staff" id="staff">
+                            {% if personal_info_id %}
+                                <option value="{{ selected_staff_id }}" selected>{{ selected_staff_name }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="field is-grouped is-grouped-right">
+                <div class="control"><button type="submit" class="button is-info">ค้นหา</button></div>
+            </div>
+        </form>
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">รายการรออนุมัติ</h1>
@@ -20,14 +60,15 @@
                     <th>ประเภทกิจกรรม</th>
                     <th>ชื่อกิจกรรม</th>
                     <th>บุคลากร</th>
+                    <th>สังกัดบุคลากร</th>
+                    <th>วันที่เข้าร่วม</th>
                     <th>เลขที่หนังสือ</th>
-                    <th>วันที่เริ่มต้น</th>
                     </thead>
                     <tbody>
                     {% for records in seminar_attend %}
                         {% if not records.seminar_approval %}
                     <tr>
-                        <td>
+                        <td width="5%">
                             {{ records.seminar.topic_type }}
                         </td>
                         <td>
@@ -37,15 +78,18 @@
                             {{ records.staff.personal_info }}
                         </td>
                         <td>
+                            {{ records.staff.personal_info.org }}
+                        </td>
+                        <td width="17%">
+                            {{ records.start_datetime|localdate }} - {{ records.end_datetime|localdate }}
+                        </td>
+                        <td>
                             <a href="{{ url_for('staff.seminar_add_approval', attend_id=records.id) }}">
                                 {{ records.document_no }}
                                 <span class="icon">
                                     <i class="fas fa-plus"></i>
                                 </span>
                             </a>
-                        </td>
-                        <td>
-                            {{ records.start_datetime|localdatetime }}
                         </td>
                     </tr>
                         {% endif %}
@@ -56,7 +100,7 @@
         </div>
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">รายการที่บันทึกข้อมูลแล้ว</h1>
+                <h1 class="title">รายการที่บันทึกข้อมูลการอนุมัติจากคณบดีแล้ว</h1>
             </div>
         </div>
         <div class="columns">
@@ -66,8 +110,8 @@
                     <th>ประเภทกิจกรรม</th>
                     <th>ชื่อกิจกรรม</th>
                     <th>บุคลากร</th>
+                    <th>วันที่อนุมัติ</th>
                     <th>เลขที่หนังสือ</th>
-                    <th>วันที่เริ่มต้น</th>
                     </thead>
                     <tbody>
                     {% for records in seminar_approval_records %}
@@ -82,15 +126,15 @@
                             {{ records.staff.personal_info }}
                         </td>
                         <td>
-                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=records.id) }}">
+                            {{ records.start_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.seminar_add_approval', attend_id=records.id) }}">
                                 {{ records.document_no }}
                                 <span class="icon">
                                     <i class="fas fa-plus"></i>
                                 </span>
                             </a>
-                        </td>
-                        <td>
-                            {{ records.start_datetime|localdatetime }}
                         </td>
                     </tr>
                     {% endfor %}
@@ -115,10 +159,26 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
     $(document).ready(function(){
         $('#seminarTable').DataTable();
         $('#seminarApprovedTable').DataTable();
+        $('#dates').daterangepicker({
+            timePicker: false,
+            showDropdowns: true,
+            linkedCalendars: false,
+            locale: { format: 'DD/MM/YYYY' }
+        });
+        $('.js-example-basic').select2({
+            width: '100%',
+            ajax: {
+                url: "{{ url_for('staff.get_all_employees') }}",
+                dataType: 'json'
+            }
+        });
     });
 </script>
 {% endblock %}

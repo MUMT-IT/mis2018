@@ -113,6 +113,13 @@
                             {% else %}
                                 <div class="field">
                                     <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="participants" multiple="multiple">
+                                        {% if invitations %}
+                                            {% for invitation in invitations %}
+                                                <option value="{{ invitation.staff.personal_id }}" selected>
+                                                    {{ invitation.staff.fullname }}
+                                                </option>
+                                            {% endfor %}
+                                        {% endif %}
                                     </select>
                                     <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>
                                 </div>

@@ -45,6 +45,13 @@ class MeetingAgendaForm(ModelForm):
         }
 
 
+class MeetingTaskForm(ModelForm):
+    class Meta:
+        model = MeetingTask
+
+    admins = QuerySelectMultipleField(query_factory=lambda: StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False)).all(),
+                                      get_label='fullname')
+
 def create_new_meeting(poll_id=None):
     if poll_id:
         poll = MeetingPoll.query.get(poll_id)

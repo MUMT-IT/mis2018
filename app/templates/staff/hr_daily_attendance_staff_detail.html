@@ -141,6 +141,16 @@
         background: rgba(102, 112, 125, 0.14);
         color: #5b626b;
     }
+
+    .attendance-detail-indicator {
+        display: block;
+        margin-top: 0.4rem;
+    }
+
+    .attendance-hours-warning {
+        color: #996516;
+        font-size: 0.75rem;
+    }
 </style>
 
 <section class="section daily-attendance-detail">
@@ -182,6 +192,7 @@
                 </thead>
                 <tbody>
                     {% for record in records %}
+                        {% set leave_period = half_day_leave_periods.get(record.attendance_date) %}
                         <tr>
                             <td>{{ record.attendance_date.strftime('%d/%m/%Y') }}</td>
                             <td>
@@ -194,6 +205,11 @@
                                 {% elif record.status == 'weekend' %}Weekend
                                 {% else %}{{ record.status }}{% endif %}
                                 </span>
+                                {% if leave_period %}
+                                    <div class="attendance-detail-indicator">
+                                        <span class="attendance-status-tag is-leave">Approved {{ leave_period }} leave (½ day)</span>
+                                    </div>
+                                {% endif %}
                             </td>
                             <td>{% if record.source == 'attendance_reconciliation' %}{% elif record.source %}{{ record.source }}{% else %}—{% endif %}</td>
                             <td>{{ record.first_checkin_at|localdatetime if record.first_checkin_at else '—' }}</td>
@@ -201,6 +217,11 @@
                             <td>
                                 {% if record.worked_minutes is not none %}
                                     {{ record.worked_minutes // 60 }} hr {{ '%02d'|format(record.worked_minutes % 60) }} min
+                                    {% if leave_period and record.status == 'present' and record.worked_minutes < 210 %}
+                                        <span class="attendance-detail-indicator attendance-hours-warning">
+                                            {{ 210 - record.worked_minutes }} min below half-day requirement (3 hr 30 min)
+                                        </span>
+                                    {% endif %}
                                 {% else %}
                                     —
                                 {% endif %}

@@ -49,7 +49,7 @@
             </div>
             {% if poll.desc %}<div class="content"><pre style="white-space: pre-wrap; font-family: inherit;">{{ poll.desc }}</pre></div>{% endif %}
             {% if not poll.closed_at and poll.invitations.filter_by(voter_id=current_user.id).first() %}
-                <a class="button is-success" href="{{ url_for('procurement.procurement_plan_poll_vote', plan_id=plan.id, poll_id=poll.id) }}">ไปโหวตวันและเวลา</a>
+                <a class="button is-success" href="{{ url_for('procurement.procurement_plan_poll_vote', plan_id=plan.id, poll_id=poll.id, staff_view=1 if staff_view else none) }}">ไปโหวตวันและเวลา</a>
             {% endif %}
             {% if selected_slot %}
                 <a class="button is-link" href="{{ url_for('room.ai_room_search', message='ค้นหาห้องประชุมวันที่ ' ~ selected_slot.start.strftime('%d/%m/%Y') ~ ' เวลา ' ~ selected_slot.start.strftime('%H:%M') ~ ' ถึง ' ~ selected_slot.end.strftime('%H:%M') ~ ' สำหรับกรรมการจำนวน ' ~ poll.invitations.count() ~ ' คน') }}">
@@ -84,7 +84,7 @@
                                 </td>
                                 <td>
                                     {% if can_select_best_slot and not poll.closed_at and slot.poll_votes|length > 0 %}
-                                        <a class="button is-small is-success" hx-confirm="ท่านแน่ใจว่าจะเลือกตัวเลือกนี้เป็นวันประชุมและแจ้งกรรมการทุกคนหรือไม่" hx-swap="innerHTML" hx-target="#mail-form" hx-get="{{ url_for('besttime.send_mail_to_committee', slot_id=slot.id, tab=tab) }}">เลือกเป็นวันประชุมและแจ้งกรรมการ</a>
+                                        <a class="button is-small is-success" hx-confirm="ท่านแน่ใจว่าจะเลือกตัวเลือกนี้เป็นวันประชุมและแจ้งกรรมการทุกคนหรือไม่" hx-swap="innerHTML" hx-target="#mail-form" hx-get="{{ url_for('besttime.send_mail_to_committee', slot_id=slot.id, tab=tab, staff_view=1 if staff_view else none) }}">เลือกเป็นวันประชุมและแจ้งกรรมการ</a>
                                     {% endif %}
                                 </td>
                             </tr>

@@ -298,6 +298,7 @@
             const labApprovalsApiUrl = {{ url_for('comhealth.save_lab_approvals_api') | tojson }};
             const physicalApprovalApiUrl = {{ url_for('comhealth.save_physical_exam_approval_api') | tojson }};
             const xrayApprovalApiUrl = {{ url_for('comhealth.save_xray_approval_api') | tojson }};
+            const healthResultNotificationApiUrl = {{ url_for('comhealth.send_health_result_notification_api') | tojson }};
             const serviceNo = {{ service_no | default('', true) | tojson }};
             const customerEmail = {{ customer_email | default('', true) | tojson }};
             const serviceDate = {{ service_date | default('', true) | tojson }};
@@ -722,10 +723,6 @@
                         return responseBody;
                     }
 
-                    let labResponseBody = null;
-                    if (changedItems.length) {
-                        labResponseBody = await postApproval(labApprovalsApiUrl, labPayload, 'Lab');
-                    }
                     if (physicalChanged) {
                         await postApproval(physicalApprovalApiUrl, {
                             serviceNo: serviceNo,
@@ -738,14 +735,32 @@
                             isApproved: approveAllXray.checked
                         }, 'X-ray');
                     }
+                    let notificationResponseBody = null;
+                    if (changedItems.length) {
+                        notificationResponseBody = await postApproval(
+                            labApprovalsApiUrl,
+                            labPayload,
+                            'Lab'
+                        );
+                    } else {
+                        notificationResponseBody = await postApproval(
+                            healthResultNotificationApiUrl,
+                            {
+                                serviceNo: serviceNo,
+                                customerEmail: customerEmail,
+                                serviceDate: serviceDate,
+                                customerAge: customerAge
+                            },
+                            'Email'
+                        );
+                    }
 
                     if (window.showToastAlert) {
-                        const notification = labResponseBody && labResponseBody.emailNotification;
-                        const emailMessage = changedItems.length
-                            ? (notification && notification.sent
-                                ? ` และส่งลิงก์ผลตรวจไปที่ ${notification.recipient} แล้ว`
-                                : ' แต่ยังไม่ได้ส่งอีเมล กรุณาตรวจสอบอีเมลผู้รับบริการ')
-                            : '';
+                        const notification = notificationResponseBody
+                            && notificationResponseBody.emailNotification;
+                        const emailMessage = notification && notification.sent
+                            ? ` และส่งลิงก์ผลตรวจไปที่ ${notification.recipient} แล้ว`
+                            : ' แต่ยังไม่ได้ส่งอีเมล กรุณาตรวจสอบอีเมลผู้รับการตรวจสุขภาพ';
                         showToastAlert('success', `บันทึกการอนุมัติ ${changeLabels.join(', ')} สำเร็จ${emailMessage}`);
                     }
                     await Promise.all([loadPhysicalExams(), loadTestDetails(), loadXrays()]);
@@ -765,11 +780,13 @@
                     'weight',
                     'height',
                     'heartRate',
-                    'systolic',
-                    'comment',
-                    'ApprovedBy',
-                    'LastApprovedTime'
+                    'systolic'
                 ];
+                const hasWaistline = rows.some(function (item) {
+                    return item && Object.prototype.hasOwnProperty.call(item, 'waistline');
+                });
+                if (hasWaistline) columns.push('waistline');
+                columns.push('comment', 'ApprovedBy', 'LastApprovedTime');
                 columns.forEach(function (column) {
                     appendCell(physicalTableHead, 'th', column);
                 });
@@ -785,25 +802,22 @@
             function renderXrayTable(rows) {
                 xrayTableHead.replaceChildren();
                 xrayTableBody.replaceChildren();
-                const hiddenColumns = ['serviceNo', 'custId', 'xRayCarId', 'cmsCode'];
-                const apiColumns = Array.from(rows.reduce(function (keys, row) {
-                    if (row && typeof row === 'object' && !Array.isArray(row)) {
-                        Object.keys(row).forEach(function (key) { keys.add(key); });
-                    }
-                    return keys;
-                }, new Set())).filter(function (column) {
-                    return !hiddenColumns.includes(column);
-                });
-                const approvalColumnNames = new Set([
-                    'LastApprovedTime', 'lastApprovedTime', 'lastapprovedtime',
-                    'ApprovedBy', 'approvedBy', 'Approvedby', 'approvedby'
-                ]);
-                const columns = apiColumns.filter(function (column) {
-                    return !approvalColumnNames.has(column);
-                });
-                columns.push('ApprovedBy', 'LastApprovedTime');
+                const columns = [
+                    'serviceNo',
+                    'serviceDate',
+                    'chest',
+                    'normal',
+                    'status',
+                    'xrayDate',
+                    'isApproved',
+                    'ApprovedBy',
+                    'LastApprovedTime'
+                ];
+                const columnLabels = {
+                    serviceNo: 'Service No'
+                };
                 columns.forEach(function (column) {
-                    appendCell(xrayTableHead, 'th', column);
+                    appendCell(xrayTableHead, 'th', columnLabels[column] || column);
                 });
                 rows.forEach(function (item) {
                     const row = document.createElement('tr');
@@ -847,7 +861,7 @@
                     updateLabApprovalUi();
                     showXrayState('table');
                 } catch (error) {
-                    xrayStates.error.textContent = `ไม่สามารถโหลดข้อมูล X-ray ได้: ${error.message}`;
+                    xrayStates.error.textContent = 'ไม่แสดงข้อมูล X-ray';
                     showXrayState('error');
                 }
             }

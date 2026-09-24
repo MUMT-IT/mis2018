@@ -124,6 +124,22 @@ class ComHealthDivision(db.Model):
         return u'{}'.format(self.name)
 
 
+class ComHealthOnlineResultAccessToken(db.Model):
+    """Server-side state for short-lived, single-use report access links."""
+    __tablename__ = 'comhealth_online_result_access_tokens'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(255), nullable=False, index=True)
+    token_hash = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
+    used_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
 class ComHealthCustomer(db.Model):
     __tablename__ = 'comhealth_customers'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -141,6 +157,10 @@ class ComHealthCustomer(db.Model):
     dob = db.Column('dob', db.Date())
     gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
     phone = db.Column('phone', db.String())
+    # TODO(comhealth-email-uniqueness): After resolving existing shared/duplicate
+    # addresses, enforce uniqueness on lower(trim(email)) for non-empty values
+    # with a database migration and matching form validation. Report access
+    # should ultimately remain bound to customer_id rather than email alone.
     email = db.Column('email', db.String())
     emptype_id = db.Column('emptype_id', db.ForeignKey('comhealth_customer_employment_types.id'))
     emptype = db.relationship('ComHealthCustomerEmploymentType',

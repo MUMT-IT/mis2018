@@ -38,6 +38,13 @@ class ServiceCustomerContactForm(ModelForm):
     email = EmailField('อีเมล', validators=[DataRequired()])
 
 
+class ServiceCustomerAttachmentForm(ModelForm):
+    class Meta:
+        model = ServiceCustomerAttachment
+
+    file_upload = FileField('File Upload')
+
+
 class ServiceCustomerInfoForm(ModelForm):
     class Meta:
         model = ServiceCustomerInfo
@@ -50,6 +57,7 @@ class ServiceCustomerInfoForm(ModelForm):
     phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
     email = EmailField('อีเมล', validators=[DataRequired()])
     customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
+    attachments = FieldList(FormField(ServiceCustomerAttachmentForm, default=ServiceCustomerAttachment), min_entries=0)
 
 
 def formatted_request_data():

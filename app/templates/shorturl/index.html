@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% include "nav.html" %}
+
+{% block title %}MUMT-MIS: Short URL{% endblock %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns is-variable is-5">
+                <div class="column is-6-desktop">
+                    <div class="box shorturl-card shorturl-form-card">
+                        <p class="shorturl-kicker">Experimental service</p>
+                        <h1 class="title is-3">สร้าง Short URL</h1>
+                        <p class="shorturl-description">วางลิงก์ยาวที่ต้องการย่อในช่องด้านล่าง</p>
+
+                        <form method="post" action="{{ url_for('shorturl.index') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <label class="label" for="long-url">Long URL</label>
+                                <div class="control">
+                                    <textarea class="textarea" id="long-url" name="long_url" rows="8"
+                                              placeholder="https://example.com/a/very/long/url" required>{{ long_url or '' }}</textarea>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="shorturl-note">Note</label>
+                                <div class="control">
+                                    <textarea class="textarea" id="shorturl-note" name="note" rows="2"
+                                              placeholder="รายละเอียดเพิ่มเติมของลิงก์นี้">{{ note or '' }}</textarea>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label" for="expiration-date">Expiration date</label>
+                                <div class="control">
+                                    <input class="input" type="text" id="expiration-date" name="expiration_date"
+                                           value="{{ expiration_date or '' }}">
+                                </div>
+                                <p class="help">เว้นว่างไว้หากต้องการให้ลิงก์ไม่มีวันหมดอายุ</p>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    <button class="button is-info is-fullwidth" type="submit">
+                                        สร้างลิงก์ย่อ
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="column is-6-desktop">
+                    <div class="box shorturl-card shorturl-result-card">
+                        <p class="shorturl-kicker">Result</p>
+                        <h2 class="title is-4">ลิงก์ย่อและ QR Code</h2>
+                        {% if short_url %}
+                            <div class="shorturl-result-content">
+                                <div class="shorturl-link-panel">
+                                    <p class="shorturl-result-label">Short URL</p>
+                                    <a class="shorturl-link" href="{{ short_url }}" target="_blank" rel="noopener noreferrer">{{ short_url }}</a>
+                                    {% if expires_at %}
+                                        <p class="is-size-7 mt-2">หมดอายุวันที่ {{ to_bangkok(expires_at).strftime('%d/%m/%Y %H:%M') }} น.</p>
+                                    {% else %}
+                                        <p class="is-size-7 mt-2">ไม่มีวันหมดอายุ</p>
+                                    {% endif %}
+                                </div>
+                                <div class="shorturl-qr-panel">
+                                    <img src="{{ qrcode(short_url, box_size=6) }}" alt="QR Code สำหรับ {{ short_url }}">
+                                    <p>สแกนเพื่อเปิดลิงก์</p>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="shorturl-result-empty">
+                                <span class="icon is-large"><i class="fas fa-qrcode" aria-hidden="true"></i></span>
+                                <p>ผลลัพธ์จะแสดงที่นี่หลังจากสร้างลิงก์ย่อ</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="has-text-right mt-4">
+                        <a class="button is-info" href="{{ url_for('shorturl.manage') }}">
+                            <span class="icon"><i class="fas fa-cog" aria-hidden="true"></i></span>
+                            <span>จัดการลิงค์</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <style>
+        .shorturl-card {
+            border: 1px solid rgba(50, 115, 220, .16);
+            border-radius: 22px;
+            box-shadow: 0 14px 35px rgba(18, 39, 84, .08);
+            height: 100%;
+        }
+
+        .shorturl-result-card {
+            background: linear-gradient(145deg, rgba(247, 250, 255, .98), rgba(239, 246, 255, .92));
+        }
+
+        .shorturl-kicker {
+            color: var(--theme-navy);
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            margin-bottom: .6rem;
+            text-transform: uppercase;
+        }
+
+        .shorturl-description {
+            color: var(--theme-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .shorturl-result-content {
+            align-items: center;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            justify-content: center;
+            min-height: 18rem;
+        }
+
+        .shorturl-link-panel {
+            text-align: center;
+            width: 100%;
+        }
+
+        .shorturl-result-label {
+            color: var(--theme-muted);
+            font-size: .72rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            margin-bottom: .35rem;
+            text-transform: uppercase;
+        }
+
+        .shorturl-link {
+            color: var(--theme-navy);
+            font-size: 1rem;
+            font-weight: 800;
+            overflow-wrap: anywhere;
+        }
+
+        .shorturl-qr-panel {
+            background: #fff;
+            border: 1px solid rgba(50, 115, 220, .14);
+            border-radius: 16px;
+            padding: .75rem;
+            text-align: center;
+        }
+
+        .shorturl-qr-panel img {
+            display: block;
+            height: 180px;
+            image-rendering: pixelated;
+            width: 180px;
+        }
+
+        .shorturl-qr-panel p {
+            color: var(--theme-muted);
+            font-size: .7rem;
+            margin-top: .45rem;
+        }
+
+        .shorturl-result-empty {
+            align-items: center;
+            color: var(--theme-muted);
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+            justify-content: center;
+            min-height: 18rem;
+            text-align: center;
+        }
+
+        .shorturl-result-empty .icon {
+            color: rgba(50, 115, 220, .42);
+        }
+
+    </style>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $('#expiration-date').daterangepicker({
+            singleDatePicker: true,
+            autoUpdateInput: false,
+            timePicker: true,
+            timePicker24Hour: true,
+            timePickerIncrement: 5,
+            minDate: moment(),
+            locale: {
+                format: 'YYYY-MM-DD HH:mm',
+                cancelLabel: 'ล้าง'
+            }
+        });
+        $('#expiration-date').on('apply.daterangepicker', function (event, picker) {
+            $(this).val(picker.startDate.format('YYYY-MM-DD HH:mm'));
+        });
+        $('#expiration-date').on('cancel.daterangepicker', function () {
+            $(this).val('');
+        });
+    </script>
+{% endblock %}

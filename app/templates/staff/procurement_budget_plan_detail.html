@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}รายละเอียดการติดตามงบประมาณ{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .budget-detail-shell { padding: 2rem 1rem 4rem; }
+        .budget-detail-card { border-radius: 1rem; }
+        .budget-detail-label { color: #6b7280; font-size: .8rem; margin-bottom: .2rem; }
+        .procurement-timeline { overflow-x: auto; }
+        .timeline-scale { min-width: 760px; padding-left: 4rem; padding-right: 8rem; }
+        .timeline-axis { position: relative; height: 2rem; }
+        .timeline-axis span { color: #6b7280; font-size: .72rem; position: absolute; transform: translateX(-50%); white-space: nowrap; }
+        .timeline-track { background: #f4f6fa; border-radius: 999px; height: 1.4rem; margin-bottom: 3.5rem; position: relative; }
+        .timeline-marker { background: #2e8b57; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px #2e8b57; height: 1rem; position: absolute; top: .2rem; transform: translateX(-50%); width: 1rem; }
+        .timeline-marker-label { color: #374151; font-size: .7rem; left: 50%; position: absolute; top: 1.5rem; transform: translateX(-50%) rotate(-25deg); transform-origin: top center; white-space: nowrap; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "staff/nav.html" %}
+    <main class="container budget-detail-shell">
+        {% include "messages.html" %}
+        <div class="level mb-5">
+            <div>
+                <p class="heading">ติดตามการใช้งบประมาณ</p>
+                <h1 class="title is-3 mb-2">รายละเอียดแผนจัดซื้อจัดจ้าง</h1>
+                <p class="has-text-grey">{{ plan.item or '-' }}</p>
+            </div>
+            <a class="button is-light" href="{{ back_url }}">กลับรายการ</a>
+        </div>
+
+        {% if not plan.principle_approval_date %}
+            <div class="notification is-warning is-light">
+                <strong>ยังไม่ได้รับเอกสารอนุมัติหลักการ</strong><br>
+                กรุณาติดตามและจัดเตรียมเอกสารอนุมัติหลักการเพื่อให้กระบวนการจัดซื้อจัดจ้างดำเนินต่อได้
+            </div>
+        {% endif %}
+        {% if not plan.tor_completed_date %}
+            <div class="notification is-info is-light">
+                <strong>ยังไม่ได้จัดทำ TOR แล้วเสร็จ</strong><br>
+                กรุณาประสานคณะกรรมการเพื่อจัดเตรียม TOR ให้พร้อมตามกำหนด
+                {% if plan.tor_due_date %}<span class="has-text-weight-semibold">ภายในวันที่ {{ plan.tor_due_date }}</span>{% endif %}
+            </div>
+        {% endif %}
+
+        <div class="box budget-detail-card">
+            <div class="columns is-multiline">
+                <div class="column is-one-quarter"><p class="budget-detail-label">ปีงบประมาณ</p><p class="is-size-5 has-text-weight-semibold">{{ plan.fiscal_year }}</p></div>
+                <div class="column is-one-quarter"><p class="budget-detail-label">แหล่งงบประมาณ</p><p>{{ plan.funding_source_label }}</p></div>
+                <div class="column is-one-quarter"><p class="budget-detail-label">ศูนย์ต้นทุน</p><p>{{ plan.cost_center_id }}</p></div>
+                <div class="column is-one-quarter"><p class="budget-detail-label">จำนวนเงิน</p><p class="is-size-5 has-text-weight-semibold">{{ "{:,.2f}".format(plan.amount) }} บาท</p></div>
+                <div class="column is-full"><p class="budget-detail-label">ผลผลิต/โครงการ/รายงาน</p><p>{{ plan.product_code.product_code if plan.product_code else (plan.output_project_report or '-') }}</p></div>
+                <div class="column is-one-third"><p class="budget-detail-label">วิธีการจัดซื้อจัดจ้าง</p><p>{{ plan.procurement_method }}</p></div>
+                <div class="column is-one-third"><p class="budget-detail-label">รหัส IO ครุภัณฑ์</p><p>{{ plan.fund_code or '-' }}</p></div>
+                <div class="column is-one-third"><p class="budget-detail-label">สถานะ</p><span class="tag is-info is-light">{{ plan.status_label }}</span></div>
+            </div>
+            <hr>
+            <div class="table-container">
+                <table class="table is-fullwidth">
+                    <tbody>
+                        <tr><th>อนุมัติหลักการ</th><td>{{ plan.principle_approval_date or '-' }}</td><th>กำหนดจัดทำ TOR</th><td>{{ plan.tor_due_date or '-' }}</td></tr>
+                        <tr><th>จัดทำ TOR แล้วเสร็จ</th><td>{{ plan.tor_completed_date or '-' }}</td><th>ยื่นเสนอราคา</th><td>{{ plan.quotation_submission_date or '-' }}</td></tr>
+                        <tr><th>ลงนามสัญญา</th><td>{{ plan.contract_signed_date or '-' }}</td><th>ตรวจรับ</th><td>{{ plan.inspection_date or '-' }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <h2 class="title is-5 mt-5">ความคืบหน้าการจัดซื้อจัดจ้าง</h2>
+            {% if gantt_data.activities %}
+                <div class="procurement-timeline"><div class="timeline-scale">
+                    <div class="timeline-axis"><span style="left:0">1 ต.ค.</span><span style="left:25%">1 ม.ค.</span><span style="left:50%">1 เม.ย.</span><span style="left:75%">1 ก.ค.</span><span style="left:100%">30 ก.ย.</span></div>
+                    <div class="timeline-track">
+                        {% for activity in gantt_data.activities %}<span class="timeline-marker" style="left:{{ activity.position }}%" title="{{ activity.label }}: {{ activity.date }}"><span class="timeline-marker-label">{{ activity.label }}</span></span>{% endfor %}
+                    </div>
+                </div></div>
+            {% else %}<p class="has-text-grey">ยังไม่มีข้อมูลกิจกรรมที่ดำเนินการเสร็จสิ้น</p>{% endif %}
+        </div>
+
+        <div class="box budget-detail-card">
+            <h2 class="title is-5">คณะกรรมการ</h2>
+            <div class="table-container"><table class="table is-fullwidth">
+                <thead><tr><th>บทบาท</th><th>บุคลากร</th></tr></thead>
+                <tbody>
+                    {% for member in plan.committee_members.all() %}<tr><td><span class="tag is-info is-light">{{ member.role_label }}</span></td><td>{{ member.staff.fullname }}</td></tr>
+                    {% else %}<tr><td colspan="2" class="has-text-centered has-text-grey">ยังไม่มีคณะกรรมการ</td></tr>{% endfor %}
+                </tbody>
+            </table></div>
+        </div>
+
+        <div class="box budget-detail-card">
+            <div class="level mb-4">
+                <div><h2 class="title is-5 mb-1">แบบสำรวจวันและเวลาประชุม</h2><p class="is-size-7 has-text-grey">สร้างแบบสำรวจ ดูผล และเลือกวันประชุมจากผลการโหวต</p></div>
+                {% if can_create_plan_poll and plan.committee_members.count() > 0 %}
+                    <a class="button is-primary" href="{{ url_for('procurement.new_procurement_plan_poll', plan_id=plan.id, staff_view=1) }}"><span class="icon"><i class="fa-solid fa-plus"></i></span><span>สร้างแบบสำรวจใหม่</span></a>
+                {% elif can_create_plan_poll %}
+                    <button class="button is-primary" type="button" disabled title="ต้องมีคณะกรรมการอย่างน้อย 1 คน"><span class="icon"><i class="fa-solid fa-plus"></i></span><span>สร้างแบบสำรวจใหม่</span></button>
+                {% endif %}
+            </div>
+            <div class="table-container"><table class="table is-fullwidth is-hoverable">
+                <thead><tr><th>ชื่อแบบสำรวจ</th><th>ช่วงเวลาโหวต</th><th>ความก้าวหน้า</th><th>สถานะ</th><th></th></tr></thead>
+                <tbody>
+                    {% for poll in plan.besttime_polls.all() %}
+                        <tr><td>{{ poll.title }}</td><td>{{ poll.vote_date_span }}</td><td>{{ poll.voted|length }}/{{ poll.invitations.count() }} คน</td><td>{% if poll.closed_at %}<span class="tag is-light">ปิดแล้ว</span>{% else %}<span class="tag is-success is-light">เปิดอยู่</span>{% endif %}</td><td class="has-text-right"><a class="button is-small is-info is-light" href="{{ url_for('procurement.procurement_plan_poll_results', plan_id=plan.id, poll_id=poll.id, staff_view=1) }}">ดูผลและกำหนดวันประชุม</a></td></tr>
+                    {% else %}<tr><td colspan="5" class="has-text-centered has-text-grey">ยังไม่มีแบบสำรวจที่เชื่อมโยงกับแผนนี้</td></tr>{% endfor %}
+                </tbody>
+            </table></div>
+        </div>
+    </main>
+{% endblock %}

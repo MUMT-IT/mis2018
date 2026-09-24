@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}ติดตามผลลัพธ์การเรียนรู้ของนักศึกษา | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">ติดตามผลลัพธ์การเรียนรู้ของนักศึกษา</h1>
+                    <p class="subtitle">ติดตามความก้าวหน้าของนักศึกษาตามผลลัพธ์การเรียนรู้</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.index') }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+        {% for program in programs %}
+        <div class="box">
+            <h2 class="title is-5">{{ program.name }}</h2>
+            {% for curriculum in program.curriculums %}
+            <div class="mb-5">
+                <h3 class="title is-6">{{ curriculum.th_name }}{% if curriculum.en_name %} ({{ curriculum.en_name }}){% endif %}</h3>
+                <div class="tags">
+                    {% for revision in curriculum.revisions|sort(attribute='revision_year', reverse=true) %}
+                    <a class="tag is-link is-light is-medium"
+                       href="{{ url_for('eduqa.student_outcome_monitoring_plos', revision_id=revision.id) }}">
+                        ปี {{ revision.buddhist_year }}
+                    </a>
+                    {% else %}
+                    <span class="has-text-grey">ยังไม่มีฉบับปรับปรุง</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีข้อมูลหลักสูตร</p>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="notification is-light">ยังไม่มีข้อมูลสาขาวิชาและหลักสูตร</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

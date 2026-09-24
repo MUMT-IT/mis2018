@@ -109,17 +109,17 @@
                         <footer class="card-footer">
                             <a class="card-footer-item"
                                hx-swap="none"
-                               hx-put="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='เข้าร่วม') }}">
+                               hx-patch="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='เข้าร่วม') }}">
                                 <span class="tag is-success">เข้าร่วม</span>
                             </a>
                             <a class="card-footer-item"
                                hx-swap="none"
-                               hx-put="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่เข้าร่วม') }}">
+                               hx-patch="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่เข้าร่วม') }}">
                                 <span class="tag is-danger">ไม่เข้าร่วม</span>
                             </a>
                             <a class="card-footer-item"
                                hx-swap="none"
-                               hx-put="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่แน่ใจ') }}">
+                               hx-patch="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่แน่ใจ') }}">
                                 <span class="tag is-light">ไม่แน่ใจ</span>
                             </a>
                         </footer>

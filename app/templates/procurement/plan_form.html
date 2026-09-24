@@ -5,11 +5,25 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
     <style>
         .procurement-planning-shell { padding: 2rem 1rem 4rem; }
         .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
         .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
         .plan-form-card { border-radius: 1rem; }
+        .plan-form-card .select2-container { width: 100% !important; }
+        .plan-form-card .select2-selection--single {
+            border-color: #dbdbdb;
+            border-radius: 4px;
+            height: 2.5em;
+        }
+        .plan-form-card .select2-selection--single .select2-selection__rendered { line-height: 2.5em; }
+        .plan-form-card .select2-selection--single .select2-selection__arrow { height: 2.5em; }
+        .plan-form-section-divider {
+            border-top: 1px solid var(--theme-border);
+            margin-top: 2rem;
+            padding-top: 2rem;
+        }
     </style>
 {% endblock %}
 
@@ -27,9 +41,55 @@
                     </div>
                 </div>
 
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="notification {% if category == 'success' %}is-success{% elif category == 'warning' %}is-warning{% else %}is-danger{% endif %} is-light">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
                 <div class="box plan-form-card">
+                    {% if not plan %}
+                        <div class="notification is-info is-light mb-5">
+                            <h2 class="title is-5 mb-2">นำเข้าจาก Excel</h2>
+                            <p class="mb-4">เลือกไฟล์ MT Template เพื่อสร้างรายการแผนทั้งหมดในครั้งเดียว ระบบจะอ่านข้อมูลจากชีต “กรอกข้อมูล”</p>
+                            <form id="procurement-plan-upload-form" method="post" enctype="multipart/form-data"
+                                  action="{{ url_for('procurement.import_procurement_plans') }}">
+                                {{ upload_form.csrf_token(id='upload_csrf_token') }}
+                                <div class="field">
+                                    {{ upload_form.fiscal_year.label(class="label") }}
+                                    <div class="control">
+                                        {{ upload_form.fiscal_year(class="input", min="2500", max="2700", required=true, placeholder="เช่น 2570") }}
+                                    </div>
+                                    <p class="help">ปีที่ระบุจะถูกใช้กับทุกรายการที่นำเข้า</p>
+                                </div>
+                                <div class="field">
+                                    {{ upload_form.workbook.label(class="label") }}
+                                    <div class="file has-name is-fullwidth">
+                                        <label class="file-label">
+                                            {{ upload_form.workbook(class="file-input", accept=".xlsx") }}
+                                            <span class="file-cta"><span class="file-label">เลือกไฟล์</span></span>
+                                            <span class="file-name" id="workbook-file-name">ยังไม่ได้เลือกไฟล์</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <button class="button is-link" id="procurement-plan-import-button" type="submit"
+                                            name="upload_submit" value="1">
+                                        นำเข้ารายการทั้งหมด
+                                    </button>
+                                    <p class="help is-danger is-hidden" id="procurement-plan-import-error">กรุณาเลือกไฟล์ Excel ก่อนนำเข้า</p>
+                                </div>
+                            </form>
+                            <p class="help">ระบบจะไม่บันทึกรายการใดหากพบข้อมูลอ้างอิงที่ไม่มีในระบบ และจะข้ามรายการที่มีอยู่แล้ว</p>
+                        </div>
+                    {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
+                        <h2 class="title is-5 mb-4">สำหรับเจ้าหน้าที่หน่วยยุทธศาสตร์</h2>
                         <div class="columns">
                             <div class="column is-one-third">
                                 <div class="field">
@@ -43,6 +103,9 @@
                                     {{ form.funding_source.label(class="label") }}
                                     <div class="select is-fullwidth">{{ form.funding_source() }}</div>
                                     {% for error in form.funding_source.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                    <label class="checkbox mt-3">
+                                        {{ form.is_unforecasted() }} {{ form.is_unforecasted.label.text }}
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -52,9 +115,9 @@
                             {% for error in form.item.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
                         </div>
                         <div class="field">
-                            {{ form.output_project_report.label(class="label") }}
-                            <div class="select is-fullwidth">{{ form.output_project_report() }}</div>
-                            {% for error in form.output_project_report.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                            {{ form.product_code.label(class="label") }}
+                            <div class="select is-fullwidth">{{ form.product_code() }}</div>
+                            {% for error in form.product_code.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
                         </div>
                         <div class="columns">
                             <div class="column">
@@ -80,29 +143,29 @@
                             </div>
                         </div>
                         <div class="columns">
-                            <div class="column">
+                            <div class="column is-half">
                                 <div class="field">
                                     {{ form.fund_code.label(class="label") }}
                                     <div class="control">{{ form.fund_code(class="input") }}</div>
                                     {% for error in form.fund_code.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
                                 </div>
                             </div>
+                            <div class="column is-half">
+                                <div class="field">
+                                    {{ form.budget_proposer.label(class="label") }}
+                                    <div class="control">{{ form.budget_proposer(class="employee-search") }}</div>
+                                    {% for error in form.budget_proposer.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                                </div>
+                            </div>
                         </div>
 
-                        <h2 class="title is-5 mt-5">สำหรับเจ้าหน้าที่พัสดุ</h2>
+                        <h2 class="title is-5 plan-form-section-divider">สำหรับเจ้าหน้าที่พัสดุ</h2>
                         <div class="columns">
                             <div class="column">
                                 <div class="field">
                                     {{ form.responsible_staff.label(class="label") }}
-                                    <div class="select is-fullwidth">{{ form.responsible_staff() }}</div>
+                                    <div class="control">{{ form.responsible_staff(class="employee-search") }}</div>
                                     {% for error in form.responsible_staff.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="field">
-                                    {{ form.responsible_org.label(class="label") }}
-                                    <div class="select is-fullwidth">{{ form.responsible_org() }}</div>
-                                    {% for error in form.responsible_org.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
                                 </div>
                             </div>
                             <div class="column">
@@ -146,8 +209,34 @@
 {% block scripts %}
     {{ super() }}
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(function () {
+            $('#workbook').on('change', function () {
+                const fileName = this.files.length ? this.files[0].name : 'ยังไม่ได้เลือกไฟล์';
+                $('#workbook-file-name').text(fileName);
+                $('#procurement-plan-import-error').toggleClass('is-hidden', this.files.length > 0);
+            });
+
+            $('#procurement-plan-import-button').on('click', function (event) {
+                const fileInput = document.getElementById('workbook');
+                const error = $('#procurement-plan-import-error');
+                if (!fileInput || !fileInput.files.length) {
+                    event.preventDefault();
+                    error.removeClass('is-hidden');
+                    return;
+                }
+
+                error.addClass('is-hidden');
+                $(this).addClass('is-loading');
+            });
+
+            $('.employee-search').select2({
+                allowClear: true,
+                placeholder: 'ค้นหาบุคลากร',
+                width: '100%'
+            });
+
             function setDefaultTorDueDate() {
                 const fiscalYear = parseInt($('#fiscal_year').val(), 10);
                 const torDueDate = $('#tor_due_date');

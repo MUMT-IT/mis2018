@@ -268,7 +268,7 @@
                         <th>บันทึกโดย HR</th>
                         <th>อื่น ๆ</th>
                         <th>ไม่พบการลงเวลา</th>
-                        <th>ลา</th>
+                        <th>ลา (วัน)</th>
                         <th>ทำงานที่บ้าน</th>
                         <th>วันหยุด</th>
                         <th>รวม</th>
@@ -287,7 +287,7 @@
                             <td>{{ '{:,}'.format(row.hr_manual) }}</td>
                             <td>{{ '{:,}'.format(row.other_present) }}</td>
                             <td>{{ '{:,}'.format(row.absent) }}</td>
-                            <td>{{ '{:,}'.format(row.leave) }}</td>
+                            <td>{{ '{:g}'.format(row.leave) }}</td>
                             <td>{{ '{:,}'.format(row.work_from_home) }}</td>
                             <td>{{ '{:,}'.format(row.holiday) }}</td>
                             <td>{{ '{:,}'.format(row.total) }}</td>
@@ -298,6 +298,10 @@
                 </tbody>
             </table>
         </div>
+        <p class="daily-attendance-report-subtitle">
+            การลาครึ่งวันนับเป็น 0.5 วัน และอาจมีการลงเวลาในวันเดียวกัน
+            ยอดรวมคือจำนวนวันที่มีข้อมูล snapshot ไม่ใช่ผลรวมของทุกคอลัมน์
+        </p>
     </div>
 </section>
 {% endblock %}

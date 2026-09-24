@@ -5,21 +5,24 @@
 {% block head %}
     {{ super() }}
     <style>
-        .procurement-planning-shell { padding: 2rem 1rem 4rem; }
+        .procurement-planning-shell { max-width: 1600px; padding: 2rem 2rem 4rem; }
         .planning-sidebar { border-radius: 1rem; overflow: hidden; position: sticky; top: 1rem; }
         .planning-sidebar .panel-block.is-active { background: #eef3ff; color: #122754; font-weight: 700; }
         .plans-card { border-radius: 1rem; }
         .plans-table td, .plans-table th { vertical-align: middle; }
         .committee-summary { font-size: .68rem; line-height: 1.25; }
+        @media screen and (max-width: 768px) {
+            .procurement-planning-shell { padding-left: 1rem; padding-right: 1rem; }
+        }
     </style>
 {% endblock %}
 
 {% block page_content %}
     {% include "nav.html" %}
-    <main class="container procurement-planning-shell">
+    <main class="container is-fluid procurement-planning-shell">
         <div class="columns is-variable is-5">
-            <aside class="column is-3">{% include "procurement/planning_sidebar.html" %}</aside>
-            <section class="column is-9">
+            <aside class="column is-3-tablet is-2-widescreen">{% include "procurement/planning_sidebar.html" %}</aside>
+            <section class="column is-9-tablet is-10-widescreen">
                 <div class="level mb-5">
                     <div>
                         <p class="heading">Procurement Planning</p>
@@ -54,8 +57,8 @@
                             <tr>
                                         <td>{{ plan.fiscal_year }}</td>
                                         <td><a href="{{ url_for('procurement.procurement_plan_detail', plan_id=plan.id) }}"><strong>{{ plan.item or '-' }}</strong></a><br><small>{{ plan.procurement_method }}</small></td>
-                                        <td>{{ plan.output_project_report }}</td>
-                                        <td>{{ plan.funding_source }}</td>
+                                        <td>{{ plan.product_code.product_code if plan.product_code else (plan.output_project_report or '-') }}</td>
+                                        <td>{{ plan.funding_source_label }}</td>
                                         <td>{{ plan.cost_center_id }}</td>
                                         <td class="has-text-right">{{ "{:,.2f}".format(plan.amount) }}</td>
                                         <td><span class="tag {% if plan.status == 'completed' %}is-success{% elif plan.status == 'planned' %}is-info{% else %}is-warning{% endif %} is-light">{{ plan.status_label }}</span></td>

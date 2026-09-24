@@ -37,6 +37,38 @@ clo_plos = db.Table('eduqa_clo_plo_assoc',
                               db.ForeignKey('eduqa_plos.id')),
                     )
 
+year_learning_outcome_plos = db.Table(
+    'eduqa_year_learning_outcome_plo_assoc',
+    db.Column('year_learning_outcome_id', db.Integer,
+              db.ForeignKey('eduqa_year_learning_outcomes.id')),
+    db.Column('plo_id', db.Integer,
+              db.ForeignKey('eduqa_plos.id')),
+)
+
+skill_plos = db.Table(
+    'eduqa_skill_plo_assoc',
+    db.Column('skill_id', db.Integer,
+              db.ForeignKey('eduqa_skills.id')),
+    db.Column('plo_id', db.Integer,
+              db.ForeignKey('eduqa_plos.id')),
+)
+
+skill_ylos = db.Table(
+    'eduqa_skill_ylo_assoc',
+    db.Column('skill_id', db.Integer,
+              db.ForeignKey('eduqa_skills.id')),
+    db.Column('year_learning_outcome_id', db.Integer,
+              db.ForeignKey('eduqa_year_learning_outcomes.id')),
+)
+
+skill_clos = db.Table(
+    'eduqa_skill_clo_assoc',
+    db.Column('skill_id', db.Integer,
+              db.ForeignKey('eduqa_skills.id')),
+    db.Column('clo_id', db.Integer,
+              db.ForeignKey('eduqa_course_learning_outcomes.id')),
+)
+
 clo_sessions = db.Table('eduqa_clo_course_session_assoc',
                     db.Column('clo_id', db.Integer,
                               db.ForeignKey('eduqa_course_learning_outcomes.id')),
@@ -190,6 +222,100 @@ class EduQACurriculumnRevision(db.Model):
 
     def __str__(self):
         return u'{} ฉบับปรับปรุงปี {}'.format(self.curriculum, self.buddhist_year)
+
+
+class EduQAYearLearningOutcome(db.Model):
+    __tablename__ = 'eduqa_year_learning_outcomes'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    revision_id = db.Column(db.ForeignKey('eduqa_curriculum_revisions.id'), nullable=False)
+    year_level = db.Column(db.Integer, nullable=False)
+    number = db.Column(db.Integer, nullable=False)
+    outcome = db.Column(db.Text(), nullable=False)
+
+    revision = db.relationship(
+        EduQACurriculumnRevision,
+        backref=db.backref('year_learning_outcomes', order_by='EduQAYearLearningOutcome.year_level'),
+    )
+    plos = db.relationship(
+        EduQAPLO,
+        secondary=year_learning_outcome_plos,
+        backref=db.backref('year_learning_outcomes', lazy='dynamic'),
+    )
+
+    def __str__(self):
+        return f'Year {self.year_level}.{self.number} {self.outcome}'
+
+
+class EduQASkill(db.Model):
+    __tablename__ = 'eduqa_skills'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    revision_id = db.Column(db.ForeignKey('eduqa_curriculum_revisions.id'), nullable=False)
+    code = db.Column(db.String(64), nullable=False, unique=True)
+    name = db.Column(db.String(255), nullable=False)
+    statement = db.Column(db.Text(), nullable=False)
+    category = db.Column(db.String(128))
+    status = db.Column(db.String(32), nullable=False, default='Draft')
+
+    revision = db.relationship(
+        EduQACurriculumnRevision,
+        backref=db.backref('skills', order_by='EduQASkill.code'),
+    )
+    plos = db.relationship(
+        EduQAPLO,
+        secondary=skill_plos,
+        backref=db.backref('skills', lazy='dynamic'),
+    )
+    ylos = db.relationship(
+        EduQAYearLearningOutcome,
+        secondary=skill_ylos,
+        backref=db.backref('skills', lazy='dynamic'),
+    )
+    clos = db.relationship(
+        'EduQACourseLearningOutcome',
+        secondary=skill_clos,
+        backref=db.backref('skills', lazy='dynamic'),
+    )
+
+    def __str__(self):
+        return f'{self.code} {self.name}'
+
+
+class EduQASkillEvidence(db.Model):
+    __tablename__ = 'eduqa_skill_evidence'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    skill_id = db.Column(db.ForeignKey('eduqa_skills.id'), nullable=False)
+    clo_id = db.Column(db.ForeignKey('eduqa_course_learning_outcomes.id'), nullable=False)
+    assessment_pair_id = db.Column(
+        db.ForeignKey('eduqa_course_learning_activity_assessment_pairs.id'),
+    )
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text())
+    created_by_id = db.Column(db.ForeignKey('staff_account.id'), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    skill = db.relationship('EduQASkill', backref=db.backref('evidence', cascade='all, delete-orphan'))
+    clo = db.relationship('EduQACourseLearningOutcome', backref=db.backref('skill_evidence', cascade='all, delete-orphan'))
+    assessment_pair = db.relationship('EduQALearningActivityAssessmentPair')
+    created_by = db.relationship(StaffAccount, foreign_keys=[created_by_id])
+
+
+class EduQAStudentSkillEvidence(db.Model):
+    __tablename__ = 'eduqa_student_skill_evidence'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    evidence_id = db.Column(db.ForeignKey('eduqa_skill_evidence.id'), nullable=False)
+    student_id = db.Column(db.ForeignKey('eduqa_students.id'), nullable=False)
+    url = db.Column(db.String(1024))
+    created_by_id = db.Column(db.ForeignKey('staff_account.id'), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+    endorsed = db.Column(db.Boolean(), nullable=False, default=False)
+    endorsed_by_id = db.Column(db.ForeignKey('staff_account.id'))
+    endorsed_at = db.Column(db.DateTime(timezone=True))
+
+    evidence = db.relationship(EduQASkillEvidence,
+                               backref=db.backref('student_evidence', cascade='all, delete-orphan'))
+    student = db.relationship(EduQAStudent, backref=db.backref('student_skill_evidence', cascade='all, delete-orphan'))
+    created_by = db.relationship(StaffAccount, foreign_keys=[created_by_id])
+    endorsed_by = db.relationship(StaffAccount, foreign_keys=[endorsed_by_id])
 
 
 class EduQAAcademicStaff(db.Model):

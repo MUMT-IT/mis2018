@@ -290,6 +290,109 @@ class StudentUploadForm(FlaskForm):
     student_year = SelectField('ชั้น', choices=[(c, c) for c in ('ปี 1', 'ปี 2', 'ปี 3', 'ปี 4')])
 
 
+def create_skill_form(revision_id):
+    def clo_label(clo):
+        course = clo.course
+        course_context = 'ปีการศึกษา {} ภาคเรียน {} {}'.format(
+            course.academic_year or '-',
+            course.semester or '-',
+            course.student_year or '',
+        ).strip()
+        return '{} — {} — {} — CLO{} {}'.format(
+            course.en_code, course.th_name, course_context, clo.number, clo.detail)
+
+    class EduQASkillForm(FlaskForm):
+        name = StringField('Employer-facing name', validators=[InputRequired()])
+        statement = TextAreaField('Competency statement', validators=[InputRequired()])
+        category = StringField('Skill domain', validators=[Optional()])
+        status = SelectField('Status', choices=[('Draft', 'Draft'), ('Approved', 'Approved'), ('Retired', 'Retired')],
+                             validators=[InputRequired()])
+        plos = QuerySelectMultipleField(
+            'Linked PLOs',
+            query_factory=lambda: EduQAPLO.query.filter_by(revision_id=revision_id)
+            .order_by(EduQAPLO.number.asc(), EduQAPLO.id.asc()).all(),
+            get_label=lambda plo: str(plo),
+            widget=widgets.ListWidget(prefix_label=False),
+            option_widget=widgets.CheckboxInput(),
+            validators=[Optional()],
+        )
+        ylos = QuerySelectMultipleField(
+            'Related YLOs',
+            query_factory=lambda: EduQAYearLearningOutcome.query.filter_by(revision_id=revision_id)
+            .order_by(EduQAYearLearningOutcome.year_level.asc(),
+                      EduQAYearLearningOutcome.number.asc(),
+                      EduQAYearLearningOutcome.id.asc()).all(),
+            get_label=lambda ylo: str(ylo),
+            widget=widgets.ListWidget(prefix_label=False),
+            option_widget=widgets.CheckboxInput(),
+            validators=[Optional()],
+        )
+        clos = QuerySelectMultipleField(
+            'Related CLOs',
+            query_factory=lambda: EduQACourseLearningOutcome.query
+            .join(EduQACourse)
+            .filter(EduQACourse.revision_id == revision_id)
+            .order_by(EduQACourse.en_code.asc(),
+                      EduQACourseLearningOutcome.number.asc(),
+                      EduQACourseLearningOutcome.id.asc()).all(),
+            get_label=clo_label,
+            widget=widgets.ListWidget(prefix_label=False),
+            option_widget=widgets.CheckboxInput(),
+            validators=[Optional()],
+        )
+    return EduQASkillForm
+
+
+def create_skill_evidence_form(skill_id, clo_id):
+    class EduQASkillEvidenceForm(FlaskForm):
+        title = StringField('Evidence title', validators=[InputRequired()])
+        description = TextAreaField('Description', validators=[Optional()])
+        assessment_pair = QuerySelectField(
+            'Summative assessment',
+            query_factory=lambda: EduQALearningActivityAssessmentPair.query.filter_by(
+                clo_id=clo_id).order_by(EduQALearningActivityAssessmentPair.id.asc()).all(),
+            get_label=lambda pair: str(pair.learning_activity_assessment),
+            allow_blank=True,
+            blank_text='ไม่ผูกกับการประเมินสรุปผล',
+            validators=[Optional()],
+        )
+    return EduQASkillEvidenceForm
+
+
+def create_student_skill_evidence_form(course_id):
+    class EduQAStudentSkillEvidenceForm(FlaskForm):
+        student = QuerySelectField(
+            'Student',
+            query_factory=lambda: EduQAStudent.query
+            .join(EduQAEnrollment)
+            .filter(EduQAEnrollment.course_id == course_id)
+            .distinct()
+            .order_by(EduQAStudent.student_id.asc()).all(),
+            get_label=lambda student: '{} — {}'.format(student.student_id, student.th_name),
+            allow_blank=False,
+            validators=[InputRequired()],
+        )
+        url = StringField('Evidence URL', validators=[Optional()])
+    return EduQAStudentSkillEvidenceForm
+
+
+def create_year_learning_outcome_form(revision_id):
+    class EduQAYearLearningOutcomeForm(FlaskForm):
+        year_level = SelectField('Year level', choices=[(str(year), str(year)) for year in range(1, 11)],
+                                 validators=[InputRequired()])
+        outcome = TextAreaField('Yearly learning outcome', validators=[InputRequired()])
+        plos = QuerySelectMultipleField(
+            'Linked PLOs',
+            query_factory=lambda: EduQAPLO.query.filter_by(revision_id=revision_id)
+            .order_by(EduQAPLO.number.asc(), EduQAPLO.id.asc()).all(),
+            get_label=lambda plo: str(plo),
+            widget=widgets.ListWidget(prefix_label=False),
+            option_widget=widgets.CheckboxInput(),
+            validators=[Optional()],
+        )
+    return EduQAYearLearningOutcomeForm
+
+
 class StudentGradeReportUploadForm(FlaskForm):
     upload_file = FileField('Excel File', validators=[FileRequired()])
 

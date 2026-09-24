@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}ผลการประเมินนักศึกษา | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left"><div>
+                <h1 class="title"><span class="icon has-text-info"><i class="fas fa-chart-bar"></i></span> Evaluation Results</h1>
+                <p class="subtitle">ผลการประเมินของ {{ student.student_id }} — {{ student.th_name }}</p>
+            </div></div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.manage_student_outcome_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span><span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+        {% include 'messages.html' %}
+        <div class="box has-background-info-light">
+            <p class="heading mb-1">ทักษะและหลักฐาน</p>
+            <p class="title is-5 mb-2"><span class="icon"><i class="fas fa-lightbulb"></i></span> {{ skill.code }} · {{ skill.name }}</p>
+            <p class="mb-1"><strong>หลักฐาน:</strong> {{ evidence.title }}</p>
+            <p class="is-size-7 has-text-grey">{{ clo.course.en_code }} · CLO{{ clo.number }}: {{ clo.detail }}</p>
+        </div>
+        <div class="notification is-info is-light">
+            <p class="has-text-weight-semibold"><span class="icon"><i class="fas fa-clipboard-check"></i></span> Evaluation Results</p>
+            <p class="is-size-7">ผลลัพธ์ที่บันทึกจากแบบประเมินของนักศึกษารายนี้</p>
+        </div>
+        {% if submissions %}
+        {% for submission in submissions %}
+        <div class="box">
+            <div class="level mb-4">
+                <div class="level-left"><div>
+                    <h2 class="title is-5 mb-1"><span class="icon has-text-info"><i class="fas fa-clipboard-list"></i></span> {{ submission.version.form.name }}</h2>
+                    <p class="is-size-7 has-text-grey">เวอร์ชัน {{ submission.version.version }} · ผู้ประเมิน: {{ submission.respondent_id }} · {{ submission.status }}</p>
+                </div></div>
+                <div class="level-right"><span class="tag is-success is-light"><span class="icon"><i class="fas fa-check-circle"></i></span><span>บันทึกแล้ว</span></span></div>
+            </div>
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead>
+                        <tr><th style="width: 38%;">รายการประเมิน</th><th>ผลการประเมิน</th><th>คำแนะนำ</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for answer in submission.answers %}
+                    <tr>
+                        <td class="has-text-weight-semibold">{{ answer.field.label }}</td>
+                        <td>
+                            {% if answer.value is none or answer.value == '' %}
+                            <span class="has-text-grey">ไม่ได้ระบุ</span>
+                            {% elif answer.value is iterable and answer.value is not string %}
+                            {{ answer.value|join(', ') }}
+                            {% elif answer.value is sameas true %}
+                            ใช่
+                            {% elif answer.value is sameas false %}
+                            ไม่ใช่
+                            {% else %}
+                            {{ answer.value }}
+                            {% endif %}
+                        </td>
+                        <td class="is-size-7 has-text-grey">{{ answer.field.help_text or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+        {% if student_evidence and student_evidence.endorsed %}
+        <div class="notification is-success is-light">
+            <p class="has-text-weight-semibold"><span class="icon"><i class="fas fa-certificate"></i></span> รับรองผลการประเมินแล้ว</p>
+            <p class="is-size-7">รับรองโดย {{ student_evidence.endorsed_by.fullname if student_evidence.endorsed_by else '-' }} เมื่อ {{ student_evidence.endorsed_at.strftime('%d/%m/%Y %H:%M') if student_evidence.endorsed_at else '-' }}</p>
+        </div>
+        {% elif student_evidence %}
+        <div class="box has-background-warning-light">
+            <div class="level mb-0">
+                <div class="level-left"><div><p class="has-text-weight-semibold"><span class="icon"><i class="fas fa-stamp"></i></span> พร้อมรับรองผลการประเมิน</p><p class="is-size-7">โปรดตรวจสอบคำตอบและหลักฐานก่อนยืนยันการรับรอง</p></div></div>
+                <div class="level-right">
+                    <form method="post" action="{{ url_for('eduqa.endorse_student_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, student_id=student.id) }}" onsubmit="return confirm('ยืนยันการรับรองผลการประเมินของนักศึกษารายนี้หรือไม่')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="button is-success"><span class="icon"><i class="fas fa-certificate"></i></span><span>รับรองผลการประเมิน</span></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="box has-text-centered">
+            <span class="icon is-large has-text-grey-light"><i class="fas fa-clipboard-list fa-2x"></i></span>
+            <p class="title is-5 mt-3">ยังไม่มีผลการประเมิน</p>
+            <p class="has-text-grey">นักศึกษารายนี้ยังไม่ได้รับการประเมินด้วยแบบฟอร์มนี้</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

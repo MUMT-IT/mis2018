@@ -630,7 +630,9 @@ class StaffLeaveApprover(db.Model):
         return self.account.personal_info.fullname
 
     def __str__(self):
-        return "{}->{}".format(self.account.email, self.requester.email)
+        approver = self.account.email if self.account else self.approver_account_id
+        requester = self.requester.email if self.requester else self.staff_account_id
+        return "{}->{}".format(approver, requester)
 
 
 class StaffLeaveApproval(db.Model):
@@ -966,6 +968,7 @@ class StaffSeminarApproval(db.Model):
     seminar_attend = db.relationship('StaffSeminarAttend', backref=db.backref('seminar_approval')
                                      , foreign_keys=[seminar_attend_id])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    approved_at = db.Column('approved_at', db.Date())
     is_approved = db.Column('is_approved', db.Boolean(), default=True)
     approval_comment = db.Column('approval_comment', db.String())
     final_approver_account_id = db.Column('final_approver_account_id', db.ForeignKey('staff_account.id'))
@@ -979,7 +982,7 @@ class StaffSeminarApproval(db.Model):
     attend = db.relationship('StaffSeminarAttend',
                              secondary=seminar_approval_attend_assoc_table,
                              backref=db.backref('seminar_approval_attendee', lazy='dynamic'))
-
+    is_final_approved = db.Column('is_final_approved', db.Boolean())
 
 class StaffWorkLogin(db.Model):
     __tablename__ = 'staff_work_logins'

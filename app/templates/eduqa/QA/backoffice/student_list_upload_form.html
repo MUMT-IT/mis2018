@@ -12,7 +12,42 @@
         </div>
         <h1 class="title is-size-5 has-text-centered">{{ revision.curriculum }} ปี {{ revision.buddhist_year }}</h1>
         <div class="columns">
-            <div class="column is-one-third is-offset-4">
+            <div class="column is-two-thirds is-offset-2">
+                <article class="message is-info">
+                    <div class="message-header">
+                        <p>รูปแบบไฟล์สำหรับอัปโหลดรายชื่อนักศึกษา</p>
+                    </div>
+                    <div class="message-body">
+                        <p>ไฟล์ต้องเป็น Excel (.xlsx) โดยระบบจะข้าม 3 แถวแรก และเริ่มอ่านหัวตารางจากแถวที่ 4</p>
+                        <p class="mt-2">กรุณารักษาลำดับคอลัมน์ดังต่อไปนี้ (ต้องมีอย่างน้อย 12 คอลัมน์):</p>
+                        <div class="table-container mt-3">
+                            <table class="table is-bordered is-striped is-narrow is-fullwidth">
+                                <thead>
+                                <tr>
+                                    <th>คอลัมน์</th>
+                                    <th>ข้อมูล</th>
+                                    <th>หมายเหตุ</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr><td>A</td><td>ไม่ใช้</td><td>เว้นไว้ได้</td></tr>
+                                <tr><td>B</td><td>Student ID</td><td>รหัสนักศึกษา</td></tr>
+                                <tr><td>C</td><td>Subject Code</td><td>รหัสวิชา ต้องใช้ชื่อหัวตารางนี้</td></tr>
+                                <tr><td>D</td><td>ไม่ใช้</td><td>เว้นไว้ได้</td></tr>
+                                <tr><td>E</td><td>ชื่อวิชาภาษาอังกฤษ</td><td>ใช้เมื่อสร้างรายวิชาใหม่</td></tr>
+                                <tr><td>F</td><td>ชื่อวิชาภาษาไทย</td><td>ใช้เมื่อสร้างรายวิชาใหม่</td></tr>
+                                <tr><td>G</td><td>ไม่ใช้</td><td>เว้นไว้ได้</td></tr>
+                                <tr><td>H</td><td>คำนำหน้าชื่อภาษาอังกฤษ</td><td>เช่น Mr., Ms.</td></tr>
+                                <tr><td>I</td><td>ชื่อ-นามสกุลภาษาอังกฤษ</td><td>ข้อมูลนักศึกษา</td></tr>
+                                <tr><td>J</td><td>คำนำหน้าชื่อภาษาไทย</td><td>เช่น นาย, นางสาว</td></tr>
+                                <tr><td>K</td><td>ชื่อ-นามสกุลภาษาไทย</td><td>ข้อมูลนักศึกษา</td></tr>
+                                <tr><td>L</td><td>Status</td><td>สถานะนักศึกษา</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="mt-2"><strong>ตัวอย่างแถวข้อมูล:</strong> คอลัมน์ B เป็นรหัสนักศึกษา และคอลัมน์ C เป็นรหัสวิชา เช่น <code>6250001</code> และ <code>MTE101</code></p>
+                    </div>
+                </article>
                 <form class="box" hx-post="{{ url_for('eduqa.upload_students', revision_id=revision_id) }}"
                       hx-target="#preview"
                       hx-swap="innerHTML"
