@@ -267,7 +267,7 @@
           </thead>
           <tbody>
             {% for return_detail in return_details %}
-            <tr class="align-top">
+            <tr class="align-top {% if return_detail.has_over_limit_item %}table-warning{% endif %}">
               <td>{{ return_detail.created_at|thai_date }}</td>
               <td>
                 <span class="text-center">{{ return_detail.description }}</span>
@@ -303,14 +303,75 @@
                   <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_detail.id) }}" class="btn btn-sm btn-outline-primary px-2" target="_blank">
                     ตรวจสอบหลักฐาน
                   </a>
+                  {% if return_detail.has_over_limit_item %}
+                    <span class="badge bg-danger align-self-center" title="มีใบเสร็จยอดเกิน 100,000 บาท">
+                      <i class="bi bi-exclamation-triangle-fill me-1"></i>เกิน 100,000 บาท
+                    </span>
+                  {% endif %}
                   {% if advance_payment_role != 'finance' and return_detail.status == 'ผ่านการตรวจสอบ' %}
                     <button type="button" class="btn btn-outline-dark btn-sm px-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
                       ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
                     </button>
                   {% endif %}
+                  {% if advance_payment_role == 'finance' and return_detail.status == 'รอตรวจสอบ' %}
+                    {% if return_detail.has_over_limit_item %}
+                      <button type="button" class="btn btn-sm btn-outline-warning px-2" data-bs-toggle="modal" data-bs-target="#returnCheckingModal{{ return_detail.id }}">
+                        เริ่มการตรวจสอบ
+                      </button>
+                    {% else %}
+                      <form method="post" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-warning px-2">เริ่มการตรวจสอบ</button>
+                      </form>
+                    {% endif %}
+                  {% elif advance_payment_role == 'finance' and return_detail.status == 'กำลังตรวจสอบ' %}
+                    {% if return_detail.has_over_limit_item %}
+                      <button type="button" class="btn btn-sm btn-primary px-2" data-bs-toggle="modal" data-bs-target="#returnProofedModal{{ return_detail.id }}">
+                        ยืนยันการตรวจสอบ
+                      </button>
+                    {% else %}
+                      <form method="post" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" class="m-0" data-ajax-validation="true">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-primary px-2">ยืนยันการตรวจสอบ</button>
+                      </form>
+                    {% endif %}
+                  {% endif %}
                   </div>
               </td>
             </tr>
+            {% if advance_payment_role == 'finance' and return_detail.has_over_limit_item and return_detail.status in ['รอตรวจสอบ', 'กำลังตรวจสอบ'] %}
+              <tr>
+                <td colspan="6" class="p-0 border-0">
+                  {% if return_detail.status == 'รอตรวจสอบ' %}
+                    <div class="modal fade" id="returnCheckingModal{{ return_detail.id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog"><div class="modal-content text-start">
+                        <div class="modal-header"><h5 class="modal-title fw-bold text-danger">แจ้งเตือนใบเสร็จยอดสูง</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <form method="post" action="{{ url_for('advance_payment.mark_return_checking', return_id=return_detail.id) }}" data-ajax-validation="true">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <div class="modal-body">รายการนี้มีใบเสร็จยอดเกิน <strong>100,000 บาท</strong> กรุณาตรวจสอบเอกสารประกอบก่อนเริ่มดำเนินการ
+                            <div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="high_amount_acknowledged" value="1" id="highAmountCheck{{ return_detail.id }}" required><label class="form-check-label" for="highAmountCheck{{ return_detail.id }}">รับทราบและจะตรวจสอบเอกสารอนุมัติจากคณบดี</label></div>
+                          </div>
+                          <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button><button type="submit" class="btn btn-warning fw-bold">รับทราบและเริ่มตรวจสอบ</button></div>
+                        </form>
+                      </div></div>
+                    </div>
+                  {% else %}
+                    <div class="modal fade" id="returnProofedModal{{ return_detail.id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog"><div class="modal-content text-start">
+                        <div class="modal-header"><h5 class="modal-title fw-bold text-primary">ยืนยันการตรวจสอบเอกสาร</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <form method="post" action="{{ url_for('advance_payment.mark_return_proofed', return_id=return_detail.id) }}" data-ajax-validation="true">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <div class="modal-body">ก่อนยืนยัน กรุณาตรวจสอบเอกสารอนุมัติจากคณบดีสำหรับใบเสร็จยอดเกิน <strong>100,000 บาท</strong>
+                            <div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="dean_document_acknowledged" value="1" id="deanDocumentCheck{{ return_detail.id }}" required><label class="form-check-label" for="deanDocumentCheck{{ return_detail.id }}">ข้าพเจ้ายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีแล้ว</label></div>
+                          </div>
+                          <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button><button type="submit" class="btn btn-primary fw-bold">ยืนยันการตรวจสอบ</button></div>
+                        </form>
+                      </div></div>
+                    </div>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endif %}
             {% endfor %}
           </tbody>
         </table>
