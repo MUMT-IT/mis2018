@@ -10,16 +10,11 @@
   <header class="mb-4 pb-3 border-bottom">
     <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับผู้ประสานงาน</p>
     <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
-    <div class="text-end mt-3">
-      <a href="{{ url_for('advance_payment.borrower_dashboard') }}" class="btn btn-outline-primary">
-        <i class="bi bi-person me-2" aria-hidden="true"></i>เบิกเงินยืมสำหรับตนเอง
-      </a>
-    </div>
   </header>
 
   <!-- Summary Cards Section -->
   <section class="mb-4">
-    <div class="row g-3">
+    <div class="row g-3 align-items-stretch">
       <div class="col-md-4">
         <div class="card border rounded-4 shadow-sm bg-white p-3 h-100">
           <div class="text-muted small fw-bold text-uppercase">ยอดหนี้คงค้างทั้งหมด</div>
@@ -70,8 +65,40 @@
           </div>
         </div>
       </div>
+      <div class="col-md-4 d-flex flex-column justify-content-between">
+        {% if created_borrower_options %}
+          <div>
+            <label for="createdBorrowingTicketBorrower" class="form-label small fw-bold mb-1">
+              กรองข้อมูลจากผู้ยืม
+            </label>
+            <select id="createdBorrowingTicketBorrower" class="form-select border-primary-subtle shadow-sm" onchange="filterCreatedBorrower(this.value)">
+              <option value="">เลือกชื่อผู้ยืม</option>
+              {% for borrower in created_borrower_options %}
+                <option value="{{ borrower.id }}" {% if selected_borrower_id == borrower.id %}selected{% endif %}>{{ borrower.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endif %}
+        <div class="d-flex justify-content-end mt-auto">
+          <a href="{{ url_for('advance_payment.borrower_dashboard') }}" class="btn btn-outline-primary">
+            <i class="bi bi-person me-2" aria-hidden="true"></i>เบิกเงินยืมสำหรับตนเอง
+          </a>
+        </div>
+      </div>
     </div>
   </section>
+
+  <script>
+    function filterCreatedBorrower(borrowerId) {
+      const url = new URL(window.location.href);
+      if (borrowerId) {
+        url.searchParams.set('borrower_id', borrowerId);
+      } else {
+        url.searchParams.delete('borrower_id');
+      }
+      window.location.href = url.toString();
+    }
+  </script>
 
   <!-- Combined Form Section with Tab Switcher -->
   <section class="mb-5">

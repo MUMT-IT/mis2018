@@ -1967,11 +1967,45 @@ def coordinator_dashboard():
     # ผู้ยืมต้องเห็นสัญญาที่ผูกกับตัวเองผ่าน borrower_id
     # ผู้ประสานงานยังคงเห็นสัญญาที่ตนเป็นผู้สร้างผ่าน creator_id
     ticket_owner_column = BorrowingTicket.borrower_id if is_borrower_mode else BorrowingTicket.creator_id
-    borrowing_ticket_history = (
+    all_borrowing_ticket_history = (
         db.session.query(BorrowingTicket)
         .filter(ticket_owner_column == current_user.id)
         .order_by(BorrowingTicket.id.desc())
         .all()
+    )
+
+    if not is_borrower_mode and user_role == SECRETARY_ROLE:
+        allowed_borrower_ids = {user.id for user in dept_users if user.id}
+        all_borrowing_ticket_history = [
+            ticket
+            for ticket in all_borrowing_ticket_history
+            if ticket.borrower_id in allowed_borrower_ids
+        ]
+
+    created_borrower_options = []
+    seen_borrower_ids = set()
+    for ticket in all_borrowing_ticket_history:
+        borrower_id = getattr(ticket, "borrower_id", None)
+        if borrower_id in seen_borrower_ids:
+            continue
+        seen_borrower_ids.add(borrower_id)
+        created_borrower_options.append({
+            "id": borrower_id,
+            "name": ticket.borrower_name or ticket.borrower_email or "ไม่ระบุชื่อ",
+        })
+
+    selected_borrower_id = request.args.get("borrower_id", type=int)
+    if selected_borrower_id not in seen_borrower_ids:
+        selected_borrower_id = None
+
+    borrowing_ticket_history = (
+        [
+            ticket
+            for ticket in all_borrowing_ticket_history
+            if ticket.borrower_id == selected_borrower_id
+        ]
+        if selected_borrower_id is not None
+        else all_borrowing_ticket_history
     )
 
     actionable_tickets = []
@@ -2043,6 +2077,13 @@ def coordinator_dashboard():
         .order_by(ReturnDetail.id.desc())
         .all()
     )
+    if selected_borrower_id is not None:
+        selected_ticket_ids = {ticket.id for ticket in borrowing_ticket_history}
+        creator_return_details = [
+            return_detail
+            for return_detail in creator_return_details
+            if return_detail.ticket_id in selected_ticket_ids
+        ]
     for return_detail in creator_return_details:
         numbered_descriptions = []
         for item in return_detail.receipt_items:
@@ -2286,6 +2327,8 @@ def coordinator_dashboard():
         dashboard_can_choose_proxy=not is_borrower_mode,
         dashboard_is_coordinator=_can_use_coordinator_dashboard(),
         borrowing_ticket_history=borrowing_ticket_history,
+        created_borrower_options=created_borrower_options,
+        selected_borrower_id=selected_borrower_id,
         return_details=return_details,
         creator_return_details=creator_return_details,
         borrowing_ticket_form=form,
