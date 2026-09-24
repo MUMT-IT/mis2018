@@ -906,9 +906,7 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
             fund_request
             for fund_request in approved_fund_requests
             if (fund_request.status or "").strip() not in {
-                "ปฏิเสธ",
                 "ยกเลิก",
-                "กำลังดำเนินการ",
                 "เบิกเงินแล้ว",
             }
             and getattr(fund_request, "request_date", None)
@@ -1523,6 +1521,10 @@ def mark_return_received(return_id):
     if not return_detail:
         abort(404)
 
+    closing_document = return_detail.closing_document
+    if not closing_document or not closing_document.is_settled:
+        return _validation_error_response("ต้องล้างลูกหนี้ผ่านฎีกาที่ปิดบัญชีแล้วก่อน")
+
     return_detail.status = "ล้างลูกหนี้เงินยืม"
     db.session.commit()
 
@@ -1557,9 +1559,11 @@ def mark_return_bounced(return_id):
     return_detail.rejection_comment = (
         f"{existing_comment}\n{formatted_comment}" if existing_comment else formatted_comment
     )
+    return_detail.reject_approved_at = datetime.now()
     return_detail.status = RETURN_DETAIL_BOUNCED_STATUS
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
     if borrowing_ticket:
+        borrowing_ticket.reject_approved_at = datetime.now()
         borrowing_ticket.status = RETURN_DETAIL_BOUNCED_STATUS
 
     db.session.commit()
@@ -3018,9 +3022,8 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     fund_request_status = (fund_request.status or "").strip()
     if fund_request_status not in {
         "อนุมัติแล้ว",
-        "ส่งเบิกแล้ว",
+        "เบิกเงินแล้ว",
         "ส่งเบิกครบแล้ว",
-        "เบิกเงินสำเร็จ",
         "เคลียร์ยอดสำเร็จ",
     }:
         return fund_request.status
@@ -3354,6 +3357,7 @@ def mark_parcel_received(parcel_return_id):
         return _validation_error_response("ต้องยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุก่อนรับเอกสารจริง")
 
     parcel_return.status = "ได้รับเอกสารแล้ว"
+    parcel_return.approved_at = datetime.now()
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
@@ -3382,6 +3386,8 @@ def reject_parcel_return(parcel_return_id):
         return _validation_error_response("ไม่สามารถปฏิเสธรายการที่รับเอกสารแล้วหรือปิดรายการแล้วได้")
 
     new_comment = request.form.get("rejection_comment", "").strip()
+    if not new_comment:
+        return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธรายการ")
 
     if new_comment:
         existing_comment = parcel_return.rejection_comment or ""
@@ -4084,6 +4090,7 @@ def mark_return_proofed(return_id):
         return _validation_error_response("รายการหลักฐานเอกสารส่งใช้เงินยืมนี้ได้รับการตรวจสอบและยืนยันแล้ว")
 
     return_detail.status = "ผ่านการตรวจสอบ"
+    return_detail.approved_at = datetime.now()
     db.session.commit()
 
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
@@ -4105,6 +4112,8 @@ def reject_return_detail(return_id):
         return _validation_error_response("ไม่สามารถแก้ไขรายการหลักฐานเอกสารส่งใช้เงินยืมที่ปิดรายการไปแล้วได้")
 
     new_comment = request.form.get("rejection_comment", "").strip()
+    if not new_comment:
+        return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธรายการ")
 
     if new_comment:
         existing_comment = return_detail.rejection_comment or ""
@@ -4218,6 +4227,8 @@ def reject_borrowing_ticket(ticket_id):
         "rejection_comment",
         ""
     ).strip()
+    if not borrowing_ticket.rejection_comment:
+        return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธสัญญา")
     borrowing_ticket.finance_verified = False
     borrowing_ticket.status = "ปฏิเสธ"
     db.session.commit()
@@ -4669,7 +4680,7 @@ def petty_cash_settings(_render_after_post=False):
         db.session.query(FundRequest)
         .filter(
             FundRequest.form_type == FUND_REQUEST_FORM_PETTY_CASH,
-            FundRequest.status.notin_(["กำลังดำเนินการ", "ปฏิเสธ", "ยกเลิก"]),
+            FundRequest.status.notin_(["ยกเลิก"]),
             FundRequest.request_date.isnot(None),
         )
         .all()
@@ -5414,12 +5425,13 @@ def cancel_fund_request(request_id):
     if not fund_req:
         abort(404)
 
-    if fund_req.status in {"ยกเลิก", "ส่งเบิกแล้ว", "ส่งเบิกครบแล้ว", "เบิกเงินสำเร็จ", "เคลียร์ยอดสำเร็จ"}:
+    if fund_req.status in {"ยกเลิก", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}:
         return _validation_error_response("ไม่สามารถยกเลิกรายการที่สิ้นสุดกระบวนการแล้วได้")
 
     cancellation_reason = request.form.get("cancellation_reason", "").strip()
 
     fund_req.status = "ยกเลิก"
+    fund_req.cancel_at = datetime.now()
     if hasattr(fund_req, 'rejection_comment'):
         fund_req.rejection_comment = cancellation_reason
 
@@ -5547,8 +5559,7 @@ def staff_fund_request_history():
         )
     for fund_request in fund_requests:
         fund_request.has_rejected_followup = (
-            (fund_request.status or "").strip() == "ปฏิเสธ"
-            or fund_request.id in rejected_followup_fund_request_ids
+            fund_request.id in rejected_followup_fund_request_ids
         )
 
     return render_template(
@@ -6199,15 +6210,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         legacy_existing_file_paths = request.form.getlist("existing_proof_files[]")
         legacy_existing_file_names = request.form.getlist("existing_proof_filenames[]")
 
-        claim_detail.status = (
-            "ฉบับร่าง"
-            if is_draft
-            else (
-                "เสร็จสิ้นกระบวนการ"
-                if parsed_items and all(item["category_type"] == 6 for item in parsed_items)
-                else "รอตรวจสอบ"
-            )
-        )
+        claim_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
         claim_detail.created_at = datetime.now()
         db.session.flush()
 
@@ -6604,6 +6607,7 @@ def mark_petty_claim_proofed(claim_id):
     claim = _get_finance_visible_claim(claim_id)
 
     claim.status = "ผ่านการตรวจสอบ"
+    claim.approved_at = datetime.now()
     db.session.commit()
     flash("ทำเครื่องหมายรายการเงินสดย่อยเป็น 'ผ่านการตรวจสอบ' เรียบร้อยแล้ว", "success")
     return petty_cash_claim_detail(claim.id)
@@ -6623,7 +6627,6 @@ def mark_petty_claim_transferred(claim_id):
     claim.transferred_at = datetime.strptime(transferred_date_str, "%Y-%m-%d").date()
     fund_req = db.session.query(FundRequest).get(claim.fund_request_id)
     if fund_req:
-        fund_req.status = "เบิกเงินสำเร็จ"
         _recalculate_fund_request_submission_status(fund_req.id)
     
     db.session.commit()
@@ -6637,6 +6640,10 @@ def mark_petty_claim_transferred(claim_id):
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def mark_petty_claim_received(claim_id):
     claim = _get_finance_visible_claim(claim_id)
+
+    closing_document = claim.closing_document
+    if not closing_document or not closing_document.is_settled:
+        return _validation_error_response("ต้องล้างลูกหนี้ผ่านฎีกาที่ปิดบัญชีแล้วก่อน")
         
     claim.status = "เสร็จสิ้นกระบวนการ"
     db.session.commit()
@@ -6652,6 +6659,8 @@ def reject_petty_claim(claim_id):
     claim = _get_finance_visible_claim(claim_id)
 
     rejection_comment = request.form.get("rejection_comment", "").strip()
+    if not rejection_comment:
+        return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธรายการ")
     if rejection_comment:
         existing = claim.rejection_comment or ""
         count = existing.count("ครั้งที่") + 1
@@ -6796,7 +6805,7 @@ def petty_cash_ledger():
             db.session.query(FundRequest)
             .filter(
                 or_(*fund_request_scope),
-                ~FundRequest.status.in_(["กำลังดำเนินการ", "ปฏิเสธ", "ยกเลิก"]),
+                ~FundRequest.status.in_(["ยกเลิก"]),
             )
             .all()
         )
@@ -7069,7 +7078,7 @@ def petty_cash_ledger():
             db.session.query(FundRequest)
             .filter(
                 or_(*fund_request_scope),
-                ~FundRequest.status.in_(["ปฏิเสธ", "ยกเลิก"]),
+                ~FundRequest.status.in_(["ยกเลิก"]),
             )
             .all()
             if department_name or account_number

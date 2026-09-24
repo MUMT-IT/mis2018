@@ -62,10 +62,7 @@
     </div>
     <div class="col-12 col-lg-2">
       {% set current_fund_request_status = (fund_request_status or '')|trim %}
-      {% set fund_request_status_aliases = {
-        'ส่งเบิกแล้ว': 'เบิกเงินแล้ว',
-        'เบิกเงินสำเร็จ': 'เบิกเงินแล้ว'
-      } %}
+      {% set fund_request_status_aliases = {} %}
       {% set current_fund_request_step = fund_request_status_aliases.get(current_fund_request_status, current_fund_request_status) %}
       {% set fund_request_status_class = 'bg-secondary text-white' %}
       {% if current_fund_request_step == 'อนุมัติแล้ว' %}
@@ -124,7 +121,7 @@
 </section>
 
 {% endif %}
-{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกแล้ว', 'ส่งเบิกครบแล้ว', 'เบิกเงินสำเร็จ', 'เคลียร์ยอดสำเร็จ'] %}
+{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกครบแล้ว', 'เคลียร์ยอดสำเร็จ'] %}
 {% set total_request_amount = fund_request_total_info.request_amount if fund_request_total_info is defined else 0 %}
 {% set total_claimed_amount = fund_request_total_info.claim_total if fund_request_total_info is defined else 0 %}
 {% set total_parcel_amount = fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 %}

@@ -123,23 +123,9 @@
                       <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
                       {% endif %}
                     </div>
-                  {% elif request.status == 'ส่งเบิกแล้ว' %}
-                    <div class="d-inline-flex flex-column align-items-center gap-1">
-                      <span class="badge bg-info text-white fw-bold px-3 py-2">ส่งเบิกแล้ว</span>
-                      {% if request.has_rejected_followup %}
-                      <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
-                      {% endif %}
-                    </div>
                   {% elif request.status == 'ส่งเบิกครบแล้ว' %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge bg-info text-white fw-bold px-3 py-2">ส่งเบิกครบแล้ว</span>
-                      {% if request.has_rejected_followup %}
-                      <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
-                      {% endif %}
-                    </div>
-                  {% elif request.status == 'เบิกเงินสำเร็จ' %}
-                    <div class="d-inline-flex flex-column align-items-center gap-1">
-                      <span class="badge bg-success text-white fw-bold px-3 py-2">เบิกเงินสำเร็จ</span>
                       {% if request.has_rejected_followup %}
                       <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
                       {% endif %}
