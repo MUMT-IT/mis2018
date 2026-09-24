@@ -349,6 +349,28 @@ def _get_staff_accounts_from_directory():
     ]
 
 
+def _get_coordinator_dashboard_users(staff):
+    """Return dashboard borrower choices, scoped for secretary users."""
+    users = _get_staff_accounts_from_directory()
+    if _current_module_role() != SECRETARY_ROLE:
+        return users
+
+    secretary_org = _get_staff_org(staff)
+    if secretary_org is None:
+        secretary_setting = _resolve_petty_cash_setting(staff)
+        secretary_org = getattr(secretary_setting, "org", None) if secretary_setting else None
+
+    org_id = getattr(secretary_org, "id", None)
+    if org_id is None:
+        return [staff]
+
+    return [
+        user
+        for user in users
+        if getattr(getattr(user, "personal_info", None), "org_id", None) == org_id
+    ]
+
+
 def _serialize_org_department(org):
     if not org:
         return None
@@ -490,6 +512,8 @@ def _current_module_role():
         return SECRETARY_ROLE
     if selected_system == ADVANCE_PAYMENT_SYSTEM and COORDINATOR_ROLE in available_roles:
         return COORDINATOR_ROLE
+    if selected_system == ADVANCE_PAYMENT_SYSTEM and SECRETARY_ROLE in available_roles:
+        return SECRETARY_ROLE
     return selected_system if selected_system in AVAILABLE_SYSTEMS else None
 
 
@@ -527,6 +551,14 @@ def _is_current_coordinator():
     return (
         current_user.is_authenticated
         and _current_module_role() == COORDINATOR_ROLE
+    )
+
+
+def _can_use_coordinator_dashboard():
+    return (
+        current_user.is_authenticated
+        and _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and _current_module_role() in {COORDINATOR_ROLE, SECRETARY_ROLE}
     )
 
 
@@ -1890,7 +1922,7 @@ def coordinator_dashboard():
     user_role = _current_module_role()
     is_borrower_mode = (
         request.endpoint == "advance_payment.borrower_dashboard"
-        or not _is_current_coordinator()
+        or not _can_use_coordinator_dashboard()
     )
     dashboard_endpoint = (
         "advance_payment.borrower_dashboard"
@@ -1903,7 +1935,7 @@ def coordinator_dashboard():
     if is_borrower_mode:
         dept_users = [staff]
     else:
-        dept_users = _get_staff_accounts_from_directory()
+        dept_users = _get_coordinator_dashboard_users(staff)
         dept_users.sort(key=lambda user: (user.email or "").lower())
     if not dept_users:
         dept_users = [staff]
@@ -2234,15 +2266,25 @@ def coordinator_dashboard():
     dashboard_template = "borrower_dashboard.html" if is_borrower_mode else "coordinator_dashboard.html"
     bank_account_options = _get_bank_account_dropdown_options()
     bank_account_values = [option["value"] for option in bank_account_options]
+    dashboard_party_label = (
+        "ผู้ประสานงาน"
+        if not is_borrower_mode
+        else _dashboard_party_label(user_role)
+    )
+    dashboard_party_scope = (
+        "เฉพาะหน่วยงาน"
+        if user_role == SECRETARY_ROLE and not is_borrower_mode
+        else "เฉพาะตัวเอง" if is_borrower_mode else "บุคลากรทั้งองค์กร"
+    )
 
     return render_template(
         dashboard_template,
-        dashboard_title="แดชบอร์ดผู้ยืม" if is_borrower_mode else f"แดชบอร์ด{_dashboard_party_label(user_role)}",
+        dashboard_title="แดชบอร์ดผู้ยืม" if is_borrower_mode else f"แดชบอร์ด{dashboard_party_label}",
         dashboard_role="Borrower" if is_borrower_mode else "Coordinator",
-        dashboard_party_label=_dashboard_party_label(user_role),
-        dashboard_party_scope="เฉพาะตัวเอง" if is_borrower_mode else "บุคลากรทั้งองค์กร",
+        dashboard_party_label=dashboard_party_label,
+        dashboard_party_scope=dashboard_party_scope,
         dashboard_can_choose_proxy=not is_borrower_mode,
-        dashboard_is_coordinator=_is_current_coordinator(),
+        dashboard_is_coordinator=_can_use_coordinator_dashboard(),
         borrowing_ticket_history=borrowing_ticket_history,
         return_details=return_details,
         creator_return_details=creator_return_details,
