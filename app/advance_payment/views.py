@@ -5091,11 +5091,13 @@ def view_return_proof_detail(return_id):
     if not borrowing_ticket:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and _current_user_id() not in {
-        borrowing_ticket.creator_id,
-        borrowing_ticket.borrower_id,
-    }:
-        abort(403)
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
+        if _can_use_coordinator_dashboard():
+            allowed_user_id = borrowing_ticket.creator_id
+        else:
+            allowed_user_id = borrowing_ticket.borrower_id
+        if _current_user_id() != allowed_user_id:
+            abort(403)
 
     _prepare_document_display_list(return_detail.documents)
 
@@ -5806,11 +5808,13 @@ def export_ticket_return_pdf(return_id):
     if not borrowing_ticket:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-        (not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id())
-        or (_is_current_coordinator() and borrowing_ticket.creator_id != _current_user_id())
-    ):
-        abort(403)
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
+        if _can_use_coordinator_dashboard():
+            allowed_user_id = borrowing_ticket.creator_id
+        else:
+            allowed_user_id = borrowing_ticket.borrower_id
+        if _current_user_id() != allowed_user_id:
+            abort(403)
 
     if request.method == "GET":
         return redirect(url_for("advance_payment.return_proof_detail", return_id=return_id))
