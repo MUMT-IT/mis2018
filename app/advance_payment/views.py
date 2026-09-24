@@ -39,6 +39,7 @@ from .email_utils import generate_notification_email_content
 from . import advance_payment as bp, thai_date
 from app.models import CostCenter, IOCode, Org, ProductCode
 from app.staff.models import StaffHeadPosition, StaffPersonalInfo
+from app.staff.views import get_all_employees
 from app.docs_query.models import DocsQueryDocument, DocsQueryTag
 
 
@@ -323,13 +324,42 @@ def _org_account_controller(org):
     return None
 
 
+def _get_staff_accounts_from_directory():
+    """Load active staff from the staff directory before any module filtering."""
+    response = get_all_employees()
+    payload = response.get_json(silent=True) or {}
+    employee_ids = [
+        employee.get("id")
+        for employee in payload.get("results", [])
+        if employee.get("id") is not None
+    ]
+    if not employee_ids:
+        return []
+
+    accounts = (
+        db.session.query(StaffAccount)
+        .filter(StaffAccount.personal_id.in_(employee_ids))
+        .all()
+    )
+    accounts_by_personal_id = {account.personal_id: account for account in accounts}
+    return [
+        accounts_by_personal_id[personal_id]
+        for personal_id in employee_ids
+        if personal_id in accounts_by_personal_id
+    ]
+
+
 def _serialize_org_department(org):
     if not org:
         return None
 
     staff_members = []
-    for staff in getattr(org, "active_staff_accounts", None) or []:
+    org_id = getattr(org, "id", None)
+    for staff in _get_staff_accounts_from_directory():
         if not staff:
+            continue
+        personal_info = getattr(staff, "personal_info", None)
+        if getattr(personal_info, "org_id", None) != org_id:
             continue
         staff_members.append(
             {
@@ -1873,11 +1903,8 @@ def coordinator_dashboard():
     if is_borrower_mode:
         dept_users = [staff]
     else:
-        dept_users = (
-            db.session.query(StaffAccount)
-            .order_by(StaffAccount.email.asc())
-            .all()
-        )
+        dept_users = _get_staff_accounts_from_directory()
+        dept_users.sort(key=lambda user: (user.email or "").lower())
     if not dept_users:
         dept_users = [staff]
 
@@ -4353,7 +4380,7 @@ def petty_cash_settings(_render_after_post=False):
     bank_account_options = _get_bank_account_dropdown_options()
     bank_account_values = {option["value"] for option in bank_account_options}
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
-    staff_options = StaffAccount.get_active_accounts()
+    staff_options = _get_staff_accounts_from_directory()
     current_fiscal_year = _current_petty_cash_fiscal_year()
 
     if request.method == "POST" and not _render_after_post:
