@@ -334,10 +334,16 @@
         </table>
       </div>
 
-      <div class="text-end py-3">
-        <button type="button" class="btn btn-sm btn-outline-primary px-2 shadow-sm fw-bold" onclick="addRow()" style="border-radius: 6px;">
-          <i class="bi bi-plus-lg me-1"></i> เพิ่มรายการใบเสร็จ
-        </button>
+      <div class="row g-2 align-items-center py-3">
+        <div class="col">
+          <label class="form-label fw-bold mb-1" style="max-width: 320px" for="claimNote">หมายเหตุ (ถ้ามี)</label>
+          <input type="text" name="note" id="claimNote" class="form-control form-control-sm" maxlength="2000" value="{{ (claim_detail.note or '') if claim_detail else '' }}" placeholder="ระบุหมายเหตุกรณีใช้ใบเสร็จร่วมกับรายการฝั่งพัสดุ">
+        </div>
+        <div class="col-auto align-self-end">
+          <button type="button" class="btn btn-sm btn-outline-primary px-2 shadow-sm fw-bold" onclick="addRow()" style="border-radius: 6px;">
+            <i class="bi bi-plus-lg me-1"></i> เพิ่มรายการใบเสร็จ
+          </button>
+        </div>
       </div>
       </div>
 
@@ -546,6 +552,8 @@
                 <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
               {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
                 <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
+              {% elif pr.status == 'โอนเงินสดย่อยสำเร็จ' %}
+                <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
               {% elif pr.status|lower in ['ปฏิเสธ'] %}
                 <span class="badge bg-danger text-white">ถูกปฏิเสธ</span>
               {% elif pr.status|lower == 'เอกสารตั้งฎีกา' %}
@@ -603,6 +611,14 @@
                       ได้รับเอกสารแล้ว
                     </button>
                   </form>
+                {% endif %}
+
+                {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+                <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true" class="d-flex gap-1 align-items-center">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="date" name="transferred_at" class="form-control form-control-sm" required title="วันที่โอนเงินสดย่อย">
+                  <button type="submit" class="btn btn-sm btn-success fw-bold">โอนสำเร็จ</button>
+                </form>
                 {% endif %}
 
                 {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
@@ -901,6 +917,7 @@ async function autoSavePettyCashDraft() {
   const csrfToken = claimForm.querySelector('input[name="csrf_token"]')?.value || '';
   const cashReturnDate = claimForm.querySelector('[name="cash_return_date"]')?.value || '';
   const cashReturnAmount = claimForm.querySelector('[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
+  const note = claimForm.querySelector('[name="note"]')?.value.trim() || '';
 
   try {
     const response = await fetch(
@@ -917,7 +934,8 @@ async function autoSavePettyCashDraft() {
         cash_return: { receipt_date: cashReturnDate, amount: cashReturnAmount },
         announcements: announcements,
         reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
-        reference_date: claimForm.querySelector('[name="reference_date"]')?.value || ''
+        reference_date: claimForm.querySelector('[name="reference_date"]')?.value || '',
+        note: note
       })
       }
     );

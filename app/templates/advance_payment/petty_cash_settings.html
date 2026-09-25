@@ -51,7 +51,7 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link active fw-bold py-3 text-primary nav-item-tab" id="tab-pending-claims" type="button" data-settings-tab="pending-claims">
           <i class="bi bi-hourglass-split me-1 text-primary"></i>รายการขอเบิกเงินสดย่อยที่รอการโอนคืน
-          <span class="badge bg-primary rounded-pill ms-1">{{ claim_details|length }}</span>
+           <span class="badge bg-primary rounded-pill ms-1">{{ (claim_details|length) + (parcel_return_details|length) }}</span>
         </button>
       </li>
       <li class="nav-item" role="presentation">
@@ -94,6 +94,7 @@
             </tr>
           </thead>
           <tbody>
+            {% if claim_details or parcel_return_details %}
             {% for claim in claim_details %}
             <tr>
               <td class="text-center fw-bold">
@@ -134,15 +135,73 @@
                   <i class="bi bi-file-earmark-text me-1"></i>ตรวจสอบ
                 </a>
               </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="9" class="text-center text-muted py-4">
+             </tr>
+             {% endfor %}
+             {% for parcel in parcel_return_details %}
+             <tr class="table-warning-subtle">
+               <td class="text-center fw-bold">
+                 {{ parcel.fund_request.ticket_number if parcel.fund_request and parcel.fund_request.ticket_number else ('PR-' ~ parcel.id) }}
+               </td>
+               <td>{{ parcel.created_at|thai_date if parcel.created_at else '-' }}</td>
+               <td class="fw-semibold text-dark">{{ parcel.fund_request.department_name if parcel.fund_request else 'ไม่ระบุ' }}</td>
+               <td>{{ parcel.display_borrower_name or '-' }}</td>
+               <td class="text-end fw-bold text-primary">{{ '{:,.2f}'.format(parcel.amount_spent or 0.0) }}</td>
+               <td class="text-center">
+                 <span class="badge bg-info-subtle text-info-emphasis border">ได้รับเอกสารแล้ว</span>
+               </td>
+               <td class="text-center"><span class="text-muted small">-</span></td>
+               <td class="text-center small text-secondary">-</td>
+               <td class="text-center">
+                 <div class="d-flex gap-1 justify-content-center flex-wrap">
+                   {% if parcel.display_ticket_id %}
+                   <a href="{{ url_for('advance_payment.verification_view', ticket_id=parcel.display_ticket_id) }}"
+                      class="btn btn-sm btn-outline-primary fw-semibold shadow-sm"
+                      title="ตรวจสอบรายการส่งคืนพัสดุ">
+                     <i class="bi bi-search me-1"></i>ตรวจสอบ
+                   </a>
+                   {% else %}
+                   <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=parcel.fund_request_id) }}"
+                      class="btn btn-sm btn-outline-primary fw-semibold shadow-sm">
+                     <i class="bi bi-search me-1"></i>ตรวจสอบ
+                   </a>
+                   {% endif %}
+                   <button type="button" class="btn btn-sm btn-outline-success fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#parcelTransferModal{{ parcel.id }}">
+                     โอนสำเร็จ
+                   </button>
+                 </div>
+                 <div class="modal fade text-start" id="parcelTransferModal{{ parcel.id }}" tabindex="-1" aria-hidden="true">
+                   <div class="modal-dialog modal-dialog-centered">
+                     <div class="modal-content">
+                       <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=parcel.id) }}" data-ajax-validation="true">
+                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                         <div class="modal-header">
+                           <h5 class="modal-title fw-bold">บันทึกการโอนเงินสดย่อยสำเร็จ</h5>
+                           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                         </div>
+                         <div class="modal-body">
+                           <p class="small text-muted">ยอดส่งคืนพัสดุ: <strong>{{ '{:,.2f}'.format(parcel.amount_spent or 0) }} บาท</strong></p>
+                           <label class="form-label fw-bold small">วันที่โอนเงินสดย่อย <span class="text-danger">*</span></label>
+                           <input type="date" name="transferred_at" class="form-control" required>
+                         </div>
+                         <div class="modal-footer">
+                           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                           <button type="submit" class="btn btn-success fw-bold">ยืนยันโอนสำเร็จ</button>
+                         </div>
+                       </form>
+                     </div>
+                   </div>
+                 </div>
+               </td>
+             </tr>
+             {% endfor %}
+             {% else %}
+             <tr>
+               <td colspan="9" class="text-center text-muted py-4">
                 <i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>
                 ไม่มีรายการขอเบิกเงินสดย่อยที่รอการโอนคืนในขณะนี้
               </td>
             </tr>
-            {% endfor %}
+            {% endif %}
           </tbody>
         </table>
       </div>

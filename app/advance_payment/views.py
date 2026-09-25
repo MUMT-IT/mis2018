@@ -104,6 +104,7 @@ FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
 FUND_REQUEST_NUMBERED_STATUSES = {"อนุมัติแล้ว", "เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}
 FUND_REQUEST_STATUS_STEPS = ["อนุมัติแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"]
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
+CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
 
 from .pdf_utils import (
     generate_fnar02_pdf,
@@ -886,6 +887,31 @@ def _attach_parcel_return_context(parcel_return):
         parcel_return.display_subject_name = "-"
 
     return parcel_return
+
+
+def _parcel_return_is_cash_transfer(parcel_return):
+    """Return whether this parcel return follows the petty-cash workflow."""
+    return bool(getattr(parcel_return, "fund_request_id", None))
+
+
+def _parcel_return_ready_for_closing(parcel_return):
+    """Return whether a parcel return is at the correct pre-closing status."""
+    expected_status = (
+        CASH_TRANSFER_STATUS
+        if _parcel_return_is_cash_transfer(parcel_return)
+        else "ได้รับเอกสารแล้ว"
+    )
+    return (getattr(parcel_return, "status", None) or "").strip() == expected_status
+
+
+def _parcel_return_status_after_closing_cancel(parcel_return):
+    """Restore the status that preceded closing-document creation."""
+    return (
+        CASH_TRANSFER_STATUS
+        if _parcel_return_is_cash_transfer(parcel_return)
+        and getattr(parcel_return, "transferred_at", None)
+        else "ได้รับเอกสารแล้ว"
+    )
 
 
 def _attach_petty_cash_claim_context(claim):
@@ -1793,6 +1819,7 @@ def cancel_closing_doc(closing_doc_id):
 
     doc_number = closing_doc.document_number
     updated_tickets = set()
+    updated_fund_request_ids = set()
     for link in closing_doc.links:
         if not link.is_active:
             continue
@@ -1802,11 +1829,16 @@ def cancel_closing_doc(closing_doc_id):
             record.status = "ผ่านการตรวจสอบ"
             updated_tickets.add(record.ticket_id)
         elif link.parcel_return_id is not None:
-            record.status = "ได้รับเอกสารแล้ว"
+            record.status = _parcel_return_status_after_closing_cancel(record)
             updated_tickets.add(record.ticket_id)
+            if record.fund_request_id:
+                updated_fund_request_ids.add(record.fund_request_id)
         else:
-            record.status = "โอนเงินสดย่อยสำเร็จ"
+            record.status = CASH_TRANSFER_STATUS
     closing_doc.is_active = False
+
+    for fund_request_id in updated_fund_request_ids:
+        _recalculate_fund_request_submission_status(fund_request_id)
 
     # คำนวณสถานะตั๋วเงินยืมใหม่สำหรับทุกสัญญาที่เกี่ยวข้อง
     for ticket_id in updated_tickets:
@@ -1855,6 +1887,10 @@ def bulk_receive_closing_doc(closing_doc_id):
 
     for petty in petty_in_doc:
         petty.status = "เสร็จสิ้นกระบวนการ"
+
+    for pr in parcel_in_doc:
+        if pr.fund_request_id:
+            _recalculate_fund_request_submission_status(pr.fund_request_id)
 
     for ticket_id in updated_tickets:
         _recalculate_borrowing_ticket_status(ticket_id)
@@ -1950,7 +1986,12 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
 
     parcel_query = db.session.query(func.coalesce(func.sum(ParcelReturnDetail.amount_spent), 0)).filter(
         ParcelReturnDetail.fund_request_id == fund_request_id,
-        ParcelReturnDetail.status.in_(["รอตรวจสอบ", "พัสดุกำลังดำเนินการ", "ได้รับเอกสารแล้ว"]),
+        ParcelReturnDetail.status.in_([
+            "รอตรวจสอบ",
+            "พัสดุกำลังดำเนินการ",
+            "ได้รับเอกสารแล้ว",
+            CASH_TRANSFER_STATUS,
+        ]),
     )
     if exclude_parcel_return_id:
         parcel_query = parcel_query.filter(ParcelReturnDetail.id != exclude_parcel_return_id)
@@ -3390,7 +3431,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
             for item in claim.items
         )
         and (claim.status or "").strip()
-        not in {"โอนเงินสดย่อยสำเร็จ", "เสร็จสิ้นกระบวนการ"}
+        not in {CASH_TRANSFER_STATUS, "เสร็จสิ้นกระบวนการ"}
         for claim in claims
     )
 
@@ -3406,10 +3447,21 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         float(parcel.amount_spent or 0)
         for parcel in parcel_returns
         if (parcel.status or "").strip()
-        in {"พัสดุกำลังดำเนินการ", "ได้รับเอกสารแล้ว"}
+        in {
+            "พัสดุกำลังดำเนินการ",
+            "ได้รับเอกสารแล้ว",
+            CASH_TRANSFER_STATUS,
+            "เอกสารตั้งฎีกา",
+            "ล้างลูกหนี้เงินยืม",
+        }
     )
-    parcel_not_received = any(
-        (parcel.status or "").strip() != "ได้รับเอกสารแล้ว"
+    parcel_pending_transfer = any(
+        (parcel.status or "").strip()
+        not in {
+            CASH_TRANSFER_STATUS,
+            "เอกสารตั้งฎีกา",
+            "ล้างลูกหนี้เงินยืม",
+        }
         for parcel in parcel_returns
     )
 
@@ -3417,12 +3469,12 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     target_total = float(fund_request.amount or 0)
 
     if round(combined_total, 2) == round(target_total, 2) and target_total > 0:
-        # A parcel return must be received before the request can be cleared.
-        # While it is still being processed, the amount is already submitted,
-        # but the fund request remains at the submission-complete stage.
+        # A petty-cash parcel return is not complete until finance records the
+        # transfer. While it is only received, keep the fund request at the
+        # submission-complete stage, just like a petty-cash claim awaiting transfer.
         fund_request.status = (
             "ส่งเบิกครบแล้ว"
-            if pending_claim_transfer or parcel_not_received
+            if pending_claim_transfer or parcel_pending_transfer
             else "เคลียร์ยอดสำเร็จ"
         )
     else:
@@ -3692,14 +3744,55 @@ def mark_parcel_received(parcel_return_id):
 
     parcel_return.status = "ได้รับเอกสารแล้ว"
     parcel_return.approved_at = datetime.now()
-    db.session.commit()
-    _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
         _recalculate_fund_request_submission_status(parcel_return.fund_request_id)
 
+    db.session.commit()
+    _send_notification_email(parcel_return, object_type="parcel_return")
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
 
     flash("เปลี่ยนสถานะพัสดุเป็น 'ได้รับเอกสารแล้ว' เรียบร้อย")
+    if parcel_return.ticket_id:
+        return verification_view(parcel_return.ticket_id)
+    return submit_petty_cash_claim(
+        _render_after_post=True,
+        _forced_fund_request_id=parcel_return.fund_request_id,
+    )
+
+
+@bp.route("/finance/parcel-returns/<int:parcel_return_id>/transfer", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def mark_parcel_return_transferred(parcel_return_id):
+    """Record the petty-cash transfer for a parcel return tied to a fund request."""
+    parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
+    if not parcel_return:
+        abort(404)
+
+    if not parcel_return.fund_request_id:
+        return _validation_error_response(
+            "รายการส่งคืนพัสดุนี้ไม่ได้ผูกกับคำขอเงินสดย่อย จึงไม่ต้องบันทึกการโอนเงินสดย่อย"
+        )
+
+    if (parcel_return.status or "").strip() != "ได้รับเอกสารแล้ว":
+        return _validation_error_response(
+            "ต้องอยู่ในสถานะได้รับเอกสารแล้วก่อนจึงจะบันทึกการโอนเงินสดย่อยได้"
+        )
+
+    transferred_date_str = (request.form.get("transferred_at") or "").strip()
+    if not transferred_date_str:
+        return _validation_error_response("กรุณาระบุวันที่โอนเงินสดย่อย")
+
+    try:
+        transferred_at = datetime.strptime(transferred_date_str, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return _validation_error_response("กรุณาระบุวันที่โอนเงินสดย่อยให้ถูกต้อง")
+
+    parcel_return.status = CASH_TRANSFER_STATUS
+    parcel_return.transferred_at = transferred_at
+    _recalculate_fund_request_submission_status(parcel_return.fund_request_id)
+    db.session.commit()
+    _send_notification_email(parcel_return, object_type="parcel_return")
+    flash("เปลี่ยนสถานะเป็น 'โอนเงินสดย่อยสำเร็จ' และบันทึกวันที่เรียบร้อยแล้ว", "success")
     if parcel_return.ticket_id:
         return verification_view(parcel_return.ticket_id)
     return submit_petty_cash_claim(
@@ -3716,7 +3809,11 @@ def reject_parcel_return(parcel_return_id):
         abort(404)
 
     current_status = (parcel_return.status or "").strip()
-    if current_status in {"ได้รับเอกสารแล้ว", "เอกสารตั้งฎีกา"}:
+    if current_status in {
+        "ได้รับเอกสารแล้ว",
+        CASH_TRANSFER_STATUS,
+        "เอกสารตั้งฎีกา",
+    }:
         return _validation_error_response("ไม่สามารถปฏิเสธรายการที่รับเอกสารแล้วหรือปิดรายการแล้วได้")
 
     new_comment = request.form.get("rejection_comment", "").strip()
@@ -3853,6 +3950,7 @@ def submit_return_details():
     store_names = request.form.getlist("store_name[]")
     descriptions = request.form.getlist("description[]")
     amounts = request.form.getlist("amount[]")
+    note = (request.form.get("note") or "").strip() or None
     has_receipt_data = any(
         value.strip()
         for values in (receipt_dates, store_names, descriptions, amounts)
@@ -3988,6 +4086,7 @@ def submit_return_details():
         return_detail.creator_id = current_user_id
 
     return_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
+    return_detail.note = note
     db.session.flush()
 
     legacy_uploaded_files = request.files.getlist("proof_files[]")
@@ -4452,6 +4551,7 @@ def autosave_return_draft(ticket_id):
     items = data.get("items", [])
     cash_return = data.get("cash_return") or {}
     announcements = data.get("announcements", [])  # <--- 1. รับค่าประกาศเพิ่มจาก JSON
+    note = (data.get("note") or "").strip() or None
 
     # ค้นหา ReturnDetail สถานะ Draft เดิม
     current_user_id = _current_user_id()
@@ -4483,6 +4583,7 @@ def autosave_return_draft(ticket_id):
 
     if return_detail.creator_id is None:
         return_detail.creator_id = current_user_id
+    return_detail.note = note
 
     db.session.commit()
 
@@ -4912,7 +5013,15 @@ def petty_cash_claim_history():
     claim_proofed_count = sum(
         1
         for record in processed_claims
-        if record["record_type"] == "petty_cash" and (record["status"] or "").strip() == "ผ่านการตรวจสอบ"
+        if (
+            record["record_type"] == "petty_cash"
+            and (record["status"] or "").strip() == "ผ่านการตรวจสอบ"
+        )
+        or (
+            record["record_type"] == "parcel_return"
+            and record.get("fund_request_id")
+            and (record["status"] or "").strip() == "ได้รับเอกสารแล้ว"
+        )
     )
     pending_review_count = sum(
         1
@@ -5195,6 +5304,25 @@ def petty_cash_settings(_render_after_post=False):
         and not _claim_has_only_category_six(claim)
     ]
 
+    parcel_return_details = (
+        db.session.query(ParcelReturnDetail)
+        .filter(
+            ParcelReturnDetail.fund_request_id.isnot(None),
+            ParcelReturnDetail.status == "ได้รับเอกสารแล้ว",
+            ~ParcelReturnDetail.closing_links.any(is_active=True),
+        )
+        .order_by(ParcelReturnDetail.created_at.desc(), ParcelReturnDetail.id.desc())
+        .all()
+    )
+    parcel_return_details = [
+        parcel
+        for parcel in parcel_return_details
+        if getattr(parcel, "created_at", None)
+        and convert_to_fiscal_year(parcel.created_at.date()) == current_fiscal_year
+    ]
+    for parcel in parcel_return_details:
+        _attach_parcel_return_context(parcel)
+
     dept_summary = {}
     for s in display_settings:
         summary = _calculate_petty_cash_balance_summary(s)
@@ -5226,6 +5354,7 @@ def petty_cash_settings(_render_after_post=False):
         "petty_cash_settings.html",
         settings=display_settings,
         claim_details=claim_details,
+        parcel_return_details=parcel_return_details,
         dept_summary=dept_summary,
         bank_account_options=bank_account_options,
         bank_account_values=bank_account_values,
@@ -5361,22 +5490,35 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
         try:
             filing_date = datetime.strptime(request.form.get("filing_date", ""), "%Y-%m-%d").date()
             selections = [
-                (ReturnDetail, {int(value) for value in request.form.getlist("return_ids[]")}, "ผ่านการตรวจสอบ"),
-                (ParcelReturnDetail, {int(value) for value in request.form.getlist("parcel_return_ids[]")}, "ได้รับเอกสารแล้ว"),
-                (PettyCashClaimDetail, {int(value) for value in request.form.getlist("petty_claim_ids[]")}, "โอนเงินสดย่อยสำเร็จ"),
+                (ReturnDetail, {int(value) for value in request.form.getlist("return_ids[]")}),
+                (ParcelReturnDetail, {int(value) for value in request.form.getlist("parcel_return_ids[]")}),
+                (PettyCashClaimDetail, {int(value) for value in request.form.getlist("petty_claim_ids[]")}),
             ]
         except (ValueError, TypeError):
             return _validation_error_response("วันที่หรือรายการตั้งฎีกาไม่ถูกต้อง")
-        if not document_number or len(document_number) > 255 or not any(ids for _, ids, _ in selections):
+        if not document_number or len(document_number) > 255 or not any(ids for _, ids in selections):
             return _validation_error_response("กรุณาระบุเลขที่ฎีกาและเลือกรายการตั้งฎีกา")
         if db.session.query(ClosingDocument).filter_by(document_number=document_number).first():
             return _validation_error_response("เลขที่ฎีกานี้มีอยู่แล้ว กรุณาใช้เลขที่ใหม่")
 
         selected_records = []
-        for model, ids, status in selections:
+        for model, ids in selections:
             records = db.session.query(model).filter(model.id.in_(ids)).with_for_update().all()
-            if len(records) != len(ids) or any(
-                record.status != status or record.closing_document is not None for record in records
+            invalid_status = any(
+                (
+                    not _parcel_return_ready_for_closing(record)
+                    if isinstance(record, ParcelReturnDetail)
+                    else (record.status or "").strip()
+                    != (
+                        CASH_TRANSFER_STATUS
+                        if isinstance(record, PettyCashClaimDetail)
+                        else "ผ่านการตรวจสอบ"
+                    )
+                )
+                for record in records
+            )
+            if len(records) != len(ids) or invalid_status or any(
+                record.closing_document is not None for record in records
             ):
                 db.session.rollback()
                 return _validation_error_response("มีรายการที่ไม่พร้อมตั้งฎีกาหรือผูกกับฎีกาอื่นแล้ว กรุณาตรวจสอบอีกครั้ง")
@@ -5427,7 +5569,23 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             "created_at": record.created_at,
         })
 
-    proofed_parcels = db.session.query(ParcelReturnDetail).filter(ParcelReturnDetail.status == "ได้รับเอกสารแล้ว", ~ParcelReturnDetail.closing_links.any(is_active=True)).all()
+    proofed_parcels = (
+        db.session.query(ParcelReturnDetail)
+        .filter(
+            ~ParcelReturnDetail.closing_links.any(is_active=True),
+            or_(
+                and_(
+                    ParcelReturnDetail.fund_request_id.is_(None),
+                    ParcelReturnDetail.status == "ได้รับเอกสารแล้ว",
+                ),
+                and_(
+                    ParcelReturnDetail.fund_request_id.isnot(None),
+                    ParcelReturnDetail.status == CASH_TRANSFER_STATUS,
+                ),
+            ),
+        )
+        .all()
+    )
     processed_parcels = []
     for pr in proofed_parcels:
         _attach_parcel_return_context(pr)
@@ -5467,7 +5625,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
 
     # ดึงรายการเงินสดย่อยที่มีสถานะเป็น transferred เพื่อนำไปแสดงในตารางที่ 3
     transferred_petty_claims = db.session.query(PettyCashClaimDetail).filter(
-        PettyCashClaimDetail.status == "โอนเงินสดย่อยสำเร็จ",
+        PettyCashClaimDetail.status == CASH_TRANSFER_STATUS,
         ~PettyCashClaimDetail.closing_links.any(is_active=True),
     ).all()
     for petty in transferred_petty_claims:
@@ -6335,6 +6493,7 @@ def autosave_petty_cash_claim_draft():
     announcements = data.get("announcements", [])
     reference_number = (data.get("reference_number") or "").strip()
     reference_date_raw = (data.get("reference_date") or "").strip()
+    note = (data.get("note") or "").strip() or None
 
     # 1. ดึง Setting ของ StaffAccount ปัจจุบันก่อน (ถ้าไม่มีค่อย fallback ไปตัว active ตัวแรก)
     staff = current_user
@@ -6426,6 +6585,7 @@ def autosave_petty_cash_claim_draft():
         ))
 
     claim_detail.total_amount = total_amount
+    claim_detail.note = note
     if reference_number and reference_date_raw:
         try:
             claim_detail.reference_date = datetime.strptime(reference_date_raw, "%Y-%m-%d").date()
@@ -6570,6 +6730,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         announcement_titles = request.form.getlist("announcement_titles[]")
         reference_number = (request.form.get("reference_number") or "").strip()
         reference_date_raw = (request.form.get("reference_date") or "").strip()
+        note = (request.form.get("note") or "").strip() or None
         reference_files = [
             file_storage
             for file_storage in request.files.getlist("reference_files[]")
@@ -6865,6 +7026,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             claim_detail.fund_request_id = fund_request_id
         claim_detail.reference_number = reference_number or None
         claim_detail.reference_date = reference_date
+        claim_detail.note = note
 
         legacy_uploaded_files = request.files.getlist("proof_file[]")
         legacy_existing_file_paths = request.form.getlist("existing_proof_files[]")

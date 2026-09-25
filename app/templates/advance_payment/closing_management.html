@@ -485,8 +485,12 @@
                 <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                 <td class="text-center small">{{ pr.created_at|thai_date if pr.created_at else '-' }}</td>
                 <td class="text-center">
-                  {% if pr.status in ["ได้รับเอกสารแล้ว", "ล้างลูกหนี้เงินยืม"] %}
+                  {% if pr.status == "ล้างลูกหนี้เงินยืม" %}
                     {{ status_badge("ล้างลูกหนี้เงินยืม") }}
+                  {% elif pr.status == "โอนเงินสดย่อยสำเร็จ" %}
+                    {{ status_badge("โอนเงินสดย่อยสำเร็จ") }}
+                  {% elif pr.status == "ได้รับเอกสารแล้ว" %}
+                    {{ status_badge("ได้รับเอกสารแล้ว") }}
                   {% elif pr.status == "พัสดุกำลังดำเนินการ" %}
                     {{ status_badge("รอรับเอกสารจริง") }}
                   {% elif pr.status == "รอตรวจสอบ" %}

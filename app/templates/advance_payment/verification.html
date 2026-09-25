@@ -359,6 +359,8 @@
                   <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
                 {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
                   <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
+                {% elif pr.status == 'โอนเงินสดย่อยสำเร็จ' %}
+                  <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
                 {% elif pr.status|lower in ['ปฏิเสธ'] %}
                   <span class="badge bg-danger text-white">ถูกปฏิเสธ</span>
                 {% elif pr.status|lower == 'เอกสารตั้งฎีกา' %}
@@ -414,8 +416,16 @@
                         data-popup-confirm-class="btn-success"
                         data-popup-target-form-id="parcelReceivedForm{{ pr.id }}">
                         ได้รับเอกสารแล้ว
-                      </button>
-                    </form>
+                    </button>
+                  </form>
+                  {% endif %}
+
+                  {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true" class="d-flex gap-1 align-items-center">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="date" name="transferred_at" class="form-control form-control-sm" required title="วันที่โอนเงินสดย่อย">
+                    <button type="submit" class="btn btn-sm btn-success fw-bold">โอนสำเร็จ</button>
+                  </form>
                   {% endif %}
 
                   {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}

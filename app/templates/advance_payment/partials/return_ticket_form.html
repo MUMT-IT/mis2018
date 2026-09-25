@@ -129,10 +129,16 @@
               </tbody>
             </table>
           </div>
-          <div class="text-end py-3">
-            <button type="button" class="btn btn-sm btn-outline-primary px-2 shadow-sm fw-bold" onclick="addReceiptRow({{ borrowing_ticket.id }})" style="border-radius: 6px;">
-              <i class="bi bi-plus-lg me-1"></i> เพิ่มแถวใบเสร็จ
-            </button>
+          <div class="row g-2 align-items-center py-3">
+            <div class="col">
+              <label class="form-label fw-bold mb-1" for="returnNote_{{ borrowing_ticket.id }}">หมายเหตุ (ถ้ามี)</label>
+              <input type="text" name="note" id="returnNote_{{ borrowing_ticket.id }}" class="form-control form-control-sm" maxlength="2000" value="{{ (borrowing_ticket.draft_detail.note or '') if borrowing_ticket.draft_detail else '' }}" placeholder="ระบุหมายเหตุกรณีใช้ใบเสร็จร่วมกับรายการฝั่งพัสดุ">
+            </div>
+            <div class="col-auto align-self-end">
+              <button type="button" class="btn btn-sm btn-outline-primary px-2 shadow-sm fw-bold" onclick="addReceiptRow({{ borrowing_ticket.id }})" style="border-radius: 6px;">
+                <i class="bi bi-plus-lg me-1"></i> เพิ่มแถวใบเสร็จ
+              </button>
+            </div>
           </div>
         </div>
 
@@ -676,10 +682,11 @@
       });
 
       showAutoSaveStatus(ticketId, 'saving');
+      const note = form.querySelector('[name="note"]')?.value.trim() || '';
       fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items, cash_return: { receipt_date: cashDate, amount: cashAmount }, announcements: announcements })
+        body: JSON.stringify({ items: items, cash_return: { receipt_date: cashDate, amount: cashAmount }, announcements: announcements, note: note })
       })
         .then(res => res.json())
         .then(data => showAutoSaveStatus(ticketId, data.success ? 'saved' : 'error', data.saved_at))

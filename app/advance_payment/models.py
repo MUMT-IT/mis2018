@@ -352,6 +352,7 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     approved_at = Column(DateTime, nullable=True)
     reject_approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
+    note = Column(String(2000), nullable=True)
     reference_number = Column(String(255), nullable=True)
     reference_date = Column(Date, nullable=True)
     product_code_id = Column(String(12), ForeignKey("product_codes.id"), nullable=True)
@@ -454,6 +455,7 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
+    transferred_at = Column(Date, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
 
     @property
@@ -763,6 +765,7 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     total_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
+    note = Column(String(2000), nullable=True)
     transferred_at = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     reference_number = Column(String(255), nullable=True)
