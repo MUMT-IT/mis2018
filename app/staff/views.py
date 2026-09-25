@@ -7559,6 +7559,23 @@ def staff_edit_info(staff_id):
         staff.retirement_date = retired_date
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
+        if staff.employment_id:
+            if staff.employment_id != form.get('employment_id'):
+                staff_account = StaffAccount.query.filter_by(personal_id=staff_id).first()
+                if staff_account:
+                    _, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+                    this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff_account,
+                                                                          fiscal_year=END_FISCAL_DATE.year).all()
+                    if this_year_quota:
+                        for quota in this_year_quota:
+                            new_quota = StaffLeaveQuota.query.filter_by(employment_id=form.get('employment_id'),
+                                                                        leave_type_id=quota.leave_type_id).first()
+                            if new_quota.max_per_year:
+                                quota.quota_days = new_quota.max_per_year
+                                flash('แก้ไข quota {} เป็น {} วัน หลังจากปรับสถานะการจ้างเรียบร้อยแล้ว'
+                                      .format(new_quota.leave_type, new_quota.max_per_year), 'warning')
+                else:
+                    flash('ไม่สามารถแก้ไข quota การลา หลังจากปรับสถานะการจ้างได้ กรุณาติดต่อ IT', 'danger')
         staff.employment_id = form.get('employment_id')
         staff.job_position_id = form.get('job_id')
         staff.org_id = form.get('org_id')
