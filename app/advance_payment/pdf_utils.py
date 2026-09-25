@@ -27,7 +27,7 @@ from .views import (
     FUND_REQUEST_FORM_PETTY_CASH,
 )
 from app.models import Org
-from app.staff.models import StaffPersonalInfo
+from app.staff.models import StaffHeadPosition, StaffPersonalInfo
 
 
 # Non-breaking spaces keep a writable gap in ReportLab paragraphs.
@@ -233,17 +233,27 @@ def _get_user_by_id(user_id):
 
 
 def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_account_id=None):
-    """Resolve the organization head from ``Org.head`` for PDF signatures."""
+    """Resolve the organization head and position for PDF signatures.
+
+    ``StaffHeadPosition`` is organization-specific.  In particular, the same
+    staff member can be the head of two organizations, so the borrower's
+    organization must be used when selecting the record.
+    """
     if fund_request is None and claim is not None:
         fund_request = getattr(claim, "fund_request", None)
     if ticket is None and fund_request is not None:
         ticket = getattr(fund_request, "borrowing_ticket", None)
 
-    staff_account_id = (
+    borrower_account_id = (
         getattr(ticket, "borrower_id", None)
         or getattr(fund_request, "requester_id", None)
         or getattr(claim, "user_id", None)
         or staff_account_id
+    )
+
+    borrower_account = _get_user_by_id(borrower_account_id)
+    borrower_org_id = getattr(
+        getattr(borrower_account, "personal_info", None), "org_id", None
     )
 
     # Prefer the organization explicitly stored on the fund request. For
@@ -251,9 +261,68 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
     org = getattr(fund_request, "org", None)
     if org is None and getattr(fund_request, "org_id", None):
         org = db.session.query(Org).get(fund_request.org_id)
-    if org is None and staff_account_id:
-        staff_account = _get_user_by_id(staff_account_id)
+    if org is None and borrower_account:
+        org = getattr(getattr(borrower_account, "personal_info", None), "org", None)
+    if org is None and borrower_account_id:
+        staff_account = _get_user_by_id(borrower_account_id)
         org = getattr(getattr(staff_account, "personal_info", None), "org", None)
+
+    # Re-check the borrower's org before resolving the head position.  This
+    # exact-org lookup is important when one head has records for two orgs.
+    candidate_org_ids = []
+    if borrower_org_id is not None:
+        candidate_org_ids.append(borrower_org_id)
+    if getattr(org, "id", None) is not None and org.id not in candidate_org_ids:
+        candidate_org_ids.append(org.id)
+
+    for candidate_org_id in candidate_org_ids:
+        candidate_org = (
+            org if getattr(org, "id", None) == candidate_org_id
+            else db.session.query(Org).get(candidate_org_id)
+        )
+        head_identifier = (getattr(candidate_org, "head", None) or "").strip()
+        head_account = (
+            db.session.query(StaffAccount)
+            .filter(StaffAccount.email == head_identifier)
+            .first()
+            if head_identifier else None
+        )
+
+        head_position_query = db.session.query(StaffHeadPosition).filter(
+            StaffHeadPosition.org_id == candidate_org_id
+        )
+        # Match the head account as well as org_id.  This prevents selecting
+        # the other position when the same person heads multiple orgs.
+        if head_account is not None:
+            head_position_query = head_position_query.filter(
+                StaffHeadPosition.staff_account_id == head_account.id
+            )
+        head_position_record = (
+            head_position_query
+            .order_by(StaffHeadPosition.id.desc())
+            .first()
+        )
+        if head_position_record is None:
+            continue
+
+        head_account = getattr(head_position_record, "staff", None) or head_account
+        head_personal_info = getattr(head_account, "personal_info", None)
+        if head_personal_info is None and getattr(head_account, "personal_id", None):
+            head_personal_info = (
+                db.session.query(StaffPersonalInfo)
+                .filter(StaffPersonalInfo.id == head_account.personal_id)
+                .first()
+            )
+        if head_personal_info is None:
+            continue
+
+        head_name = " ".join(
+            value for value in (
+                getattr(head_personal_info, "th_firstname", None),
+                getattr(head_personal_info, "th_lastname", None),
+            ) if value
+        )
+        return _pdf_text(head_name), _pdf_text(head_position_record.position)
 
     # If the current organization has no head, walk up its parent hierarchy
     # until a head email is found. Keep a visited set to avoid malformed cycles.
@@ -303,7 +372,17 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
             getattr(head_personal_info, "th_lastname", None),
         ) if value
     )
-    return _pdf_text(head_name), _pdf_text(getattr(head_personal_info, "position", None))
+    # The position is organization-specific and must come from
+    # staff_head_positions, never from the staff member's generic position.
+    head_position_record = (
+        db.session.query(StaffHeadPosition)
+        .filter_by(org_id=getattr(current_org, "id", None), staff_account_id=head_account.id)
+        .order_by(StaffHeadPosition.id.desc())
+        .first()
+        if getattr(current_org, "id", None) and head_account is not None
+        else None
+    )
+    return _pdf_text(head_name), _pdf_text(getattr(head_position_record, "position", None))
 
 
 def _get_bank_account_info_for_ticket(ticket):
@@ -361,52 +440,97 @@ def _get_bank_account_info_for_petty_cash_setting(setting):
 # 3. PDF GENERATION FUNCTIONS
 # =========================================================================
 def summarize_petty_cash_month(month_start, fund_requests, claims):
-    """Summarize the selected month's petty-cash documents.
+    """Summarize petty-cash documents requiring action.
 
     A submitted document is counted per claim, but only while the claim is in
-    one of the three review statuses. A pending document is a FundRequest that
-    has not been linked to either a claim or a parcel return.
+    one of the three review statuses. Parcel-return documents in the
+    ``รอตรวจสอบ``, ``พัสดุกำลังดำเนินการ``, or ``ได้รับเอกสารแล้ว`` statuses
+    are submitted documents as well. The pending amount is the unsubmitted
+    remainder of each petty-cash FundRequest after non-rejected linked
+    documents are accounted for. Requests whose linked documents are all
+    rejected therefore remain pending for their full requested amount.
     """
-    month_end = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
-    requests = [fr for fr in fund_requests
-                if fr.request_date and month_start <= fr.request_date <= month_end]
+    # The report's selected month controls the ledger balance, but documents
+    # requiring action must remain visible even when they were submitted in a
+    # previous month.
+    requests = list(fund_requests)
     request_ids = {fr.id for fr in requests}
     submitted_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ผ่านการตรวจสอบ"}
+    rejected_statuses = {"ปฏิเสธ", "ถูกปฏิเสธ"}
+    non_accounted_claim_statuses = rejected_statuses | {"ฉบับร่าง", "ยกเลิก"}
     submitted_claims = [
         claim for claim in claims
         if claim.fund_request_id in request_ids
         and (claim.status or "").strip() in submitted_statuses
     ]
-    linked_claim_request_ids = {
-        claim.fund_request_id for claim in claims
-        if claim.fund_request_id in request_ids
-    }
-    linked_parcel_request_ids = {
-        parcel.fund_request_id
-        for parcel in db.session.query(ParcelReturnDetail).filter(
-            ParcelReturnDetail.fund_request_id.in_(request_ids)
-        ).all()
-        if parcel.fund_request_id is not None
-    } if request_ids else set()
-    pending = [
-        fr for fr in requests
-        if fr.form_type == FUND_REQUEST_FORM_PETTY_CASH
-        and fr.id not in linked_claim_request_ids
-        and fr.id not in linked_parcel_request_ids
+    parcel_returns = (
+        db.session.query(ParcelReturnDetail)
+        .filter(ParcelReturnDetail.fund_request_id.in_(request_ids))
+        .all()
+        if request_ids else []
+    )
+    submitted_parcel_returns = [
+        parcel for parcel in parcel_returns
+        if (parcel.status or "").strip() in {
+            "รอตรวจสอบ",
+            "พัสดุกำลังดำเนินการ",
+            "ได้รับเอกสารแล้ว",
+        }
     ]
+    # Track the amount already represented by every non-rejected linked
+    # document. This also handles partially submitted FundRequests: the
+    # remaining amount must stay in the "ยังไม่ส่งเบิก" row.
+    accounted_amount_by_request = {}
+    for claim in claims:
+        if claim.fund_request_id not in request_ids:
+            continue
+        if (claim.status or "").strip() in non_accounted_claim_statuses:
+            continue
+        accounted_amount_by_request.setdefault(claim.fund_request_id, Decimal("0.00"))
+        accounted_amount_by_request[claim.fund_request_id] += sum(
+            (Decimal(str(item.amount or 0)) for item in claim.items),
+            Decimal("0.00"),
+        )
+    for parcel in parcel_returns:
+        if parcel.fund_request_id is None:
+            continue
+        if (parcel.status or "").strip() in rejected_statuses | {"ฉบับร่าง"}:
+            continue
+        accounted_amount_by_request.setdefault(parcel.fund_request_id, Decimal("0.00"))
+        accounted_amount_by_request[parcel.fund_request_id] += Decimal(str(parcel.amount_spent or 0))
+
+    pending = []
+    pending_amount = Decimal("0.00")
+    for fr in requests:
+        if fr.form_type != FUND_REQUEST_FORM_PETTY_CASH:
+            continue
+        remaining = max(
+            Decimal(str(fr.amount or 0))
+            - accounted_amount_by_request.get(fr.id, Decimal("0.00")),
+            Decimal("0.00"),
+        )
+        if remaining <= 0:
+            continue
+        pending.append(fr)
+        pending_amount += remaining
     submitted_amount = sum(
         (Decimal(str(item.amount or 0))
          for claim in submitted_claims
          for item in claim.items
          if str(item.category_type) != "6"
-         and item.receipt_date and item.receipt_date <= month_end),
+         and item.receipt_date),
+        Decimal("0.00"),
+    )
+    submitted_parcel_amount = sum(
+        (Decimal(str(parcel.amount_spent or 0)) for parcel in submitted_parcel_returns),
         Decimal("0.00"),
     )
     return {
-        "submitted_count": len(submitted_claims),
+        "submitted_count": len(submitted_claims) + len(submitted_parcel_returns),
         "submitted_amount": submitted_amount,
+        "submitted_parcel_amount": submitted_parcel_amount,
         "pending_count": len(pending),
-        "pending_amount": sum((Decimal(str(fr.amount or 0)) for fr in pending), Decimal("0.00")),
+        "pending_amount": pending_amount,
     }
 
 
@@ -424,7 +548,15 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
     last_day_label = get_thai_month_year(last_day)
     budget = setting.budget
     balance = Decimal(str(remaining_budget)).quantize(Decimal("0.01")) if remaining_budget is not None else None
-    submitted = summary.get("submitted_amount")
+    submitted_values = (
+        summary.get("submitted_amount"),
+        summary.get("submitted_parcel_amount"),
+    )
+    submitted = (
+        sum(Decimal(str(value or 0)) for value in submitted_values)
+        if any(value is not None for value in submitted_values)
+        else None
+    )
     pending = summary.get("pending_amount")
     total = (sum(Decimal(str(value)) for value in (balance, submitted, pending))
              if all(value is not None for value in (balance, submitted, pending)) else None)

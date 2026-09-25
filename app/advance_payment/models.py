@@ -156,6 +156,7 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     closed_date = Column(DateTime, nullable=True)
+    reject_approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(1000), nullable=True)
     finance_note = Column(String(2000), nullable=True)
     aip_ref_no = Column(String(255), nullable=False)
@@ -348,7 +349,10 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     proof_reference = Column(String(255), nullable=False, default="")
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
+    approved_at = Column(DateTime, nullable=True)
+    reject_approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
+    note = Column(String(2000), nullable=True)
     reference_number = Column(String(255), nullable=True)
     reference_date = Column(Date, nullable=True)
     product_code_id = Column(String(12), ForeignKey("product_codes.id"), nullable=True)
@@ -381,7 +385,15 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
         if not items:
             return Decimal(str(self.amount_spent or 0))
         return sum(
-            (Decimal(str(item.amount or 0)) for item in items if not item.is_cash),
+            (
+                Decimal(str(item.amount or 0))
+                for item in items
+                if not item.is_cash
+                and not (
+                    (item.store_name or "").strip() == "-"
+                    and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
+                )
+            ),
             Decimal("0"),
         )
 
@@ -442,6 +454,8 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     sent_date = Column(Date, nullable=False)
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
+    approved_at = Column(DateTime, nullable=True)
+    transferred_at = Column(Date, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
 
     @property
@@ -619,6 +633,7 @@ class FundRequest(FinanceEditMixin, db.Model):
     requester_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False)
     creator_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
     org_id = Column(Integer, ForeignKey("orgs.id"), nullable=True, index=True)
+    petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=True, index=True)
     borrowing_ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
     form_type = Column(String(10), nullable=False)
     ticket_number = Column(String(64), nullable=True)
@@ -628,6 +643,8 @@ class FundRequest(FinanceEditMixin, db.Model):
     status = Column(String(64), nullable=False, default="อนุมัติแล้ว")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
+    cancel_at = Column(DateTime, nullable=True)
+    cancel_transferred_at = Column(Date, nullable=True)
     purpose = Column(String(1000), nullable=True)
     period_year = Column(String(10), nullable=True)
     withdrawal_proof_reference = Column(String(500), nullable=True)
@@ -652,6 +669,10 @@ class FundRequest(FinanceEditMixin, db.Model):
     def org(self):
         from app.models import Org
         return _session_get(object_session(self), Org, self.org_id)
+
+    @property
+    def petty_cash_setting(self):
+        return _session_get(object_session(self), PettyCashSetting, self.petty_cash_setting_id)
 
     @property
     def department_name(self):
@@ -742,7 +763,9 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     petty_cash_setting_id = Column(Integer, ForeignKey("petty_cash_settings.id"), nullable=False)
     fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=True)
     total_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
+    approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
+    note = Column(String(2000), nullable=True)
     transferred_at = Column(Date, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     reference_number = Column(String(255), nullable=True)

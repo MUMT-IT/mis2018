@@ -183,8 +183,9 @@
                 data-type="{{ record.record_type or 'petty_cash' }}"
                 data-submitdate="{{ record.created_at.strftime('%Y-%m-%d') if record.created_at else '-' }}"
                 data-เอกสารตั้งฎีกาdate="{{ record.เอกสารตั้งฎีกา_at.strftime('%Y-%m-%d') if record.เอกสารตั้งฎีกา_at else '-' }}"
-                data-closingdoc="{{ record.closing_document_name or '-' }} {{ record.old_document_number or '' }}"
-                data-amount="{{ record.total_amount or record.amount_spent or 0 }}">
+                 data-closingdoc="{{ record.closing_document_name or '-' }} {{ record.old_document_number or '' }}"
+                 data-fund-request="{{ 1 if record.fund_request_id else 0 }}"
+                 data-amount="{{ record.total_amount or record.amount_spent or 0 }}">
               
               <!-- 1. เลขที่เอกสาร / บย. -->
               <td class="text-start ps-3">
@@ -241,7 +242,7 @@
                   <span class="badge bg-info text-dark">
                     {% if record.record_type == 'parcel_return' %}ได้รับเอกสารแล้ว{% else %}ผ่านการตรวจสอบ{% endif %}
                   </span>
-                {% elif st in ['โอนเงินสดย่อยสำเร็จ', 'โอนเงินสดย่อยสำเร็จ'] %}
+                {% elif st == 'โอนเงินสดย่อยสำเร็จ' %}
                   <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
                 {% elif st in ['เอกสารตั้งฎีกา', 'เอกสารตั้งฎีกา'] %}
                   <span class="badge bg-secondary text-white">เอกสารตั้งฎีกา</span>
@@ -283,11 +284,38 @@
                       <i class="bi bi-search me-1"></i>ตรวจสอบหลักฐาน
                     </a>
                     {% endif %}
-                    {% if record.fund_request_id %}
-                    <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=record.fund_request_id) }}" class="btn btn-outline-success btn-sm px-2">
-                      ตรวจสอบการส่งเบิก
-                    </a>
-                    {% endif %}
+                     {% if record.fund_request_id %}
+                     <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=record.fund_request_id) }}" class="btn btn-outline-success btn-sm px-2">
+                       ตรวจสอบการส่งเบิก
+                     </a>
+                     {% if record.status == 'ได้รับเอกสารแล้ว' %}
+                     <button type="button" class="btn btn-outline-success btn-sm px-2" data-bs-toggle="modal" data-bs-target="#parcelTransferModal{{ record.id }}">
+                       บันทึกโอนสำเร็จ
+                     </button>
+                     <div class="modal fade text-start" id="parcelTransferModal{{ record.id }}" tabindex="-1" aria-hidden="true">
+                       <div class="modal-dialog modal-dialog-centered">
+                         <div class="modal-content">
+                           <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=record.id) }}" data-ajax-validation="true">
+                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                             <div class="modal-header">
+                               <h5 class="modal-title fw-bold">บันทึกการโอนเงินสดย่อยสำเร็จ</h5>
+                               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                             </div>
+                             <div class="modal-body">
+                               <p class="small text-muted">ยอดส่งคืนพัสดุ: <strong>{{ "{:,.2f}".format(record.amount_spent or 0) }} บาท</strong></p>
+                               <label class="form-label fw-bold small">วันที่โอนเงินสดย่อย <span class="text-danger">*</span></label>
+                               <input type="date" name="transferred_at" class="form-control" required>
+                             </div>
+                             <div class="modal-footer">
+                               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                               <button type="submit" class="btn btn-success fw-bold">ยืนยันโอนสำเร็จ</button>
+                             </div>
+                           </form>
+                         </div>
+                       </div>
+                     </div>
+                     {% endif %}
+                     {% endif %}
                   {% else %}
                     <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=record.id) }}" class="btn btn-outline-primary btn-sm px-2 py-1" style="border-radius: 6px;">
                       <i class="bi bi-search me-1"></i>ตรวจสอบหลักฐาน
@@ -364,6 +392,7 @@
       const accountNumber = (row.getAttribute("data-account-number") || "").toLowerCase();
       const closingDoc = row.getAttribute("data-closingdoc").toLowerCase();
       const rType = (row.getAttribute("data-type") || "petty_cash").toLowerCase();
+      const hasFundRequest = row.getAttribute("data-fund-request") === "1";
       
       let rStatusRaw = row.getAttribute("data-status").toLowerCase();
       let rStatus = rStatusRaw;
@@ -371,8 +400,11 @@
       // Normalize สถานะสำหรับใช้เปรียบเทียบ
       if (['รอตรวจสอบ', 'รอการตรวจสอบ', 'รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'].includes(rStatusRaw)) rStatus = 'รอตรวจสอบ';
       else if (['กำลังตรวจสอบ', 'กำลังตรวจสอบ'].includes(rStatusRaw)) rStatus = 'กำลังตรวจสอบ';
-      else if (['ผ่านการตรวจสอบ', 'ผ่านการตรวจสอบ', 'ได้รับเอกสารแล้ว', 'ได้รับเอกสารแล้ว'].includes(rStatusRaw)) rStatus = 'ผ่านการตรวจสอบ';
-      else if (['โอนเงินสดย่อยสำเร็จ', 'โอนเงินสดย่อยสำเร็จ'].includes(rStatusRaw)) rStatus = 'โอนเงินสดย่อยสำเร็จ';
+      else if (['ผ่านการตรวจสอบ', 'ผ่านการตรวจสอบ'].includes(rStatusRaw)) rStatus = 'ผ่านการตรวจสอบ';
+      else if (['ได้รับเอกสารแล้ว', 'ได้รับเอกสารแล้ว'].includes(rStatusRaw)) {
+        rStatus = rType === 'parcel_return' && !hasFundRequest ? 'ได้รับเอกสารแล้ว' : 'ผ่านการตรวจสอบ';
+      }
+      else if (rStatusRaw === 'โอนเงินสดย่อยสำเร็จ') rStatus = 'โอนเงินสดย่อยสำเร็จ';
       else if (['เอกสารตั้งฎีกา', 'เอกสารตั้งฎีกา'].includes(rStatusRaw)) rStatus = 'เอกสารตั้งฎีกา';
       else if (['ล้างลูกหนี้เงินยืม', 'ล้างลูกหนี้เงินยืม', 'ได้รับเงินคืนแล้ว'].includes(rStatusRaw)) rStatus = 'ล้างลูกหนี้เงินยืม';
       else if (['ปฏิเสธed', 'ปฏิเสธ', 'ปฏิเสธ'].includes(rStatusRaw)) rStatus = 'ปฏิเสธ';

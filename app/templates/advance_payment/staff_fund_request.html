@@ -57,7 +57,7 @@
                         {% endfor %}
                       </select>
                       {% if not department_employees %}
-                        <div class="form-text text-danger">ไม่พบรายชื่อบุคลากรในหน่วยงาน กรุณาตรวจสอบข้อมูลหน่วยงานของบัญชีผู้ใช้</div>
+                        <div class="form-text text-danger">ไม่พบรายชื่อบุคลากรในหน่วยงาน กรุณาตรวจสอบหน่วยงานที่ผูกกับการตั้งค่าเงินสดย่อย</div>
                       {% endif %}
                     {% else %}
                       <input type="text" id="requester_input" class="form-control bg-light" value="{{ current_user_display_name }}" readonly>

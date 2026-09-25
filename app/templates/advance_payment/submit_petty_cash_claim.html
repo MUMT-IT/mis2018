@@ -62,10 +62,7 @@
     </div>
     <div class="col-12 col-lg-2">
       {% set current_fund_request_status = (fund_request_status or '')|trim %}
-      {% set fund_request_status_aliases = {
-        'ส่งเบิกแล้ว': 'เบิกเงินแล้ว',
-        'เบิกเงินสำเร็จ': 'เบิกเงินแล้ว'
-      } %}
+      {% set fund_request_status_aliases = {} %}
       {% set current_fund_request_step = fund_request_status_aliases.get(current_fund_request_status, current_fund_request_status) %}
       {% set fund_request_status_class = 'bg-secondary text-white' %}
       {% if current_fund_request_step == 'อนุมัติแล้ว' %}
@@ -99,7 +96,7 @@
       </div>
     </div>
   </div>
-  {% if verification_fund_request and fund_request_status == 'อนุมัติแล้ว' and advance_payment_role == 'secretary' %}
+  {% if verification_fund_request and can_cancel_fund_request %}
   <div class="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
     <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
       <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
@@ -116,20 +113,42 @@
             data-popup-input-name="cancellation_reason"
             data-popup-input-placeholder="ระบุเหตุผลที่ยกเลิกใบเบิก..."
             data-popup-input-required="true"
-            data-popup-input-rows="2">
+            data-popup-input-rows="2"
+            data-popup-extra-fields-template-id="cancelFundRequestExtraFields">
       ยกเลิกใบเบิก
     </button>
   </div>
+  <template id="cancelFundRequestExtraFields">
+    <div class="mt-3">
+      <label class="form-label fw-bold" for="cancelTransferredAt">วันที่นำเงินกลับเข้าสู่ระบบ</label>
+      <input type="date" class="form-control" id="cancelTransferredAt" name="transferred_at" required>
+    </div>
+  </template>
   {% endif %}
 </section>
 
 {% endif %}
-{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกแล้ว', 'ส่งเบิกครบแล้ว', 'เบิกเงินสำเร็จ', 'เคลียร์ยอดสำเร็จ'] %}
+{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกครบแล้ว', 'เคลียร์ยอดสำเร็จ'] %}
 {% set total_request_amount = fund_request_total_info.request_amount if fund_request_total_info is defined else 0 %}
 {% set total_claimed_amount = fund_request_total_info.claim_total if fund_request_total_info is defined else 0 %}
 {% set total_parcel_amount = fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 %}
 {% set is_over_request = (total_claimed_amount + total_parcel_amount) > total_request_amount if total_request_amount else false %}
 {% if can_submit_claim %}
+{% set can_toggle_claim_form = (fund_request_status or '')|lower == 'อนุมัติแล้ว' %}
+{% if can_toggle_claim_form %}
+<div class="d-flex justify-content-end mb-3">
+  <button type="button"
+          class="btn btn-outline-primary fw-bold"
+          id="toggleClaimFormButton"
+          style="border-radius: 6px;"
+          onclick="togglePettyCashClaimForm()"
+          aria-controls="pettyCashClaimFormPanel"
+          aria-expanded="false">
+    <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งเบิกเงินสดย่อย
+  </button>
+</div>
+{% endif %}
+<div id="pettyCashClaimFormPanel"{% if can_toggle_claim_form %} class="d-none"{% endif %}>
 <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
     <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm" novalidate data-ajax-validation="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -262,7 +281,6 @@
                       <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)</option>
                       <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น เครื่องเขียน, วัสดุสำนักงาน, อุปกรณ์)</option>
                       <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)</option>
-                      <option value="6" {% if item.category_type|string == '6' %}selected{% endif %}>โอนคืนบัญชีหน่วย</option>
                     </select>
                     </td>
                   <td>
@@ -306,7 +324,6 @@
                       <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
                       <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
                       <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                      <option value="6" {% if item.category_type|string == '6' %}selected{% endif %}>โอนคืนบัญชีหน่วย</option>
                     </select>
                     </td>
                   <td>
@@ -332,10 +349,16 @@
         </table>
       </div>
 
-      <div class="text-end py-3">
-        <button type="button" class="btn btn-sm btn-outline-primary px-2 shadow-sm fw-bold" onclick="addRow()" style="border-radius: 6px;">
-          <i class="bi bi-plus-lg me-1"></i> เพิ่มรายการใบเสร็จ
-        </button>
+      <div class="row g-2 align-items-center justify-content-end py-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold mb-1" for="claimNote">หมายเหตุ (ถ้ามี)</label>
+          <input type="text" name="note" id="claimNote" class="form-control form-control-sm" maxlength="2000" value="{{ (claim_detail.note or '') if claim_detail else '' }}" placeholder="ระบุหมายเหตุกรณีใช้ใบเสร็จร่วมกับรายการฝั่งพัสดุ">
+        </div>
+        <div class="col-auto align-self-end">
+          <button type="button" class="btn btn-sm btn-outline-primary px-2 shadow-sm fw-bold" onclick="addRow()" style="border-radius: 6px;">
+            <i class="bi bi-plus-lg me-1"></i> เพิ่มรายการใบเสร็จ
+          </button>
+        </div>
       </div>
       </div>
 
@@ -360,6 +383,41 @@
         {% else %}
         <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกการส่งคืนพัสดุได้</div>
         {% endif %}
+      </div>
+
+      {% set cash_return_item = none %}
+      {% if claim_detail and claim_detail.items %}
+        {% for item in claim_detail.items %}
+          {% if item.category_type|string == '6' and cash_return_item is none %}
+            {% set cash_return_item = item %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนเงินเหลือส่งใช้เงินสดย่อย</h3>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">วันที่ทำการโอน</label>
+            <input type="date" name="cash_return_date" class="form-control cash-return-input"
+                   value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
+            <input type="text" name="cash_return_amount" id="cash_return_amount" class="form-control cash-return-amount-input cash-return-input"
+                   value="{{ '%.2f'|format(cash_return_item.amount) if cash_return_item and cash_return_item.amount else '' }}" placeholder="0.00">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">ไฟล์หลักฐานการโอน (PDF, JPG, PNG)</label>
+            <input type="file" name="cash_return_proof_file" accept="image/*,.pdf" class="form-control cash-return-input">
+            {% if cash_return_item %}
+              {% for proof_file in cash_return_item.proof_files %}
+                <input type="hidden" name="cash_return_existing_proof" value="{{ proof_file.proof_reference }}">
+                <input type="hidden" name="cash_return_existing_filename" value="{{ proof_file.filename }}">
+                <small class="text-success d-block mt-1"><i class="bi bi-file-earmark-check"></i> {{ proof_file.filename }}</small>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
       </div>
 
       <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
@@ -404,23 +462,37 @@
         </button>
       </div>
 
-    </form>
+</form>
 </div>
+</div>
+<script>
+function togglePettyCashClaimForm() {
+  const panel = document.getElementById('pettyCashClaimFormPanel');
+  const button = document.getElementById('toggleClaimFormButton');
+  if (!panel || !button) return;
+
+  const isHidden = panel.classList.toggle('d-none');
+  button.setAttribute('aria-expanded', String(!isHidden));
+  button.innerHTML = isHidden
+    ? '<i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งเบิกเงินสดย่อย'
+    : '<i class="bi bi-chevron-up me-1"></i> ซ่อนแบบฟอร์ม';
+}
+</script>
 
 {% endif %}
 
 {% set history_target = history_fund_request if history_fund_request is defined else (selected_fund_request if selected_fund_request else (claim_detail.fund_request if claim_detail and claim_detail.fund_request else none)) %}
 
-{% if history_target %}
+{% set has_history = (claim_history|length > 0) or (parcel_return_history|length > 0) %}
+{% if history_target and has_history %}
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>
       <h3 class="h4 fw-bold mb-0 py-3">ประวัติการส่งเบิกเงินสดย่อย</h3>
     </div>
   </div>
-
-  <h5 class="fw-bold text-primary mb-2"><i class="bi bi-receipt me-2"></i>รายการส่งเบิกเงินสดย่อย</h5>
   {% if claim_history %}
+  <h5 class="fw-bold text-primary mb-2"><i class="bi bi-receipt me-2"></i>รายการส่งเบิกเงินสดย่อย</h5>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-primary text-dark text-semibold">
@@ -439,7 +511,7 @@
             <td>{{ claim.created_at|thai_date }}</td>
             <td>
               {% if claim.items_description_summary %}
-                <span class="text-center">{{ claim.items_description_summary }}</span>
+                <span style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ claim.items_description_summary }}</span>
               {% else %}
                 <span class="text-muted small">-</span>
               {% endif %}
@@ -478,12 +550,9 @@
         </tbody>
       </table>
     </div>
-  {% else %}
-    <p class="text-muted mb-4 ps-3">ยังไม่มีประวัติการส่งเบิกเงินสดย่อยสำหรับคำขอนี้</p>
   {% endif %}
-
-  <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
   {% if parcel_return_history %}
+  <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-success text-dark">
@@ -500,7 +569,7 @@
           {% for pr in parcel_return_history %}
           <tr class="align-top">
             <td>{{ pr.sent_date|thai_date }}</td>
-            <td>{{ pr.items_description }}</td>
+            <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}</div></td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
             <td>
               {% if pr.status == 'รอตรวจสอบ' %}
@@ -509,6 +578,8 @@
                 <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
               {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
                 <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
+              {% elif pr.status == 'โอนเงินสดย่อยสำเร็จ' %}
+                <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
               {% elif pr.status|lower in ['ปฏิเสธ'] %}
                 <span class="badge bg-danger text-white">ถูกปฏิเสธ</span>
               {% elif pr.status|lower == 'เอกสารตั้งฎีกา' %}
@@ -566,6 +637,14 @@
                       ได้รับเอกสารแล้ว
                     </button>
                   </form>
+                {% endif %}
+
+                {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+                <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true" class="d-flex gap-1 align-items-center">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="date" name="transferred_at" class="form-control form-control-sm" required title="วันที่โอนเงินสดย่อย">
+                  <button type="submit" class="btn btn-sm btn-success fw-bold">โอนสำเร็จ</button>
+                </form>
                 {% endif %}
 
                 {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
@@ -644,8 +723,6 @@
         </div>
       {% endif %}
     {% endfor %}
-  {% else %}
-    <p class="text-muted mb-4 ps-3">ไม่มีรายการที่ส่งไปฝ่ายพัสดุ</p>
   {% endif %}
 </section>
 {% endif %}
@@ -684,7 +761,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
         claimForm.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
-        claimForm.querySelectorAll('.claim-amount, .parcel-amount-input').forEach(input => {
+        claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .cash-return-amount-input').forEach(input => {
           input.value = input.value.replace(/,/g, '');
         });
         return;
@@ -694,9 +771,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
       const claimInputs = claimForm.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]');
       const hasClaimData = Array.from(claimInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
+      const cashInputs = claimForm.querySelectorAll('.cash-return-input');
+      const hasCashReturnData = Array.from(cashInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
       let isValid = true;
 
-      if (!hasParcelData && !hasClaimData) {
+      if (!hasParcelData && !hasClaimData && !hasCashReturnData) {
         event.preventDefault();
         window.openAppPopup({
           title: "กรุณากรอกข้อมูล",
@@ -732,6 +811,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (input.required && !input.value) isValid = false;
       });
 
+      cashInputs.forEach(input => {
+        input.required = hasCashReturnData;
+        input.classList.remove('is-invalid');
+      });
+      if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file'
+        ? input.files.length > 0 || claimForm.querySelector('input[name="cash_return_existing_proof"]')
+        : input.value.trim())) {
+        isValid = false;
+        cashInputs.forEach(input => {
+          if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
+        });
+      }
+
       const referenceNumber = claimForm.querySelector('[name="reference_number"]')?.value.trim() || '';
       const referenceDate = claimForm.querySelector('[name="reference_date"]')?.value.trim() || '';
       if ((referenceNumber && !referenceDate) || (!referenceNumber && referenceDate)) {
@@ -765,7 +857,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
-      claimForm.querySelectorAll('.claim-amount, .parcel-amount-input').forEach(input => {
+      claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .cash-return-amount-input').forEach(input => {
         input.value = input.value.replace(/,/g, '');
       });
     });
@@ -778,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener("DOMContentLoaded", function() {
-  document.querySelectorAll(".parcel-amount-input").forEach(input => {
+  document.querySelectorAll(".parcel-amount-input, .cash-return-amount-input").forEach(input => {
     if (input.value) {
       formatInputNumberWithComma(input);
     }
@@ -847,6 +939,9 @@ async function autoSavePettyCashDraft() {
 
   const fundRequestId = document.getElementById('fund_request_id')?.value || '';
   const csrfToken = claimForm.querySelector('input[name="csrf_token"]')?.value || '';
+  const cashReturnDate = claimForm.querySelector('[name="cash_return_date"]')?.value || '';
+  const cashReturnAmount = claimForm.querySelector('[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
+  const note = claimForm.querySelector('[name="note"]')?.value.trim() || '';
 
   try {
     const response = await fetch(
@@ -860,9 +955,11 @@ async function autoSavePettyCashDraft() {
       body: JSON.stringify({
         fund_request_id: fundRequestId,
         items: items,
+        cash_return: { receipt_date: cashReturnDate, amount: cashReturnAmount },
         announcements: announcements,
         reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
-        reference_date: claimForm.querySelector('[name="reference_date"]')?.value || ''
+        reference_date: claimForm.querySelector('[name="reference_date"]')?.value || '',
+        note: note
       })
       }
     );
@@ -935,11 +1032,13 @@ function calculateTotal() {
     const existingClaimTotal = parseFloat(financeDisplayEl.dataset.existingClaimTotal || '0') || 0;
     const parcelTotal = parseFloat(financeDisplayEl.dataset.parcelTotal || '0') || 0;
     const currentParcelAmount = parseFloat((parcelInput?.value || '0').replace(/,/g, '')) || 0;
-    const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount;
+    const cashReturnInput = document.querySelector('.cash-return-amount-input');
+    const currentCashReturnAmount = parseFloat((cashReturnInput?.value || '0').replace(/,/g, '')) || 0;
+    const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCashReturnAmount;
     const requestAmount = parseFloat(financeDisplayEl.dataset.requestAmount || '0') || 0;
     const isOverRequest = totalToClaim > requestAmount;
     const submittedAmount = existingClaimTotal + parcelTotal;
-    const currentAmount = grandTotal + currentParcelAmount;
+    const currentAmount = grandTotal + currentParcelAmount + currentCashReturnAmount;
     const remainingAmount = requestAmount - totalToClaim;
 
     document.getElementById('submittedAmountDisplay')?.replaceChildren(
@@ -1199,7 +1298,6 @@ function addRow() {
         <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
         <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
         <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-        <option value="6">โอนคืนบัญชีหน่วย</option>
       </select>
     </td>
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>

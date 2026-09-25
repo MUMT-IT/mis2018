@@ -72,6 +72,24 @@
         font-size: 0.9rem;
         padding-left: 28px;
       }
+      .drawer-navigation .system-switch-form {
+        margin: 4px 0;
+      }
+      .drawer-navigation .system-switch-button {
+        width: 100%;
+        border: 0;
+        text-align: left;
+        color: #cbd5e1;
+        background: transparent;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      .drawer-navigation .system-switch-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+      }
       *, *::before, *::after {
         box-sizing: border-box;
       }
@@ -257,16 +275,10 @@
       #tab-advance.active { border-bottom-color: #0d6efd !important; }
       #tab-petty.active { border-bottom-color: #198754 !important; }
       #tab-parcel.active { border-bottom-color: #ffc107 !important; }
-      .app-popup-modal .modal-content {
-        border-radius: 18px;
-        overflow: hidden;
-      }
-      .app-popup-modal .modal-header,
-      .app-popup-modal .modal-footer {
-        border: 0;
-      }
       .app-popup-message {
         white-space: pre-line;
+        overflow-wrap: anywhere;
+        line-height: 1.7;
       }
       .app-popup-field label {
         font-weight: 600;
@@ -312,7 +324,7 @@
           {% if session.get('advance_payment_system') == 'petty_cash' %}
             ระบบเงินสดย่อย
           {% elif session.get('advance_payment_system') == 'advance_payment' %}
-            ระบบทดรองจ่าย
+            ระบบเงินทดรองจ่าย
           {% elif session.get('advance_payment_system') == 'finance' %}
             ระบบจัดการเงินสดย่อยและเงินทดรองจ่าย
           {% else %}
@@ -329,7 +341,6 @@
         
         <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
           <ul class="nav nav-pills flex-column w-100">
-
             {% if session.get('advance_payment_system') == 'advance_payment' %}
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.coordinator_dashboard') }}" class="nav-link {% if request.endpoint in ['advance_payment.coordinator_dashboard', 'advance_payment.borrower_dashboard'] %}active{% endif %}">
@@ -396,6 +407,87 @@
                 </a>
               </li>
             {% endif %}
+            {% if petty_cash_settings|length > 1 %}
+              <li class="nav-section-title">เลือกบัญชีเงินสดย่อย</li>
+              {% for setting in petty_cash_settings %}
+                <li class="system-switch-form nav-subitem">
+                  <form method="post" action="{{ url_for('advance_payment.petty_cash_setting_selection') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="setting_id" value="{{ setting.id }}">
+                    <button type="submit" class="system-switch-button {% if selected_petty_cash_setting_id == setting.id %}active{% endif %}" title="{{ setting.account_number or '-' }}">
+                      <span class="d-inline-block text-sm" style="max-width: 195px;">
+                        {{ setting.department_name }}
+                      </span>
+                    </button>
+                  </form>
+                </li>
+              {% endfor %}
+            {% endif %}
+            {% if advance_payment_can_switch_systems %}
+              <li class="nav-section-title">สลับระบบ</li>
+              {% if session.get('advance_payment_system') == 'finance' %}
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="advance_payment">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-wallet2 me-2"></i> ไปยังระบบเงินทดรองจ่าย
+                    </button>
+                  </form>
+                </li>
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="petty_cash">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-cash-coin me-2"></i> ไปยังระบบเงินสดย่อย
+                    </button>
+                  </form>
+                </li>
+              {% elif session.get('advance_payment_system') == 'advance_payment' %}
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="petty_cash">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-cash-coin me-2"></i> ไปยังระบบเงินสดย่อย
+                    </button>
+                  </form>
+                </li>
+                {% if advance_payment_can_use_finance %}
+                  <li class="nav-item system-switch-form">
+                    <form method="post" action="{{ url_for('advance_payment.login') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="system" value="finance">
+                      <button type="submit" class="system-switch-button">
+                        <i class="bi bi-clipboard-check me-2"></i> ไปยังระบบการเงิน
+                      </button>
+                    </form>
+                  </li>
+                {% endif %}
+              {% else %}
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="advance_payment">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-wallet2 me-2"></i> ไปยังระบบเงินทดรองจ่าย
+                    </button>
+                  </form>
+                </li>
+                {% if advance_payment_can_use_finance %}
+                  <li class="nav-item system-switch-form">
+                    <form method="post" action="{{ url_for('advance_payment.login') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="system" value="finance">
+                      <button type="submit" class="system-switch-button">
+                        <i class="bi bi-clipboard-check me-2"></i> ไปยังระบบการเงิน
+                      </button>
+                    </form>
+                  </li>
+                {% endif %}
+              {% endif %}
+            {% endif %}
           </ul>
 
           <div class="p-3 border-top border-secondary bg-light-subtle text-dark rounded-3 mt-auto">
@@ -446,24 +538,26 @@
       </main>
     </div>
 
-    <div class="modal fade app-popup-modal" id="appPopupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade text-start" id="appPopupModal" tabindex="-1" aria-labelledby="appPopupModalTitle" aria-describedby="appPopupModalMessage" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content border-0 shadow-lg" id="appPopupModalForm" method="post" data-ajax-validation="true">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="modal-header px-4 pt-4 pb-2">
+        <div class="modal-content">
+          <div class="modal-header">
             <h5 class="modal-title fw-bold text-dark" id="appPopupModalTitle"></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body px-4 py-3">
-            <div id="appPopupModalMessage" class="app-popup-message text-secondary"></div>
-            <div id="appPopupModalFieldWrap" class="app-popup-field mt-3"></div>
-            <div id="appPopupModalAcknowledgementWrap" class="app-popup-acknowledgement mt-3 d-none"></div>
-          </div>
-          <div class="modal-footer px-4 pb-4 pt-2">
-            <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
-            <button type="submit" class="btn fw-bold" id="appPopupModalConfirm">ยืนยัน</button>
-          </div>
-        </form>
+          <form id="appPopupModalForm" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-body">
+              <div id="appPopupModalMessage" class="app-popup-message text-dark"></div>
+              <div id="appPopupModalFieldWrap" class="app-popup-field mt-3"></div>
+              <div id="appPopupModalAcknowledgementWrap" class="app-popup-acknowledgement mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+              <button type="submit" class="btn fw-bold" id="appPopupModalConfirm">ยืนยัน</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -482,6 +576,7 @@
         let lastTriggerElement = null;
         let currentPopupIsAlertOnly = false;
         let currentAcknowledgementCheckbox = null;
+        let currentAcknowledgementFieldName = "";
 
         function setConfirmButtonClass(className) {
           confirmButton.className = "btn fw-bold";
@@ -535,6 +630,7 @@
           currentTargetFormId = "";
           currentPopupIsAlertOnly = false;
           currentAcknowledgementCheckbox = null;
+          currentAcknowledgementFieldName = "";
         }
 
         function openPopup(config) {
@@ -558,6 +654,7 @@
           confirmButton.textContent = config.confirmText || "ยืนยัน";
           setConfirmButtonClass(config.confirmClass || "btn-primary");
           currentTargetFormId = config.targetFormId || "";
+          currentAcknowledgementFieldName = config.acknowledgementFieldName || "";
           lastTriggerElement = config.triggerElement || null;
           currentPopupIsAlertOnly = config.alertOnly === true;
           currentAcknowledgementCheckbox = config.requireAcknowledgement
@@ -588,6 +685,17 @@
           if (currentAcknowledgementCheckbox) {
             currentAcknowledgementCheckbox.addEventListener("change", function () {
               confirmButton.disabled = !currentAcknowledgementCheckbox.checked;
+              const targetForm = currentTargetFormId
+                ? document.getElementById(currentTargetFormId)
+                : null;
+              if (targetForm && currentAcknowledgementFieldName) {
+                const field = targetForm.querySelector(
+                  `[name="${currentAcknowledgementFieldName}"]`
+                );
+                if (field) {
+                  field.value = currentAcknowledgementCheckbox.checked ? "1" : "0";
+                }
+              }
             });
           }
 
@@ -672,6 +780,7 @@
             extraFieldsTemplateId: trigger.dataset.popupExtraFieldsTemplateId,
             requireAcknowledgement: trigger.dataset.popupRequireAcknowledgement === "true",
             acknowledgementLabel: trigger.dataset.popupAcknowledgementLabel,
+            acknowledgementFieldName: trigger.dataset.popupAcknowledgementFieldName,
             targetFormId: trigger.dataset.popupTargetFormId,
             alertOnly: trigger.dataset.popupAlertOnly === "true",
             triggerElement: trigger,

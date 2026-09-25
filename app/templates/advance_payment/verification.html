@@ -3,6 +3,21 @@
 {% block title %}รายละเอียดสัญญาเงินยืม | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
+  {% if show_creation_notice %}
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (typeof window.openAppPopup === "function") {
+          window.openAppPopup({
+            title: "เงื่อนไขการสร้างสัญญาเงินยืม",
+            message: "ข้อความสมมติเนื้อหา ว-119",
+            confirmText: "ตกลง",
+            alertOnly: true,
+          });
+        }
+      });
+    </script>
+  {% endif %}
+
   <header class="mb-4 pb-2 border-bottom">
     {% if advance_payment_role == 'finance' %}
         <a href="{{ url_for('advance_payment.finance_dashboard') }}" title="Go to Dashboard">
@@ -239,7 +254,13 @@
           </form>
       </div>
     {% endif %}
-    {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" and advance_payment_role != 'finance' %}
+    {% if borrowing_ticket.status|lower == "อนุมัติแล้ว" %}
+      <div class="d-flex justify-content-end mt-3">
+        <button type="button" class="btn btn-outline-primary fw-bold" style="border-radius:6px;" onclick="switchReturnTicketForm({{ borrowing_ticket.id }})">
+          <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
+        </button>
+      </div>
+    {% elif  advance_payment_role != 'finance' %}
       <div class="d-flex justify-content-end mt-3">
         <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
           <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน
@@ -247,12 +268,22 @@
       </div>
     {% endif %}
   </section>
+{% if can_submit_return %}
+  {% set actionable_tickets = [borrowing_ticket] %}
+  {% set return_ticket_script_state = namespace(rendered=false) %}
+  {% set return_is_borrower_page = false %}
+  {% set return_panel_id = 'return_block_ticket_' ~ borrowing_ticket.id %}
+  {% set return_panel_class = 'return-ticket-form-block' %}
+  {% set return_panel_hidden = true %}
+  {% set return_show_ticket_purpose = false %}
+  {% include 'advance_payment/partials/return_ticket_form.html' %}
+{% endif %}
+{% if return_details %}
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
       <h3 class="h4 fw-bold mb-0">รายการหลักฐานเอกสารส่งใช้เงินยืม</h3>
     </div>
     <h5 class="fw-bold text-primary mb-2"><i class="bi bi-cash-coin me-2"></i>รายการส่งฝ่ายการเงิน</h5>
-    {% if return_details %}
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-primary text-dark text-semibold">
@@ -315,12 +346,9 @@
           </tbody>
         </table>
       </div>
-    {% else %}
-      <p class="text-muted mb-0 ps-3">ยังไม่มีการส่งหลักฐานเอกสารส่งใช้เงินยืมเข้ามาในระบบ</p>
-    {% endif %}
+{% if borrowing_ticket.parcel_returns %}
     <div class="my-4"></div>
     <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
-    {% if borrowing_ticket.parcel_returns %}
       <div class="table-responsive mb-4">
         <table class="table table-hover align-middle mb-0">
           <thead class="table-success text-dark">
@@ -337,7 +365,7 @@
             {% for pr in borrowing_ticket.parcel_returns %}
             <tr class="align-top">
               <td>{{ pr.sent_date|thai_date }}</td>
-              <td>{{ pr.items_description }}</td>
+              <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}</div></td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent) }}</td>
               <td>
                 {% if pr.status == 'รอตรวจสอบ' %}
@@ -346,6 +374,8 @@
                   <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
                 {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
                   <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
+                {% elif pr.status == 'โอนเงินสดย่อยสำเร็จ' %}
+                  <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
                 {% elif pr.status|lower in ['ปฏิเสธ'] %}
                   <span class="badge bg-danger text-white">ถูกปฏิเสธ</span>
                 {% elif pr.status|lower == 'เอกสารตั้งฎีกา' %}
@@ -401,8 +431,16 @@
                         data-popup-confirm-class="btn-success"
                         data-popup-target-form-id="parcelReceivedForm{{ pr.id }}">
                         ได้รับเอกสารแล้ว
-                      </button>
-                    </form>
+                    </button>
+                  </form>
+                  {% endif %}
+
+                  {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+                  <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true" class="d-flex gap-1 align-items-center">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="date" name="transferred_at" class="form-control form-control-sm" required title="วันที่โอนเงินสดย่อย">
+                    <button type="submit" class="btn btn-sm btn-success fw-bold">โอนสำเร็จ</button>
+                  </form>
                   {% endif %}
 
                   {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
@@ -483,22 +521,20 @@
           </div>
         {% endif %}
       {% endfor %}
-    {% else %}
-      <p class="text-muted mb-4 ps-3">ไม่มีรายการที่ส่งไปฝ่ายพัสดุ</p>
     {% endif %}
   </section>
+{% endif %}
+{% set approved_returns = [] %}
+  {% for r in return_details if r.status not in ['รอตรวจสอบ', 'กำลังตรวจสอบ', 'ปฏิเสธ'] %}
+    {% set _ = approved_returns.append(r) %}
+  {% endfor %}
 
-  <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
+  {% if approved_returns or borrowing_ticket.parcel_returns %}
+  <div class="mt-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
       <h3 class="h4 fw-bold mb-0">ตารางรายการส่งใช้เงินยืม</h3>
     </div>
-    
-    {% set approved_returns = [] %}
-    {% for r in return_details if r.status not in ['รอตรวจสอบ', 'กำลังตรวจสอบ', 'ปฏิเสธ'] %}
-      {% set _ = approved_returns.append(r) %}
-    {% endfor %}
 
-    {% if approved_returns or borrowing_ticket.parcel_returns %}
       <div class="table-responsive">
         <table class="table table-bordered align-middle text-center mb-0" style="min-width: 900px;">
           <thead class="table-light align-middle fw-bold small text-secondary">
@@ -521,47 +557,37 @@
             {% set row_counter = [0] %}
 
             {% for return_detail in approved_returns|reverse %}
-              {% if return_detail.receipt_items %}
-                {% for item in return_detail.receipt_items %}
-                  {% set _ = row_counter.append(row_counter[-1] + 1) %}
-                  {% set _ = current_balance.append(current_balance[-1] - (item.amount or 0)) %}
-                  <tr>
-                    <td>{{ row_counter[-1] }}</td>
-                    <td>{{ item.receipt_date|thai_date if item.receipt_date else return_detail.created_at|thai_date }}</td>
-                    <td class="text-start">
-                    {{ item.description or '-' }}
-                    </td>
-                    <td class="text-end text-dark">{{ "{:,.2f}".format(item.amount or 0) }}</td>
-                    <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td> 
-                    <td></td> 
-                    <td></td>
-                    <td>
-                      {{ return_detail.closing_document_name or '-' }}
-                      {% if return_detail.old_document_number %}
-                        <span class="text-muted small d-block">(เลขเก่า: {{ return_detail.old_document_number }})</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                {% endfor %}
-              {% else %}
-                {% set _ = row_counter.append(row_counter[-1] + 1) %}
-                {% set _ = current_balance.append(current_balance[-1] - (return_detail.amount_spent or 0)) %}
+              {# แสดงแถวหลักของ ReturnDetail ก่อน แล้วค่อยแสดงรายการใบเสร็จย่อย #}
+              {% set _ = row_counter.append(row_counter[-1] + 1) %}
+              {% set _ = current_balance.append(current_balance[-1] - (return_detail.amount_spent or 0)) %}
+              <tr class="table-light">
+                <td>{{ row_counter[-1] }}</td>
+                <td>{{ return_detail.created_at|thai_date }}</td>
+                <td class="text-start">รายการส่งใช้เงินยืม</td>
+                <td class="text-end text-dark fw-semibold">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }}</td>
+                <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td>
+                <td></td>
+                <td></td>
+                <td>
+                  {{ return_detail.closing_document_name or '-' }}
+                  {% if return_detail.old_document_number %}
+                    <span class="text-muted small d-block">(เลขเก่า: {{ return_detail.old_document_number }})</span>
+                  {% endif %}
+                </td>
+              </tr>
+
+              {% for item in return_detail.receipt_items %}
                 <tr>
-                  <td>{{ row_counter[-1] }}</td>
-                  <td>{{ return_detail.created_at|thai_date }}</td>
-                  <td class="text-start">หลักฐานส่งใช้เงินยืม</td>
-                  <td class="text-end text-dark">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }}</td>
-                  <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td> 
-                  <td></td> 
                   <td></td>
-                  <td>
-                      {{ return_detail.closing_document_name or '-' }}
-                      {% if return_detail.old_document_number %}
-                        <span class="text-muted small d-block">(เลขเก่า: {{ return_detail.old_document_number }})</span>
-                      {% endif %}
-                    </td>
+                  <td>{{ item.receipt_date|thai_date if item.receipt_date else '-' }}</td>
+                  <td class="text-start ps-4">{{ item.description or '-' }}</td>
+                  <td class="text-end text-dark">{{ "{:,.2f}".format(item.amount or 0) }}</td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
                 </tr>
-              {% endif %}
+              {% endfor %}
             {% endfor %}
 
             {% if borrowing_ticket.parcel_returns %}
@@ -571,7 +597,7 @@
                 <tr>
                   <td>{{ row_counter[-1] }}</td>
                   <td>{{ pr.sent_date|thai_date }}</td>
-                  <td class="text-start text-dark">พัสดุ: {{ pr.items_description }}</td>
+                  <td class="text-start text-dark" style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ pr.items_description or '-' }}</div></td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                   <td class="text-end text-dark">{{ "{:,.2f}".format(current_balance[-1]) }}</td>
                   <td></td>
@@ -588,11 +614,8 @@
           </tbody>
         </table>
       </div>
-    {% else %}
-      <p class="text-muted mb-0">ยังไม่มีการส่งหลักฐานเอกสารส่งใช้เงินยืมเข้ามาในระบบ</p>
-    {% endif %}
-  </section>
-
+  </div>
+{% endif %}
 {% endblock %}
 
 

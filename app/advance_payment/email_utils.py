@@ -179,6 +179,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         status_mapping = {
             "พัสดุกำลังดำเนินการ": ("พัสดุกำลังดำเนินการ", f"เรียนคุณ {borrower_name},\n\nรายการส่งคืนพัสดุของโครงการ {ticket_name} ผ่านการตรวจสอบเบื้องต้นแล้ว"),
             "ได้รับเอกสารแล้ว": ("ได้รับเอกสารแล้ว", f"เรียนคุณ {borrower_name},\n\nรายการส่งคืนพัสดุของโครงการ {ticket_name} ฝ่ายการเงินได้รับเอกสารเรียบร้อยแล้ว"),
+            "โอนเงินสดย่อยสำเร็จ": ("โอนเงินสดย่อยสำเร็จ", f"เรียนคุณ {borrower_name},\n\nรายการส่งคืนพัสดุของโครงการ {ticket_name} โอนเงินสดย่อยสำเร็จแล้ว"),
             "ปฏิเสธ": ("ปฏิเสธ", f"เรียนคุณ {borrower_name},\n\nรายการส่งคืนพัสดุของโครงการ {ticket_name} ถูกปฏิเสธ\nเหตุผล: {target_object.rejection_comment or '-'}"),
         }
 
