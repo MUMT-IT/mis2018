@@ -407,6 +407,22 @@
                 </a>
               </li>
             {% endif %}
+            {% if petty_cash_settings|length > 1 %}
+              <li class="nav-section-title">เลือกบัญชีเงินสดย่อย</li>
+              {% for setting in petty_cash_settings %}
+                <li class="system-switch-form nav-subitem">
+                  <form method="post" action="{{ url_for('advance_payment.petty_cash_setting_selection') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="setting_id" value="{{ setting.id }}">
+                    <button type="submit" class="system-switch-button {% if selected_petty_cash_setting_id == setting.id %}active{% endif %}" title="{{ setting.account_number or '-' }}">
+                      <span class="d-inline-block text-sm" style="max-width: 195px;">
+                        {{ setting.department_name }}
+                      </span>
+                    </button>
+                  </form>
+                </li>
+              {% endfor %}
+            {% endif %}
             {% if advance_payment_can_switch_systems %}
               <li class="nav-section-title">สลับระบบ</li>
               {% if session.get('advance_payment_system') == 'finance' %}

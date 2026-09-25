@@ -69,6 +69,16 @@ def render_template(template_name, *args, **kwargs):
         "advance_payment_can_use_finance",
         FINANCE_SYSTEM in available_roles,
     )
+    kwargs.setdefault(
+        "petty_cash_settings",
+        _petty_cash_settings_for_custodian(current_user)
+        if SECRETARY_ROLE in available_roles
+        else [],
+    )
+    kwargs.setdefault(
+        "selected_petty_cash_setting_id",
+        session.get(PETTY_CASH_SETTING_SESSION_KEY),
+    )
     return _render_template(template_name, *args, **kwargs)
 
 
