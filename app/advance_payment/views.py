@@ -2672,11 +2672,10 @@ def coordinator_dashboard():
                         "ไม่สามารถบันทึกสัญญาเงินยืมได้ เนื่องจากข้อมูลซ้ำหรือไม่สอดคล้องกับข้อมูลในระบบ"
                     )
 
-                flash(f"สร้างสัญญาเงินยืมทดรองจ่ายแทน {coordinator_user.name} เรียบร้อยแล้ว", "success")
                 _send_notification_email(new_ticket)
                 # Render the newly-created ticket immediately instead of leaving
                 # the user on the dashboard with the old form still visible.
-                return verification_view(new_ticket.id)
+                return verification_view(new_ticket.id, show_creation_notice=True)
         form_errors = "; ".join(
             ", ".join(errors)
             for errors in form.errors.values()
@@ -3257,7 +3256,7 @@ def tickets_view():
 
 @bp.route("/tickets/<int:ticket_id>/verification")
 @module_system_required({ADVANCE_PAYMENT_SYSTEM, FINANCE_SYSTEM})
-def verification_view(ticket_id):
+def verification_view(ticket_id, show_creation_notice=False):
     user_role = _current_module_role()
     if _selected_system() not in {ADVANCE_PAYMENT_SYSTEM, FINANCE_SYSTEM}:
         return redirect(url_for("advance_payment.login"))
@@ -3367,6 +3366,7 @@ def verification_view(ticket_id):
             if _is_current_coordinator()
             else "/borrower/tickets/"
         ),
+        show_creation_notice=show_creation_notice,
     )
 
 def _create_parcel_return_record(*, ticket_id=None, fund_request_id=None, amount, items_description, sent_date, status="รอตรวจสอบ"):

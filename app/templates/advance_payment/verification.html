@@ -3,6 +3,21 @@
 {% block title %}รายละเอียดสัญญาเงินยืม | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
+  {% if show_creation_notice %}
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (typeof window.openAppPopup === "function") {
+          window.openAppPopup({
+            title: "เงื่อนไขการสร้างสัญญาเงินยืม",
+            message: "ข้อความสมมติเนื้อหา ว-119",
+            confirmText: "ตกลง",
+            alertOnly: true,
+          });
+        }
+      });
+    </script>
+  {% endif %}
+
   <header class="mb-4 pb-2 border-bottom">
     {% if advance_payment_role == 'finance' %}
         <a href="{{ url_for('advance_payment.finance_dashboard') }}" title="Go to Dashboard">
