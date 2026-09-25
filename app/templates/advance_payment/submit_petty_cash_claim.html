@@ -134,6 +134,21 @@
 {% set total_parcel_amount = fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 %}
 {% set is_over_request = (total_claimed_amount + total_parcel_amount) > total_request_amount if total_request_amount else false %}
 {% if can_submit_claim %}
+{% set can_toggle_claim_form = (fund_request_status or '')|lower == 'อนุมัติแล้ว' %}
+{% if can_toggle_claim_form %}
+<div class="d-flex justify-content-end mb-3">
+  <button type="button"
+          class="btn btn-outline-primary fw-bold"
+          id="toggleClaimFormButton"
+          style="border-radius: 6px;"
+          onclick="togglePettyCashClaimForm()"
+          aria-controls="pettyCashClaimFormPanel"
+          aria-expanded="false">
+    <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งเบิกเงินสดย่อย
+  </button>
+</div>
+{% endif %}
+<div id="pettyCashClaimFormPanel"{% if can_toggle_claim_form %} class="d-none"{% endif %}>
 <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
     <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm" novalidate data-ajax-validation="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -334,9 +349,9 @@
         </table>
       </div>
 
-      <div class="row g-2 align-items-center py-3">
-        <div class="col">
-          <label class="form-label fw-bold mb-1" style="max-width: 320px" for="claimNote">หมายเหตุ (ถ้ามี)</label>
+      <div class="row g-2 align-items-center justify-content-end py-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold mb-1" for="claimNote">หมายเหตุ (ถ้ามี)</label>
           <input type="text" name="note" id="claimNote" class="form-control form-control-sm" maxlength="2000" value="{{ (claim_detail.note or '') if claim_detail else '' }}" placeholder="ระบุหมายเหตุกรณีใช้ใบเสร็จร่วมกับรายการฝั่งพัสดุ">
         </div>
         <div class="col-auto align-self-end">
@@ -447,23 +462,37 @@
         </button>
       </div>
 
-    </form>
+</form>
 </div>
+</div>
+<script>
+function togglePettyCashClaimForm() {
+  const panel = document.getElementById('pettyCashClaimFormPanel');
+  const button = document.getElementById('toggleClaimFormButton');
+  if (!panel || !button) return;
+
+  const isHidden = panel.classList.toggle('d-none');
+  button.setAttribute('aria-expanded', String(!isHidden));
+  button.innerHTML = isHidden
+    ? '<i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งเบิกเงินสดย่อย'
+    : '<i class="bi bi-chevron-up me-1"></i> ซ่อนแบบฟอร์ม';
+}
+</script>
 
 {% endif %}
 
 {% set history_target = history_fund_request if history_fund_request is defined else (selected_fund_request if selected_fund_request else (claim_detail.fund_request if claim_detail and claim_detail.fund_request else none)) %}
 
-{% if history_target %}
+{% set has_history = (claim_history|length > 0) or (parcel_return_history|length > 0) %}
+{% if history_target and has_history %}
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>
       <h3 class="h4 fw-bold mb-0 py-3">ประวัติการส่งเบิกเงินสดย่อย</h3>
     </div>
   </div>
-
-  <h5 class="fw-bold text-primary mb-2"><i class="bi bi-receipt me-2"></i>รายการส่งเบิกเงินสดย่อย</h5>
   {% if claim_history %}
+  <h5 class="fw-bold text-primary mb-2"><i class="bi bi-receipt me-2"></i>รายการส่งเบิกเงินสดย่อย</h5>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-primary text-dark text-semibold">
@@ -521,12 +550,9 @@
         </tbody>
       </table>
     </div>
-  {% else %}
-    <p class="text-muted mb-4 ps-3">ยังไม่มีประวัติการส่งเบิกเงินสดย่อยสำหรับคำขอนี้</p>
   {% endif %}
-
-  <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
   {% if parcel_return_history %}
+  <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-success text-dark">
@@ -697,8 +723,6 @@
         </div>
       {% endif %}
     {% endfor %}
-  {% else %}
-    <p class="text-muted mb-4 ps-3">ไม่มีรายการที่ส่งไปฝ่ายพัสดุ</p>
   {% endif %}
 </section>
 {% endif %}

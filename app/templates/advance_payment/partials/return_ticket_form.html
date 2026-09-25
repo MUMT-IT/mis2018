@@ -129,8 +129,8 @@
               </tbody>
             </table>
           </div>
-          <div class="row g-2 align-items-center py-3">
-            <div class="col">
+          <div class="row g-2 align-items-center justify-content-end py-3">
+            <div class="col-md-6">
               <label class="form-label fw-bold mb-1" for="returnNote_{{ borrowing_ticket.id }}">หมายเหตุ (ถ้ามี)</label>
               <input type="text" name="note" id="returnNote_{{ borrowing_ticket.id }}" class="form-control form-control-sm" maxlength="2000" value="{{ (borrowing_ticket.draft_detail.note or '') if borrowing_ticket.draft_detail else '' }}" placeholder="ระบุหมายเหตุกรณีใช้ใบเสร็จร่วมกับรายการฝั่งพัสดุ">
             </div>

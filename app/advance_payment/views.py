@@ -3282,7 +3282,7 @@ def verification_view(ticket_id, show_creation_notice=False):
 
     can_submit_return = (
         _selected_system() == ADVANCE_PAYMENT_SYSTEM
-        and borrowing_ticket.status in {"อนุมัติจ่ายเงิน", "มียอดคงค้าง"}
+        and borrowing_ticket.status in {"อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง"}
         and _can_submit_return_detail(_current_user_id(), borrowing_ticket)
     )
     if can_submit_return:
