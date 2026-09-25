@@ -56,9 +56,18 @@ def render_template(template_name, *args, **kwargs):
         template_name = f"advance_payment/{template_name}"
     kwargs.setdefault("advance_payment_user", current_user)
     kwargs.setdefault("advance_payment_role", _current_module_role())
+    available_roles = set(_available_module_roles(current_user))
     kwargs.setdefault(
         "advance_payment_can_switch_systems",
-        SECRETARY_ROLE in _available_module_roles(current_user),
+        current_user.is_authenticated
+        and (
+            FINANCE_SYSTEM not in available_roles
+            or SECRETARY_ROLE in available_roles
+        ),
+    )
+    kwargs.setdefault(
+        "advance_payment_can_use_finance",
+        FINANCE_SYSTEM in available_roles,
     )
     return _render_template(template_name, *args, **kwargs)
 
@@ -556,6 +565,21 @@ def _selected_system():
     return session.get("advance_payment_system")
 
 
+def _can_use_module_system(staff, system):
+    if staff is None or getattr(staff, "is_authenticated", True) is False:
+        return False
+    if staff is not None and system in {PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM}:
+        return True
+    available_roles = set(_available_module_roles(staff))
+    if system == FINANCE_SYSTEM:
+        return FINANCE_SYSTEM in available_roles
+    if system == PETTY_CASH_SYSTEM:
+        return SECRETARY_ROLE in available_roles
+    if system == ADVANCE_PAYMENT_SYSTEM:
+        return bool(available_roles.intersection({COORDINATOR_ROLE, SECRETARY_ROLE}))
+    return False
+
+
 def _current_user_id():
     return current_user.id if current_user.is_authenticated else None
 
@@ -575,7 +599,7 @@ def _current_module_role():
         return COORDINATOR_ROLE
     if selected_system == ADVANCE_PAYMENT_SYSTEM and SECRETARY_ROLE in available_roles:
         return SECRETARY_ROLE
-    return selected_system if selected_system in AVAILABLE_SYSTEMS else None
+    return None
 
 
 def module_role_required(permission, role, system):
@@ -583,6 +607,8 @@ def module_role_required(permission, role, system):
     def decorator(view_func):
         @wraps(view_func)
         def wrapped(*args, **kwargs):
+            if current_user.is_authenticated and _can_use_module_system(current_user, system):
+                _set_selected_system(system)
             if _selected_system() != system or _current_module_role() != role:
                 abort(403)
             return view_func(*args, **kwargs)
@@ -599,7 +625,28 @@ def module_system_required(systems):
     def decorator(view_func):
         @wraps(view_func)
         def wrapped(*args, **kwargs):
-            if _selected_system() not in allowed_systems:
+            selected_system = _selected_system()
+            if not (
+                current_user.is_authenticated
+                and selected_system in allowed_systems
+                and _can_use_module_system(current_user, selected_system)
+            ):
+                selected_system = next(
+                    (
+                        system
+                        for system in (
+                            FINANCE_SYSTEM,
+                            PETTY_CASH_SYSTEM,
+                            ADVANCE_PAYMENT_SYSTEM,
+                        )
+                        if system in allowed_systems
+                        and _can_use_module_system(current_user, system)
+                    ),
+                    None,
+                )
+                if selected_system:
+                    _set_selected_system(selected_system)
+            if selected_system not in allowed_systems:
                 abort(403)
             return view_func(*args, **kwargs)
 
@@ -5733,10 +5780,21 @@ def staff_fund_request_history():
     is_secretary = _is_current_secretary(user, setting)
     is_staff_user = not is_secretary
 
-    fund_requests_query = _fund_request_setting_filter(
-        db.session.query(FundRequest), setting
-    )
     if is_staff_user:
+        if setting and setting.id:
+            fund_requests_query = _fund_request_setting_filter(
+                db.session.query(FundRequest), setting
+            )
+        else:
+            fund_requests_query = db.session.query(FundRequest).filter(
+                FundRequest.requester_id == user.id,
+                FundRequest.form_type == FUND_REQUEST_FORM_PETTY_CASH,
+            )
+    else:
+        fund_requests_query = _fund_request_setting_filter(
+            db.session.query(FundRequest), setting
+        )
+    if is_staff_user and setting and setting.id:
         fund_requests_query = fund_requests_query.filter(FundRequest.requester_id == user.id)
     fund_requests = fund_requests_query.order_by(FundRequest.id.desc()).all()
     for fund_request in fund_requests:

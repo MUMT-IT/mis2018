@@ -409,7 +409,16 @@
             {% endif %}
             {% if advance_payment_can_switch_systems %}
               <li class="nav-section-title">สลับระบบ</li>
-              {% if session.get('advance_payment_system') == 'advance_payment' %}
+              {% if session.get('advance_payment_system') == 'finance' %}
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="advance_payment">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-wallet2 me-2"></i> ไปยังระบบเงินทดรองจ่าย
+                    </button>
+                  </form>
+                </li>
                 <li class="nav-item system-switch-form">
                   <form method="post" action="{{ url_for('advance_payment.login') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -419,6 +428,27 @@
                     </button>
                   </form>
                 </li>
+              {% elif session.get('advance_payment_system') == 'advance_payment' %}
+                <li class="nav-item system-switch-form">
+                  <form method="post" action="{{ url_for('advance_payment.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="system" value="petty_cash">
+                    <button type="submit" class="system-switch-button">
+                      <i class="bi bi-cash-coin me-2"></i> ไปยังระบบเงินสดย่อย
+                    </button>
+                  </form>
+                </li>
+                {% if advance_payment_can_use_finance %}
+                  <li class="nav-item system-switch-form">
+                    <form method="post" action="{{ url_for('advance_payment.login') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="system" value="finance">
+                      <button type="submit" class="system-switch-button">
+                        <i class="bi bi-clipboard-check me-2"></i> ไปยังระบบการเงิน
+                      </button>
+                    </form>
+                  </li>
+                {% endif %}
               {% else %}
                 <li class="nav-item system-switch-form">
                   <form method="post" action="{{ url_for('advance_payment.login') }}">
@@ -429,6 +459,17 @@
                     </button>
                   </form>
                 </li>
+                {% if advance_payment_can_use_finance %}
+                  <li class="nav-item system-switch-form">
+                    <form method="post" action="{{ url_for('advance_payment.login') }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <input type="hidden" name="system" value="finance">
+                      <button type="submit" class="system-switch-button">
+                        <i class="bi bi-clipboard-check me-2"></i> ไปยังระบบการเงิน
+                      </button>
+                    </form>
+                  </li>
+                {% endif %}
               {% endif %}
             {% endif %}
           </ul>
