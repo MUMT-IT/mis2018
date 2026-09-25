@@ -711,6 +711,38 @@ def _attach_borrowing_ticket_people(ticket):
     return ticket
 
 
+def _attach_return_draft_data(ticket, creator_id=None):
+    if not ticket:
+        return None
+
+    draft_query = db.session.query(ReturnDetail).filter_by(
+        ticket_id=ticket.id,
+        status="ฉบับร่าง",
+    )
+    if creator_id is not None:
+        draft_query = draft_query.filter(ReturnDetail.creator_id == creator_id)
+
+    draft_detail = draft_query.first()
+    ticket.draft_detail = draft_detail
+    if draft_detail:
+        ticket.draft_items = (
+            db.session.query(ReturnReceiptItem)
+            .filter_by(return_detail_id=draft_detail.id)
+            .all()
+        )
+        for item in ticket.draft_items:
+            item.proof_file = (
+                db.session.query(ReturnProofFile)
+                .filter_by(return_receipt_item_id=item.id)
+                .first()
+            )
+        ticket.draft_announcements = _prepare_document_display_list(draft_detail.documents)
+    else:
+        ticket.draft_items = []
+        ticket.draft_announcements = []
+    return ticket
+
+
 def _attach_fund_request_people(fund_request):
     if not fund_request:
         return None
@@ -2084,9 +2116,21 @@ def coordinator_dashboard():
     )
     staff = current_user
 
-    # ผู้ยืมเห็นเฉพาะของตัวเอง ส่วนผู้ประสานงานยังเลือกแทนคนอื่นได้
+    # Borrower dashboards are department-scoped, but default to the current user.
+    # Coordinators keep their existing organization-wide/secretary-scoped choices.
     if is_borrower_mode:
-        dept_users = [staff]
+        current_org = _get_staff_org(staff)
+        current_org_id = getattr(current_org, "id", None)
+        directory_users = _get_staff_accounts_from_directory()
+        dept_users = [
+            user
+            for user in directory_users
+            if getattr(getattr(user, "personal_info", None), "org_id", None) == current_org_id
+        ] if current_org_id else []
+
+        if not any(getattr(user, "id", None) == staff.id for user in dept_users):
+            dept_users.append(staff)
+        dept_users.sort(key=lambda user: (getattr(user, "name", None) or getattr(user, "email", "")).lower())
     else:
         dept_users = _get_coordinator_dashboard_users(staff)
         dept_users.sort(key=lambda user: (user.email or "").lower())
@@ -2117,15 +2161,26 @@ def coordinator_dashboard():
             eligibility_by_email[user_email].blocking_statuses
         )
 
-    # ผู้ยืมต้องเห็นสัญญาที่ผูกกับตัวเองผ่าน borrower_id
-    # ผู้ประสานงานยังคงเห็นสัญญาที่ตนเป็นผู้สร้างผ่าน creator_id
-    ticket_owner_column = BorrowingTicket.borrower_id if is_borrower_mode else BorrowingTicket.creator_id
-    all_borrowing_ticket_history = (
-        db.session.query(BorrowingTicket)
-        .filter(ticket_owner_column == current_user.id)
-        .order_by(BorrowingTicket.id.desc())
-        .all()
-    )
+    if is_borrower_mode:
+        # The borrower view can inspect and clear tickets belonging to staff in
+        # the same organization, subject to the return endpoint's authorization.
+        all_borrowing_ticket_history = (
+            db.session.query(BorrowingTicket)
+            .filter(BorrowingTicket.borrower_id.in_(coordinator_user_ids))
+            .order_by(BorrowingTicket.id.desc())
+            .all()
+            if coordinator_user_ids
+            else []
+        )
+    else:
+        # Coordinators see the tickets they created, with secretary scoping
+        # applied below.
+        all_borrowing_ticket_history = (
+            db.session.query(BorrowingTicket)
+            .filter(BorrowingTicket.creator_id == current_user.id)
+            .order_by(BorrowingTicket.id.desc())
+            .all()
+        )
 
     if not is_borrower_mode and user_role == SECRETARY_ROLE:
         allowed_borrower_ids = {user.id for user in dept_users if user.id}
@@ -2135,21 +2190,47 @@ def coordinator_dashboard():
             if ticket.borrower_id in allowed_borrower_ids
         ]
 
-    created_borrower_options = []
-    seen_borrower_ids = set()
-    for ticket in all_borrowing_ticket_history:
-        borrower_id = getattr(ticket, "borrower_id", None)
-        if borrower_id in seen_borrower_ids:
-            continue
-        seen_borrower_ids.add(borrower_id)
-        created_borrower_options.append({
-            "id": borrower_id,
-            "name": ticket.borrower_name or ticket.borrower_email or "ไม่ระบุชื่อ",
-        })
+    if is_borrower_mode:
+        borrower_options_by_id = {}
+        for user in dept_users:
+            if getattr(user, "id", None) == current_user.id:
+                borrower_options_by_id[user.id] = (
+                    getattr(user, "name", None)
+                    or getattr(user, "fullname", None)
+                    or getattr(user, "email", None)
+                    or "ไม่ระบุชื่อ"
+                )
+        for ticket in all_borrowing_ticket_history:
+            borrower_id = getattr(ticket, "borrower_id", None)
+            if borrower_id and borrower_id not in borrower_options_by_id:
+                borrower_options_by_id[borrower_id] = (
+                    ticket.borrower_name
+                    or ticket.borrower_email
+                    or "ไม่ระบุชื่อ"
+                )
+        created_borrower_options = [
+            {"id": borrower_id, "name": name}
+            for borrower_id, name in borrower_options_by_id.items()
+        ]
+    else:
+        created_borrower_options = []
+        seen_borrower_ids = set()
+        for ticket in all_borrowing_ticket_history:
+            borrower_id = getattr(ticket, "borrower_id", None)
+            if borrower_id in seen_borrower_ids:
+                continue
+            seen_borrower_ids.add(borrower_id)
+            created_borrower_options.append({
+                "id": borrower_id,
+                "name": ticket.borrower_name or ticket.borrower_email or "ไม่ระบุชื่อ",
+            })
 
     selected_borrower_id = request.args.get("borrower_id", type=int)
-    if selected_borrower_id not in seen_borrower_ids:
-        selected_borrower_id = None
+    valid_borrower_ids = {option["id"] for option in created_borrower_options}
+    if is_borrower_mode and selected_borrower_id is None:
+        selected_borrower_id = current_user.id
+    if selected_borrower_id not in valid_borrower_ids:
+        selected_borrower_id = current_user.id if is_borrower_mode and current_user.id in valid_borrower_ids else None
 
     borrowing_ticket_history = (
         [
@@ -2165,7 +2246,7 @@ def coordinator_dashboard():
     if is_borrower_mode:
         current_org_id = getattr(_get_staff_org(current_user), "id", None)
         if current_org_id:
-            actionable_tickets = (
+            actionable_query = (
                 db.session.query(BorrowingTicket)
                 .join(StaffAccount, StaffAccount.id == BorrowingTicket.borrower_id)
                 .join(StaffPersonalInfo, StaffPersonalInfo.id == StaffAccount.personal_id)
@@ -2173,37 +2254,17 @@ def coordinator_dashboard():
                     StaffPersonalInfo.org_id == current_org_id,
                     BorrowingTicket.status.in_(["อนุมัติจ่ายเงิน", "มียอดคงค้าง"]),
                 )
-                .order_by(BorrowingTicket.id.desc())
-                .all()
             )
+            if selected_borrower_id is not None:
+                actionable_query = actionable_query.filter(BorrowingTicket.borrower_id == selected_borrower_id)
+            actionable_tickets = actionable_query.order_by(BorrowingTicket.id.desc()).all()
 
     tickets_with_return_forms = list({
         ticket.id: ticket
         for ticket in borrowing_ticket_history + actionable_tickets
     }.values())
     for ticket in tickets_with_return_forms:
-        draft_detail = (
-            db.session.query(ReturnDetail)
-            .filter_by(ticket_id=ticket.id, status="ฉบับร่าง")
-            .first()
-        )
-        ticket.draft_detail = draft_detail
-        if draft_detail:
-            ticket.draft_items = (
-                db.session.query(ReturnReceiptItem)
-                .filter_by(return_detail_id=draft_detail.id)
-                .all()
-            )
-            for item in ticket.draft_items:
-                item.proof_file = (
-                    db.session.query(ReturnProofFile)
-                    .filter_by(return_receipt_item_id=item.id)
-                    .first()
-                )
-            ticket.draft_announcements = _prepare_document_display_list(draft_detail.documents)
-        else:
-            ticket.draft_items = []
-            ticket.draft_announcements = []
+        _attach_return_draft_data(ticket)
 
     dashboard_ticket_ids = {
         ticket.id
@@ -2501,7 +2562,7 @@ def coordinator_dashboard():
     dashboard_party_scope = (
         "เฉพาะหน่วยงาน"
         if user_role == SECRETARY_ROLE and not is_borrower_mode
-        else "เฉพาะตัวเอง" if is_borrower_mode else "บุคลากรทั้งองค์กร"
+        else "เฉพาะหน่วยงาน (เริ่มต้นแสดงข้อมูลของตนเอง)" if is_borrower_mode else "บุคลากรทั้งองค์กร"
     )
 
     return render_template(
@@ -2541,11 +2602,12 @@ def export_ticket_pdf(ticket_id):
     if not ticket:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-        (not _is_current_coordinator() and ticket.borrower_id != _current_user_id())
-        or (_is_current_coordinator() and ticket.creator_id != _current_user_id())
-    ):
-        abort(403)
+    if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
+        if _is_current_coordinator():
+            if ticket.creator_id != _current_user_id():
+                abort(403)
+        elif not _can_submit_return_detail(_current_user_id(), ticket):
+            abort(403)
 
     pdf_bytes = generate_fnar02_pdf(ticket)
 
@@ -3082,8 +3144,18 @@ def verification_view(ticket_id):
                 and borrowing_ticket.creator_id == _current_user_id()
             )
         )
-        if not can_manage_as_coordinator and borrowing_ticket.borrower_id != _current_user_id():
+        if not can_manage_as_coordinator and not _can_submit_return_detail(
+            _current_user_id(), borrowing_ticket
+        ):
             abort(403)
+
+    can_submit_return = (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and borrowing_ticket.status in {"อนุมัติจ่ายเงิน", "มียอดคงค้าง"}
+        and _can_submit_return_detail(_current_user_id(), borrowing_ticket)
+    )
+    if can_submit_return:
+        _attach_return_draft_data(borrowing_ticket, creator_id=_current_user_id())
 
     return_details = (
         db.session.query(ReturnDetail)
@@ -3094,6 +3166,13 @@ def verification_view(ticket_id):
         .order_by(ReturnDetail.id.desc())
         .all()
     )
+    verification_return_total = sum(
+        float(return_detail.amount_spent or 0)
+        for return_detail in return_details
+    )
+    verification_remaining_amount = float(
+        borrowing_ticket.required_budget or 0
+    ) - verification_return_total
     parcel_returns = (
         db.session.query(ParcelReturnDetail)
         .filter_by(ticket_id=ticket_id)
@@ -3119,6 +3198,10 @@ def verification_view(ticket_id):
     borrowing_ticket.parcel_returns = parcel_returns
 
     summary = _calculate_ticket_return_totals(ticket_id)
+    summary["cumulative_total"] = verification_return_total
+    summary["remaining_amount"] = verification_remaining_amount
+    borrowing_ticket.submitted_return_total = verification_return_total
+    borrowing_ticket.ticket_remaining = verification_remaining_amount
     notifications = None
 
     proof_files = (
@@ -3141,6 +3224,17 @@ def verification_view(ticket_id):
         notifications=notifications,
         proof_files_dict=proof_files_dict,
         today=datetime.now().date(),
+        can_submit_return=can_submit_return,
+        return_form_action=(
+            url_for("advance_payment.coordinator_ticket_returns")
+            if _is_current_coordinator()
+            else url_for("advance_payment.submit_return_details")
+        ),
+        return_autosave_endpoint_prefix=(
+            "/coordinator/tickets/"
+            if _is_current_coordinator()
+            else "/borrower/tickets/"
+        ),
     )
 
 def _create_parcel_return_record(*, ticket_id=None, fund_request_id=None, amount, items_description, sent_date, status="รอตรวจสอบ"):
@@ -4162,8 +4256,9 @@ def autosave_return_draft(ticket_id):
     if not ticket or ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"}:
         return jsonify({"success": False, "message": "ไม่สามารถบันทึกร่างได้"}), 400
 
-    # ผู้ใช้ทั่วไปบันทึกฉบับร่างได้เฉพาะสัญญาที่ตนเป็นผู้ยืม
-    if not _is_current_coordinator() and ticket.borrower_id != _current_user_id():
+    # ใช้สิทธิ์ชุดเดียวกับการส่ง return เพื่อให้ผู้สร้าง/ผู้ยืม
+    # หรือบุคลากรในหน่วยงานเดียวกันที่เปิด verification ได้บันทึกร่างต่อได้
+    if not _can_submit_return_detail(_current_user_id(), ticket):
         abort(403)
 
     data = request.get_json() or {}
@@ -5218,9 +5313,9 @@ def view_return_proof_detail(return_id):
     if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
         if _can_use_coordinator_dashboard():
             allowed_user_id = borrowing_ticket.creator_id
-        else:
-            allowed_user_id = borrowing_ticket.borrower_id
-        if _current_user_id() != allowed_user_id:
+            if _current_user_id() != allowed_user_id:
+                abort(403)
+        elif not _can_submit_return_detail(_current_user_id(), borrowing_ticket):
             abort(403)
 
     _prepare_document_display_list(return_detail.documents)
@@ -5929,9 +6024,9 @@ def export_ticket_return_pdf(return_id):
     if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
         if _can_use_coordinator_dashboard():
             allowed_user_id = borrowing_ticket.creator_id
-        else:
-            allowed_user_id = borrowing_ticket.borrower_id
-        if _current_user_id() != allowed_user_id:
+            if _current_user_id() != allowed_user_id:
+                abort(403)
+        elif not _can_submit_return_detail(_current_user_id(), borrowing_ticket):
             abort(403)
 
     if request.method == "GET":

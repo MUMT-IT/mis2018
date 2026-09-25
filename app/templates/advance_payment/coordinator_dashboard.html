@@ -7,11 +7,6 @@
   .document-input-row .announcement-input { background-color: #fff !important; color: #212529 !important; border-color: #6c757d !important; }
   .document-input-row .announcement-input::placeholder { color: #495057; opacity: 1; }
 </style>
-  <header class="mb-4 pb-3 border-bottom">
-    <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับผู้ประสานงาน</p>
-    <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
-  </header>
-
   <!-- Summary Cards Section -->
   <section class="mb-4">
     <div class="row g-3 align-items-stretch">
@@ -28,21 +23,21 @@
         <div class="card border rounded-4 shadow-sm bg-white p-3 h-100">
           <div class="text-muted small fw-bold text-uppercase">กำหนดส่งเงินยืมที่ใกล้ที่สุด</div>
           <div class="mt-2">
-            {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status', 'equalto', 'เอกสารตั้งฎีกา') | rejectattr('status', 'equalto', 'เคลียร์ยอดแล้ว') | rejectattr('status', 'equalto', 'ปฏิเสธ') | list %}
+            {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status', 'equalto', 'เอกสารตั้งฎีกา') | rejectattr('status', 'equalto', 'เคลียร์ยอดแล้ว') | rejectattr('status', 'equalto', 'ปฏิเสธ') | rejectattr('status', 'equalto', 'กำลังส่งคำขอ') | list %}
             {% if borrowing_ticket_history %}
               {% if active_tickets %}
                 {% set target_ticket = (active_tickets | sort(attribute='due_date')) | first %}
                 {% if target_ticket.status|lower != 'กำลังส่งคำขอ' %}
-                  {% if summary_overdue_days is not none %}
+                  {% if target_ticket.summary_overdue_days is not none %}
                     <div class="fs-2 fw-bold text-danger">
                       {{ target_ticket.due_date | thai_date }}
                     </div>
-                    <span class="text-danger small mt-1"><i class="bi bi-x-circle-fill"></i> เลยมาแล้ว {{ summary_overdue_days }} วัน</span>
-                  {% elif summary_days_remaining is not none %}
+                    <span class="text-danger small mt-1"><i class="bi bi-x-circle-fill"></i> เลยมาแล้ว {{ target_ticket.summary_overdue_days }} วัน</span>
+                  {% elif target_ticket.summary_days_remaining is not none %}
                     <div class="fs-2 fw-bold text-warning">
                       {{ target_ticket.due_date | thai_date }}
                     </div>
-                    <span class="text-warning small mt-1"><i class="bi bi-exclamation-triangle-fill"></i> เหลืออีก {{ summary_days_remaining }} วัน</span>
+                    <span class="text-warning small mt-1"><i class="bi bi-exclamation-triangle-fill"></i> เหลืออีก {{ target_ticket.summary_days_remaining }} วัน</span>
                   {% else %}
                     <div class="fs-2 fw-bold text-success">
                       {{ target_ticket.due_date | thai_date }}
@@ -81,7 +76,7 @@
         {% endif %}
         <div class="d-flex justify-content-end mt-auto">
           <a href="{{ url_for('advance_payment.borrower_dashboard') }}" class="btn btn-outline-primary">
-            <i class="bi bi-person me-2" aria-hidden="true"></i>เบิกเงินยืมสำหรับตนเอง
+            <i class="bi bi-person me-2" aria-hidden="true"></i>สร้างสัญญาเงินยืมสำหรับตนเอง
           </a>
         </div>
       </div>
@@ -100,6 +95,9 @@
     }
   </script>
 
+  {% set actionable_tickets = borrowing_ticket_history | selectattr('status', 'defined') | filter_actionable_tickets | list %}
+  {% set auto_open_return_tab = selected_borrower_id is not none and actionable_tickets %}
+
   <!-- Combined Form Section with Tab Switcher -->
   <section class="mb-5">
     <div class="card shadow-sm border rounded-4 overflow-hidden">
@@ -107,12 +105,12 @@
       <div class="card-header border-bottom p-0" style="background-color: #e6e8ed;">
         <ul class="nav nav-tabs card-header-tabs m-0 border-bottom-0" id="borrowerActionTab" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-bold px-4 py-3" id="tab-advance" data-bs-toggle="tab" data-bs-target="#create-ticket-pane" type="button" role="tab" aria-controls="create-ticket-pane" aria-selected="true">
+            <button class="nav-link {% if not auto_open_return_tab %}active{% endif %} fw-bold px-4 py-3" id="tab-advance" data-bs-toggle="tab" data-bs-target="#create-ticket-pane" type="button" role="tab" aria-controls="create-ticket-pane" aria-selected="{{ 'false' if auto_open_return_tab else 'true' }}">
               <i class="bi bi-file-earmark-plus me-2"></i>สร้างสัญญาเงินยืมใหม่
             </button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold px-4 py-3" id="tab-return" data-bs-toggle="tab" data-bs-target="#submit-proof-pane" type="button" role="tab" aria-controls="submit-proof-pane" aria-selected="false">
+            <button class="nav-link {% if auto_open_return_tab %}active{% endif %} fw-bold px-4 py-3" id="tab-return" data-bs-toggle="tab" data-bs-target="#submit-proof-pane" type="button" role="tab" aria-controls="submit-proof-pane" aria-selected="{{ 'true' if auto_open_return_tab else 'false' }}">
               <i class="bi bi-file-earmark-check me-2"></i>ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
             </button>
           </li>
@@ -123,7 +121,7 @@
       <div class="card-body p-4 tab-content" id="borrowerActionTabContent">
         
         <!-- Tab 1: Create Borrowing Ticket Section -->
-        <div class="tab-pane fade show active" id="create-ticket-pane" role="tabpanel" aria-labelledby="tab-advance" tabindex="0">
+        <div class="tab-pane fade {% if not auto_open_return_tab %}show active{% endif %}" id="create-ticket-pane" role="tabpanel" aria-labelledby="tab-advance" tabindex="0">
           <form method="post" class="needs-validation" id="createBorrowingTicketForm" data-ajax-validation="true">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <!-- Dropdown เลือกผู้ยืมเงินจาก Department -->
@@ -219,10 +217,11 @@
         </div>
 
         <!-- Tab 2: Submit Clearing Proof Section -->
-        <div class="tab-pane fade" id="submit-proof-pane" role="tabpanel" aria-labelledby="tab-return" tabindex="0">
-          {% set actionable_tickets = borrowing_ticket_history | selectattr('status', 'defined') | filter_actionable_tickets | list %}
+        <div class="tab-pane fade {% if auto_open_return_tab %}show active{% endif %}" id="submit-proof-pane" role="tabpanel" aria-labelledby="tab-return" tabindex="0">
           
           {% if actionable_tickets %}
+            {% set return_panel_hidden = not auto_open_return_tab %}
+            {% if not auto_open_return_tab %}
             <div class="row px-3 w-100 mb-4">
               <label for="selected_return_ticket_id" class="form-label fw-bold text-dark">
                 <i class="bi bi-file-earmark-text me-1 text-primary"></i> เลือกสัญญาเงินยืม
@@ -236,194 +235,16 @@
                 {% endfor %}
               </select>
             </div>
+            {% endif %}
+            {% set return_ticket_script_state = namespace(rendered=false) %}
+            {% set return_is_borrower_page = false %}
+            {% set return_autosave_endpoint_prefix = '/coordinator/tickets/' %}
             {% for borrowing_ticket in actionable_tickets %}
-              <div class="return-ticket-form-block d-none" id="return_block_ticket_{{ borrowing_ticket.id }}">
-                {% if (borrowing_ticket.submitted_return_total or 0)|float >= (borrowing_ticket.required_budget or 0)|float %}
-                  <p class="text-muted text-center my-4">ได้ทำการส่งเอกสารเบิกครบแล้ว รอการตรวจสอบจากฝ่ายการเงิน</p>
-                {% else %}
-                <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
-                  <form method="post" action="{{ url_for('advance_payment.coordinator_ticket_returns') }}" enctype="multipart/form-data" id="returnForm_{{ borrowing_ticket.id }}" data-ajax-validation="true">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="ticket_id" value="{{ borrowing_ticket.id }}">
-                    <input type="hidden" name="action" id="action_{{ borrowing_ticket.id }}" value="submit">
-                    
-                    <div class="mb-4 border rounded-3 p-3 bg-white">
-                      <h4 class="h6 fw-bold text-dark mb-3">แนบเอกสารประกาศประกอบ (ถ้ามี)</h4>
-                      
-                        <div id="document-inputs-container-{{ borrowing_ticket.id }}">
-                          {% if borrowing_ticket.draft_announcements and borrowing_ticket.draft_announcements|length > 0 %}
-                            {% for doc in borrowing_ticket.draft_announcements %}
-                              <div class="row g-2 mb-2 document-input-row align-items-center">
-                                <div class="col-md-7 position-relative">
-                                  <input type="hidden" name="announcement_ids[]" class="announcement-id-input" value="{{ doc.file_id or doc.id }}">
-                                  <input type="text" name="announcement_titles[]" 
-                                        class="form-control form-control-sm announcement-input" 
-                                        placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
-                                        autocomplete="off"
-                                        value="{{ doc.title }}"
-                                        onfocus="showSuggestions(this, {{ borrowing_ticket.id }}, false)"
-                                        oninput="showSuggestions(this, {{ borrowing_ticket.id }})">
-                                  <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
-                                </div>
-
-                                <div class="col-md-5 d-flex gap-2 action-buttons-container">
-                                  <a href="{{ doc.url or doc.view_url or doc.file_path or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.url and not doc.view_url and not doc.file_path %}d-none{% endif %}" target="_blank" rel="noopener">
-                                    <i class="bi bi-download me-1"></i> ดาวน์โหลด
-                                  </a>
-                                  <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
-                                    <i class="bi bi-x-circle-fill"></i> ลบ
-                                  </button>
-                                </div>
-                              </div>
-                            {% endfor %}
-                          {% else %}
-                            <div class="row g-2 mb-2 document-input-row align-items-center">
-                              <div class="col-md-7 position-relative">
-                                <input type="hidden" name="announcement_ids[]" class="announcement-id-input">
-                                <input type="text" name="announcement_titles[]" 
-                                      class="form-control form-control-sm announcement-input" 
-                                      placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
-                                      autocomplete="off"
-                                      onfocus="showSuggestions(this, {{ borrowing_ticket.id }}, false)"
-                                      oninput="showSuggestions(this, {{ borrowing_ticket.id }})">
-                                <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
-                              </div>
-
-                              <div class="col-md-5 d-flex gap-2 action-buttons-container">
-                                <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
-                                  <i class="bi bi-download me-1"></i> ดาวน์โหลด
-                                </a>
-                              </div>
-                            </div>
-                          {% endif %}
-                        </div>
-                      <button type="button" class="btn btn-sm btn-outline-primary mt-2 add-document-btn {% if not (borrowing_ticket.draft_announcements and borrowing_ticket.draft_announcements|length > 0) %}d-none{% endif %}" onclick="addDocumentRow({{ borrowing_ticket.id }}, this)">
-                        + เพิ่มประกาศอื่น
-                      </button>
-                      <div class="col-md-12 mt-2">
-                        <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบการเบิกเงินยืมด้วย *</small>
-                      </div>
-                    </div>
-                    <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-                      <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
-                      <div class="table-responsive">
-                        <table class="table table-bordered align-middle mb-0" id="receiptTable_{{ borrowing_ticket.id }}">
-                          <thead class="table-light small fw-bold">
-                            <tr>
-                              <th>วันที่ในใบเสร็จ</th>
-                              <th>ชื่อร้านค้า / ผู้รับเงิน</th>
-                              <th>รายละเอียดรายการ</th>
-                              <th style="width: 150px;">จำนวนเงิน (บาท)</th>
-                              <th>ไฟล์หลักฐาน (PDF, JPG, PNG)</th>
-                              <th style="width: 50px;" class="text-center">ลบ</th>
-                            </tr>
-                          </thead>
-                          <tbody id="receiptBody_{{ borrowing_ticket.id }}">
-                            {% if borrowing_ticket.draft_items %}
-                              {% for item in borrowing_ticket.draft_items %}
-                                {% set row_index = loop.index0 %}
-                                <tr>
-                                  <td>
-                                    <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}">
-                                    <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
-                                  </td>
-                                  <td>
-                                    <textarea name="store_name[]" class="form-control form-control-sm" style="resize: vertical; min-height: 31px;">{{ item.store_name }}</textarea>
-                                  </td>
-                                  <td>
-                                    <textarea name="description[]" class="form-control form-control-sm" style="resize: vertical; min-height: 31px;">{{ item.description }}</textarea>
-                                    <label class="form-check mt-2">
-                                      <input type="checkbox" name="is_cash_{{ row_index }}" value="true" class="form-check-input receipt-is-cash" onchange="fillCashReturnFields(this)" {% if item.is_cash %}checked{% endif %}>
-                                      <span class="form-check-label">เงินเหลือส่งใช้เงินยืม</span>
-                                    </label>
-                                  </td>
-                                  <td>
-                                    <input type="text" name="amount[]" step="0.01" min="0.00" class="form-control form-control-sm item-amount-input" value="{{ item.amount if item.amount else '' }}" placeholder="0.00" oninput="calculateTotalSpent({{ borrowing_ticket.id }})">
-                                  </td>
-                                  <td>
-                                    <input type="file" name="proof_files_{{ row_index }}[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm" {% if row_index == 0 and not item.proof_files %}required{% endif %}>
-                                    {% for proof_file in item.proof_files %}
-                                      <div class="small text-muted mt-1">
-                                        <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
-                                        <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
-                                        ไฟล์เดิม: <a href="/{{ proof_file.proof_reference }}" target="_blank">{{ proof_file.filename }}</a>
-                                      </div>
-                                    {% endfor %}
-                                  </td>
-                                  <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeReceiptRow(this, {{ borrowing_ticket.id }})">
-                                      <i class="bi bi-trash3-fill"></i>
-                                    </button>
-                                  </td>
-                                </tr>
-                              {% endfor %}
-                            {% endif %}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div class="text-end py-3">
-                        <button type="button" class="btn btn-sm btn-outline-primary px-2 shadow-sm fw-bold" onclick="addReceiptRow({{ borrowing_ticket.id }})" style="border-radius: 6px;">
-                          <i class="bi bi-plus-lg me-1"></i> เพิ่มแถวใบเสร็จ
-                        </button>
-                      </div>
-                    </div>
-                      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-                        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่งไปฝ่ายพัสดุ</h3>
-                        <div class="row g-3">
-                          <div class="col-md-4">
-                            <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-                            <input type="date" name="sent_date" class="form-control parcel-return-input" required>
-                          </div>
-                          <div class="col-md-4">
-                            <label class="form-label fw-bold">รายการ</label>
-                            <input type="text" name="items_description" class="form-control parcel-return-input" placeholder="รายละเอียดรายการ..." required>
-                          </div>
-                          <div class="col-md-4">
-                            <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
-                            <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input parcel-return-input" required placeholder="0.00">
-                          </div>
-                        </div>
-                      </div>
-                      <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
-                        <div class="d-flex flex-column gap-2 ms-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
-                          <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
-                            <span class="fw-bold">ยอดที่ขอไป</span>
-                            <span class="fw-bold">{{ "{:,.2f}".format(borrowing_ticket.required_budget or 0) }}</span>
-                          </div>
-                          <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
-                            <span class="fw-bold">ยอดที่ส่งแล้ว</span>
-                            <span class="fw-bold">{{ "{:,.2f}".format(borrowing_ticket.submitted_return_total or 0) }}</span>
-                          </div>
-                          <div class="border-top border-3 border-dark my-2" style="border-top-style: dashed !important;"></div>
-                          <div class="d-flex justify-content-between align-items-center gap-4 text-dark fs-4">
-                            <span class="fw-bold">ยอดครั้งนี้</span>
-                            <span class="fw-bold bg-info-subtle border border-info rounded-3 px-4 py-1" id="sumAmountDisplay_{{ borrowing_ticket.id }}" data-budget="{{ borrowing_ticket.required_budget or 0 }}" data-existing-total="{{ borrowing_ticket.submitted_return_total or 0 }}">0.00</span>
-                          </div>
-                          <div class="d-flex justify-content-between align-items-baseline gap-4 text-dark fs-4">
-                            <span class="fw-bold">ยอดคงค้าง</span>
-                            <span class="fw-bold" id="remainingAmountDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.ticket_remaining or 0) }}</span>
-                          </div>
-                          <div class="text-end fw-bold fs-4 lh-1">==============</div>
-                          <span class="visually-hidden" id="sumAmountUnit_{{ borrowing_ticket.id }}">บาท</span>
-                        </div>
-                      </div>
-                      <div class="row g-3 mb-3 align-items-end">
-                        <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-                          <span class="fw-bold text-danger text-center me-3">กรณีเงินคืนเงินเหลือใช้เงินทดรองจ่าย ให้ทำการใส่ไฟล์ข้อมูลสลิปการโอนลงในตาราง<br> เลือกช่อง "เงินเหลือส่งใช้เงินยืม" ในรายการนั้น และอัปโหลดสลิปการโอนประกอบ</span>
-
-                          <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
-                            <i class="bi bi-save me-1"></i> บันทึกร่าง (ฉบับร่าง)
-                          </button>
-
-                          <button class="btn btn-primary fw-bold px-4 py-2" type="button" id="submitReturnBtn_{{ borrowing_ticket.id }}" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'submit')" style="border-radius: 8px;">
-                            ส่งหลักฐานเอกสารส่งใช้เงินยืม
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                </form>
-                {% endif %}
-              </div>
+              {% set return_form_action = url_for('advance_payment.coordinator_ticket_returns') %}
+              {% set return_panel_id = 'return_block_ticket_' ~ borrowing_ticket.id %}
+              {% set return_panel_class = 'return-ticket-form-block' %}
+              {% set return_show_ticket_purpose = false %}
+              {% include 'advance_payment/partials/return_ticket_form.html' %}
             {% endfor %}
           {% else %}
             <p class="text-muted text-center my-4">ไม่มีสัญญาเงินยืมเงินที่ต้องส่งหลักฐานเอกสารส่งใช้เงินยืมในขณะนี้</p>
@@ -662,7 +483,6 @@
                 </tr>
               {% endfor %}
             {% else %}
-              <tr><td colspan="8" class="text-center py-4 text-muted"><i class="bi bi-inbox fs-3 d-block mb-2 text-muted"></i>ยังไม่มีรายการส่งใช้เงินยืมหรือส่งคืนพัสดุ</td></tr>
           </tbody>
         </table>
       </div>
@@ -749,15 +569,12 @@
       const selectedOption = selectElem.options[selectElem.selectedIndex];
       if (!selectedOption || !selectedOption.value) {
         const fieldset = document.getElementById('borrowingFormFieldset');
-        if (fieldset) {
-          fieldset.disabled = false;
-        }
+        if (fieldset) fieldset.disabled = false;
         return;
       }
-      const isEligible = selectedOption.getAttribute('data-eligible') === 'true';
-      const reason = selectedOption.getAttribute('data-reason') || 'ไม่ผ่านเงื่อนไขการยืมเงินทดรองจ่าย';
-      const fieldset = document.getElementById('borrowingFormFieldset');
 
+      const isEligible = selectedOption.getAttribute('data-eligible') === 'true';
+      const fieldset = document.getElementById('borrowingFormFieldset');
       if (!isEligible) {
         window.openAppPopup({
           title: "ไม่สามารถยืมได้",
@@ -766,27 +583,9 @@
           confirmClass: "btn-primary",
           alertOnly: true,
         });
-        if (fieldset) {
-          fieldset.disabled = true;
-        }
-      } else {
-        if (fieldset) {
-          fieldset.disabled = false;
-        }
-      }
-    }
-
-    // ฟังก์ชันสลับการแสดงผลแบบฟอร์ม Return ตาม Ticket ID ที่เลือกใน Dropdown
-    function switchReturnTicketForm(ticketId) {
-      document.querySelectorAll('.return-ticket-form-block').forEach(block => {
-        block.classList.add('d-none');
-      });
-      if (!ticketId) {
-        return;
-      }
-      const selectedBlock = document.getElementById(`return_block_ticket_${ticketId}`);
-      if (selectedBlock) {
-        selectedBlock.classList.remove('d-none');
+        if (fieldset) fieldset.disabled = true;
+      } else if (fieldset) {
+        fieldset.disabled = false;
       }
     }
 
@@ -815,118 +614,9 @@
       }
     }
 
-    function getReceiptAgeWarningMessage(receiptDateValue) {
-      if (!receiptDateValue) return "";
-      const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
-      if (Number.isNaN(receiptDate.getTime())) return "";
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const ageInDays = Math.floor((today - receiptDate) / 86400000);
-      if (ageInDays > 10) {
-          return "ใบเสร็จมีอายุเกิน 10 วัน กรุณาจัดทำเอกสารขออนุมัติเบิกจ่ายล่าช้าเกิน 30 วัน";
-      }
-      return "";
-    }
-
-    function updateReceiptAgeWarning(input) {
-      const warning = input.closest("td")?.querySelector(".receipt-age-warning");
-      if (!warning) return;
-
-      const message = getReceiptAgeWarningMessage(input.value);
-      if (message) {
-          warning.textContent = message;
-          warning.classList.add("text-danger");
-          warning.classList.remove("d-none");
-      } else {
-          warning.textContent = "";
-          warning.classList.add("d-none");
-      }
-    }
-
-    function bindReceiptAgeWarnings(scope) {
-      const root = scope || document;
-      root.querySelectorAll('input[name="receipt_date[]"]').forEach(input => {
-          if (input.dataset.ageWarningBound === "1") return;
-          input.dataset.ageWarningBound = "1";
-          const syncWarning = () => updateReceiptAgeWarning(input);
-          input.addEventListener("input", syncWarning);
-          input.addEventListener("change", syncWarning);
-          syncWarning();
-      });
-    }
-
-    function getReceiptTicketIdFromInput(input) {
-      const tbody = input?.closest("tbody[id^='receiptBody_']");
-      return tbody ? tbody.id.replace("receiptBody_", "") : null;
-    }
-
-    function bindAmountInputEvents(input, ticketId) {
-      const resolvedTicketId = ticketId || getReceiptTicketIdFromInput(input);
-
-      if (input.value) {
-          formatInputNumberWithComma(input);
-      }
-
-      input.addEventListener("input", function() {
-          formatInputNumberWithComma(this);
-          calculateTotalSpent(resolvedTicketId);
-      });
-
-      input.addEventListener("blur", function() {
-          formatInputNumberOnBlur(this);
-          calculateTotalSpent(resolvedTicketId);
-      });
-
-      if (resolvedTicketId) {
-        calculateTotalSpent(resolvedTicketId);
-      }
-    }
-
     document.addEventListener("DOMContentLoaded", function() {
-      // ตรวจสอบสถานะผู้ยืมเงินตอนเริ่มต้น
       const borrowerSelect = document.getElementById("borrower_email");
-      if (borrowerSelect) {
-        checkBorrowerEligibility(borrowerSelect);
-      }
-
-      document.querySelectorAll(".parcel-amount-input").forEach(input => {
-          if (input.value) formatInputNumberWithComma(input);
-
-          const ticketId = input.id.replace("parcel_amount_", "");
-          input.addEventListener("input", function() {
-            formatInputNumberWithComma(this);
-            calculateTotalSpent(ticketId);
-          });
-          input.addEventListener("blur", function() {
-            formatInputNumberOnBlur(this);
-            calculateTotalSpent(ticketId);
-          });
-
-      });
-
-      bindReceiptAgeWarnings(document);
-
-      {% for borrowing_ticket in borrowing_ticket_history %}
-        {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'เคลียร์ยอดแล้ว', 'เอกสารตั้งฎีกา', 'ปฏิเสธ'] %}
-          {% if not borrowing_ticket.draft_items %}
-            addReceiptRow({{ borrowing_ticket.id }});
-          {% else %}
-            calculateTotalSpent({{ borrowing_ticket.id }});
-          {% endif %}
-        {% endif %}
-      {% endfor %}
-
-      document.querySelectorAll(".item-amount-input").forEach(input => {
-          const ticketId = getReceiptTicketIdFromInput(input);
-          bindAmountInputEvents(input, ticketId);
-      });
-
-      document.querySelectorAll('tbody[id^="receiptBody_"]').forEach(tbody => {
-          const ticketId = tbody.id.replace("receiptBody_", "");
-          calculateTotalSpent(ticketId);
-      });
+      if (borrowerSelect) checkBorrowerEligibility(borrowerSelect);
 
       const budgetInput = document.getElementById("required_budget");
       if (budgetInput) {
@@ -940,9 +630,7 @@
       if (borrowingTicketForm) {
           borrowingTicketForm.addEventListener("submit", async function(event) {
               if (borrowingTicketForm.dataset.popupConfirmed === "true") {
-                  if (budgetInput) {
-                      budgetInput.value = budgetInput.value.replace(/,/g, "");
-                  }
+                  if (budgetInput) budgetInput.value = budgetInput.value.replace(/,/g, "");
                   return;
               }
 
@@ -998,368 +686,6 @@
                   if (submitter) submitter.disabled = false;
               }
           });
-      }
-
-      document.querySelectorAll("form[id^='returnForm_']").forEach(form => {
-          form.addEventListener("submit", function() {
-              form.querySelectorAll(".item-amount-input").forEach(input => {
-                  input.value = input.value.replace(/,/g, "");
-              });
-          });
-      });
-    });
-
-    function submitFormWithAction(ticketId, type) {
-      const form = document.getElementById(`returnForm_${ticketId}`);
-      document.getElementById(`action_${ticketId}`).value = type;
-      
-      if (type === 'draft') {
-        form.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
-        form.querySelectorAll(".item-amount-input").forEach(input => {
-            input.value = input.value.replace(/,/g, "");
-        });
-        form.submit();
-      } else {
-        let isValid = true;
-        const parcelInputs = form.querySelectorAll('.parcel-return-input');
-        const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
-        const returnInputs = form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"], input[type="file"]');
-        const hasReturnData = Array.from(returnInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
-
-        if (!hasParcelData && !hasReturnData) {
-          window.openAppPopup({
-            title: "กรุณากรอกข้อมูล",
-            message: "กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุหรือเพิ่มรายละเอียดใบเสร็จอย่างน้อยหนึ่งรายการ",
-            confirmText: "ตกลง",
-            confirmClass: "btn-primary",
-            alertOnly: true,
-          });
-          return;
-        }
-
-        parcelInputs.forEach(input => {
-          input.required = hasParcelData;
-          input.classList.remove('is-invalid');
-        });
-        if (hasParcelData && !Array.from(parcelInputs).every(input => input.value.trim())) {
-          isValid = false;
-        }
-
-        form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"]').forEach(el => {
-          el.required = hasReturnData;
-        });
-
-        if (hasReturnData) {
-          form.querySelectorAll('input, textarea').forEach(el => {
-            if (['receipt_date[]', 'store_name[]', 'description[]', 'amount[]'].includes(el.name)) {
-              if (!el.value || !el.value.trim()) {
-                isValid = false;
-                el.classList.add('is-invalid');
-              } else {
-                el.classList.remove('is-invalid');
-              }
-            }
-          });
-          form.querySelectorAll('input[type="file"]').forEach((el, index) => {
-            const existingFiles = el.parentElement.querySelectorAll('input[name^="existing_proof_files_"]');
-            el.required = index === 0 && !el.files.length && !existingFiles.length;
-            if (el.required && !el.value) isValid = false;
-          });
-        } else {
-          form.querySelectorAll('[required]').forEach(el => {
-            el.required = false;
-            el.classList.remove('is-invalid');
-          });
-        }
-
-        if (isValid && !form.checkValidity()) {
-          isValid = false;
-        }
-
-        if (isValid) {
-          form.querySelectorAll(".item-amount-input, .parcel-amount-input").forEach(input => {
-              input.value = input.value.replace(/,/g, "");
-          });
-          form.submit();
-        } else {
-          window.openAppPopup({
-            title: "กรุณาตรวจสอบข้อมูล",
-            message: "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วนก่อนทำการส่งเอกสาร",
-            confirmText: "ตกลง",
-            confirmClass: "btn-primary",
-            alertOnly: true,
-          });
-        }
-      }
-    }
-
-    function fillCashReturnFields(checkbox) {
-      if (!checkbox.checked) return;
-      const row = checkbox.closest('tr');
-      for (const [name, value] of [['store_name[]', '-'], ['description[]', 'เงินเหลือส่งใช้เงินยืม']]) {
-        const field = row.querySelector(`[name="${name}"]`);
-        field.value = value;
-        field.classList.remove('is-invalid');
-        field.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    }
-
-    function addReceiptRow(ticketId) {
-      const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (!tbody) return;
-      
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>
-          <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
-          <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
-        </td>
-        <td><textarea name="store_name[]" class="form-control form-control-sm" placeholder="เช่น ร้านค้า A" style="resize: vertical; min-height: 31px;" required></textarea></td>
-        <td>
-          <textarea name="description[]" class="form-control form-control-sm" placeholder="ระบุรายละเอียดรายการ..." style="resize: vertical; min-height: 31px;" required></textarea>
-          <label class="form-check mt-2">
-            <input type="checkbox" value="true" class="form-check-input receipt-is-cash" onchange="fillCashReturnFields(this)">
-            <span class="form-check-label">เงินเหลือส่งใช้เงินยืม</span>
-          </label>
-        </td>
-        <td><input type="text" name="amount[]" class="form-control form-control-sm item-amount-input" placeholder="0.00" required></td>
-        <td>
-          <input type="file" name="proof_files_${document.getElementById(`receiptBody_${ticketId}`).rows.length}[]" accept=".pdf,.jpg,.jpeg,.png" class="form-control form-control-sm">
-        </td>
-        <td class="text-center">
-          <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeReceiptRow(this, ${ticketId})" title="ลบแถวนี้">
-            <i class="bi bi-trash3-fill fs-6"></i>
-          </button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-      updateReceiptFileIndices(ticketId);
-      bindReceiptAgeWarnings(tr);
-      
-      const newAmtInput = tr.querySelector(".item-amount-input");
-      bindAmountInputEvents(newAmtInput, ticketId);
-      calculateTotalSpent(ticketId);
-    }
-
-    function removeReceiptRow(button, ticketId) {
-      const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (tbody.getElementsByTagName('tr').length > 1) {
-          button.closest('tr').remove();
-          updateReceiptFileIndices(ticketId);
-          calculateTotalSpent(ticketId);
-      } else {
-          window.openAppPopup({
-            title: "ไม่สามารถลบแถวสุดท้าย",
-            message: "คุณต้องกรอกข้อมูลใบเสร็จอย่างน้อย 1 รายการเพื่อส่งหลักฐาน",
-            confirmText: "ตกลง",
-            confirmClass: "btn-primary",
-            alertOnly: true,
-          });
-      }
-    }
-
-    function updateReceiptFileIndices(ticketId) {
-      const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (!tbody) return;
-      Array.from(tbody.rows).forEach((row, index) => {
-        row.querySelector(".receipt-is-cash").name = `is_cash_${index}`;
-        row.querySelectorAll('input[type="file"]').forEach(input => {
-          input.name = `proof_files_${index}[]`;
-        });
-        row.querySelectorAll('input[name^="existing_proof_files_"]').forEach(input => {
-          input.name = `existing_proof_files_${index}[]`;
-        });
-        row.querySelectorAll('input[name^="existing_proof_filenames_"]').forEach(input => {
-          input.name = `existing_proof_filenames_${index}[]`;
-        });
-      });
-    }
-
-    function calculateTotalSpent(ticketId) {
-      const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if(!tbody) return;
-      const inputs = tbody.getElementsByClassName('item-amount-input');
-      let total = 0;
-      for (let input of inputs) {
-          let cleanVal = input.value.replace(/,/g, "");
-          total += parseFloat(cleanVal) || 0;
-      }
-      const totalDisplay = document.getElementById(`sumAmountDisplay_${ticketId}`);
-      if (!totalDisplay) {
-        return;
-      }
-      const parcelInput = document.getElementById(`parcel_amount_${ticketId}`);
-      total += parseFloat((parcelInput?.value || "0").replace(/,/g, "")) || 0;
-      const existingTotal = parseFloat(totalDisplay?.dataset.existingTotal || "0") || 0;
-      const budget = parseFloat(totalDisplay.dataset.budget || "0") || 0;
-      const isOverBudget = total + existingTotal > budget;
-      totalDisplay.classList.toggle("text-danger", isOverBudget);
-      totalDisplay.classList.toggle("bg-danger-subtle", isOverBudget);
-      totalDisplay.classList.toggle("bg-info-subtle", !isOverBudget);
-      document.getElementById(`sumAmountUnit_${ticketId}`)?.classList.toggle("text-danger", isOverBudget);
-      totalDisplay.innerText = total.toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-      });
-      const remainingDisplay = document.getElementById(`remainingAmountDisplay_${ticketId}`);
-      if (remainingDisplay) {
-        remainingDisplay.innerText = (budget - existingTotal - total).toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        });
-        remainingDisplay.classList.toggle("text-danger", isOverBudget);
-      }
-
-      updateReturnButtonsState(ticketId, isOverBudget);
-    }
-
-    function updateReturnButtonsState(ticketId, isOverBudget) {
-      const submitBtn = document.getElementById(`submitReturnBtn_${ticketId}`);
-
-      [submitBtn].forEach(btn => {
-        if (!btn) {
-          return;
-        }
-
-        btn.disabled = isOverBudget;
-        btn.setAttribute("aria-disabled", isOverBudget ? "true" : "false");
-        btn.title = isOverBudget ? "ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้" : "";
-      });
-    }
-
-    function addDocumentRow(ticketId, buttonElem) {
-      const container = ticketId
-        ? document.getElementById(`document-inputs-container-${ticketId}`)
-        : buttonElem?.closest('form')?.querySelector('[id^="document-inputs-container-"]');
-
-      if (!container) {
-        console.warn('Could not find document input container for announcement row');
-        return;
-      }
-
-      const row = document.createElement('div');
-      row.className = 'row g-2 mb-2 document-input-row align-items-center';
-      row.innerHTML = `
-        <div class="col-md-7 position-relative">
-          <input type="hidden" name="announcement_ids[]" class="announcement-id-input">
-          <input type="text" name="announcement_titles[]" 
-                class="form-control form-control-sm announcement-input" 
-                placeholder="พิมพ์เพื่อค้นหาประกาศในระบบ..." 
-                autocomplete="off"
-                onfocus="showSuggestions(this, ${ticketId}, false)"
-                oninput="showSuggestions(this, ${ticketId})">
-          <div class="suggestions-box list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050;"></div>
-        </div>
-        <div class="col-md-5 d-flex gap-2 action-buttons-container">
-          <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
-            <i class="bi bi-download me-1"></i> ดาวน์โหลด
-          </a>
-          <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
-            <i class="bi bi-x-circle-fill"></i> ลบ
-          </button>
-        </div>
-      `;
-      container.appendChild(row);
-      updateAddDocumentButton(container);
-    }
-
-    function updateAddDocumentButton(container) {
-      const hasSelectedAnnouncement = [...container.querySelectorAll('.document-input-row')].some(row =>
-        row.querySelector('.announcement-id-input')?.value.trim() ||
-        row.querySelector('.announcement-input')?.value.trim()
-      );
-      container.closest('form')?.querySelector('.add-document-btn')?.classList.toggle('d-none', !hasSelectedAnnouncement);
-    }
-
-    function removeDocumentRow(btn) {
-      const row = btn.closest('.document-input-row');
-      const container = row.parentElement;
-      if (container.querySelectorAll('.document-input-row').length > 1) {
-        row.remove();
-      } else {
-        row.querySelector('.announcement-input').value = '';
-        if (row.querySelector('.announcement-id-input')) row.querySelector('.announcement-id-input').value = '';
-        row.querySelector('.download-btn').classList.add('d-none');
-      }
-      updateAddDocumentButton(container);
-    }
-
-    async function showSuggestions(inputElem, ticketId, resetSelection = true) {
-      const query = inputElem.value.trim();
-      const row = inputElem.closest('.document-input-row');
-      const suggestionsBox = row.querySelector('.suggestions-box');
-      const downloadBtn = row.querySelector('.download-btn');
-      const idInput = row.querySelector('.announcement-id-input');
-
-      if (resetSelection) {
-        downloadBtn.classList.add('d-none');
-        if (idInput) idInput.value = '';
-        updateAddDocumentButton(row.parentElement);
-      }
-
-  try {
-        const response = await fetch(`{{ url_for('advance_payment.suggest_documents') }}?q=${encodeURIComponent(query)}`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const docs = await response.json();
-
-        if (docs.length === 0) {
-          suggestionsBox.innerHTML = `<div class="list-group-item list-group-item-action disabled small">ไม่พบข้อมูลประกาศ</div>`;
-          suggestionsBox.classList.remove('d-none');
-          return;
-        }
-
-        suggestionsBox.innerHTML = docs.map(doc => `
-          <button type="button" 
-                  class="list-group-item list-group-item-action small text-start" 
-                  onclick="selectAnnouncement(this, '${doc.id}', '${escapeHtml(doc.title)}', '${doc.view_url || doc.url || doc.file_path || ''}')">
-            <i class="bi bi-file-earmark-pdf text-danger me-1"></i> ${escapeHtml(doc.title)}
-          </button>
-        `).join('');
-
-    suggestionsBox.classList.remove('d-none');
-  } catch (err) {
-    console.error('Error fetching announcements:', err);
-    suggestionsBox.innerHTML = `<div class="list-group-item list-group-item-action disabled small text-danger">ค้นหาไม่สำเร็จ กรุณาลองใหม่อีกครั้ง</div>`;
-    suggestionsBox.classList.remove('d-none');
-  }
-}
-
-    function selectAnnouncement(itemElem, docId, docTitle, filePath) {
-      const row = itemElem.closest('.document-input-row');
-      const titleInput = row.querySelector('.announcement-input');
-      const idInput = row.querySelector('.announcement-id-input');
-      const downloadBtn = row.querySelector('.download-btn');
-      const suggestionsBox = row.querySelector('.suggestions-box');
-
-      titleInput.value = docTitle;
-      if (idInput) idInput.value = docId;
-
-      if (filePath) {
-        downloadBtn.href = filePath;
-        downloadBtn.classList.remove('d-none');
-      } else {
-        downloadBtn.classList.add('d-none');
-      }
-
-      updateAddDocumentButton(row.parentElement);
-
-      suggestionsBox.classList.add('d-none');
-      suggestionsBox.innerHTML = '';
-    }
-
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, function(m) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-      });
-    }
-
-    document.addEventListener('click', function(e) {
-      if (!e.target.classList.contains('announcement-input')) {
-        document.querySelectorAll('.suggestions-box').forEach(box => {
-          box.classList.add('d-none');
-        });
       }
     });
 
@@ -1432,112 +758,6 @@
         filterTable();
     }
 
-    let autoSaveTimer = null;
-
-    function autoSaveDraft(ticketId) {
-      const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (!tbody) return;
-
-      const rows = tbody.querySelectorAll('tr');
-      const items = [];
-
-      rows.forEach(row => {
-        const receiptDate = row.querySelector('input[name="receipt_date[]"]')?.value || '';
-        const storeName = row.querySelector('textarea[name="store_name[]"]')?.value || '';
-        const description = row.querySelector('textarea[name="description[]"]')?.value || '';
-        const amountVal = row.querySelector('.item-amount-input')?.value.replace(/,/g, '') || '0';
-
-        items.push({
-          receipt_date: receiptDate,
-          store_name: storeName,
-          description: description,
-          is_cash: row.querySelector(".receipt-is-cash")?.checked === true,
-          amount: amountVal
-        });
-      });
-
-      const announcements = [];
-      const docContainer = document.getElementById(`document-inputs-container-${ticketId}`);
-      if (docContainer) {
-        docContainer.querySelectorAll('.document-input-row').forEach(row => {
-          const title = row.querySelector('.announcement-input')?.value.trim() || '';
-          const docId = row.querySelector('.announcement-id-input')?.value.trim() || '';
-          if (title || docId) {
-            announcements.push({ id: docId, title: title });
-          }
-        });
-      }
-
-      showAutoSaveStatus(ticketId, 'saving');
-
-      fetch(`/coordinator/tickets/${ticketId}/autosave-draft`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items, announcements: announcements })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          showAutoSaveStatus(ticketId, 'saved', data.saved_at);
-        } else {
-          showAutoSaveStatus(ticketId, 'error');
-        }
-      })
-      .catch(err => {
-        console.error('Auto-save error:', err);
-        showAutoSaveStatus(ticketId, 'error');
-      });
-    }
-
-    function triggerAutoSave(ticketId) {
-      showAutoSaveStatus(ticketId, 'typing');
-      clearTimeout(autoSaveTimer);
-      autoSaveTimer = setTimeout(() => {
-        autoSaveDraft(ticketId);
-      }, 1500);
-    }
-
-    function showAutoSaveStatus(ticketId, state, timeStr = '') {
-      const statusEl = document.getElementById(`autoSaveStatus_${ticketId}`);
-      if (!statusEl) return;
-
-      if (state === 'typing') {
-        statusEl.innerHTML = `<span class="text-muted small"><i class="bi bi-pencil me-1"></i>กำลังพิมพ์...</span>`;
-      } else if (state === 'saving') {
-        statusEl.innerHTML = `<span class="text-warning small"><i class="bi bi-cloud-upload me-1"></i>กำลังบันทึกร่างอัตโนมัติ...</span>`;
-      } else if (state === 'saved') {
-        statusEl.innerHTML = `<span class="text-success small"><i class="bi bi-cloud-check me-1"></i>บันทึกร่างแล้วเมื่อ ${timeStr}</span>`;
-      } else if (state === 'error') {
-        statusEl.innerHTML = `<span class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>บันทึกร่างอัตโนมัติไม่สำเร็จ</span>`;
-      }
-    }
-
-    function bindAutoSaveEvents(ticketId) {
-      const form = document.getElementById(`returnForm_${ticketId}`);
-      if (!form) return;
-
-      form.addEventListener('input', function(e) {
-        if (e.target.type !== 'file') triggerAutoSave(ticketId);
-      });
-
-      form.addEventListener('change', function(e) {
-        if (e.target.type !== 'file') triggerAutoSave(ticketId);
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-      {% for borrowing_ticket in borrowing_ticket_history %}
-        {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'เคลียร์ยอดแล้ว', 'เอกสารตั้งฎีกา', 'ปฏิเสธ'] %}
-          bindAutoSaveEvents({{ borrowing_ticket.id }});
-        {% endif %}
-      {% endfor %}
-
-      document.querySelectorAll("form[id^='returnForm_']").forEach(form => {
-        const ticketId = form.id.replace("returnForm_", "");
-        calculateTotalSpent(ticketId);
-      });
-    });
-
     function syncBankAccountInfo(selectElem) {
       const hiddenInput = document.getElementById('bank_account_info_id');
       if (!hiddenInput || !selectElem) {
@@ -1557,7 +777,6 @@
       });
       syncBankAccountInfo(document.getElementById('account_number'));
 
-      // เปลี่ยน Dropdown ผู้ยืมเงินให้พิมพ์ค้นหาได้
       $('#borrower_email').select2({
         theme: 'bootstrap-5',
         placeholder: 'พิมพ์เพื่อค้นหาผู้ยืมเงิน...',
@@ -1565,7 +784,6 @@
         width: '100%'
       });
 
-      // ดักจับ Event เมื่อเลือกค่าผ่าน Select2 เพื่อให้ฟังก์ชันเดิมทำงานได้ปกติ
       $('#borrower_email').on('change', function() {
         checkBorrowerEligibility(this);
       });
