@@ -160,12 +160,43 @@ def _get_early_checkout_info(staff_account, now):
     if not first_record or not first_record.start_datetime:
         return None
     first_scan = _to_bangkok(first_record.start_datetime)
-    elapsed_hours = max((now.astimezone(tz) - first_scan).total_seconds() / 3600, 0)
+    local_now = now.astimezone(tz)
+    work_start = first_scan
+    ot_records = getattr(staff_account, 'ot_record_staff', [])
+    if hasattr(ot_records, 'all'):
+        ot_records = ot_records.all()
+    office_start = datetime.strptime('09:00', '%H:%M').time()
+    morning_ot_cutoff = datetime.strptime('08:00', '%H:%M').time()
+    for ot_record in ot_records:
+        if getattr(ot_record, 'canceled_at', None) or not getattr(ot_record, 'shift', None):
+            continue
+        ot_range = getattr(ot_record.shift, 'datetime', None)
+        if not ot_range or not ot_range.lower or not ot_range.upper:
+            continue
+        ot_start = ot_range.lower
+        ot_end = ot_range.upper
+        if ot_start.tzinfo is None:
+            ot_start = tz.localize(ot_start)
+        else:
+            ot_start = ot_start.astimezone(tz)
+        if ot_end.tzinfo is None:
+            ot_end = tz.localize(ot_end)
+        else:
+            ot_end = ot_end.astimezone(tz)
+        if (
+            ot_start.date() == local_now.date()
+            and ot_end.date() == local_now.date()
+            and ot_start.time() < office_start
+            and ot_end.time() > morning_ot_cutoff
+        ):
+            work_start = max(work_start, ot_end)
+    elapsed_hours = max((local_now - work_start).total_seconds() / 3600, 0)
     if elapsed_hours >= 8:
         return None
     return {
         'worked_hours': round(elapsed_hours, 1),
         'first_scan': first_scan,
+        'work_start': work_start,
     }
 
 

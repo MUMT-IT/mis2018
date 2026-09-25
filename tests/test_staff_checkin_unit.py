@@ -57,6 +57,12 @@ class _FakeQuery:
     def count(self):
         return self.count_value
 
+    def order_by(self, *_args, **_kwargs):
+        return self
+
+    def first(self):
+        return self.rows[0] if self.rows else None
+
 
 class _FakeSession:
     def __init__(self):
@@ -218,7 +224,15 @@ def _install_import_stubs(monkeypatch):
     monkeypatch.setitem(sys.modules, "pydrive.drive", pydrive_drive_mod)
 
     monkeypatch.setitem(sys.modules, "pydrive", _module("pydrive"))
-    monkeypatch.setitem(sys.modules, "app.procurement.models", _module("app.procurement.models", ProcurementPlan=object))
+    monkeypatch.setitem(
+        sys.modules,
+        "app.procurement.models",
+        _module(
+            "app.procurement.models",
+            ProcurementPlan=object,
+            ProcurementPlanCommitteeMember=object,
+        ),
+    )
 
     sys.modules.pop("app.staff.views", None)
 
@@ -270,6 +284,90 @@ def test_create_work_login_record_increments_daily_scan_count_and_sets_qrcode_ex
     assert record.qrcode_in_exp_datetime == qrcode_exp.astimezone(pytz.utc)
     assert fake_session.added == [record]
     assert fake_session.commits == 1
+
+
+def test_morning_ot_ending_at_0830_counts_work_hours_from_ot_end(staff_views, monkeypatch):
+    bangkok = pytz.timezone("Asia/Bangkok")
+    query = _FakeQuery(count_value=1)
+    query.rows = [SimpleNamespace(start_datetime=bangkok.localize(datetime(2026, 6, 26, 6, 0)))]
+
+    class FakeStaffWorkLogin:
+        start_datetime = SimpleNamespace(asc=lambda: None)
+
+        @staticmethod
+        def generate_date_id(_date_value):
+            return "20260626"
+
+    FakeStaffWorkLogin.query = query
+    ot_range = SimpleNamespace(
+        lower=datetime(2026, 6, 26, 6, 0),
+        upper=datetime(2026, 6, 26, 8, 30),
+    )
+    staff = SimpleNamespace(
+        ot_record_staff=[SimpleNamespace(canceled_at=None, shift=SimpleNamespace(datetime=ot_range))]
+    )
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", FakeStaffWorkLogin)
+
+    info = staff_views._get_early_checkout_info(
+        staff, bangkok.localize(datetime(2026, 6, 26, 16, 0)).astimezone(pytz.utc)
+    )
+
+    assert info["worked_hours"] == 7.5
+    assert info["work_start"].isoformat() == "2026-06-26T08:30:00+07:00"
+
+
+def test_morning_ot_ending_at_0815_completes_eight_hours_at_1615(staff_views, monkeypatch):
+    bangkok = pytz.timezone("Asia/Bangkok")
+    query = _FakeQuery(count_value=1)
+    query.rows = [SimpleNamespace(start_datetime=bangkok.localize(datetime(2026, 6, 26, 6, 0)))]
+
+    class FakeStaffWorkLogin:
+        start_datetime = SimpleNamespace(asc=lambda: None)
+
+        @staticmethod
+        def generate_date_id(_date_value):
+            return "20260626"
+
+    FakeStaffWorkLogin.query = query
+    ot_range = SimpleNamespace(
+        lower=datetime(2026, 6, 26, 6, 0),
+        upper=datetime(2026, 6, 26, 8, 15),
+    )
+    staff = SimpleNamespace(
+        ot_record_staff=[SimpleNamespace(canceled_at=None, shift=SimpleNamespace(datetime=ot_range))]
+    )
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", FakeStaffWorkLogin)
+
+    assert staff_views._get_early_checkout_info(
+        staff, bangkok.localize(datetime(2026, 6, 26, 16, 15)).astimezone(pytz.utc)
+    ) is None
+
+
+def test_morning_ot_ending_at_eight_does_not_add_1630_block(staff_views, monkeypatch):
+    bangkok = pytz.timezone("Asia/Bangkok")
+    query = _FakeQuery(count_value=1)
+    query.rows = [SimpleNamespace(start_datetime=bangkok.localize(datetime(2026, 6, 26, 6, 0)))]
+
+    class FakeStaffWorkLogin:
+        start_datetime = SimpleNamespace(asc=lambda: None)
+
+        @staticmethod
+        def generate_date_id(_date_value):
+            return "20260626"
+
+    FakeStaffWorkLogin.query = query
+    staff = SimpleNamespace(ot_record_staff=[SimpleNamespace(
+        canceled_at=None,
+        shift=SimpleNamespace(datetime=SimpleNamespace(
+            lower=datetime(2026, 6, 26, 6, 0),
+            upper=datetime(2026, 6, 26, 8, 0),
+        )),
+    )])
+    monkeypatch.setattr(staff_views, "StaffWorkLogin", FakeStaffWorkLogin)
+
+    assert staff_views._get_early_checkout_info(
+        staff, bangkok.localize(datetime(2026, 6, 26, 16, 0)).astimezone(pytz.utc)
+    ) is None
 
 
 def test_daily_work_login_rows_collapses_scans_by_day_and_uses_first_and_last_scan(staff_views):
