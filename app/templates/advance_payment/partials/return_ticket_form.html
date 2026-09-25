@@ -91,6 +91,7 @@
               <tbody id="receiptBody_{{ borrowing_ticket.id }}">
                 {% if borrowing_ticket.draft_items %}
                   {% for item in borrowing_ticket.draft_items %}
+                    {% if not item.is_cash %}
                     {% set row_index = loop.index0 %}
                     <tr>
                       <td>
@@ -102,10 +103,6 @@
                       </td>
                       <td>
                         <textarea name="description[]" class="form-control form-control-sm" style="resize: vertical; min-height: 31px;">{{ item.description }}</textarea>
-                        <label class="form-check mt-2">
-                          <input type="checkbox" name="is_cash_{{ row_index }}" value="true" class="form-check-input receipt-is-cash" onchange="fillCashReturnFields(this)" {% if item.is_cash %}checked{% endif %}>
-                          <span class="form-check-label">เงินเหลือส่งใช้เงินยืม</span>
-                        </label>
                       </td>
                       <td>
                         <input type="text" name="amount[]" step="0.01" min="0.00" class="form-control form-control-sm item-amount-input" value="{{ item.amount if item.amount else '' }}" placeholder="0.00" oninput="calculateTotalSpent({{ borrowing_ticket.id }})">
@@ -126,6 +123,7 @@
                         </button>
                       </td>
                     </tr>
+                    {% endif %}
                   {% endfor %}
                 {% endif %}
               </tbody>
@@ -156,6 +154,34 @@
           </div>
         </div>
 
+        {% set cash_return_item = borrowing_ticket.cash_draft_item %}
+        <div class="card p-4 mb-4 border rounded-4 shadow-sm">
+          <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนเงินเหลือส่งใช้เงินยืม</h3>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">วันที่ทำการโอน</label>
+              <input type="date" name="cash_return_date" class="form-control cash-return-input" value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
+              <input type="text" name="cash_return_amount" id="cash_return_amount_{{ borrowing_ticket.id }}" class="form-control cash-return-amount-input cash-return-input" value="{{ cash_return_item.amount if cash_return_item and cash_return_item.amount else '' }}" placeholder="0.00">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">ไฟล์หลักฐานการโอน (PDF, JPG, PNG)</label>
+              <input type="file" name="cash_return_proof_file" accept=".pdf,.jpg,.jpeg,.png" class="form-control cash-return-input">
+              {% if cash_return_item %}
+                {% for proof_file in cash_return_item.proof_files %}
+                  <div class="small text-muted mt-1">
+                    <input type="hidden" name="cash_return_existing_proof" value="{{ proof_file.proof_reference }}">
+                    <input type="hidden" name="cash_return_existing_filename" value="{{ proof_file.filename }}">
+                    ไฟล์เดิม: <a href="/{{ proof_file.proof_reference }}" target="_blank">{{ proof_file.filename }}</a>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
         <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
           <div class="d-flex flex-column gap-2 ms-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
@@ -182,7 +208,7 @@
 
         <div class="row g-3 mb-3 align-items-end">
           <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-            <span class="fw-bold text-danger text-center me-3">กรณีเงินคืนเงินเหลือใช้เงินทดรองจ่าย ให้ทำการใส่ไฟล์ข้อมูลสลิปการโอนลงในตาราง<br> เลือกช่อง "เงินเหลือส่งใช้เงินยืม" ในรายการนั้น และอัปโหลดสลิปการโอนประกอบ</span>
+            <span class="fw-bold text-danger text-center me-3">กรณีเงินเหลือใช้เงินทดรองจ่าย ให้กรอกข้อมูลการโอนและแนบไฟล์หลักฐานในช่องด้านบน</span>
 
             <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
               <i class="bi bi-save me-1"></i> บันทึกร่าง (ฉบับร่าง)
@@ -201,6 +227,31 @@
 {% if return_ticket_script_state is defined and not return_ticket_script_state.rendered %}
   {% set return_ticket_script_state.rendered = true %}
   <script>
+    function formatInputNumberWithComma(element) {
+      let value = (element.value || "").replace(/,/g, "").replace(/[^0-9.]/g, "");
+      const parts = value.split(".");
+      if (parts.length > 2) {
+        value = parts[0] + "." + parts.slice(1).join("");
+      }
+      if (parts[0]) {
+        const formattedInteger = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        element.value = parts.length > 1 ? `${formattedInteger}.${parts[1]}` : formattedInteger;
+      } else {
+        element.value = value;
+      }
+    }
+
+    function formatInputNumberOnBlur(element) {
+      const value = (element.value || "").replace(/,/g, "").replace(/[^0-9.]/g, "");
+      const number = parseFloat(value);
+      if (!Number.isNaN(number) && number > 0) {
+        element.value = number.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+    }
+
     const returnPanelSelector = "{{ '.return-ticket-panel' if return_is_borrower_page else '.return-ticket-form-block' }}";
     const returnPanelIdPrefix = "{{ 'returnTicketPanel_' if return_is_borrower_page else 'return_block_ticket_' }}";
     const returnAutosaveEndpointPrefix = "{{ return_autosave_endpoint_prefix }}";
@@ -297,10 +348,13 @@
       let isValid = true;
       const parcelInputs = form.querySelectorAll('.parcel-return-input');
       const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
-      const returnInputs = form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"], input[type="file"]');
-      const hasReturnData = Array.from(returnInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
+      const receiptInputs = form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"]');
+      const receiptProofInputs = form.querySelectorAll('input[name^="proof_files_"]');
+      const cashInputs = form.querySelectorAll('.cash-return-input');
+      const hasReturnData = Array.from(receiptInputs).some(input => input.value.trim()) || Array.from(receiptProofInputs).some(input => input.files.length > 0);
+      const hasCashReturnData = Array.from(cashInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
 
-      if (!hasParcelData && !hasReturnData) {
+      if (!hasParcelData && !hasReturnData && !hasCashReturnData) {
         window.openAppPopup({
           title: "กรุณากรอกข้อมูล",
           message: "กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุหรือเพิ่มรายละเอียดใบเสร็จอย่างน้อยหนึ่งรายการ",
@@ -334,7 +388,7 @@
             }
           }
         });
-        form.querySelectorAll('input[type="file"]').forEach((el, index) => {
+        form.querySelectorAll('input[name^="proof_files_"]').forEach((el, index) => {
           const existingFiles = el.parentElement.querySelectorAll('input[name^="existing_proof_files_"]');
           el.required = index === 0 && !el.files.length && !existingFiles.length;
           if (el.required && !el.value) isValid = false;
@@ -346,12 +400,23 @@
         });
       }
 
+      cashInputs.forEach(input => {
+        input.required = hasCashReturnData;
+        input.classList.remove('is-invalid');
+      });
+      if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file' ? input.files.length > 0 || form.querySelector('input[name="cash_return_existing_proof"]') : input.value.trim())) {
+        isValid = false;
+        cashInputs.forEach(input => {
+          if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
+        });
+      }
+
       if (isValid && !form.checkValidity()) {
         isValid = false;
       }
 
       if (isValid) {
-        form.querySelectorAll(".item-amount-input, .parcel-amount-input").forEach(input => {
+        form.querySelectorAll(".item-amount-input, .parcel-amount-input, .cash-return-amount-input").forEach(input => {
           input.value = input.value.replace(/,/g, "");
         });
         form.submit();
@@ -363,17 +428,6 @@
           confirmClass: "btn-primary",
           alertOnly: true,
         });
-      }
-    }
-
-    function fillCashReturnFields(checkbox) {
-      if (!checkbox.checked) return;
-      const row = checkbox.closest('tr');
-      for (const [name, value] of [['store_name[]', '-'], ['description[]', 'เงินเหลือส่งใช้เงินยืม']]) {
-        const field = row.querySelector(`[name="${name}"]`);
-        field.value = value;
-        field.classList.remove('is-invalid');
-        field.dispatchEvent(new Event('input', { bubbles: true }));
       }
     }
 
@@ -390,10 +444,6 @@
         <td><textarea name="store_name[]" class="form-control form-control-sm" placeholder="เช่น ร้านค้า A" style="resize: vertical; min-height: 31px;" required></textarea></td>
         <td>
           <textarea name="description[]" class="form-control form-control-sm" placeholder="รายละเอียดรายการ..." style="resize: vertical; min-height: 31px;" required></textarea>
-          <label class="form-check mt-2">
-            <input type="checkbox" value="true" class="form-check-input receipt-is-cash" onchange="fillCashReturnFields(this)">
-            <span class="form-check-label">เงินเหลือส่งใช้เงินยืม</span>
-          </label>
         </td>
         <td><input type="text" name="amount[]" class="form-control form-control-sm item-amount-input" placeholder="0.00" required></td>
         <td>
@@ -433,8 +483,6 @@
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
       if (!tbody) return;
       Array.from(tbody.rows).forEach((row, index) => {
-        const cashInput = row.querySelector(".receipt-is-cash");
-        if (cashInput) cashInput.name = `is_cash_${index}`;
         row.querySelectorAll('input[type="file"]').forEach(input => {
           input.name = `proof_files_${index}[]`;
         });
@@ -460,6 +508,8 @@
       if (!totalDisplay) return;
       const parcelInput = document.getElementById(`parcel_amount_${ticketId}`);
       total += parseFloat((parcelInput?.value || "0").replace(/,/g, "")) || 0;
+      const cashReturnInput = document.getElementById(`cash_return_amount_${ticketId}`);
+      total += parseFloat((cashReturnInput?.value || "0").replace(/,/g, "")) || 0;
       const existingTotal = parseFloat(totalDisplay.dataset.existingTotal || "0") || 0;
       const budget = parseFloat(totalDisplay.dataset.budget || "0") || 0;
       const isOverBudget = total + existingTotal > budget;
@@ -603,16 +653,19 @@
     let autoSaveTimer = null;
 
     function autoSaveDraft(ticketId) {
+      const form = document.getElementById(`returnForm_${ticketId}`);
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (!tbody) return;
+      if (!tbody || !form) return;
 
       const items = Array.from(tbody.querySelectorAll('tr')).map(row => ({
         receipt_date: row.querySelector('input[name="receipt_date[]"]')?.value || '',
         store_name: row.querySelector('textarea[name="store_name[]"]')?.value || '',
         description: row.querySelector('textarea[name="description[]"]')?.value || '',
-        is_cash: row.querySelector('.receipt-is-cash')?.checked === true,
         amount: row.querySelector('.item-amount-input')?.value.replace(/,/g, '') || '0'
       }));
+
+      const cashDate = form.querySelector('input[name="cash_return_date"]')?.value || '';
+      const cashAmount = form.querySelector('input[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
 
       const announcements = [];
       const docContainer = document.getElementById(`document-inputs-container-${ticketId}`);
@@ -626,7 +679,7 @@
       fetch(`${returnAutosaveEndpointPrefix}${ticketId}/autosave-draft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: items, announcements: announcements })
+        body: JSON.stringify({ items: items, cash_return: { receipt_date: cashDate, amount: cashAmount }, announcements: announcements })
       })
         .then(res => res.json())
         .then(data => showAutoSaveStatus(ticketId, data.success ? 'saved' : 'error', data.saved_at))
@@ -668,9 +721,9 @@
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-      document.querySelectorAll(".parcel-amount-input").forEach(input => {
+      document.querySelectorAll(".parcel-amount-input, .cash-return-amount-input").forEach(input => {
         if (input.value) formatInputNumberWithComma(input);
-        const ticketId = input.id.replace("parcel_amount_", "");
+        const ticketId = input.id.replace("parcel_amount_", "").replace("cash_return_amount_", "");
         input.addEventListener("input", function() {
           formatInputNumberWithComma(this);
           calculateTotalSpent(ticketId);
@@ -700,7 +753,7 @@
 
       document.querySelectorAll("form[id^='returnForm_']").forEach(form => {
         form.addEventListener("submit", function() {
-          form.querySelectorAll(".item-amount-input").forEach(input => {
+        form.querySelectorAll(".item-amount-input, .cash-return-amount-input").forEach(input => {
             input.value = input.value.replace(/,/g, "");
           });
         });

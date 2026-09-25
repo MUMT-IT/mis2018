@@ -266,7 +266,6 @@
                       <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)</option>
                       <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น เครื่องเขียน, วัสดุสำนักงาน, อุปกรณ์)</option>
                       <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)</option>
-                      <option value="6" {% if item.category_type|string == '6' %}selected{% endif %}>โอนคืนบัญชีหน่วย</option>
                     </select>
                     </td>
                   <td>
@@ -310,7 +309,6 @@
                       <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
                       <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
                       <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                      <option value="6" {% if item.category_type|string == '6' %}selected{% endif %}>โอนคืนบัญชีหน่วย</option>
                     </select>
                     </td>
                   <td>
@@ -364,6 +362,41 @@
         {% else %}
         <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกการส่งคืนพัสดุได้</div>
         {% endif %}
+      </div>
+
+      {% set cash_return_item = none %}
+      {% if claim_detail and claim_detail.items %}
+        {% for item in claim_detail.items %}
+          {% if item.category_type|string == '6' and cash_return_item is none %}
+            {% set cash_return_item = item %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนเงินเหลือส่งใช้เงินสดย่อย</h3>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-bold">วันที่ทำการโอน</label>
+            <input type="date" name="cash_return_date" class="form-control cash-return-input"
+                   value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
+            <input type="text" name="cash_return_amount" id="cash_return_amount" class="form-control cash-return-amount-input cash-return-input"
+                   value="{{ '%.2f'|format(cash_return_item.amount) if cash_return_item and cash_return_item.amount else '' }}" placeholder="0.00">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">ไฟล์หลักฐานการโอน (PDF, JPG, PNG)</label>
+            <input type="file" name="cash_return_proof_file" accept="image/*,.pdf" class="form-control cash-return-input">
+            {% if cash_return_item %}
+              {% for proof_file in cash_return_item.proof_files %}
+                <input type="hidden" name="cash_return_existing_proof" value="{{ proof_file.proof_reference }}">
+                <input type="hidden" name="cash_return_existing_filename" value="{{ proof_file.filename }}">
+                <small class="text-success d-block mt-1"><i class="bi bi-file-earmark-check"></i> {{ proof_file.filename }}</small>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
       </div>
 
       <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
@@ -688,7 +721,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
         claimForm.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
-        claimForm.querySelectorAll('.claim-amount, .parcel-amount-input').forEach(input => {
+        claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .cash-return-amount-input').forEach(input => {
           input.value = input.value.replace(/,/g, '');
         });
         return;
@@ -698,9 +731,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
       const claimInputs = claimForm.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]');
       const hasClaimData = Array.from(claimInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
+      const cashInputs = claimForm.querySelectorAll('.cash-return-input');
+      const hasCashReturnData = Array.from(cashInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
       let isValid = true;
 
-      if (!hasParcelData && !hasClaimData) {
+      if (!hasParcelData && !hasClaimData && !hasCashReturnData) {
         event.preventDefault();
         window.openAppPopup({
           title: "กรุณากรอกข้อมูล",
@@ -736,6 +771,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (input.required && !input.value) isValid = false;
       });
 
+      cashInputs.forEach(input => {
+        input.required = hasCashReturnData;
+        input.classList.remove('is-invalid');
+      });
+      if (hasCashReturnData && !Array.from(cashInputs).every(input => input.type === 'file'
+        ? input.files.length > 0 || claimForm.querySelector('input[name="cash_return_existing_proof"]')
+        : input.value.trim())) {
+        isValid = false;
+        cashInputs.forEach(input => {
+          if (input.type !== 'file' && !input.value.trim()) input.classList.add('is-invalid');
+        });
+      }
+
       const referenceNumber = claimForm.querySelector('[name="reference_number"]')?.value.trim() || '';
       const referenceDate = claimForm.querySelector('[name="reference_date"]')?.value.trim() || '';
       if ((referenceNumber && !referenceDate) || (!referenceNumber && referenceDate)) {
@@ -769,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
-      claimForm.querySelectorAll('.claim-amount, .parcel-amount-input').forEach(input => {
+      claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .cash-return-amount-input').forEach(input => {
         input.value = input.value.replace(/,/g, '');
       });
     });
@@ -782,7 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener("DOMContentLoaded", function() {
-  document.querySelectorAll(".parcel-amount-input").forEach(input => {
+  document.querySelectorAll(".parcel-amount-input, .cash-return-amount-input").forEach(input => {
     if (input.value) {
       formatInputNumberWithComma(input);
     }
@@ -851,6 +899,8 @@ async function autoSavePettyCashDraft() {
 
   const fundRequestId = document.getElementById('fund_request_id')?.value || '';
   const csrfToken = claimForm.querySelector('input[name="csrf_token"]')?.value || '';
+  const cashReturnDate = claimForm.querySelector('[name="cash_return_date"]')?.value || '';
+  const cashReturnAmount = claimForm.querySelector('[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
 
   try {
     const response = await fetch(
@@ -864,6 +914,7 @@ async function autoSavePettyCashDraft() {
       body: JSON.stringify({
         fund_request_id: fundRequestId,
         items: items,
+        cash_return: { receipt_date: cashReturnDate, amount: cashReturnAmount },
         announcements: announcements,
         reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
         reference_date: claimForm.querySelector('[name="reference_date"]')?.value || ''
@@ -939,11 +990,13 @@ function calculateTotal() {
     const existingClaimTotal = parseFloat(financeDisplayEl.dataset.existingClaimTotal || '0') || 0;
     const parcelTotal = parseFloat(financeDisplayEl.dataset.parcelTotal || '0') || 0;
     const currentParcelAmount = parseFloat((parcelInput?.value || '0').replace(/,/g, '')) || 0;
-    const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount;
+    const cashReturnInput = document.querySelector('.cash-return-amount-input');
+    const currentCashReturnAmount = parseFloat((cashReturnInput?.value || '0').replace(/,/g, '')) || 0;
+    const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCashReturnAmount;
     const requestAmount = parseFloat(financeDisplayEl.dataset.requestAmount || '0') || 0;
     const isOverRequest = totalToClaim > requestAmount;
     const submittedAmount = existingClaimTotal + parcelTotal;
-    const currentAmount = grandTotal + currentParcelAmount;
+    const currentAmount = grandTotal + currentParcelAmount + currentCashReturnAmount;
     const remainingAmount = requestAmount - totalToClaim;
 
     document.getElementById('submittedAmountDisplay')?.replaceChildren(
@@ -1203,7 +1256,6 @@ function addRow() {
         <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
         <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
         <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-        <option value="6">โอนคืนบัญชีหน่วย</option>
       </select>
     </td>
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>

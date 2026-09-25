@@ -384,7 +384,15 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
         if not items:
             return Decimal(str(self.amount_spent or 0))
         return sum(
-            (Decimal(str(item.amount or 0)) for item in items if not item.is_cash),
+            (
+                Decimal(str(item.amount or 0))
+                for item in items
+                if not item.is_cash
+                and not (
+                    (item.store_name or "").strip() == "-"
+                    and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
+                )
+            ),
             Decimal("0"),
         )
 

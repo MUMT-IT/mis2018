@@ -779,8 +779,37 @@ def _attach_return_draft_data(ticket, creator_id=None):
     if creator_id is not None:
         draft_query = draft_query.filter(ReturnDetail.creator_id == creator_id)
 
-    draft_detail = draft_query.first()
+    draft_details = draft_query.order_by(ReturnDetail.id.asc()).all()
+    draft_detail = next(
+        (
+            detail for detail in draft_details
+            if not any(
+                getattr(item, "is_cash", False)
+                or (
+                    (item.store_name or "").strip() == "-"
+                    and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
+                )
+                for item in detail.receipt_items
+            )
+        ),
+        None,
+    )
+    cash_draft_detail = next(
+        (
+            detail for detail in draft_details
+            if any(
+                getattr(item, "is_cash", False)
+                or (
+                    (item.store_name or "").strip() == "-"
+                    and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
+                )
+                for item in detail.receipt_items
+            )
+        ),
+        None,
+    )
     ticket.draft_detail = draft_detail
+    ticket.cash_draft_detail = cash_draft_detail
     if draft_detail:
         ticket.draft_items = (
             db.session.query(ReturnReceiptItem)
@@ -797,6 +826,11 @@ def _attach_return_draft_data(ticket, creator_id=None):
     else:
         ticket.draft_items = []
         ticket.draft_announcements = []
+    ticket.cash_draft_item = (
+        cash_draft_detail.receipt_items[0]
+        if cash_draft_detail and cash_draft_detail.receipt_items
+        else next((item for item in ticket.draft_items if getattr(item, "is_cash", False)), None)
+    )
     return ticket
 
 
@@ -3782,7 +3816,35 @@ def submit_return_details():
         except (TypeError, ValueError):
             return _validation_error_response("กรุณาระบุข้อมูลส่งคืนฝ่ายพัสดุให้ถูกต้อง")
 
-    if not is_draft and not has_parcel_data and not request.form.getlist("receipt_date[]"):
+    cash_return_date_raw = (request.form.get("cash_return_date") or "").strip()
+    cash_return_amount_raw = (request.form.get("cash_return_amount") or "").replace(",", "").strip()
+    cash_return_existing_proof = request.form.getlist("cash_return_existing_proof")
+    cash_return_file = request.files.get("cash_return_proof_file")
+    has_cash_data = any((cash_return_date_raw, cash_return_amount_raw)) or bool(
+        cash_return_file and cash_return_file.filename
+    ) or bool(cash_return_existing_proof)
+    cash_return_amount = None
+    cash_return_date = None
+    if not is_draft and has_cash_data:
+        if not cash_return_date_raw or not cash_return_amount_raw:
+            return _validation_error_response("กรุณากรอกข้อมูลเงินเหลือส่งใช้เงินยืมให้ครบถ้วน")
+        if not (cash_return_file and cash_return_file.filename) and not cash_return_existing_proof:
+            return _validation_error_response("กรุณาแนบไฟล์หลักฐานการโอนเงินเหลือส่งใช้เงินยืม")
+        try:
+            cash_return_amount = float(cash_return_amount_raw)
+            cash_return_date = datetime.strptime(cash_return_date_raw, "%Y-%m-%d").date()
+            if cash_return_amount < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return _validation_error_response("กรุณาระบุข้อมูลเงินเหลือส่งใช้เงินยืมให้ถูกต้อง")
+    elif is_draft and has_cash_data:
+        try:
+            cash_return_amount = float(cash_return_amount_raw or 0)
+            cash_return_date = _coerce_date(cash_return_date_raw) if cash_return_date_raw else None
+        except (TypeError, ValueError):
+            cash_return_amount = 0.0
+
+    if not is_draft and not has_parcel_data and not has_cash_data and not request.form.getlist("receipt_date[]"):
         return _validation_error_response(
             "กรุณาเพิ่มข้อมูลส่งคืนฝ่ายพัสดุหรือรายละเอียดใบเสร็จอย่างน้อย 1 รายการ"
         )
@@ -3796,9 +3858,6 @@ def submit_return_details():
         for values in (receipt_dates, store_names, descriptions, amounts)
         for value in values
         if value
-    ) or any(
-        file_storage and file_storage.filename
-        for file_storage in request.files.values()
     )
     if not is_draft and not has_receipt_data:
         receipt_dates = []
@@ -3806,10 +3865,10 @@ def submit_return_details():
         descriptions = []
         amounts = []
 
-    if not is_draft and not has_receipt_data and not has_parcel_data:
+    if not is_draft and not has_receipt_data and not has_parcel_data and not has_cash_data:
         return _validation_error_response("กรุณาเพิ่มรายละเอียดใบเสร็จอย่างน้อย 1 รายการ")
 
-    if not is_draft and not has_receipt_data and parcel_amount is not None:
+    if not is_draft and not has_receipt_data and parcel_amount is not None and not has_cash_data:
         try:
             _create_parcel_return_record(
                 ticket_id=ticket_id,
@@ -3830,11 +3889,18 @@ def submit_return_details():
 
     # ถ้ามีฉบับร่างเดิมอยู่แล้ว การ submit รอบนี้จะ "แทนที่" รายการเดิม
     # ดังนั้นต้องตัดฉบับร่างออกจากยอดที่ใช้เช็คเพดาน ไม่เช่นนั้นจะนับซ้ำ
-    existing_draft = (
+    draft_details = (
         db.session.query(ReturnDetail)
         .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status="ฉบับร่าง")
-        .first()
+        .order_by(ReturnDetail.id.asc())
+        .all()
     )
+    is_cash_item = lambda item: getattr(item, "is_cash", False) or (
+        (item.store_name or "").strip() == "-"
+        and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
+    )
+    existing_draft = next((detail for detail in draft_details if not any(is_cash_item(item) for item in detail.receipt_items)), None)
+    existing_cash_draft = next((detail for detail in draft_details if any(is_cash_item(item) for item in detail.receipt_items)), None)
     exclude_return_id = existing_draft.id if existing_draft else None
 
     parsed_rows = []
@@ -3862,7 +3928,6 @@ def submit_return_details():
             return _validation_error_response(
                 f"รายการที่ {i + 1} ต้องระบุชื่อร้านค้าและรายละเอียดรายการให้ครบถ้วน"
             )
-        is_cash = request.form.get(f"is_cash_{i}") == "true"
         # รายการส่งใช้เงินยืมที่มียอดเกิน 100,000 บาทไม่ควรถูกล็อกตอนส่ง
         # ให้ฝ่ายการเงินตรวจสอบเอกสารอนุมัติจากคณบดีในขั้นตอน verification แทน
 
@@ -3875,7 +3940,6 @@ def submit_return_details():
                 "receipt_date": r_date,
                 "store_name": store_name,
                 "description": description,
-                "is_cash": is_cash,
                 "amount": amt,
             }
         )
@@ -3886,7 +3950,14 @@ def submit_return_details():
 
     if not is_draft:
         ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id, exclude_return_id=exclude_return_id)
-        projected_total = ticket_totals["cumulative_total"] + total_amount_spent + (parcel_amount or 0)
+        projected_total = (
+            ticket_totals["cumulative_total"]
+            + total_amount_spent
+            + (parcel_amount or 0)
+            + (cash_return_amount or 0)
+        )
+        if existing_cash_draft:
+            projected_total -= float(existing_cash_draft.amount_spent or 0)
         if _is_over_limit(projected_total, ticket_totals["budget"]):
             return _redirect_with_limit_popup(
                 url_for(_dashboard_endpoint_for_role(_current_module_role())),
@@ -3929,7 +4000,7 @@ def submit_return_details():
             receipt_date=row["receipt_date"],
             store_name=row["store_name"],
             description=row["description"],
-            is_cash=row["is_cash"],
+            is_cash=False,
             amount=row["amount"]
         )
         db.session.add(receipt_obj)
@@ -3989,6 +4060,10 @@ def submit_return_details():
             })
     _replace_return_detail_documents(return_detail, announcement_references)
 
+    if not parsed_rows:
+        db.session.delete(return_detail)
+        return_detail = None
+
     if parcel_amount is not None:
         _create_parcel_return_record(
             ticket_id=ticket_id,
@@ -3998,6 +4073,58 @@ def submit_return_details():
             sent_date=parcel_sent_date,
             status="รอตรวจสอบ",
         )
+
+    cash_detail = None
+    if has_cash_data and cash_return_date is not None:
+        cash_detail = existing_cash_draft or ReturnDetail(
+            ticket_id=ticket_id,
+            creator_id=current_user_id,
+            proof_reference="Cash return stored",
+            created_at=datetime.now(),
+        )
+        if existing_cash_draft:
+            for old_item in cash_detail.receipt_items:
+                db.session.query(ReturnProofFile).filter_by(return_receipt_item_id=old_item.id).delete()
+            db.session.query(ReturnReceiptItem).filter_by(return_detail_id=cash_detail.id).delete()
+        else:
+            db.session.add(cash_detail)
+            db.session.flush()
+        cash_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
+        cash_item = ReturnReceiptItem(
+            return_detail_id=cash_detail.id,
+            receipt_date=cash_return_date,
+            store_name="-",
+            description="เงินเหลือส่งใช้เงินยืม",
+            amount=cash_return_amount or 0,
+            is_cash=False,
+        )
+        db.session.add(cash_item)
+        db.session.flush()
+        if cash_return_file and cash_return_file.filename:
+            original_filename = os.path.basename(cash_return_file.filename)
+            upload_folder = os.path.join(_upload_root(), str(ticket_id))
+            os.makedirs(upload_folder, exist_ok=True)
+            proof_path = f"uploads/{ticket_id}/{original_filename}"
+            cash_return_file.save(os.path.join(upload_folder, original_filename))
+            db.session.add(ReturnProofFile(
+                return_detail_id=cash_detail.id,
+                return_receipt_item_id=cash_item.id,
+                proof_reference=proof_path,
+                filename=original_filename,
+                created_at=datetime.now(),
+            ))
+        for existing_path, existing_name in zip(
+            cash_return_existing_proof,
+            request.form.getlist("cash_return_existing_filename"),
+        ):
+            if existing_path:
+                db.session.add(ReturnProofFile(
+                    return_detail_id=cash_detail.id,
+                    return_receipt_item_id=cash_item.id,
+                    proof_reference=existing_path,
+                    filename=existing_name or "cash-return-proof",
+                ))
+        cash_detail.amount_spent = cash_return_amount or 0
 
     try:
         db.session.commit()
@@ -4017,11 +4144,14 @@ def submit_return_details():
         flash("บันทึกฉบับร่างเรียบร้อยแล้ว", "success")
     else:
         borrowing_ticket.status = _recalculate_borrowing_ticket_status(ticket_id)
-        _send_notification_email(return_detail, object_type="return")
+        if return_detail:
+            _send_notification_email(return_detail, object_type="return")
+        if cash_detail:
+            _send_notification_email(cash_detail, object_type="return")
         db.session.commit()
         flash("ส่งหลักฐานเอกสารส่งใช้เงินยืมเรียบร้อยแล้ว", "success")
 
-    return view_return_proof_detail(return_detail.id)
+    return view_return_proof_detail((return_detail or cash_detail).id)
 
 @bp.app_template_filter('filter_actionable_tickets')
 def filter_actionable_tickets(tickets):
@@ -4320,15 +4450,23 @@ def autosave_return_draft(ticket_id):
 
     data = request.get_json() or {}
     items = data.get("items", [])
+    cash_return = data.get("cash_return") or {}
     announcements = data.get("announcements", [])  # <--- 1. รับค่าประกาศเพิ่มจาก JSON
 
     # ค้นหา ReturnDetail สถานะ Draft เดิม
     current_user_id = _current_user_id()
-    existing_draft = (
+    draft_details = (
         db.session.query(ReturnDetail)
         .filter_by(ticket_id=ticket_id, creator_id=current_user_id, status="ฉบับร่าง")
-        .first()
+        .order_by(ReturnDetail.id.asc())
+        .all()
     )
+    is_cash_item = lambda item: getattr(item, "is_cash", False) or (
+        (item.store_name or "").strip() == "-"
+        and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
+    )
+    existing_draft = next((detail for detail in draft_details if not any(is_cash_item(item) for item in detail.receipt_items)), None)
+    existing_cash_draft = next((detail for detail in draft_details if any(is_cash_item(item) for item in detail.receipt_items)), None)
 
     if existing_draft:
         db.session.query(ReturnReceiptItem).filter_by(return_detail_id=existing_draft.id).delete()
@@ -4365,6 +4503,37 @@ def autosave_return_draft(ticket_id):
 
     # <--- 2. เพิ่มส่วนจัดการบันทึกประกาศเข้า ReturnDetail --->
     _replace_return_detail_documents(return_detail, announcements)
+
+    cash_date = _coerce_date(cash_return.get("receipt_date")) if cash_return.get("receipt_date") else None
+    try:
+        cash_amount = float(cash_return.get("amount") or 0)
+    except (TypeError, ValueError):
+        cash_amount = 0.0
+    if cash_date is not None and cash_return.get("amount") not in (None, ""):
+        cash_detail = existing_cash_draft or ReturnDetail(
+            ticket_id=ticket_id,
+            creator_id=current_user_id,
+            proof_reference="Cash return stored",
+            status="ฉบับร่าง",
+        )
+        if existing_cash_draft:
+            db.session.query(ReturnReceiptItem).filter_by(return_detail_id=cash_detail.id).delete()
+        else:
+            db.session.add(cash_detail)
+            db.session.flush()
+        db.session.add(ReturnReceiptItem(
+            return_detail_id=cash_detail.id,
+            receipt_date=cash_date,
+            store_name="-",
+            description="เงินเหลือส่งใช้เงินยืม",
+            amount=cash_amount,
+            is_cash=False,
+        ))
+    elif existing_cash_draft:
+        for old_item in existing_cash_draft.receipt_items:
+            db.session.query(ReturnProofFile).filter_by(return_receipt_item_id=old_item.id).delete()
+        db.session.query(ReturnReceiptItem).filter_by(return_detail_id=existing_cash_draft.id).delete()
+        db.session.delete(existing_cash_draft)
 
     db.session.commit()
 
@@ -5246,7 +5415,14 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             "borrower_name": (ticket.borrower_name or getattr(_get_user_by_id(getattr(ticket, "borrower_id", None)), "name", "")) if ticket else "N/A",
             "amount_spent": float(record.amount_spent or 0),
             "closing_amount": float(record.closing_amount),
-            "cash_amount": float(sum(item.amount or 0 for item in record.receipt_items if item.is_cash)),
+            "cash_amount": float(sum(
+                item.amount or 0
+                for item in record.receipt_items
+                if item.is_cash or (
+                    (item.store_name or "").strip() == "-"
+                    and (item.description or "").strip() == "เงินเหลือส่งใช้เงินยืม"
+                )
+            )),
             "status": record.status,
             "created_at": record.created_at,
         })
@@ -6235,6 +6411,20 @@ def autosave_petty_cash_claim_draft():
         )
         db.session.add(claim_item)
 
+    cash_return_date = _coerce_date(cash_return.get("receipt_date")) if cash_return.get("receipt_date") else None
+    try:
+        cash_return_amount = float(cash_return.get("amount") or 0)
+    except (TypeError, ValueError):
+        cash_return_amount = 0.0
+    if cash_return_date is not None and cash_return.get("amount") not in (None, ""):
+        db.session.add(PettyCashClaimItem(
+            claim_id=claim_detail.id,
+            receipt_date=cash_return_date,
+            description="เงินโอนคงเหลือจากการยืมเงินสดย่อย",
+            category_type=6,
+            amount=cash_return_amount,
+        ))
+
     claim_detail.total_amount = total_amount
     if reference_number and reference_date_raw:
         try:
@@ -6267,14 +6457,20 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         abort(403)
 
     setting = _resolve_petty_cash_setting(current_user)
-    is_staff_user = _selected_system() == PETTY_CASH_SYSTEM and not _is_current_secretary()
+    is_secretary = (
+        _selected_system() == PETTY_CASH_SYSTEM
+        and SECRETARY_ROLE in _available_module_roles(current_user)
+    )
+    is_staff_user = _selected_system() == PETTY_CASH_SYSTEM and not is_secretary
     is_finance_user = (current_role == "finance")
     can_submit_claim = _selected_system() == PETTY_CASH_SYSTEM
 
     approved_fund_requests = []
     if can_submit_claim:
-        fund_request_query = db.session.query(FundRequest).filter(FundRequest.requester_id == user_id)
+        fund_request_query = db.session.query(FundRequest)
         fund_request_query = _fund_request_setting_filter(fund_request_query, setting)
+        if not is_secretary:
+            fund_request_query = fund_request_query.filter(FundRequest.requester_id == user_id)
         approved_fund_requests = [
             fund_request for fund_request in fund_request_query.order_by(FundRequest.id.desc()).all()
             if (fund_request.status or "").strip() == "อนุมัติแล้ว"
@@ -6302,11 +6498,63 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         if _forced_fund_request_id is not None
         else request.args.get("fund_request_id", type=int)
     )
+    # A secretary may be the custodian of multiple petty-cash accounts. When
+    # opening a fund request directly, use the account attached to that
+    # request instead of falling back to the secretary's default account.
+    if selected_fr_id and SECRETARY_ROLE in _available_module_roles(current_user):
+        requested_fund_request = db.session.query(FundRequest).filter_by(id=selected_fr_id).first()
+        if requested_fund_request:
+            secretary_setting_query = db.session.query(PettyCashSetting).filter(
+                PettyCashSetting.custodian_id == user_id,
+                PettyCashSetting.valid == True,
+                PettyCashSetting.fiscal_year == _current_petty_cash_fiscal_year(),
+            )
+            managed_settings = secretary_setting_query.all()
+            managed_setting_ids = {item.id for item in managed_settings}
+            managed_org_ids = {item.org_id for item in managed_settings if item.org_id}
+            creator = _get_user_by_id(getattr(requested_fund_request, "creator_id", None))
+            creator_org = _get_staff_org(creator) if creator else None
+            creator_org_id = getattr(creator_org, "id", None)
+            requested_setting = None
+            requested_setting_id = getattr(requested_fund_request, "petty_cash_setting_id", None)
+            if requested_setting_id in managed_setting_ids:
+                requested_setting = next(
+                    item for item in managed_settings if item.id == requested_setting_id
+                )
+            elif (
+                getattr(requested_fund_request, "org_id", None) in managed_org_ids
+                or creator_org_id in managed_org_ids
+            ):
+                requested_setting = next(
+                    item for item in managed_settings
+                    if item.org_id in {
+                        getattr(requested_fund_request, "org_id", None),
+                        creator_org_id,
+                    }
+                )
+            if requested_setting:
+                setting = requested_setting
+                session[PETTY_CASH_SETTING_SESSION_KEY] = requested_setting.id
     if selected_fr_id:
         selected_request_query = db.session.query(FundRequest).filter_by(id=selected_fr_id)
-        if can_submit_claim or (setting and setting.id and not is_finance_user):
+        direct_owned_request = bool(
+            'requested_fund_request' in locals()
+            and requested_fund_request is not None
+            and requested_fund_request.requester_id == user_id
+        )
+        direct_secretary_request = bool(
+            direct_owned_request
+            or (
+                is_secretary
+                and selected_fr_id
+                and 'requested_fund_request' in locals()
+                and requested_fund_request is not None
+                and requested_setting is not None
+            )
+        )
+        if (can_submit_claim or (setting and setting.id and not is_finance_user)) and not direct_secretary_request:
             selected_request_query = _fund_request_setting_filter(selected_request_query, setting)
-        if can_submit_claim or not is_finance_user:
+        if (can_submit_claim or not is_finance_user) and not is_secretary:
             selected_request_query = selected_request_query.filter_by(requester_id=user_id)
         selected_fund_request = selected_request_query.first()
 
@@ -6337,9 +6585,11 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             posted_request_query = db.session.query(FundRequest).filter(
                 FundRequest.id == fund_request_id,
             )
-            if can_submit_claim or (setting and setting.id and not is_finance_user):
+            posted_request = posted_request_query.first()
+            direct_owned_post = bool(posted_request and posted_request.requester_id == user_id)
+            if (can_submit_claim or (setting and setting.id and not is_finance_user)) and not direct_owned_post:
                 posted_request_query = _fund_request_setting_filter(posted_request_query, setting)
-            if can_submit_claim or not is_finance_user:
+            if (can_submit_claim or not is_finance_user) and not is_secretary:
                 posted_request_query = posted_request_query.filter(
                     FundRequest.requester_id == user_id,
                 )
@@ -6409,13 +6659,54 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
                 )
 
+        cash_return_date_raw = (request.form.get("cash_return_date") or "").strip()
+        cash_return_amount_raw = (request.form.get("cash_return_amount") or "").replace(",", "").strip()
+        cash_return_existing_proof = request.form.getlist("cash_return_existing_proof")
+        cash_return_file = request.files.get("cash_return_proof_file")
+        has_cash_return_data = any((cash_return_date_raw, cash_return_amount_raw)) or bool(
+            cash_return_file and cash_return_file.filename
+        ) or bool(cash_return_existing_proof)
+        cash_return_date = None
+        cash_return_amount = None
+        if not is_draft and has_cash_return_data:
+            if not cash_return_date_raw or not cash_return_amount_raw:
+                return _validation_redirect_response(
+                    "กรุณากรอกข้อมูลเงินโอนคืนบัญชีหน่วยให้ครบถ้วน",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
+            if not (cash_return_file and cash_return_file.filename) and not cash_return_existing_proof:
+                return _validation_redirect_response(
+                    "กรุณาแนบไฟล์หลักฐานการโอนคืนบัญชีหน่วย",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
+            try:
+                cash_return_date = datetime.strptime(cash_return_date_raw, "%Y-%m-%d").date()
+                cash_return_amount = float(cash_return_amount_raw)
+                if cash_return_amount < 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return _validation_redirect_response(
+                    "กรุณาระบุข้อมูลเงินโอนคืนบัญชีหน่วยให้ถูกต้อง",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
+        elif is_draft and has_cash_return_data:
+            cash_return_date = _coerce_date(cash_return_date_raw) if cash_return_date_raw else None
+            try:
+                cash_return_amount = float(cash_return_amount_raw or 0)
+            except (TypeError, ValueError):
+                cash_return_amount = 0.0
+
         has_claim_data = any(
             value.strip()
             for values in (receipt_dates, descriptions, amounts)
             for value in values
             if value
-        ) or any(file_storage and file_storage.filename for file_storage in request.files.values())
-        if not is_draft and not has_claim_data and not has_parcel_data:
+        ) or any(
+            file_storage and file_storage.filename
+            for key, file_storage in request.files.items()
+            if key.startswith("proof_files_") or key == "reference_files[]"
+        )
+        if not is_draft and not has_claim_data and not has_parcel_data and not has_cash_return_data:
             return _validation_redirect_response(
                 "กรุณากรอกข้อมูลรายการเบิกหรือข้อมูลส่งคืนฝ่ายพัสดุอย่างน้อยหนึ่งรายการ",
                 request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
@@ -6426,7 +6717,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             category_types = []
             amounts = []
 
-        if not is_draft and not has_claim_data and parcel_amount is not None:
+        if not is_draft and not has_claim_data and parcel_amount is not None and not has_cash_return_data:
             fund_totals = _calculate_fund_request_totals(fund_request_id)
             projected_total = fund_totals["cumulative_total"] + parcel_amount
             if _is_over_limit(projected_total, fund_totals["request_amount"]):
@@ -6530,7 +6821,12 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 fund_request_id,
                 exclude_claim_id=existing_draft.id if existing_draft else None,
             )
-            projected_total = fund_totals["cumulative_total"] + total_claim_amount + (parcel_amount or 0)
+            projected_total = (
+                fund_totals["cumulative_total"]
+                + total_claim_amount
+                + (parcel_amount or 0)
+                + (cash_return_amount or 0)
+            )
             if _is_over_limit(projected_total, fund_totals["request_amount"]):
                 return _redirect_with_limit_popup(
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id or None),
@@ -6630,6 +6926,44 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     )
                     db.session.add(proof_file_record)
 
+        if has_cash_return_data and cash_return_date is not None:
+            cash_item = PettyCashClaimItem(
+                claim_id=claim_detail.id,
+                receipt_date=cash_return_date,
+                description="เงินโอนคงเหลือจากการยืมเงินสดย่อย",
+                category_type=6,
+                amount=cash_return_amount or 0,
+            )
+            db.session.add(cash_item)
+            db.session.flush()
+
+            if cash_return_file and cash_return_file.filename:
+                original_filename = os.path.basename(cash_return_file.filename)
+                upload_folder = os.path.join(_upload_root(), f"petty_cash/{user_id}")
+                os.makedirs(upload_folder, exist_ok=True)
+                proof_path = f"uploads/petty_cash/{user_id}/{original_filename}"
+                cash_return_file.save(os.path.join(upload_folder, original_filename))
+                db.session.add(PettyCashClaimProofFile(
+                    claim_id=claim_detail.id,
+                    claim_item_id=cash_item.id,
+                    proof_reference=proof_path,
+                    filename=original_filename,
+                    created_at=datetime.now(),
+                ))
+
+            for existing_path, existing_name in zip(
+                cash_return_existing_proof,
+                request.form.getlist("cash_return_existing_filename"),
+            ):
+                if existing_path:
+                    db.session.add(PettyCashClaimProofFile(
+                        claim_id=claim_detail.id,
+                        claim_item_id=cash_item.id,
+                        proof_reference=existing_path,
+                        filename=existing_name or "cash-return-proof",
+                        created_at=datetime.now(),
+                    ))
+
         for file_storage in reference_files:
             original_filename = os.path.basename(file_storage.filename)
             if not original_filename:
@@ -6709,7 +7043,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         user_id=user_id,
         status="ฉบับร่าง",
     )
-    if setting and setting.id:
+    if setting and setting.id and selected_fund_request is None:
         claim_query = claim_query.filter(
             or_(
                 PettyCashClaimDetail.petty_cash_setting_id == setting.id,
