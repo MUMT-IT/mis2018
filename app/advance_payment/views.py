@@ -34,7 +34,7 @@ from werkzeug.utils import secure_filename
 
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association
+from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
 from .email_utils import generate_notification_email_content
 from . import advance_payment as bp, thai_date
 from app.models import CostCenter, IOCode, Org, ProductCode
@@ -1903,67 +1903,165 @@ def bulk_receive_closing_doc(closing_doc_id):
         _forced_search_closing_number=closing_doc.document_number,
     )
 
+def _return_ticket_ids(return_detail):
+    """Return all borrowing-ticket ids linked to a return, legacy-safe."""
+    ids = {return_detail.ticket_id} if return_detail.ticket_id else set()
+    if return_detail.id:
+        ids.update(
+            ticket_id
+            for (ticket_id,) in db.session.query(
+                return_borrowing_ticket_association.c.ticket_id
+            ).filter(
+                return_borrowing_ticket_association.c.return_id == return_detail.id
+            ).all()
+        )
+    return {ticket_id for ticket_id in ids if ticket_id}
+
+
+def _ticket_group_ids(ticket_id):
+    """Find the group of tickets sharing a return ticket."""
+    group = {int(ticket_id)}
+    changed = True
+    while changed:
+        linked_return_ids = db.session.query(ReturnDetail.id).filter(
+            or_(
+                ReturnDetail.ticket_id.in_(group),
+                ReturnDetail.id.in_(
+                    db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+                        return_borrowing_ticket_association.c.ticket_id.in_(group)
+                    )
+                ),
+            )
+        ).all()
+        related = set()
+        for (return_id,) in linked_return_ids:
+            detail = db.session.get(ReturnDetail, return_id)
+            if detail:
+                related.update(_return_ticket_ids(detail))
+        parcel_ids = db.session.query(ParcelReturnDetail.id).filter(
+            or_(
+                ParcelReturnDetail.ticket_id.in_(group),
+                ParcelReturnDetail.id.in_(
+                    db.session.query(parcel_borrowing_ticket_association.c.parcel_return_id).filter(
+                        parcel_borrowing_ticket_association.c.ticket_id.in_(group)
+                    )
+                ),
+            )
+        ).all()
+        for (parcel_id,) in parcel_ids:
+            related.update(
+                ticket_id
+                for (ticket_id,) in db.session.query(
+                    parcel_borrowing_ticket_association.c.ticket_id
+                ).filter(
+                    parcel_borrowing_ticket_association.c.parcel_return_id == parcel_id
+                ).all()
+            )
+            parcel = db.session.get(ParcelReturnDetail, parcel_id)
+            if parcel and parcel.ticket_id:
+                related.add(parcel.ticket_id)
+        before = len(group)
+        group.update(related)
+        changed = len(group) != before
+    return group
+
+
+def _calculate_ticket_group_totals(ticket_ids):
+    ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
+    if not ticket_ids:
+        return {"cumulative_total": 0.0, "budget": 0.0, "remaining_amount": 0.0}
+
+    tickets = db.session.query(BorrowingTicket).filter(BorrowingTicket.id.in_(ticket_ids)).all()
+    ticket_order = sorted(
+        tickets,
+        key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
+    )
+    remaining = {ticket.id: float(ticket.required_budget or 0) for ticket in ticket_order}
+    allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    usable_statuses = {"รอตรวจสอบ", "ผ่านการตรวจสอบ", "เอกสารตั้งฎีกา", "ล้างลูกหนี้เงินยืม"}
+
+    return_rows = db.session.query(ReturnDetail).filter(
+        ReturnDetail.status.in_(usable_statuses),
+        or_(
+            ReturnDetail.ticket_id.in_(ticket_ids),
+            ReturnDetail.id.in_(
+                db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+                    return_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                )
+            ),
+        ),
+    ).all()
+    parcel_rows = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.status.in_(usable_statuses),
+        or_(
+            ParcelReturnDetail.ticket_id.in_(ticket_ids),
+            ParcelReturnDetail.id.in_(
+                db.session.query(parcel_borrowing_ticket_association.c.parcel_return_id).filter(
+                    parcel_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                )
+            ),
+        ),
+    ).all()
+    records = [(row.created_at, row.id, float(row.amount_spent or 0), _return_ticket_ids(row), False) for row in return_rows]
+    for row in parcel_rows:
+        linked_ids = {row.ticket_id} if row.ticket_id else set()
+        linked_ids.update(
+            ticket_id for (ticket_id,) in db.session.query(
+                parcel_borrowing_ticket_association.c.ticket_id
+            ).filter(parcel_borrowing_ticket_association.c.parcel_return_id == row.id).all()
+        )
+        records.append((row.created_at, row.id, float(row.amount_spent or 0), linked_ids, True))
+
+    priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
+    parcel_allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    normal_allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    for _, _, amount, linked_ids, is_parcel in sorted(records, key=lambda item: (item[0] or datetime.min, item[1])):
+        for linked_id in sorted(linked_ids & ticket_ids, key=lambda value: priority.get(value, 10**9)):
+            if amount <= 0:
+                break
+            portion = min(amount, remaining.get(linked_id, 0.0))
+            allocated[linked_id] += portion
+            if is_parcel:
+                parcel_allocated[linked_id] += portion
+            else:
+                normal_allocated[linked_id] += portion
+            remaining[linked_id] -= portion
+            amount -= portion
+    cumulative_total = sum(allocated.values())
+    budget = sum(float(ticket.required_budget or 0) for ticket in ticket_order)
+    return {
+        "cumulative_total": cumulative_total,
+        "budget": budget,
+        "remaining_amount": budget - cumulative_total,
+        "allocated_by_ticket": allocated,
+        "parcel_allocated_by_ticket": parcel_allocated,
+        "normal_allocated_by_ticket": normal_allocated,
+    }
+
+
 def _calculate_ticket_return_totals(ticket_id):
-    cumulative_normal = (
-        db.session.query(func.coalesce(func.sum(ReturnDetail.amount_spent), 0))
-        .filter(
-            ReturnDetail.ticket_id == ticket_id,
-            ReturnDetail.status.in_(["ผ่านการตรวจสอบ", "เอกสารตั้งฎีกา", "ล้างลูกหนี้เงินยืม"])
-        )
-        .scalar() or 0
-    )
-    cumulative_parcel = (
-        db.session.query(func.coalesce(func.sum(ParcelReturnDetail.amount_spent), 0))
-        .filter(
-            ParcelReturnDetail.ticket_id == ticket_id,
-            ParcelReturnDetail.status.not_in(["รอตรวจสอบ", "ถูกปฏิเสธ", "ปฏิเสธ"])
-        )
-        .scalar() or 0
-    )
-
-    cumulative_total = float(cumulative_normal) + float(cumulative_parcel)
-
-    budget = (
+    group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
+    budget = float(
         db.session.query(BorrowingTicket.required_budget)
         .filter(BorrowingTicket.id == ticket_id)
         .scalar() or 0
     )
-
-    remaining_amount = float(budget) - cumulative_total
-
+    cumulative_total = float(group_totals.get("allocated_by_ticket", {}).get(ticket_id, 0.0))
     return {
         "cumulative_total": cumulative_total,
-        "budget": float(budget),
-        "remaining_amount": remaining_amount,
+        "budget": budget,
+        "remaining_amount": budget - cumulative_total,
         "status": (
             "เคลียร์ยอดแล้ว" if cumulative_total >= budget
             else "มียอดคงค้าง" if cumulative_total > 0
             else "อนุมัติจ่ายเงิน"
         ),
     }
-
-
 def _calculate_ticket_return_totals_with_parcel(ticket_id, *, exclude_return_id=None, exclude_parcel_return_id=None):
-    return_query = db.session.query(func.coalesce(func.sum(ReturnDetail.amount_spent), 0)).filter(
-        ReturnDetail.ticket_id == ticket_id,
-    )
-    if exclude_return_id:
-        return_query = return_query.filter(ReturnDetail.id != exclude_return_id)
-
-    parcel_query = db.session.query(func.coalesce(func.sum(ParcelReturnDetail.amount_spent), 0)).filter(
-        ParcelReturnDetail.ticket_id == ticket_id,
-    )
-    if exclude_parcel_return_id:
-        parcel_query = parcel_query.filter(ParcelReturnDetail.id != exclude_parcel_return_id)
-
-    return_total = float(return_query.scalar() or 0)
-    parcel_total = float(parcel_query.scalar() or 0)
-    budget = float(
-        db.session.query(BorrowingTicket.required_budget)
-        .filter(BorrowingTicket.id == ticket_id)
-        .scalar()
-        or 0
-    )
+    group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
+    return_total = float(group_totals.get("normal_allocated_by_ticket", {}).get(ticket_id, 0.0))
+    parcel_total = float(group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id, 0.0))
+    budget = float(db.session.query(BorrowingTicket.required_budget).filter(BorrowingTicket.id == ticket_id).scalar() or 0)
     combined_total = return_total + parcel_total
     return {
         "return_total": return_total,
@@ -2247,6 +2345,10 @@ def coordinator_dashboard():
         else "advance_payment.coordinator_dashboard"
     )
     staff = current_user
+    default_dashboard_scope = "mine" if is_borrower_mode else "department"
+    dashboard_scope = (request.args.get("scope") or default_dashboard_scope).strip().lower()
+    if dashboard_scope not in {"mine", "department"}:
+        dashboard_scope = default_dashboard_scope
 
     # Borrower dashboards are department-scoped, but default to the current user.
     # Coordinators keep their existing organization-wide/secretary-scoped choices.
@@ -2359,9 +2461,11 @@ def coordinator_dashboard():
 
     selected_borrower_id = request.args.get("borrower_id", type=int)
     valid_borrower_ids = {option["id"] for option in created_borrower_options}
-    if is_borrower_mode and selected_borrower_id is None:
+    if is_borrower_mode and dashboard_scope == "mine":
         selected_borrower_id = current_user.id
-    if selected_borrower_id not in valid_borrower_ids:
+    if is_borrower_mode and dashboard_scope == "department" and selected_borrower_id is None:
+        selected_borrower_id = None
+    if selected_borrower_id not in valid_borrower_ids and not (is_borrower_mode and dashboard_scope == "department" and selected_borrower_id is None):
         selected_borrower_id = current_user.id if is_borrower_mode and current_user.id in valid_borrower_ids else None
 
     borrowing_ticket_history = (
@@ -2384,12 +2488,15 @@ def coordinator_dashboard():
                 .join(StaffPersonalInfo, StaffPersonalInfo.id == StaffAccount.personal_id)
                 .filter(
                     StaffPersonalInfo.org_id == current_org_id,
-                    BorrowingTicket.status.in_(["อนุมัติจ่ายเงิน", "มียอดคงค้าง"]),
+                    BorrowingTicket.status.in_(["อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง"]),
                 )
             )
             if selected_borrower_id is not None:
                 actionable_query = actionable_query.filter(BorrowingTicket.borrower_id == selected_borrower_id)
-            actionable_tickets = actionable_query.order_by(BorrowingTicket.id.desc()).all()
+            actionable_tickets = actionable_query.order_by(
+                BorrowingTicket.approved_at.asc().nullslast(),
+                BorrowingTicket.id.asc(),
+            ).all()
 
     tickets_with_return_forms = list({
         ticket.id: ticket
@@ -2437,7 +2544,14 @@ def coordinator_dashboard():
         return_details = (
             db.session.query(ReturnDetail)
             .filter(
-                ReturnDetail.ticket_id.in_(ticket_ids),
+                or_(
+                    ReturnDetail.ticket_id.in_(ticket_ids),
+                    ReturnDetail.id.in_(
+                        db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+                            return_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                        )
+                    ),
+                ),
                 ReturnDetail.status != "ฉบับร่าง"
             )
             .order_by(ReturnDetail.id.desc())
@@ -2461,7 +2575,7 @@ def coordinator_dashboard():
         creator_return_details = [
             return_detail
             for return_detail in creator_return_details
-            if return_detail.ticket_id in selected_ticket_ids
+            if _return_ticket_ids(return_detail) & selected_ticket_ids
         ]
     for return_detail in creator_return_details:
         numbered_descriptions = []
@@ -2720,6 +2834,7 @@ def coordinator_dashboard():
         dept_users=dept_users,
         current_user=current_user,
         actionable_tickets=actionable_tickets,
+        dashboard_scope=dashboard_scope,
         pdf_reference_options=_pdf_reference_options(),
         pdf_fiscal_year_default=convert_to_fiscal_year(datetime.now().date()),
     )
@@ -3288,12 +3403,20 @@ def verification_view(ticket_id, show_creation_notice=False):
     if can_submit_return:
         _attach_return_draft_data(borrowing_ticket, creator_id=_current_user_id())
 
+    ticket_group_ids = _ticket_group_ids(ticket_id)
+    linked_return_ids = db.session.query(ReturnDetail.id).filter(
+        or_(
+            ReturnDetail.ticket_id.in_(ticket_group_ids),
+            ReturnDetail.id.in_(
+                db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+                    return_borrowing_ticket_association.c.ticket_id.in_(ticket_group_ids)
+                )
+            ),
+        )
+    )
     return_details = (
         db.session.query(ReturnDetail)
-        .filter(
-            ReturnDetail.ticket_id == ticket_id,
-            ReturnDetail.status != "ฉบับร่าง"
-        )
+        .filter(ReturnDetail.id.in_(linked_return_ids), ReturnDetail.status != "ฉบับร่าง")
         .order_by(ReturnDetail.id.desc())
         .all()
     )
@@ -3301,12 +3424,11 @@ def verification_view(ticket_id, show_creation_notice=False):
         float(return_detail.amount_spent or 0)
         for return_detail in return_details
     )
-    verification_remaining_amount = float(
-        borrowing_ticket.required_budget or 0
-    ) - verification_return_total
+    group_totals = _calculate_ticket_group_totals(ticket_group_ids)
+    verification_remaining_amount = group_totals["budget"] - verification_return_total
     parcel_returns = (
         db.session.query(ParcelReturnDetail)
-        .filter_by(ticket_id=ticket_id)
+        .filter(ParcelReturnDetail.ticket_id.in_(ticket_group_ids))
         .order_by(ParcelReturnDetail.id.desc())
         .all()
     )
@@ -3328,23 +3450,29 @@ def verification_view(ticket_id, show_creation_notice=False):
 
     borrowing_ticket.parcel_returns = parcel_returns
 
-    summary = _calculate_ticket_return_totals(ticket_id)
+    summary = _calculate_ticket_group_totals(ticket_group_ids)
     summary["cumulative_total"] = verification_return_total
     summary["remaining_amount"] = verification_remaining_amount
     borrowing_ticket.submitted_return_total = verification_return_total
     borrowing_ticket.ticket_remaining = verification_remaining_amount
+    borrowing_ticket.verification_required_budget = group_totals["budget"]
+    borrowing_ticket.verification_ticket_ids = sorted(ticket_group_ids)
     notifications = None
 
     proof_files = (
         db.session.query(ReturnProofFile)
         .join(ReturnDetail, ReturnDetail.id == ReturnProofFile.return_detail_id)
-        .filter(ReturnDetail.ticket_id == ticket_id)
+        .filter(ReturnDetail.id.in_(linked_return_ids))
         .order_by(ReturnProofFile.id.desc())
         .all()
     )
     proof_files_dict = {}
     for proof_file in proof_files:
         proof_files_dict.setdefault(proof_file.return_detail_id, []).append(proof_file)
+
+    borrowing_org_id = db.session.query(StaffPersonalInfo.org_id).join(
+        StaffAccount, StaffAccount.personal_id == StaffPersonalInfo.id
+    ).filter(StaffAccount.id == borrowing_ticket.borrower_id).scalar()
 
     return render_template(
         "verification.html",
@@ -3367,9 +3495,21 @@ def verification_view(ticket_id, show_creation_notice=False):
             else "/borrower/tickets/"
         ),
         show_creation_notice=show_creation_notice,
+        return_linkable_tickets=(
+            db.session.query(BorrowingTicket)
+            .join(StaffAccount, StaffAccount.id == BorrowingTicket.borrower_id)
+            .join(StaffPersonalInfo, StaffPersonalInfo.id == StaffAccount.personal_id)
+            .filter(
+                StaffPersonalInfo.org_id == borrowing_org_id,
+                BorrowingTicket.status.in_(["อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง"]),
+                BorrowingTicket.id != ticket_id,
+            )
+            .order_by(BorrowingTicket.id.asc())
+            .all()
+        ),
     )
 
-def _create_parcel_return_record(*, ticket_id=None, fund_request_id=None, amount, items_description, sent_date, status="รอตรวจสอบ"):
+def _create_parcel_return_record(*, ticket_id=None, ticket_ids=None, fund_request_id=None, amount, items_description, sent_date, status="รอตรวจสอบ"):
     parcel_return = ParcelReturnDetail(
         ticket_id=ticket_id,
         fund_request_id=fund_request_id,
@@ -3380,10 +3520,17 @@ def _create_parcel_return_record(*, ticket_id=None, fund_request_id=None, amount
         created_at=datetime.now(),
     )
     db.session.add(parcel_return)
+    db.session.flush()
+    linked_ticket_ids = set(ticket_ids or ([ticket_id] if ticket_id else []))
+    if linked_ticket_ids:
+        db.session.execute(
+            parcel_borrowing_ticket_association.insert(),
+            [{"parcel_return_id": parcel_return.id, "ticket_id": linked_id} for linked_id in sorted(linked_ticket_ids)],
+        )
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
-    if ticket_id:
-        _recalculate_borrowing_ticket_status(ticket_id)
+    for linked_ticket_id in linked_ticket_ids:
+        _recalculate_borrowing_ticket_status(linked_ticket_id)
     if fund_request_id:
         _recalculate_fund_request_submission_status(fund_request_id)
     return parcel_return
@@ -3881,9 +4028,46 @@ def submit_return_details():
     if not ticket_id:
         return _validation_error_response("กรุณาระบุเอกสารสัญญาเงินยืมที่ต้องการส่งหลักฐาน")
 
+    try:
+        ticket_id = int(ticket_id)
+    except (TypeError, ValueError):
+        return _validation_error_response("เอกสารสัญญาเงินยืมไม่ถูกต้อง")
+
+    requested_ticket_ids = request.form.getlist("ticket_ids[]") or request.form.getlist("ticket_ids")
+    selected_ticket_ids = {ticket_id}
+    for raw_id in requested_ticket_ids:
+        try:
+            selected_ticket_ids.add(int(raw_id))
+        except (TypeError, ValueError):
+            return _validation_error_response("พบเอกสารสัญญาเงินยืมที่ไม่ถูกต้อง")
+
     borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if borrowing_ticket is None:
         abort(404)
+
+    selected_tickets = db.session.query(BorrowingTicket).filter(
+        BorrowingTicket.id.in_(selected_ticket_ids)
+    ).all()
+    if len(selected_tickets) != len(selected_ticket_ids):
+        return _validation_error_response("ไม่พบเอกสารสัญญาเงินยืมที่เลือก")
+    borrowing_org_id = db.session.query(StaffPersonalInfo.org_id).join(
+        StaffAccount, StaffAccount.personal_id == StaffPersonalInfo.id
+    ).filter(StaffAccount.id == borrowing_ticket.borrower_id).scalar()
+    selected_org_ids = {
+        org_id
+        for (org_id,) in db.session.query(StaffPersonalInfo.org_id).join(
+            StaffAccount, StaffAccount.personal_id == StaffPersonalInfo.id
+        ).filter(
+            StaffAccount.id.in_([ticket.borrower_id for ticket in selected_tickets])
+        ).all()
+    }
+    if not borrowing_org_id or selected_org_ids != {borrowing_org_id}:
+        return _validation_error_response("สามารถรวมได้เฉพาะสัญญาเงินยืมของบุคลากรในหน่วยงานเดียวกัน")
+    allowed_statuses = {"อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง"}
+    if any(ticket.status in {"เคลียร์ยอดแล้ว", "เอกสารตั้งฎีกา", "ปฏิเสธ"} for ticket in selected_tickets):
+        return _validation_error_response("ไม่สามารถเชื่อมกับสัญญาเงินยืมที่ปิดยอดหรือถูกปฏิเสธได้")
+    if any(ticket.id != ticket_id and ticket.status not in allowed_statuses for ticket in selected_tickets):
+        return _validation_error_response("สัญญาเงินยืมที่เชื่อมโยงต้องอยู่ในสถานะที่พร้อมส่งคืน")
 
     current_user_id = _current_user_id()
     if not _can_submit_return_detail(current_user_id, borrowing_ticket):
@@ -3970,6 +4154,7 @@ def submit_return_details():
         try:
             _create_parcel_return_record(
                 ticket_id=ticket_id,
+                ticket_ids=selected_ticket_ids,
                 fund_request_id=None,
                 amount=parcel_amount,
                 items_description=parcel_items_description,
@@ -4047,7 +4232,7 @@ def submit_return_details():
         return _validation_error_response(proof_file_error)
 
     if not is_draft:
-        ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id, exclude_return_id=exclude_return_id)
+        ticket_totals = _calculate_ticket_group_totals(selected_ticket_ids)
         projected_total = (
             ticket_totals["cumulative_total"]
             + total_amount_spent
@@ -4160,12 +4345,29 @@ def submit_return_details():
     _replace_return_detail_documents(return_detail, announcement_references)
 
     if not parsed_rows:
+        db.session.execute(
+            return_borrowing_ticket_association.delete().where(
+                return_borrowing_ticket_association.c.return_id == return_detail.id
+            )
+        )
         db.session.delete(return_detail)
         return_detail = None
+    else:
+        # Keep the legacy primary FK and add every selected ticket to the link table.
+        db.session.execute(
+            return_borrowing_ticket_association.delete().where(
+                return_borrowing_ticket_association.c.return_id == return_detail.id
+            )
+        )
+        db.session.execute(
+            return_borrowing_ticket_association.insert(),
+            [{"return_id": return_detail.id, "ticket_id": linked_id} for linked_id in sorted(selected_ticket_ids)],
+        )
 
     if parcel_amount is not None:
         _create_parcel_return_record(
             ticket_id=ticket_id,
+            ticket_ids=selected_ticket_ids,
             fund_request_id=None,
             amount=parcel_amount,
             items_description=parcel_items_description,
@@ -4188,6 +4390,15 @@ def submit_return_details():
         else:
             db.session.add(cash_detail)
             db.session.flush()
+        db.session.execute(
+            return_borrowing_ticket_association.delete().where(
+                return_borrowing_ticket_association.c.return_id == cash_detail.id
+            )
+        )
+        db.session.execute(
+            return_borrowing_ticket_association.insert(),
+            [{"return_id": cash_detail.id, "ticket_id": linked_id} for linked_id in sorted(selected_ticket_ids)],
+        )
         cash_detail.status = "ฉบับร่าง" if is_draft else "รอตรวจสอบ"
         cash_item = ReturnReceiptItem(
             return_detail_id=cash_detail.id,
@@ -4242,7 +4453,8 @@ def submit_return_details():
     if is_draft:
         flash("บันทึกฉบับร่างเรียบร้อยแล้ว", "success")
     else:
-        borrowing_ticket.status = _recalculate_borrowing_ticket_status(ticket_id)
+        for selected_ticket in selected_tickets:
+            selected_ticket.status = _recalculate_borrowing_ticket_status(selected_ticket.id)
         if return_detail:
             _send_notification_email(return_detail, object_type="return")
         if cash_detail:
@@ -4254,7 +4466,7 @@ def submit_return_details():
 
 @bp.app_template_filter('filter_actionable_tickets')
 def filter_actionable_tickets(tickets):
-    actionable_statuses = {"อนุมัติจ่ายเงิน", "มียอดคงค้าง",}
+    actionable_statuses = {"อนุมัติแล้ว", "อนุมัติจ่ายเงิน", "มียอดคงค้าง",}
     return [
         t
         for t in tickets

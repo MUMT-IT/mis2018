@@ -273,6 +273,24 @@ document_return_association = Table(
 )
 
 
+# A return ticket may settle receipts from more than one borrowing ticket.
+# ``ReturnDetail.ticket_id`` is kept for backwards compatibility and stores the
+# first/primary ticket; this table is the source of the additional links.
+return_borrowing_ticket_association = Table(
+    "cash_advance_return_borrowing_ticket_association",
+    db.metadata,
+    Column("return_id", Integer, ForeignKey("cash_advance_return_details.id"), primary_key=True),
+    Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
+)
+
+parcel_borrowing_ticket_association = Table(
+    "cash_advance_parcel_borrowing_ticket_association",
+    db.metadata,
+    Column("parcel_return_id", Integer, ForeignKey("cash_mng_parcel_return_details.id"), primary_key=True),
+    Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
+)
+
+
 class Document(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_documents"
 
@@ -373,6 +391,31 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     @borrowing_ticket.setter
     def borrowing_ticket(self, value):
         self._borrowing_ticket = value
+
+    @property
+    def borrowing_tickets(self):
+        """All borrowing tickets settled by this return, including legacy data."""
+        session = object_session(self)
+        if session is None or self.id is None:
+            return [self.borrowing_ticket] if self.borrowing_ticket else []
+        tickets = []
+        if self.ticket_id:
+            ticket = _session_get(session, CashAdvanceBorrowingTicket, self.ticket_id)
+            if ticket:
+                tickets.append(ticket)
+        linked = (
+            session.query(CashAdvanceBorrowingTicket)
+            .join(
+                return_borrowing_ticket_association,
+                CashAdvanceBorrowingTicket.id == return_borrowing_ticket_association.c.ticket_id,
+            )
+            .filter(return_borrowing_ticket_association.c.return_id == self.id)
+            .order_by(CashAdvanceBorrowingTicket.id.asc())
+            .all()
+        )
+        seen = {ticket.id for ticket in tickets}
+        tickets.extend(ticket for ticket in linked if ticket.id not in seen)
+        return tickets
 
     @property
     def receipt_items(self):

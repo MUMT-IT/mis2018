@@ -14,6 +14,30 @@
       <form method="post" action="{{ return_form_action }}" enctype="multipart/form-data" id="returnForm_{{ borrowing_ticket.id }}" data-ajax-validation="true">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="ticket_id" value="{{ borrowing_ticket.id }}">
+        {% if return_linkable_tickets is defined and return_linkable_tickets %}
+          <div class="mb-4 border rounded-3 p-3 bg-white">
+            <h4 class="h6 fw-bold text-dark mb-2">เชื่อมโยงใบยืมเงินที่ต้องการตรวจรวม</h4>
+            <small class="text-muted d-block mb-2">เลือกได้มากกว่า 1 ใบ เฉพาะใบยืมเงินของบุคลากรในหน่วยงานเดียวกัน</small>
+            <div class="row g-2">
+              {% for linked_ticket in return_linkable_tickets %}
+                <div class="col-md-6">
+                  <label class="form-check border rounded-2 p-2 ps-5 h-100">
+                    <input class="form-check-input return-linked-ticket-input" type="checkbox"
+                           name="ticket_ids[]" value="{{ linked_ticket.id }}"
+                           data-budget="{{ linked_ticket.required_budget or 0 }}"
+                           {% if borrowing_ticket.verification_ticket_ids is defined and linked_ticket.id in borrowing_ticket.verification_ticket_ids %}checked{% endif %}
+                           onchange="calculateTotalSpent({{ borrowing_ticket.id }})">
+                    <span class="form-check-label">
+                      <span class="fw-bold">{{ linked_ticket.number or ('#' ~ linked_ticket.id) }}</span>
+                      <small class="d-block text-muted">{{ linked_ticket.borrowing_ticket_purpose }}</small>
+                      <small class="d-block">วงเงิน {{ "{:,.2f}".format(linked_ticket.required_budget or 0) }} บาท</small>
+                    </span>
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
         <input type="hidden" name="action" id="action_{{ borrowing_ticket.id }}" value="submit">
 
         <div class="mb-4 border rounded-3 p-3 bg-white">
@@ -192,16 +216,16 @@
           <div class="d-flex flex-column gap-2 ms-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
               <span class="fw-bold">ยอดที่ขอไป</span>
-              <span class="fw-bold">{{ "{:,.2f}".format(borrowing_ticket.required_budget or 0) }}</span>
+              <span class="fw-bold" id="budgetDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.verification_required_budget if borrowing_ticket.verification_required_budget is defined else borrowing_ticket.required_budget or 0) }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
               <span class="fw-bold">ยอดที่ส่งแล้ว</span>
-              <span class="fw-bold">{{ "{:,.2f}".format(borrowing_ticket.submitted_return_total or 0) }}</span>
+              <span class="fw-bold" id="submittedReturnDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.submitted_return_total or 0) }}</span>
             </div>
             <div class="border-top border-3 border-dark my-2" style="border-top-style: dashed !important;"></div>
             <div class="d-flex justify-content-between align-items-center gap-4 text-dark fs-4">
               <span class="fw-bold">ยอดครั้งนี้</span>
-              <span class="fw-bold bg-info-subtle border border-info rounded-3 px-4 py-1" id="sumAmountDisplay_{{ borrowing_ticket.id }}" data-budget="{{ borrowing_ticket.required_budget or 0 }}" data-existing-total="{{ borrowing_ticket.submitted_return_total or 0 }}">0.00</span>
+              <span class="fw-bold bg-info-subtle border border-info rounded-3 px-4 py-1" id="sumAmountDisplay_{{ borrowing_ticket.id }}" data-budget="{{ borrowing_ticket.required_budget or 0 }}" data-base-budget="{{ borrowing_ticket.required_budget or 0 }}" data-existing-total="{{ borrowing_ticket.submitted_return_total or 0 }}">0.00</span>
             </div>
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-dark fs-4">
               <span class="fw-bold">ยอดคงค้าง</span>
@@ -517,7 +541,14 @@
       const cashReturnInput = document.getElementById(`cash_return_amount_${ticketId}`);
       total += parseFloat((cashReturnInput?.value || "0").replace(/,/g, "")) || 0;
       const existingTotal = parseFloat(totalDisplay.dataset.existingTotal || "0") || 0;
-      const budget = parseFloat(totalDisplay.dataset.budget || "0") || 0;
+      const selectedBudget = Array.from(document.querySelectorAll(`#returnForm_${ticketId} .return-linked-ticket-input:checked, #returnForm_${ticketId} .generated-ticket-link`))
+        .reduce((sum, input) => sum + (parseFloat(input.dataset.budget || "0") || 0), 0);
+      const budget = (parseFloat(totalDisplay.dataset.baseBudget || totalDisplay.dataset.budget || "0") || 0) + selectedBudget;
+      totalDisplay.dataset.budget = budget;
+      const budgetDisplay = document.getElementById(`budgetDisplay_${ticketId}`);
+      if (budgetDisplay) {
+        budgetDisplay.innerText = budget.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
       const isOverBudget = total + existingTotal > budget;
 
       totalDisplay.classList.toggle("text-danger", isOverBudget);
