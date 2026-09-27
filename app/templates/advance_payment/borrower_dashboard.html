@@ -6,6 +6,9 @@
 <style>
   .document-input-row .announcement-input { background-color: #fff !important; color: #212529 !important; border-color: #6c757d !important; }
   .document-input-row .announcement-input::placeholder { color: #495057; opacity: 1; }
+  .dashboard-scope-actions { min-width: 0; }
+  .dashboard-scope-actions .btn { white-space: normal; width: 100%; }
+  .dashboard-scope-actions .scope-toggle { min-height: 38px; }
 </style>
   <!-- Summary Cards Section -->
   <section class="mb-4">
@@ -60,22 +63,28 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4 d-flex flex-column justify-content-between">
-        {% if created_borrower_options %}
-          <div>
-            <label for="departmentBorrowingTicketBorrower" class="form-label small fw-bold mb-1">
-              ดูสัญญาเงินยืมในหน่วยงาน
-            </label>
-            <select id="departmentBorrowingTicketBorrower" class="form-select border-primary-subtle shadow-sm" onchange="filterDepartmentBorrower(this.value)">
-              {% for borrower in created_borrower_options %}
-                <option value="{{ borrower.id }}" {% if selected_borrower_id == borrower.id %}selected{% endif %}>{{ borrower.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        {% endif %}
+      <div class="col-md-4 d-flex flex-column justify-content-end align-items-end">
+        <div class="dashboard-scope-actions d-flex flex-column w-100">
+          {% if dashboard_scope == 'department' and created_borrower_options %}
+            <div class="w-100">
+              <label for="departmentBorrowingTicketBorrower" class="form-label small fw-bold mb-1">
+                ดูสัญญาเงินยืมในหน่วยงาน
+              </label>
+              <select id="departmentBorrowingTicketBorrower" class="form-select border-primary-subtle shadow-sm" onchange="filterDepartmentBorrower(this.value)">
+                <option value="" {% if selected_borrower_id is none %}selected{% endif %}>ทุกคนในหน่วยงาน</option>
+                {% for borrower in created_borrower_options %}
+                  <option value="{{ borrower.id }}" {% if selected_borrower_id == borrower.id %}selected{% endif %}>{{ borrower.name }}</option>
+                {% endfor %}
+              </select>
+              <a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('advance_payment.borrower_dashboard', scope='mine') }}">ดูเฉพาะของฉัน</a>
+            </div>
+          {% else %}
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('advance_payment.borrower_dashboard', scope='department') }}">ดูทั้งหน่วยงาน</a>
+          {% endif %}
+        </div>
         {% if dashboard_is_coordinator %}
-          <div class="d-flex justify-content-end mt-3">
-            <a href="{{ url_for('advance_payment.coordinator_dashboard') }}" class="btn btn-outline-primary">
+          <div class="d-flex justify-content-end mt-3 w-75">
+            <a href="{{ url_for('advance_payment.coordinator_dashboard') }}" class="btn btn-outline-primary w-100">
               <i class="bi bi-arrow-left me-2" aria-hidden="true"></i>กลับหน้าสร้างสัญญาเงินยืมแทนผู้อื่น
             </a>
           </div>
@@ -85,8 +94,73 @@
   </section>
 
   <script>
+    function selectSingleReturnTicket(ticketId) {
+      document.querySelectorAll('#multiReturnSelectionPanel .return-ticket-selector').forEach(input => {
+        input.checked = false;
+      });
+      document.querySelectorAll('.generated-ticket-link').forEach(input => input.remove());
+      document.querySelectorAll('.return-ticket-panel').forEach(panel => panel.classList.add('d-none'));
+      if (!ticketId) return;
+      const panel = document.getElementById(`returnTicketPanel_${ticketId}`);
+      if (panel) panel.classList.remove('d-none');
+    }
+
+    function toggleMultiReturnSelection() {
+      document.getElementById('multiReturnSelectionPanel')?.classList.toggle('d-none');
+    }
+
+    function confirmMultiReturnTickets() {
+      const selected = document.querySelectorAll('#multiReturnSelectionPanel .return-ticket-selector:checked');
+      if (!selected.length) {
+        alert('กรุณาเลือกสัญญาเงินยืมอย่างน้อย 1 ใบ');
+        return;
+      }
+      document.getElementById('multiReturnSelectionPanel')?.classList.add('d-none');
+      syncSelectedReturnTickets();
+    }
+
+    function syncSelectedReturnTickets() {
+      const selected = Array.from(document.querySelectorAll('.return-ticket-selector:checked'))
+        .sort((a, b) => (a.dataset.approved || '9999-12-31').localeCompare(b.dataset.approved || '9999-12-31') || Number(a.value) - Number(b.value));
+      const panels = document.querySelectorAll('.return-ticket-panel');
+      panels.forEach(panel => panel.classList.add('d-none'));
+      const hint = document.getElementById('returnSelectionHint');
+      const dropdownLabel = document.getElementById('returnTicketDropdownLabel');
+      if (!selected.length) {
+        if (hint) hint.textContent = 'กรุณาเลือกอย่างน้อย 1 สัญญาเพื่อแสดงฟอร์ม';
+        if (dropdownLabel) dropdownLabel.textContent = 'เลือกสัญญาเงินยืม';
+        return;
+      }
+
+      const primaryId = selected[0].value;
+      const panel = document.getElementById(`returnTicketPanel_${primaryId}`);
+      const form = document.getElementById(`returnForm_${primaryId}`);
+      if (panel) panel.classList.remove('d-none');
+      if (!form) return;
+
+      form.querySelectorAll('.generated-ticket-link').forEach(input => input.remove());
+      selected.slice(1).forEach(box => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ticket_ids[]';
+        input.value = box.value;
+        input.dataset.budget = box.dataset.budget || '0';
+        input.className = 'generated-ticket-link';
+        form.appendChild(input);
+      });
+      const existingTotal = selected.reduce((sum, box) => sum + (parseFloat(box.dataset.existingTotal || '0') || 0), 0);
+      const totalDisplay = form.querySelector(`#sumAmountDisplay_${primaryId}`);
+      if (totalDisplay) totalDisplay.dataset.existingTotal = existingTotal;
+      const submittedDisplay = form.querySelector(`#submittedReturnDisplay_${primaryId}`);
+      if (submittedDisplay) submittedDisplay.innerText = existingTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (hint) hint.textContent = `เลือกแล้ว ${selected.length} สัญญา ระบบจะเรียงจัดสรรยอดตามวันที่อนุมัติ`;
+      if (dropdownLabel) dropdownLabel.textContent = `เลือกแล้ว ${selected.length} สัญญา`;
+      if (typeof calculateTotalSpent === 'function') calculateTotalSpent(primaryId);
+    }
+
     function filterDepartmentBorrower(borrowerId) {
       const url = new URL(window.location.href);
+      url.searchParams.set('scope', 'department');
       if (borrowerId) {
         url.searchParams.set('borrower_id', borrowerId);
       } else {
@@ -199,7 +273,7 @@
 
   <!-- Submit Clearing Proof Section -->
 {% set ns = namespace(has_actionable_tickets=false) %}
-  {% if actionable_tickets %}
+  {% if dashboard_scope == 'mine' %}
   <section class="mb-5">
     <div class="card shadow-sm border rounded-4">
       <div class="card-header bg-white border-bottom-0 pt-4 px-4">
