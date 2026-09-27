@@ -24,31 +24,50 @@
   <div class="row align-items-center g-3">
     <div class="col-md-12">
       <div class="row g-2">
+        {% set cash_return_total = namespace(amount=0) %}
+        {% for item in claim_detail.items %}
+          {% if item.category_type|string == '6' %}
+            {% set cash_return_total.amount = cash_return_total.amount + (item.amount or 0) %}
+          {% endif %}
+        {% endfor %}
+
+        {% if advance_payment_role != 'finance' %}
+        <!-- เลขที่ใบเบิก -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">เลขที่ใบเบิก</span>
+          <strong class="text-dark">{{ claim_detail.fund_request.ticket_number if claim_detail.fund_request and claim_detail.fund_request.ticket_number else '-' }}</strong>
+        </div>
+
+        <!-- ยอดที่อนุมัติ -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">ยอดที่อนุมัติ</span>
+          <strong class="text-dark">
+            {{ "{:,.2f}".format(claim_detail.fund_request.amount if claim_detail.fund_request and claim_detail.fund_request.amount else 0) }} บาท
+          </strong>
+        </div>
+        {% endif %}
+
         <!-- ยอดรวมเบิก -->
         <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">ยอดรวมที่ขอเบิก</span>
+          <span class="text-muted small d-block">ยอดที่ขอเบิก</span>
           <strong class="text-success fs-5">{{ "{:,.2f}".format(claim_detail.total_amount or 0) }} บาท</strong>
         </div>
-          {% if advance_payment_role != 'finance' %}
-          <!-- ยอดเงินในคำขออนุมัติ -->
-            <div class="col-12 col-sm-6 col-lg-2">
-              <span class="text-muted small d-block">ยอดที่อนุมัติ</span>
-              <strong class="text-dark">
-                {{ "{:,.2f}".format(claim_detail.fund_request.amount if claim_detail.fund_request and claim_detail.fund_request.amount else 0) }} บาท
-              </strong>
-            </div>
-          {% endif %}
 
-        <!-- เลขที่บัญชี -->
+        {% if advance_payment_role != 'finance' %}
+        <!-- ยอดที่คืนเงินสด -->
         <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">เลขที่บัญชี</span>
-          <strong class="text-dark">{{ claim_detail.setting.account_number if claim_detail.setting and claim_detail.setting.account_number else '-' }}</strong>
+          <span class="text-muted small d-block">ยอดที่คืนเงินสด</span>
+          <strong class="text-dark">{{ "{:,.2f}".format(cash_return_total.amount) }} บาท</strong>
         </div>
+        {% endif %}
 
-        <!-- วันที่ส่งเอกสาร -->
+        <!-- วันที่ได้รับคืนเงินสดย่อย -->
         <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">วันที่ส่งเอกสาร</span>
-          <strong class="text-dark">{{ claim_detail.created_at|thai_date if claim_detail.created_at else '-' }}</strong>
+          {% if claim_detail.transferred_at %}
+            <span class="text-muted small d-block">วันที่ได้รับคืนเงินสดย่อย</span>
+            <strong class="text-primary">{{ claim_detail.transferred_at|thai_date }}</strong>
+            {{ last_edit([claim_detail]) }}
+          {% endif %}
         </div>
 
         <!-- สถานะปัจจุบัน -->
@@ -72,9 +91,6 @@
           {% elif claim_detail.status|lower == 'เอกสารตั้งฎีกา' %}
             {% set c_badge = 'bg-primary text-white' %}
             {% set c_status = 'เอกสารตั้งฎีกา' %}
-          {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
-            {% set c_badge = 'bg-success text-white' %}
-            {% set c_status = 'ได้รับเงินสดย่อยแล้ว' %}
           {% elif claim_detail.status|lower in ['ปฏิเสธ'] %}
             {% set c_badge = 'bg-danger text-white' %}
             {% set c_status = 'ปฏิเสธ' %}
@@ -87,15 +103,20 @@
           <span class="badge {{ c_badge }} mt-1 px-2 py-1">{{ c_status }}</span>
         </div>
 
-        <!-- วันที่โอนเงินสดย่อย / หมายเลขฎีกา -->
+        <!-- วันที่ส่งเอกสาร -->
         <div class="col-12 col-sm-6 col-lg-2">
-          {% if claim_detail.transferred_at %}
-            <span class="text-muted small d-block">วันที่ได้รับคืนเงินสดย่อย</span>
-            <strong class="text-primary">{{ claim_detail.transferred_at|thai_date }}</strong>
-            {{ last_edit([claim_detail]) }}
-          {% endif %}
+          <span class="text-muted small d-block">วันที่ส่งเอกสาร</span>
+          <strong class="text-dark">{{ claim_detail.created_at|thai_date if claim_detail.created_at else '-' }}</strong>
         </div>
 
+        {% if advance_payment_role == 'finance' %}
+        <!-- เลขที่บัญชี -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">เลขที่บัญชี</span>
+          <strong class="text-dark">{{ claim_detail.setting.account_number if claim_detail.setting and claim_detail.setting.account_number else '-' }}</strong>
+        </div>
+
+        <!-- หมายเลขฎีกา -->
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">หมายเลขฎีกา</span>
           <strong class="text-dark">{{ claim_detail.closing_document_name or '-' }}</strong>
@@ -103,6 +124,7 @@
             <span class="text-muted small d-block">(เลขเก่า: {{ claim_detail.old_document_number }})</span>
           {% endif %}
         </div>
+        {% endif %}
 
         <!-- ประวัติการบันทึกสาเหตุการปฏิเสธ -->
         {% if claim_detail.rejection_comment %}
