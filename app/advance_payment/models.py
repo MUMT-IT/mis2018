@@ -689,6 +689,7 @@ class FundRequest(FinanceEditMixin, db.Model):
     cancel_at = Column(DateTime, nullable=True)
     cancel_transferred_at = Column(Date, nullable=True)
     purpose = Column(String(1000), nullable=True)
+    personal_note = Column(String(2000), nullable=True)
     period_year = Column(String(10), nullable=True)
     withdrawal_proof_reference = Column(String(500), nullable=True)
     withdrawal_proof_filename = Column(String(255), nullable=True)

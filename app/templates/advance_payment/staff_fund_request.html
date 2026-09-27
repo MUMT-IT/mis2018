@@ -92,6 +92,10 @@
                   <label for="request_date" class="form-label fw-bold">วันที่ทำการเบิก <span class="text-danger">*</span></label>
                   {{ form.request_date(class="form-control", id="request_date", type="date", required=True, style="border-radius: 12px;") }}
                 </div>
+                <div class="col-md-12">
+                  <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
+                  {{ form.personal_note(class="form-control", id="personal_note", style="border-radius: 12px;") }}
+                </div>
               </div>
             </div>
 

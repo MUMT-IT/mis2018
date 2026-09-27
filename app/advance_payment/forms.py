@@ -69,6 +69,7 @@ class FundRequestForm(Form):
     amount = DecimalField("จำนวนเงิน", validators=[DataRequired(), NumberRange(min=0.01)], places=2)
     
     purpose = StringField("วัตถุประสงค์ในการเบิก", validators=[Optional()])
+    personal_note = StringField("หมายเหตุส่วนตัว", validators=[Optional()])
     items = StringField("รายการที่เบิก", validators=[Optional()])
     
     period_year = StringField("งวดวันที่ (เดือน/ปี)", validators=[Optional()])
