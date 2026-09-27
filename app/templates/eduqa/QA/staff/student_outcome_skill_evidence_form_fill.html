@@ -7,13 +7,13 @@
         <div class="level">
             <div class="level-left">
                 <div>
-                    <h1 class="title">กรอกผลการประเมิน</h1>
+                    <h1 class="title">{% if editing_submission is defined and editing_submission %}แก้ไขผลการประเมิน{% else %}กรอกผลการประเมิน{% endif %}</h1>
                     <p class="subtitle">{{ assignment.version.form.name }} · v{{ assignment.version.version }}</p>
                     <p class="is-size-6 has-text-grey">{{ student.student_id }} — {{ student.th_name }}</p>
                 </div>
             </div>
             <div class="level-right">
-                <a class="button is-light" href="{{ url_for('eduqa.student_skill_evidence_students', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, assignment_id=assignment.id) }}">
+                <a class="button is-light" href="{% if editing_submission is defined and editing_submission %}{{ url_for('eduqa.view_student_skill_evidence_results', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, student_id=student.id) }}{% else %}{{ url_for('eduqa.student_skill_evidence_students', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, assignment_id=assignment.id) }}{% endif %}">
                     <span class="icon"><i class="fas fa-arrow-left"></i></span><span>ย้อนกลับ</span>
                 </a>
             </div>
@@ -35,14 +35,15 @@
                 {% elif field.field_type == 'boolean' %}
                 <div class="control"><label class="radio mr-4"><input type="radio" name="field_{{ field.id }}" value="true" {% if value is sameas true %}checked{% endif %} {% if field.required %}required{% endif %}> ใช่</label><label class="radio"><input type="radio" name="field_{{ field.id }}" value="false" {% if value is sameas false %}checked{% endif %}> ไม่ใช่</label></div>
                 {% else %}
-                <div class="control"><input class="input" id="field-{{ field.id }}" type="{{ 'number' if field.field_type in ['number', 'rating'] else field.field_type }}" name="field_{{ field.id }}" value="{{ value or '' }}" {% if field.field_type == 'rating' %}min="1" max="5"{% endif %} {% if field.required %}required{% endif %}></div>
+                <div class="control"><input class="input" id="field-{{ field.id }}" type="{{ 'number' if field.field_type in ['number', 'rating'] else field.field_type }}" name="field_{{ field.id }}" value="{{ value if value is not none else '' }}" {% if field.field_type in ['number', 'rating'] and field.config and field.config.get('scorable') %}min="0" max="{{ field.config.get('max_score') }}" step="any"{% elif field.field_type == 'rating' %}min="1" max="5"{% endif %} {% if field.required %}required{% endif %}></div>
                 {% endif %}
                 {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                {% if field.config and field.config.get('scorable') %}<p class="help has-text-info">คะแนนดิบสูงสุด {{ field.config.get('max_score') }} · ตัวคูณน้ำหนัก {{ field.config.get('weight') }}</p>{% endif %}
             </div>
             {% endfor %}
             {% if not assignment.version.fields %}<p class="has-text-grey mb-4">แบบประเมินนี้ยังไม่มีคำถาม</p>{% endif %}
             <button type="submit" class="button is-success" {% if not assignment.version.fields %}disabled{% endif %}>
-                <span class="icon"><i class="fas fa-save"></i></span><span>บันทึกผลประเมิน</span>
+                <span class="icon"><i class="fas fa-save"></i></span><span>{% if editing_submission is defined and editing_submission %}บันทึกการแก้ไข{% else %}บันทึกผลประเมิน{% endif %}</span>
             </button>
         </form>
     </div>

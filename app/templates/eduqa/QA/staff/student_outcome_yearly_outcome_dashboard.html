@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}YLO {{ yearly_outcome.year_level }}.{{ yearly_outcome.number }} Dashboard | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">YLO {{ yearly_outcome.year_level }}.{{ yearly_outcome.number }}</h1>
+                    <p class="subtitle">{{ yearly_outcome.outcome }}</p>
+                    <p class="is-size-7 has-text-grey">{{ revision.curriculum.th_name }} ปี {{ revision.buddhist_year }}{% if academic_year %} · ปีการศึกษา {{ academic_year }}{% endif %}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.student_outcome_monitoring_plos', revision_id=revision.id) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span><span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="box">
+            <form method="get">
+                <div class="field is-horizontal mb-0">
+                    <div class="field-label is-normal">
+                        <label class="label" for="academic-year">ปีการศึกษา</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="academic-year" name="academic_year" onchange="this.form.submit()">
+                                        {% for year in academic_years %}
+                                        <option value="{{ year }}" {% if year == academic_year %}selected{% endif %}>{{ year }}</option>
+                                        {% else %}
+                                        <option value="">ไม่มีข้อมูลปีการศึกษา</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                <noscript><button class="button is-link" type="submit">แสดงผล</button></noscript>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="notification is-info is-light">
+            <strong>เกณฑ์สถานะ:</strong>
+            ผ่าน เมื่อหลักฐานที่เกี่ยวข้องทั้งหมดได้รับการรับรอง ·
+            ผ่านบางส่วน เมื่อได้รับการรับรองเพียงบางหลักฐาน ·
+            ยังไม่ผ่าน เมื่อยังไม่มีหลักฐานที่ได้รับการรับรอง
+        </div>
+
+        <div class="columns is-multiline">
+            <div class="column is-one-quarter"><div class="box has-text-centered"><p class="heading">Skills</p><p class="title has-text-info">{{ skill_stats|length }}</p></div></div>
+            <div class="column is-one-quarter"><div class="box has-text-centered"><p class="heading">ผ่าน</p><p class="title has-text-success">{{ total_passing }}</p></div></div>
+            <div class="column is-one-quarter"><div class="box has-text-centered"><p class="heading">ผ่านบางส่วน</p><p class="title has-text-warning">{{ total_partial }}</p></div></div>
+            <div class="column is-one-quarter"><div class="box has-text-centered"><p class="heading">ยังไม่ผ่าน</p><p class="title has-text-danger">{{ total_not_passing }}</p></div></div>
+        </div>
+        <p class="help mb-5">ตัวเลขสรุปเป็นจำนวนผลลัพธ์นักศึกษา–Skill นักศึกษาคนเดียวอาจถูกนับในหลาย Skills</p>
+
+        {% if skill_stats %}
+        <div class="box">
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable is-striped">
+                    <thead>
+                    <tr>
+                        <th>Skill</th>
+                        <th class="has-text-centered">รายวิชา</th>
+                        <th class="has-text-centered">หลักฐาน</th>
+                        <th class="has-text-centered">นักศึกษา</th>
+                        <th class="has-text-centered">ผ่าน</th>
+                        <th class="has-text-centered">ผ่านบางส่วน</th>
+                        <th class="has-text-centered">ยังไม่ผ่าน</th>
+                        <th style="min-width: 160px;">อัตราผ่าน</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for stat in skill_stats %}
+                    <tr>
+                        <td><strong>{{ stat.skill.code }} · {{ stat.skill.name }}</strong><br><span class="is-size-7 has-text-grey">{{ stat.skill.category or '-' }}</span></td>
+                        <td class="has-text-centered">{{ stat.course_count }}</td>
+                        <td class="has-text-centered">{{ stat.evidence_count }}</td>
+                        <td class="has-text-centered">{{ stat.total_students }}</td>
+                        <td class="has-text-centered"><span class="tag is-success">{{ stat.passing_count }}</span></td>
+                        <td class="has-text-centered"><span class="tag is-warning">{{ stat.partial_count }}</span></td>
+                        <td class="has-text-centered"><span class="tag is-danger is-light">{{ stat.not_passing_count }}</span></td>
+                        <td>
+                            <progress class="progress is-success mb-1" value="{{ stat.passing_percent }}" max="100">{{ '%.0f'|format(stat.passing_percent) }}%</progress>
+                            <span class="is-size-7 has-text-grey">ผ่าน {{ '%.0f'|format(stat.passing_percent) }}% · บางส่วน {{ '%.0f'|format(stat.partial_percent) }}%</span>
+                        </td>
+                        <td class="has-text-right"><a class="button is-small is-info is-light" href="{{ url_for('eduqa.view_student_outcome_skill', revision_id=revision.id, skill_id=stat.skill.id) }}">ดู Skill</a></td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="box has-text-centered"><p class="has-text-grey">YLO นี้ยังไม่มี Skill ที่เชื่อมโยง</p></div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

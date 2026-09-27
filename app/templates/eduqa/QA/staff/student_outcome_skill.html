@@ -66,6 +66,23 @@
         </div>
 
         <div class="box">
+            <h2 class="title is-5">Students by Academic Year</h2>
+            {% if academic_years %}
+            <div class="buttons">
+                {% for academic_year in academic_years %}
+                <a class="button is-link is-light"
+                   href="{{ url_for('eduqa.student_outcome_skill_students', revision_id=revision.id, skill_id=skill.id, academic_year=academic_year) }}">
+                    <span class="icon"><i class="fas fa-user-graduate"></i></span>
+                    <span>ปีการศึกษา {{ academic_year }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีปีการศึกษาจากรายวิชาที่เชื่อมโยง</p>
+            {% endif %}
+        </div>
+
+        <div class="box">
             <h2 class="title is-5">Related CLOs</h2>
             {% if clos %}
             <div class="table-container">
