@@ -642,6 +642,74 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
         self._bank_account_info = value
 
 
+class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
+    """คู่ข้อมูลยกยอดเงินสดย่อยที่กรอกโดยการเงินและผู้คุมบัญชีคนละฝั่ง."""
+
+    __tablename__ = "petty_cash_fiscal_year_carryovers"
+    __table_args__ = (
+        UniqueConstraint(
+            "org_id", "source_fiscal_year", "target_fiscal_year",
+            name="uq_petty_cash_carryover_org_years",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    org_id = Column(Integer, ForeignKey("orgs.id"), nullable=False, index=True)
+    custodian_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False, index=True)
+    source_fiscal_year = Column(Integer, nullable=False)
+    target_fiscal_year = Column(Integer, nullable=False)
+    finance_budget = Column(Numeric(12, 2), nullable=True)
+    finance_pending_transfer = Column(Numeric(12, 2), nullable=True)
+    custodian_bank_balance = Column(Numeric(12, 2), nullable=True)
+    custodian_cash_on_hand = Column(Numeric(12, 2), nullable=True)
+    custodian_pending_budget = Column(Numeric(12, 2), nullable=True)
+    finance_updated_at = Column(DateTime(timezone=True), nullable=True)
+    custodian_updated_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    @property
+    def org(self):
+        from app.models import Org
+        return _session_get(object_session(self), Org, self.org_id)
+
+    @property
+    def department_name(self):
+        return getattr(self.org, "name", None)
+
+    @property
+    def custodian_name(self):
+        custodian = _session_get(object_session(self), StaffAccount, self.custodian_id)
+        return getattr(custodian, "name", None) or getattr(custodian, "fullname", None)
+
+    @property
+    def is_complete(self):
+        return all(
+            value is not None
+            for value in (
+                self.finance_budget,
+                self.finance_pending_transfer,
+                self.custodian_bank_balance,
+                self.custodian_cash_on_hand,
+                self.custodian_pending_budget,
+            )
+        )
+
+    @property
+    def reconciliation_amount(self):
+        if not self.is_complete:
+            return None
+        return (
+            self.finance_budget
+            - (
+                self.custodian_bank_balance
+                + self.custodian_cash_on_hand
+                + self.custodian_pending_budget
+                + self.finance_pending_transfer
+            )
+        )
+
+
 class BankAccountInfo(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_bank_account_infos"
     __table_args__ = (

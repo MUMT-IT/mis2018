@@ -34,7 +34,7 @@ from werkzeug.utils import secure_filename
 
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
+from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
 from .email_utils import generate_notification_email_content
 from . import advance_payment as bp, thai_date
 from app.models import CostCenter, IOCode, Org, ProductCode
@@ -5576,6 +5576,119 @@ def petty_cash_settings(_render_after_post=False):
         setting_custodian_ids=setting_custodian_ids,
         history_summary=history_summary,
         current_fiscal_year=current_fiscal_year,
+    )
+
+
+def _carryover_amount(value):
+    raw = (value or "").replace(",", "").strip()
+    if raw == "":
+        return None
+    try:
+        amount = Decimal(raw)
+    except Exception:
+        raise ValueError("จำนวนเงินไม่ถูกต้อง")
+    if amount < 0:
+        raise ValueError("จำนวนเงินต้องไม่ติดลบ")
+    return amount.quantize(Decimal("0.01"))
+
+
+@bp.route("/petty-cash/fiscal-year-carryover", methods=["GET", "POST"])
+@module_system_required({PETTY_CASH_SYSTEM, FINANCE_SYSTEM})
+def petty_cash_fiscal_year_carryover():
+    """หน้ากระทบยอดยกยอด: การเงินและผู้คุมบัญชีกรอกคนละชุดข้อมูล."""
+    user = db.session.query(StaffAccount).filter_by(id=_current_user_id()).first()
+    is_finance = _current_module_role() == FINANCE_SYSTEM
+    source_fiscal_year = _current_petty_cash_fiscal_year()
+    target_fiscal_year = source_fiscal_year + 1
+
+    rows_query = db.session.query(PettyCashFiscalYearCarryover).filter_by(
+        source_fiscal_year=source_fiscal_year,
+        target_fiscal_year=target_fiscal_year,
+    )
+    if not is_finance:
+        rows_query = rows_query.filter(
+            PettyCashFiscalYearCarryover.custodian_id == getattr(user, "id", None)
+        )
+    rows = rows_query.order_by(PettyCashFiscalYearCarryover.org_id.asc()).all()
+
+    if request.method == "POST":
+        try:
+            if is_finance:
+                org_ids = request.form.getlist("org_id[]")
+                custodian_ids = request.form.getlist("custodian_id[]")
+                budgets = request.form.getlist("finance_budget[]")
+                pending_transfers = request.form.getlist("finance_pending_transfer[]")
+                bank_balances = request.form.getlist("custodian_bank_balance[]")
+                cash_on_hands = request.form.getlist("custodian_cash_on_hand[]")
+                pending_budgets = request.form.getlist("custodian_pending_budget[]")
+                seen_org_ids = set()
+                for index, raw_org_id in enumerate(org_ids):
+                    org_id = int(raw_org_id) if raw_org_id.isdigit() else None
+                    custodian_id = int(custodian_ids[index]) if index < len(custodian_ids) and custodian_ids[index].isdigit() else None
+                    if not org_id or not custodian_id:
+                        raise ValueError(f"แถวที่ {index + 1} กรุณาเลือกหน่วยงานและผู้คุมบัญชี")
+                    if org_id in seen_org_ids:
+                        raise ValueError("ไม่สามารถเพิ่มหน่วยงานเดิมซ้ำในรายการเดียวกันได้")
+                    seen_org_ids.add(org_id)
+                    carryover = db.session.query(PettyCashFiscalYearCarryover).filter_by(
+                        org_id=org_id,
+                        source_fiscal_year=source_fiscal_year,
+                        target_fiscal_year=target_fiscal_year,
+                    ).first()
+                    if carryover is None:
+                        carryover = PettyCashFiscalYearCarryover(
+                            org_id=org_id,
+                            custodian_id=custodian_id,
+                            source_fiscal_year=source_fiscal_year,
+                            target_fiscal_year=target_fiscal_year,
+                        )
+                    else:
+                        carryover.custodian_id = custodian_id
+                    carryover.finance_budget = _carryover_amount(budgets[index] if index < len(budgets) else "")
+                    carryover.finance_pending_transfer = _carryover_amount(pending_transfers[index] if index < len(pending_transfers) else "")
+                    carryover.finance_updated_at = datetime.now(ZoneInfo("Asia/Bangkok"))
+                    # ฝ่ายการเงินมองเห็นข้อมูลผู้คุมบัญชี แต่ไม่เขียนทับตัวเลขฝั่งนั้น
+                    if index < len(bank_balances) and bank_balances[index].strip():
+                        carryover.custodian_bank_balance = _carryover_amount(bank_balances[index])
+                    if index < len(cash_on_hands) and cash_on_hands[index].strip():
+                        carryover.custodian_cash_on_hand = _carryover_amount(cash_on_hands[index])
+                    if index < len(pending_budgets) and pending_budgets[index].strip():
+                        carryover.custodian_pending_budget = _carryover_amount(pending_budgets[index])
+                    db.session.add(carryover)
+            else:
+                for raw_id in request.form.getlist("carryover_id[]"):
+                    carryover = db.session.query(PettyCashFiscalYearCarryover).filter_by(
+                        id=int(raw_id), custodian_id=user.id,
+                    ).first()
+                    if not carryover:
+                        continue
+                    carryover.custodian_bank_balance = _carryover_amount(request.form.get(f"custodian_bank_balance_{raw_id}"))
+                    carryover.custodian_cash_on_hand = _carryover_amount(request.form.get(f"custodian_cash_on_hand_{raw_id}"))
+                    carryover.custodian_pending_budget = _carryover_amount(request.form.get(f"custodian_pending_budget_{raw_id}"))
+                    carryover.custodian_updated_at = datetime.now(ZoneInfo("Asia/Bangkok"))
+            db.session.commit()
+            flash("บันทึกข้อมูลยกยอดเงินสดย่อยเรียบร้อยแล้ว", "success")
+            return redirect(url_for("advance_payment.petty_cash_fiscal_year_carryover"))
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+
+    return render_template(
+        "petty_cash_fiscal_year_carryover.html",
+        rows=(
+            rows
+            or [PettyCashFiscalYearCarryover(
+                source_fiscal_year=source_fiscal_year,
+                target_fiscal_year=target_fiscal_year,
+            )]
+            if is_finance
+            else rows
+        ),
+        is_finance=is_finance,
+        org_options=db.session.query(Org).order_by(Org.name.asc()).all() if is_finance else [],
+        staff_options=_get_staff_accounts_from_directory() if is_finance else [],
+        source_fiscal_year=source_fiscal_year,
+        target_fiscal_year=target_fiscal_year,
     )
 
 
