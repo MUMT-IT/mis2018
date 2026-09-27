@@ -64,16 +64,7 @@
       {% set current_fund_request_status = (fund_request_status or '')|trim %}
       {% set fund_request_status_aliases = {} %}
       {% set current_fund_request_step = fund_request_status_aliases.get(current_fund_request_status, current_fund_request_status) %}
-      {% set fund_request_status_class = 'bg-secondary text-white' %}
-      {% if current_fund_request_step == 'อนุมัติแล้ว' %}
-        {% set fund_request_status_class = 'bg-primary text-white' %}
-      {% elif current_fund_request_step == 'ส่งเบิกครบแล้ว' %}
-        {% set fund_request_status_class = 'bg-info text-white' %}
-      {% elif current_fund_request_step == 'เคลียร์ยอดสำเร็จ' %}
-        {% set fund_request_status_class = 'bg-success text-white' %}
-      {% elif current_fund_request_step in ['ยกเลิก', 'ปฏิเสธ'] %}
-        {% set fund_request_status_class = 'bg-danger text-white' %}
-      {% endif %}
+      {% set fund_request_status_class = status_badge_class(current_fund_request_step) %}
 
       <div class="status-flow">
         {% for step in fund_request_status_steps %}
@@ -534,17 +525,16 @@ function togglePettyCashClaimForm() {
             </td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(claim.total_amount or 0) }}</td>
             <td>
-              {% set c_badge = 'bg-warning text-dark' %}
               {% set c_status = claim.status %}
 
               {% if claim.status|lower == 'รอตรวจสอบ' %}{% set c_status = 'รอตรวจสอบ' %}
-              {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_badge = 'bg-warning text-dark' %}{% set c_status = 'กำลังตรวจสอบ' %}
-              {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_badge = 'bg-info text-dark' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
-              {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_badge = 'bg-success text-white' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
-              {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_badge = 'bg-secondary text-white' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
-              {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_badge = 'bg-danger text-white' %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
+              {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_status = 'กำลังตรวจสอบ' %}
+              {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
+              {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
+              {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
+              {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
 
-              <span class="badge {{ c_badge }}">{{ c_status }}</span>
+              <span class="badge {{ status_badge_class(claim.status) }}">{{ c_status }}</span>
             </td>
             <td class="text-center">
               {% if claim.closing_document_name %}
@@ -588,23 +578,7 @@ function togglePettyCashClaimForm() {
             <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}</div></td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
             <td>
-              {% if pr.status == 'รอตรวจสอบ' %}
-                <span class="badge bg-warning text-dark">รอตรวจสอบ</span>
-              {% elif pr.status == 'พัสดุกำลังดำเนินการ' %}
-                <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
-              {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
-                <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
-              {% elif pr.status == 'โอนเงินสดย่อยสำเร็จ' %}
-                <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
-              {% elif pr.status|lower in ['ปฏิเสธ'] %}
-                <span class="badge bg-danger text-white">ถูกปฏิเสธ</span>
-              {% elif pr.status|lower == 'เอกสารตั้งฎีกา' %}
-                <span class="badge bg-secondary text-white">เอกสารตั้งฎีกา</span>
-              {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
-                <span class="badge bg-success text-white">ล้างลูกหนี้เงินยืม</span>
-              {% else %}
-                <span class="badge bg-warning text-dark">{{ pr.status }}</span>
-              {% endif %}
+              {{ status_badge(pr.status) }}
               {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
                 <div class="small text-danger mt-1 text-start">{{ pr.rejection_comment }}</div>
               {% endif %}

@@ -73,34 +73,26 @@
         <!-- สถานะปัจจุบัน -->
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">สถานะปัจจุบัน</span>
-          {% set c_badge = 'bg-secondary text-white' %}
           {% set c_status = claim_detail.status %}
           
           {% if claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'กำลังส่งคำขอ'] %}
-            {% set c_badge = 'bg-warning text-dark' %}
             {% set c_status = 'รอตรวจสอบ' %}
           {% elif claim_detail.status|lower == 'กำลังตรวจสอบ' %}
-            {% set c_badge = 'bg-warning text-dark' %}
             {% set c_status = 'กำลังตรวจสอบ' %}
           {% elif claim_detail.status|lower == 'ผ่านการตรวจสอบ' %}
-            {% set c_badge = 'bg-info text-dark' %}
             {% set c_status = 'ผ่านการตรวจสอบ' %}
           {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
-            {% set c_badge = 'bg-primary text-white' %}
             {% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
           {% elif claim_detail.status|lower == 'เอกสารตั้งฎีกา' %}
-            {% set c_badge = 'bg-primary text-white' %}
             {% set c_status = 'เอกสารตั้งฎีกา' %}
           {% elif claim_detail.status|lower in ['ปฏิเสธ'] %}
-            {% set c_badge = 'bg-danger text-white' %}
             {% set c_status = 'ปฏิเสธ' %}
           {% endif %}
           {% if claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
-            {% set c_badge = 'bg-warning text-dark' %}
             {% set c_status = 'รอยืนยันการแก้ไข' %}
           {% endif %}
           
-          <span class="badge {{ c_badge }} mt-1 px-2 py-1">{{ c_status }}</span>
+          <span class="badge {{ status_badge_class(claim_detail.status) }} mt-1 px-2 py-1">{{ c_status }}</span>
         </div>
 
         <!-- วันที่ส่งเอกสาร -->

@@ -380,27 +380,22 @@
               </thead>
               <tbody>
                 {% for borrowing_ticket in borrowing_ticket_history %}
-                  {% set badge_class = 'bg-warning text-dark' %}
                   {% set display_status = borrowing_ticket.status %}
                   {% set ticket_status = borrowing_ticket.status %}
                   {% if borrowing_ticket.status|lower == 'กำลังส่งคำขอ' %}
                     {% set display_status = 'กำลังส่งคำขอ' %}
                   {% elif borrowing_ticket.status|lower in ['อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ'] %}
-                    {% set badge_class = 'bg-primary text-white' %}
                     {% set display_status = 'อนุมัติจ่ายเงิน' if borrowing_ticket.status|lower == 'อนุมัติจ่ายเงิน' else 'ผ่านการตรวจสอบ' %}
                   {% elif borrowing_ticket.status|lower == 'เคลียร์ยอดแล้ว' %}
-                    {% set badge_class = 'bg-success text-white' %}
                     {% set display_status = 'เคลียร์ยอดแล้ว' %}
                   {% elif borrowing_ticket.status|lower == 'มียอดคงค้าง' %}
-                    {% set badge_class = 'bg-info text-dark' %}
                     {% set display_status = 'มียอดคงค้าง' %}
                   {% elif borrowing_ticket.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}
-                    {% set badge_class = 'bg-danger text-white' %}
                     {% set display_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
                   {% elif borrowing_ticket.status|lower in ['ปฏิเสธ'] %}
-                    {% set badge_class = 'bg-danger text-white' %}
                     {% set display_status = 'ปฏิเสธ' %}
                   {% endif %}
+                  {% set badge_class = status_badge_class(display_status) %}
                   <tr 
                     class="ticket-row" 
                     data-number="{{ borrowing_ticket.number }}"
@@ -507,14 +502,11 @@
           </thead>
           <tbody>
               {% for return_detail in creator_return_details %}
-                {% set r_badge = 'bg-warning text-dark' %}
                 {% set r_status = return_detail.status %}
-                {% if return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}
-                {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-secondary text-white' %}
-                {% elif return_detail.status|lower in ['ได้รับเอกสารแล้ว', 'ล้างลูกหนี้เงินยืม'] %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
-                {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_badge = 'bg-danger text-white' %}
-                {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธใบเบิก' %}
+                {% if return_detail.status|lower in ['ได้รับเอกสารแล้ว', 'ล้างลูกหนี้เงินยืม'] %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
+                {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_status = 'ปฏิเสธใบเบิก' %}
                 {% endif %}
+                {% set r_badge = status_badge_class(return_detail.status) %}
                 <tr class="ticket-row align-top"
                     data-number="{{ return_detail.borrowing_ticket.number or return_detail.ticket_id }}"
                     data-project="{{ return_detail.description or '' }}"
@@ -564,13 +556,7 @@
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                   <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                   <td class="text-center">
-                    {% if parcel_status in ['รอตรวจสอบ', 'รอการตรวจสอบ'] %}<span class="badge bg-warning-subtle text-warning-emphasis border">รอการตรวจสอบ</span>
-                    {% elif parcel_status == 'พัสดุกำลังดำเนินการ' %}<span class="badge bg-info-subtle text-info-emphasis border">พัสดุกำลังดำเนินการ</span>
-                    {% elif parcel_status == 'กำลังตรวจสอบ' %}<span class="badge bg-info-subtle text-info-emphasis border">กำลังตรวจสอบ</span>
-                    {% elif parcel_status in ['ผ่านการตรวจสอบ', 'ได้รับเอกสารแล้ว'] %}<span class="badge bg-info-subtle text-info-emphasis">ได้รับเอกสารแล้ว</span>
-                    {% elif parcel_status == 'เอกสารตั้งฎีกา' %}<span class="badge bg-secondary-subtle text-secondary border">เอกสารตั้งฎีกา</span>
-                    {% elif parcel_status in ['ฎีกาถูกตีกลับจากกองคลัง', 'ปฏิเสธ'] %}<span class="badge bg-danger-subtle text-danger border">{{ parcel_return.status }}</span>
-                    {% else %}<span class="badge bg-secondary-subtle text-secondary border">{{ parcel_return.status }}</span>{% endif %}
+                    {{ status_badge(parcel_return.status, none, 'border') }}
                   </td>
                   <td class="text-center pe-3">
                     <div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">
