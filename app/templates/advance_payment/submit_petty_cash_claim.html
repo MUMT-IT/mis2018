@@ -172,21 +172,26 @@
           <label class="form-check-label text-muted" for="hasReferenceInfo">ไม่มีหนังสือขออนุมัติในหลักการ</label>
         </div>
         <div class="row g-3" id="referenceInfoFields">
-          <div class="col-md-3">
+          <div class="col-md-2">
             <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ</label>
             <input class="form-control reference-info-input" name="reference_number" placeholder="เช่น 78.04/1" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
             <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
             <input type="date" class="form-control reference-info-input" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง</label>
             <input type="file" class="form-control reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
+          </div>
+          <div class="col-md-5 mt-5">
+            <div class="reference-filenames-container"></div>
             {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
               <input type="hidden" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
-              <input type="hidden" name="existing_reference_filenames[]" value="{{ reference_file.filename }}">
-              <small class="text-success d-block mt-1"><i class="bi bi-file-earmark-check"></i> {{ reference_file.filename }}</small>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text text-success">ชื่อหนังสือ</span>
+                <input type="text" class="form-control" name="existing_reference_filenames[]" value="{{ reference_file.filename }}" aria-label="ชื่อไฟล์เอกสารอ้างอิงเดิม">
+              </div>
             {% endfor %}
           </div>
         </div>
@@ -870,6 +875,28 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener("DOMContentLoaded", function() {
+  const referenceFileInput = document.querySelector('[name="reference_files[]"]');
+  const referenceFilenamesContainer = document.querySelector('.reference-filenames-container');
+
+  if (referenceFileInput && referenceFilenamesContainer) {
+    referenceFileInput.addEventListener('change', function() {
+      referenceFilenamesContainer.innerHTML = '';
+
+      Array.from(this.files).forEach((file, index) => {
+        const group = document.createElement('div');
+        group.className = 'input-group input-group-sm mt-2';
+        group.innerHTML = `
+          <span class="input-group-text">ชื่อหนังสือ</span>
+          <input type="text" class="form-control" name="reference_filenames[]"
+                 value="${escapeHtml(file.name)}" aria-label="ชื่อไฟล์เอกสารอ้างอิงไฟล์ที่ ${index + 1}">
+        `;
+        referenceFilenamesContainer.appendChild(group);
+      });
+
+      triggerAutoSave();
+    });
+  }
+
   document.querySelectorAll(".parcel-amount-input, .cash-return-amount-input").forEach(input => {
     if (input.value) {
       formatInputNumberWithComma(input);

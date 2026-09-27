@@ -6948,6 +6948,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             for file_storage in request.files.getlist("reference_files[]")
             if file_storage and file_storage.filename
         ]
+        reference_file_names = request.form.getlist("reference_filenames[]")
         existing_reference_paths = request.form.getlist("existing_reference_files[]")
         existing_reference_names = request.form.getlist("existing_reference_filenames[]")
         fund_request_id_raw = (request.form.get("fund_request_id") or "").strip()
@@ -6974,6 +6975,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             reference_number = ""
             reference_date_raw = ""
             reference_files = []
+            reference_file_names = []
             existing_reference_paths = []
             existing_reference_names = []
 
@@ -7338,10 +7340,15 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                         created_at=datetime.now(),
                     ))
 
-        for file_storage in reference_files:
+        for filename_index, file_storage in enumerate(reference_files):
             original_filename = os.path.basename(file_storage.filename)
             if not original_filename:
                 continue
+            display_filename = (
+                os.path.basename(reference_file_names[filename_index]).strip()
+                if filename_index < len(reference_file_names) and reference_file_names[filename_index].strip()
+                else original_filename
+            )
             upload_folder = os.path.join(_upload_root(), f"petty_cash/{user_id}")
             os.makedirs(upload_folder, exist_ok=True)
             reference_path = f"uploads/petty_cash/{user_id}/{original_filename}"
@@ -7350,7 +7357,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 claim_id=claim_detail.id,
                 claim_item_id=None,
                 proof_reference=reference_path,
-                filename=original_filename,
+                filename=display_filename,
                 created_at=datetime.now(),
             ))
 
@@ -7359,7 +7366,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 claim_id=claim_detail.id,
                 claim_item_id=None,
                 proof_reference=existing_path,
-                filename=existing_name,
+                filename=os.path.basename(existing_name).strip() or "reference",
                 created_at=datetime.now(),
             ))
 
