@@ -110,7 +110,7 @@
             <h6 class="fw-bold text-danger">ประวัติบันทึกข้อเสนอแนะ/สาเหตุการปฏิเสธ:</h6>
             {% set rejection_history = claim_detail.rejection_comment.split('ครั้งที่ ')|reject('equalto', '')|list|reverse %}
             {% for comment in rejection_history %}
-              <p style="white-space: pre-line;" class="mb-2 p-3 rounded border {% if loop.first and claim_detail.status|lower == 'ปฏิเสธ' %}text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small bg-light border-secondary-subtle{% endif %}">ครั้งที่ {{ comment }}</p>
+              <p style="white-space: pre-line;" class="mb-2 p-3{% if loop.first and claim_detail.status|lower == 'ปฏิเสธ' %}rounded border text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small{% endif %}">ครั้งที่ {{ comment }}</p>
             {% endfor %}
         </div>
         {% endif %}

@@ -58,7 +58,7 @@
             <h6 class="fw-bold text-danger">ประวัติบันทึกข้อเสนอแนะการปฏิเสธ:</h6>
             {% set rejection_history = return_detail.rejection_comment.split('ครั้งที่ ')|reject('equalto', '')|list|reverse %}
             {% for comment in rejection_history %}
-              <p style="white-space: pre-line;" class="mb-2 p-2 rounded border {% if loop.first and return_detail.status|lower in ['ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small bg-light border-secondary-subtle{% endif %}">ครั้งที่ {{ comment }}</p>
+              <p style="white-space: pre-line;" class="mb-2 p-2 {% if loop.first and return_detail.status|lower in ['ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}rounded border text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small{% endif %}">ครั้งที่ {{ comment }}</p>
             {% endfor %}
         </div>
         {% endif %}
