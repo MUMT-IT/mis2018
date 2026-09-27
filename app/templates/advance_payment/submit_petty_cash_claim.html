@@ -264,6 +264,13 @@
       </div>
       <div class="mb-4 border rounded-3 p-3 bg-white">
       <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
+      <div class="d-flex justify-content-end mb-3">
+        <div class="text-end text-secondary">
+          <span class="fw-bold">ยอดที่ขอไป: {{ '%.2f'|format(total_request_amount) }}</span>
+          <span class="fw-bold ms-3">ยอดที่เบิกไปแล้ว: {{ '%.2f'|format(total_claimed_amount + total_parcel_amount) }}</span>
+          <span class="fw-bold ms-3">ยอดคงเหลือ: {{ '%.2f'|format(total_request_amount - total_claimed_amount - total_parcel_amount) }}</span>
+        </div>
+      </div>
       <div class="table-responsive">
         <table class="table table-bordered align-middle" id="claimTable">
           <thead class="table-light small fw-bold">
@@ -322,41 +329,37 @@
                 </tr>
               {% endfor %}
 
-            {% elif selected_fund_request and selected_fund_request.items %}
-              {% for item in selected_fund_request.items %}
-                {% set row_index = loop.index0 %}
-                <tr>
-                  <td class="text-center fw-bold row-index">{{ loop.index }}</td>
-                  <td>
-                    <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
-                    <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
-                  </td>
-                  <td>
-                    <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
-                      <option value="1" {% if item.category_type|string == '1' %}selected{% endif %}>ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
-                      <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
-                      <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
-                      <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                    </select>
-                    </td>
-                  <td>
-                    <input type="text" name="description[]" class="form-control form-control-sm" 
-                          value="{{ item.description or '' }}" placeholder="ระบุรายการ..." required>
-                  </td>
-                  <td>
-                    <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" 
-                          value="{{ '%.2f'|format(item.amount) if item.amount else '' }}" placeholder="0.00" oninput="calculateTotal()" required>
-                  </td>
-                  <td>
-                    <input type="file" name="proof_files_{{ loop.index0 }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if loop.index0 == 0 %}required{% endif %}>
-                  </td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
-                      <i class="bi bi-trash3-fill"></i>
-                    </button>
-                  </td>
-                </tr>
-              {% endfor %}
+            {% else %}
+              <tr>
+                <td class="text-center fw-bold row-index">1</td>
+                <td>
+                  <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
+                  <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
+                </td>
+                <td>
+                  <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
+                    <option value="">เลือกหมวดหมู่</option>
+                    <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
+                    <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
+                    <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+                    <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required>
+                </td>
+                <td>
+                  <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" oninput="calculateTotal()" required>
+                </td>
+                <td>
+                  <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf" required>
+                </td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
+                    <i class="bi bi-trash3-fill"></i>
+                  </button>
+                </td>
+              </tr>
             {% endif %}
           </tbody>
         </table>
