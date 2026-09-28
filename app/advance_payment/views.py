@@ -274,6 +274,20 @@ def _format_interest_period_label(period_value):
     return normalized
 
 
+def _interest_receipt_date(period_value):
+    """Return the bank's fixed interest receipt date for an interest period."""
+    normalized = _normalize_interest_period_value(period_value)
+    period_match = re.fullmatch(r"(06|12)/(\d{4})", normalized)
+    if not period_match:
+        return None
+
+    month_code, buddhist_year = period_match.groups()
+    try:
+        return date(int(buddhist_year) - 543, int(month_code), 25)
+    except (TypeError, ValueError):
+        return None
+
+
 def _get_staff_org(staff):
     if not staff:
         return None
@@ -6400,9 +6414,7 @@ def staff_fund_request():
             requester_id = user.id
             available_budget = float(dept_summary.get("remaining_budget", 0.0) or 0.0)
 
-            req_date = form.request_date.data if form.request_date.data else datetime.now().date()
-            receive_interest = _coerce_date(request.form.get("receive_interest"))
-            withdraw_intrest = _coerce_date(request.form.get("withdraw_intrest"))
+            req_date = form.request_date.data
             if form_type == FUND_REQUEST_FORM_INTEREST:
                 requester_id = getattr(setting, "custodian_id", None)
                 if not requester_id:
@@ -6503,8 +6515,6 @@ def staff_fund_request():
                 form_type=form_type,
                 ticket_number=None,  # ระบบจะออกเลขที่ให้ทันทีหลังสร้างรายการ
                 request_date=req_date,
-                receive_interest=receive_interest if form_type == FUND_REQUEST_FORM_INTEREST else None,
-                withdraw_intrest=withdraw_intrest if form_type == FUND_REQUEST_FORM_INTEREST else None,
                 amount=form.amount.data,
                 purpose=form.purpose.data if form_type == FUND_REQUEST_FORM_PETTY_CASH else ("ขออนุมัติเบิกดอกเบี้ย" if form_type == FUND_REQUEST_FORM_INTEREST else ""),
                 personal_note=(form.personal_note.data or "").strip() or None,
@@ -8265,15 +8275,15 @@ def petty_cash_ledger():
         ticket_label = f"({fr.ticket_number or '-'})"
 
         if str(fr.form_type) == FUND_REQUEST_FORM_INTEREST:
-            fund_in_date = _coerce_date(fr.receive_interest)
-            withdrawal_date = _coerce_date(fr.withdraw_intrest)
+            interest_date = _interest_receipt_date(fr.period_year)
+            withdrawal_date = _coerce_date(fr.request_date)
             created_at = fr.created_at or datetime.now()
             submitted_date = created_at.date()
 
-            if fund_in_date:
+            if interest_date and interest_date <= today:
                 _append_ledger_row(
-                    # ดอกเบี้ยเข้าบัญชีให้แสดงตามวันที่เงินเข้าจริง
-                    receipt_date=fund_in_date,
+                    # ดอกเบี้ยเข้าบัญชีเฉพาะวันที่ 25 มิถุนายนหรือ 25 ธันวาคม
+                    receipt_date=interest_date,
                     created_at=created_at,
                     description=f"ดอกเบี้ยจากธนาคาร",
                     bank_income=amt,
@@ -8286,7 +8296,7 @@ def petty_cash_ledger():
 
             if withdrawal_date:
                 _append_ledger_row(
-                    # เบิกดอกเบี้ยให้แสดงตามวันที่เบิกจริง
+                    # ใช้วันที่ทำการเบิกเป็นวันที่รายการเบิกดอกเบี้ย
                     receipt_date=withdrawal_date,
                     created_at=created_at,
                     description=f"เบิกดอกเบี้ย {ticket_label}",

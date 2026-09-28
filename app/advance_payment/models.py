@@ -743,8 +743,6 @@ class FundRequest(FinanceEditMixin, db.Model):
     form_type = Column(String(10), nullable=False)
     ticket_number = Column(String(64), nullable=True)
     request_date = Column(Date, nullable=False)
-    receive_interest = Column(Date, nullable=True)
-    withdraw_intrest = Column(Date, nullable=True)
     status = Column(String(64), nullable=False, default="อนุมัติแล้ว")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
@@ -828,15 +826,6 @@ class FundRequest(FinanceEditMixin, db.Model):
         if setting is not None:
             return getattr(setting, "account_number", None)
         return None
-
-    @property
-    def fund_in_date(self):
-        return self.receive_interest
-
-    @property
-    def withdrawal_date(self):
-        return self.withdraw_intrest
-
 
 class FundRequestItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_request_items"
