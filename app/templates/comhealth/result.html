@@ -472,7 +472,7 @@
         }
 
         .result-section-menu {
-            max-width: 720px;
+            max-width: 960px;
             margin: 0 auto 1rem;
             padding: 1rem;
             border: 1px solid #cbd5e1;
@@ -480,22 +480,58 @@
             background: #f8fafc;
         }
 
-        .result-section-menu .select,
-        .result-section-menu select {
+        .result-section-card-grid {
+            display: grid;
+            gap: .75rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .result-section-card {
+            align-items: center;
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1;
+            border-radius: .85rem;
+            color: #1e293b !important;
+            cursor: pointer;
+            display: flex;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            gap: .75rem;
+            justify-content: space-between;
+            min-height: 4rem;
+            padding: .85rem 1rem;
+            text-align: left;
+            transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
             width: 100%;
         }
 
-        .result-section-menu select {
-            color-scheme: light !important;
-            background-color: #ffffff !important;
-            color: #1e293b !important;
-            border-color: #cbd5e1 !important;
+        .result-section-card:hover,
+        .result-section-card:focus-visible {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+            outline: none;
         }
 
-        .result-section-menu select option {
-            color-scheme: light !important;
-            background-color: #ffffff !important;
-            color: #1e293b !important;
+        .result-section-card[aria-expanded="true"] {
+            background-color: #eff6ff !important;
+            border-color: #2563eb;
+            color: #1d4ed8 !important;
+        }
+
+        .result-section-card .result-section-chevron {
+            flex: 0 0 auto;
+            transition: transform .2s ease;
+        }
+
+        .result-section-card[aria-expanded="true"] .result-section-chevron {
+            transform: rotate(180deg);
+        }
+
+        @media (max-width: 768px) {
+            .result-section-card-grid { grid-template-columns: 1fr; }
+            .result-section-menu { padding: .75rem; }
+            .result-section-card { font-size: .95rem; }
         }
 
         .section-shell {
@@ -902,19 +938,31 @@
             </section>
 
             <div class="result-section-menu no-print">
-                <label class="label" for="result-section-select">
+                <p class="label">
                     {{ 'Select a test section' if is_english else 'เลือกหมวดผลการตรวจ' }}
-                </label>
-                <div class="select is-fullwidth is-medium">
-                    <select id="result-section-select">
-                        <option value="">{{ '-- Select a section --' if is_english else '-- เลือกหมวดที่ต้องการเปิด --' }}</option>
-                        <option value="section-blood-chemistry">{{ 'Blood Chemistry' if is_english else 'การตรวจทางเคมี (Blood Chemistry)' }}</option>
-                        <option value="section-cbc">{{ 'Complete Blood Count (CBC)' if is_english else 'ความสมบูรณ์ของเลือด (CBC - COMPLETE BLOOD COUNT)' }}</option>
-                        <option value="section-urinalysis">{{ 'Urinalysis' if is_english else 'การตรวจปัสสาวะ (URINALYSIS)' }}</option>
-                        <option value="section-stool">{{ 'Stool Examination' if is_english else 'ตรวจอุจจาระ (STOOL EXAMINATION)' }}</option>
-                        <option value="section-xray">{{ 'Chest X-ray' if is_english else 'เอกซเรย์ปอด (CHEST X-RAY)' }}</option>
-                        <option value="section-special-test">{{ 'Special Test' if is_english else 'รายการตรวจพิเศษ (Special Test)' }}</option>
-                    </select>
+                </p>
+                <div class="result-section-card-grid">
+                    {% set result_sections = [
+                        ('section-blood-chemistry', 'fa-flask-vial', 'Blood Chemistry' if is_english else 'การตรวจทางเคมี (Blood Chemistry)'),
+                        ('section-cbc', 'fa-droplet', 'Complete Blood Count (CBC)' if is_english else 'ความสมบูรณ์ของเลือด (CBC - COMPLETE BLOOD COUNT)'),
+                        ('section-urinalysis', 'fa-vial', 'Urinalysis' if is_english else 'การตรวจปัสสาวะ (URINALYSIS)'),
+                        ('section-stool', 'fa-microscope', 'Stool Examination' if is_english else 'ตรวจอุจจาระ (STOOL EXAMINATION)'),
+                        ('section-xray', 'fa-x-ray', 'Chest X-ray' if is_english else 'เอกซเรย์ปอด (CHEST X-RAY)'),
+                        ('section-special-test', 'fa-star', 'Special Test' if is_english else 'รายการตรวจพิเศษ (Special Test)')
+                    ] %}
+                    {% for section_id, icon_name, section_label in result_sections %}
+                        <button class="result-section-card"
+                                type="button"
+                                data-section-target="{{ section_id }}"
+                                aria-controls="{{ section_id }}"
+                                aria-expanded="false">
+                            <span>
+                                <span class="icon mr-2"><i class="fa-solid {{ icon_name }}"></i></span>
+                                {{ section_label }}
+                            </span>
+                            <span class="icon result-section-chevron"><i class="fa-solid fa-chevron-down"></i></span>
+                        </button>
+                    {% endfor %}
                 </div>
             </div>
 
@@ -1756,29 +1804,40 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     const reportTarget = document.getElementById("report-collapse-target");
-    const sectionSelect = document.getElementById("result-section-select");
+    const sectionCards = document.querySelectorAll(".result-section-card[data-section-target]");
 
-    if (sectionSelect && reportTarget) {
-        sectionSelect.addEventListener("change", function () {
-            const testSections = reportTarget.querySelectorAll(".result-test-section");
-            testSections.forEach(function (section) {
-                section.classList.add("is-hidden");
-            });
+    if (sectionCards.length && reportTarget) {
+        const testSections = reportTarget.querySelectorAll(".result-test-section");
+        testSections.forEach(function (section) {
+            section.classList.add("is-hidden");
+        });
+        reportTarget.classList.add("is-hidden");
 
-            if (!this.value) {
-                reportTarget.classList.add("is-hidden");
-                return;
-            }
-
-            reportTarget.classList.remove("is-hidden");
-
-            const selectedSection = document.getElementById(this.value);
-            if (selectedSection) {
-                selectedSection.classList.remove("is-hidden");
-                window.requestAnimationFrame(function () {
-                    selectedSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        sectionCards.forEach(function (card) {
+            card.addEventListener("click", function () {
+                const shouldOpen = card.getAttribute("aria-expanded") !== "true";
+                sectionCards.forEach(function (otherCard) {
+                    otherCard.setAttribute("aria-expanded", "false");
                 });
-            }
+                testSections.forEach(function (section) {
+                    section.classList.add("is-hidden");
+                });
+
+                if (!shouldOpen) {
+                    reportTarget.classList.add("is-hidden");
+                    return;
+                }
+
+                const selectedSection = document.getElementById(card.dataset.sectionTarget);
+                if (selectedSection) {
+                    card.setAttribute("aria-expanded", "true");
+                    reportTarget.classList.remove("is-hidden");
+                    selectedSection.classList.remove("is-hidden");
+                    window.requestAnimationFrame(function () {
+                        selectedSection.scrollIntoView({ behavior: "smooth", block: "start" });
+                    });
+                }
+            });
         });
     }
 });

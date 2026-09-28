@@ -719,6 +719,11 @@ def _save_service_section_approval(api_path):
         'isApproved': is_approved,
         'approvedBy': str(current_user.fullname or '')[:50],
     }
+    if 'approvedStatus' in payload:
+        approved_status = payload.get('approvedStatus')
+        if approved_status not in (None, 'some', 'complete'):
+            return {'error': 'approvedStatus must be null, some, or complete'}, 400
+        approval_payload['approvedStatus'] = approved_status
     response = _online_results_api_request(
         'POST',
         f'{api_path}/{service_no}',
@@ -834,8 +839,10 @@ def send_health_result_notification_api():
 def save_lab_approvals_api():
     payload = request.get_json(silent=True) or {}
     items = payload.get('items')
-    if not isinstance(items, list) or not items:
-        return {'error': 'items must be a non-empty array'}, 400
+    if not isinstance(items, list):
+        return {'error': 'items must be an array'}, 400
+    if not items and 'approvedStatus' not in payload:
+        return {'error': 'items must not be empty when approvedStatus is omitted'}, 400
 
     payload['staffAccount'] = {
         'id': current_user.id,
@@ -846,8 +853,10 @@ def save_lab_approvals_api():
     service_no = str(payload.get('serviceNo') or '').strip()
     service_date = str(payload.get('serviceDate') or '').strip()
     customer_age = str(payload.get('customerAge') or '').strip()
+    send_notification = payload.get('sendNotification', True) is not False
     approval_payload = dict(payload)
-    for notification_field in ('customerEmail', 'serviceDate', 'customerAge'):
+    for notification_field in (
+            'customerEmail', 'serviceDate', 'customerAge', 'sendNotification'):
         approval_payload.pop(notification_field, None)
     response = _online_results_api_request(
         'POST',
@@ -856,13 +865,19 @@ def save_lab_approvals_api():
     )
 
     email_notification = {'sent': False}
-    if response.ok:
+    if response.ok and send_notification:
         email_notification = _send_health_result_email(
             customer_email,
             service_no,
             service_date,
             customer_age,
         )
+    elif response.ok:
+        email_notification = {
+            'sent': False,
+            'disabled': True,
+            'message': 'Email notification is temporarily disabled.',
+        }
 
     try:
         api_response = response.json()
