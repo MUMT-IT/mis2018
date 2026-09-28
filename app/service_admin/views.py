@@ -46,6 +46,7 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
 from ..staff.models import Role
 
 CREDIT_DATE = 60
+CREDIT_OVERDUE_DATE = 30
 localtz = timezone('Asia/Bangkok')
 TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
 TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
@@ -717,10 +718,10 @@ def _build_service_admin_weekly_overdue_invoice_snapshot():
             continue
 
         days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
-        if days_overdue is None or days_overdue < 60:
+        if days_overdue is None or days_overdue < 1:
             continue
 
-        if days_overdue >= 90:
+        if days_overdue > CREDIT_OVERDUE_DATE:
             bucket = 'overdue_90'
             overdue_90_count += 1
         else:
