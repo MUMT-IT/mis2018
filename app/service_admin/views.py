@@ -397,7 +397,7 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
                 overdue_60.append(item)
 
         # due_date = _service_admin_invoice_due_date_local_date(invoice)
-        if -7 <= days_overdue < 0:
+        if -7 <= days_overdue <= 0:
             due_soon.append({
                 'invoice_id': invoice.id,
                 'invoice_no': invoice.invoice_no,
