@@ -284,6 +284,14 @@ def _build_service_admin_menu_counts(admin_id):
     return counts
 
 
+def _get_service_admin_invoice_overdue_days(invoice, today=None):
+    if not invoice.due_date:
+        return None
+    today = today or arrow.now('Asia/Bangkok').date()
+    due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+    return (today - due_date).days
+
+
 def _group_service_admin_recipients(predicate):
     recipients = {}
     query = ServiceAdmin.query.join(ServiceAdmin.admin).join(ServiceAdmin.sub_lab).join(ServiceSubLab.lab)
@@ -351,8 +359,6 @@ def _group_service_admin_recipients(predicate):
 
 def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     now = arrow.now('Asia/Bangkok')
-    cutoff_60 = now.shift(days=-60).date()
-    cutoff_90 = now.shift(days=-90).date()
     today = now.date()
     due_soon_end = today + timedelta(days=7)
 
@@ -371,39 +377,33 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     due_soon = []
     top_labs = defaultdict(int)
     for invoice in query.all():
-        due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date() if invoice.due_date else None
-        if due_date is None:
+        days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
+        if days_overdue is None:
             continue
-
-        days_overdue = max((today - due_date).days, 0)
         lab_name = invoice.quotation.request.sub_lab.sub_lab if invoice.quotation and invoice.quotation.request and invoice.quotation.request.sub_lab else 'ไม่ระบุหน่วยงาน'
         item = {
             'invoice_id': invoice.id,
             'invoice_no': invoice.invoice_no,
             'request_no': invoice.quotation.request.request_no if invoice.quotation and invoice.quotation.request else None,
             'lab_name': lab_name,
-            'due_date': due_date,
-            'days_overdue': days_overdue,
+            'due_date': invoice.due_date if invoice.due_date else None,
+            'days_overdue': max(days_overdue, 0),
             'amount': float(invoice.grand_total) if getattr(invoice, 'grand_total', None) is not None else None,
         }
-
-        if due_date <= cutoff_60:
-            top_labs[lab_name] += 1
-
-        if cutoff_90 < due_date <= cutoff_60:
-            overdue_60.append(item)
-        elif due_date <= cutoff_90:
-            overdue_90.append(item)
+        if days_overdue >= 1:
+            if days_overdue > CREDIT_OVERDUE_DATE:
+                overdue_90.append(item)
+            else:
+                overdue_60.append(item)
 
         # due_date = _service_admin_invoice_due_date_local_date(invoice)
-        if due_date is not None and today <= due_date <= due_soon_end:
+        if -7 <= days_overdue < 0:
             due_soon.append({
                 'invoice_id': invoice.id,
                 'invoice_no': invoice.invoice_no,
                 'request_no': item['request_no'],
                 'lab_name': lab_name,
-                'due_date': due_date,
-                'days_until_due': (due_date - today).days,
+                'days_until_due': days_overdue,
                 'amount': item['amount'],
             })
 
@@ -411,16 +411,13 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     overdue_90.sort(key=lambda item: (item['days_overdue'], item['invoice_no'] or ''))
     due_soon.sort(key=lambda item: (item['days_until_due'], item['invoice_no'] or ''))
     return {
-        'generated_at': now.strftime('%d/%m/%Y %H:%M'),
-        'cutoff_60': cutoff_60,
-        'cutoff_90': cutoff_90,
+        'generated_at': today.strftime('%d/%m/%Y %H:%M'),
         'overdue_60_count': len(overdue_60),
         'overdue_90_count': len(overdue_90),
         'overdue_60_items': overdue_60,
         'overdue_90_items': overdue_90,
         'due_soon_count': len(due_soon),
-        'due_soon_items': due_soon,
-        'invoice_top_labs': sorted(top_labs.items(), key=lambda item: (-item[1], item[0])),
+        'due_soon_items': due_soon
     }
 
 
@@ -680,14 +677,6 @@ def _normalize_customer_email(email_value):
         return None
     email_value = str(email_value).strip()
     return email_value or None
-
-
-def _get_service_admin_invoice_overdue_days(invoice, today=None):
-    if not invoice.due_date:
-        return None
-    today = today or arrow.now('Asia/Bangkok').date()
-    due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
-    return (today - due_date).days
 
 
 def _build_service_admin_weekly_overdue_invoice_snapshot():
