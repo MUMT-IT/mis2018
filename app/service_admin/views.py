@@ -7047,7 +7047,7 @@ def upload_invoice_file(invoice_id):
         invoice.due_date = arrow.get(invoice.file_attached_at).shift(days=CREDIT_DATE).datetime
         if file and allowed_file(file.filename):
             mime_type = file.mimetype
-            file_name = '{}.{}'.format(invoice.invoice_no, file.filename.split('.')[-1])
+            file_name = '{}.{}'.format(f'Invoice {invoice.invoice_no}', file.filename.split('.')[-1])
             file_data = file.stream.read()
             response = s3.put_object(
                 Bucket=S3_BUCKET_NAME,
