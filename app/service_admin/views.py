@@ -2401,8 +2401,8 @@ def customer_detail(customer_id):
 
 
 def _get_customer_overdue_invoices(customer):
-    today = arrow.now('Asia/Bangkok')
-    cutoff_date = today.shift(days=-90).date()
+    today = arrow.now('Asia/Bangkok').date()
+    # cutoff_date = today.shift(days=-90).date()
     invoices = (
         ServiceInvoice.query
         .options(
@@ -2411,7 +2411,7 @@ def _get_customer_overdue_invoices(customer):
             .joinedload(ServiceRequest.customer)
         )
         .filter(ServiceInvoice.due_date.isnot(None),
-                cast(ServiceInvoice.due_date, Date) < cutoff_date,
+                cast(ServiceInvoice.due_date, Date) < today,
                 ~ServiceInvoice.payments.any(),
                 ServiceInvoice.quotation.has(
                     ServiceQuotation.request.has(
@@ -2423,13 +2423,12 @@ def _get_customer_overdue_invoices(customer):
         )
         .order_by(ServiceInvoice.due_date.asc())
     )
-
     return [
         {
             'invoice': invoice,
             'request_no': invoice.quotation.request.request_no,
             'lab_name': invoice.quotation.request.sub_lab.lab.lab,
-            'days_overdue': (today.date() - arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+            'days_overdue': (today - arrow.get(invoice.due_date).to('Asia/Bangkok').date()
             ).days,
         }
         for invoice in invoices
