@@ -3812,6 +3812,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         for parcel in parcel_returns
         if (parcel.status or "").strip()
         in {
+            "รอตรวจสอบ",
             "พัสดุกำลังดำเนินการ",
             "ได้รับเอกสารแล้ว",
             CASH_TRANSFER_STATUS,
