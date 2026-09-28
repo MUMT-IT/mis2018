@@ -22,12 +22,25 @@ def _ticket_number(ticket):
     return getattr(ticket, "number", None) or "-"
 
 
+def _normalize_recipient_email(email):
+    """Return a complete Mahidol address for an internal account username."""
+    normalized = str(email or "").strip().lower()
+    if normalized and "@" not in normalized:
+        normalized = f"{normalized}@mahidol.ac.th"
+    return normalized
+
+
 def generate_notification_email_content(target_object, object_type="ticket", extra_ctx=None):
     ctx = extra_ctx or {}
     borrower_name = ctx.get("borrower_name", "ผู้รับบริการ")
     requester_name = ctx.get("requester_name", "ผู้ขอเบิก")
     recipient_emails = tuple(dict.fromkeys(
-        email.strip() for email in ctx.get("recipient_emails", ()) if email and email.strip()
+        normalized_email
+        for normalized_email in (
+            _normalize_recipient_email(email)
+            for email in ctx.get("recipient_emails", ())
+        )
+        if normalized_email
     ))
     footer = "ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย\nคณะเทคนิคการแพทย์"
 

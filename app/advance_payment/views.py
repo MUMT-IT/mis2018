@@ -24,6 +24,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required as flask_login_required
+from flask_mail import Message
 from app.roles import (
     cash_management_coordinator_permission,
     finance_permission,
@@ -38,6 +39,7 @@ from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
 from .email_utils import generate_notification_email_content
 from . import advance_payment as bp, thai_date
+from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
 from app.staff.models import StaffHeadPosition, StaffPersonalInfo
 from app.staff.views import get_all_employees
@@ -1820,14 +1822,33 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
     email_data = generate_notification_email_content(target_object, object_type=object_type, extra_ctx=extra_ctx)
 
     try:
+        recipients = email_data["to_emails"]
         current_app.logger.info(
-            f"ส่งข้อความไปยัง: {', '.join(email_data['to_emails']) or 'ไม่พบอีเมลผู้รับ'}"
+            f"ส่งข้อความไปยัง: {', '.join(recipients) or 'ไม่พบอีเมลผู้รับ'}"
         )
         current_app.logger.info(f"หัวข้ออีเมล: {email_data['subject']}")
         current_app.logger.info(f"เนื้อหากล่องข้อความ:\n{email_data['body']}")
+
+        if not recipients:
+            current_app.logger.warning(
+                "ยกเลิกการส่งอีเมลแจ้งเตือน เนื่องจากไม่พบอีเมลผู้รับ"
+            )
+            return False
+
+        message = Message(
+            subject=email_data["subject"],
+            body=email_data["body"],
+            recipients=list(recipients),
+        )
+        mail.send(message)
+        current_app.logger.info(
+            "ส่งอีเมลแจ้งเตือนสำเร็จไปยัง: %s", ", ".join(recipients)
+        )
         return True
     except Exception as e:
-        current_app.logger.error(f"ไม่สามารถจัดส่งอีเมลแจ้งเตือนได้เนื่องจาก: {e}")
+        current_app.logger.exception(
+            "ไม่สามารถจัดส่งอีเมลแจ้งเตือนได้เนื่องจาก: %s", e
+        )
         return False
 
 @bp.route("/finance/returns/<int:return_id>/checking", methods=["POST"])
