@@ -4,7 +4,7 @@ import qrcode
 from bahttext import bahttext
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from sqlalchemy import or_, update, and_, exists, func, case
+from sqlalchemy import or_, update, and_, exists, func, case, Date, cast
 from datetime import date, datetime
 import arrow
 import pandas
@@ -9796,13 +9796,13 @@ def invoice_index():
         )
     )
     pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
-                                                           today <= ServiceInvoice.due_date)
+                                                           today <= cast(ServiceInvoice.due_date, Date))
     verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at == None,
                                                       ServicePayment.cancelled_at == None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
                                                      ServicePayment.cancelled_at == None)
     overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
-                                                           today > ServiceInvoice.due_date)
+                                                           today > cast(ServiceInvoice.due_date, Date))
     if api == 'true':
         if tab == 'pending':
             query = pending_query
