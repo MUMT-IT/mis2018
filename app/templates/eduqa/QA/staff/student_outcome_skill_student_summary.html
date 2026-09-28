@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ student.student_id }} · {{ skill.code }} | EduQA{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="level">
+            <div class="level-left">
+                <div>
+                    <h1 class="title">{{ student.student_id }} · {{ student.th_name }}</h1>
+                    <p class="subtitle">{{ skill.code }} · {{ skill.name }} · ปีการศึกษา {{ academic_year }}</p>
+                </div>
+            </div>
+            <div class="level-right">
+                <a class="button is-light" href="{{ url_for('eduqa.student_outcome_skill_students', revision_id=revision.id, skill_id=skill.id, academic_year=academic_year) }}">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span><span>ย้อนกลับ</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="tags mb-5">
+            {% for course in enrolled_courses %}
+            <span class="tag is-info is-light">{{ course.en_code }} · ภาคเรียน {{ course.semester or '-' }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="columns is-multiline">
+            <div class="column is-one-quarter"><div class="box has-text-centered"><p class="heading">แบบประเมินทั้งหมด</p><p class="title has-text-info">{{ evaluation_summaries|length }}</p></div></div>
+            <div class="column is-one-quarter"><div class="box has-text-centered"><p class="heading">ประเมินแล้ว</p><p class="title has-text-link">{{ evaluated_count }}</p></div></div>
+            <div class="column is-one-quarter"><div class="box has-text-centered"><p class="heading">ผ่าน</p><p class="title has-text-success">{{ passed_count }}</p></div></div>
+            <div class="column is-one-quarter"><div class="box has-text-centered"><p class="heading">ไม่ผ่าน</p><p class="title has-text-danger">{{ failed_count }}</p></div></div>
+        </div>
+
+        <div class="box">
+            <h2 class="title is-5">สรุปผลการประเมินทั้งหมด</h2>
+            {% if evidence_groups %}
+            {% for group in evidence_groups %}
+            <div class="mb-6">
+                <div class="notification is-info is-light mb-3">
+                    <div class="level mb-2">
+                        <div class="level-left">
+                            <p class="has-text-weight-semibold"><span class="icon"><i class="fas fa-folder-open"></i></span> {{ group.evidence.title }}</p>
+                        </div>
+                        <div class="level-right">
+                            {% if group.student_evidence and group.student_evidence.endorsed %}
+                            <span class="tag is-success"><span class="icon"><i class="fas fa-certificate"></i></span><span>รับรองแล้ว</span></span>
+                            {% else %}
+                            <span class="tag is-warning is-light">ยังไม่รับรอง</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <p class="is-size-7">{{ group.evidence.clo.course.en_code }} · CLO{{ group.evidence.clo.number }} · {{ group.evidence.clo.detail }}</p>
+                    {% if group.evidence.description %}<p class="is-size-7 has-text-grey mt-1">{{ group.evidence.description }}</p>{% endif %}
+                    {% if group.student_evidence and group.student_evidence.endorsed %}
+                    <p class="is-size-7 has-text-grey mt-1">
+                        รับรองโดย {{ group.student_evidence.endorsed_by.fullname if group.student_evidence.endorsed_by else '-' }}
+                        {% if group.student_evidence.endorsed_at %} · {{ group.student_evidence.endorsed_at|localdatetime }}{% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+            <div class="table-container">
+                <table class="table is-fullwidth is-hoverable">
+                    <thead><tr><th>แบบประเมิน</th><th>ผลล่าสุด</th><th>สถานะ</th><th>ประวัติ</th></tr></thead>
+                    <tbody>
+                    {% for item in group.evaluations %}
+                    <tr>
+                        <td><strong>{{ item.version.form.name }}</strong><br><span class="is-size-7 has-text-grey">v{{ item.version.version }}</span></td>
+                        {% if item.latest_submission %}
+                        <td>{% if item.latest_submission.maximum_score %}{{ '%.2f'|format(item.latest_submission.weighted_score) }} / {{ '%.2f'|format(item.latest_submission.maximum_score) }}{% else %}ประเมินแล้ว{% endif %}<br><span class="is-size-7 has-text-grey">{{ item.latest_submission.submitted_at|localdatetime if item.latest_submission.submitted_at else 'ไม่ระบุเวลา' }}</span></td>
+                        <td>{% if item.latest_submission.passed is sameas true %}<span class="tag is-success">ผ่าน</span>{% elif item.latest_submission.passed is sameas false %}<span class="tag is-danger">ไม่ผ่าน</span>{% else %}<span class="tag is-light">ไม่กำหนดเกณฑ์</span>{% endif %}</td>
+                        <td><a class="button is-small is-info is-light" href="{{ url_for('eduqa.view_student_skill_evidence_results', revision_id=revision.id, skill_id=skill.id, clo_id=item.evidence.clo_id, evidence_id=item.evidence.id, student_id=student.id) }}"><span class="icon"><i class="fas fa-history"></i></span><span>ดู {{ item.result_count }} รายการ</span></a></td>
+                        {% else %}
+                        <td><span class="has-text-grey">-</span></td>
+                        <td><span class="tag is-warning is-light">ยังไม่ประเมิน</span></td>
+                        <td><span class="has-text-grey">-</span></td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีแบบประเมินที่เกี่ยวข้องกับรายวิชาของนักศึกษารายนี้</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
