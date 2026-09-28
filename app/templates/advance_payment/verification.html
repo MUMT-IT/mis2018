@@ -209,18 +209,7 @@
           'ปฏิเสธ': 'ปฏิเสธ'
         } %}
         {% set current_step = status_step.get(current_status, current_status) %}
-        {% set status_class = 'bg-warning text-dark' %}
-        {% if current_status in ['อนุมัติจ่ายเงิน', 'ผ่านการตรวจสอบ', 'เคลียร์ยอดแล้ว'] %}
-          {% set status_class = 'bg-success text-white' %}
-        {% elif current_status == 'มียอดคงค้าง' %}
-          {% set status_class = 'bg-info text-dark' %}
-        {% elif current_status == 'เอกสารตั้งฎีกา' %}
-          {% set status_class = 'bg-secondary text-white' %}
-        {% elif current_status == 'ฎีกาถูกตีกลับจากกองคลัง' %}
-          {% set status_class = 'bg-danger text-white' %}
-        {% elif current_status in ['ปฏิเสธ', 'เลยกำหนด'] %}
-          {% set status_class = 'bg-danger text-white' %}
-        {% endif %}
+        {% set status_class = status_badge_class(current_status) %}
         {% set steps = ['กำลังส่งคำขอ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว'] %}
         {% if current_step == 'ฎีกาถูกตีกลับจากกองคลัง' %}
           {% set steps = steps + ['ฎีกาถูกตีกลับจากกองคลัง'] %}
@@ -305,19 +294,18 @@
               </td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(return_detail.amount_spent or 0) }}</td>
               <td>
-                {% set r_badge = 'bg-warning text-dark' %}
                 {% set r_status = return_detail.status %}
                 
                 {% if return_detail.status|lower == 'รอตรวจสอบ' %}{% set r_status = 'รอตรวจสอบ' %}
-                {% elif return_detail.status|lower == 'กำลังตรวจสอบ' %}{% set r_badge = 'bg-warning text-dark' %}{% set r_status = 'กำลังตรวจสอบ' %}
-                {% elif return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_badge = 'bg-info text-dark' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
-                {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_badge = 'bg-secondary text-white' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
-                {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
-                {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ได้รับเอกสารแล้ว' %}
-                {% elif return_detail.status|lower == 'ล้างลูกหนี้เงินยืม' %}{% set r_badge = 'bg-success text-white' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
-                {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_badge = 'bg-danger text-white' %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
+                {% elif return_detail.status|lower == 'กำลังตรวจสอบ' %}{% set r_status = 'กำลังตรวจสอบ' %}
+                {% elif return_detail.status|lower == 'ผ่านการตรวจสอบ' %}{% set r_status = 'ผ่านการตรวจสอบ' %}
+                {% elif return_detail.status|lower == 'เอกสารตั้งฎีกา' %}{% set r_status = 'เอกสารตั้งฎีกา' %}
+                {% elif return_detail.status|lower == 'ฎีกาถูกตีกลับจากกองคลัง' %}{% set r_status = 'ฎีกาถูกตีกลับจากกองคลัง' %}
+                {% elif return_detail.status|lower == 'ได้รับเอกสารแล้ว' %}{% set r_status = 'ได้รับเอกสารแล้ว' %}
+                {% elif return_detail.status|lower == 'ล้างลูกหนี้เงินยืม' %}{% set r_status = 'ล้างลูกหนี้เงินยืม' %}
+                {% elif return_detail.status|lower in ['ปฏิเสธ'] %}{% set r_status = 'ปฏิเสธใบเบิก' %}{% endif %}
                 
-                <span class="badge {{ r_badge }}">{{ r_status }}</span>
+                <span class="badge {{ status_badge_class(return_detail.status) }}">{{ r_status }}</span>
               </td>
               <td class="text-center">
                 {% if return_detail.closing_document_name %}
@@ -368,23 +356,7 @@
               <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}</div></td>
               <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent) }}</td>
               <td>
-                {% if pr.status == 'รอตรวจสอบ' %}
-                  <span class="badge bg-warning text-dark">รอตรวจสอบ</span>
-                {% elif pr.status == 'พัสดุกำลังดำเนินการ' %}
-                  <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
-                {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
-                  <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
-                {% elif pr.status == 'โอนเงินสดย่อยสำเร็จ' %}
-                  <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
-                {% elif pr.status|lower in ['ปฏิเสธ'] %}
-                  <span class="badge bg-danger text-white">ถูกปฏิเสธ</span>
-                {% elif pr.status|lower == 'เอกสารตั้งฎีกา' %}
-                  <span class="badge bg-secondary text-white">เอกสารตั้งฎีกา</span>
-                {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
-                  <span class="badge bg-success text-white">ล้างลูกหนี้เงินยืม</span>
-                {% else %}
-                  <span class="badge bg-warning text-dark">{{ pr.status }}</span>
-                {% endif %}
+                {{ status_badge(pr.status) }}
                 {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
                   <div class="small text-danger mt-1 text-start">{{ pr.rejection_comment }}</div>
                 {% endif %}

@@ -151,9 +151,9 @@
                     <td class="text-center">{{ return_item.created_at|thai_date if return_item.created_at else '-' }}</td>
                     <td class="text-center">
                       {% if return_item.status|lower in ['รอตรวจสอบ'] %}
-                        <span class="badge bg-warning text-dark">รอตรวจเอกสาร</span>
+                        {{ status_badge('รอตรวจสอบ', 'รอตรวจเอกสาร') }}
                       {% else %}
-                        <span class="badge bg-info text-dark">กำลังตรวจสอบ</span>
+                        {{ status_badge('กำลังตรวจสอบ') }}
                       {% endif %}
                     </td>
                     <td class="text-center">
@@ -190,13 +190,13 @@
                       <td class="text-center">{{ parcel.created_at|thai_date if parcel.created_at else '-' }}</td>
                       <td class="text-center">
                         {% if parcel.status|lower in ['รอตรวจสอบ'] %}
-                          <span class="badge bg-warning text-dark">รอตรวจสอบ</span>
+                          {{ status_badge('รอตรวจสอบ') }}
                         {% elif parcel.status|lower in ['พัสดุกำลังดำเนินการ', 'กำลังตรวจสอบ'] %}
-                          <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
+                          {{ status_badge('พัสดุกำลังดำเนินการ') }}
                         {% elif parcel.status|lower in ['ได้รับเอกสารแล้ว', 'ผ่านการตรวจสอบ'] %}
-                          <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
+                          {{ status_badge('ได้รับเอกสารแล้ว') }}
                         {% else %}
-                          <span class="badge bg-warning text-dark">{{ parcel.status }}</span>
+                          {{ status_badge(parcel.status) }}
                         {% endif %}
                       </td>
                       <td class="text-center">
@@ -243,11 +243,11 @@
                       <td class="text-center">{{ claim.created_at|thai_date if claim.created_at else '-' }}</td>
                       <td class="text-center">
                         {% if claim.status|lower in ['รอตรวจสอบ'] %}
-                          <span class="badge bg-warning text-dark">รอตรวจเอกสาร</span>
+                          {{ status_badge('รอตรวจสอบ', 'รอตรวจเอกสาร') }}
                         {% elif claim.status|lower in ['กำลังตรวจสอบ'] %}
-                          <span class="badge bg-info text-dark">กำลังตรวจสอบ</span>
+                          {{ status_badge('กำลังตรวจสอบ') }}
                         {% elif claim.status|lower in ['ผ่านการตรวจสอบ'] %}
-                          <span class="badge bg-success text-white">รอการโอนคืน</span>
+                          {{ status_badge('ผ่านการตรวจสอบ', 'รอการโอนคืน') }}
                         {% endif %}
                       </td>
                       <td class="text-center">

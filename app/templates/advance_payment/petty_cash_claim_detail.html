@@ -24,70 +24,44 @@
   <div class="row align-items-center g-3">
     <div class="col-md-12">
       <div class="row g-2">
+        {% set cash_return_total = namespace(amount=0) %}
+        {% for item in claim_detail.items %}
+          {% if item.category_type|string == '6' %}
+            {% set cash_return_total.amount = cash_return_total.amount + (item.amount or 0) %}
+          {% endif %}
+        {% endfor %}
+
+        {% if advance_payment_role != 'finance' %}
+        <!-- เลขที่ใบเบิก -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">เลขที่ใบเบิก</span>
+          <strong class="text-dark">{{ claim_detail.fund_request.ticket_number if claim_detail.fund_request and claim_detail.fund_request.ticket_number else '-' }}</strong>
+        </div>
+
+        <!-- ยอดที่อนุมัติ -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">ยอดที่อนุมัติ</span>
+          <strong class="text-dark">
+            {{ "{:,.2f}".format(claim_detail.fund_request.amount if claim_detail.fund_request and claim_detail.fund_request.amount else 0) }} บาท
+          </strong>
+        </div>
+        {% endif %}
+
         <!-- ยอดรวมเบิก -->
         <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">ยอดรวมที่ขอเบิก</span>
+          <span class="text-muted small d-block">ยอดที่ขอเบิก</span>
           <strong class="text-success fs-5">{{ "{:,.2f}".format(claim_detail.total_amount or 0) }} บาท</strong>
         </div>
-          {% if advance_payment_role != 'finance' %}
-          <!-- ยอดเงินในคำขออนุมัติ -->
-            <div class="col-12 col-sm-6 col-lg-2">
-              <span class="text-muted small d-block">ยอดที่อนุมัติ</span>
-              <strong class="text-dark">
-                {{ "{:,.2f}".format(claim_detail.fund_request.amount if claim_detail.fund_request and claim_detail.fund_request.amount else 0) }} บาท
-              </strong>
-            </div>
-          {% endif %}
 
-        <!-- เลขที่บัญชี -->
+        {% if advance_payment_role != 'finance' %}
+        <!-- ยอดที่คืนเงินสด -->
         <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">เลขที่บัญชี</span>
-          <strong class="text-dark">{{ claim_detail.setting.account_number if claim_detail.setting and claim_detail.setting.account_number else '-' }}</strong>
+          <span class="text-muted small d-block">ยอดที่คืนเงินสด</span>
+          <strong class="text-dark">{{ "{:,.2f}".format(cash_return_total.amount) }} บาท</strong>
         </div>
+        {% endif %}
 
-        <!-- วันที่ส่งเอกสาร -->
-        <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">วันที่ส่งเอกสาร</span>
-          <strong class="text-dark">{{ claim_detail.created_at|thai_date if claim_detail.created_at else '-' }}</strong>
-        </div>
-
-        <!-- สถานะปัจจุบัน -->
-        <div class="col-12 col-sm-6 col-lg-2">
-          <span class="text-muted small d-block">สถานะปัจจุบัน</span>
-          {% set c_badge = 'bg-secondary text-white' %}
-          {% set c_status = claim_detail.status %}
-          
-          {% if claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'กำลังส่งคำขอ'] %}
-            {% set c_badge = 'bg-warning text-dark' %}
-            {% set c_status = 'รอตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'กำลังตรวจสอบ' %}
-            {% set c_badge = 'bg-warning text-dark' %}
-            {% set c_status = 'กำลังตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'ผ่านการตรวจสอบ' %}
-            {% set c_badge = 'bg-info text-dark' %}
-            {% set c_status = 'ผ่านการตรวจสอบ' %}
-          {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
-            {% set c_badge = 'bg-primary text-white' %}
-            {% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
-          {% elif claim_detail.status|lower == 'เอกสารตั้งฎีกา' %}
-            {% set c_badge = 'bg-primary text-white' %}
-            {% set c_status = 'เอกสารตั้งฎีกา' %}
-          {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
-            {% set c_badge = 'bg-success text-white' %}
-            {% set c_status = 'ได้รับเงินสดย่อยแล้ว' %}
-          {% elif claim_detail.status|lower in ['ปฏิเสธ'] %}
-            {% set c_badge = 'bg-danger text-white' %}
-            {% set c_status = 'ปฏิเสธ' %}
-          {% endif %}
-          {% if claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
-            {% set c_badge = 'bg-warning text-dark' %}
-            {% set c_status = 'รอยืนยันการแก้ไข' %}
-          {% endif %}
-          
-          <span class="badge {{ c_badge }} mt-1 px-2 py-1">{{ c_status }}</span>
-        </div>
-
-        <!-- วันที่โอนเงินสดย่อย / หมายเลขฎีกา -->
+        <!-- วันที่ได้รับคืนเงินสดย่อย -->
         <div class="col-12 col-sm-6 col-lg-2">
           {% if claim_detail.transferred_at %}
             <span class="text-muted small d-block">วันที่ได้รับคืนเงินสดย่อย</span>
@@ -96,6 +70,45 @@
           {% endif %}
         </div>
 
+        <!-- สถานะปัจจุบัน -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">สถานะปัจจุบัน</span>
+          {% set c_status = claim_detail.status %}
+          
+          {% if claim_detail.status|lower in ['รอตรวจสอบ', 'ฉบับร่าง', 'กำลังส่งคำขอ'] %}
+            {% set c_status = 'รอตรวจสอบ' %}
+          {% elif claim_detail.status|lower == 'กำลังตรวจสอบ' %}
+            {% set c_status = 'กำลังตรวจสอบ' %}
+          {% elif claim_detail.status|lower == 'ผ่านการตรวจสอบ' %}
+            {% set c_status = 'ผ่านการตรวจสอบ' %}
+          {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
+            {% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
+          {% elif claim_detail.status|lower == 'เอกสารตั้งฎีกา' %}
+            {% set c_status = 'เอกสารตั้งฎีกา' %}
+          {% elif claim_detail.status|lower in ['ปฏิเสธ'] %}
+            {% set c_status = 'ปฏิเสธ' %}
+          {% endif %}
+          {% if claim_detail.status|lower == 'รอยืนยันการแก้ไข' %}
+            {% set c_status = 'รอยืนยันการแก้ไข' %}
+          {% endif %}
+          
+          <span class="badge {{ status_badge_class(claim_detail.status) }} mt-1 px-2 py-1">{{ c_status }}</span>
+        </div>
+
+        <!-- วันที่ส่งเอกสาร -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">วันที่ส่งเอกสาร</span>
+          <strong class="text-dark">{{ claim_detail.created_at|thai_date if claim_detail.created_at else '-' }}</strong>
+        </div>
+
+        {% if advance_payment_role == 'finance' %}
+        <!-- เลขที่บัญชี -->
+        <div class="col-12 col-sm-6 col-lg-2">
+          <span class="text-muted small d-block">เลขที่บัญชี</span>
+          <strong class="text-dark">{{ claim_detail.setting.account_number if claim_detail.setting and claim_detail.setting.account_number else '-' }}</strong>
+        </div>
+
+        <!-- หมายเลขฎีกา -->
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">หมายเลขฎีกา</span>
           <strong class="text-dark">{{ claim_detail.closing_document_name or '-' }}</strong>
@@ -103,6 +116,7 @@
             <span class="text-muted small d-block">(เลขเก่า: {{ claim_detail.old_document_number }})</span>
           {% endif %}
         </div>
+        {% endif %}
 
         <!-- ประวัติการบันทึกสาเหตุการปฏิเสธ -->
         {% if claim_detail.rejection_comment %}
@@ -110,7 +124,7 @@
             <h6 class="fw-bold text-danger">ประวัติบันทึกข้อเสนอแนะ/สาเหตุการปฏิเสธ:</h6>
             {% set rejection_history = claim_detail.rejection_comment.split('ครั้งที่ ')|reject('equalto', '')|list|reverse %}
             {% for comment in rejection_history %}
-              <p style="white-space: pre-line;" class="mb-2 p-3 rounded border {% if loop.first and claim_detail.status|lower == 'ปฏิเสธ' %}text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small bg-light border-secondary-subtle{% endif %}">ครั้งที่ {{ comment }}</p>
+              <p style="white-space: pre-line;" class="mb-2 p-3{% if loop.first and claim_detail.status|lower == 'ปฏิเสธ' %}rounded border text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small{% endif %}">ครั้งที่ {{ comment }}</p>
             {% endfor %}
         </div>
         {% endif %}
@@ -306,7 +320,7 @@
                     <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ proof_file.filename }}">
                     {% set proof_filename = proof_file.filename or proof_file.proof_reference or '' %}
                     {% if proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
-                        <img src="{{ url_for('static', filename=proof_file.proof_reference) }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{ proof_file.proof_reference|advance_payment_file_url }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
                     {% else %}
                         <i class="bi bi-file-earmark fs-2 text-primary"></i>
                     {% endif %}
@@ -322,7 +336,7 @@
                 
                 <td>
                     {% if proof_file and proof_file.proof_reference %}
-                    <a href="{{ url_for('static', filename=proof_file.proof_reference) }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
+                    <a href="{{ proof_file.proof_reference|advance_payment_file_url }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
                         <i class="bi bi-box-arrow-up-right me-1"></i> เปิดไฟล์เต็ม
                     </a>
                     {% else %}
@@ -411,7 +425,7 @@
   {% if claim_detail.reference_files %}
     <div class="d-flex flex-wrap gap-2">
       {% for reference_file in claim_detail.reference_files %}
-        <a href="{{ url_for('static', filename=reference_file.proof_reference) }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+        <a href="{{ reference_file.proof_reference|advance_payment_file_url }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
           <i class="bi bi-paperclip me-1"></i>{{ reference_file.filename }}
         </a>
       {% endfor %}

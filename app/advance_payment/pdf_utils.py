@@ -107,7 +107,11 @@ styles.add(ParagraphStyle(
     fontSize=DEFAULT_FONT_SIZE,
     leading=DEFAULT_LEADING,
     alignment=TA_JUSTIFY,
-    wordWrap='CJK',
+    # Do not use ReportLab's CJK line-break mode here.  In that mode the
+    # paragraph is split into character-based lines and many lines are
+    # marked as hard breaks, so TA_JUSTIFY cannot distribute word spacing.
+    # The official memo text contains normal Thai word spaces, allowing the
+    # default word wrapper to justify each non-final line correctly.
     firstLineIndent=70  # ปรับระยะย่อหน้าให้เท่ากันทุกพารากราฟที่นี่
 ))
 # =========================================================================
@@ -186,8 +190,20 @@ def draw_dotted_line():
     return Paragraph("....................................................................................................................................................", styles['ThaiCenter'])
 
 
-def _build_global_header(department_name, telephone_number, paragraph_style, *, logo_size=78):
-    """Build the shared university letterhead with a fixed text column width."""
+def _build_global_header(
+    department_name,
+    telephone_number,
+    paragraph_style,
+    *,
+    logo_size=78,
+    leave_style=False,
+):
+    """Build the shared university letterhead.
+
+    ``leave_style`` reproduces the five-column arrangement used by the
+    leave_record_info PDF.  It is opt-in so existing PDFs using the original
+    three-column header keep their current layout.
+    """
     logo_path = os.path.join(BASE_DIR, "static", "logo-MU_black-white-2-1.png")
     if os.path.exists(logo_path):
         logo = Image(logo_path, width=logo_size, height=logo_size)
@@ -205,12 +221,20 @@ def _build_global_header(department_name, telephone_number, paragraph_style, *, 
         f"โทร. {telephone_number}",
         paragraph_style,
     )
-    header_table = Table(
-        [["", logo, header_right]],
-        # Keep the right-hand text in a dedicated column so it cannot overlap
-        # the logo when a department name is long.
-        colWidths=[170, 110, 165],
-    )
+    if leave_style:
+        # Same column structure as leave_record_info:
+        # [left spacer, spacer, logo, organization text, right spacer].
+        header_table = Table(
+            [["", "", logo, header_right, ""]],
+            colWidths=[100, 92, 66, 212, 1],
+        )
+    else:
+        header_table = Table(
+            [["", logo, header_right]],
+            # Keep the right-hand text in a dedicated column so it cannot
+            # overlap the logo when a department name is long.
+            colWidths=[170, 110, 165],
+        )
     header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ALIGN", (1, 0), (1, 0), "CENTER"),
@@ -219,6 +243,11 @@ def _build_global_header(department_name, telephone_number, paragraph_style, *, 
         ("TOPPADDING", (0, 0), (-1, -1), 0),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
     ]))
+    if leave_style:
+        header_table.setStyle(TableStyle([
+            ("ALIGN", (2, 0), (2, 0), "CENTER"),
+        ]))
+        header_table.hAlign = "LEFT"
     return header_table
 
 
@@ -666,8 +695,10 @@ def generate_fnar02_pdf(ticket):
     buffer = BytesIO()
     
     doc = SimpleDocTemplate(
-        buffer, 
+        buffer,
         pagesize=A4,
+        # Keep the document frame unchanged so the FNAR02 form on page 2 is
+        # not affected by the page-1 memo layout refinement.
         leftMargin=72,
         rightMargin=72,
         topMargin=36,
@@ -684,45 +715,47 @@ def generate_fnar02_pdf(ticket):
     from .views import get_department_data_service
     telephone_number = _pdf_text((get_department_data_service(department_name) or {}).get("telephone_number"))
 
+    # Keep the logo and organization text in one fixed row, as in the
+    # leave_record_info document.  This prevents a long department name from
+    # pushing the text below the logo or allowing it to overlap the logo.
     story.append(_build_global_header(
         department_name,
         telephone_number,
         styles['ThaiRight'],
-        logo_size=75,
+        logo_size=73,
+        leave_style=True,
     ))
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 8))
 
     # 3. ข้อมูลเลขที่, วันที่, เรื่อง, เรียน
     info_table_data = [
-        [Paragraph("<b>ที่</b>", styles['ThaiNormal'])],
-        [Paragraph("<b>วันที่</b>", styles['ThaiNormal'])],
+        [Paragraph("<b>ที่</b>", styles['ThaiNormal']), Paragraph(PDF_BLANK, styles['ThaiNormal'])],
+        [Paragraph("<b>วันที่</b>", styles['ThaiNormal']), Paragraph(PDF_BLANK, styles['ThaiNormal'])],
         [Paragraph("<b>เรื่อง</b>", styles['ThaiNormal']), Paragraph("ขออนุมัติยืมเงินทดรองจ่าย", styles['ThaiNormal'])],
         [Paragraph("<b>เรียน</b>", styles['ThaiNormal']), Paragraph("คณบดีคณะเทคนิคการแพทย์", styles['ThaiNormal'])],
     ]
-    t_info = Table(info_table_data, colWidths=[45, 394])
+    t_info = Table(info_table_data, colWidths=[48, doc.width - 48])
     t_info.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 1),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
     ]))
     story.append(t_info)
-    story.append(Spacer(1, 15))
+    story.append(Spacer(1, 12))
 
     # 4. เนื้อหาบันทึกข้อความ (ย่อหน้า)
-    p1_html = f"ด้วย{department_name} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric} บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} – {end_date_str}"
+    p1_html = f"ด้วย{department_name} มีความประสงค์จะขอยืมเงินทดรองจ่าย จำนวนเงิน {amount_numeric} บาท ({amount_text}) เพื่อทดรองจ่าย{borrowing_purpose} ตั้งแต่วันที่ {start_date_str} - {end_date_str}"
     story.append(Paragraph(p1_html, styles['ThaiOfficial']))
     story.append(Spacer(1, 12))
 
-    p2_html = f"ทั้งนี้โดยมอบหมายให้ {borrower_name} เป็นผู้ยืมเงิน โดยโปรดโอนเงินเข้าบัญชี เลขที่ {account_number} ชื่อบัญชี {account_name} โดยมีระยะเวลาในการดำเนินภายใน {due_date_thai}"
+    p2_html = f"ทั้งนี้โดยมอบหมายให้ {borrower_name} เป็นผู้ยืมเงิน โดยโปรดโอนเงินเข้าบัญชี เลขที่ {account_number} ชื่อบัญชี {account_name} โดยมีระยะเวลาในการดำเนินภายในวันที่ {due_date_thai}"
     story.append(Paragraph(p2_html, styles['ThaiOfficial']))
     story.append(Spacer(1, 12))
 
     p3_html = "จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ และลงนามในสัญญาการยืมเงินที่แนบมาพร้อมนี้<br/>ด้วยจักเป็นพระคุณยิ่ง"
     story.append(Paragraph(p3_html, styles['ThaiOfficial']))
-    story.append(Spacer(1, 80))
-
     # 5. ส่วนลงนาม (ชิดขวา/กึ่งกลางขวา)
     sign_html = f"""
     ({head_name})<br/>
@@ -730,12 +763,15 @@ def generate_fnar02_pdf(ticket):
     """
     p_sign = Paragraph(sign_html, styles['ThaiCenter'])
     
-    t_sign = Table([[ "", p_sign ]], colWidths=[237, 250])
+    t_sign = Table([["", p_sign]], colWidths=[doc.width * 0.48, doc.width * 0.52])
     t_sign.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('ALIGN', (1, 0), (1, 0), 'CENTER'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        # Reserve a predictable signature area without relying on a large
+        # standalone Spacer that can move unpredictably when text wraps.
+        ('TOPPADDING', (0, 0), (-1, -1), 42),
     ]))
     story.append(t_sign)
 
@@ -1019,7 +1055,6 @@ def generate_petty_claim(claim, claim_type="1"):
         fontName="Sarabun",
         fontSize=16,
         leading=20,
-        wordWrap="CJK",
         alignment=TA_JUSTIFY,
         textColor=colors.black,
     )
@@ -1065,6 +1100,7 @@ def generate_petty_claim(claim, claim_type="1"):
         department_name,
         telephone_number,
         claim_right,
+        leave_style=True,
     )
     story.append(header_table)
     if no_approval_letter:
@@ -1072,12 +1108,12 @@ def generate_petty_claim(claim, claim_type="1"):
     story.append(Spacer(1, 10))
 
     info_data = [
-        [Paragraph("ที่", claim_left)],
-        [Paragraph("วันที่", claim_left)],
+        [Paragraph("ที่", claim_left), Paragraph(PDF_BLANK, claim_left)],
+        [Paragraph("วันที่", claim_left), Paragraph(PDF_BLANK, claim_left)],
         [Paragraph("เรื่อง", claim_left), Paragraph(subject_text, claim_left)],
         [Paragraph("เรียน", claim_left), Paragraph("คณบดีคณะเทคนิคการแพทย์", claim_left)],
     ]
-    info_table = Table(info_data, colWidths=[45, 410])
+    info_table = Table(info_data, colWidths=[48, doc.width - 48])
     info_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
@@ -1098,7 +1134,7 @@ def generate_petty_claim(claim, claim_type="1"):
 
     if no_approval_letter:
         story.append(Paragraph(
-            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ{request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
+            f"ด้วย{department_name} คณะเทคนิคการแพทย์ มีความประสงค์ดำเนินการ {request_purpose} โดยจะมีค่าใช้จ่ายในการดำเนินการ ดังนี้",
             claim_body,
         ))
     else:
@@ -1255,7 +1291,6 @@ def generate_ticket_return(return_detail):
         fontName="Sarabun",
         fontSize=16,
         leading=20,
-        wordWrap="CJK",
         alignment=TA_JUSTIFY,
         firstLineIndent=70,
         textColor=colors.black,
@@ -1308,17 +1343,18 @@ def generate_ticket_return(return_detail):
         department_name,
         telephone_number,
         return_right,
+        leave_style=True,
     )
     story.extend([header_table, Spacer(1, 10)])
 
     head_name, head_position = _get_head_signature(ticket=ticket)
 
     info_table = Table([
-        [Paragraph("ที่", return_left)],
-        [Paragraph("วันที่", return_left)],
+        [Paragraph("ที่", return_left), Paragraph(PDF_BLANK, return_left)],
+        [Paragraph("วันที่", return_left), Paragraph(PDF_BLANK, return_left)],
         [Paragraph("เรื่อง", return_left), Paragraph(f"ขออนุมัติเบิกจ่ายพร้อมส่งใช้เงินยืม บย. {ticket_number}", return_left)],
         [Paragraph("เรียน", return_left), Paragraph("คณบดีคณะเทคนิคการแพทย์", return_left)],
-    ], colWidths=[45, 410])
+    ], colWidths=[48, doc.width - 48])
     info_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("LEFTPADDING", (0, 0), (-1, -1), 0),
@@ -1373,7 +1409,7 @@ def generate_ticket_return(return_detail):
     story.append(Paragraph(
         f"โดยเบิกจากเงินปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
         f"เอกสารฉบับนี้ส่งคืนบัญชีเงินยืม บย.{ticket_number} เพื่อทำการขอเบิกเงินคืนต่อไป ดังรายละเอียดตาม เอกสารที่แนบมาพร้อมนี้",
-        return_left,
+        return_body,
     ))
     story.extend([
         Spacer(1, 12),

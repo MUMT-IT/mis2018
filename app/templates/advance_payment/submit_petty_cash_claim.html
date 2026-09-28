@@ -23,7 +23,7 @@
         <div class="d-flex flex-column align-items-md-end gap-2 flex-wrap">
           <div class="text-md-end">
             {% if verification_fund_request and verification_fund_request.form_type == 'interest' and verification_fund_request.withdrawal_proof_reference %}
-              <a href="{{ url_for('static', filename=verification_fund_request.withdrawal_proof_reference) }}" class="btn btn-outline-primary btn-sm fw-bold" target="_blank">
+              <a href="{{ verification_fund_request.withdrawal_proof_reference|advance_payment_file_url }}" class="btn btn-outline-primary btn-sm fw-bold" target="_blank">
                 <i class="bi bi-paperclip me-1"></i>{{ verification_fund_request.withdrawal_proof_filename or 'หลักฐานการเบิก' }}
               </a>
             {% endif %}
@@ -64,16 +64,7 @@
       {% set current_fund_request_status = (fund_request_status or '')|trim %}
       {% set fund_request_status_aliases = {} %}
       {% set current_fund_request_step = fund_request_status_aliases.get(current_fund_request_status, current_fund_request_status) %}
-      {% set fund_request_status_class = 'bg-secondary text-white' %}
-      {% if current_fund_request_step == 'อนุมัติแล้ว' %}
-        {% set fund_request_status_class = 'bg-primary text-white' %}
-      {% elif current_fund_request_step == 'ส่งเบิกครบแล้ว' %}
-        {% set fund_request_status_class = 'bg-info text-white' %}
-      {% elif current_fund_request_step == 'เคลียร์ยอดสำเร็จ' %}
-        {% set fund_request_status_class = 'bg-success text-white' %}
-      {% elif current_fund_request_step in ['ยกเลิก', 'ปฏิเสธ'] %}
-        {% set fund_request_status_class = 'bg-danger text-white' %}
-      {% endif %}
+      {% set fund_request_status_class = status_badge_class(current_fund_request_step) %}
 
       <div class="status-flow">
         {% for step in fund_request_status_steps %}
@@ -97,26 +88,34 @@
     </div>
   </div>
   {% if verification_fund_request and can_cancel_fund_request %}
-  <div class="d-flex justify-content-end mt-4 pt-3 border-top gap-2">
-    <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
-      <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
-    </a>
-    <button type="button"
-            class="btn btn-outline-danger btn-sm fw-bold px-3 py-1.5"
-            data-popup-trigger="true"
-            data-popup-title="สาเหตุของการยกเลิกใบเบิก"
-            data-popup-message="กรุณาระบุเหตุผลสำหรับการยกเลิกใบเบิก"
-            data-popup-action="{{ url_for('advance_payment.cancel_fund_request', request_id=verification_fund_request.id) }}"
-            data-popup-confirm-text="ยืนยันการยกเลิก"
-            data-popup-confirm-class="btn-danger"
-            data-popup-input-type="textarea"
-            data-popup-input-name="cancellation_reason"
-            data-popup-input-placeholder="ระบุเหตุผลที่ยกเลิกใบเบิก..."
-            data-popup-input-required="true"
-            data-popup-input-rows="2"
-            data-popup-extra-fields-template-id="cancelFundRequestExtraFields">
-      ยกเลิกใบเบิก
-    </button>
+  <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top gap-2">
+    <div class="text-start flex-grow-1">
+      {% if verification_fund_request.personal_note %}
+        <span class="fw-bold">หมายเหตุส่วนตัว:</span>
+        <span>{{ verification_fund_request.personal_note }}</span>
+      {% endif %}
+    </div>
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
+        <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
+      </a>
+      <button type="button"
+              class="btn btn-outline-danger btn-sm fw-bold px-3 py-1.5"
+              data-popup-trigger="true"
+              data-popup-title="สาเหตุของการยกเลิกใบเบิก"
+              data-popup-message="กรุณาระบุเหตุผลสำหรับการยกเลิกใบเบิก"
+              data-popup-action="{{ url_for('advance_payment.cancel_fund_request', request_id=verification_fund_request.id) }}"
+              data-popup-confirm-text="ยืนยันการยกเลิก"
+              data-popup-confirm-class="btn-danger"
+              data-popup-input-type="textarea"
+              data-popup-input-name="cancellation_reason"
+              data-popup-input-placeholder="ระบุเหตุผลที่ยกเลิกใบเบิก..."
+              data-popup-input-required="true"
+              data-popup-input-rows="2"
+              data-popup-extra-fields-template-id="cancelFundRequestExtraFields">
+        ยกเลิกใบเบิก
+      </button>
+    </div>
   </div>
   <template id="cancelFundRequestExtraFields">
     <div class="mt-3">
@@ -172,21 +171,26 @@
           <label class="form-check-label text-muted" for="hasReferenceInfo">ไม่มีหนังสือขออนุมัติในหลักการ</label>
         </div>
         <div class="row g-3" id="referenceInfoFields">
-          <div class="col-md-3">
+          <div class="col-md-2">
             <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ</label>
             <input class="form-control reference-info-input" name="reference_number" placeholder="เช่น 78.04/1" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
             <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
             <input type="date" class="form-control reference-info-input" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}">
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง</label>
             <input type="file" class="form-control reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
+          </div>
+          <div class="col-md-5 mt-5">
+            <div class="reference-filenames-container"></div>
             {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
               <input type="hidden" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
-              <input type="hidden" name="existing_reference_filenames[]" value="{{ reference_file.filename }}">
-              <small class="text-success d-block mt-1"><i class="bi bi-file-earmark-check"></i> {{ reference_file.filename }}</small>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text text-success">ชื่อหนังสือ</span>
+                <input type="text" class="form-control" name="existing_reference_filenames[]" value="{{ reference_file.filename }}" aria-label="ชื่อไฟล์เอกสารอ้างอิงเดิม">
+              </div>
             {% endfor %}
           </div>
         </div>
@@ -251,6 +255,13 @@
       </div>
       <div class="mb-4 border rounded-3 p-3 bg-white">
       <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
+      <div class="d-flex justify-content-end mb-3">
+        <div class="text-end text-secondary">
+          <span class="fw-bold">ยอดที่ขอไป: {{ '%.2f'|format(total_request_amount) }}</span>
+          <span class="fw-bold ms-3">ยอดที่เบิกไปแล้ว: {{ '%.2f'|format(total_claimed_amount + total_parcel_amount) }}</span>
+          <span class="fw-bold ms-3">ยอดคงเหลือ: {{ '%.2f'|format(total_request_amount - total_claimed_amount - total_parcel_amount) }}</span>
+        </div>
+      </div>
       <div class="table-responsive">
         <table class="table table-bordered align-middle" id="claimTable">
           <thead class="table-light small fw-bold">
@@ -309,41 +320,37 @@
                 </tr>
               {% endfor %}
 
-            {% elif selected_fund_request and selected_fund_request.items %}
-              {% for item in selected_fund_request.items %}
-                {% set row_index = loop.index0 %}
-                <tr>
-                  <td class="text-center fw-bold row-index">{{ loop.index }}</td>
-                  <td>
-                    <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
-                    <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
-                  </td>
-                  <td>
-                    <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
-                      <option value="1" {% if item.category_type|string == '1' %}selected{% endif %}>ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
-                      <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
-                      <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
-                      <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
-                    </select>
-                    </td>
-                  <td>
-                    <input type="text" name="description[]" class="form-control form-control-sm" 
-                          value="{{ item.description or '' }}" placeholder="ระบุรายการ..." required>
-                  </td>
-                  <td>
-                    <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" 
-                          value="{{ '%.2f'|format(item.amount) if item.amount else '' }}" placeholder="0.00" oninput="calculateTotal()" required>
-                  </td>
-                  <td>
-                    <input type="file" name="proof_files_{{ loop.index0 }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if loop.index0 == 0 %}required{% endif %}>
-                  </td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
-                      <i class="bi bi-trash3-fill"></i>
-                    </button>
-                  </td>
-                </tr>
-              {% endfor %}
+            {% else %}
+              <tr>
+                <td class="text-center fw-bold row-index">1</td>
+                <td>
+                  <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
+                  <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
+                </td>
+                <td>
+                  <select name="category_type[]" class="form-select form-select-sm" onchange="handleCategoryChange(this)" required>
+                    <option value="">เลือกหมวดหมู่</option>
+                    <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
+                    <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
+                    <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
+                    <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required>
+                </td>
+                <td>
+                  <input type="text" step="0.01" min="0" name="amount[]" class="form-control form-control-sm text-end fw-bold claim-amount" placeholder="0.00" oninput="calculateTotal()" required>
+                </td>
+                <td>
+                  <input type="file" name="proof_files_0[]" class="form-control form-control-sm" accept="image/*,.pdf" required>
+                </td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeRow(this)">
+                    <i class="bi bi-trash3-fill"></i>
+                  </button>
+                </td>
+              </tr>
             {% endif %}
           </tbody>
         </table>
@@ -518,17 +525,16 @@ function togglePettyCashClaimForm() {
             </td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(claim.total_amount or 0) }}</td>
             <td>
-              {% set c_badge = 'bg-warning text-dark' %}
               {% set c_status = claim.status %}
 
               {% if claim.status|lower == 'รอตรวจสอบ' %}{% set c_status = 'รอตรวจสอบ' %}
-              {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_badge = 'bg-warning text-dark' %}{% set c_status = 'กำลังตรวจสอบ' %}
-              {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_badge = 'bg-info text-dark' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
-              {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_badge = 'bg-success text-white' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
-              {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_badge = 'bg-secondary text-white' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
-              {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_badge = 'bg-danger text-white' %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
+              {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_status = 'กำลังตรวจสอบ' %}
+              {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
+              {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
+              {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
+              {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
 
-              <span class="badge {{ c_badge }}">{{ c_status }}</span>
+              <span class="badge {{ status_badge_class(claim.status) }}">{{ c_status }}</span>
             </td>
             <td class="text-center">
               {% if claim.closing_document_name %}
@@ -572,23 +578,7 @@ function togglePettyCashClaimForm() {
             <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}</div></td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
             <td>
-              {% if pr.status == 'รอตรวจสอบ' %}
-                <span class="badge bg-warning text-dark">รอตรวจสอบ</span>
-              {% elif pr.status == 'พัสดุกำลังดำเนินการ' %}
-                <span class="badge bg-info text-dark">พัสดุกำลังดำเนินการ</span>
-              {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
-                <span class="badge bg-success text-white">ได้รับเอกสารแล้ว</span>
-              {% elif pr.status == 'โอนเงินสดย่อยสำเร็จ' %}
-                <span class="badge bg-success text-white">โอนเงินสดย่อยสำเร็จ</span>
-              {% elif pr.status|lower in ['ปฏิเสธ'] %}
-                <span class="badge bg-danger text-white">ถูกปฏิเสธ</span>
-              {% elif pr.status|lower == 'เอกสารตั้งฎีกา' %}
-                <span class="badge bg-secondary text-white">เอกสารตั้งฎีกา</span>
-              {% elif pr.status == 'ได้รับเอกสารแล้ว' %}
-                <span class="badge bg-success text-white">ล้างลูกหนี้เงินยืม</span>
-              {% else %}
-                <span class="badge bg-warning text-dark">{{ pr.status }}</span>
-              {% endif %}
+              {{ status_badge(pr.status) }}
               {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
                 <div class="small text-danger mt-1 text-start">{{ pr.rejection_comment }}</div>
               {% endif %}
@@ -870,6 +860,28 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener("DOMContentLoaded", function() {
+  const referenceFileInput = document.querySelector('[name="reference_files[]"]');
+  const referenceFilenamesContainer = document.querySelector('.reference-filenames-container');
+
+  if (referenceFileInput && referenceFilenamesContainer) {
+    referenceFileInput.addEventListener('change', function() {
+      referenceFilenamesContainer.innerHTML = '';
+
+      Array.from(this.files).forEach((file, index) => {
+        const group = document.createElement('div');
+        group.className = 'input-group input-group-sm mt-2';
+        group.innerHTML = `
+          <span class="input-group-text">ชื่อหนังสือ</span>
+          <input type="text" class="form-control" name="reference_filenames[]"
+                 value="${escapeHtml(file.name)}" aria-label="ชื่อไฟล์เอกสารอ้างอิงไฟล์ที่ ${index + 1}">
+        `;
+        referenceFilenamesContainer.appendChild(group);
+      });
+
+      triggerAutoSave();
+    });
+  }
+
   document.querySelectorAll(".parcel-amount-input, .cash-return-amount-input").forEach(input => {
     if (input.value) {
       formatInputNumberWithComma(input);

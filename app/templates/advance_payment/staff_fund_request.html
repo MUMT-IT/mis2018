@@ -52,16 +52,19 @@
                     {% if is_secretary %}
                       <select name="requester_id" id="requester_input" class="form-select bg-white" required onchange="onBorrowerChange()">
                         <option value="">พิมพ์เพื่อค้นหา หรือเลือกพนักงาน...</option>
+                        {% if selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id and not (department_employees | selectattr('id', 'equalto', setting.custodian_id) | list) %}
+                          <option value="{{ setting.custodian_id }}" data-position="{{ custodian_display_position }}" selected>{{ custodian_display_name }}</option>
+                        {% endif %}
                         {% for emp in department_employees %}
-                          <option value="{{ emp.id }}" {% if form.requester_name.data == emp.name %}selected{% endif %}>{{ emp.name }}</option>
+                        <option value="{{ emp.id }}" {% if (selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id == emp.id) or (selected_form_type not in ['interest', 'borrowing'] and form.requester_name.data == emp.name) %}selected{% endif %}>{{ emp.name }}</option>
                         {% endfor %}
                       </select>
-                      {% if not department_employees %}
+                      {% if not department_employees and not (selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id) %}
                         <div class="form-text text-danger">ไม่พบรายชื่อบุคลากรในหน่วยงาน กรุณาตรวจสอบหน่วยงานที่ผูกกับการตั้งค่าเงินสดย่อย</div>
                       {% endif %}
                     {% else %}
-                      <input type="text" id="requester_input" class="form-control bg-light" value="{{ current_user_display_name }}" readonly>
-                      <input type="hidden" name="requester_id" value="{{ (advance_payment_user.id if advance_payment_user.is_authenticated else '') }}">
+                      <input type="text" id="requester_input" class="form-control bg-light" value="{{ custodian_display_name if selected_form_type in ['interest', 'petty_cash'] else current_user_display_name }}" readonly>
+                      <input type="hidden" name="requester_id" id="requester_id_input" value="{{ setting.custodian_id if selected_form_type in ['interest', 'petty_cash'] and setting else (advance_payment_user.id if advance_payment_user.is_authenticated else '') }}">
                     {% endif %}
                 </div>
                 <div class="col-md-6">
@@ -91,6 +94,10 @@
                 <div class="col-md-4">
                   <label for="request_date" class="form-label fw-bold">วันที่ทำการเบิก <span class="text-danger">*</span></label>
                   {{ form.request_date(class="form-control", id="request_date", type="date", required=True, style="border-radius: 12px;") }}
+                </div>
+                <div class="col-md-12">
+                  <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
+                  {{ form.personal_note(class="form-control", id="personal_note", style="border-radius: 12px;") }}
                 </div>
               </div>
             </div>
@@ -250,26 +257,34 @@
             <!-- ส่วนกรอกจำนวนเงินและแสดงข้อความแจ้งเตือนข้อผิดพลาด (จัดชิดขวา) -->
           <div class="row g-3 mb-4 justify-content-end align-items-end">
             
-            <!-- ช่องกรอกจำนวนเงิน -->
+            {% set available_budget = dept_summary.remaining_budget if dept_summary else 0 %}
+            <!-- ช่องกรอกจำนวนเงิน: ใช้กรอกเองเฉพาะแบบฟอร์มดอกเบี้ย -->
             <div class="col-md-5 col-lg-4 ms-auto text-end">
-              <label for="user_total_amount" class="form-label fw-bold d-block text-end">
+              <div id="manualAmountSection"{% if selected_form_type != 'interest' %} class="d-none"{% endif %}>
+                <label for="user_total_amount" class="form-label fw-bold d-block text-end">
                 จำนวนเงินที่ต้องการขอเบิก (บาท) <span class="text-danger">*</span>
-              </label>
-              {% set available_budget = dept_summary.remaining_budget if dept_summary else 0 %}
-              <input type="text"
-                     name="amount"
-                     id="user_total_amount"
-                     class="form-control fw-bold text-primary text-end"
-                     placeholder="0.00"
-                     required
-                     style="border-radius: 12px; font-size: 1.1rem;"
-                     oninput="handleUserTotalInput(this)"
-                     data-available-budget="{{ '%.2f'|format(available_budget or 0) }}">
+                </label>
+                <input type="text"
+                       name="amount"
+                       id="user_total_amount"
+                       class="form-control fw-bold text-primary text-end"
+                       placeholder="0.00"
+                       required
+                       style="border-radius: 12px; font-size: 1.1rem;"
+                       oninput="handleUserTotalInput(this)"
+                       data-available-budget="{{ '%.2f'|format(available_budget or 0) }}">
+              </div>
               <div id="budgetSummary" class="p-3 mt-2 border rounded-3 bg-light text-start{% if selected_form_type in ['interest', 'borrowing'] %} d-none{% endif %}">
                 <div class="d-flex justify-content-between align-items-center gap-3">
                   <span class="fw-bold text-muted">ยอดคงเหลือปัจจุบัน</span>
                   <span class="fw-bold {% if available_budget <= 0 %}text-danger{% else %}text-success{% endif %}" id="availableBudgetDisplay">
                     {{ "{:,.2f}".format(available_budget or 0) }}
+                  </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center gap-3 mt-1">
+                  <span class="fw-bold text-muted">ยอดที่ทำการเบิก</span>
+                  <span class="fw-bold text-primary" id="budgetRequestedDisplay">
+                    0.00
                   </span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center gap-3 mt-1">
@@ -330,9 +345,28 @@
       const ticketPosition = borrowingRadio && borrowingRadio.checked && ticketOption
         && String(ticketOption.dataset.borrowerId) === String(input.value)
         ? ticketOption.dataset.position : "";
+      const selectedPosition = input.selectedOptions && input.selectedOptions[0]
+        ? input.selectedOptions[0].dataset.position : "";
       const employeePosition = matchedEmp && matchedEmp.position;
       positionInput.value = employeePosition && !employeePosition.startsWith("ไม่พบข้อมูล")
-        ? employeePosition : (ticketPosition || employeePosition || "ไม่พบข้อมูล");
+        ? employeePosition : (ticketPosition || selectedPosition || employeePosition || "ไม่พบข้อมูล");
+    }
+
+    function setRequesterValue(requesterId, requesterName, requesterPosition) {
+      const requesterInput = document.getElementById("requester_input");
+      const requesterIdInput = document.getElementById("requester_id_input") || document.querySelector('input[name="requester_id"]');
+      const positionInput = document.getElementById("requester_position_input");
+      if (requesterInput && requesterInput.tagName === "SELECT") {
+        if (requesterId && !Array.from(requesterInput.options).some(item => String(item.value) === String(requesterId))) {
+          requesterInput.add(new Option(requesterName || "", requesterId));
+        }
+        requesterInput.value = requesterId || "";
+        if (window.jQuery) $(requesterInput).trigger("change.select2");
+      } else if (requesterInput) {
+        requesterInput.value = requesterName || "";
+      }
+      if (requesterIdInput) requesterIdInput.value = requesterId || "";
+      if (positionInput) positionInput.value = requesterPosition || "ไม่พบข้อมูลตำแหน่ง";
     }
 
     function formatInputNumberWithComma(element) {
@@ -381,8 +415,18 @@
       return userTotalInput.value.trim() !== "" && autoAmount.toFixed(2) !== userAmount.toFixed(2);
     }
 
+    function getRequestedAmount() {
+      const interestRadio = document.getElementById("form_type_interest");
+      const userTotalInput = document.getElementById("user_total_amount");
+      const sumAmountDisplay = document.getElementById("sumAmountDisplay");
+      const source = interestRadio && interestRadio.checked ? userTotalInput : sumAmountDisplay;
+      const rawValue = source === userTotalInput ? source.value : (source ? source.innerText : "");
+      return parseFloat((rawValue || "0").replace(/,/g, "")) || 0;
+    }
+
     function updateBudgetLimitState() {
       const userTotalInput = document.getElementById("user_total_amount");
+      const budgetRequestedDisplay = document.getElementById("budgetRequestedDisplay");
       const budgetAfterRequestDisplay = document.getElementById("budgetAfterRequestDisplay");
       const availableBudgetDisplay = document.getElementById("availableBudgetDisplay");
       const budgetLimitAlert = document.getElementById("budget_limit_alert");
@@ -408,7 +452,7 @@
       }
 
       const availableBudget = getAvailableBudgetAmount();
-      const requestedAmount = parseFloat(userTotalInput.value.replace(/,/g, "")) || 0;
+      const requestedAmount = getRequestedAmount();
       const remainingAfterRequest = availableBudget - requestedAmount;
       const isOverBudget = requestedAmount > availableBudget && requestedAmount > 0;
       const amountMismatch = isAmountMismatch();
@@ -417,6 +461,13 @@
       if (availableBudgetDisplay) {
         availableBudgetDisplay.classList.toggle("text-danger", availableBudget <= 0 && !isBudgetExemptForm);
         availableBudgetDisplay.classList.toggle("text-success", availableBudget > 0 && !isBudgetExemptForm);
+      }
+
+      if (budgetRequestedDisplay) {
+        budgetRequestedDisplay.textContent = requestedAmount.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
       }
 
       if (budgetAfterRequestDisplay) {
@@ -482,12 +533,16 @@
       const borrowingTicketPurposePreview = document.getElementById("borrowing_ticket_purpose_preview");
       const borrowingTicketAccountPreview = document.getElementById("borrowing_ticket_account_preview");
       const borrowingTicketAmountPreview = document.getElementById("borrowing_ticket_amount_preview");
+      const custodianId = "{{ setting.custodian_id if setting else '' }}";
+      const custodianName = {{ custodian_display_name | tojson }};
+      const custodianPosition = {{ custodian_display_position | tojson }};
       
       const inputPurpose = document.getElementById("purpose");
       const requestDateInput = document.getElementById("request_date");
       const borrowingRequestDateInput = document.getElementById("borrowing_request_date");
       const mainForm = document.getElementById("fundRequestForm");
       const userTotalInput = document.getElementById("user_total_amount");
+      const manualAmountSection = document.getElementById("manualAmountSection");
       const receiptAddButton = receiptContainer.querySelector('button[onclick="addReceiptRow()"]');
 
       function getBorrowingTicketOption() {
@@ -515,14 +570,14 @@
         }
 
         if (borrowingRadio && borrowingRadio.checked && option) {
-          if (requesterIsEditable && requesterInput) {
-            const borrowerId = option.dataset.borrowerId || "";
-            if (borrowerId && !Array.from(requesterInput.options).some(item => item.value === borrowerId)) {
+          const borrowerId = option.dataset.borrowerId || "";
+          const borrowerPosition = option.dataset.position || "ไม่พบข้อมูลตำแหน่ง";
+          if (requesterInput) {
+            if (requesterInput.tagName === "SELECT" && borrowerId
+              && !Array.from(requesterInput.options).some(item => item.value === borrowerId)) {
               requesterInput.add(new Option(borrower, borrowerId));
             }
-            requesterInput.value = borrowerId;
-            onBorrowerChange();
-            if (window.jQuery) $(requesterInput).trigger("change.select2");
+            setRequesterValue(borrowerId, borrower, borrowerPosition);
           }
           const departmentInput = document.getElementById("department_input");
           if (departmentInput) departmentInput.value = option.dataset.department || "";
@@ -589,6 +644,18 @@
           borrowingRequestDateInput.disabled = !borrowingRadio.checked;
         }
         const isBorrowingTicketForm = borrowingRadio && borrowingRadio.checked;
+        const isInterestForm = interestRadio.checked;
+        if (requesterInput) {
+          requesterInput.disabled = isInterestForm || isBorrowingTicketForm;
+          if (requesterInput.tagName === "SELECT" && window.jQuery) {
+            $(requesterInput).prop("disabled", requesterInput.disabled).trigger("change.select2");
+          }
+        }
+        if (isInterestForm) {
+          setRequesterValue(custodianId, custodianName, custodianPosition);
+        }
+        if (manualAmountSection) manualAmountSection.classList.toggle("d-none", !isInterestForm);
+        if (userTotalInput) userTotalInput.required = isInterestForm;
         updateBorrowingCategoryOptions();
         if (!isBorrowingTicketForm) onBorrowerChange();
 

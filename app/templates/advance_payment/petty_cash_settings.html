@@ -12,6 +12,9 @@
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
   <h1 class="fw-bold display-6 mb-2">การจัดการเงินสดย่อย</h1>
   <p class="text-muted small mb-0">ปีงบประมาณปัจจุบัน: {{ current_fiscal_year + 543 }}</p>
+  <a href="{{ url_for('advance_payment.petty_cash_fiscal_year_carryover') }}" class="btn btn-outline-primary fw-bold mt-3">
+    <i class="bi bi-arrow-left-right me-2"></i>ยกยอดเงินสดย่อยระหว่างปีงบประมาณ
+  </a>
 </header>
 
 <style>
@@ -109,11 +112,7 @@
               <td>{{ claim.user.name if claim.user else '-' }}</td>
               <td class="text-end fw-bold text-primary">{{ '{:,.2f}'.format(claim.total_amount or claim.amount or 0.0) }}</td>
               <td class="text-center">
-                {% if claim.status == 'ผ่านการตรวจสอบ' %}
-                  <span class="badge bg-primary-subtle text-primary border">ผ่านการตรวจสอบ</span>
-                {% else %}
-                  <span class="badge bg-secondary-subtle text-secondary border">{{ claim.status }}</span>
-                {% endif %}
+                {{ status_badge(claim.status, 'ผ่านการตรวจสอบ' if claim.status == 'ผ่านการตรวจสอบ' else none, 'border') }}
               </td>
               <td class="text-center">
                 {% if claim.closing_document %}
@@ -147,7 +146,7 @@
                <td>{{ parcel.display_borrower_name or '-' }}</td>
                <td class="text-end fw-bold text-primary">{{ '{:,.2f}'.format(parcel.amount_spent or 0.0) }}</td>
                <td class="text-center">
-                 <span class="badge bg-info-subtle text-info-emphasis border">ได้รับเอกสารแล้ว</span>
+                 {{ status_badge('ได้รับเอกสารแล้ว', none, 'border') }}
                </td>
                <td class="text-center"><span class="text-muted small">-</span></td>
                <td class="text-center small text-secondary">-</td>

@@ -273,6 +273,24 @@ document_return_association = Table(
 )
 
 
+# A return ticket may settle receipts from more than one borrowing ticket.
+# ``ReturnDetail.ticket_id`` is kept for backwards compatibility and stores the
+# first/primary ticket; this table is the source of the additional links.
+return_borrowing_ticket_association = Table(
+    "cash_advance_return_borrowing_ticket_association",
+    db.metadata,
+    Column("return_id", Integer, ForeignKey("cash_advance_return_details.id"), primary_key=True),
+    Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
+)
+
+parcel_borrowing_ticket_association = Table(
+    "cash_advance_parcel_borrowing_ticket_association",
+    db.metadata,
+    Column("parcel_return_id", Integer, ForeignKey("cash_mng_parcel_return_details.id"), primary_key=True),
+    Column("ticket_id", Integer, ForeignKey("cash_advance_borrowing_tickets.id"), primary_key=True),
+)
+
+
 class Document(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_documents"
 
@@ -373,6 +391,31 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     @borrowing_ticket.setter
     def borrowing_ticket(self, value):
         self._borrowing_ticket = value
+
+    @property
+    def borrowing_tickets(self):
+        """All borrowing tickets settled by this return, including legacy data."""
+        session = object_session(self)
+        if session is None or self.id is None:
+            return [self.borrowing_ticket] if self.borrowing_ticket else []
+        tickets = []
+        if self.ticket_id:
+            ticket = _session_get(session, CashAdvanceBorrowingTicket, self.ticket_id)
+            if ticket:
+                tickets.append(ticket)
+        linked = (
+            session.query(CashAdvanceBorrowingTicket)
+            .join(
+                return_borrowing_ticket_association,
+                CashAdvanceBorrowingTicket.id == return_borrowing_ticket_association.c.ticket_id,
+            )
+            .filter(return_borrowing_ticket_association.c.return_id == self.id)
+            .order_by(CashAdvanceBorrowingTicket.id.asc())
+            .all()
+        )
+        seen = {ticket.id for ticket in tickets}
+        tickets.extend(ticket for ticket in linked if ticket.id not in seen)
+        return tickets
 
     @property
     def receipt_items(self):
@@ -599,6 +642,74 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
         self._bank_account_info = value
 
 
+class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
+    """คู่ข้อมูลยกยอดเงินสดย่อยที่กรอกโดยการเงินและผู้คุมบัญชีคนละฝั่ง."""
+
+    __tablename__ = "petty_cash_fiscal_year_carryovers"
+    __table_args__ = (
+        UniqueConstraint(
+            "org_id", "source_fiscal_year", "target_fiscal_year",
+            name="uq_petty_cash_carryover_org_years",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    org_id = Column(Integer, ForeignKey("orgs.id"), nullable=False, index=True)
+    custodian_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False, index=True)
+    source_fiscal_year = Column(Integer, nullable=False)
+    target_fiscal_year = Column(Integer, nullable=False)
+    finance_budget = Column(Numeric(12, 2), nullable=True)
+    finance_pending_transfer = Column(Numeric(12, 2), nullable=True)
+    custodian_bank_balance = Column(Numeric(12, 2), nullable=True)
+    custodian_cash_on_hand = Column(Numeric(12, 2), nullable=True)
+    custodian_pending_budget = Column(Numeric(12, 2), nullable=True)
+    finance_updated_at = Column(DateTime(timezone=True), nullable=True)
+    custodian_updated_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    @property
+    def org(self):
+        from app.models import Org
+        return _session_get(object_session(self), Org, self.org_id)
+
+    @property
+    def department_name(self):
+        return getattr(self.org, "name", None)
+
+    @property
+    def custodian_name(self):
+        custodian = _session_get(object_session(self), StaffAccount, self.custodian_id)
+        return getattr(custodian, "name", None) or getattr(custodian, "fullname", None)
+
+    @property
+    def is_complete(self):
+        return all(
+            value is not None
+            for value in (
+                self.finance_budget,
+                self.finance_pending_transfer,
+                self.custodian_bank_balance,
+                self.custodian_cash_on_hand,
+                self.custodian_pending_budget,
+            )
+        )
+
+    @property
+    def reconciliation_amount(self):
+        if not self.is_complete:
+            return None
+        return (
+            self.finance_budget
+            - (
+                self.custodian_bank_balance
+                + self.custodian_cash_on_hand
+                + self.custodian_pending_budget
+                + self.finance_pending_transfer
+            )
+        )
+
+
 class BankAccountInfo(FinanceEditMixin, db.Model):
     __tablename__ = "cash_mng_bank_account_infos"
     __table_args__ = (
@@ -646,6 +757,7 @@ class FundRequest(FinanceEditMixin, db.Model):
     cancel_at = Column(DateTime, nullable=True)
     cancel_transferred_at = Column(Date, nullable=True)
     purpose = Column(String(1000), nullable=True)
+    personal_note = Column(String(2000), nullable=True)
     period_year = Column(String(10), nullable=True)
     withdrawal_proof_reference = Column(String(500), nullable=True)
     withdrawal_proof_filename = Column(String(255), nullable=True)
