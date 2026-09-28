@@ -27,7 +27,7 @@ from .views import (
     FUND_REQUEST_FORM_PETTY_CASH,
 )
 from app.models import Org
-from app.staff.models import StaffHeadPosition, StaffPersonalInfo
+from app.staff.models import StaffHeadPosition, StaffLeaveApprover, StaffPersonalInfo
 
 
 # Non-breaking spaces keep a writable gap in ReportLab paragraphs.
@@ -414,6 +414,63 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
     return _pdf_text(head_name), _pdf_text(getattr(head_position_record, "position", None))
 
 
+def _get_leave_approver_signature(ticket):
+    """Resolve the FNAR02 signer using the leave-approval hierarchy.
+
+    This follows ``staff.record_each_request_leave_request``: the lower-level
+    approver is preferred, with the middle-level approver used as a fallback.
+    The position is read from ``staff_head_positions`` for the selected
+    approver, rather than from the borrower's generic staff position.
+    """
+    borrower_id = getattr(ticket, "borrower_id", None)
+    if not borrower_id:
+        return _pdf_text(None), _pdf_text(None)
+
+    approver_filters = (
+        {"is_lower_level": True},
+        {"is_middle_level": True},
+    )
+    for level_filter in approver_filters:
+        approver = (
+            db.session.query(StaffLeaveApprover)
+            .filter_by(
+                staff_account_id=borrower_id,
+                is_active=True,
+                **level_filter,
+            )
+            .first()
+        )
+        if approver is None:
+            continue
+
+        approver_account = getattr(approver, "account", None)
+        if approver_account is None:
+            approver_account = _get_user_by_id(getattr(approver, "approver_account_id", None))
+        if approver_account is None:
+            continue
+
+        personal_info = getattr(approver_account, "personal_info", None)
+        approver_name = getattr(personal_info, "fullname", None)
+        if not approver_name and personal_info is not None:
+            approver_name = " ".join(
+                value for value in (
+                    getattr(personal_info, "th_firstname", None),
+                    getattr(personal_info, "th_lastname", None),
+                ) if value
+            )
+
+        position_record = (
+            db.session.query(StaffHeadPosition)
+            .filter_by(staff_account_id=approver_account.id)
+            .first()
+        )
+        return _pdf_text(approver_name), _pdf_text(
+            getattr(position_record, "position", None)
+        )
+
+    return _pdf_text(None), _pdf_text(None)
+
+
 def _get_bank_account_info_for_ticket(ticket):
     if not ticket:
         return None
@@ -667,8 +724,13 @@ def generate_fnar02_pdf(ticket):
         or PDF_BLANK
     )
 
-    # 2. ค้นหาข้อมูลผู้บังคับบัญชา (head_of_department) และผู้ดูแลบัญชี โดยใช้ชื่อหน่วยงาน
-    head_name, head_position = _get_head_signature(ticket=ticket)
+    # 2. ใช้ลำดับผู้อนุมัติเดียวกับ staff.record_each_request_leave_request
+    # โดยเลือก lower approver ก่อน และ fallback เป็น middle approver
+    head_name, head_position = _get_leave_approver_signature(ticket)
+    if not head_name.strip() and not head_position.strip():
+        # Preserve the existing organization-head fallback for tickets whose
+        # borrower has no leave-approval configuration yet.
+        head_name, head_position = _get_head_signature(ticket=ticket)
 
     # แปลงข้อมูลวันที่ และงบประมาณ
     date_thai = get_thai_month_year(ticket.request_date) if hasattr(ticket, 'request_date') and ticket.request_date else PDF_BLANK
