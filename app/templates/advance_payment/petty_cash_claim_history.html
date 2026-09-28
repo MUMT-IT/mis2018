@@ -259,11 +259,11 @@
                     </a>
                     {% endif %}
                      {% if record.fund_request_id %}
-                     <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=record.fund_request_id) }}" class="btn btn-outline-success btn-sm px-2">
+                     <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=record.fund_request_id) }}" class="btn btn-outline-primary btn-sm px-2">
                        ตรวจสอบการส่งเบิก
                      </a>
                      {% if record.status == 'ได้รับเอกสารแล้ว' %}
-                     <button type="button" class="btn btn-outline-success btn-sm px-2" data-bs-toggle="modal" data-bs-target="#parcelTransferModal{{ record.id }}">
+                     <button type="button" class="btn btn-outline-primary btn-sm px-2" data-bs-toggle="modal" data-bs-target="#parcelTransferModal{{ record.id }}">
                        บันทึกโอนสำเร็จ
                      </button>
                      <div class="modal fade text-start" id="parcelTransferModal{{ record.id }}" tabindex="-1" aria-hidden="true">
