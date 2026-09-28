@@ -2101,10 +2101,15 @@ def _calculate_ticket_group_totals(ticket_ids):
     )
     remaining = {ticket.id: float(ticket.required_budget or 0) for ticket in ticket_order}
     allocated = {ticket.id: 0.0 for ticket in ticket_order}
-    usable_statuses = {"รอตรวจสอบ", "ผ่านการตรวจสอบ", "เอกสารตั้งฎีกา", "ล้างลูกหนี้เงินยืม"}
+    excluded_return_statuses = {"รอตรวจสอบ", "กำลังตรวจสอบ", "ฉบับร่าง", "ปฏิเสธ"}
 
     return_rows = db.session.query(ReturnDetail).filter(
-        ReturnDetail.status.in_(usable_statuses),
+        ReturnDetail.approved_at.isnot(None),
+        or_(
+            ReturnDetail.reject_approved_at.is_(None),
+            ReturnDetail.approved_at > ReturnDetail.reject_approved_at,
+        ),
+        ReturnDetail.status.notin_(excluded_return_statuses),
         or_(
             ReturnDetail.ticket_id.in_(ticket_ids),
             ReturnDetail.id.in_(
@@ -2115,7 +2120,8 @@ def _calculate_ticket_group_totals(ticket_ids):
         ),
     ).all()
     parcel_rows = db.session.query(ParcelReturnDetail).filter(
-        ParcelReturnDetail.status.in_(usable_statuses),
+        ParcelReturnDetail.approved_at.isnot(None),
+        ParcelReturnDetail.status.notin_(excluded_return_statuses),
         or_(
             ParcelReturnDetail.ticket_id.in_(ticket_ids),
             ParcelReturnDetail.id.in_(
@@ -3543,12 +3549,9 @@ def verification_view(ticket_id, show_creation_notice=False):
         .order_by(ReturnDetail.id.desc())
         .all()
     )
-    verification_return_total = sum(
-        float(return_detail.amount_spent or 0)
-        for return_detail in return_details
-    )
     group_totals = _calculate_ticket_group_totals(ticket_group_ids)
-    verification_remaining_amount = group_totals["budget"] - verification_return_total
+    verification_return_total = group_totals["cumulative_total"]
+    verification_remaining_amount = group_totals["remaining_amount"]
     parcel_returns = (
         db.session.query(ParcelReturnDetail)
         .filter(ParcelReturnDetail.ticket_id.in_(ticket_group_ids))
@@ -3573,9 +3576,7 @@ def verification_view(ticket_id, show_creation_notice=False):
 
     borrowing_ticket.parcel_returns = parcel_returns
 
-    summary = _calculate_ticket_group_totals(ticket_group_ids)
-    summary["cumulative_total"] = verification_return_total
-    summary["remaining_amount"] = verification_remaining_amount
+    summary = group_totals
     borrowing_ticket.submitted_return_total = verification_return_total
     borrowing_ticket.ticket_remaining = verification_remaining_amount
     borrowing_ticket.verification_required_budget = group_totals["budget"]
@@ -3986,6 +3987,7 @@ def mark_parcel_proofed(parcel_return_id):
         return _validation_error_response("ต้องอยู่ในสถานะรอตรวจสอบก่อนจึงจะยืนยันการมีอยู่ของเอกสารพัสดุได้")
 
     parcel_return.status = "พัสดุกำลังดำเนินการ"
+    parcel_return.approved_at = datetime.now()
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
@@ -4013,7 +4015,6 @@ def mark_parcel_received(parcel_return_id):
         return _validation_error_response("ต้องยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุก่อนรับเอกสารจริง")
 
     parcel_return.status = "ได้รับเอกสารแล้ว"
-    parcel_return.approved_at = datetime.now()
     if parcel_return.fund_request_id:
         _recalculate_fund_request_submission_status(parcel_return.fund_request_id)
 
