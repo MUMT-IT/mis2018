@@ -1941,19 +1941,51 @@ def mark_return_bounced(return_id):
 @bp.route("/finance/closing-documents/<int:closing_doc_id>/cancel", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def cancel_closing_doc(closing_doc_id):
-    """Cancel the document while retaining its associations for history."""
+    """Cancel selected records, retaining each association as history."""
     closing_doc = db.session.query(ClosingDocument).filter_by(id=closing_doc_id).with_for_update().first()
     if not closing_doc:
         abort(404)
     if not closing_doc.is_active:
         return _validation_error_response("ฎีกานี้ถูกยกเลิกแล้ว")
 
+    selection_fields = (
+        "selected_return_ids[]",
+        "selected_parcel_return_ids[]",
+        "selected_claim_ids[]",
+    )
+    has_selection = any(field in request.form for field in selection_fields)
+    try:
+        selected_ids = {
+            field: {int(value) for value in request.form.getlist(field)}
+            for field in selection_fields
+        }
+    except (TypeError, ValueError):
+        return _validation_error_response("รายการที่เลือกไม่ถูกต้อง")
+
+    active_links = [link for link in closing_doc.links if link.is_active]
+    if has_selection:
+        selected_links = [
+            link for link in active_links
+            if (
+                link.ticket_return_id in selected_ids["selected_return_ids[]"]
+                or link.parcel_return_id in selected_ids["selected_parcel_return_ids[]"]
+                or link.claim_id in selected_ids["selected_claim_ids[]"]
+            )
+        ]
+        selected_count = sum(len(values) for values in selected_ids.values())
+        if len(selected_links) != selected_count:
+            return _validation_error_response("มีรายการที่เลือกไม่ใช่รายการภายในฎีกานี้ หรือถูกดำเนินการไปแล้ว")
+    else:
+        # Backward-compatible behavior for callers that do not send selections.
+        selected_links = active_links
+
+    if not selected_links:
+        return _validation_error_response("กรุณาเลือกรายการที่ต้องการยกเลิก")
+
     doc_number = closing_doc.document_number
     updated_tickets = set()
     updated_fund_request_ids = set()
-    for link in closing_doc.links:
-        if not link.is_active:
-            continue
+    for link in selected_links:
         record = link.record
         link.is_active = False
         if link.ticket_return_id is not None:
@@ -1966,7 +1998,8 @@ def cancel_closing_doc(closing_doc_id):
                 updated_fund_request_ids.add(record.fund_request_id)
         else:
             record.status = CASH_TRANSFER_STATUS
-    closing_doc.is_active = False
+    if not any(link.is_active for link in closing_doc.links):
+        closing_doc.is_active = False
 
     for fund_request_id in updated_fund_request_ids:
         _recalculate_fund_request_submission_status(fund_request_id)
@@ -1976,7 +2009,8 @@ def cancel_closing_doc(closing_doc_id):
         _recalculate_borrowing_ticket_status(ticket_id)
 
     db.session.commit()
-    flash(f"ยกเลิกฎีกาเลขที่ {doc_number} เรียบร้อยแล้ว (สถานะเปลี่ยนเป็น 'ถูกยกเลิก' และคงยอดเงินประวัติไว้)", "success")
+    action_scope = "รายการที่เลือกในฎีกา" if has_selection and closing_doc.is_active else "ฎีกา"
+    flash(f"ยกเลิก{action_scope}เลขที่ {doc_number} เรียบร้อยแล้ว (คงยอดเงินประวัติไว้)", "success")
     return closing_management(
         _render_after_post=True,
         _forced_search_closing_number=doc_number,
@@ -1985,21 +2019,51 @@ def cancel_closing_doc(closing_doc_id):
 @bp.route("/finance/closing-documents/<int:closing_doc_id>/bulk-receive", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def bulk_receive_closing_doc(closing_doc_id):
-    """ เปลี่ยนสถานะเอกสารทุกรายการในฎีกานี้เป็น ล้างลูกหนี้เงินยืม """
+    """เปลี่ยนสถานะรายการที่เลือกในฎีกาเป็น ล้างลูกหนี้เงินยืม."""
     closing_doc = db.session.query(ClosingDocument).filter_by(id=closing_doc_id).with_for_update().first()
     if not closing_doc:
         abort(404)
     if not closing_doc.is_active:
         abort(400, description="Cannot settle a cancelled closing document")
 
-    returns_in_doc = [link.ticket_return for link in closing_doc.links
-                      if link.is_active and link.ticket_return is not None
+    selection_fields = (
+        "selected_return_ids[]",
+        "selected_parcel_return_ids[]",
+        "selected_claim_ids[]",
+    )
+    has_selection = any(field in request.form for field in selection_fields)
+    try:
+        selected_ids = {
+            field: {int(value) for value in request.form.getlist(field)}
+            for field in selection_fields
+        }
+    except (TypeError, ValueError):
+        return _validation_error_response("รายการที่เลือกไม่ถูกต้อง")
+
+    active_links = [link for link in closing_doc.links if link.is_active]
+    if has_selection:
+        selected_links = [
+            link for link in active_links
+            if (
+                link.ticket_return_id in selected_ids["selected_return_ids[]"]
+                or link.parcel_return_id in selected_ids["selected_parcel_return_ids[]"]
+                or link.claim_id in selected_ids["selected_claim_ids[]"]
+            )
+        ]
+        selected_count = sum(len(values) for values in selected_ids.values())
+        if len(selected_links) != selected_count:
+            return _validation_error_response("มีรายการที่เลือกไม่ใช่รายการภายในฎีกานี้ หรือถูกดำเนินการไปแล้ว")
+    else:
+        selected_links = active_links
+
+    returns_in_doc = [link.ticket_return for link in selected_links
+                      if link.ticket_return is not None
                       and link.ticket_return.status != "ล้างลูกหนี้เงินยืม"]
-    parcel_in_doc = [link.parcel_return for link in closing_doc.links
-                    if link.is_active and link.parcel_return is not None
+    parcel_in_doc = [link.parcel_return for link in selected_links
+                    if link.parcel_return is not None
                     and link.parcel_return.status != "ล้างลูกหนี้เงินยืม"]
-    petty_in_doc = [link.claim for link in closing_doc.links
-                   if link.is_active and link.claim is not None
+    petty_in_doc = [link.claim for link in selected_links
+                   if link.claim is not None
                    and link.claim.status != "เสร็จสิ้นกระบวนการ"]
 
     if not returns_in_doc and not petty_in_doc and not parcel_in_doc:
@@ -2026,9 +2090,16 @@ def bulk_receive_closing_doc(closing_doc_id):
     for ticket_id in updated_tickets:
         _recalculate_borrowing_ticket_status(ticket_id)
 
-    closing_doc.settled_at = datetime.now(ZoneInfo("Asia/Bangkok"))
+    active_records = [link.record for link in closing_doc.links if link.is_active]
+    all_active_records_settled = bool(active_records) and all(
+        record.status == ("เสร็จสิ้นกระบวนการ" if isinstance(record, PettyCashClaimDetail)
+                          else "ล้างลูกหนี้เงินยืม")
+        for record in active_records
+    )
+    closing_doc.settled_at = datetime.now(ZoneInfo("Asia/Bangkok")) if all_active_records_settled else None
     db.session.commit()
-    flash(f"เปลี่ยนสถานะรายการทั้งหมดรวมถึงเงินสดย่อยในฎีกา {closing_doc.document_number} เป็น 'ล้างลูกหนี้เงินยืม' เรียบร้อยแล้ว", "success")
+    scope = "รายการที่เลือก" if has_selection else "รายการทั้งหมด"
+    flash(f"เปลี่ยน{scope}ในฎีกา {closing_doc.document_number} เป็น 'ล้างลูกหนี้เงินยืม' เรียบร้อยแล้ว", "success")
     return closing_management(
         _render_after_post=True,
         _forced_search_closing_number=closing_doc.document_number,
@@ -5248,6 +5319,78 @@ def return_records_history():
     )
 
 
+@bp.route("/finance/interest-tracker", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def interest_tracker():
+    pending_interest_departments, pending_interest_count, current_interest_period = _get_interest_tracker_data()
+
+    return render_template(
+        "advance_payment/interest_tracker.html",
+        pending_interest_departments=pending_interest_departments,
+        pending_interest_count=pending_interest_count,
+        current_interest_period=current_interest_period,
+    )
+
+
+def _get_interest_tracker_data():
+    today = datetime.now().date()
+    current_year_be = today.year + 543
+    previous_year_be = current_year_be - 1
+
+    # งวดที่ถึงกำหนดแล้ว: รอบเดือนมิถุนายนและธันวาคม
+    due_period_keys = []
+    if today.month <= 6:
+        due_period_keys.append(f"12/{previous_year_be}")
+    else:
+        due_period_keys.append(f"06/{current_year_be}")
+        if today.month >= 12:
+            due_period_keys.append(f"12/{current_year_be}")
+
+    period_labels = {period_key: period_key for period_key in due_period_keys}
+    current_interest_period = period_labels[due_period_keys[-1]]
+
+    active_settings = db.session.query(PettyCashSetting).filter(
+        PettyCashSetting.valid == True,
+        PettyCashSetting.fiscal_year == _current_petty_cash_fiscal_year(),
+    ).all()
+    for setting in active_settings:
+        _attach_petty_cash_setting_people(setting)
+
+    approved_interest_requests = db.session.query(FundRequest).filter(
+        FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
+    ).all()
+    submitted_periods_by_org = {}
+    for request in approved_interest_requests:
+        if getattr(request, "org_id", None):
+            period_key = _normalize_interest_period_value(request.period_year)
+            submitted_periods_by_org.setdefault(request.org_id, set()).add(period_key)
+
+    pending_interest_departments = []
+    for setting in active_settings:
+        submitted_periods = submitted_periods_by_org.get(setting.org_id, set())
+        pending_periods = [
+            period_labels[period_key]
+            for period_key in due_period_keys
+            if period_key not in submitted_periods
+        ]
+        custodian = (
+            setting.custodian_name
+            or (setting.custodian_user.name if getattr(setting, "custodian_user", None) else None)
+            or "-"
+        )
+        pending_interest_departments.append({
+            "department_name": setting.department_name,
+            "custodian_name": custodian,
+            "is_submitted": not pending_periods,
+            "pending_periods": pending_periods,
+        })
+
+    pending_interest_count = sum(
+        1 for item in pending_interest_departments if not item["is_submitted"]
+    )
+    return pending_interest_departments, pending_interest_count, current_interest_period
+
+
 @bp.route("/finance/petty-cash-claim-records", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def petty_cash_claim_history():
@@ -5370,47 +5513,7 @@ def petty_cash_claim_history():
         if (record.get("status") or "").strip() in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว"}
     )
 
-    current_year_be = datetime.now().year + 543
-    if datetime.now().month <= 11:
-        current_interest_period_key = f"06/{current_year_be}"
-    else:
-        current_interest_period_key = f"12/{current_year_be}"
-    current_interest_period = _format_interest_period_label(current_interest_period_key)
-
-    active_settings = db.session.query(PettyCashSetting).filter(
-        PettyCashSetting.valid == True,
-        PettyCashSetting.fiscal_year == _current_petty_cash_fiscal_year(),
-    ).all()
-    for setting in active_settings:
-        _attach_petty_cash_setting_people(setting)
-
-    approved_interest_requests = db.session.query(FundRequest).filter(
-        FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
-    ).all()
-
-    matched_requests = []
-    for fr in approved_interest_requests:
-        if _normalize_interest_period_value(fr.period_year) == current_interest_period_key:
-            matched_requests.append(fr)
-
-    submitted_org_ids = {fr.org_id for fr in matched_requests if getattr(fr, "org_id", None)}
-
-    pending_interest_departments = []
-    for setting in active_settings:
-        is_submitted = setting.org_id in submitted_org_ids
-        custodian = setting.custodian_name or (setting.custodian_user.name if getattr(setting, "custodian_user", None) else None) or '-'
-
-        pending_interest_departments.append({
-            "id": setting.id,
-            "department_name": setting.department_name,
-            "account_number": setting.account_number or '-',
-            "custodian_name": custodian,
-            "is_submitted": is_submitted,
-            "is_pending": not is_submitted,
-            "pending_period": current_interest_period,
-        })
-
-    pending_interest_count = len(pending_interest_departments)
+    pending_interest_departments, pending_interest_count, current_interest_period = _get_interest_tracker_data()
 
     return render_template(
         "advance_payment/petty_cash_claim_history.html",
