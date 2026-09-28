@@ -137,7 +137,7 @@
                           <div class="small text-muted mt-1">
                             <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
                             <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
-                            ไฟล์เดิม: <a href="/{{ proof_file.proof_reference }}" target="_blank">{{ proof_file.filename }}</a>
+                            ไฟล์เดิม: <a href="{{ proof_file.proof_reference|advance_payment_file_url }}" target="_blank">{{ proof_file.filename }}</a>
                           </div>
                         {% endfor %}
                       </td>
@@ -204,7 +204,7 @@
                   <div class="small text-muted mt-1">
                     <input type="hidden" name="cash_return_existing_proof" value="{{ proof_file.proof_reference }}">
                     <input type="hidden" name="cash_return_existing_filename" value="{{ proof_file.filename }}">
-                    ไฟล์เดิม: <a href="/{{ proof_file.proof_reference }}" target="_blank">{{ proof_file.filename }}</a>
+                    ไฟล์เดิม: <a href="{{ proof_file.proof_reference|advance_payment_file_url }}" target="_blank">{{ proof_file.filename }}</a>
                   </div>
                 {% endfor %}
               {% endif %}

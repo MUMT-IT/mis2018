@@ -207,7 +207,7 @@
                     <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ file.original_filename or file.filename }}">
                     {% set proof_filename = file.filename or file.proof_reference or '' %}
                     {% if proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
-                        <img src="{{ url_for('static', filename=file.proof_reference) }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{ file.proof_reference|advance_payment_file_url }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
                     {% else %}
                         <i class="bi bi-file-earmark fs-2 text-primary"></i>
                     {% endif %}
@@ -223,7 +223,7 @@
                 
                 <td>
                     {% if file.proof_reference %}
-                    <a href="{{ url_for('static', filename=file.proof_reference) }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
+                    <a href="{{ file.proof_reference|advance_payment_file_url }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
                         <i class="bi bi-box-arrow-up-right me-1"></i> เปิดไฟล์เต็ม
                     </a>
                     {% else %}

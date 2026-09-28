@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
@@ -80,6 +81,55 @@ def render_template(template_name, *args, **kwargs):
         session.get(PETTY_CASH_SETTING_SESSION_KEY),
     )
     return _render_template(template_name, *args, **kwargs)
+
+
+def _store_uploaded_file(file_storage, folder):
+    """Store an advance-payment attachment in S3, with a local fallback."""
+    if not file_storage or not file_storage.filename:
+        raise ValueError("missing_file")
+
+    original_name = os.path.basename(file_storage.filename)
+    safe_name = secure_filename(original_name) or "attachment"
+    stored_name = f"{uuid.uuid4().hex}_{safe_name}"
+    folder = folder.replace("\\", "/").strip("/")
+    payload = file_storage.read()
+    if not payload:
+        raise ValueError("empty_file")
+
+    try:
+        from app.main import S3_BUCKET_NAME, s3
+
+        if S3_BUCKET_NAME:
+            key = f"advance_payment/{folder}/{stored_name}"
+            s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=key,
+                Body=payload,
+                ContentType=file_storage.mimetype or "application/octet-stream",
+            )
+            return key
+    except Exception:
+        current_app.logger.exception("Could not store advance-payment file in S3")
+
+    local_folder = os.path.join(_upload_root(), folder)
+    os.makedirs(local_folder, exist_ok=True)
+    with open(os.path.join(local_folder, stored_name), "wb") as output:
+        output.write(payload)
+    return f"uploads/{folder}/{stored_name}"
+
+
+@bp.app_template_filter("advance_payment_file_url")
+def advance_payment_file_url(reference):
+    """Build a usable URL for legacy local refs and new S3 refs."""
+    if not reference:
+        return ""
+    if reference.startswith(("http://", "https://", "//")):
+        return reference
+    if reference.startswith("/static/"):
+        return reference
+    if reference.startswith("advance_payment/"):
+        return url_for("s3_asset_proxy", key=reference)
+    return url_for("static", filename=reference.lstrip("/"))
 
 
 def _validation_error_response(message, status_code=422):
@@ -1285,7 +1335,7 @@ def recheck_overdue_and_upcoming_statuses():
             if ticket.last_notified_type != "overdue":
                 notification_type = "overdue"
 
-        elif days_remaining in [15, 10, 5, 3]:
+        elif days_remaining == 15:
             current_type = str(days_remaining)
             if ticket.last_notified_type != current_type:
                 notification_type = current_type
@@ -1636,6 +1686,39 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
     if extra_ctx is None:
         extra_ctx = {}
 
+    if (
+        object_type == "ticket"
+        and extra_ctx.get("is_upcoming")
+        and extra_ctx.get("days_remaining") != 15
+    ):
+        current_app.logger.info(
+            "ยกเลิกการส่งอีเมลแจ้งเตือนล่วงหน้า เหลือวันไม่ใช่ 15 วัน"
+        )
+        return False
+
+    status = getattr(target_object, "status", None)
+    skip_status_email = {
+        "return": {"กำลังตรวจสอบ"},
+        "petty_claim": {"กำลังตรวจสอบ", "เสร็จสิ้นกระบวนการ"},
+    }
+    if status in skip_status_email.get(object_type, set()):
+        current_app.logger.info(
+            f"ยกเลิกการส่งอีเมลแจ้งเตือน object_type={object_type}, status={status}"
+        )
+        return False
+
+    # มียอดคงค้างยกเลิกเฉพาะอีเมลแจ้งสถานะ แต่ยังอนุญาตให้ส่ง
+    # อีเมลทวงถามกำหนดส่งคืน/เกินกำหนดได้ตามรอบแจ้งเตือน
+    if (
+        object_type == "ticket"
+        and status == "มียอดคงค้าง"
+        and not (extra_ctx.get("is_overdue") or extra_ctx.get("is_upcoming"))
+    ):
+        current_app.logger.info(
+            "ยกเลิกการส่งอีเมลแจ้งสถานะ ticket ที่มีสถานะมียอดคงค้าง"
+        )
+        return False
+
     if object_type == "ticket":
         borrower = db.session.query(StaffAccount).filter_by(email=target_object.borrower_email).first()
         creator = db.session.query(StaffAccount).filter_by(id=target_object.creator_id).first()
@@ -1658,6 +1741,8 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
         ticket = db.session.query(BorrowingTicket).filter_by(id=target_object.ticket_id).first()
         extra_ctx["ticket"] = ticket
         if ticket:
+            totals = _calculate_ticket_return_totals_with_parcel(ticket.id)
+            extra_ctx["remaining_amount"] = totals["remaining_amount"]
             borrower = db.session.query(StaffAccount).filter_by(email=ticket.borrower_email).first()
             creator = db.session.query(StaffAccount).filter_by(id=ticket.creator_id).first()
             extra_ctx["recipient_emails"] = [
@@ -1685,6 +1770,15 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
             or "ผู้ขอเบิก"
         )
         extra_ctx["fund_request"] = getattr(target_object, "fund_request", None)
+        fund_request = extra_ctx["fund_request"]
+        if fund_request:
+            borrowing_ticket_id = getattr(fund_request, "borrowing_ticket_id", None)
+            if borrowing_ticket_id:
+                totals = _calculate_ticket_return_totals_with_parcel(borrowing_ticket_id)
+                extra_ctx["remaining_amount"] = totals["remaining_amount"]
+            else:
+                totals = _calculate_fund_request_totals(getattr(fund_request, "id", None))
+                extra_ctx["remaining_amount"] = totals["remaining_amount"]
         extra_ctx["claim_name"] = (
             getattr(target_object.fund_request, "purpose", None)
             if getattr(target_object, "fund_request", None)
@@ -1695,6 +1789,14 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
         fund_request = db.session.query(FundRequest).filter_by(id=getattr(target_object, "fund_request_id", None)).first() if getattr(target_object, "fund_request_id", None) else None
         extra_ctx["ticket"] = ticket
         extra_ctx["fund_request"] = fund_request
+        if fund_request:
+            borrowing_ticket_id = getattr(fund_request, "borrowing_ticket_id", None)
+            if borrowing_ticket_id:
+                totals = _calculate_ticket_return_totals_with_parcel(borrowing_ticket_id)
+                extra_ctx["remaining_amount"] = totals["remaining_amount"]
+            else:
+                totals = _calculate_fund_request_totals(getattr(fund_request, "id", None))
+                extra_ctx["remaining_amount"] = totals["remaining_amount"]
         if ticket:
             borrower = db.session.query(StaffAccount).filter_by(email=ticket.borrower_email).first()
             creator = db.session.query(StaffAccount).filter_by(id=ticket.creator_id).first()
@@ -4301,10 +4403,7 @@ def submit_return_details():
             if not original_filename:
                 continue
 
-            upload_folder = os.path.join(_upload_root(), str(ticket_id))
-            os.makedirs(upload_folder, exist_ok=True)
-            proof_path = f"uploads/{ticket_id}/{original_filename}"
-            file_storage.save(os.path.join(upload_folder, original_filename))
+            proof_path = _store_uploaded_file(file_storage, str(ticket_id))
 
             proof_file_record = ReturnProofFile(
                 return_detail_id=return_detail.id,
@@ -4412,10 +4511,7 @@ def submit_return_details():
         db.session.flush()
         if cash_return_file and cash_return_file.filename:
             original_filename = os.path.basename(cash_return_file.filename)
-            upload_folder = os.path.join(_upload_root(), str(ticket_id))
-            os.makedirs(upload_folder, exist_ok=True)
-            proof_path = f"uploads/{ticket_id}/{original_filename}"
-            cash_return_file.save(os.path.join(upload_folder, original_filename))
+            proof_path = _store_uploaded_file(cash_return_file, str(ticket_id))
             db.session.add(ReturnProofFile(
                 return_detail_id=cash_detail.id,
                 return_receipt_item_id=cash_item.id,
@@ -4655,12 +4751,10 @@ def edit_receipt_item_inline(file_id):
         if not original_filename:
             return _validation_error_response("ไม่พบชื่อไฟล์หลักฐานที่อัปโหลด")
 
-        user_upload_dir = os.path.join(_upload_root(), str(user_id or "claim"))
-        os.makedirs(user_upload_dir, exist_ok=True)
-        uploaded_file.save(os.path.join(user_upload_dir, original_filename))
+        proof_path = _store_uploaded_file(uploaded_file, str(user_id or "claim"))
 
         if proof_file:
-            proof_file.proof_reference = f"uploads/{user_id or 'claim'}/{original_filename}"
+            proof_file.proof_reference = proof_path
             if hasattr(proof_file, "original_filename"):
                 proof_file.original_filename = uploaded_file.filename
             elif hasattr(proof_file, "filename"):
@@ -4673,7 +4767,7 @@ def edit_receipt_item_inline(file_id):
                 proof_file = PettyCashClaimProofFile(
                     claim_id=claim_detail.id,
                     claim_item_id=receipt_item.id,
-                    proof_reference=f"uploads/{user_id or 'claim'}/{original_filename}",
+                    proof_reference=proof_path,
                     filename=uploaded_file.filename,
                     created_at=datetime.now(),
                 )
@@ -4681,7 +4775,7 @@ def edit_receipt_item_inline(file_id):
                 proof_file = ReturnProofFile(
                     return_detail_id=return_detail.id,
                     return_receipt_item_id=receipt_item.id,
-                    proof_reference=f"uploads/{user_id or 'claim'}/{original_filename}",
+                    proof_reference=proof_path,
                     filename=uploaded_file.filename,
                     created_at=datetime.now(),
                 )
@@ -6164,13 +6258,26 @@ def staff_fund_request():
         setting_org = _resolve_org_by_department_name(getattr(setting, "department_name", None))
     staff_org = setting_org
     department_employees = _serialize_org_department(setting_org).get("staff_members", []) if setting_org else []
+    custodian_user = getattr(setting, "custodian_user", None) if setting else None
+    custodian_display_name = (
+        getattr(custodian_user, "name", None)
+        or getattr(custodian_user, "fullname", None)
+        or getattr(custodian_user, "email", None)
+        or user_display_name
+    )
+    custodian_display_position = getattr(custodian_user, "position", None) or "ไม่พบข้อมูลตำแหน่ง"
     for ticket in approved_borrowing_tickets:
         _attach_borrowing_ticket_people(ticket)
     form = FundRequestForm(request.form)
 
+    selected_form_type = request.args.get("form_type", form.form_type.data or FUND_REQUEST_FORM_PETTY_CASH)
     if request.method == "GET":
-        form.requester_name.data = user_display_name
-        form.requester_position.data = user_display_position
+        if selected_form_type in {FUND_REQUEST_FORM_INTEREST, FUND_REQUEST_FORM_PETTY_CASH}:
+            form.requester_name.data = custodian_display_name
+            form.requester_position.data = custodian_display_position
+        else:
+            form.requester_name.data = user_display_name
+            form.requester_position.data = user_display_position
         # Use the petty-cash setting's organization for employee lookup and display.
         if setting_org:
             form.department.data = setting_org.name
@@ -6194,7 +6301,16 @@ def staff_fund_request():
             req_date = form.request_date.data if form.request_date.data else datetime.now().date()
             receive_interest = _coerce_date(request.form.get("receive_interest"))
             withdraw_intrest = _coerce_date(request.form.get("withdraw_intrest"))
-            if form_type == FUND_REQUEST_FORM_BORROWING_TICKET:
+            if form_type == FUND_REQUEST_FORM_INTEREST:
+                requester_id = getattr(setting, "custodian_id", None)
+                if not requester_id:
+                    return _validation_redirect_response(
+                        "ไม่พบผู้ดูแลเงินสดย่อยสำหรับแบบฟอร์มขออนุมัติเบิกดอกเบี้ย",
+                        url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_INTEREST),
+                    )
+                req_name = custodian_display_name
+                req_pos = custodian_display_position
+            elif form_type == FUND_REQUEST_FORM_BORROWING_TICKET:
                 borrowing_ticket_id = request.form.get("borrowing_ticket_id", type=int)
                 if not borrowing_ticket_id:
                     return _validation_redirect_response(
@@ -6213,14 +6329,14 @@ def staff_fund_request():
                     )
 
                 borrower_user = getattr(selected_borrowing_ticket, "borrower_user", None)
-                if is_secretary:
-                    requester_id = getattr(borrower_user, "id", None) or selected_borrowing_ticket.borrower_id or user.id
-                    req_name = selected_borrowing_ticket.borrower_name or getattr(borrower_user, "name", "") or user_display_name
-                    req_pos = getattr(borrower_user, "position", "") or user_display_position or "ไม่พบข้อมูลตำแหน่ง"
-                else:
-                    requester_id = user.id
-                    req_name = user_display_name
-                    req_pos = user_display_position or "ไม่พบข้อมูลตำแหน่ง"
+                requester_id = getattr(borrower_user, "id", None) or selected_borrowing_ticket.borrower_id
+                if not requester_id:
+                    return _validation_redirect_response(
+                        "ไม่พบผู้ยืมในใบยืมเงินที่เลือก",
+                        url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_BORROWING_TICKET),
+                    )
+                req_name = selected_borrowing_ticket.borrower_name or getattr(borrower_user, "name", "") or user_display_name
+                req_pos = getattr(borrower_user, "position", "") or user_display_position or "ไม่พบข้อมูลตำแหน่ง"
                 req_dept = _get_staff_department_name(borrower_user, req_dept) or req_dept
                 req_acc = selected_borrowing_ticket.account_number or req_acc
             else:
@@ -6230,6 +6346,17 @@ def staff_fund_request():
                         (employee for employee in department_employees if employee.get("id") == selected_requester_id),
                         None,
                     )
+                    if (
+                        not selected_requester
+                        and form_type == FUND_REQUEST_FORM_PETTY_CASH
+                        and selected_requester_id == getattr(setting, "custodian_id", None)
+                        and custodian_user
+                    ):
+                        selected_requester = {
+                            "id": selected_requester_id,
+                            "name": custodian_display_name,
+                            "position": custodian_display_position,
+                        }
                     if not selected_requester:
                         return _validation_redirect_response(
                             "กรุณาเลือกผู้ขอเบิกจากรายชื่อบุคลากรในหน่วยงาน",
@@ -6239,9 +6366,14 @@ def staff_fund_request():
                     req_name = selected_requester.get("name", "")
                     req_pos = selected_requester.get("position", "")
                 else:
-                    requester_id = user.id
-                    req_name = user_display_name
-                    req_pos = user_display_position
+                    if form_type == FUND_REQUEST_FORM_PETTY_CASH and getattr(setting, "custodian_id", None):
+                        requester_id = setting.custodian_id
+                        req_name = custodian_display_name
+                        req_pos = custodian_display_position
+                    else:
+                        requester_id = user.id
+                        req_name = user_display_name
+                        req_pos = user_display_position
 
             requested_amount = float(form.amount.data or 0.0)
             if form_type == FUND_REQUEST_FORM_BORROWING_TICKET and selected_borrowing_ticket:
@@ -6333,14 +6465,10 @@ def staff_fund_request():
                 if withdrawal_proof_file and withdrawal_proof_file.filename:
                     original_filename = os.path.basename(withdrawal_proof_file.filename)
                     if original_filename:
-                        upload_folder = os.path.join(
-                            _upload_root(),
-                            "fund_requests",
-                            str(user.id),
+                        proof_reference = _store_uploaded_file(
+                            withdrawal_proof_file,
+                            f"fund_requests/{user.id}",
                         )
-                        os.makedirs(upload_folder, exist_ok=True)
-                        proof_reference = f"uploads/fund_requests/{user.id}/{original_filename}"
-                        withdrawal_proof_file.save(os.path.join(upload_folder, original_filename))
                         new_request.withdrawal_proof_reference = proof_reference
                         new_request.withdrawal_proof_filename = withdrawal_proof_file.filename
 
@@ -6368,7 +6496,6 @@ def staff_fund_request():
         )
         return _validation_error_response(form_errors or "กรุณาตรวจสอบข้อมูลในฟอร์ม")
 
-    selected_form_type = request.args.get("form_type", form.form_type.data or FUND_REQUEST_FORM_PETTY_CASH)
     selected_borrowing_ticket_id = request.args.get("borrowing_ticket_id", type=int)
     return render_template(
         "staff_fund_request.html",
@@ -6382,6 +6509,8 @@ def staff_fund_request():
         is_secretary=is_secretary,
         current_user_display_name=user_display_name,
         current_user_display_position=user_display_position,
+        custodian_display_name=custodian_display_name,
+        custodian_display_position=custodian_display_position,
         dept_summary=dept_summary,
     )
 
@@ -7386,10 +7515,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 if not original_filename:
                     continue
 
-                upload_folder = os.path.join(_upload_root(), f"petty_cash/{user_id}")
-                os.makedirs(upload_folder, exist_ok=True)
-                proof_path = f"uploads/petty_cash/{user_id}/{original_filename}"
-                file_storage.save(os.path.join(upload_folder, original_filename))
+                proof_path = _store_uploaded_file(file_storage, f"petty_cash/{user_id}")
 
                 proof_file_record = PettyCashClaimProofFile(
                     claim_id=claim_detail.id,
@@ -7429,10 +7555,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
 
             if cash_return_file and cash_return_file.filename:
                 original_filename = os.path.basename(cash_return_file.filename)
-                upload_folder = os.path.join(_upload_root(), f"petty_cash/{user_id}")
-                os.makedirs(upload_folder, exist_ok=True)
-                proof_path = f"uploads/petty_cash/{user_id}/{original_filename}"
-                cash_return_file.save(os.path.join(upload_folder, original_filename))
+                proof_path = _store_uploaded_file(cash_return_file, f"petty_cash/{user_id}")
                 db.session.add(PettyCashClaimProofFile(
                     claim_id=claim_detail.id,
                     claim_item_id=cash_item.id,
@@ -7463,10 +7586,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 if filename_index < len(reference_file_names) and reference_file_names[filename_index].strip()
                 else original_filename
             )
-            upload_folder = os.path.join(_upload_root(), f"petty_cash/{user_id}")
-            os.makedirs(upload_folder, exist_ok=True)
-            reference_path = f"uploads/petty_cash/{user_id}/{original_filename}"
-            file_storage.save(os.path.join(upload_folder, original_filename))
+            reference_path = _store_uploaded_file(file_storage, f"petty_cash/{user_id}")
             db.session.add(PettyCashClaimProofFile(
                 claim_id=claim_detail.id,
                 claim_item_id=None,

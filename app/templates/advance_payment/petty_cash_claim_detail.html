@@ -320,7 +320,7 @@
                     <div class="border rounded bg-light d-flex align-items-center justify-content-center overflow-hidden" style="width: 60px; height: 60px;" title="{{ proof_file.filename }}">
                     {% set proof_filename = proof_file.filename or proof_file.proof_reference or '' %}
                     {% if proof_filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
-                        <img src="{{ url_for('static', filename=proof_file.proof_reference) }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
+                        <img src="{{ proof_file.proof_reference|advance_payment_file_url }}" alt="Thumbnail" class="w-100 h-100" style="object-fit: cover;">
                     {% else %}
                         <i class="bi bi-file-earmark fs-2 text-primary"></i>
                     {% endif %}
@@ -336,7 +336,7 @@
                 
                 <td>
                     {% if proof_file and proof_file.proof_reference %}
-                    <a href="{{ url_for('static', filename=proof_file.proof_reference) }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
+                    <a href="{{ proof_file.proof_reference|advance_payment_file_url }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
                         <i class="bi bi-box-arrow-up-right me-1"></i> เปิดไฟล์เต็ม
                     </a>
                     {% else %}
@@ -425,7 +425,7 @@
   {% if claim_detail.reference_files %}
     <div class="d-flex flex-wrap gap-2">
       {% for reference_file in claim_detail.reference_files %}
-        <a href="{{ url_for('static', filename=reference_file.proof_reference) }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+        <a href="{{ reference_file.proof_reference|advance_payment_file_url }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
           <i class="bi bi-paperclip me-1"></i>{{ reference_file.filename }}
         </a>
       {% endfor %}
