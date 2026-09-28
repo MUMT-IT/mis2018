@@ -208,6 +208,11 @@ def _to_bangkok(dt):
     return dt.astimezone(tz)
 
 
+def _format_bangkok_datetime(dt):
+    local_dt = _to_bangkok(dt)
+    return local_dt.strftime('%d/%m/%Y %H:%M') if local_dt else ''
+
+
 def _daily_work_login_rows(records):
     grouped = defaultdict(list)
     for rec in records:
@@ -4426,16 +4431,17 @@ def approved_for_clockin_clockout(request_id):
         flash(flash_message, 'success' if approved == 'yes' else 'warning')
 
         title = u'เข้างาน' if clock_request.is_checkin else u'กลับบ้าน'
+        work_datetime_display = _format_bangkok_datetime(clock_request.work_datetime)
         if clock_request.approved_at:
             approve_msg = u'การขอรับรอง{} ในวันที่ {} ได้รับการรับรองโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                title, clock_request.work_datetime, clock_request.approver.fullname,
+                title, work_datetime_display, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
                         approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         else:
             approve_msg = u'การขอรับรอง{} ในวันที่ {} ไม่ถูกอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                title, clock_request.work_datetime, clock_request.approver.fullname,
+                title, work_datetime_display, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
                         approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         if clock_request.staff.line_id:

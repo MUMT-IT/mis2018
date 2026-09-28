@@ -416,6 +416,17 @@ def test_to_bangkok_normalizes_naive_utc_datetimes(staff_views):
 
 
 @pytest.mark.parametrize(
+    "stored_datetime",
+    [
+        datetime(2026, 6, 26, 0, 48),
+        pytz.utc.localize(datetime(2026, 6, 26, 0, 48)),
+    ],
+)
+def test_format_bangkok_datetime_normalizes_database_values(staff_views, stored_datetime):
+    assert staff_views._format_bangkok_datetime(stored_datetime) == "26/06/2026 07:48"
+
+
+@pytest.mark.parametrize(
     ("start_time", "end_time", "expected_hours"),
     [
         ((7, 30), (17, 30), 8.0),
