@@ -270,7 +270,7 @@ def _format_interest_period_label(period_value):
         month_code, year_be = short_match.groups()
         month_name = INTEREST_PERIOD_MONTH_LABELS.get(month_code)
         if month_name:
-            return f"{month_name} พ.ศ. {year_be}"
+            return f"{month_name} {year_be}"
     return normalized
 
 
@@ -5346,7 +5346,10 @@ def _get_interest_tracker_data():
         if today.month >= 12:
             due_period_keys.append(f"12/{current_year_be}")
 
-    period_labels = {period_key: period_key for period_key in due_period_keys}
+    period_labels = {
+        period_key: _format_interest_period_label(period_key)
+        for period_key in due_period_keys
+    }
     current_interest_period = period_labels[due_period_keys[-1]]
 
     active_settings = db.session.query(PettyCashSetting).filter(
