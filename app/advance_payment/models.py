@@ -643,7 +643,7 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
 
 
 class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
-    """คู่ข้อมูลยกยอดเงินสดย่อยที่กรอกโดยการเงินและผู้คุมบัญชีคนละฝั่ง."""
+    """ข้อมูลยกยอดเงินสดย่อยที่กรอกโดยฝ่ายการเงิน."""
 
     __tablename__ = "petty_cash_fiscal_year_carryovers"
     __table_args__ = (
@@ -655,7 +655,6 @@ class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
 
     id = Column(Integer, primary_key=True)
     org_id = Column(Integer, ForeignKey("orgs.id"), nullable=False, index=True)
-    custodian_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False, index=True)
     source_fiscal_year = Column(Integer, nullable=False)
     target_fiscal_year = Column(Integer, nullable=False)
     finance_budget = Column(Numeric(12, 2), nullable=True)
@@ -676,11 +675,6 @@ class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
     @property
     def department_name(self):
         return getattr(self.org, "name", None)
-
-    @property
-    def custodian_name(self):
-        custodian = _session_get(object_session(self), StaffAccount, self.custodian_id)
-        return getattr(custodian, "name", None) or getattr(custodian, "fullname", None)
 
     @property
     def is_complete(self):
