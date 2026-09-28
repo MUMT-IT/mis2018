@@ -42,13 +42,13 @@
                 <td><input name="finance_pending_transfer[]" class="form-control text-end budget-input"
                            value="{{ '{:,.2f}'.format(row.finance_pending_transfer) if row.finance_pending_transfer is not none else '' }}">
                 </td>
-                <td><input name="custodian_bank_balance[]" class="form-control text-end budget-input"
+                <td><input name="custodian_bank_balance[]" class="form-control text-end budget-input bg-light"
                            value="{{ '{:,.2f}'.format(row.custodian_bank_balance) if row.custodian_bank_balance is not none else '' }}"
                            readonly></td>
-                <td><input name="custodian_cash_on_hand[]" class="form-control text-end budget-input"
+                <td><input name="custodian_cash_on_hand[]" class="form-control text-end budget-input bg-light"
                            value="{{ '{:,.2f}'.format(row.custodian_cash_on_hand) if row.custodian_cash_on_hand is not none else '' }}"
                            readonly></td>
-                <td><input name="custodian_pending_budget[]" class="form-control text-end budget-input"
+                <td><input name="custodian_pending_budget[]" class="form-control text-end budget-input bg-light"
                            value="{{ '{:,.2f}'.format(row.custodian_pending_budget) if row.custodian_pending_budget is not none else '' }}"
                            readonly></td>
                 <td class="text-center fw-bold">{% if row.reconciliation_amount is none %}ข้อมูลไม่ครบ{% elif
@@ -153,7 +153,7 @@
         document.querySelectorAll('.budget-input').forEach((input) => { input.value = input.value.replace(/,/g, ''); });
     });
     document.getElementById('addCarryoverRow').addEventListener('click', function () {
-        document.getElementById('carryoverBody').insertAdjacentHTML('beforeend', `<tr><td><select name="org_id[]" class="form-select form-select-sm searchable-select" required><option value="">เลือกหน่วยงาน</option>${orgOptions}</select></td><td><select name="custodian_id[]" class="form-select form-select-sm searchable-select" required><option value="">เลือกผู้คุมบัญชี</option>${staffOptions}</select></td><td><input name="finance_budget[]" class="form-control text-end budget-input"></td><td><input name="finance_pending_transfer[]" class="form-control text-end budget-input"></td><td><input name="custodian_bank_balance[]" class="form-control text-end budget-input" readonly></td><td><input name="custodian_cash_on_hand[]" class="form-control text-end budget-input" readonly></td><td><input name="custodian_pending_budget[]" class="form-control text-end budget-input" readonly></td><td>ข้อมูลไม่ครบ</td><td><button type="button" class="btn btn-sm btn-outline-danger remove-row">ลบ</button></td></tr>`);
+        document.getElementById('carryoverBody').insertAdjacentHTML('beforeend', `<tr><td><select name="org_id[]" class="form-select form-select-sm searchable-select" required><option value="">เลือกหน่วยงาน</option>${orgOptions}</select></td><td><select name="custodian_id[]" class="form-select form-select-sm searchable-select" required><option value="">เลือกผู้คุมบัญชี</option>${staffOptions}</select></td><td><input name="finance_budget[]" class="form-control text-end budget-input"></td><td><input name="finance_pending_transfer[]" class="form-control text-end budget-input"></td><td><input name="custodian_bank_balance[]" class="form-control text-end budget-input bg-light" readonly></td><td><input name="custodian_cash_on_hand[]" class="form-control text-end budget-input bg-light" readonly></td><td><input name="custodian_pending_budget[]" class="form-control text-end budget-input bg-light" readonly></td><td>ข้อมูลไม่ครบ</td><td><button type="button" class="btn btn-sm btn-outline-danger remove-row">ลบ</button></td></tr>`);
         document.querySelectorAll('.budget-input').forEach((input) => {
             if (input.dataset.formatBound) return;
             input.dataset.formatBound = '1';
