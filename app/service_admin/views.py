@@ -45,6 +45,7 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
 
 from ..staff.models import Role
 
+CREDIT_DATE = 60
 localtz = timezone('Asia/Bangkok')
 TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
 TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
@@ -7043,10 +7044,10 @@ def upload_invoice_file(invoice_id):
         invoice.quotation.request.status_id = status_id
         invoice.file_attached_id = current_user.id
         invoice.file_attached_at = arrow.now('Asia/Bangkok').datetime
-        invoice.due_date = arrow.get(invoice.file_attached_at).shift(days=+30).datetime
+        invoice.due_date = arrow.get(invoice.file_attached_at).shift(days=CREDIT_DATE).datetime
         if file and allowed_file(file.filename):
             mime_type = file.mimetype
-            file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+            file_name = '{}.{}'.format(invoice.invoice_no, file.filename.split('.')[-1])
             file_data = file.stream.read()
             response = s3.put_object(
                 Bucket=S3_BUCKET_NAME,
@@ -7322,8 +7323,8 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             "<font size=12>2. จัดส่งหลักฐานการชำระเงินผ่านทาง <u>Scan QR Code</u> ด้านล่าง<br/></font>",
             style=remark_style)],
         [Paragraph(
-            "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน 30 วัน</b></u> นับถัดจากวันที่ลงนามใน"
-            "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=remark_style)],
+            "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน {} วัน</b></u> นับถัดจากวันที่ลงนามใน"
+            "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>".format(CREDIT_DATE), style=remark_style)],
         [Paragraph(
             "<font size=12>4. โปรดตรวจสอบรายละเอียดข้อมูลการชำระเงิน หากพบข้อมูลไม่ถูกต้อง โปรดทำหนังสือแจ้งกลับมายัง <u><b>หน่วย"
             "การเงินและบัญชี งานคลังและพัสดุ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</b></u><br/></font>",
