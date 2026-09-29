@@ -360,6 +360,8 @@ def respond(invitation_id):
             resp = '<i class="fas fa-circle-check has-text-success"></i>'
             if keep == 'false':
                 resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
+            else:
+                resp += f'<div id="note-target-{invitation.id}" hx-swap-oob="true"></div>'
         elif invitation.response == 'ไม่เข้าร่วม':
             add_note_to_response_url = url_for('meeting_planner.add_note_to_response',
                                                invitation_id=invitation.id,
@@ -367,11 +369,13 @@ def respond(invitation_id):
             resp = '<i class="fas fa-times-circle has-text-danger"></i>'
             resp += (f'<div id="note-target-{invitation.id}" hx-swap-oob="true">'
                      f'<form hx-patch="{add_note_to_response_url}">'
+                     f'<div class="field"><div class="control">'
                      f'<input type="text" placeholder="โปรดระบุเหตุผล" value="{invitation.note}" '
                      f'name="note" class="input is-small">'
-                     f'<input class="tag is-small" type="submit" value="Send">'
-                     f'<button class="tag is-small" hx=get={add_note_to_response_url}>Cancel</button>'
-                     f'</form></div>'
+                     f'</div></div><div class="field">'
+                     f'<input class="tag is-info is-small" type="submit" value="Send">'
+                     f'<button class="tag is-small" style="margin-left: .3em;" hx=get={add_note_to_response_url}>Cancel</button>'
+                     f'</div></form></div>'
                      )
             '''
             if keep == 'false':
@@ -382,6 +386,8 @@ def respond(invitation_id):
             resp = '<i class="fas fa-question-circle"></i>'
             if keep == 'false':
                 resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
+            else:
+                resp += f'<div id="note-target-{invitation.id}" hx-swap-oob="true"></div>'
         db.session.add(invitation)
         db.session.commit()
         resp += f'<span id="response-time-{invitation_id}" hx-swap-oob="true">{invitation.responded_at.strftime("%d/%m/%Y %H:%M:%S")}</span>'
