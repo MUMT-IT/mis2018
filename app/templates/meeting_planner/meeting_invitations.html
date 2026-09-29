@@ -121,8 +121,10 @@
     <script src="https://cdn.datatables.net/datetime/1.5.0/js/dataTables.dateTime.min.js"></script>
     <script>
     $(document).ready(function() {
+        $.fn.dataTable.moment('lll');
         $('#meetings').DataTable({
-            order: [[1, 'desc']],
+            order: [[1, 'desc'],
+                    [2, 'desc']],
             columnDefs: [
                 {
                     targets: [1,2],
