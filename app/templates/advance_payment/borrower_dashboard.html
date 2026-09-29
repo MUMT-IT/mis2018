@@ -338,7 +338,7 @@
                   <input class="form-check-input mt-1 return-ticket-selector flex-shrink-0" type="checkbox"
                          value="{{ ticket.id }}"
                          data-budget="{{ ticket.required_budget or 0 }}"
-                         data-existing-total="{{ ticket.submitted_return_total or 0 }}"
+                         data-existing-total="{{ return_form_totals_by_ticket.get(ticket.id, {}).get('submitted_total', ticket.submitted_return_total or 0) }}"
                          data-purpose="{{ ticket.borrowing_ticket_purpose }}"
                          data-approved="{{ ticket.approved_at.isoformat() if ticket.approved_at else '' }}">
                   <span>
@@ -358,6 +358,7 @@
         {% set return_panel_hidden = dashboard_scope == 'department' %}
         {% for borrowing_ticket in actionable_tickets %}
           {% set ns.has_actionable_tickets = true %}
+          {% set return_form_summary = return_form_totals_by_ticket.get(borrowing_ticket.id, {}) %}
           {% set return_form_action = url_for('advance_payment.submit_return_details', ticket_id=borrowing_ticket.id) %}
           {% set return_panel_id = 'returnTicketPanel_' ~ borrowing_ticket.id %}
           {% set return_panel_class = 'return-ticket-panel' %}

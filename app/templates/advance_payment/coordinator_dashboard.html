@@ -259,6 +259,7 @@
             {% set return_is_borrower_page = false %}
             {% set return_autosave_endpoint_prefix = '/coordinator/tickets/' %}
             {% for borrowing_ticket in actionable_tickets %}
+              {% set return_form_summary = return_form_totals_by_ticket.get(borrowing_ticket.id, {}) %}
               {% set return_form_action = url_for('advance_payment.coordinator_ticket_returns') %}
               {% set return_panel_id = 'return_block_ticket_' ~ borrowing_ticket.id %}
               {% set return_panel_class = 'return-ticket-form-block' %}

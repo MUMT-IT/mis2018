@@ -89,15 +89,15 @@
       <hr class="my-4">
       <div class="row g-3 text-start">
         <div class="col-4">
-          <p class="text-muted small mb-1"><strong>ยอดคืนรวม</strong></p>
-          {% if (summary.cumulative_total or 0) >= (borrowing_ticket.required_budget or 0) %}
+          <p class="text-muted small mb-1"><strong>ยอดคืนของสัญญานี้</strong></p>
+          {% if (summary.cumulative_total or 0) >= (summary.budget or 0) %}
             <h4 class="mb-0 text-success fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</h4>
           {% else %}
             <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</p>
           {% endif %}
         </div>
         <div class="col-4">
-          <p class="text-muted small mb-1"><strong>ยอดคงค้าง</strong></p>
+          <p class="text-muted small mb-1"><strong>ยอดคงค้างของสัญญานี้</strong></p>
           {% if (summary.remaining_amount or 0) > 0 %}
             <h4 class="mb-0 text-danger fw-semibold">{{ "{:,.2f}".format(summary.remaining_amount or 0) }}</h4>
           {% else %}
@@ -228,13 +228,13 @@
           </form>
       </div>
     {% endif %}
-    {% if borrowing_ticket.status|lower == "อนุมัติจ่ายเงิน" %}
+    {% if borrowing_ticket.status|lower == "อนุมัติจ่ายเงิน" and advance_payment_role != 'finance' %}
       <div class="d-flex justify-content-end mt-3">
         <button type="button" class="btn btn-outline-primary fw-bold" style="border-radius:6px;" onclick="switchReturnTicketForm({{ borrowing_ticket.id }})">
           <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
         </button>
       </div>
-    {% elif  advance_payment_role != 'finance' %}
+    {% elif advance_payment_role != 'finance'  %}
       <div class="d-flex justify-content-end mt-3">
         <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
           <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน
@@ -242,6 +242,41 @@
       </div>
     {% endif %}
   </section>
+{% if ticket_allocation_rows|length > 1 %}
+<section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
+  <p class="fw-bold mb-2">การจัดสรรยอดคืนรายสัญญา</p>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-2">
+      <thead class="table-light">
+        <tr>
+          <th>เลขที่ บย.</th>
+          <th class="text-end">วงเงิน</th>
+          <th class="text-end">ยอดคืน</th>
+          <th class="text-end">ยอดคงค้าง</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in ticket_allocation_rows %}
+          <tr{% if row.ticket_id == borrowing_ticket.id %} class="table-primary"{% endif %}>
+            <td>{{ row.ticket_number }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.budget or 0) }}</td>
+            <td class="text-end">{{ "{:,.2f}".format(row.cumulative_total or 0) }}</td>
+            <td class="text-end{% if (row.remaining_amount or 0) > 0 %} text-danger{% endif %}">{{ "{:,.2f}".format(row.remaining_amount or 0) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light fw-bold">
+        <tr>
+          <td>รวมทุกสัญญา</td>
+          <td class="text-end">{{ "{:,.2f}".format(group_summary.budget or 0) }}</td>
+          <td class="text-end">{{ "{:,.2f}".format(group_summary.cumulative_total or 0) }}</td>
+          <td class="text-end{% if (group_summary.remaining_amount or 0) > 0 %} text-danger{% endif %}">{{ "{:,.2f}".format(group_summary.remaining_amount or 0) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+{% endif %}
 {% if can_submit_return %}
   {% set actionable_tickets = [borrowing_ticket] %}
   {% set return_ticket_script_state = namespace(rendered=false) %}

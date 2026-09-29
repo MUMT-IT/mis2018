@@ -820,6 +820,20 @@ def _can_submit_return_detail(user_id, borrowing_ticket):
     )
 
 
+def _can_access_return_detail(user_id, return_detail, borrowing_ticket=None):
+    """Allow the return creator or anyone who may submit for its ticket."""
+    if not user_id or not return_detail:
+        return False
+
+    if user_id == getattr(return_detail, "creator_id", None):
+        return True
+
+    ticket = borrowing_ticket or _get_borrowing_ticket_by_id(
+        getattr(return_detail, "ticket_id", None)
+    )
+    return _can_submit_return_detail(user_id, ticket)
+
+
 def _get_fund_request_by_id(fund_request_id):
     if not fund_request_id:
         return None
@@ -2344,6 +2358,109 @@ def _calculate_ticket_group_totals(ticket_ids):
     }
 
 
+def _calculate_return_form_group_totals(ticket_ids):
+    """แหล่งยอดเฉพาะฟอร์มส่งหลักฐาน: นับทุกสถานะยกเว้นฉบับร่าง."""
+    ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
+    if not ticket_ids:
+        return {"cumulative_total": 0.0, "budget": 0.0, "remaining_amount": 0.0}
+
+    tickets = db.session.query(BorrowingTicket).filter(BorrowingTicket.id.in_(ticket_ids)).all()
+    ticket_order = sorted(
+        tickets,
+        key=lambda ticket: (ticket.approved_at is None, ticket.approved_at or datetime.max, ticket.id),
+    )
+    remaining = {ticket.id: float(ticket.required_budget or 0) for ticket in ticket_order}
+    allocated = {ticket.id: 0.0 for ticket in ticket_order}
+
+    return_rows = db.session.query(ReturnDetail).filter(
+        ReturnDetail.status != "ฉบับร่าง",
+        or_(
+            ReturnDetail.ticket_id.in_(ticket_ids),
+            ReturnDetail.id.in_(
+                db.session.query(return_borrowing_ticket_association.c.return_id).filter(
+                    return_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                )
+            ),
+        ),
+    ).all()
+    parcel_rows = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.status != "ฉบับร่าง",
+        or_(
+            ParcelReturnDetail.ticket_id.in_(ticket_ids),
+            ParcelReturnDetail.id.in_(
+                db.session.query(parcel_borrowing_ticket_association.c.parcel_return_id).filter(
+                    parcel_borrowing_ticket_association.c.ticket_id.in_(ticket_ids)
+                )
+            ),
+        ),
+    ).all()
+
+    records = [
+        (row.created_at, row.id, float(row.amount_spent or 0), _return_ticket_ids(row))
+        for row in return_rows
+    ]
+    for row in parcel_rows:
+        linked_ids = {row.ticket_id} if row.ticket_id else set()
+        linked_ids.update(
+            ticket_id for (ticket_id,) in db.session.query(
+                parcel_borrowing_ticket_association.c.ticket_id
+            ).filter(parcel_borrowing_ticket_association.c.parcel_return_id == row.id).all()
+        )
+        records.append((row.created_at, row.id, float(row.amount_spent or 0), linked_ids))
+
+    priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
+    for _, _, amount, linked_ids in sorted(records, key=lambda item: (item[0] or datetime.min, item[1])):
+        for linked_id in sorted(linked_ids & ticket_ids, key=lambda value: priority.get(value, 10**9)):
+            if amount <= 0:
+                break
+            portion = min(amount, remaining.get(linked_id, 0.0))
+            allocated[linked_id] += portion
+            remaining[linked_id] -= portion
+            amount -= portion
+
+    cumulative_total = sum(allocated.values())
+    budget = sum(float(ticket.required_budget or 0) for ticket in ticket_order)
+    return {
+        "cumulative_total": cumulative_total,
+        "budget": budget,
+        "remaining_amount": budget - cumulative_total,
+        "allocated_by_ticket": allocated,
+    }
+
+
+def _calculate_return_submission_totals(selected_ticket_ids):
+    """Use the complete linked-ticket group for return-form limit checks."""
+    linked_ticket_ids = set()
+    for ticket_id in selected_ticket_ids:
+        linked_ticket_ids.update(_ticket_group_ids(ticket_id))
+    return _calculate_return_form_group_totals(linked_ticket_ids)
+
+
+def _ticket_allocation_rows(tickets, group_totals):
+    """Build per-ticket totals from a FIFO group allocation result."""
+    allocated_by_ticket = group_totals.get("allocated_by_ticket", {})
+    ticket_order = sorted(
+        tickets,
+        key=lambda ticket: (
+            ticket.approved_at is None,
+            ticket.approved_at or datetime.max,
+            ticket.id,
+        ),
+    )
+    rows = []
+    for ticket in ticket_order:
+        budget = float(ticket.required_budget or 0)
+        cumulative_total = float(allocated_by_ticket.get(ticket.id, 0.0))
+        rows.append({
+            "ticket_id": ticket.id,
+            "ticket_number": ticket.number or f"#{ticket.id}",
+            "budget": budget,
+            "cumulative_total": cumulative_total,
+            "remaining_amount": budget - cumulative_total,
+        })
+    return rows
+
+
 def _calculate_ticket_return_totals(ticket_id):
     group_totals = _calculate_ticket_group_totals(_ticket_group_ids(ticket_id))
     budget = float(
@@ -2926,6 +3043,7 @@ def coordinator_dashboard():
     shadow_sum_debt = 0.0
     summary_days_remaining = None
     summary_overdue_days = None
+    return_form_totals_by_ticket = {}
 
     for ticket in borrowing_ticket_history:
         ticket.summary_overdue_days = None
@@ -2940,6 +3058,16 @@ def coordinator_dashboard():
         ticket.submitted_return_total = ticket_display_totals["cumulative_total"]
         ticket_remaining = totals["remaining_amount"]
         ticket.ticket_remaining = ticket_remaining
+        return_form_totals = _calculate_return_form_group_totals(_ticket_group_ids(ticket.id))
+        return_form_budget = float(ticket.required_budget or 0)
+        return_form_submitted_total = float(
+            return_form_totals.get("allocated_by_ticket", {}).get(ticket.id, 0.0)
+        )
+        return_form_totals_by_ticket[ticket.id] = {
+            "budget": return_form_budget,
+            "submitted_total": return_form_submitted_total,
+            "remaining": return_form_budget - return_form_submitted_total,
+        }
         ticket.has_rejected_followup = ticket.id in rejected_followup_ticket_ids
 
         if ticket.status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ"]:
@@ -2968,6 +3096,16 @@ def coordinator_dashboard():
         ticket.parcel_return_total = ticket_display_totals["parcel_total"]
         ticket.submitted_return_total = ticket_display_totals["cumulative_total"]
         ticket.ticket_remaining = _calculate_ticket_return_totals(ticket.id)["remaining_amount"]
+        return_form_totals = _calculate_return_form_group_totals(_ticket_group_ids(ticket.id))
+        return_form_budget = float(ticket.required_budget or 0)
+        return_form_submitted_total = float(
+            return_form_totals.get("allocated_by_ticket", {}).get(ticket.id, 0.0)
+        )
+        return_form_totals_by_ticket[ticket.id] = {
+            "budget": return_form_budget,
+            "submitted_total": return_form_submitted_total,
+            "remaining": return_form_budget - return_form_submitted_total,
+        }
 
     if request.method == "POST":
         post_data = request.form.copy()
@@ -3140,6 +3278,7 @@ def coordinator_dashboard():
         dept_users=dept_users,
         current_user=current_user,
         actionable_tickets=actionable_tickets,
+        return_form_totals_by_ticket=return_form_totals_by_ticket,
         dashboard_scope=dashboard_scope,
         pdf_reference_options=_pdf_reference_options(),
         pdf_fiscal_year_default=convert_to_fiscal_year(datetime.now().date()),
@@ -3726,9 +3865,7 @@ def verification_view(ticket_id):
         .order_by(ReturnDetail.id.desc())
         .all()
     )
-    group_totals = _calculate_ticket_group_totals(ticket_group_ids)
-    verification_return_total = group_totals["cumulative_total"]
-    verification_remaining_amount = group_totals["remaining_amount"]
+    return_form_totals = _calculate_return_form_group_totals(ticket_group_ids)
     parcel_returns = (
         db.session.query(ParcelReturnDetail)
         .filter(ParcelReturnDetail.ticket_id.in_(ticket_group_ids))
@@ -3753,11 +3890,29 @@ def verification_view(ticket_id):
 
     borrowing_ticket.parcel_returns = parcel_returns
 
-    summary = group_totals
-    borrowing_ticket.submitted_return_total = verification_return_total
-    borrowing_ticket.ticket_remaining = verification_remaining_amount
-    borrowing_ticket.verification_required_budget = group_totals["budget"]
+    group_tickets = db.session.query(BorrowingTicket).filter(
+        BorrowingTicket.id.in_(ticket_group_ids)
+    ).all()
+    ticket_allocation_rows = _ticket_allocation_rows(group_tickets, return_form_totals)
+    summary = next(
+        (row for row in ticket_allocation_rows if row["ticket_id"] == ticket_id),
+        {
+            "ticket_id": ticket_id,
+            "ticket_number": borrowing_ticket.number or f"#{ticket_id}",
+            "budget": float(borrowing_ticket.required_budget or 0),
+            "cumulative_total": 0.0,
+            "remaining_amount": float(borrowing_ticket.required_budget or 0),
+        },
+    )
+    borrowing_ticket.submitted_return_total = summary["cumulative_total"]
+    borrowing_ticket.ticket_remaining = summary["remaining_amount"]
+    borrowing_ticket.verification_required_budget = return_form_totals["budget"]
     borrowing_ticket.verification_ticket_ids = sorted(ticket_group_ids)
+    return_form_summary = {
+        "budget": return_form_totals["budget"],
+        "submitted_total": return_form_totals["cumulative_total"],
+        "remaining": return_form_totals["remaining_amount"],
+    }
     notifications = None
 
     proof_files = (
@@ -3781,10 +3936,13 @@ def verification_view(ticket_id):
         return_details=return_details,
         parcel_returns=parcel_returns,
         summary=summary,
+        group_summary=return_form_totals,
+        ticket_allocation_rows=ticket_allocation_rows,
         notifications=notifications,
         proof_files_dict=proof_files_dict,
         today=datetime.now().date(),
         can_submit_return=can_submit_return,
+        return_form_summary=return_form_summary,
         return_form_action=(
             url_for("advance_payment.coordinator_ticket_returns")
             if _is_current_coordinator()
@@ -4562,15 +4720,13 @@ def submit_return_details():
         return _validation_error_response(proof_file_error)
 
     if not is_draft:
-        ticket_totals = _calculate_ticket_group_totals(selected_ticket_ids)
+        ticket_totals = _calculate_return_submission_totals(selected_ticket_ids)
         projected_total = (
             ticket_totals["cumulative_total"]
             + total_amount_spent
             + (parcel_amount or 0)
             + (cash_return_amount or 0)
         )
-        if existing_cash_draft:
-            projected_total -= float(existing_cash_draft.amount_spent or 0)
         if _is_over_limit(projected_total, ticket_totals["budget"]):
             return _redirect_with_limit_popup(
                 url_for(_dashboard_endpoint_for_role(_current_module_role())),
@@ -4885,9 +5041,11 @@ def edit_receipt_item_inline(file_id):
         if not borrowing_ticket:
             abort(404)
 
-        if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-            (not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id())
-            or (_is_current_coordinator() and borrowing_ticket.creator_id != _current_user_id())
+        if (
+            _selected_system() == ADVANCE_PAYMENT_SYSTEM
+            and not _can_access_return_detail(
+                _current_user_id(), return_detail, borrowing_ticket
+            )
         ):
             abort(403)
 
@@ -5053,9 +5211,11 @@ def confirm_return_edit(return_id):
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
     if not borrowing_ticket:
         abort(404)
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM and (
-        (not _is_current_coordinator() and borrowing_ticket.borrower_id != _current_user_id())
-        or (_is_current_coordinator() and borrowing_ticket.creator_id != _current_user_id())
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _can_access_return_detail(
+            _current_user_id(), return_detail, borrowing_ticket
+        )
     ):
         abort(403)
     if (return_detail.status or "").strip().lower() != "รอยืนยันการแก้ไข":
@@ -6410,13 +6570,13 @@ def view_return_proof_detail(return_id):
     if not borrowing_ticket:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
-        if _can_use_coordinator_dashboard():
-            allowed_user_id = borrowing_ticket.creator_id
-            if _current_user_id() != allowed_user_id:
-                abort(403)
-        elif not _can_submit_return_detail(_current_user_id(), borrowing_ticket):
-            abort(403)
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _can_access_return_detail(
+            _current_user_id(), return_detail, borrowing_ticket
+        )
+    ):
+        abort(403)
 
     _prepare_document_display_list(return_detail.documents)
 
@@ -7314,13 +7474,13 @@ def export_ticket_return_pdf(return_id):
     if not borrowing_ticket:
         abort(404)
 
-    if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
-        if _can_use_coordinator_dashboard():
-            allowed_user_id = borrowing_ticket.creator_id
-            if _current_user_id() != allowed_user_id:
-                abort(403)
-        elif not _can_submit_return_detail(_current_user_id(), borrowing_ticket):
-            abort(403)
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _can_access_return_detail(
+            _current_user_id(), return_detail, borrowing_ticket
+        )
+    ):
+        abort(403)
 
     if request.method == "GET":
         return redirect(url_for("advance_payment.return_proof_detail", return_id=return_id))

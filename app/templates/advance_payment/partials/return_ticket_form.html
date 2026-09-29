@@ -1,10 +1,14 @@
 <div class="{{ return_panel_class }}{% if return_panel_hidden|default(true) %} d-none{% endif %}" id="{{ return_panel_id }}">
-  {% if (borrowing_ticket.submitted_return_total or 0)|float >= (borrowing_ticket.required_budget or 0)|float %}
-    <div class="text-center my-4">
+  {% set isolated_return_totals = return_form_summary|default({}) %}
+  {% set return_total_budget = isolated_return_totals.get('budget', borrowing_ticket.required_budget or 0) %}
+  {% set return_submitted_total = isolated_return_totals.get('submitted_total', borrowing_ticket.submitted_return_total or 0) %}
+  {% set return_remaining = isolated_return_totals.get('remaining', borrowing_ticket.ticket_remaining or 0) %}
+  {% if (return_submitted_total or 0)|float >= (return_total_budget or 0)|float %}
+    <div class="card p-4 mb-4 border rounded-4 shadow-sm">
       {% if return_show_ticket_purpose %}
         <p class="fw-bold mb-1">{{ borrowing_ticket.borrowing_ticket_purpose }}</p>
       {% endif %}
-      <p class="text-muted mb-0">ได้ทำการส่งเอกสารเบิกครบแล้ว รอการตรวจสอบจากฝ่ายการเงิน</p>
+      <p class="text-success mb-0 text-center fw-bold">ได้ทำการส่งเอกสารเบิกครบแล้ว รอการตรวจสอบจากฝ่ายการเงิน</p>
     </div>
   {% else %}
     {% if return_show_ticket_purpose %}
@@ -216,23 +220,23 @@
         </div>
 
         <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
-          <div class="d-flex flex-column gap-2 ms-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
+          <div class="d-flex flex-column gap-2 ms-lg-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
               <span class="fw-bold">ยอดที่ขอไป</span>
-              <span class="fw-bold" id="budgetDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.verification_required_budget if borrowing_ticket.verification_required_budget is defined else borrowing_ticket.required_budget or 0) }}</span>
+              <span class="fw-bold" id="budgetDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(return_total_budget or 0) }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
               <span class="fw-bold">ยอดที่ส่งแล้ว</span>
-              <span class="fw-bold" id="submittedReturnDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.submitted_return_total or 0) }}</span>
+              <span class="fw-bold" id="submittedReturnDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(return_submitted_total or 0) }}</span>
             </div>
             <div class="border-top border-3 border-dark my-2" style="border-top-style: dashed !important;"></div>
             <div class="d-flex justify-content-between align-items-center gap-4 text-dark fs-4">
               <span class="fw-bold">ยอดครั้งนี้</span>
-              <span class="fw-bold bg-info-subtle border border-info rounded-3 px-4 py-1" id="sumAmountDisplay_{{ borrowing_ticket.id }}" data-budget="{{ borrowing_ticket.required_budget or 0 }}" data-base-budget="{{ borrowing_ticket.required_budget or 0 }}" data-existing-total="{{ borrowing_ticket.submitted_return_total or 0 }}">0.00</span>
+              <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="sumAmountDisplay_{{ borrowing_ticket.id }}" value="0.00" readonly aria-label="ยอดครั้งนี้" data-budget="{{ borrowing_ticket.required_budget or 0 }}" data-base-budget="{{ borrowing_ticket.required_budget or 0 }}" data-existing-total="{{ return_submitted_total or 0 }}">
             </div>
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-dark fs-4">
               <span class="fw-bold">ยอดคงค้าง</span>
-              <span class="fw-bold" id="remainingAmountDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.ticket_remaining or 0) }}</span>
+              <span class="fw-bold" id="remainingAmountDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(return_remaining or 0) }}</span>
             </div>
             <div class="text-end fw-bold fs-4 lh-1">==============</div>
             <span class="visually-hidden" id="sumAmountUnit_{{ borrowing_ticket.id }}">บาท</span>
@@ -495,19 +499,9 @@
 
     function removeReceiptRow(button, ticketId) {
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (tbody.getElementsByTagName('tr').length > 1) {
         button.closest('tr').remove();
         updateReceiptFileIndices(ticketId);
         calculateTotalSpent(ticketId);
-      } else {
-        window.openAppPopup({
-          title: "ไม่สามารถลบแถวสุดท้าย",
-          message: "คุณต้องกรอกข้อมูลใบเสร็จอย่างน้อย 1 รายการเพื่อส่งหลักฐาน",
-          confirmText: "ตกลง",
-          confirmClass: "btn-primary",
-          alertOnly: true,
-        });
-      }
     }
 
     function updateReceiptFileIndices(ticketId) {
@@ -556,7 +550,7 @@
       totalDisplay.classList.toggle("bg-danger-subtle", isOverBudget);
       totalDisplay.classList.toggle("bg-info-subtle", !isOverBudget);
       document.getElementById(`sumAmountUnit_${ticketId}`)?.classList.toggle("text-danger", isOverBudget);
-      totalDisplay.innerText = total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      totalDisplay.value = total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const remainingDisplay = document.getElementById(`remainingAmountDisplay_${ticketId}`);
       if (remainingDisplay) {
