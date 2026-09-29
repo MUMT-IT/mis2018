@@ -71,6 +71,38 @@
                                                             <p class="notification">
                                                                 {{ topic.consensus }}
                                                             </p>
+                                                            <label class="label">ผลการดำเนินการ</label>
+                                                            <table class="table is-fullwidth">
+                                                                <thead>
+                                                                    <th style="width: 10%">ลำดับ</th>
+                                                                    <th>รายละเอียด</th>
+                                                                    <th></th>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for task in topic.tasks|sort(attribute="no") %}
+                                                                        <tr>
+                                                                            <td style="width: 10%">{{ task.no or '' }}</td>
+                                                                            <td>
+                                                                                <p class="notification">
+                                                                                    {{ task.detail or '' }}
+                                                                                </p>
+                                                                                <hr>
+                                                                                <label class="label">วันครบกำหนด</label>
+                                                                                <p class="notification">
+                                                                                    {{ task.deadline|localdatetime or '' }}
+                                                                                </p>
+                                                                                <hr>
+                                                                                <label class="label">ผู้รับผิดชอบ</label>
+                                                                                <p class="notification">
+                                                                                    {% for meeting_admin in task.admins %}
+                                                                                        {{ meeting_admin.admin.fullname }}{% if not loop.last %}, {% endif %}
+                                                                                    {% endfor %}
+                                                                                </p>
+                                                                            </td>
+                                                                        </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
                                                         </td>
                                                     </tr>
                                                 {% endif %}

@@ -526,7 +526,7 @@ def edit_topic_form(topic_id):
             <td>
                 {}
                 <hr>
-                <label class="label">รายละเอียดเพิ่มเติม</label>{}
+                <label class="label">รายละเอียด</label>{}
                 <hr>
                 <label class="label">มติที่ประชุม</label>{}
             </td>
@@ -556,7 +556,7 @@ def edit_topic_form(topic_id):
             <td>
             {}
             <hr>
-            <label class="label">รายละเอียดเพิ่มเติม</label>
+            <label class="label">รายละเอียด</label>
             <p class="notification">{}</p>
             <hr>
             <label class="label">มติที่ประชุม</label>
