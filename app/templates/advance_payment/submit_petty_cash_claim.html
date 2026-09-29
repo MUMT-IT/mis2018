@@ -173,7 +173,16 @@
         <div class="row g-3" id="referenceInfoFields">
           <div class="col-md-2">
             <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ</label>
-            <input class="form-control reference-info-input" name="reference_number" placeholder="เช่น 78.04/1" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
+            <div class="input-group">
+              <span class="input-group-text">อว</span>
+              <input
+                id="reference_number"
+                class="form-control reference-info-input"
+                name="reference_number"
+                type="text"
+                placeholder="เช่น 78.04/1"
+                value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}"
+              >
           </div>
           <div class="col-md-2">
             <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>

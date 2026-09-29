@@ -868,7 +868,7 @@ def generate_fnar02_pdf(ticket):
     ข้าพเจ้า &nbsp;&nbsp;{borrower_name}&nbsp;&nbsp; ตำแหน่ง &nbsp;&nbsp;{borrower_position}<br/>
     สังกัด &nbsp;&nbsp;{department_name} มหาวิทยาลัยมหิดล<br/>
     มีความประสงค์ขอยืมเงินจาก คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    เพื่อเป็นค่าใช้จ่ายใน&nbsp;&nbsp;{getattr(ticket, 'borrowing_ticket_purpose', None) or ticket.borrowing_ticket_name or PDF_BLANK}
+    เพื่อทดรองจ่าย&nbsp;&nbsp;{getattr(ticket, 'borrowing_ticket_purpose', None) or ticket.borrowing_ticket_name or PDF_BLANK}
     """
     p_borrower = Paragraph(borrower_html, styles['ThaiNormal'])
     p_amt_txt = Paragraph(f"(ตัวอักษร) ( &nbsp;&nbsp;{amount_text} &nbsp;&nbsp;)", styles['ThaiCenter'])
