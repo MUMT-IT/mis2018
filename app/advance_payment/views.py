@@ -5426,12 +5426,17 @@ def approve_borrowing_ticket(ticket_id):
 
     approval_ref_no = (request.form.get("borrowing_approval_ref_no") or "").strip()
     raw_approval_date = (request.form.get("borrowing_approval_date") or "").strip()
+    raw_approved_at = (request.form.get("approved_at") or "").strip()
     if not approval_ref_no:
         return _validation_error_response("กรุณาระบุเลขที่อว.อนุมัติยืมเงิน")
     try:
         approval_date = datetime.strptime(raw_approval_date, "%Y-%m-%d").date()
     except ValueError:
         return _validation_error_response("กรุณาระบุวันที่อนุมัติให้ถูกต้อง")
+    try:
+        approved_at = datetime.strptime(raw_approved_at, "%Y-%m-%d")
+    except ValueError:
+        return _validation_error_response("กรุณาระบุวันที่อนุมัติจ่ายเงินให้ถูกต้อง")
 
     # Contract numbers may contain prefixes, separators, or leading zeroes.
     number = raw_number
@@ -5439,7 +5444,7 @@ def approve_borrowing_ticket(ticket_id):
     borrowing_ticket.number = number
     borrowing_ticket.borrowing_approval_ref_no = approval_ref_no
     borrowing_ticket.borrowing_approval_date = approval_date
-    borrowing_ticket.approved_at = datetime.now()
+    borrowing_ticket.approved_at = approved_at
     borrowing_ticket.finance_verified = True
     db.session.commit()
 
