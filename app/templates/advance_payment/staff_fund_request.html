@@ -263,7 +263,7 @@
                        required
                        style="border-radius: 12px; font-size: 1.1rem;"
                        oninput="handleUserTotalInput(this)"
-                       data-available-budget="{{ '%.2f'|format(available_budget or 0) }}">
+                       data-available-budget="{{ '%.2f'|format(available_budget if available_budget else '') }}">
               </div>
               <div id="budgetSummary" class="p-3 mt-2 border rounded-3 bg-light text-start{% if selected_form_type in ['interest', 'borrowing'] %} d-none{% endif %}">
                 <div class="d-flex justify-content-between align-items-center gap-3">
