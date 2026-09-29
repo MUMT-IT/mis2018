@@ -8500,6 +8500,38 @@ def petty_cash_ledger():
             sort_order=0,
         )
 
+    # 3. ดึงข้อมูลส่งคืนพัสดุที่โอนเงินคืนแล้ว
+    # การส่งคืนพัสดุคิดเป็นรายจ่ายหมวด 3 (ค่าวัสดุ) เท่านั้น
+    fund_request_ids = [fr.id for fr in approved_fund_requests if fr.id]
+    if fund_request_ids:
+        transferred_parcel_returns = (
+            db.session.query(ParcelReturnDetail)
+            .filter(
+                ParcelReturnDetail.fund_request_id.in_(fund_request_ids),
+                ParcelReturnDetail.transferred_at.isnot(None),
+            )
+            .all()
+        )
+    else:
+        transferred_parcel_returns = []
+
+    for parcel_return in transferred_parcel_returns:
+        amount = float(parcel_return.amount_spent or 0)
+        created_at = parcel_return.created_at or datetime.now()
+        fund_request = parcel_return.fund_request
+        ticket_number = getattr(fund_request, "ticket_number", None) or "-"
+
+        _append_ledger_row(
+            receipt_date=parcel_return.transferred_at,
+            created_at=created_at,
+            description=f"คณะคืนเงินสดย่อย (ส่งคืนพัสดุ {ticket_number})",
+            bank_income=amount,
+            cat_9=amount,  # category_type 3 = ค่าวัสดุ
+            submitted_date=created_at.date(),
+            is_fund_request=False,
+            sort_order=0,
+        )
+
     # 4. เรียงลำดับรายการตามวันที่ทำรายการ (receipt_date) และเวลาที่สร้าง
     ledger_raw_items.sort(key=lambda x: (x["receipt_date"], x["created_at"], x.get("sort_order", 0)))
 
