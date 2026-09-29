@@ -881,22 +881,25 @@ def generate_fnar02_pdf(ticket):
         line_suffix=None,
     ):
         """Render FNAR02 signature/date fields in a stable, borderless grid."""
+        sign_dot = "............................................................................."
         signature_label_width = max(
-            48,
-            pdfmetrics.stringWidth(signature_label, 'Sarabun', DEFAULT_FONT_SIZE) + 6,
+            1,
+            pdfmetrics.stringWidth(signature_label, 'Sarabun', DEFAULT_FONT_SIZE) + 2,
         )
+        dotted_width = pdfmetrics.stringWidth(
+            sign_dot,
+            'Sarabun',
+            DEFAULT_FONT_SIZE,
+        ) + 2
         suffix_width = (
-            max(1, pdfmetrics.stringWidth(line_suffix, 'Sarabun', DEFAULT_FONT_SIZE) + 6)
+            max(1, pdfmetrics.stringWidth(line_suffix, 'Sarabun', DEFAULT_FONT_SIZE) + 2)
             if line_suffix
             else 1
         )
-        dotted_width = 300 - signature_label_width - suffix_width
-        dot_width = pdfmetrics.stringWidth('.', 'Sarabun', DEFAULT_FONT_SIZE)
-        dot_count = max(20, int(dotted_width / dot_width * 0.6))
         signature_line_table = Table(
             [[
                 Paragraph(signature_label, styles['ThaiCenter']),
-                Paragraph("." * dot_count, styles['ThaiCenter']),
+                Paragraph(sign_dot, styles['ThaiCenter']),
                 Paragraph(line_suffix or "", styles['ThaiCenter']),
             ], [
                 "",
@@ -917,6 +920,7 @@ def generate_fnar02_pdf(ticket):
             ('TOPPADDING', (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
+        signature_line_table.hAlign = 'CENTER'
         date_cell = Paragraph(
             "วันที่ .........................................................",
             styles['ThaiCenter'],
