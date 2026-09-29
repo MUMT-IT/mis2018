@@ -631,11 +631,12 @@ function togglePettyCashClaimForm() {
                 {% endif %}
 
                 {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
-                <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true" class="d-flex gap-1 align-items-center">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <input type="text" name="transferred_at" class="form-control form-control-sm app-date-picker" placeholder="dd/mm/yyyy" required title="วันที่โอนเงินสดย่อย">
-                  <button type="submit" class="btn btn-sm btn-success fw-bold">โอนสำเร็จ</button>
-                </form>
+                  <button type="button"
+                          class="btn btn-success btn-sm fw-bold px-3 py-2"
+                          data-bs-toggle="modal"
+                          data-bs-target="#parcelTransferModal{{ pr.id }}">
+                    <i class="bi bi-cash-stack me-1"></i> บันทึกโอนเงินสดย่อยสำเร็จ
+                  </button>
                 {% endif %}
 
                 {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
@@ -657,6 +658,45 @@ function togglePettyCashClaimForm() {
       </table>
     </div>
     {% for pr in parcel_return_history %}
+      {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+        <div class="modal fade text-start" id="parcelTransferModal{{ pr.id }}" tabindex="-1" aria-labelledby="parcelTransferModalLabel{{ pr.id }}" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                  <h5 class="modal-title fw-bold text-dark" id="parcelTransferModalLabel{{ pr.id }}">
+                    <i class="bi bi-calendar-check text-primary me-2"></i>บันทึกการโอนเงินสดย่อย
+                  </h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+                </div>
+                <div class="modal-body">
+                  <p class="small text-muted mb-3">
+                    ยอดเงินที่เบิก: <strong class="text-success">{{ "{:,.2f}".format(pr.amount_spent or 0) }} บาท</strong>
+                  </p>
+                  <div class="mb-3">
+                    <label class="form-label fw-bold text-dark small" for="parcelTransferredAt{{ pr.id }}">
+                      วันที่หน่วยงานได้รับเงิน / โอนสำเร็จ <span class="text-danger">*</span>
+                    </label>
+                    <input type="text"
+                           name="transferred_at"
+                           id="parcelTransferredAt{{ pr.id }}"
+                           class="form-control app-date-picker"
+                           placeholder="dd/mm/yyyy"
+                           required
+                           value="{{ pr.transferred_at.strftime('%Y-%m-%d') if pr.transferred_at else '' }}">
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                  <button type="submit" class="btn btn-success fw-bold">ยืนยันโอนเงินสำเร็จ</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
         <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
