@@ -264,7 +264,7 @@
         </div>
       </div>
       <div class="mb-4 border rounded-3 p-3 bg-white">
-      <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
+      <h3 class="h5 fw-bold text-dark mb-3">รายการส่งฝ่ายการเงิน</h3>
       <div class="d-flex justify-content-end mb-3">
         <div class="text-end text-secondary">
           <span class="fw-bold">ยอดที่ขอไป: {{ '%.2f'|format(total_request_amount) }}</span>
@@ -380,7 +380,7 @@
       </div>
 
       <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่งไปฝ่ายพัสดุ</h3>
+        <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
         {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
         {% if parcel_return_fund_request_id %}
         <div class="row g-3">
@@ -411,7 +411,7 @@
         {% endfor %}
       {% endif %}
       <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนเงินเหลือส่งใช้เงินสดย่อย</h3>
+        <h3 class="h5 fw-bold text-dark mb-3">โอนคืนบัญชีเงินสดย่อย</h3>
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการโอน</label>
