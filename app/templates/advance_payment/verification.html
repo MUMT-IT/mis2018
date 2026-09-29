@@ -154,7 +154,7 @@
             </div>
             <div class="mt-3">
               <label for="borrowingApprovalDate" class="form-label">วันที่อนุมัติ</label>
-              <input id="borrowingApprovalDate" type="date" name="borrowing_approval_date" class="form-control" required>
+              <input id="borrowingApprovalDate" type="text" name="borrowing_approval_date" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
             </div>
           </template>
 
@@ -395,7 +395,7 @@
                   {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true" class="d-flex gap-1 align-items-center">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="date" name="transferred_at" class="form-control form-control-sm" required title="วันที่โอนเงินสดย่อย">
+                    <input type="text" name="transferred_at" class="form-control form-control-sm app-date-picker" placeholder="dd/mm/yyyy" required title="วันที่โอนเงินสดย่อย">
                     <button type="submit" class="btn btn-sm btn-success fw-bold">โอนสำเร็จ</button>
                   </form>
                   {% endif %}
@@ -457,7 +457,7 @@
                   <div class="modal-body text-dark">
                     <div class="mb-3">
                       <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-                      <input type="date" name="sent_date" class="form-control" value="{{ pr.sent_date.strftime('%Y-%m-%d') if pr.sent_date else '' }}" required>
+                      <input type="text" name="sent_date" class="form-control app-date-picker" value="{{ pr.sent_date.strftime('%Y-%m-%d') if pr.sent_date else '' }}" placeholder="dd/mm/yyyy" required>
                     </div>
                     <div class="mb-3">
                       <label class="form-label fw-bold">รายการ</label>

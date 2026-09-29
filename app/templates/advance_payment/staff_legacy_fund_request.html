@@ -32,7 +32,7 @@
             </div>
             <div class="col-md-6">
               <label for="request_date" class="form-label fw-bold">วันที่เบิกเงิน <span class="text-danger">*</span></label>
-              <input type="date" class="form-control" id="request_date" name="request_date" value="{{ form_values.request_date }}" max="{{ max_request_date.isoformat() }}" required>
+              <input type="text" class="form-control app-date-picker" id="request_date" name="request_date" value="{{ form_values.request_date }}" max="{{ max_request_date.isoformat() }}" placeholder="dd/mm/yyyy" required>
             </div>
             <div class="col-md-6">
               <label for="amount" class="form-label fw-bold">จำนวนเงิน <span class="text-danger">*</span></label>

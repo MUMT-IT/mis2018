@@ -119,7 +119,7 @@
                     {% set row_index = loop.index0 %}
                     <tr>
                       <td>
-                        <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}">
+                        <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker" value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}" placeholder="dd/mm/yyyy">
                         <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
                       </td>
                       <td>
@@ -171,7 +171,7 @@
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-              <input type="date" name="sent_date" class="form-control parcel-return-input" required>
+              <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" placeholder="dd/mm/yyyy" required>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">รายการ</label>
@@ -190,7 +190,7 @@
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการโอน</label>
-              <input type="date" name="cash_return_date" class="form-control cash-return-input" value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}">
+              <input type="text" name="cash_return_date" class="form-control cash-return-input app-date-picker" value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}" placeholder="dd/mm/yyyy">
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
@@ -292,8 +292,8 @@
 
     function getReceiptAgeWarningMessage(receiptDateValue) {
       if (!receiptDateValue) return "";
-      const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
-      if (Number.isNaN(receiptDate.getTime())) return "";
+      const receiptDate = window.appParseDate(receiptDateValue);
+      if (!receiptDate) return "";
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -466,7 +466,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>
-          <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
+          <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker" placeholder="dd/mm/yyyy" required>
           <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
         </td>
         <td><textarea name="store_name[]" class="form-control form-control-sm" placeholder="เช่น ร้านค้า A" style="resize: vertical; min-height: 31px;" required></textarea></td>
@@ -693,13 +693,13 @@
       if (!tbody || !form) return;
 
       const items = Array.from(tbody.querySelectorAll('tr')).map(row => ({
-        receipt_date: row.querySelector('input[name="receipt_date[]"]')?.value || '',
+        receipt_date: window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || ''),
         store_name: row.querySelector('textarea[name="store_name[]"]')?.value || '',
         description: row.querySelector('textarea[name="description[]"]')?.value || '',
         amount: row.querySelector('.item-amount-input')?.value.replace(/,/g, '') || '0'
       }));
 
-      const cashDate = form.querySelector('input[name="cash_return_date"]')?.value || '';
+      const cashDate = window.appDateToISO(form.querySelector('input[name="cash_return_date"]')?.value || '');
       const cashAmount = form.querySelector('input[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
 
       const announcements = [];

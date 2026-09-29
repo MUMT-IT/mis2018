@@ -47,9 +47,158 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/css/bootstrap-datepicker.min.css" rel="stylesheet">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.10.0/js/bootstrap-datepicker.min.js"></script>
+    <script>
+      (function () {
+        const isoDatePattern = /^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/;
+        const displayDatePattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+
+        function isValidDateParts(year, month, day) {
+          const candidate = new Date(year, month - 1, day);
+          return candidate.getFullYear() === year
+            && candidate.getMonth() === month - 1
+            && candidate.getDate() === day;
+        }
+
+        function toISODate(value) {
+          const text = String(value || "").trim();
+          if (!text) return "";
+
+          let match = text.match(isoDatePattern);
+          if (match) {
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            return isValidDateParts(year, month, day)
+              ? `${match[1]}-${match[2]}-${match[3]}`
+              : "";
+          }
+
+          match = text.match(displayDatePattern);
+          if (!match) return "";
+
+          const day = Number(match[1]);
+          const month = Number(match[2]);
+          const year = Number(match[3]);
+          if (!isValidDateParts(year, month, day)) return "";
+
+          return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        }
+
+        function toDisplayDate(value) {
+          const isoDate = toISODate(value);
+          if (!isoDate) return String(value || "").trim();
+          const [year, month, day] = isoDate.split("-");
+          return `${day}/${month}/${year}`;
+        }
+
+        function parseDate(value) {
+          const isoDate = toISODate(value);
+          if (!isoDate) return null;
+          const [year, month, day] = isoDate.split("-").map(Number);
+          return new Date(year, month - 1, day);
+        }
+
+        window.appDateToISO = toISODate;
+        window.appDateToDisplay = toDisplayDate;
+        window.appParseDate = parseDate;
+
+        function initializeDatePicker(input) {
+          if (!(input instanceof HTMLInputElement) || input.dataset.datepickerInitialized === "true") {
+            return;
+          }
+
+          if (input.type !== "date" && !input.classList.contains("app-date-picker")) {
+            return;
+          }
+
+          const minDate = input.getAttribute("min");
+          const maxDate = input.getAttribute("max");
+          input.dataset.datepickerInitialized = "true";
+          input.type = "text";
+          input.classList.add("date", "app-date-picker");
+          input.value = toDisplayDate(input.value);
+          input.placeholder = "dd/mm/yyyy";
+          input.autocomplete = "off";
+          input.inputMode = "numeric";
+          input.setAttribute("pattern", String.raw`\d{2}/\d{2}/\d{4}`);
+          if (!input.getAttribute("title")) {
+            input.setAttribute("title", "กรุณากรอกวันที่ในรูปแบบ dd/mm/yyyy");
+          }
+          input.removeAttribute("min");
+          input.removeAttribute("max");
+
+          const options = {
+            format: "dd/mm/yyyy",
+            autoclose: true,
+            todayHighlight: true,
+            clearBtn: !input.required,
+            orientation: "auto",
+          };
+          if (minDate && toISODate(minDate)) options.startDate = toDisplayDate(minDate);
+          if (maxDate && toISODate(maxDate)) options.endDate = toDisplayDate(maxDate);
+
+          $(input).datepicker(options).on("changeDate clearDate", function () {
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+
+          input.addEventListener("blur", function () {
+            const normalized = toDisplayDate(input.value);
+            if (toISODate(normalized)) input.value = normalized;
+          });
+        }
+
+        function normalizeFormData(event) {
+          const form = event.currentTarget;
+          const dateInputs = Array.from(form.elements).filter(function (element) {
+            return element instanceof HTMLInputElement
+              && element.classList.contains("app-date-picker")
+              && element.name;
+          });
+          const names = [...new Set(dateInputs.map(input => input.name))];
+
+          names.forEach(function (name) {
+            event.formData.delete(name);
+            dateInputs.forEach(function (input) {
+              if (input.name !== name || input.disabled) return;
+              event.formData.append(name, toISODate(input.value) || input.value);
+            });
+          });
+        }
+
+        function initializeScope(scope) {
+          if (scope instanceof HTMLInputElement) initializeDatePicker(scope);
+          if (scope.querySelectorAll) {
+            scope.querySelectorAll('input[type="date"], input.app-date-picker').forEach(initializeDatePicker);
+          }
+
+          const forms = [];
+          if (scope instanceof HTMLFormElement) forms.push(scope);
+          if (scope.querySelectorAll) forms.push(...scope.querySelectorAll("form"));
+          forms.forEach(function (form) {
+            if (form.dataset.dateFormDataBound === "true") return;
+            form.dataset.dateFormDataBound = "true";
+            form.addEventListener("formdata", normalizeFormData);
+          });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+          initializeScope(document);
+          new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+              mutation.addedNodes.forEach(function (node) {
+                if (node.nodeType === Node.ELEMENT_NODE) initializeScope(node);
+              });
+            });
+          }).observe(document.body, { childList: true, subtree: true });
+        });
+      })();
+    </script>
     <style>
       body {
         font-family: 'Sarabun', sans-serif;
@@ -67,6 +216,9 @@
       }
       body, button, input, select, textarea {
         font-size: 1rem; 
+      }
+      .datepicker {
+        z-index: 1080 !important;
       }
       .rejected-followup-message {
         animation: rejected-followup-blink 1.2s ease-in-out infinite;

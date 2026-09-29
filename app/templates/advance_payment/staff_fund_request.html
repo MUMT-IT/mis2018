@@ -93,7 +93,7 @@
                 </div>
                 <div class="col-md-4">
                   <label for="request_date" class="form-label fw-bold">วันที่ทำการเบิก <span class="text-danger">*</span></label>
-                  {{ form.request_date(class="form-control", id="request_date", type="date", required=True, style="border-radius: 12px;") }}
+                  {{ form.request_date(class="form-control app-date-picker", id="request_date", type="text", required=True, placeholder="dd/mm/yyyy", style="border-radius: 12px;") }}
                 </div>
                 <div class="col-md-12">
                   <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
@@ -126,7 +126,7 @@
                 </div>
                 <div class="col-lg-3">
                   <label for="interest_request_date" class="form-label fw-bold mb-2">วันที่ทำการเบิก <span class="text-danger">*</span></label>
-                  {{ form.request_date(class="form-control", id="interest_request_date", type="date", required=True, disabled=True, style="border-radius: 10px;") }}
+                  {{ form.request_date(class="form-control app-date-picker", id="interest_request_date", type="text", required=True, disabled=True, placeholder="dd/mm/yyyy", style="border-radius: 10px;") }}
                 </div>
                 <div class="col-lg-4">
                   <label for="withdrawal_proof_file" class="form-label fw-bold mb-2">หลักฐานการเบิก</label>
@@ -163,7 +163,7 @@
                   </div>
                   <div class="col-md-4">
                     <label for="borrowing_request_date" class="form-label fw-bold">วันที่ทำการเบิก <span class="text-danger">*</span></label>
-                    {{ form.request_date(class="form-control", id="borrowing_request_date", type="date", disabled=True, style="border-radius: 12px;") }}
+                    {{ form.request_date(class="form-control app-date-picker", id="borrowing_request_date", type="text", disabled=True, placeholder="dd/mm/yyyy", style="border-radius: 12px;") }}
                   </div>
                 </div>
                 <div class="row g-3">

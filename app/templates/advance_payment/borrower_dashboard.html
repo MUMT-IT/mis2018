@@ -213,7 +213,7 @@
               </div>
               <div class="col-md-6">
                 <label for="aip_ref_date" class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
-                <input id="aip_ref_date" name="aip_ref_date" type="date" value="{{ borrowing_ticket_form.aip_ref_date.data or '' }}" class="form-control" placeholder="วันที่หนังสือได้รับการอนุมัติ" required>
+                <input id="aip_ref_date" name="aip_ref_date" type="text" value="{{ borrowing_ticket_form.aip_ref_date.data or '' }}" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                 {% for error in borrowing_ticket_form.aip_ref_date.errors %}
                   <div class="text-danger small mt-1">{{ error }}</div>
                 {% endfor %}
@@ -248,14 +248,14 @@
             <div class="row g-3 mb-3">
               <div class="col-md-6">
                 <label for="borrowing_ticket_start_date" class="form-label fw-bold">วันที่เริ่มต้นโครงการ</label>
-                <input id="borrowing_ticket_start_date" name="borrowing_ticket_start_date" type="date" value="{{ borrowing_ticket_form.borrowing_ticket_start_date.data or '' }}" class="form-control" required>
+                <input id="borrowing_ticket_start_date" name="borrowing_ticket_start_date" type="text" value="{{ borrowing_ticket_form.borrowing_ticket_start_date.data or '' }}" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                 {% for error in borrowing_ticket_form.borrowing_ticket_start_date.errors %}
                   <div class="text-danger small mt-1">{{ error }}</div>
                 {% endfor %}
               </div>
               <div class="col-md-6">
                 <label for="borrowing_ticket_end_date" class="form-label fw-bold">วันที่สิ้นสุดโครงการ</label>
-                <input id="borrowing_ticket_end_date" name="borrowing_ticket_end_date" type="date" value="{{ borrowing_ticket_form.borrowing_ticket_end_date.data or '' }}" class="form-control" required>
+                <input id="borrowing_ticket_end_date" name="borrowing_ticket_end_date" type="text" value="{{ borrowing_ticket_form.borrowing_ticket_end_date.data or '' }}" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                 {% for error in borrowing_ticket_form.borrowing_ticket_end_date.errors %} 
                   <div class="text-danger small mt-1">{{ error }}</div>
                 {% endfor %}
@@ -613,11 +613,11 @@
             <div class="row g-2">
               <div class="col-6">
                 <label class="form-label text-muted" style="font-size: 0.75rem;">เริ่มต้น</label>
-                <input type="date" id="filterDueStartDate" class="form-control form-control-sm bg-white" onchange="filterTable()">
+                <input type="text" id="filterDueStartDate" class="form-control form-control-sm bg-white app-date-picker" placeholder="dd/mm/yyyy" onchange="filterTable()">
               </div>
               <div class="col-6">
                 <label class="form-label text-muted" style="font-size: 0.75rem;">สิ้นสุด</label>
-                <input type="date" id="filterDueEndDate" class="form-control form-control-sm bg-white" onchange="filterTable()">
+                <input type="text" id="filterDueEndDate" class="form-control form-control-sm bg-white app-date-picker" placeholder="dd/mm/yyyy" onchange="filterTable()">
               </div>
             </div>
           </div>
@@ -627,11 +627,11 @@
             <div class="row g-2">
               <div class="col-6">
                 <label class="form-label text-muted" style="font-size: 0.75rem;">เริ่มต้น</label>
-                <input type="date" id="filterStartStartDate" class="form-control form-control-sm bg-white" onchange="filterTable()">
+                <input type="text" id="filterStartStartDate" class="form-control form-control-sm bg-white app-date-picker" placeholder="dd/mm/yyyy" onchange="filterTable()">
               </div>
               <div class="col-6">
                 <label class="form-label text-muted" style="font-size: 0.75rem;">สิ้นสุด</label>
-                <input type="date" id="filterStartEndDate" class="form-control form-control-sm bg-white" onchange="filterTable()">
+                <input type="text" id="filterStartEndDate" class="form-control form-control-sm bg-white app-date-picker" placeholder="dd/mm/yyyy" onchange="filterTable()">
               </div>
             </div>
           </div>
@@ -748,10 +748,10 @@
     function filterTable() {
       const searchInput = document.getElementById("filterSearch").value.toLowerCase().trim();
       const statusSelect = document.getElementById("filterStatus").value;
-      const dueStartDate = document.getElementById("filterDueStartDate").value;
-      const dueEndDate = document.getElementById("filterDueEndDate").value;
-      const startStartDate = document.getElementById("filterStartStartDate").value;
-      const startEndDate = document.getElementById("filterStartEndDate").value;
+      const dueStartDate = window.appDateToISO(document.getElementById("filterDueStartDate").value);
+      const dueEndDate = window.appDateToISO(document.getElementById("filterDueEndDate").value);
+      const startStartDate = window.appDateToISO(document.getElementById("filterStartStartDate").value);
+      const startEndDate = window.appDateToISO(document.getElementById("filterStartEndDate").value);
       
       const rows = document.querySelectorAll(".ticket-row");
       let visibleRowsCount = 0;

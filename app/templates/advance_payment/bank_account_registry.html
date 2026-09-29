@@ -83,7 +83,7 @@
               </td>
               <td>
                 <span class="view-mode text-dark">{{ closed_at_label }}</span>
-                <input type="date" name="closed_at[]" class="form-control form-control-sm edit-mode d-none" value="{{ closed_at_value }}">
+                <input type="text" name="closed_at[]" class="form-control form-control-sm edit-mode d-none app-date-picker" value="{{ closed_at_value }}" placeholder="dd/mm/yyyy">
               </td>
               <td class="text-end">
                 <span class="view-mode"><code>{{ row.account_number }}</code></span>
@@ -137,7 +137,7 @@
     </td>
     <td>
       <span class="view-mode text-dark"></span>
-      <input type="date" name="closed_at[]" class="form-control form-control-sm edit-mode d-none">
+      <input type="text" name="closed_at[]" class="form-control form-control-sm edit-mode d-none app-date-picker" placeholder="dd/mm/yyyy">
     </td>
     <td class="text-end">
       <span class="view-mode"><code></code></span>

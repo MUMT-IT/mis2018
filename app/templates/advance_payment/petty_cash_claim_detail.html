@@ -246,7 +246,7 @@
                                 </p>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold text-dark small">วันที่หน่วยงานได้รับเงิน / โอนสำเร็จ <span class="text-danger">*</span></label>
-                                    <input type="date" name="transferred_at" class="form-control" required value="{{ claim_detail.transferred_at or '' }}">
+                                    <input type="text" name="transferred_at" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required value="{{ claim_detail.transferred_at or '' }}">
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -374,7 +374,7 @@
                         <div class="mb-3">
                           <label class="form-label fw-bold text-secondary small">วันที่ในใบเสร็จ</label>
                           <!-- เพิ่ม class modal-receipt-date-input -->
-                          <input type="date" name="receipt_date" class="form-control modal-receipt-date-input" value="{{ item.receipt_date or '' }}" required>
+                          <input type="text" name="receipt_date" class="form-control modal-receipt-date-input app-date-picker" value="{{ item.receipt_date or '' }}" placeholder="dd/mm/yyyy" required>
                           
                           <!-- แท็กแสดงข้อความแจ้งเตือนเมื่อเกิน 10 วัน -->
                           <small class="text-danger d-none modal-receipt-age-warning mt-1 d-block small"></small>
@@ -527,8 +527,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function checkModalReceiptAge(receiptDateValue) {
   if (!receiptDateValue) return "";
 
-  const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
-  if (Number.isNaN(receiptDate.getTime())) return "";
+  const receiptDate = window.appParseDate(receiptDateValue);
+  if (!receiptDate) return "";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
