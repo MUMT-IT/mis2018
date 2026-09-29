@@ -519,6 +519,13 @@ def notify_participant(invitation_id):
 def edit_topic_form(topic_id):
     topic = MeetingAgenda.query.get(topic_id)
     form = MeetingAgendaForm(obj=topic)
+    task_html = ''.join(
+        render_template(
+            'meeting_planner/task_row.html',
+            task=task
+        )
+        for task in sorted(topic.tasks, key=lambda task: task.no)
+    )
     if request.method == 'GET':
         template = '''
         <tr>
@@ -529,6 +536,24 @@ def edit_topic_form(topic_id):
                 <label class="label">รายละเอียด</label>{}
                 <hr>
                 <label class="label">มติที่ประชุม</label>{}
+                <label class="label">ผลการดำเนินการ</label>
+                <table class="table is-fullwidth">
+                    <thead>
+                        <th style="width: 10%">ลำดับ</th>
+                        <th>รายละเอียด</th>
+                        <th></th>
+                    </thead>
+                    <tbody id="tasks-{}" hx-target="closest tr" hx-swap="outerHTML">
+                        {}
+                    </tbody>
+                </table>
+                <a class="button is-small is-info is-rounded is-outlined"
+                    hx-get="{}"
+                    hx-target="#tasks-{}"
+                    hx-swap="beforeend">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่ม</span>
+                 </a>
             </td>
             <td style="width: 10%">
                 <a class="button is-success is-outlined"
@@ -541,6 +566,10 @@ def edit_topic_form(topic_id):
                    form.detail(class_="textarea"),
                    form.note(class_="textarea"),
                    form.consensus(class_="textarea"),
+                   topic_id,
+                   task_html,
+                   topic_id,
+                   url_for('meeting_planner.add_task_form', topic_id=topic.id),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
                    )
     if request.method == 'POST':
@@ -561,6 +590,24 @@ def edit_topic_form(topic_id):
             <hr>
             <label class="label">มติที่ประชุม</label>
             <p class="notification">{}</p>
+            <label class="label">ผลการดำเนินการ</label>
+                <table class="table is-fullwidth">
+                    <thead>
+                        <th style="width: 10%">ลำดับ</th>
+                        <th>รายละเอียด</th>
+                        <th></th>
+                    </thead>
+                    <tbody id="tasks-{}" hx-target="closest tr" hx-swap="outerHTML">
+                        {}
+                    </tbody>
+                </table>
+                <a class="button is-small is-info is-rounded is-outlined"
+                    hx-get="{}"
+                    hx-target="#tasks-{}"
+                    hx-swap="beforeend">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่ม</span>
+                 </a>
             </td>
             <td style="width: 10%">
                 <div class="field has-addons">
@@ -589,6 +636,10 @@ def edit_topic_form(topic_id):
                    topic.detail,
                    topic.note or '',
                    topic.consensus,
+                   topic_id,
+                   task_html,
+                   topic_id,
+                   url_for('meeting_planner.add_task_form', topic_id=topic.id),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id)
                    )
