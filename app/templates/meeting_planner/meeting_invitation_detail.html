@@ -125,16 +125,24 @@
                         </footer>
                     {% endif %}
                 </div>
-                {% if not invite %}
+                {% if not invite and meeting.active_meeting %}
                     <br>
                     <div class="buttons is-centered">
-                        <a class="button is-success" href="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id) }}">
+                        <a class="button is-success" href="{{ url_for('meeting_planner.respond_invitation_detail',
+                            meeting_id=meeting.id) }}">
                             <span class="icon">
                                 <i class="fa-solid fa-reply"></i>
                             </span>
                             <span>ตอบกลับคำเชิญ</span>
                         </a>
                     </div>
+                {% endif %}
+                {% if not meeting.active_meeting %}
+                     <div class="field" style="margin-top: 1em">
+                         <p class="subtitle has-text-danger has-text-centered  has-text-centered has-text-weight-bold">
+                             หมดเวลาตอบกลับคำเชิญแล้ว
+                         </p>
+                     </div>
                 {% endif %}
             </div>
         </div>
