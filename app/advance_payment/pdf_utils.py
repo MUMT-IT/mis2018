@@ -730,14 +730,8 @@ def generate_fnar02_pdf(ticket):
 
     # 2. ใช้ลำดับผู้อนุมัติเดียวกับ staff.record_each_request_leave_request
     # หน้า 1 แสดงทั้ง lower และ middle หากมีข้อมูลทั้งสองระดับ
+    # FNAR02 intentionally leaves this blank instead of falling back to org.head.
     leave_approver_signatures = _get_leave_approver_signatures(ticket)
-    if leave_approver_signatures:
-        head_name, head_position = leave_approver_signatures[0]
-    else:
-        # Preserve the existing organization-head fallback for tickets whose
-        # borrower has no leave-approval configuration yet.
-        head_name, head_position = _get_head_signature(ticket=ticket)
-        leave_approver_signatures = [(head_name, head_position)]
 
     # แปลงข้อมูลวันที่ และงบประมาณ
     date_thai = get_thai_month_year(ticket.request_date) if hasattr(ticket, 'request_date') and ticket.request_date else PDF_BLANK
