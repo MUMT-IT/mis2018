@@ -326,7 +326,7 @@
                       <tbody>
                         {% for ret in result.returns %}
                           <tr class="table-info-subtle">
-                            <td class="ps-3"><input type="checkbox" name="selected_return_ids[]" value="{{ ret.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or ret.id in result.historical_return_ids %}disabled{% endif %}></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_return_ids[]" value="{{ ret.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or ret.id in result.historical_return_ids or ret.status in ['ล้างลูกหนี้เงินยืม', 'เสร็จสิ้นกระบวนการ'] %}disabled{% endif %}></td>
                             <td><span class="badge bg-info-subtle text-info-emphasis border px-2.5 py-1">ส่งใช้เงินยืม</span></td>
                             <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.number if ret.borrowing_ticket else '-' }}</div></td>
                             <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.borrower_name if ret.borrowing_ticket else '-' }}</div><small class="text-muted">{{ ret.borrowing_ticket.borrowing_ticket_name if ret.borrowing_ticket else '-' }}</small></td>
@@ -342,7 +342,7 @@
                         {% endfor %}
                         {% for pr in result.parcel_returns %}
                           <tr class="table-warning-subtle">
-                            <td class="ps-3"><input type="checkbox" name="selected_parcel_return_ids[]" value="{{ pr.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or pr.id in result.historical_parcel_ids %}disabled{% endif %}></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_parcel_return_ids[]" value="{{ pr.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or pr.id in result.historical_parcel_ids or pr.status in ['ล้างลูกหนี้เงินยืม', 'เสร็จสิ้นกระบวนการ'] %}disabled{% endif %}></td>
                             <td><span class="badge bg-warning-subtle text-warning-emphasis border px-2.5 py-1">ส่งคืนพัสดุ</span></td>
                             <td>
                               <div class="fw-bold text-dark">{{ pr.display_ticket_number or '-' }}</div>
@@ -372,7 +372,7 @@
                         {% endfor %}
                         {% for petty in result.petty_cash %}
                           <tr class="table-success-subtle">
-                            <td class="ps-3"><input type="checkbox" name="selected_claim_ids[]" value="{{ petty.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or petty.id in result.historical_claim_ids %}disabled{% endif %}></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_claim_ids[]" value="{{ petty.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or petty.id in result.historical_claim_ids or petty.status in ['ล้างลูกหนี้เงินยืม', 'เสร็จสิ้นกระบวนการ'] %}disabled{% endif %}></td>
                             <td><span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span></td>
                             <td>
                               <div class="fw-bold text-dark">{{ (petty.fund_request.ticket_number if petty.fund_request else none) or petty.display_claim_number or petty.claim_number or '-' }}</div>
