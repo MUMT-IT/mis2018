@@ -42,13 +42,27 @@
   <div class="d-flex justify-content-center">
     {% set remaining_amount = dept_summary.remaining_budget if dept_summary else 0 %}
     {% if not setting or remaining_amount <= 0 %}
-    <button type="button" class="btn btn-primary fw-bold" style="border-radius: 8px;" disabled>
-      <i class="bi bi-plus-circle me-2"></i>สร้างใบยืม/ใบเบิก
-    </button>
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+      <button type="button" class="btn btn-primary fw-bold" style="border-radius: 8px;" disabled>
+        <i class="bi bi-plus-circle me-2"></i>สร้างใบยืม/ใบเบิก
+      </button>
+      {% if can_import_legacy_fund_request %}
+      <a href="{{ url_for('advance_payment.staff_legacy_fund_request') }}" class="btn btn-outline-primary fw-bold" style="border-radius: 8px;">
+        <i class="bi bi-clock-history me-2"></i>นำเข้ารายการเบิกเดิม
+      </a>
+      {% endif %}
+    </div>
     {% else %}
-    <a href="{{ url_for('advance_payment.staff_fund_request') }}" class="btn btn-primary fw-bold" style="border-radius: 8px;">
-      <i class="bi bi-plus-circle me-2"></i>สร้างใบยืม/ใบเบิก
-    </a>
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+      <a href="{{ url_for('advance_payment.staff_fund_request') }}" class="btn btn-primary fw-bold" style="border-radius: 8px;">
+        <i class="bi bi-plus-circle me-2"></i>สร้างใบยืม/ใบเบิก
+      </a>
+      {% if can_import_legacy_fund_request %}
+      <a href="{{ url_for('advance_payment.staff_legacy_fund_request') }}" class="btn btn-outline-primary fw-bold" style="border-radius: 8px;">
+        <i class="bi bi-clock-history me-2"></i>นำเข้ารายการเบิกเดิม
+      </a>
+      {% endif %}
+    </div>
     {% endif %}
   </div>
 </div>

@@ -83,6 +83,8 @@
             {% set c_status = 'ผ่านการตรวจสอบ' %}
           {% elif claim_detail.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}
             {% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
+          {% elif claim_detail.status|lower == 'โอนคืนเงินสดย่อย' %}
+            {% set c_status = 'โอนคืนเงินสดย่อย' %}
           {% elif claim_detail.status|lower == 'เอกสารตั้งฎีกา' %}
             {% set c_status = 'เอกสารตั้งฎีกา' %}
           {% elif claim_detail.status|lower in ['ปฏิเสธ'] %}

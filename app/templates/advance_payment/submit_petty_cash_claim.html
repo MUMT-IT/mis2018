@@ -506,7 +506,7 @@ function togglePettyCashClaimForm() {
           <tr>
             <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
             <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
-            <th scope="col" style="width: 15%;" class="small fw-bold">ยอดที่ใช้จ่าย</th>
+            <th scope="col" style="width: 15%;" class="small fw-bold">จำนวนเงิน</th>
             <th scope="col" style="width: 10%;" class="small fw-bold">สถานะ</th>
             <th scope="col" style="width: 20%;" class="small fw-bold text-center">หมายเลขฎีกา</th>
             <th scope="col" class="small fw-bold text-center">การจัดการ</th>
@@ -531,6 +531,7 @@ function togglePettyCashClaimForm() {
               {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_status = 'กำลังตรวจสอบ' %}
               {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
               {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
+              {% elif claim.status|lower == 'โอนคืนเงินสดย่อย' %}{% set c_status = 'โอนคืนเงินสดย่อย' %}
               {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
               {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
 
@@ -565,7 +566,7 @@ function togglePettyCashClaimForm() {
           <tr>
             <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
             <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
-            <th scope="col" style="width: 15%;" class="small fw-bold">ยอดที่ใช้จ่าย</th>
+            <th scope="col" style="width: 15%;" class="small fw-bold">จำนวนเงิน</th>
             <th scope="col" style="width: 10%;" class="small fw-bold">สถานะ</th>
             <th scope="col" style="width: 20%;" class="small fw-bold text-center">หมายเลขฎีกา</th>
             <th scope="col" class="small fw-bold text-center">การจัดการ</th>
