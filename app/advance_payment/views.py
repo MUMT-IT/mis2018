@@ -5378,10 +5378,29 @@ def _get_interest_tracker_data():
         FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
     ).all()
     submitted_periods_by_org = {}
+    submitted_requests_by_org = {}
     for request in approved_interest_requests:
         if getattr(request, "org_id", None):
             period_key = _normalize_interest_period_value(request.period_year)
             submitted_periods_by_org.setdefault(request.org_id, set()).add(period_key)
+            submitted_requests_by_org.setdefault(request.org_id, {}).setdefault(
+                period_key, request
+            )
+
+            current_request = submitted_requests_by_org[request.org_id][period_key]
+            current_created_at = getattr(current_request, "created_at", None)
+            request_created_at = getattr(request, "created_at", None)
+            if (
+                request_created_at and not current_created_at
+            ) or (
+                request_created_at
+                and current_created_at
+                and request_created_at > current_created_at
+            ) or (
+                request_created_at == current_created_at
+                and (request.id or 0) > (current_request.id or 0)
+            ):
+                submitted_requests_by_org[request.org_id][period_key] = request
 
     pending_interest_departments = []
     for setting in active_settings:
@@ -5401,6 +5420,28 @@ def _get_interest_tracker_data():
             "custodian_name": custodian,
             "is_submitted": not pending_periods,
             "pending_periods": pending_periods,
+            "withdrawal_proof_reference": next(
+                (
+                    submitted_requests_by_org.get(setting.org_id, {})
+                    .get(period_key)
+                    .withdrawal_proof_reference
+                    for period_key in reversed(due_period_keys)
+                    if submitted_requests_by_org.get(setting.org_id, {}).get(period_key)
+                    and submitted_requests_by_org[setting.org_id][period_key].withdrawal_proof_reference
+                ),
+                None,
+            ),
+            "withdrawal_proof_filename": next(
+                (
+                    submitted_requests_by_org.get(setting.org_id, {})
+                    .get(period_key)
+                    .withdrawal_proof_filename
+                    for period_key in reversed(due_period_keys)
+                    if submitted_requests_by_org.get(setting.org_id, {}).get(period_key)
+                    and submitted_requests_by_org[setting.org_id][period_key].withdrawal_proof_reference
+                ),
+                None,
+            ),
         })
 
     pending_interest_count = sum(

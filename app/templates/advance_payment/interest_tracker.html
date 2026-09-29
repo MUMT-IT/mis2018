@@ -37,9 +37,16 @@
                   <td class="py-3 text-muted">{{ item.custodian_name or '-' }}</td>
                   <td class="py-3">
                     {% if item.is_submitted %}
-                      <span class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle">
-                        <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
-                      </span>
+                      {% if item.withdrawal_proof_reference %}
+                        <a href="{{ item.withdrawal_proof_reference|advance_payment_file_url }}" target="_blank" rel="noopener" class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle text-decoration-none">
+                          <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
+                          <i class="bi bi-paperclip ms-1" title="{{ item.withdrawal_proof_filename or 'ดูหลักฐานการเบิก' }}"></i>
+                        </a>
+                      {% else %}
+                        <span class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle">
+                          <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
+                        </span>
+                      {% endif %}
                     {% else %}
                       <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5 rounded-pill fw-semibold border border-danger-subtle">
                         <i class="bi bi-x-circle-fill me-1"></i> มีดอกเบี้ยค้างส่ง
