@@ -6234,9 +6234,29 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
         return closing_management(_render_after_post=True)
 
     # --- ส่วนการดึงข้อมูลเพื่อแสดงผล (GET) ---
-    proofed_records = db.session.query(ReturnDetail).filter(ReturnDetail.status == "ผ่านการตรวจสอบ", ~ReturnDetail.closing_links.any(is_active=True)).all()
+    proofed_records = (
+        db.session.query(ReturnDetail)
+        .filter(
+            ReturnDetail.status == "ผ่านการตรวจสอบ",
+            ~ReturnDetail.closing_links.any(is_active=True),
+            db.session.query(ReturnReceiptItem.id)
+            .filter(
+                ReturnReceiptItem.return_detail_id == ReturnDetail.id,
+                ReturnReceiptItem.is_cash.is_(False),
+                ~and_(
+                    func.trim(ReturnReceiptItem.store_name) == "-",
+                    func.trim(ReturnReceiptItem.description) == "เงินเหลือส่งใช้เงินยืม",
+                ),
+            )
+            .exists(),
+        )
+        .all()
+    )
     processed_records = []
     for record in proofed_records:
+        closing_amount = record.closing_amount
+        if closing_amount == 0:
+            continue
         ticket = db.session.query(BorrowingTicket).filter_by(id=record.ticket_id).first()
         processed_records.append({
             "id": record.id,
@@ -6245,7 +6265,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             "borrowing_ticket_number": ticket.number if ticket else "N/A",
             "borrower_name": (ticket.borrower_name or getattr(_get_user_by_id(getattr(ticket, "borrower_id", None)), "name", "")) if ticket else "N/A",
             "amount_spent": float(record.amount_spent or 0),
-            "closing_amount": float(record.closing_amount),
+            "closing_amount": float(closing_amount),
             "cash_amount": float(sum(
                 item.amount or 0
                 for item in record.receipt_items
