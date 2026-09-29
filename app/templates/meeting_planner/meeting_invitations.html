@@ -72,32 +72,34 @@
                                 </span>
                                 </td>
                                 <td>
-                                    <div class="field has-addons" id="target-{{ i.id }}">
-                                        <div class="control">
-                                            <a class="button is-rounded is-small is-success"
-                                               hx-target="#left-icon-{{ i.id }}"
-                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='เข้าร่วม', keep="true") }}">
-                                                เข้าร่วม
-                                            </a>
+                                    {% if i.meeting.active_meeting %}
+                                        <div class="field has-addons" id="target-{{ i.id }}">
+                                            <div class="control">
+                                                <a class="button is-rounded is-small is-success"
+                                                   hx-target="#left-icon-{{ i.id }}"
+                                                   hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='เข้าร่วม', keep="true") }}">
+                                                    เข้าร่วม
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-rounded is-small is-danger"
+                                                   hx-target="#left-icon-{{ i.id }}"
+                                                   hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่เข้าร่วม', keep="true") }}">
+                                                    ไม่เข้าร่วม
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-rounded is-small is-light"
+                                                   hx-target="#left-icon-{{ i.id }}"
+                                                   hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่แน่ใจ', keep="true") }}">
+                                                    ไม่แน่ใจ
+                                                </a>
+                                            </div>
                                         </div>
-                                        <div class="control">
-                                            <a class="button is-rounded is-small is-danger"
-                                               hx-target="#left-icon-{{ i.id }}"
-                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่เข้าร่วม', keep="true") }}">
-                                                ไม่เข้าร่วม
-                                            </a>
+                                        <div class="field">
+                                            <div id="note-target-{{ i.id }}"></div>
                                         </div>
-                                        <div class="control">
-                                            <a class="button is-rounded is-small is-light"
-                                               hx-target="#left-icon-{{ i.id }}"
-                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่แน่ใจ', keep="true") }}">
-                                                ไม่แน่ใจ
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <div id="note-target-{{ i.id }}"></div>
-                                    </div>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
