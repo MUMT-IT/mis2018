@@ -36,7 +36,6 @@
                         <th>เริ่ม</th>
                         <th>สิ้นสุด</th>
                         <th>ห้อง</th>
-                        <th>รายละเอียด</th>
                         <th>ผู้เข้าร่วมประชุม</th>
                         <th>การเข้าร่วม</th>
                         <th></th>
@@ -56,14 +55,10 @@
                                 <td>{{ i.meeting.end.isoformat() }}</td>
                                 <td>{{ i.meeting.rooms }}</td>
                                 <td>
-                                    <a href="{{ url_for('meeting_planner.detail_meeting_member', meeting_id=i.meeting.id) }}">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-circle-info"></i>
-                                        </span>
+                                    <a href="{{ url_for('meeting_planner.detail_meeting_member',
+                                        meeting_id=i.meeting.id) }}">
+                                        {{ i.meeting.participants|join(', ') }}
                                     </a>
-                                </td>
-                                <td>
-                                    {{ i.meeting.participants|join(', ') }}
                                 </td>
                                 <td>
                                 <span class="icon" id="left-icon-{{ i.id }}">
