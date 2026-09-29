@@ -5,9 +5,6 @@
   {% set return_remaining = isolated_return_totals.get('remaining', borrowing_ticket.ticket_remaining or 0) %}
   {% if (return_submitted_total or 0)|float >= (return_total_budget or 0)|float %}
     <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-      {% if return_show_ticket_purpose %}
-        <p class="fw-bold mb-1">{{ borrowing_ticket.borrowing_ticket_purpose }}</p>
-      {% endif %}
       <p class="text-success mb-0 text-center fw-bold">ได้ทำการส่งเอกสารเบิกครบแล้ว รอการตรวจสอบจากฝ่ายการเงิน</p>
     </div>
   {% else %}
