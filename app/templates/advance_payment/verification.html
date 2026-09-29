@@ -228,7 +228,7 @@
           </form>
       </div>
     {% endif %}
-    {% if borrowing_ticket.status|lower == "อนุมัติแล้ว" %}
+    {% if borrowing_ticket.status|lower == "อนุมัติจ่ายเงิน" %}
       <div class="d-flex justify-content-end mt-3">
         <button type="button" class="btn btn-outline-primary fw-bold" style="border-radius:6px;" onclick="switchReturnTicketForm({{ borrowing_ticket.id }})">
           <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
@@ -252,11 +252,12 @@
   {% set return_show_ticket_purpose = false %}
   {% include 'advance_payment/partials/return_ticket_form.html' %}
 {% endif %}
-{% if return_details %}
+{% if return_details or borrowing_ticket.parcel_returns%}
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
       <h3 class="h4 fw-bold mb-0">รายการหลักฐานเอกสารส่งใช้เงินยืม</h3>
     </div>
+    {% if return_details %}
     <h5 class="fw-bold text-primary mb-2"><i class="bi bi-cash-coin me-2"></i>รายการส่งฝ่ายการเงิน</h5>
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -319,7 +320,8 @@
           </tbody>
         </table>
       </div>
-{% if borrowing_ticket.parcel_returns %}
+    {% endif %}
+    {% if borrowing_ticket.parcel_returns %}
     <div class="my-4"></div>
     <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
       <div class="table-responsive mb-4">
