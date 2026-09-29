@@ -100,6 +100,9 @@
       document.querySelectorAll('#multiReturnSelectionPanel .return-ticket-selector').forEach(input => {
         input.checked = false;
       });
+      document.querySelectorAll('.return-ticket-purpose').forEach(heading => {
+        heading.textContent = heading.dataset.defaultPurpose || '';
+      });
       document.querySelectorAll('.generated-ticket-link').forEach(input => input.remove());
       document.querySelectorAll('.return-ticket-panel').forEach(panel => panel.classList.add('d-none'));
       if (!ticketId) return;
@@ -139,6 +142,14 @@
       const form = document.getElementById(`returnForm_${primaryId}`);
       if (panel) panel.classList.remove('d-none');
       if (!form) return;
+
+      const purposeHeading = panel?.querySelector('.return-ticket-purpose');
+      if (purposeHeading) {
+        purposeHeading.textContent = selected
+          .map(box => box.dataset.purpose || '')
+          .filter(Boolean)
+          .join(', ');
+      }
 
       form.querySelectorAll('.generated-ticket-link').forEach(input => input.remove());
       selected.slice(1).forEach(box => {
@@ -328,6 +339,7 @@
                          value="{{ ticket.id }}"
                          data-budget="{{ ticket.required_budget or 0 }}"
                          data-existing-total="{{ ticket.submitted_return_total or 0 }}"
+                         data-purpose="{{ ticket.borrowing_ticket_purpose }}"
                          data-approved="{{ ticket.approved_at.isoformat() if ticket.approved_at else '' }}">
                   <span>
                     <span class="d-block fw-bold">เลขที่สัญญา: {{ ticket.number or ticket.id }}</span>
