@@ -8,8 +8,6 @@
     <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
     <h1 class="fw-bold display-6 mb-2">หน่วยงาน: {{ setting.department_name if setting else '-' }}</h1>
     <p class="text-muted mb-0">เลขที่บัญชี: {{ setting.account_number if setting else '-' }}</p>
-    <p class="text-muted mb-0">Current user ID: {{ current_user.id if current_user.is_authenticated else '-' }}</p>
-
   </div>
 </header>
 
