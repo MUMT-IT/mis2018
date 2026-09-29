@@ -119,7 +119,7 @@
                     <td class="text-center">{{ borrowing_ticket.created_at|thai_date if borrowing_ticket.created_at else '-' }}</td>
                     <td class="text-center"><span class="badge bg-warning text-dark">รออนุมัติสัญญา</span></td>
                     <td class="text-center">
-                      <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-primary fw-bold" style="border-radius:6px;">
+                      <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
                         ไปตรวจสอบ
                       </a>
                     </td>
@@ -157,7 +157,7 @@
                       {% endif %}
                     </td>
                     <td class="text-center">
-                      <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_item.id) }}" class="btn btn-sm btn-primary fw-bold" style="border-radius:6px;">
+                      <a href="{{ url_for('advance_payment.view_return_proof_detail', return_id=return_item.id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
                         ไปตรวจสอบ
                       </a>
                     </td>

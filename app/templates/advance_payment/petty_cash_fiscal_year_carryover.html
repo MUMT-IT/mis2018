@@ -3,16 +3,14 @@
 {% block content %}
 <h1 class="fw-bold mb-2">ยกยอดเงินสดย่อยระหว่างปีงบประมาณ</h1>
 <p class="text-muted">ปีงบประมาณ {{ source_fiscal_year + 543 }} → {{ target_fiscal_year + 543 }}</p>
-<a href="{{ url_for('advance_payment.petty_cash_settings' if is_finance else 'advance_payment.staff_fund_request_history') }}"
+<a href="{{ url_for('advance_payment.petty_cash_settings') }}"
    class="btn btn-outline-secondary mb-3 w-25 align-self-end">กลับ</a>
-{% if is_finance %}
 <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="table-responsive">
         <table class="table table-bordered align-middle bg-white" id="carryoverTable">
             <thead class="table-light small">
             <tr>
-                <th>หน่วยงาน</th>
-                <th>ผู้คุมบัญชี</th>
+                <th style="width: 20%">หน่วยงาน</th>
                 <th>วงเงินปี {{ source_fiscal_year + 543 }}</th>
                 <th>ยอดเบิกแล้วรอโอน</th>
                 <th>ยอดเงินในบัญชี</th>
@@ -30,27 +28,17 @@
                     {% for org in org_options %}
                     <option value="{{ org.id }}" {% if org.id== row.org_id %}selected{% endif %}>{{ org.name }}</option>
                     {% endfor %}</select></td>
-                <td><select name="custodian_id[]" class="form-select form-select-sm searchable-select" required>
-                    <option value="">เลือกผู้คุมบัญชี</option>
-                    {% for staff in staff_options %}
-                    <option value="{{ staff.id }}" {% if staff.id== row.custodian_id %}selected{% endif %}>{{
-                        staff.fullname }}
-                    </option>
-                    {% endfor %}</select></td>
                 <td><input name="finance_budget[]" class="form-control text-end budget-input"
                            value="{{ '{:,.2f}'.format(row.finance_budget) if row.finance_budget is not none else '' }}"></td>
                 <td><input name="finance_pending_transfer[]" class="form-control text-end budget-input"
                            value="{{ '{:,.2f}'.format(row.finance_pending_transfer) if row.finance_pending_transfer is not none else '' }}">
                 </td>
-                <td><input name="custodian_bank_balance[]" class="form-control text-end budget-input bg-light"
-                           value="{{ '{:,.2f}'.format(row.custodian_bank_balance) if row.custodian_bank_balance is not none else '' }}"
-                           readonly></td>
-                <td><input name="custodian_cash_on_hand[]" class="form-control text-end budget-input bg-light"
-                           value="{{ '{:,.2f}'.format(row.custodian_cash_on_hand) if row.custodian_cash_on_hand is not none else '' }}"
-                           readonly></td>
-                <td><input name="custodian_pending_budget[]" class="form-control text-end budget-input bg-light"
-                           value="{{ '{:,.2f}'.format(row.custodian_pending_budget) if row.custodian_pending_budget is not none else '' }}"
-                           readonly></td>
+                <td><input name="custodian_bank_balance[]" class="form-control text-end budget-input"
+                           value="{{ '{:,.2f}'.format(row.custodian_bank_balance) if row.custodian_bank_balance is not none else '' }}"></td>
+                <td><input name="custodian_cash_on_hand[]" class="form-control text-end budget-input"
+                           value="{{ '{:,.2f}'.format(row.custodian_cash_on_hand) if row.custodian_cash_on_hand is not none else '' }}"></td>
+                <td><input name="custodian_pending_budget[]" class="form-control text-end budget-input"
+                           value="{{ '{:,.2f}'.format(row.custodian_pending_budget) if row.custodian_pending_budget is not none else '' }}"></td>
                 <td class="text-center fw-bold">{% if row.reconciliation_amount is none %}ข้อมูลไม่ครบ{% elif
                     row.reconciliation_amount == 0 %}<span class="text-success">0.00 บาท</span>{% else %}<span
                             class="text-danger">{{ '{:,.2f}'.format(row.reconciliation_amount) }} บาท</span>{% endif %}
@@ -68,58 +56,8 @@
         <button class="btn btn-primary" type="submit">บันทึกข้อมูล</button>
     </div>
 </form>
-{% else %}
-<form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="table-responsive">
-        <table class="table table-bordered align-middle bg-white">
-            <thead class="table-light small">
-            <tr>
-                <th>หน่วยงาน/ผู้คุมบัญชี</th>
-                <th>วงเงินปีเดิม</th>
-                <th>ยอดเบิกแล้วรอโอน</th>
-                <th>ยอดเงินในบัญชี</th>
-                <th>เงินสดในมือ</th>
-                <th>ยอดรอเบิกงบปีถัดไป</th>
-                <th>ผลต่าง</th>
-            </tr>
-            </thead>
-            <tbody>{% for row in rows %}
-            <tr class="{% if not row.is_complete %}table-warning{% elif row.reconciliation_amount == 0 %}table-success{% else %}table-danger{% endif %}">
-                <input type="hidden" name="carryover_id[]" value="{{ row.id }}">
-                <td>{{ row.department_name or '-' }}<br><small>{{ row.custodian_name or '-' }}</small></td>
-                <td class="text-end">{{ '{:,.2f}'.format(row.finance_budget or 0) }}</td>
-                <td class="text-end">{{ '{:,.2f}'.format(row.finance_pending_transfer or 0) }}</td>
-                <td><input name="custodian_bank_balance_{{ row.id }}" class="form-control text-end budget-input"
-                           value="{{ '{:,.2f}'.format(row.custodian_bank_balance) if row.custodian_bank_balance is not none else '' }}">
-                </td>
-                <td><input name="custodian_cash_on_hand_{{ row.id }}" class="form-control text-end budget-input"
-                           value="{{ '{:,.2f}'.format(row.custodian_cash_on_hand) if row.custodian_cash_on_hand is not none else '' }}">
-                </td>
-                <td><input name="custodian_pending_budget_{{ row.id }}" class="form-control text-end budget-input"
-                           value="{{ '{:,.2f}'.format(row.custodian_pending_budget) if row.custodian_pending_budget is not none else '' }}">
-                </td>
-                <td class="text-center fw-bold">{% if row.reconciliation_amount is none %}ข้อมูลไม่ครบ{% elif
-                    row.reconciliation_amount == 0 %}0.00 บาท{% else %}{{ '{:,.2f}'.format(row.reconciliation_amount) }}
-                    บาท{% endif %}
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="7" class="text-center text-muted">ยังไม่มีรายการยกยอดที่ฝ่ายการเงินเพิ่ม</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% if rows %}
-    <button class="btn btn-primary" type="submit">บันทึกข้อมูล</button>
-    {% endif %}
-</form>
-{% endif %}
-{% if is_finance %}
 <script>
     const orgOptions = `{% for org in org_options %}<option value="{{ org.id }}">{{ org.name }}</option>{% endfor %}`;
-    const staffOptions = `{% for staff in staff_options %}<option value="{{ staff.id }}">{{ staff.fullname }}</option>{% endfor %}`;
     function formatInputNumberWithComma(input) {
         if (!input) return;
         let value = String(input.value || '').replace(/,/g, '').replace(/[^0-9.]/g, '');
@@ -153,7 +91,7 @@
         document.querySelectorAll('.budget-input').forEach((input) => { input.value = input.value.replace(/,/g, ''); });
     });
     document.getElementById('addCarryoverRow').addEventListener('click', function () {
-        document.getElementById('carryoverBody').insertAdjacentHTML('beforeend', `<tr><td><select name="org_id[]" class="form-select form-select-sm searchable-select" required><option value="">เลือกหน่วยงาน</option>${orgOptions}</select></td><td><select name="custodian_id[]" class="form-select form-select-sm searchable-select" required><option value="">เลือกผู้คุมบัญชี</option>${staffOptions}</select></td><td><input name="finance_budget[]" class="form-control text-end budget-input"></td><td><input name="finance_pending_transfer[]" class="form-control text-end budget-input"></td><td><input name="custodian_bank_balance[]" class="form-control text-end budget-input bg-light" readonly></td><td><input name="custodian_cash_on_hand[]" class="form-control text-end budget-input bg-light" readonly></td><td><input name="custodian_pending_budget[]" class="form-control text-end budget-input bg-light" readonly></td><td>ข้อมูลไม่ครบ</td><td><button type="button" class="btn btn-sm btn-outline-danger remove-row">ลบ</button></td></tr>`);
+        document.getElementById('carryoverBody').insertAdjacentHTML('beforeend', `<tr><td><select name="org_id[]" class="form-select form-select-sm searchable-select" required><option value="">เลือกหน่วยงาน</option>${orgOptions}</select></td><td><input name="finance_budget[]" class="form-control text-end budget-input"></td><td><input name="finance_pending_transfer[]" class="form-control text-end budget-input"></td><td><input name="custodian_bank_balance[]" class="form-control text-end budget-input"></td><td><input name="custodian_cash_on_hand[]" class="form-control text-end budget-input"></td><td><input name="custodian_pending_budget[]" class="form-control text-end budget-input"></td><td>ข้อมูลไม่ครบ</td><td><button type="button" class="btn btn-sm btn-outline-danger remove-row">ลบ</button></td></tr>`);
         document.querySelectorAll('.budget-input').forEach((input) => {
             if (input.dataset.formatBound) return;
             input.dataset.formatBound = '1';
@@ -171,5 +109,5 @@
     document.addEventListener('click', function (event) {
         if (event.target.classList.contains('remove-row')) event.target.closest('tr').remove();
     });
-</script>{% endif %}
+</script>
 {% endblock %}

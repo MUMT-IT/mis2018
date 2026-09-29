@@ -135,13 +135,21 @@
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(p_record.amount_spent) }}</td>
                   <td class="text-center small">{{ p_record.created_at|thai_date }}</td>
                   <td class="text-center">
+                    <div class="d-flex gap-1 justify-content-center flex-wrap">
                     {% if p_record.display_ticket_id %}
-                      <a href="{{ url_for('advance_payment.verification_view', ticket_id=p_record.display_ticket_id) }}" title="ดูข้อมูลการส่งรายการพัสดุ"  class="btn btn-sm btn-outline-secondary">
+                      <a href="{{ url_for('advance_payment.verification_view', ticket_id=p_record.display_ticket_id) }}" title="ดูข้อมูลการส่งรายการพัสดุ" class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-eye"></i>
                       </a>
-                    {% else %}
+                    {% endif %}
+                    {% if p_record.fund_request_id %}
+                      <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=p_record.fund_request_id) }}" title="ดูข้อมูลใบเบิกเงินสดย่อย" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                    {% endif %}
+                    {% if not p_record.display_ticket_id and not p_record.fund_request_id %}
                       <span class="text-muted small">-</span>
                     {% endif %}
+                    </div>
                   </td>
                 </tr>
               {% endfor %}
@@ -296,8 +304,8 @@
                     {% elif searched_doc.is_settled %}
                       <div class="alert alert-success mb-0 py-2 w-100 text-center fw-bold text-dark"><i class="bi bi-check-circle-fill me-2 text-success"></i>ฎีกาถูกล้างลูกหนี้เรียบร้อยแล้ว</div>
                     {% else %}
-                      <button type="button" class="btn btn-danger fw-bold" data-popup-trigger="true" data-popup-title="ยืนยันการยกเลิกฎีกา" data-popup-message="คุณต้องการยกเลิกฎีกาหมายเลข {{ searched_doc.document_number }} ใช่หรือไม่?" data-popup-action="{{ url_for('advance_payment.cancel_closing_doc', closing_doc_id=searched_doc.id) }}" data-popup-confirm-text="ยกเลิกฎีกา" data-popup-confirm-class="btn-danger"><i class="bi bi-x-circle-fill me-1"></i>ยกเลิกฎีกา</button>
-                      <button type="button" class="btn btn-success fw-bold" data-popup-trigger="true" data-popup-title="ยืนยันการล้างลูกหนี้เงินยืม" data-popup-message="คุณต้องการเปลี่ยนสถานะเอกสารทั้งหมดในฎีกานี้เป็น ล้างลูกหนี้เงินยืม ใช่หรือไม่?" data-popup-action="{{ url_for('advance_payment.bulk_receive_closing_doc', closing_doc_id=searched_doc.id) }}" data-popup-confirm-text="ล้างลูกหนี้เงินยืมทั้งฎีกา" data-popup-confirm-class="btn-success"><i class="bi bi-check-circle-fill me-1"></i>ล้างลูกหนี้เงินยืมทั้งฎีกา</button>
+                      <button type="button" class="btn btn-danger fw-bold" data-popup-trigger="true" data-popup-title="ยืนยันการยกเลิกฎีกา" data-popup-message="คุณต้องการยกเลิกฎีกาเฉพาะรายการที่เลือกไว้ในฎีกาหมายเลข {{ searched_doc.document_number }} ใช่หรือไม่?" data-popup-action="{{ url_for('advance_payment.cancel_closing_doc', closing_doc_id=searched_doc.id) }}" data-popup-confirm-text="ยกเลิกรายการที่เลือก" data-popup-confirm-class="btn-danger" onclick="return prepareClosingSelection(this, event)"><i class="bi bi-x-circle-fill me-1"></i>ยกเลิกรายการที่เลือก</button>
+                      <button type="button" class="btn btn-success fw-bold" data-popup-trigger="true" data-popup-title="ยืนยันการล้างลูกหนี้เงินยืม" data-popup-message="คุณต้องการเปลี่ยนสถานะเฉพาะรายการที่เลือกไว้เป็น ล้างลูกหนี้เงินยืม ใช่หรือไม่?" data-popup-action="{{ url_for('advance_payment.bulk_receive_closing_doc', closing_doc_id=searched_doc.id) }}" data-popup-confirm-text="ล้างลูกหนี้รายการที่เลือก" data-popup-confirm-class="btn-success" onclick="return prepareClosingSelection(this, event)"><i class="bi bi-check-circle-fill me-1"></i>ล้างลูกหนี้รายการที่เลือก</button>
                     {% endif %}
                   </div>
                   {{ last_edit([searched_doc] + searched_doc.links + result.returns + result.parcel_returns + result.petty_cash) }}
@@ -305,6 +313,7 @@
                     <table class="table table-hover align-middle mb-0">
                       <thead class="table-light">
                         <tr>
+                          <th scope="col" class="small fw-bold ps-3" style="width: 45px;"><input type="checkbox" class="form-check-input closing-select-all" title="เลือกทั้งหมด" onclick="toggleClosingDocumentSelection(this, event)"></th>
                           <th scope="col" class="small fw-bold ps-3" style="width: 140px;">ประเภท</th>
                           <th scope="col" class="small fw-bold">เลขที่เอกสาร / บย.</th>
                           <th scope="col" class="small fw-bold">รายละเอียด / ผู้ประสานงาน / ผู้เบิก</th>
@@ -317,7 +326,8 @@
                       <tbody>
                         {% for ret in result.returns %}
                           <tr class="table-info-subtle">
-                            <td class="ps-3"><span class="badge bg-info-subtle text-info-emphasis border px-2.5 py-1">ส่งใช้เงินยืม</span></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_return_ids[]" value="{{ ret.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or ret.id in result.historical_return_ids %}disabled{% endif %}></td>
+                            <td><span class="badge bg-info-subtle text-info-emphasis border px-2.5 py-1">ส่งใช้เงินยืม</span></td>
                             <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.number if ret.borrowing_ticket else '-' }}</div></td>
                             <td><div class="fw-bold text-dark">{{ ret.borrowing_ticket.borrower_name if ret.borrowing_ticket else '-' }}</div><small class="text-muted">{{ ret.borrowing_ticket.borrowing_ticket_name if ret.borrowing_ticket else '-' }}</small></td>
                             <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(ret.closing_amount) }}</td>
@@ -332,29 +342,38 @@
                         {% endfor %}
                         {% for pr in result.parcel_returns %}
                           <tr class="table-warning-subtle">
-                            <td class="ps-3"><span class="badge bg-warning-subtle text-warning-emphasis border px-2.5 py-1">ส่งคืนพัสดุ</span></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_parcel_return_ids[]" value="{{ pr.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or pr.id in result.historical_parcel_ids %}disabled{% endif %}></td>
+                            <td><span class="badge bg-warning-subtle text-warning-emphasis border px-2.5 py-1">ส่งคืนพัสดุ</span></td>
                             <td>
                               <div class="fw-bold text-dark">{{ pr.display_ticket_number or '-' }}</div>
-                              <small class="text-muted">Ticket ID: {{ pr.display_ticket_id or pr.ticket_id or '-' }}</small>
                             </td>
                             <td><div class="fw-bold text-dark">{{ pr.display_borrower_name or '-' }}</div><small class="text-muted">{{ pr.display_subject_name or '-' }}</small></td>
                             <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
                             <td class="text-center small">{{ pr.created_at|thai_date if pr.created_at else '-' }}</td>
                             <td class="text-center">{{ status_badge(pr.status) }}{% if not searched_doc.is_active %}<div class="small text-danger">ฎีกาถูกยกเลิก</div>{% elif pr.id in result.historical_parcel_ids %}<div class="small text-muted">ย้ายออกจากฎีกานี้แล้ว</div>{% endif %}</td>
                             <td class="text-center">
+                              <div class="d-flex gap-1 justify-content-center flex-wrap">
                               {% if pr.display_ticket_id %}
-                                <a href="{{ url_for('advance_payment.verification_view', ticket_id=pr.display_ticket_id) }}" title="ดูข้อมูลการส่งรายการพัสดุ"  class="btn btn-sm btn-outline-secondary">
+                                <a href="{{ url_for('advance_payment.verification_view', ticket_id=pr.display_ticket_id) }}" title="ดูข้อมูลการส่งรายการพัสดุ" class="btn btn-sm btn-outline-secondary">
                                   <i class="bi bi-eye"></i>
                                 </a>
-                              {% else %}
+                              {% endif %}
+                              {% if pr.fund_request_id %}
+                                <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=pr.fund_request_id) }}" title="ดูข้อมูลใบเบิกเงินสดย่อย" class="btn btn-sm btn-outline-secondary">
+                                  <i class="bi bi-eye"></i>
+                                </a>
+                              {% endif %}
+                              {% if not pr.display_ticket_id and not pr.fund_request_id %}
                                 <span class="text-muted small">-</span>
                               {% endif %}
+                              </div>
                             </td>
                           </tr>
                         {% endfor %}
                         {% for petty in result.petty_cash %}
                           <tr class="table-success-subtle">
-                            <td class="ps-3"><span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span></td>
+                            <td class="ps-3"><input type="checkbox" name="selected_claim_ids[]" value="{{ petty.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or petty.id in result.historical_claim_ids %}disabled{% endif %}></td>
+                            <td><span class="badge bg-success-subtle text-success-emphasis border px-2.5 py-1">เบิกจ่ายเงินสดย่อย</span></td>
                             <td>
                               <div class="fw-bold text-dark">{{ (petty.fund_request.ticket_number if petty.fund_request else none) or petty.display_claim_number or petty.claim_number or '-' }}</div>
                             </td>
@@ -456,7 +475,6 @@
                 </td>
                 <td>
                   <div class="fw-bold text-dark">{{ pr.display_ticket_number or '-' }}</div>
-                  <small class="text-muted">Ticket ID: {{ pr.display_ticket_id or pr.ticket_id or '-' }}</small>
                 </td>
                 <td>
                   <div class="fw-bold text-dark">{{ pr.display_borrower_name or '-' }}</div>
@@ -629,6 +647,36 @@
     document.getElementById('systemGuideline').innerText = formattedTotal;
 
     document.getElementById('totalAmountInput').value = formattedTotal;
+  }
+
+  function toggleClosingDocumentSelection(master, event) {
+    event.stopPropagation();
+    const panel = master.closest('.accordion-body');
+    panel.querySelectorAll('.closing-item-checkbox:not(:disabled)').forEach(box => {
+      box.checked = master.checked;
+    });
+  }
+
+  function prepareClosingSelection(button, event) {
+    const panel = button.closest('.accordion-body');
+    const selected = Array.from(panel.querySelectorAll('.closing-item-checkbox:checked'));
+    if (!selected.length) {
+      event.preventDefault();
+      event.stopPropagation();
+      window.alert('กรุณาเลือกรายการที่ต้องการดำเนินการก่อน');
+      return false;
+    }
+    const popupForm = document.getElementById('appPopupModalForm');
+    popupForm.querySelectorAll('.closing-selection-field').forEach(field => field.remove());
+    selected.forEach(box => {
+      const field = document.createElement('input');
+      field.type = 'hidden';
+      field.name = box.name;
+      field.value = box.value;
+      field.className = 'closing-selection-field';
+      popupForm.appendChild(field);
+    });
+    return true;
   }
 </script>
 {% endblock %}

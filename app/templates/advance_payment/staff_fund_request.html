@@ -105,41 +105,32 @@
             <!-- ช่องข้อมูลเฉพาะของ แบบฟอร์ม 31 -->
             <div id="section_form_interest" class="p-3 border rounded-3 mb-4 bg-light-subtle" style="display: none;">
               <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับขออนุมัติเบิกดอกเบี้ย</h6>
-              <div class="mb-2">
-                <label class="form-label fw-bold">งวดวันที่<span class="text-danger">*</span></label>
-                <div class="d-flex gap-3 mt-1">
-                  <div class="form-check">
-                    <input class="form-check-input" type="radio" name="period_year_radio" id="period_june" value="06/{{ current_year_be }}" checked>
-                    <label class="form-check-label fw-bold" for="period_june">
-                      มิถุนายน พ.ศ. {{ current_year_be }}
-                    </label>
+              <div class="row g-3 align-items-end">
+                <div class="col-lg-5">
+                  <label class="form-label fw-bold mb-2">งวดวันที่ <span class="text-danger">*</span></label>
+                  <div class="d-flex flex-wrap gap-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="period_year_radio" id="period_june" value="06/{{ current_year_be }}" checked>
+                      <label class="form-check-label fw-semibold" for="period_june">
+                        มิถุนายน พ.ศ. {{ current_year_be }}
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="period_year_radio" id="period_december" value="12/{{ current_year_be }}">
+                      <label class="form-check-label fw-semibold" for="period_december">
+                        ธันวาคม พ.ศ. {{ current_year_be }}
+                      </label>
+                    </div>
                   </div>
-                  <div class="form-check">
-                    <input class="form-check-input" type="radio" name="period_year_radio" id="period_december" value="12/{{ current_year_be }}">
-                    <label class="form-check-label fw-bold" for="period_december">
-                      ธันวาคม พ.ศ. {{ current_year_be }}
-                    </label>
-                  </div>
+                  <input type="hidden" name="period_year" id="hidden_period_year" value="">
                 </div>
-                <input type="hidden" name="period_year" id="hidden_period_year" value="">
-              </div>
-              <div class="mb-2">
-                <div class="row g-3 align-items-end">
-                  <div class="col-lg-4">
-                    <label for="receive_interest" class="form-label fw-bold">วันที่เงินเข้า</label>
-                    <input type="date" name="receive_interest" id="receive_interest" class="form-control">
-                  </div>
-                  <div class="col-lg-4">
-                    <label for="withdraw_intrest" class="form-label fw-bold">วันที่ทำการเบิก</label>
-                    <input type="date" name="withdraw_intrest" id="withdraw_intrest" class="form-control">
-                  </div>
-                  <div class="col-lg-4">
-                    <label for="withdrawal_proof_file" class="form-label fw-bold">หลักฐานการเบิก</label>
-                    <input type="file" name="withdrawal_proof_file" id="withdrawal_proof_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif">
-                  </div>
-                  <div class="col-12 text-end">
-                    <small class="text-muted d-block mt-1">แนบเอกสารหลักฐานการเบิกได้ เช่น ไฟล์สแกนหรือรูปถ่าย</small>
-                  </div>
+                <div class="col-lg-3">
+                  <label for="interest_request_date" class="form-label fw-bold mb-2">วันที่ทำการเบิก <span class="text-danger">*</span></label>
+                  {{ form.request_date(class="form-control", id="interest_request_date", type="date", required=True, disabled=True, style="border-radius: 10px;") }}
+                </div>
+                <div class="col-lg-4">
+                  <label for="withdrawal_proof_file" class="form-label fw-bold mb-2">หลักฐานการเบิก</label>
+                  <input type="file" name="withdrawal_proof_file" id="withdrawal_proof_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif">
                 </div>
               </div>
             </div>
@@ -539,6 +530,7 @@
       
       const inputPurpose = document.getElementById("purpose");
       const requestDateInput = document.getElementById("request_date");
+      const interestRequestDateInput = document.getElementById("interest_request_date");
       const borrowingRequestDateInput = document.getElementById("borrowing_request_date");
       const mainForm = document.getElementById("fundRequestForm");
       const userTotalInput = document.getElementById("user_total_amount");
@@ -638,6 +630,10 @@
         if (requestDateInput) {
           requestDateInput.required = pettyCashRadio.checked;
           requestDateInput.disabled = !pettyCashRadio.checked;
+        }
+        if (interestRequestDateInput) {
+          interestRequestDateInput.required = interestRadio.checked;
+          interestRequestDateInput.disabled = !interestRadio.checked;
         }
         if (borrowingRequestDateInput) {
           borrowingRequestDateInput.required = borrowingRadio.checked;
@@ -794,6 +790,7 @@
         const lockedInputs = mainForm.querySelectorAll("input[disabled], select[disabled], input[readonly], select[readonly]");
         lockedInputs.forEach(input => {
           if (input === requestDateInput && !pettyCashRadio.checked) return;
+          if (input === interestRequestDateInput && !interestRadio.checked) return;
           if (input === borrowingRequestDateInput && !borrowingRadio.checked) return;
           input.removeAttribute("disabled");
           input.removeAttribute("readonly");

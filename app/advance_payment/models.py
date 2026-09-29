@@ -643,7 +643,7 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
 
 
 class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
-    """คู่ข้อมูลยกยอดเงินสดย่อยที่กรอกโดยการเงินและผู้คุมบัญชีคนละฝั่ง."""
+    """ข้อมูลยกยอดเงินสดย่อยที่กรอกโดยฝ่ายการเงิน."""
 
     __tablename__ = "petty_cash_fiscal_year_carryovers"
     __table_args__ = (
@@ -655,7 +655,6 @@ class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
 
     id = Column(Integer, primary_key=True)
     org_id = Column(Integer, ForeignKey("orgs.id"), nullable=False, index=True)
-    custodian_id = Column(Integer, ForeignKey("staff_account.id"), nullable=False, index=True)
     source_fiscal_year = Column(Integer, nullable=False)
     target_fiscal_year = Column(Integer, nullable=False)
     finance_budget = Column(Numeric(12, 2), nullable=True)
@@ -676,11 +675,6 @@ class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
     @property
     def department_name(self):
         return getattr(self.org, "name", None)
-
-    @property
-    def custodian_name(self):
-        custodian = _session_get(object_session(self), StaffAccount, self.custodian_id)
-        return getattr(custodian, "name", None) or getattr(custodian, "fullname", None)
 
     @property
     def is_complete(self):
@@ -749,8 +743,6 @@ class FundRequest(FinanceEditMixin, db.Model):
     form_type = Column(String(10), nullable=False)
     ticket_number = Column(String(64), nullable=True)
     request_date = Column(Date, nullable=False)
-    receive_interest = Column(Date, nullable=True)
-    withdraw_intrest = Column(Date, nullable=True)
     status = Column(String(64), nullable=False, default="อนุมัติแล้ว")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
@@ -834,15 +826,6 @@ class FundRequest(FinanceEditMixin, db.Model):
         if setting is not None:
             return getattr(setting, "account_number", None)
         return None
-
-    @property
-    def fund_in_date(self):
-        return self.receive_interest
-
-    @property
-    def withdrawal_date(self):
-        return self.withdraw_intrest
-
 
 class FundRequestItem(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_request_items"
