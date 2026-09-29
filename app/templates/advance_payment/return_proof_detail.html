@@ -156,6 +156,7 @@
 
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
   <h3 class="h5 fw-bold mb-4">รายการไฟล์หลักฐานที่แนบมา</h3>
+    {% if return_detail.note %}<span class="text-danger">หมายเหตุ: {{return_detail.note}}</span>{% endif %}
     {% if proof_files %}
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -166,7 +167,7 @@
                 <th scope="col">ชื่อร้านค้า / ผู้รับเงิน</th>
                 <th scope="col">รายการ</th>
                 <th scope="col">จำนวนเงิน</th>
-                <th scope="col" style="width: 100px;">ไฟล์หลักฐาน</th>
+                <th scope="col">ไฟล์หลักฐาน</th>
                 <th scope="col">วันที่แก้ไขล่าสุด</th>
                 <th scope="col">เปิดดูไฟล์</th>
                 {% if session.get('advance_payment_system') == 'advance_payment' %}

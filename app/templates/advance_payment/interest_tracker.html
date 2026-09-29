@@ -1,0 +1,75 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}ติดตามการนำส่งดอกเบี้ยธนาคาร | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+<header class="mb-4 pb-2 border-bottom d-flex justify-content-between align-items-end gap-3">
+  <div>
+    <p class="text-uppercase fw-bold text-primary small mb-1 pt-3" style="letter-spacing: 0.1em; font-size: 0.75rem;">
+      <i class="bi bi-bank me-1"></i> ติดตามเงินสดย่อย
+    </p>
+    <h1 class="fw-bold display-6 mb-2">ติดตามการนำส่งดอกเบี้ยธนาคาร</h1>
+  </div>
+  <a href="{{ url_for('advance_payment.petty_cash_claim_history') }}" class="btn btn-light fw-bold px-4 py-2 mb-2" style="border-radius: 10px;">
+    <i class="bi bi-arrow-left me-1"></i> กลับไปประวัติรายการ
+  </a>
+</header>
+
+<section class="mb-5">
+  <div class="card-body px-4 pb-4 pt-2">
+    <div class="card border-0 rounded-4 shadow-sm bg-light overflow-hidden">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-white text-muted small text-uppercase" style="border-bottom: 2px solid #edf2f7;">
+              <tr>
+                <th class="ps-4 py-3 fw-bold">หน่วยงาน</th>
+                <th class="py-3 fw-bold">ผู้รักษาเงินสดย่อย</th>
+                <th class="py-3 fw-bold">สถานะนำส่งดอกเบี้ย</th>
+                <th class="pe-4 py-3 fw-bold text-end">รอบที่ค้างชำระ</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white">
+              {% if pending_interest_departments %}
+                {% for item in pending_interest_departments %}
+                <tr class="{% if not item.is_submitted %}table-danger-subtle bg-opacity-10{% endif %}">
+                  <td class="ps-4 py-3 fw-semibold text-dark">{{ item.department_name }}</td>
+                  <td class="py-3 text-muted">{{ item.custodian_name or '-' }}</td>
+                  <td class="py-3">
+                    {% if item.is_submitted %}
+                      {% if item.withdrawal_proof_reference %}
+                        <a href="{{ item.withdrawal_proof_reference|advance_payment_file_url }}" target="_blank" rel="noopener" class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle text-decoration-none">
+                          <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
+                          <i class="bi bi-paperclip ms-1" title="{{ item.withdrawal_proof_filename or 'ดูหลักฐานการเบิก' }}"></i>
+                        </a>
+                      {% else %}
+                        <span class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle">
+                          <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
+                        </span>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5 rounded-pill fw-semibold border border-danger-subtle">
+                        <i class="bi bi-x-circle-fill me-1"></i> มีดอกเบี้ยค้างส่ง
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="pe-4 py-3 text-end {% if not item.is_submitted %}fw-bold text-danger{% else %}text-muted{% endif %} small">
+                    {{ item.pending_periods|join(', ') if not item.is_submitted else '-' }}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted py-4">
+                    ไม่มีรายการค้างส่งดอกเบี้ยธนาคาร
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
