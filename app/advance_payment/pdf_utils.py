@@ -1361,10 +1361,10 @@ def generate_petty_claim(claim, claim_type="1"):
     )
     if no_approval_letter:
         story.append(Paragraph(
-            f"ในการนี้ จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
+            f"ในการนี้&nbsp;จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติในหลักการค่าใช้จ่ายในการ{request_purpose} จำนวน {amount_numeric} บาท ({amount_text}) จากเงินรายได้คณะฯ "
             f"ประจำปีงบประมาณ {fiscal_year_label} ผลผลิต {product_name} รหัสศูนย์ต้นทุน {cost_center_label} รหัสใบสั่งงานภายใน {mission_label} "
             f"เอกสารฉบับนี้ส่งคืนบัญชี {account_name} เลขที่บัญชี {account_number} เพื่อทำการขอเบิกเงินเข้าบัญชีเงินสดย่อยของหน่วยงานต่อไป ดังรายละเอียดตามเอกสารที่แนบมาพร้อมนี้"
-            , claim_body,
+            ,styles['ThaiOfficial'],
         ))
     else:
         story.append(Paragraph(ref_text, claim_style))
