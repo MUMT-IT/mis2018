@@ -730,14 +730,8 @@ def generate_fnar02_pdf(ticket):
 
     # 2. ใช้ลำดับผู้อนุมัติเดียวกับ staff.record_each_request_leave_request
     # หน้า 1 แสดงทั้ง lower และ middle หากมีข้อมูลทั้งสองระดับ
+    # FNAR02 intentionally leaves this blank instead of falling back to org.head.
     leave_approver_signatures = _get_leave_approver_signatures(ticket)
-    if leave_approver_signatures:
-        head_name, head_position = leave_approver_signatures[0]
-    else:
-        # Preserve the existing organization-head fallback for tickets whose
-        # borrower has no leave-approval configuration yet.
-        head_name, head_position = _get_head_signature(ticket=ticket)
-        leave_approver_signatures = [(head_name, head_position)]
 
     # แปลงข้อมูลวันที่ และงบประมาณ
     date_thai = get_thai_month_year(ticket.request_date) if hasattr(ticket, 'request_date') and ticket.request_date else PDF_BLANK
@@ -874,7 +868,7 @@ def generate_fnar02_pdf(ticket):
     ข้าพเจ้า &nbsp;&nbsp;{borrower_name}&nbsp;&nbsp; ตำแหน่ง &nbsp;&nbsp;{borrower_position}<br/>
     สังกัด &nbsp;&nbsp;{department_name} มหาวิทยาลัยมหิดล<br/>
     มีความประสงค์ขอยืมเงินจาก คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
-    เพื่อเป็นค่าใช้จ่ายใน&nbsp;&nbsp;{getattr(ticket, 'borrowing_ticket_purpose', None) or ticket.borrowing_ticket_name or PDF_BLANK}
+    เพื่อทดรองจ่าย&nbsp;&nbsp;{getattr(ticket, 'borrowing_ticket_purpose', None) or ticket.borrowing_ticket_name or PDF_BLANK}
     """
     p_borrower = Paragraph(borrower_html, styles['ThaiNormal'])
     p_amt_txt = Paragraph(f"(ตัวอักษร) ( &nbsp;&nbsp;{amount_text} &nbsp;&nbsp;)", styles['ThaiCenter'])
@@ -887,22 +881,25 @@ def generate_fnar02_pdf(ticket):
         line_suffix=None,
     ):
         """Render FNAR02 signature/date fields in a stable, borderless grid."""
+        sign_dot = "............................................................................."
         signature_label_width = max(
-            48,
-            pdfmetrics.stringWidth(signature_label, 'Sarabun', DEFAULT_FONT_SIZE) + 6,
+            1,
+            pdfmetrics.stringWidth(signature_label, 'Sarabun', DEFAULT_FONT_SIZE) + 2,
         )
+        dotted_width = pdfmetrics.stringWidth(
+            sign_dot,
+            'Sarabun',
+            DEFAULT_FONT_SIZE,
+        ) + 2
         suffix_width = (
-            max(1, pdfmetrics.stringWidth(line_suffix, 'Sarabun', DEFAULT_FONT_SIZE) + 6)
+            max(1, pdfmetrics.stringWidth(line_suffix, 'Sarabun', DEFAULT_FONT_SIZE) + 2)
             if line_suffix
             else 1
         )
-        dotted_width = 300 - signature_label_width - suffix_width
-        dot_width = pdfmetrics.stringWidth('.', 'Sarabun', DEFAULT_FONT_SIZE)
-        dot_count = max(20, int(dotted_width / dot_width * 0.6))
         signature_line_table = Table(
             [[
                 Paragraph(signature_label, styles['ThaiCenter']),
-                Paragraph("." * dot_count, styles['ThaiCenter']),
+                Paragraph(sign_dot, styles['ThaiCenter']),
                 Paragraph(line_suffix or "", styles['ThaiCenter']),
             ], [
                 "",
@@ -923,6 +920,7 @@ def generate_fnar02_pdf(ticket):
             ('TOPPADDING', (0, 0), (-1, -1), 0),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
         ]))
+        signature_line_table.hAlign = 'CENTER'
         date_cell = Paragraph(
             "วันที่ .........................................................",
             styles['ThaiCenter'],

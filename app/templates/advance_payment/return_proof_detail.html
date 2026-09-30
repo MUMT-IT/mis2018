@@ -258,7 +258,7 @@
                         <div class="mb-3">
                           <label class="form-label fw-bold text-secondary small">วันที่ในใบเสร็จ</label>
                           <!-- เพิ่ม class modal-receipt-date-input -->
-                          <input type="date" name="receipt_date" class="form-control modal-receipt-date-input" value="{{ file.receipt_item.receipt_date.strftime('%Y-%m-%d') if file.receipt_item and file.receipt_item.receipt_date else '' }}" required>
+                          <input type="text" name="receipt_date" class="form-control modal-receipt-date-input app-date-picker" value="{{ file.receipt_item.receipt_date.strftime('%Y-%m-%d') if file.receipt_item and file.receipt_item.receipt_date else '' }}" placeholder="dd/mm/yyyy" required>
                           
                           <!-- แท็กแสดงข้อความแจ้งเตือนเมื่อเกิน 10 วัน -->
                           <small class="text-danger d-none modal-receipt-age-warning mt-1 d-block small"></small>
@@ -391,8 +391,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function checkModalReceiptAge(receiptDateValue) {
   if (!receiptDateValue) return "";
 
-  const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
-  if (Number.isNaN(receiptDate.getTime())) return "";
+  const receiptDate = window.appParseDate(receiptDateValue);
+  if (!receiptDate) return "";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
