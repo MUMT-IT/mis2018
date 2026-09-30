@@ -178,6 +178,13 @@ BANK_ACCOUNT_TYPE_LABELS = {
     "cash_advance": "เงินยืม",
 }
 
+PARCEL_RETURN_TYPE_LABELS = {
+    1: "ว-119",
+    5: "ว-5763",
+}
+
+CIRCULAR_RETURN_REFERENCE_DRIVE_ID = "1ZhYI4pAD4sOSV0LlkaTAM--HnA4ugatE"
+
 MODULE_ROLE_LABELS = {
     FINANCE_SYSTEM: "ฝ่ายการเงิน",
     PETTY_CASH_SYSTEM: "ระบบเงินสดย่อย",
@@ -947,6 +954,7 @@ def _attach_parcel_return_context(parcel_return):
     fund_request = _get_fund_request_by_id(getattr(parcel_return, "fund_request_id", None))
     parcel_return.borrowing_ticket = ticket
     parcel_return.fund_request = fund_request
+    parcel_return.type_label = PARCEL_RETURN_TYPE_LABELS.get(parcel_return.type)
 
     if ticket:
         borrower_user = _get_user_by_id(getattr(ticket, "borrower_id", None))
@@ -1570,6 +1578,26 @@ def _resolve_docs_query_document(identifier=None, title=None):
             return document
 
     return None
+
+
+def _get_circular_return_reference_document():
+    document = (
+        db.session.query(DocsQueryDocument)
+        .filter(
+            DocsQueryDocument.drive_file_id
+            == CIRCULAR_RETURN_REFERENCE_DRIVE_ID
+        )
+        .first()
+    )
+    if document is not None:
+        return document
+
+    # Keep the reference visible even when this environment has not imported
+    # the document metadata yet. The URL still comes from drive_view_url.
+    return DocsQueryDocument(
+        drive_file_id=CIRCULAR_RETURN_REFERENCE_DRIVE_ID,
+        document_title="เอกสารอ้างอิง ว-119 / ว-5763",
+    )
 
 
 def _attach_document_source_context(document):
@@ -3282,6 +3310,7 @@ def coordinator_dashboard():
         dashboard_scope=dashboard_scope,
         pdf_reference_options=_pdf_reference_options(),
         pdf_fiscal_year_default=convert_to_fiscal_year(datetime.now().date()),
+        circular_return_reference_document=_get_circular_return_reference_document(),
     )
 
 @bp.route("/coordinator/ticket/<int:ticket_id>/pdf", endpoint="coordinator_ticket_pdf")
@@ -3872,6 +3901,8 @@ def verification_view(ticket_id):
         .order_by(ParcelReturnDetail.id.desc())
         .all()
     )
+    for parcel_return in parcel_returns:
+        _attach_parcel_return_context(parcel_return)
 
     for return_detail in return_details:
         numbered_descriptions = []
@@ -3965,15 +3996,29 @@ def verification_view(ticket_id):
             .order_by(BorrowingTicket.id.asc())
             .all()
         ),
+        circular_return_reference_document=_get_circular_return_reference_document(),
     )
 
-def _create_parcel_return_record(*, ticket_id=None, ticket_ids=None, fund_request_id=None, amount, items_description, sent_date, status="รอตรวจสอบ"):
+def _create_parcel_return_record(
+    *,
+    ticket_id=None,
+    ticket_ids=None,
+    fund_request_id=None,
+    amount,
+    items_description,
+    sent_date,
+    parcel_type=None,
+    status="รอตรวจสอบ",
+):
+    if parcel_type not in (None, *PARCEL_RETURN_TYPE_LABELS):
+        raise ValueError("ประเภทการคืนพัสดุไม่ถูกต้อง")
     parcel_return = ParcelReturnDetail(
         ticket_id=ticket_id,
         fund_request_id=fund_request_id,
         amount_spent=amount,
         items_description=items_description,
         sent_date=sent_date,
+        type=parcel_type,
         status=status,
         created_at=datetime.now(),
     )
@@ -4585,6 +4630,36 @@ def submit_return_details():
         except (TypeError, ValueError):
             return _validation_error_response("กรุณาระบุข้อมูลส่งคืนฝ่ายพัสดุให้ถูกต้อง")
 
+    circular_types_raw = request.form.getlist("circular_type")
+    circular_amount_raw = (request.form.get("circular_amount") or "").replace(",", "").strip()
+    circular_items_description = (request.form.get("circular_items_description") or "").strip()
+    circular_sent_date_raw = (request.form.get("circular_sent_date") or "").strip()
+    has_circular_data = bool(circular_types_raw) or any(
+        (circular_amount_raw, circular_items_description, circular_sent_date_raw)
+    )
+    circular_type = None
+    circular_amount = None
+    circular_sent_date = None
+
+    if not is_draft and has_circular_data:
+        if len(circular_types_raw) != 1:
+            return _validation_error_response("กรุณาเลือกประเภท ว-119 หรือ ว-5763 เพียงหนึ่งประเภท")
+        try:
+            circular_type = int(circular_types_raw[0])
+        except (TypeError, ValueError):
+            circular_type = None
+        if circular_type not in PARCEL_RETURN_TYPE_LABELS:
+            return _validation_error_response("ประเภท ว-119 / ว-5763 ไม่ถูกต้อง")
+        if not circular_amount_raw or not circular_items_description or not circular_sent_date_raw:
+            return _validation_error_response("กรุณากรอกข้อมูลยอดการคืนที่ส่ง ว-119 / ว-5763 ให้ครบถ้วน")
+        try:
+            circular_amount = float(circular_amount_raw)
+            circular_sent_date = datetime.strptime(circular_sent_date_raw, "%Y-%m-%d").date()
+            if circular_amount < 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return _validation_error_response("กรุณาระบุข้อมูลยอดการคืนที่ส่ง ว-119 / ว-5763 ให้ถูกต้อง")
+
     cash_return_date_raw = (request.form.get("cash_return_date") or "").strip()
     cash_return_amount_raw = (request.form.get("cash_return_amount") or "").replace(",", "").strip()
     cash_return_existing_proof = request.form.getlist("cash_return_existing_proof")
@@ -4613,7 +4688,13 @@ def submit_return_details():
         except (TypeError, ValueError):
             cash_return_amount = 0.0
 
-    if not is_draft and not has_parcel_data and not has_cash_data and not request.form.getlist("receipt_date[]"):
+    if (
+        not is_draft
+        and not has_parcel_data
+        and not has_circular_data
+        and not has_cash_data
+        and not request.form.getlist("receipt_date[]")
+    ):
         return _validation_error_response(
             "กรุณาเพิ่มข้อมูลส่งคืนฝ่ายพัสดุหรือรายละเอียดใบเสร็จอย่างน้อย 1 รายการ"
         )
@@ -4635,20 +4716,52 @@ def submit_return_details():
         descriptions = []
         amounts = []
 
-    if not is_draft and not has_receipt_data and not has_parcel_data and not has_cash_data:
+    if not is_draft and not has_receipt_data and not has_parcel_data and not has_circular_data and not has_cash_data:
         return _validation_error_response("กรุณาเพิ่มรายละเอียดใบเสร็จอย่างน้อย 1 รายการ")
 
-    if not is_draft and not has_receipt_data and parcel_amount is not None and not has_cash_data:
-        try:
-            _create_parcel_return_record(
-                ticket_id=ticket_id,
-                ticket_ids=selected_ticket_ids,
-                fund_request_id=None,
-                amount=parcel_amount,
-                items_description=parcel_items_description,
-                sent_date=parcel_sent_date,
-                status="รอตรวจสอบ",
+    if (
+        not is_draft
+        and not has_receipt_data
+        and (parcel_amount is not None or circular_amount is not None)
+        and not has_cash_data
+    ):
+        ticket_totals = _calculate_return_submission_totals(selected_ticket_ids)
+        projected_total = (
+            ticket_totals["cumulative_total"]
+            + (parcel_amount or 0)
+            + (circular_amount or 0)
+        )
+        if _is_over_limit(projected_total, ticket_totals["budget"]):
+            return _redirect_with_limit_popup(
+                url_for(_dashboard_endpoint_for_role(_current_module_role())),
+                (
+                    "ยอดรวมเอกสารส่งใช้เงินยืมและส่งคืนพัสดุจะเป็น "
+                    f"{_format_currency_amount(projected_total)} บาท "
+                    f"ซึ่งเกินวงเงิน {_format_currency_amount(ticket_totals['budget'])} บาท"
+                ),
             )
+        try:
+            if parcel_amount is not None:
+                _create_parcel_return_record(
+                    ticket_id=ticket_id,
+                    ticket_ids=selected_ticket_ids,
+                    fund_request_id=None,
+                    amount=parcel_amount,
+                    items_description=parcel_items_description,
+                    sent_date=parcel_sent_date,
+                    status="รอตรวจสอบ",
+                )
+            if circular_amount is not None:
+                _create_parcel_return_record(
+                    ticket_id=ticket_id,
+                    ticket_ids=selected_ticket_ids,
+                    fund_request_id=None,
+                    amount=circular_amount,
+                    items_description=circular_items_description,
+                    sent_date=circular_sent_date,
+                    parcel_type=circular_type,
+                    status="รอตรวจสอบ",
+                )
         except IntegrityError:
             db.session.rollback()
             return _validation_error_response(
@@ -4725,6 +4838,7 @@ def submit_return_details():
             ticket_totals["cumulative_total"]
             + total_amount_spent
             + (parcel_amount or 0)
+            + (circular_amount or 0)
             + (cash_return_amount or 0)
         )
         if _is_over_limit(projected_total, ticket_totals["budget"]):
@@ -4855,6 +4969,18 @@ def submit_return_details():
             amount=parcel_amount,
             items_description=parcel_items_description,
             sent_date=parcel_sent_date,
+            status="รอตรวจสอบ",
+        )
+
+    if circular_amount is not None:
+        _create_parcel_return_record(
+            ticket_id=ticket_id,
+            ticket_ids=selected_ticket_ids,
+            fund_request_id=None,
+            amount=circular_amount,
+            items_description=circular_items_description,
+            sent_date=circular_sent_date,
+            parcel_type=circular_type,
             status="รอตรวจสอบ",
         )
 
@@ -5582,6 +5708,7 @@ def return_records_history():
             "account_number": account_number or (ticket.account_number if ticket else ""),
             "amount_spent": float(record.amount_spent or 0),
             "total_amount": float(record.amount_spent or 0),
+            "type_label": record.type_label,
             "status": record.status,
             "created_at": record.created_at if hasattr(record, 'created_at') else None,
             "closed_at": closing_document.filing_date if closing_document else None,
@@ -5817,6 +5944,7 @@ def petty_cash_claim_history():
             "account_number": account_number or (ticket.account_number if ticket else ""),
             "amount_spent": float(record.amount_spent or 0),
             "total_amount": float(record.amount_spent or 0),
+            "type_label": record.type_label,
             "status": record.status,
             "created_at": record.created_at if hasattr(record, 'created_at') else None,
             "closed_at": closing_document.filing_date if closing_document else None,
@@ -6493,6 +6621,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             "borrower_name": borrower_name,
             "amount_spent": float(pr.amount_spent or 0),
             "items_description": pr.items_description,
+            "type_label": pr.type_label,
             "status": pr.status,
             "created_at": pr.created_at,
         })
@@ -7939,6 +8068,53 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
                 )
 
+        circular_types_raw = request.form.getlist("circular_type")
+        circular_amount_raw = (request.form.get("circular_amount") or "").replace(",", "").strip()
+        circular_items_description = (request.form.get("circular_items_description") or "").strip()
+        circular_sent_date_raw = (request.form.get("circular_sent_date") or "").strip()
+        has_circular_data = bool(circular_types_raw) or any(
+            (circular_amount_raw, circular_items_description, circular_sent_date_raw)
+        )
+        circular_type = None
+        circular_amount = None
+        circular_sent_date = None
+
+        if not is_draft and has_circular_data:
+            if not fund_request_id:
+                return _validation_redirect_response(
+                    "กรุณาเลือกคำขอเบิกเงินก่อนส่งข้อมูล ว-119 / ว-5763",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim"),
+                )
+            if len(circular_types_raw) != 1:
+                return _validation_redirect_response(
+                    "กรุณาเลือกประเภท ว-119 หรือ ว-5763 เพียงหนึ่งประเภท",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
+            try:
+                circular_type = int(circular_types_raw[0])
+            except (TypeError, ValueError):
+                circular_type = None
+            if circular_type not in PARCEL_RETURN_TYPE_LABELS:
+                return _validation_redirect_response(
+                    "ประเภท ว-119 / ว-5763 ไม่ถูกต้อง",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
+            if not circular_amount_raw or not circular_items_description or not circular_sent_date_raw:
+                return _validation_redirect_response(
+                    "กรุณากรอกข้อมูลยอดการคืนที่ส่ง ว-119 / ว-5763 ให้ครบถ้วน",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
+            try:
+                circular_amount = float(circular_amount_raw)
+                circular_sent_date = datetime.strptime(circular_sent_date_raw, "%Y-%m-%d").date()
+                if circular_amount < 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return _validation_redirect_response(
+                    "กรุณาระบุข้อมูลยอดการคืนที่ส่ง ว-119 / ว-5763 ให้ถูกต้อง",
+                    request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
+                )
+
         cash_return_date_raw = (request.form.get("cash_return_date") or "").strip()
         cash_return_amount_raw = (request.form.get("cash_return_amount") or "").replace(",", "").strip()
         cash_return_existing_proof = request.form.getlist("cash_return_existing_proof")
@@ -7986,7 +8162,13 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             for key, file_storage in request.files.items()
             if key.startswith("proof_files_") or key == "reference_files[]"
         )
-        if not is_draft and not has_claim_data and not has_parcel_data and not has_cash_return_data:
+        if (
+            not is_draft
+            and not has_claim_data
+            and not has_parcel_data
+            and not has_circular_data
+            and not has_cash_return_data
+        ):
             return _validation_redirect_response(
                 "กรุณากรอกข้อมูลรายการเบิกหรือข้อมูลส่งคืนฝ่ายพัสดุอย่างน้อยหนึ่งรายการ",
                 request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
@@ -7997,9 +8179,18 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             category_types = []
             amounts = []
 
-        if not is_draft and not has_claim_data and parcel_amount is not None and not has_cash_return_data:
+        if (
+            not is_draft
+            and not has_claim_data
+            and (parcel_amount is not None or circular_amount is not None)
+            and not has_cash_return_data
+        ):
             fund_totals = _calculate_fund_request_totals(fund_request_id)
-            projected_total = fund_totals["cumulative_total"] + parcel_amount
+            projected_total = (
+                fund_totals["cumulative_total"]
+                + (parcel_amount or 0)
+                + (circular_amount or 0)
+            )
             if _is_over_limit(projected_total, fund_totals["request_amount"]):
                 return _redirect_with_limit_popup(
                     request.referrer or url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
@@ -8009,14 +8200,25 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                         f"{_format_currency_amount(fund_totals['request_amount'])} บาท"
                     ),
                 )
-            _create_parcel_return_record(
-                ticket_id=None,
-                fund_request_id=fund_request_id,
-                amount=parcel_amount,
-                items_description=parcel_items_description,
-                sent_date=parcel_sent_date,
-                status="รอตรวจสอบ",
-            )
+            if parcel_amount is not None:
+                _create_parcel_return_record(
+                    ticket_id=None,
+                    fund_request_id=fund_request_id,
+                    amount=parcel_amount,
+                    items_description=parcel_items_description,
+                    sent_date=parcel_sent_date,
+                    status="รอตรวจสอบ",
+                )
+            if circular_amount is not None:
+                _create_parcel_return_record(
+                    ticket_id=None,
+                    fund_request_id=fund_request_id,
+                    amount=circular_amount,
+                    items_description=circular_items_description,
+                    sent_date=circular_sent_date,
+                    parcel_type=circular_type,
+                    status="รอตรวจสอบ",
+                )
             db.session.commit()
             flash("บันทึกข้อมูลการส่งคืนฝ่ายพัสดุเรียบร้อยแล้ว", "success")
             return submit_petty_cash_claim(
@@ -8105,6 +8307,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 fund_totals["cumulative_total"]
                 + total_claim_amount
                 + (parcel_amount or 0)
+                + (circular_amount or 0)
                 + (cash_return_amount or 0)
             )
             if _is_over_limit(projected_total, fund_totals["request_amount"]):
@@ -8321,6 +8524,17 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 status="รอตรวจสอบ",
             )
 
+        if circular_amount is not None:
+            _create_parcel_return_record(
+                ticket_id=None,
+                fund_request_id=fund_request_id,
+                amount=circular_amount,
+                items_description=circular_items_description,
+                sent_date=circular_sent_date,
+                parcel_type=circular_type,
+                status="รอตรวจสอบ",
+            )
+
         # ตรวจสอบยอดและเปลี่ยนสถานะ FundRequest เมื่อส่งเบิก (ไม่ใช่ Draft)
         if not is_draft and fund_request_id:
             fund_req = db.session.query(FundRequest).get(fund_request_id)
@@ -8510,6 +8724,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_amount=verification_amount,
         verification_status=verification_status,
         fund_request_status_steps=FUND_REQUEST_STATUS_STEPS,
+        circular_return_reference_document=_get_circular_return_reference_document(),
     )
 
 
@@ -9263,14 +9478,12 @@ def petty_cash_ledger():
         # summary must include every non-cancelled/non-rejected document that
         # still requires action, including requests from previous months.
         summary_fund_requests = (
-            db.session.query(FundRequest)
-            .filter(
-                or_(*fund_request_scope),
-                ~FundRequest.status.in_(["ยกเลิก"]),
+            _fund_request_setting_filter(
+                db.session.query(FundRequest),
+                current_setting,
             )
+            .filter(~FundRequest.status.in_(["ยกเลิก"]))
             .all()
-            if department_name or account_number
-            else approved_fund_requests
         )
         summary = summarize_petty_cash_month(selected_month_start, summary_fund_requests, all_claims)
         department_data = get_department_data_service(department_name) or {}
@@ -9281,18 +9494,19 @@ def petty_cash_ledger():
             summary=summary,
             telephone_number=department_data.get("telephone_number", ""),
         )
-        # Use the same department/account scope as the ledger, including all
+        # Use the same petty-cash setting scope as the ledger, including all
         # request statuses as requested for the monthly attachment bundle.
         monthly_requests = (
-            db.session.query(FundRequest)
+            _fund_request_setting_filter(
+                db.session.query(FundRequest),
+                current_setting,
+            )
             .filter(
-                or_(*fund_request_scope),
                 FundRequest.request_date >= selected_month_start,
                 FundRequest.request_date < next_month_start,
             )
             .order_by(FundRequest.request_date.asc(), FundRequest.id.asc())
             .all()
-            if department_name or account_number else []
         )
         pdf_bytes = append_petty_cash_monthly_attachments(
             pdf_bytes, setting=current_setting, month_start=selected_month_start,

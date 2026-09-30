@@ -36,6 +36,22 @@
     <span class="badge {{ status_badge_class(status) }} {{ extra_classes }}">{{ label if label is not none else (status or '-') }}</span>
   {%- endmacro %}
 
+  {% macro parcel_return_type_badge(type_label, extra_classes='') -%}
+    {% if type_label == 'ว-119' %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle {{ extra_classes }}">
+        <i class="bi bi-file-earmark-text me-1"></i>{{ type_label }}
+      </span>
+    {% elif type_label == 'ว-5763' %}
+      <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle {{ extra_classes }}">
+        <i class="bi bi-file-earmark-text me-1"></i>{{ type_label }}
+      </span>
+    {% else %}
+      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle {{ extra_classes }}">
+        <i class="bi bi-box-seam me-1"></i>ส่งคืนพัสดุ
+      </span>
+    {% endif %}
+  {%- endmacro %}
+
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -222,6 +238,78 @@
       }
       .rejected-followup-message {
         animation: rejected-followup-blink 1.2s ease-in-out infinite;
+      }
+      .circular-reference-tooltip {
+        position: relative;
+        display: inline-flex;
+        flex: 0 0 auto;
+      }
+      .circular-reference-tooltip__trigger {
+        width: auto;
+        min-height: 1.75rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.6rem;
+        border: 1px solid #dc3545;
+        border-radius: 999px;
+        background: #fff;
+        color: #dc3545;
+        line-height: 1;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .circular-reference-tooltip__trigger:hover,
+      .circular-reference-tooltip__trigger:focus-visible {
+        background: #dc3545;
+        color: #fff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.2);
+      }
+      .circular-reference-tooltip__panel {
+        position: absolute;
+        top: calc(100% + 0.6rem);
+        right: 0;
+        z-index: 1085;
+        width: min(24rem, calc(100vw - 3rem));
+        max-height: 22rem;
+        overflow-y: auto;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.75rem;
+        background: #fff;
+        color: #212529;
+        box-shadow: 0 0.75rem 1.75rem rgba(15, 23, 42, 0.18);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-0.3rem);
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+      }
+      .circular-reference-tooltip:hover .circular-reference-tooltip__panel,
+      .circular-reference-tooltip:focus-within .circular-reference-tooltip__panel {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .circular-reference-tooltip__panel::before {
+        content: "";
+        position: absolute;
+        top: -0.45rem;
+        right: 0.55rem;
+        width: 0.8rem;
+        height: 0.8rem;
+        border-top: 1px solid #dee2e6;
+        border-left: 1px solid #dee2e6;
+        background: #fff;
+        transform: rotate(45deg);
+      }
+      .circular-reference-tooltip__text {
+        white-space: pre-line;
+        overflow-wrap: anywhere;
       }
       @keyframes rejected-followup-blink {
         0%, 100% { opacity: 1; }

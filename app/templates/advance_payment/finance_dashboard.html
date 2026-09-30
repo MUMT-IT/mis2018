@@ -182,9 +182,7 @@
                       <td><strong>{{ parcel.display_ticket_number if parcel.display_ticket_number is defined else "-" }}</strong></td>
                       <td>{{ parcel.display_borrower_name if parcel.display_borrower_name is defined else "-" }}</td>
                       <td>
-                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1">
-                          <i class="bi bi-box me-1"></i>ส่งคืนพัสดุ
-                        </span>
+                        {{ parcel_return_type_badge(parcel.type_label, 'px-2.5 py-1') }}
                       </td>
                       <td class="fw-semibold text-end">{{ "{:,.2f}".format(parcel.amount_spent|float) if parcel.amount_spent else '0.00' }}</td>
                       <td class="text-center">{{ parcel.created_at|thai_date if parcel.created_at else '-' }}</td>

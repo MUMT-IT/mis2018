@@ -161,18 +161,8 @@
 
                 <div class="row g-3 mb-3">
                   <div class="col-md-6">
-                    <label for="aip_ref_no" class="form-label fw-bold">เลขที่อนุมัติในหลักการ (หากมีมากกว่าหนึ่ง คั่นด้วยสัญลักษณ์ ",")</label>
-                    <div class="input-group">
-                      <span class="input-group-text">อว</span>
-                      <input
-                        id="aip_ref_no"
-                        name="aip_ref_no"
-                        type="text"
-                        value="{{ borrowing_ticket_form.aip_ref_no.data or '' }}"
-                        class="form-control"
-                        required
-                      >
-                    </div>
+                    <label for="aip_ref_no" class="form-label fw-bold">เลขที่อนุมัติในหลักการ (หากมีมากกว่าหนึ่ง คั่นด้วยสัญลักษณ์ "," เช่น อว.78.04/1, อว.78.04/11)</label>
+                    <input id="aip_ref_no" name="aip_ref_no" type="text" value="{{ borrowing_ticket_form.aip_ref_no.data or '' }}" class="form-control" required>
                     {% for error in borrowing_ticket_form.aip_ref_no.errors %}
                       <div class="text-danger small mt-1">{{ error }}</div>
                     {% endfor %}
@@ -461,7 +451,7 @@
                 {% set parcel_status = parcel_return.status|lower %}
                 <tr class="ticket-row align-top"
                     data-number="{{ parcel_return.display_ticket_number or '' }}"
-                    data-project="ส่งคืนพัสดุ {{ parcel_return.items_description or '' }}"
+                    data-project="ส่งคืนพัสดุ {{ parcel_return.items_description or '' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}"
                     data-borrower="{{ parcel_return.display_borrower_name or '' }}"
                     data-email=""
                     data-status="{{ parcel_return.status or '' }}"
@@ -472,8 +462,8 @@
                     {% if parcel_return.display_subject_name and parcel_return.display_subject_name != '-' %}<small class="text-muted d-block text-truncate" style="max-width: 180px;" title="{{ parcel_return.display_subject_name }}">{{ parcel_return.display_subject_name }}</small>{% endif %}
                   </td>
                   <td><span class="text-dark fw-medium">{{ parcel_return.display_borrower_name or '-' }}</span></td>
-                  <td class="text-center"><span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1"><i class="bi bi-box-seam me-1"></i>ส่งคืนพัสดุ</span></td>
-                  <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ parcel_return.items_description or '-' }}</div></td>
+                  <td class="text-center">{{ parcel_return_type_badge(parcel_return.type_label, 'px-2 py-1') }}</td>
+                  <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                   <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                   <td class="text-center">
@@ -643,7 +633,7 @@
                   "",
                   "- การจัดซื้อจัดจ้าง วงเงินเกิน 3 หมื่นบาท (ยกเว้นขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯ) ที่ต้องออก PO  ต้องหักภาษี ณ ที่จ่าย และนำส่งภาษีที่หักด้วยทุกครั้งภายในวันที่ชำระเงิน เพื่อป้องกันเบี้ยปรับเพิ่มเติม",
                   "",
-                  "- การเบิกจ่ายค่าวัสดุ ครุภัณฑ์ ครั้งละเกิน 1 แสนบาท ขอให้หน่วยงานดำเนินการผ่านการจัดซื้อจัดจ้าง(เครดิต) แทนการใช้เงินทดรองจ่าย",
+                  "- การเบิกจ่ายค่าวัสดุ ครุภัณฑ์ ครั้งละเกิน 1 แสนบาทต่อใบเสร็จ ขอให้หน่วยงานดำเนินการผ่านการจัดซื้อจัดจ้าง(เครดิต) แทนการใช้เงินทดรองจ่าย",
               ].join("\n");
 
               event.preventDefault();

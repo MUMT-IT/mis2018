@@ -170,6 +170,61 @@
           </div>
         </div>
 
+        <div class="card p-4 mb-4 border rounded-4 shadow-sm circular-return-section">
+          <h3 class="h5 fw-bold text-dark mb-3">รายการส่งการเงิน ว-119 / ว-5763</h3>
+          <div class="d-flex align-items-start gap-2 mb-2">
+            <span class="text-danger text-sm-left flex-grow-1">คณบดี/รองคณบดี อนุมัติภายใน 5 วันทำการนับถัดจากวันที่ลงในใบเสร็จ (วงเงินไม่เกิน 10,000 บาทต่อใบเสร็จ และอยู่ในหมวดที่ได้รับการยกเว้น)</span>
+            {% include 'advance_payment/partials/circular_return_reference_tooltip.html' %}
+          </div>
+          <div class="d-flex flex-wrap gap-4 py-2 mb-2">
+            <div class="form-check">
+              <input
+                class="form-check-input circular-return-input circular-type-radio"
+                type="radio"
+                name="circular_type"
+                value="1"
+                id="circular_type_1_{{ borrowing_ticket.id }}"
+              >
+              <label
+                class="form-check-label fw-bold"
+                for="circular_type_1_{{ borrowing_ticket.id }}"
+              >
+                ว-119
+              </label>
+            </div>
+
+            <div class="form-check">
+              <input
+                class="form-check-input circular-return-input circular-type-radio"
+                type="radio"
+                name="circular_type"
+                value="5"
+                id="circular_type_5_{{ borrowing_ticket.id }}"
+              >
+              <label
+                class="form-check-label fw-bold"
+                for="circular_type_5_{{ borrowing_ticket.id }}"
+              >
+                ว-5763
+              </label>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-4 mt-2">
+              <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
+              <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" placeholder="dd/mm/yyyy">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">รายการ</label>
+              <input type="text" name="circular_items_description" class="form-control circular-return-input" placeholder="รายละเอียดรายการ...">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+              <input type="text" name="circular_amount" id="circular_amount_{{ borrowing_ticket.id }}" data-ticket-id="{{ borrowing_ticket.id }}" class="form-control circular-amount-input circular-return-input" placeholder="0.00">
+            </div>
+          </div>
+        </div>
+
         <div class="card p-4 mb-4 border rounded-4 shadow-sm">
           <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
           <div class="row g-3">
@@ -380,13 +435,18 @@
       let isValid = true;
       const parcelInputs = form.querySelectorAll('.parcel-return-input');
       const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
+      const circularInputs = form.querySelectorAll('.circular-return-input');
+      const circularTypeInputs = form.querySelectorAll('.circular-type-radio');
+      const hasCircularData = Array.from(circularInputs).some(input =>
+        input.type === 'checkbox' ? input.checked : input.value.trim()
+      );
       const receiptInputs = form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"]');
       const receiptProofInputs = form.querySelectorAll('input[name^="proof_files_"]');
       const cashInputs = form.querySelectorAll('.cash-return-input');
       const hasReturnData = Array.from(receiptInputs).some(input => input.value.trim()) || Array.from(receiptProofInputs).some(input => input.files.length > 0);
       const hasCashReturnData = Array.from(cashInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
 
-      if (!hasParcelData && !hasReturnData && !hasCashReturnData) {
+      if (!hasParcelData && !hasCircularData && !hasReturnData && !hasCashReturnData) {
         window.openAppPopup({
           title: "กรุณากรอกข้อมูล",
           message: "กรุณากรอกข้อมูลส่งคืนฝ่ายพัสดุหรือเพิ่มรายละเอียดใบเสร็จอย่างน้อยหนึ่งรายการ",
@@ -403,6 +463,20 @@
       });
       if (hasParcelData && !Array.from(parcelInputs).every(input => input.value.trim())) {
         isValid = false;
+      }
+
+      circularInputs.forEach(input => {
+        if (input.type !== 'checkbox') input.required = hasCircularData;
+        input.classList.remove('is-invalid');
+      });
+      const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
+      const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'checkbox')
+        .every(input => input.value.trim());
+      if (hasCircularData && (selectedCircularTypes.length !== 1 || !circularFieldsComplete)) {
+        isValid = false;
+        if (selectedCircularTypes.length !== 1) {
+          circularTypeInputs.forEach(input => input.classList.add('is-invalid'));
+        }
       }
 
       form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"]').forEach(el => {
@@ -448,7 +522,7 @@
       }
 
       if (isValid) {
-        form.querySelectorAll(".item-amount-input, .parcel-amount-input, .cash-return-amount-input").forEach(input => {
+        form.querySelectorAll(".item-amount-input, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input").forEach(input => {
           input.value = input.value.replace(/,/g, "");
         });
         form.submit();
@@ -530,6 +604,8 @@
       if (!totalDisplay) return;
       const parcelInput = document.getElementById(`parcel_amount_${ticketId}`);
       total += parseFloat((parcelInput?.value || "0").replace(/,/g, "")) || 0;
+      const circularInput = document.getElementById(`circular_amount_${ticketId}`);
+      total += parseFloat((circularInput?.value || "0").replace(/,/g, "")) || 0;
       const cashReturnInput = document.getElementById(`cash_return_amount_${ticketId}`);
       total += parseFloat((cashReturnInput?.value || "0").replace(/,/g, "")) || 0;
       const existingTotal = parseFloat(totalDisplay.dataset.existingTotal || "0") || 0;
@@ -751,9 +827,9 @@
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-      document.querySelectorAll(".parcel-amount-input, .cash-return-amount-input").forEach(input => {
+      document.querySelectorAll(".parcel-amount-input, .circular-amount-input, .cash-return-amount-input").forEach(input => {
         if (input.value) formatInputNumberWithComma(input);
-        const ticketId = input.id.replace("parcel_amount_", "").replace("cash_return_amount_", "");
+        const ticketId = input.dataset.ticketId || input.id.replace("parcel_amount_", "").replace("cash_return_amount_", "");
         input.addEventListener("input", function() {
           formatInputNumberWithComma(this);
           calculateTotalSpent(ticketId);
@@ -761,6 +837,15 @@
         input.addEventListener("blur", function() {
           formatInputNumberOnBlur(this);
           calculateTotalSpent(ticketId);
+        });
+      });
+
+      document.querySelectorAll('.circular-type-radio').forEach(input => {
+        input.addEventListener('change', function() {
+          if (!this.checked) return;
+          this.closest('.circular-return-section')?.querySelectorAll('.circular-type-radio').forEach(other => {
+            if (other !== this) other.checked = false;
+          });
         });
       });
 
