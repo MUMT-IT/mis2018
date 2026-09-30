@@ -48,10 +48,12 @@
         {% endif %}
 
         <!-- ยอดรวมเบิก -->
+        {% if not cash_return_total.amount%}
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">ยอดที่ขอเบิก</span>
           <strong class="text-success fs-5">{{ "{:,.2f}".format(claim_detail.total_amount or 0) }} บาท</strong>
         </div>
+        {% endif %}
 
         {% if advance_payment_role != 'finance' %}
         <!-- ยอดที่คืนเงินสด -->
@@ -273,6 +275,25 @@
   {% include 'advance_payment/_pdf_reference_modal.html' %}
 {% endwith %}
 
+{% if advance_payment_role != 'finance' %}
+    {% if claim_detail.reference_number or claim_detail.reference_files %}
+    <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
+      <h3 class="h5 fw-bold mb-3">หนังสืออนุมัติในหลักการ</h3>
+      {% if claim_detail.reference_number %}
+        <p class="mb-2"><strong>เลขที่:</strong> {{ claim_detail.reference_number }}{% if claim_detail.reference_date %} <span class="ms-3"><strong>วันที่:</strong> {{ claim_detail.reference_date|thai_date }}</span>{% endif %}</p>
+      {% endif %}
+      {% if claim_detail.reference_files %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for reference_file in claim_detail.reference_files %}
+            <a href="{{ reference_file.proof_reference|advance_payment_file_url }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+              <i class="bi bi-paperclip me-1"></i>{{ reference_file.filename }}
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+    {% endif %}
+{% endif %}
 <!-- Section ตารางแสดงรายการเบิกเงินสดย่อย / ใบเสร็จหลักฐาน -->
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
   <h3 class="h5 fw-bold mb-4">รายการใบเสร็จหลักฐานที่แนบมา</h3>
@@ -419,23 +440,6 @@
   {% endif %}
 </section>
 
-{% if claim_detail.reference_number or claim_detail.reference_files %}
-<section class="p-4 border rounded-4 bg-white shadow-sm mb-5 text-start">
-  <h3 class="h5 fw-bold mb-3">หนังสืออนุมัติในหลักการ</h3>
-  {% if claim_detail.reference_number %}
-    <p class="mb-2"><strong>เลขที่:</strong> {{ claim_detail.reference_number }}{% if claim_detail.reference_date %} <span class="ms-3"><strong>วันที่:</strong> {{ claim_detail.reference_date|thai_date }}</span>{% endif %}</p>
-  {% endif %}
-  {% if claim_detail.reference_files %}
-    <div class="d-flex flex-wrap gap-2">
-      {% for reference_file in claim_detail.reference_files %}
-        <a href="{{ reference_file.proof_reference|advance_payment_file_url }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
-          <i class="bi bi-paperclip me-1"></i>{{ reference_file.filename }}
-        </a>
-      {% endfor %}
-    </div>
-  {% endif %}
-</section>
-{% endif %}
 
 <!-- Section แสดงเอกสารประกาศ/ไฟล์แนบประกอบ -->
 <section class="p-4 border rounded-4 bg-white shadow-sm mb-4 text-start">
