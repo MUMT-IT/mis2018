@@ -50,15 +50,17 @@
                         {% endif %}
                         {% for i in invitations %}
                             <tr>
-                                <td>{{ i.meeting.title }}</td>
+                                <td>
+                                    <a href="{{ url_for('meeting_planner.detail_meeting_member',
+                                        meeting_id=i.meeting.id) }}">
+                                        {{ i.meeting.title }}
+                                    </a>
+                                </td>
                                 <td>{{ i.meeting.start.isoformat() }}</td>
                                 <td>{{ i.meeting.end.isoformat() }}</td>
                                 <td>{{ i.meeting.rooms }}</td>
                                 <td>
-                                    <a href="{{ url_for('meeting_planner.detail_meeting_member',
-                                        meeting_id=i.meeting.id) }}">
-                                        {{ i.meeting.participants|join(', ') }}
-                                    </a>
+                                    {{ i.meeting.participants|join(', ') }}
                                 </td>
                                 <td>
                                 <span class="icon" id="left-icon-{{ i.id }}">
