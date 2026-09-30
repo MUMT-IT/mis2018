@@ -9263,14 +9263,12 @@ def petty_cash_ledger():
         # summary must include every non-cancelled/non-rejected document that
         # still requires action, including requests from previous months.
         summary_fund_requests = (
-            db.session.query(FundRequest)
-            .filter(
-                or_(*fund_request_scope),
-                ~FundRequest.status.in_(["ยกเลิก"]),
+            _fund_request_setting_filter(
+                db.session.query(FundRequest),
+                current_setting,
             )
+            .filter(~FundRequest.status.in_(["ยกเลิก"]))
             .all()
-            if department_name or account_number
-            else approved_fund_requests
         )
         summary = summarize_petty_cash_month(selected_month_start, summary_fund_requests, all_claims)
         department_data = get_department_data_service(department_name) or {}
@@ -9281,18 +9279,19 @@ def petty_cash_ledger():
             summary=summary,
             telephone_number=department_data.get("telephone_number", ""),
         )
-        # Use the same department/account scope as the ledger, including all
+        # Use the same petty-cash setting scope as the ledger, including all
         # request statuses as requested for the monthly attachment bundle.
         monthly_requests = (
-            db.session.query(FundRequest)
+            _fund_request_setting_filter(
+                db.session.query(FundRequest),
+                current_setting,
+            )
             .filter(
-                or_(*fund_request_scope),
                 FundRequest.request_date >= selected_month_start,
                 FundRequest.request_date < next_month_start,
             )
             .order_by(FundRequest.request_date.asc(), FundRequest.id.asc())
             .all()
-            if department_name or account_number else []
         )
         pdf_bytes = append_petty_cash_monthly_attachments(
             pdf_bytes, setting=current_setting, month_start=selected_month_start,
