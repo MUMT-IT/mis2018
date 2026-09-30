@@ -4,7 +4,7 @@ import qrcode
 from bahttext import bahttext
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase.pdfmetrics import stringWidth
-from sqlalchemy import or_, update, and_, exists, func, case
+from sqlalchemy import or_, update, and_, exists, func, case, Date, cast
 from datetime import date, datetime
 import arrow
 import pandas
@@ -22,8 +22,6 @@ from sqlalchemy.orm import make_transient
 from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.auth.views import line_bot_api
 from app.main import app, get_credential
-from app.service_admin.views import generate_endotoxin_quotation
-from app.url_utils import external_url
 from app.academic_services import academic_services
 from app.academic_services.forms import *
 from app.academic_services.models import *
@@ -36,7 +34,7 @@ from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatur
 from app.main import mail
 from flask_mail import Message
 from app.models import Holidays, Org
-from app.service_admin.forms import ServiceResultForm
+from app.service_admin.views import get_central_admin_academic_service
 
 localtz = timezone('Asia/Bangkok')
 
@@ -953,7 +951,8 @@ def forget_password():
                 return render_template('academic_services/forget_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            url = external_url('academic_services.reset_password', token=token)
+            scheme = 'http' if current_app.debug else 'https'
+            url = url_for('academic_services.reset_password', token=token, _external=True, _scheme=scheme)
             message = 'Click the link below to reset the password.' \
                       ' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งรหัสผ่านใหม่\n\n{}'.format(url)
             try:
@@ -996,6 +995,25 @@ def reset_password():
             for er in form.errors:
                 flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('academic_services/reset_password.html', form=form)
+
+
+@academic_services.route('/login_by_token', methods=['GET', 'POST'])
+def login_by_token():
+    token = request.args.get('token')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token, max_age=604800)
+    except:
+        return 'รหัสสำหรับทำการตั้งค่า password หมดอายุหรือไม่ถูกต้อง'
+    user = ServiceCustomerAccount.query.filter_by(email=token_data.get('email')).first()
+    if not user:
+        flash('ไม่พบชื่อบัญชีในฐานข้อมูล')
+        return redirect(url_for('academic_services.customer_index'))
+    else:
+        login_user(user)
+        session['user_type'] = 'service_customer'
+        identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+        return redirect(url_for('academic_services.customer_account'))
 
 
 @academic_services.route('/customer/index', methods=['GET', 'POST'])
@@ -1090,7 +1108,8 @@ def create_customer_account(customer_id=None):
             db.session.commit()
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
-            url = external_url('academic_services.verify_email', token=token)
+            scheme = 'http' if current_app.debug else 'https'
+            url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme)
             message = f"""
             <!DOCTYPE html>
             <html lang="en">
@@ -1228,7 +1247,8 @@ def send_email(quotation_id):
     menu = request.args.get('menu')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     token = serializer.dumps({'email': current_user.email})
-    url = external_url('academic_services.verify_email', token=token, tab=tab,
+    scheme = 'http' if current_app.debug else 'https'
+    url = url_for('academic_services.verify_email', token=token, _external=True, _scheme=scheme, tab=tab,
                        menu=menu, quotation_id=quotation_id)
     title_prefix = 'คุณ' if current_user.customer_info.type == 'บุคคล' else ''
     customer_name = current_user.customer_name.replace(' ', '_')
@@ -1299,6 +1319,7 @@ def account():
 def customer_account():
     menu = request.args.get('menu')
     account = ServiceCustomerAccount.query.get(current_user.id)
+    old_is_document_verified = account.customer_info.is_document_verified
     if current_user.customer_info:
         customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
         form = ServiceCustomerInfoForm(obj=customer)
@@ -1311,8 +1332,25 @@ def customer_account():
         if not current_user.customer_info:
             account.customer_info = customer
             db.session.add(account)
+        if customer.is_document_verified is None or customer.is_document_verified == False:
+            customer.is_document_verified = None
         db.session.add(customer)
         db.session.commit()
+        central_admin_accounts = get_central_admin_academic_service()
+        if old_is_document_verified == False and central_admin_accounts:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("service_admin.view_customer", tab='pending', customer_id=account.customer_info_id,
+                           _external=True, _scheme=scheme)
+            title = f'''แจ้งเตือนการแก้ไขข้อมูลผู้รับบริการ'''
+            message = f'''เรียน แอดมินส่วนกลาง\n\n'''
+            message += f'''มีผู้รับบริการดำเนินการแก้ไขข้อมูลตามที่แจ้งเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ระบบงานงานบริการวิชาการ'''
+            if current_app.debug:
+                send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
+            else:
+                print('message', message)
+            flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
         flash('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ', 'success')
         return redirect(url_for('academic_services.lab_index', menu='new'))
     if not current_user.customer_info:
@@ -9758,13 +9796,13 @@ def invoice_index():
         )
     )
     pending_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
-                                                           today <= ServiceInvoice.due_date)
+                                                           today <= cast(ServiceInvoice.due_date, Date))
     verify_query = query.join(ServicePayment).filter(ServicePayment.verified_at == None,
                                                       ServicePayment.cancelled_at == None)
     payment_query = query.join(ServicePayment).filter(ServicePayment.verified_at != None,
                                                      ServicePayment.cancelled_at == None)
     overdue_query = query.outerjoin(ServicePayment).filter(ServicePayment.invoice_id == None,
-                                                           today > ServiceInvoice.due_date)
+                                                           today > cast(ServiceInvoice.due_date, Date))
     if api == 'true':
         if tab == 'pending':
             query = pending_query

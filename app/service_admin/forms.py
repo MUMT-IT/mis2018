@@ -55,7 +55,6 @@ class ServiceCustomerInfoForm(ModelForm):
     cus_name = StringField(validators=[DataRequired()])
     taxpayer_identification_no = StringField('เลขประจำตัวผู้เสียภาษีอากร', validators=[DataRequired()])
     phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
-    email = EmailField('อีเมล', validators=[DataRequired()])
     customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
     attachments = FieldList(FormField(ServiceCustomerAttachmentForm, default=ServiceCustomerAttachment), min_entries=0)
 

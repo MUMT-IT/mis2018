@@ -15,7 +15,11 @@
                 </div>
                 <div class="buttons is-centered mt-5">
                     <a href='{{ url_for('academic_services.customer_index') }}' class="button is-link is-light">กลับหน้าหลัก</a>
-                    <a href='{{ url_for('academic_services.customer_index') }}' class="button is-primary">เข้าสู่ระบบ</a>
+                    {% if current_user.is_authenticated %}
+                        <a href='{{ url_for('academic_services.lab_index',menu='new') }}' class="button is-primary">เข้าสู่ระบบ</a>
+                    {% else %}
+                        <a href='{{ url_for('academic_services.customer_index') }}' class="button is-primary">เข้าสู่ระบบ</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

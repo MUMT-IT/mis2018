@@ -70,8 +70,8 @@
                     </div>
                 </div>
             </div>
-            <div class="columns is-variable is-5 customer-detail-columns">
-                <div class="column is-half">
+{#            <div class="columns is-variable is-5 customer-detail-columns">#}
+{#                <div class="column is-half">#}
                     <div class="customer-detail-section-card">
                         <div class="customer-detail-section-heading">
                             <div>
@@ -96,36 +96,36 @@
                             <div class="customer-detail-empty">ยังไม่มีข้อมูลผู้ประสานงาน</div>
                         {% endfor %}
                     </div>
-                </div>
+{#                </div>#}
 
-                <div class="column is-half">
-                    <div class="customer-detail-section-card">
-                        <div class="customer-detail-section-heading">
-                            <div>
-                                <p class="customer-detail-section-eyebrow">ACCOUNTS</p>
-                                <h2><i class="fas fa-user-lock"></i> บัญชีผู้ใช้</h2>
-                            </div>
-                        </div>
-                        {% for account in customer.accounts %}
-                            <div class="customer-detail-account-item">
-                                <span class="customer-detail-account-icon" aria-hidden="true"><i class="fas fa-at"></i></span>
-                                <div>
-                                    <strong>{{ account.email or '-' }}</strong>
-                                    <span>
-                                        {% if account.verify_datetime %}
-                                            ยืนยันแล้ว {{ account.verify_datetime.strftime('%d/%m/%Y %H:%M') }}
-                                        {% else %}
-                                            ยังไม่ยืนยันการลงทะเบียน
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            </div>
-                        {% else %}
-                            <div class="customer-detail-empty">ยังไม่มีบัญชีผู้ใช้</div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+{#                <div class="column is-half">#}
+{#                    <div class="customer-detail-section-card">#}
+{#                        <div class="customer-detail-section-heading">#}
+{#                            <div>#}
+{#                                <p class="customer-detail-section-eyebrow">ACCOUNTS</p>#}
+{#                                <h2><i class="fas fa-user-lock"></i> บัญชีผู้ใช้</h2>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        {% for account in customer.accounts %}#}
+{#                            <div class="customer-detail-account-item">#}
+{#                                <span class="customer-detail-account-icon" aria-hidden="true"><i class="fas fa-at"></i></span>#}
+{#                                <div>#}
+{#                                    <strong>{{ account.email or '-' }}</strong>#}
+{#                                    <span>#}
+{#                                        {% if account.verify_datetime %}#}
+{#                                            ยืนยันแล้ว {{ account.verify_datetime.strftime('%d/%m/%Y %H:%M') }}#}
+{#                                        {% else %}#}
+{#                                            ยังไม่ยืนยันการลงทะเบียน#}
+{#                                        {% endif %}#}
+{#                                    </span>#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        {% else %}#}
+{#                            <div class="customer-detail-empty">ยังไม่มีบัญชีผู้ใช้</div>#}
+{#                        {% endfor %}#}
+{#                    </div>#}
+{#                </div>#}
+{#            </div>#}
 
             <div class="customer-detail-section-card customer-detail-address-card">
                 <div class="customer-detail-section-heading">
