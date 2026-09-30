@@ -1,0 +1,100 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}นำเข้ารายการเบิกเดิม | ผู้ดูแลบัญชี{% endblock %}
+
+{% block content %}
+<header class="mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between">
+  <div>
+    <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
+      <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
+    </a>
+    <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
+    <h1 class="fw-bold display-6 mb-2">นำเข้ารายการเบิกเดิม</h1>
+    <p class="text-muted mb-0">หน่วยงาน: {{ setting.department_name or '-' }}</p>
+  </div>
+</header>
+
+<div class="row g-4 justify-content-center">
+  <div class="col-lg-8">
+    <div class="alert alert-info border rounded-4">
+      รายการนี้ใช้สำหรับใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย ที่เบิกก่อนวันที่ {{ target_fiscal_year_start|thai_date }}
+      เพื่อให้ดำเนินการยื่นส่งเบิกเงินสดย่อยในระบบต่อไป
+    </div>
+
+    <div class="card shadow-sm border rounded-4 bg-white">
+      <div class="card-body p-4">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="ticket_number" class="form-label fw-bold">เลขที่เอกสารเดิม <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="ticket_number" name="ticket_number" value="{{ form_values.ticket_number }}" required maxlength="64">
+            </div>
+            <div class="col-md-6">
+              <label for="request_date" class="form-label fw-bold">วันที่เบิกเงิน <span class="text-danger">*</span></label>
+              <input type="text" class="form-control app-date-picker" id="request_date" name="request_date" value="{{ form_values.request_date }}" max="{{ max_request_date.isoformat() }}" placeholder="dd/mm/yyyy" required>
+            </div>
+            <div class="col-md-6">
+              <label for="amount" class="form-label fw-bold">จำนวนเงิน <span class="text-danger">*</span></label>
+              <input type="number" class="form-control text-end" id="amount" name="amount" value="{{ form_values.amount }}" min="0.01" step="0.01" required>
+            </div>
+            <div class="col-md-6">
+              <input type="hidden" class="form-control bg-light" value="อนุมัติแล้ว" readonly>
+            </div>
+            <div class="col-12">
+              <label for="purpose" class="form-label fw-bold">วัตถุประสงค์ในการเบิก</label>
+              <input type="text" class="form-control" id="purpose" name="purpose" value="{{ form_values.purpose }}" maxlength="1000" placeholder="รายการเบิกเดิมจากปีงบประมาณก่อนหน้า">
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" class="btn btn-outline-secondary">ยกเลิก</a>
+            <button type="submit" class="btn btn-primary fw-bold">บันทึกรายการเบิกเดิม</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border rounded-4 bg-white mt-4">
+  <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+    <h2 class="h5 fw-bold mb-0">รายการเบิกเดิมที่บันทึกแล้ว</h2>
+  </div>
+  <div class="card-body px-4 pb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light small fw-bold">
+          <tr>
+            <th>เลขที่เอกสารเดิม</th>
+            <th>วันที่เบิกเงิน</th>
+            <th class="text-end">จำนวนเงิน</th>
+            <th class="text-center">สถานะ</th>
+            <th class="text-center">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fund_request in legacy_requests %}
+          <tr>
+            <td class="fw-bold">{{ fund_request.ticket_number or '-' }}</td>
+            <td>{{ fund_request.request_date|thai_date if fund_request.request_date else '-' }}</td>
+            <td class="text-end fw-bold">{{ '{:,.2f}'.format(fund_request.amount or 0) }}</td>
+            <td class="text-center">{{ status_badge(fund_request.status) }}</td>
+            <td class="text-center">
+              {% if fund_request.status not in ['ยกเลิก', 'เคลียร์ยอดสำเร็จ'] %}
+              <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=fund_request.id) }}" class="btn btn-sm btn-outline-primary">
+                ดูประวัติ/ส่งเบิกเงินสดย่อย
+              </a>
+              {% else %}
+              <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-4">ยังไม่มีรายการเบิกเดิม</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

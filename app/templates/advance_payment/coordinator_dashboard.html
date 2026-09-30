@@ -144,7 +144,16 @@
                   <input type="hidden" id="name" name="name" value="{{ (advance_payment_user.name if advance_payment_user.is_authenticated else '') or '' }}">
                   <input type="hidden" id="email" name="email" value="{{ (advance_payment_user.email if advance_payment_user.is_authenticated else '') or '' }}">
                   <label for="borrowing_ticket_purpose" class="form-label fw-bold">ชื่อโครงการ/วัตถุประสงค์</label>
-              <input id="borrowing_ticket_purpose" name="borrowing_ticket_purpose" type="text" value="{{ borrowing_ticket_form.borrowing_ticket_purpose.data or '' }}" class="form-control" placeholder="ระบุชื่อโครงการ/วัตถุประสงค์" required>
+                  <div class="input-group py-2">
+                    <span class="input-group-text">เพื่อทดรองจ่าย</span>
+                    <input
+                      id="borrowing_ticket_purpose"
+                      name="borrowing_ticket_purpose"
+                      type="text"
+                      value="{{ borrowing_ticket_form.borrowing_ticket_purpose.data or '' }}"
+                      class="form-control"
+                      required
+                    >
                   {% for error in borrowing_ticket_form.borrowing_ticket_purpose.errors %}
                     <div class="text-danger small mt-1">{{ error }}</div>
                   {% endfor %}
@@ -153,14 +162,24 @@
                 <div class="row g-3 mb-3">
                   <div class="col-md-6">
                     <label for="aip_ref_no" class="form-label fw-bold">เลขที่อนุมัติในหลักการ (หากมีมากกว่าหนึ่ง คั่นด้วยสัญลักษณ์ ",")</label>
-                    <input id="aip_ref_no" name="aip_ref_no" type="text" value="{{ borrowing_ticket_form.aip_ref_no.data or '' }}" class="form-control" placeholder="78.04/1, 78.04/11" required>
+                    <div class="input-group">
+                      <span class="input-group-text">อว</span>
+                      <input
+                        id="aip_ref_no"
+                        name="aip_ref_no"
+                        type="text"
+                        value="{{ borrowing_ticket_form.aip_ref_no.data or '' }}"
+                        class="form-control"
+                        required
+                      >
+                    </div>
                     {% for error in borrowing_ticket_form.aip_ref_no.errors %}
                       <div class="text-danger small mt-1">{{ error }}</div>
                     {% endfor %}
                   </div>
                   <div class="col-md-6">
                     <label for="aip_ref_date" class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
-                    <input id="aip_ref_date" name="aip_ref_date" type="date" value="{{ borrowing_ticket_form.aip_ref_date.data or '' }}" class="form-control" placeholder="วันที่หนังสือได้รับการอนุมัติ" required>
+                    <input id="aip_ref_date" name="aip_ref_date" type="text" value="{{ borrowing_ticket_form.aip_ref_date.data or '' }}" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                     {% for error in borrowing_ticket_form.aip_ref_date.errors %}
                       <div class="text-danger small mt-1">{{ error }}</div>
                     {% endfor %}
@@ -195,14 +214,14 @@
                 <div class="row g-3 mb-3">
                   <div class="col-md-6">
                     <label for="borrowing_ticket_start_date" class="form-label fw-bold">วันที่เริ่มต้นโครงการ</label>
-                <input id="borrowing_ticket_start_date" name="borrowing_ticket_start_date" type="date" value="{{ borrowing_ticket_form.borrowing_ticket_start_date.data or '' }}" class="form-control" required>
+                <input id="borrowing_ticket_start_date" name="borrowing_ticket_start_date" type="text" value="{{ borrowing_ticket_form.borrowing_ticket_start_date.data or '' }}" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                     {% for error in borrowing_ticket_form.borrowing_ticket_start_date.errors %}
                       <div class="text-danger small mt-1">{{ error }}</div>
                     {% endfor %}
                   </div>
                   <div class="col-md-6">
                     <label for="borrowing_ticket_end_date" class="form-label fw-bold">วันที่สิ้นสุดโครงการ</label>
-                <input id="borrowing_ticket_end_date" name="borrowing_ticket_end_date" type="date" value="{{ borrowing_ticket_form.borrowing_ticket_end_date.data or '' }}" class="form-control" required>
+                <input id="borrowing_ticket_end_date" name="borrowing_ticket_end_date" type="text" value="{{ borrowing_ticket_form.borrowing_ticket_end_date.data or '' }}" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                     {% for error in borrowing_ticket_form.borrowing_ticket_end_date.errors %} 
                       <div class="text-danger small mt-1">{{ error }}</div>
                     {% endfor %}
@@ -240,6 +259,7 @@
             {% set return_is_borrower_page = false %}
             {% set return_autosave_endpoint_prefix = '/coordinator/tickets/' %}
             {% for borrowing_ticket in actionable_tickets %}
+              {% set return_form_summary = return_form_totals_by_ticket.get(borrowing_ticket.id, {}) %}
               {% set return_form_action = url_for('advance_payment.coordinator_ticket_returns') %}
               {% set return_panel_id = 'return_block_ticket_' ~ borrowing_ticket.id %}
               {% set return_panel_class = 'return-ticket-form-block' %}
@@ -517,11 +537,11 @@
             <div class="row g-2">
               <div class="col-6">
                 <label class="form-label text-muted" style="font-size: 0.75rem;">เริ่มต้น</label>
-                <input type="date" id="filterDueStartDate" class="form-control form-control-sm bg-white" onchange="filterTable()">
+                <input type="text" id="filterDueStartDate" class="form-control form-control-sm bg-white app-date-picker" placeholder="dd/mm/yyyy" onchange="filterTable()">
               </div>
               <div class="col-6">
                 <label class="form-label text-muted" style="font-size: 0.75rem;">สิ้นสุด</label>
-                <input type="date" id="filterDueEndDate" class="form-control form-control-sm bg-white" onchange="filterTable()">
+                <input type="text" id="filterDueEndDate" class="form-control form-control-sm bg-white app-date-picker" placeholder="dd/mm/yyyy" onchange="filterTable()">
               </div>
             </div>
           </div>
@@ -531,11 +551,11 @@
             <div class="row g-2">
               <div class="col-6">
                 <label class="form-label text-muted" style="font-size: 0.75rem;">เริ่มต้น</label>
-                <input type="date" id="filterStartStartDate" class="form-control form-control-sm bg-white" onchange="filterTable()">
+                <input type="text" id="filterStartStartDate" class="form-control form-control-sm bg-white app-date-picker" placeholder="dd/mm/yyyy" onchange="filterTable()">
               </div>
               <div class="col-6">
                 <label class="form-label text-muted" style="font-size: 0.75rem;">สิ้นสุด</label>
-                <input type="date" id="filterStartEndDate" class="form-control form-control-sm bg-white" onchange="filterTable()">
+                <input type="text" id="filterStartEndDate" class="form-control form-control-sm bg-white app-date-picker" placeholder="dd/mm/yyyy" onchange="filterTable()">
               </div>
             </div>
           </div>
@@ -678,10 +698,10 @@
     function filterTable() {
       const searchInput = document.getElementById("filterSearch").value.toLowerCase().trim();
       const statusSelect = document.getElementById("filterStatus").value;
-      const dueStartDate = document.getElementById("filterDueStartDate").value;
-      const dueEndDate = document.getElementById("filterDueEndDate").value;
-      const startStartDate = document.getElementById("filterStartStartDate").value;
-      const startEndDate = document.getElementById("filterStartEndDate").value;
+      const dueStartDate = window.appDateToISO(document.getElementById("filterDueStartDate").value);
+      const dueEndDate = window.appDateToISO(document.getElementById("filterDueEndDate").value);
+      const startStartDate = window.appDateToISO(document.getElementById("filterStartStartDate").value);
+      const startEndDate = window.appDateToISO(document.getElementById("filterStartEndDate").value);
       
       const rows = document.querySelectorAll(".ticket-row");
       let visibleRowsCount = 0;

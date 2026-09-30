@@ -1,14 +1,18 @@
 <div class="{{ return_panel_class }}{% if return_panel_hidden|default(true) %} d-none{% endif %}" id="{{ return_panel_id }}">
-  {% if (borrowing_ticket.submitted_return_total or 0)|float >= (borrowing_ticket.required_budget or 0)|float %}
-    <div class="text-center my-4">
-      {% if return_show_ticket_purpose %}
-        <p class="fw-bold mb-1">{{ borrowing_ticket.borrowing_ticket_purpose }}</p>
-      {% endif %}
-      <p class="text-muted mb-0">ได้ทำการส่งเอกสารเบิกครบแล้ว รอการตรวจสอบจากฝ่ายการเงิน</p>
+  {% set isolated_return_totals = return_form_summary|default({}) %}
+  {% set return_total_budget = isolated_return_totals.get('budget', borrowing_ticket.required_budget or 0) %}
+  {% set return_submitted_total = isolated_return_totals.get('submitted_total', borrowing_ticket.submitted_return_total or 0) %}
+  {% set return_remaining = isolated_return_totals.get('remaining', borrowing_ticket.ticket_remaining or 0) %}
+  {% if (return_submitted_total or 0)|float >= (return_total_budget or 0)|float %}
+    <div class="card p-4 mb-4 border rounded-4 shadow-sm">
+      <p class="text-success mb-0 text-center fw-bold">ได้ทำการส่งเอกสารเบิกครบแล้ว รอการตรวจสอบจากฝ่ายการเงิน</p>
     </div>
   {% else %}
     {% if return_show_ticket_purpose %}
-      <h2 class="h5 fw-bold text-dark mb-3">ชื่อโครงการ/วัตถุประสงค์: {{ borrowing_ticket.borrowing_ticket_purpose }}</h2>
+      <h2 class="h5 fw-bold text-dark mb-3">
+        ชื่อโครงการ/วัตถุประสงค์:
+        <span class="return-ticket-purpose" data-default-purpose="{{ borrowing_ticket.borrowing_ticket_purpose }}">{{ borrowing_ticket.borrowing_ticket_purpose }}</span>
+      </h2>
     {% endif %}
     <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
       <form method="post" action="{{ return_form_action }}" enctype="multipart/form-data" id="returnForm_{{ borrowing_ticket.id }}" data-ajax-validation="true">
@@ -99,7 +103,7 @@
         </div>
 
         <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-          <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
+          <h3 class="h5 fw-bold text-dark mb-3">รายการส่งฝ่ายการเงิน</h3>
           <div class="table-responsive">
             <table class="table table-bordered align-middle mb-0" id="receiptTable_{{ borrowing_ticket.id }}">
               <thead class="table-light small fw-bold">
@@ -119,7 +123,7 @@
                     {% set row_index = loop.index0 %}
                     <tr>
                       <td>
-                        <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}">
+                        <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker" value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}" placeholder="dd/mm/yyyy">
                         <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
                       </td>
                       <td>
@@ -167,11 +171,11 @@
         </div>
 
         <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-          <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่งไปฝ่ายพัสดุ</h3>
+          <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-              <input type="date" name="sent_date" class="form-control parcel-return-input" required>
+              <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" placeholder="dd/mm/yyyy" required>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">รายการ</label>
@@ -186,11 +190,11 @@
 
         {% set cash_return_item = borrowing_ticket.cash_draft_item %}
         <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-          <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนเงินเหลือส่งใช้เงินยืม</h3>
+          <h3 class="h5 fw-bold text-dark mb-3">เงินเหลือส่งใช้เงินยืม</h3>
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการโอน</label>
-              <input type="date" name="cash_return_date" class="form-control cash-return-input" value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}">
+              <input type="text" name="cash_return_date" class="form-control cash-return-input app-date-picker" value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}" placeholder="dd/mm/yyyy">
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">จำนวนเงินที่โอน</label>
@@ -213,23 +217,23 @@
         </div>
 
         <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
-          <div class="d-flex flex-column gap-2 ms-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
+          <div class="d-flex flex-column gap-2 ms-lg-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
               <span class="fw-bold">ยอดที่ขอไป</span>
-              <span class="fw-bold" id="budgetDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.verification_required_budget if borrowing_ticket.verification_required_budget is defined else borrowing_ticket.required_budget or 0) }}</span>
+              <span class="fw-bold" id="budgetDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(return_total_budget or 0) }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
               <span class="fw-bold">ยอดที่ส่งแล้ว</span>
-              <span class="fw-bold" id="submittedReturnDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.submitted_return_total or 0) }}</span>
+              <span class="fw-bold" id="submittedReturnDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(return_submitted_total or 0) }}</span>
             </div>
             <div class="border-top border-3 border-dark my-2" style="border-top-style: dashed !important;"></div>
             <div class="d-flex justify-content-between align-items-center gap-4 text-dark fs-4">
               <span class="fw-bold">ยอดครั้งนี้</span>
-              <span class="fw-bold bg-info-subtle border border-info rounded-3 px-4 py-1" id="sumAmountDisplay_{{ borrowing_ticket.id }}" data-budget="{{ borrowing_ticket.required_budget or 0 }}" data-base-budget="{{ borrowing_ticket.required_budget or 0 }}" data-existing-total="{{ borrowing_ticket.submitted_return_total or 0 }}">0.00</span>
+              <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="sumAmountDisplay_{{ borrowing_ticket.id }}" value="0.00" readonly aria-label="ยอดครั้งนี้" data-budget="{{ borrowing_ticket.required_budget or 0 }}" data-base-budget="{{ borrowing_ticket.required_budget or 0 }}" data-existing-total="{{ return_submitted_total or 0 }}">
             </div>
             <div class="d-flex justify-content-between align-items-baseline gap-4 text-dark fs-4">
               <span class="fw-bold">ยอดคงค้าง</span>
-              <span class="fw-bold" id="remainingAmountDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(borrowing_ticket.ticket_remaining or 0) }}</span>
+              <span class="fw-bold" id="remainingAmountDisplay_{{ borrowing_ticket.id }}">{{ "{:,.2f}".format(return_remaining or 0) }}</span>
             </div>
             <div class="text-end fw-bold fs-4 lh-1">==============</div>
             <span class="visually-hidden" id="sumAmountUnit_{{ borrowing_ticket.id }}">บาท</span>
@@ -238,8 +242,6 @@
 
         <div class="row g-3 mb-3 align-items-end">
           <div class="col-12 d-flex justify-content-end align-items-center gap-3">
-            <span class="fw-bold text-danger text-center me-3">กรณีเงินเหลือใช้เงินทดรองจ่าย ให้กรอกข้อมูลการโอนและแนบไฟล์หลักฐานในช่องด้านบน</span>
-
             <button class="btn btn-outline-secondary fw-bold px-3 py-2" type="button" onclick="submitFormWithAction({{ borrowing_ticket.id }}, 'draft')" style="border-radius: 8px;">
               <i class="bi bi-save me-1"></i> บันทึกร่าง (ฉบับร่าง)
             </button>
@@ -294,8 +296,8 @@
 
     function getReceiptAgeWarningMessage(receiptDateValue) {
       if (!receiptDateValue) return "";
-      const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
-      if (Number.isNaN(receiptDate.getTime())) return "";
+      const receiptDate = window.appParseDate(receiptDateValue);
+      if (!receiptDate) return "";
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -468,7 +470,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>
-          <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
+          <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker" placeholder="dd/mm/yyyy" required>
           <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
         </td>
         <td><textarea name="store_name[]" class="form-control form-control-sm" placeholder="เช่น ร้านค้า A" style="resize: vertical; min-height: 31px;" required></textarea></td>
@@ -494,19 +496,9 @@
 
     function removeReceiptRow(button, ticketId) {
       const tbody = document.getElementById(`receiptBody_${ticketId}`);
-      if (tbody.getElementsByTagName('tr').length > 1) {
         button.closest('tr').remove();
         updateReceiptFileIndices(ticketId);
         calculateTotalSpent(ticketId);
-      } else {
-        window.openAppPopup({
-          title: "ไม่สามารถลบแถวสุดท้าย",
-          message: "คุณต้องกรอกข้อมูลใบเสร็จอย่างน้อย 1 รายการเพื่อส่งหลักฐาน",
-          confirmText: "ตกลง",
-          confirmClass: "btn-primary",
-          alertOnly: true,
-        });
-      }
     }
 
     function updateReceiptFileIndices(ticketId) {
@@ -555,7 +547,7 @@
       totalDisplay.classList.toggle("bg-danger-subtle", isOverBudget);
       totalDisplay.classList.toggle("bg-info-subtle", !isOverBudget);
       document.getElementById(`sumAmountUnit_${ticketId}`)?.classList.toggle("text-danger", isOverBudget);
-      totalDisplay.innerText = total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      totalDisplay.value = total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const remainingDisplay = document.getElementById(`remainingAmountDisplay_${ticketId}`);
       if (remainingDisplay) {
@@ -695,13 +687,13 @@
       if (!tbody || !form) return;
 
       const items = Array.from(tbody.querySelectorAll('tr')).map(row => ({
-        receipt_date: row.querySelector('input[name="receipt_date[]"]')?.value || '',
+        receipt_date: window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || ''),
         store_name: row.querySelector('textarea[name="store_name[]"]')?.value || '',
         description: row.querySelector('textarea[name="description[]"]')?.value || '',
         amount: row.querySelector('.item-amount-input')?.value.replace(/,/g, '') || '0'
       }));
 
-      const cashDate = form.querySelector('input[name="cash_return_date"]')?.value || '';
+      const cashDate = window.appDateToISO(form.querySelector('input[name="cash_return_date"]')?.value || '');
       const cashAmount = form.querySelector('input[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
 
       const announcements = [];

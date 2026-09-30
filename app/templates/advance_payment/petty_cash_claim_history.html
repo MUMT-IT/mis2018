@@ -278,7 +278,7 @@
                              <div class="modal-body">
                                <p class="small text-muted">ยอดส่งคืนพัสดุ: <strong>{{ "{:,.2f}".format(record.amount_spent or 0) }} บาท</strong></p>
                                <label class="form-label fw-bold small">วันที่โอนเงินสดย่อย <span class="text-danger">*</span></label>
-                               <input type="date" name="transferred_at" class="form-control" required>
+                               <input type="text" name="transferred_at" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
                              </div>
                              <div class="modal-footer">
                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>

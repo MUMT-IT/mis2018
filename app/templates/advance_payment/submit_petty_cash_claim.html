@@ -120,7 +120,7 @@
   <template id="cancelFundRequestExtraFields">
     <div class="mt-3">
       <label class="form-label fw-bold" for="cancelTransferredAt">วันที่นำเงินกลับเข้าสู่ระบบ</label>
-      <input type="date" class="form-control" id="cancelTransferredAt" name="transferred_at" required>
+      <input type="text" class="form-control app-date-picker" id="cancelTransferredAt" name="transferred_at" placeholder="dd/mm/yyyy" required>
     </div>
   </template>
   {% endif %}
@@ -173,11 +173,21 @@
         <div class="row g-3" id="referenceInfoFields">
           <div class="col-md-2">
             <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ</label>
-            <input class="form-control reference-info-input" name="reference_number" placeholder="เช่น 78.04/1" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
+            <div class="input-group">
+              <span class="input-group-text">อว</span>
+              <input
+                id="reference_number"
+                class="form-control reference-info-input"
+                name="reference_number"
+                type="text"
+                placeholder="เช่น 78.04/1"
+                value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}"
+              >
+            </div>
           </div>
           <div class="col-md-2">
             <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
-            <input type="date" class="form-control reference-info-input" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}">
+            <input type="text" class="form-control reference-info-input app-date-picker" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}" placeholder="dd/mm/yyyy">
           </div>
           <div class="col-md-3">
             <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง</label>
@@ -254,7 +264,7 @@
         </div>
       </div>
       <div class="mb-4 border rounded-3 p-3 bg-white">
-      <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ต้องการส่งให้ฝ่ายการเงิน</h3>
+      <h3 class="h5 fw-bold text-dark mb-3">รายการส่งฝ่ายการเงิน</h3>
       <div class="d-flex justify-content-end mb-3">
         <div class="text-end text-secondary">
           <span class="fw-bold">ยอดที่ขอไป: {{ '%.2f'|format(total_request_amount) }}</span>
@@ -282,8 +292,8 @@
                 <tr>
                   <td class="text-center fw-bold row-index">{{ loop.index }}</td>
                   <td>
-                    <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" 
-                          value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}" required>
+                    <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker"
+                          value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}" placeholder="dd/mm/yyyy" required>
                     <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
                   </td>
                   <td>
@@ -324,7 +334,7 @@
               <tr>
                 <td class="text-center fw-bold row-index">1</td>
                 <td>
-                  <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
+                  <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker" placeholder="dd/mm/yyyy" required>
                   <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
                 </td>
                 <td>
@@ -370,13 +380,13 @@
       </div>
 
       <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่งไปฝ่ายพัสดุ</h3>
+        <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
         {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
         {% if parcel_return_fund_request_id %}
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-            <input type="date" name="sent_date" class="form-control parcel-return-input" required>
+            <input type="text" name="sent_date" class="form-control parcel-return-input app-date-picker" placeholder="dd/mm/yyyy" required>
           </div>
           <div class="col-md-4">
             <label class="form-label fw-bold">รายการ</label>
@@ -401,11 +411,11 @@
         {% endfor %}
       {% endif %}
       <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนเงินเหลือส่งใช้เงินสดย่อย</h3>
+        <h3 class="h5 fw-bold text-dark mb-3">โอนคืนบัญชีเงินสดย่อย</h3>
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการโอน</label>
-            <input type="date" name="cash_return_date" class="form-control cash-return-input"
+            <input type="text" name="cash_return_date" class="form-control cash-return-input app-date-picker" placeholder="dd/mm/yyyy"
                    value="{{ cash_return_item.receipt_date.strftime('%Y-%m-%d') if cash_return_item and cash_return_item.receipt_date else '' }}">
           </div>
           <div class="col-md-4">
@@ -506,7 +516,7 @@ function togglePettyCashClaimForm() {
           <tr>
             <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
             <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
-            <th scope="col" style="width: 15%;" class="small fw-bold">ยอดที่ใช้จ่าย</th>
+            <th scope="col" style="width: 15%;" class="small fw-bold">จำนวนเงิน</th>
             <th scope="col" style="width: 10%;" class="small fw-bold">สถานะ</th>
             <th scope="col" style="width: 20%;" class="small fw-bold text-center">หมายเลขฎีกา</th>
             <th scope="col" class="small fw-bold text-center">การจัดการ</th>
@@ -531,6 +541,7 @@ function togglePettyCashClaimForm() {
               {% elif claim.status|lower == 'กำลังตรวจสอบ' %}{% set c_status = 'กำลังตรวจสอบ' %}
               {% elif claim.status|lower == 'ผ่านการตรวจสอบ' %}{% set c_status = 'ผ่านการตรวจสอบ' %}
               {% elif claim.status|lower == 'โอนเงินสดย่อยสำเร็จ' %}{% set c_status = 'โอนเงินสดย่อยสำเร็จ' %}
+              {% elif claim.status|lower == 'โอนคืนเงินสดย่อย' %}{% set c_status = 'โอนคืนเงินสดย่อย' %}
               {% elif claim.status|lower == 'เสร็จสิ้นกระบวนการ' %}{% set c_status = 'เสร็จสิ้นกระบวนการ' %}
               {% elif claim.status|lower in ['ปฏิเสธ'] %}{% set c_status = 'ปฏิเสธ' %}{% endif %}
 
@@ -565,7 +576,7 @@ function togglePettyCashClaimForm() {
           <tr>
             <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
             <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
-            <th scope="col" style="width: 15%;" class="small fw-bold">ยอดที่ใช้จ่าย</th>
+            <th scope="col" style="width: 15%;" class="small fw-bold">จำนวนเงิน</th>
             <th scope="col" style="width: 10%;" class="small fw-bold">สถานะ</th>
             <th scope="col" style="width: 20%;" class="small fw-bold text-center">หมายเลขฎีกา</th>
             <th scope="col" class="small fw-bold text-center">การจัดการ</th>
@@ -630,11 +641,12 @@ function togglePettyCashClaimForm() {
                 {% endif %}
 
                 {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
-                <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true" class="d-flex gap-1 align-items-center">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <input type="date" name="transferred_at" class="form-control form-control-sm" required title="วันที่โอนเงินสดย่อย">
-                  <button type="submit" class="btn btn-sm btn-success fw-bold">โอนสำเร็จ</button>
-                </form>
+                  <button type="button"
+                          class="btn btn-success btn-sm fw-bold px-3 py-2"
+                          data-bs-toggle="modal"
+                          data-bs-target="#parcelTransferModal{{ pr.id }}">
+                    <i class="bi bi-cash-stack me-1"></i> บันทึกโอนเงินสดย่อยสำเร็จ
+                  </button>
                 {% endif %}
 
                 {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ'] %}
@@ -656,6 +668,45 @@ function togglePettyCashClaimForm() {
       </table>
     </div>
     {% for pr in parcel_return_history %}
+      {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+        <div class="modal fade text-start" id="parcelTransferModal{{ pr.id }}" tabindex="-1" aria-labelledby="parcelTransferModalLabel{{ pr.id }}" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <form method="post" action="{{ url_for('advance_payment.mark_parcel_return_transferred', parcel_return_id=pr.id) }}" id="parcelTransferForm{{ pr.id }}" data-ajax-validation="true">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                  <h5 class="modal-title fw-bold text-dark" id="parcelTransferModalLabel{{ pr.id }}">
+                    <i class="bi bi-calendar-check text-primary me-2"></i>บันทึกการโอนเงินสดย่อย
+                  </h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+                </div>
+                <div class="modal-body">
+                  <p class="small text-muted mb-3">
+                    ยอดเงินที่เบิก: <strong class="text-success">{{ "{:,.2f}".format(pr.amount_spent or 0) }} บาท</strong>
+                  </p>
+                  <div class="mb-3">
+                    <label class="form-label fw-bold text-dark small" for="parcelTransferredAt{{ pr.id }}">
+                      วันที่หน่วยงานได้รับเงิน / โอนสำเร็จ <span class="text-danger">*</span>
+                    </label>
+                    <input type="text"
+                           name="transferred_at"
+                           id="parcelTransferredAt{{ pr.id }}"
+                           class="form-control app-date-picker"
+                           placeholder="dd/mm/yyyy"
+                           required
+                           value="{{ pr.transferred_at.strftime('%Y-%m-%d') if pr.transferred_at else '' }}">
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                  <button type="submit" class="btn btn-success fw-bold">ยืนยันโอนเงินสำเร็จ</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
         <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
@@ -692,7 +743,7 @@ function togglePettyCashClaimForm() {
                 <div class="modal-body text-dark">
                   <div class="mb-3">
                     <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
-                    <input type="date" name="sent_date" class="form-control" value="{{ pr.sent_date.strftime('%Y-%m-%d') if pr.sent_date else '' }}" required>
+                    <input type="text" name="sent_date" class="form-control app-date-picker" value="{{ pr.sent_date.strftime('%Y-%m-%d') if pr.sent_date else '' }}" placeholder="dd/mm/yyyy" required>
                   </div>
                   <div class="mb-3">
                     <label class="form-label fw-bold">รายการ</label>
@@ -926,7 +977,7 @@ async function autoSavePettyCashDraft() {
   // รวบรวมข้อมูล รายการใบเสร็จ
   const items = [];
   document.querySelectorAll('#claimBody tr').forEach(row => {
-    const receiptDate = row.querySelector('input[name="receipt_date[]"]')?.value || '';
+    const receiptDate = window.appDateToISO(row.querySelector('input[name="receipt_date[]"]')?.value || '');
     const categoryType = row.querySelector('select[name="category_type[]"]')?.value || '1';
     const description = row.querySelector('input[name="description[]"]')?.value || '';
     const amountVal = row.querySelector('.claim-amount')?.value.replace(/,/g, '') || '0';
@@ -951,7 +1002,7 @@ async function autoSavePettyCashDraft() {
 
   const fundRequestId = document.getElementById('fund_request_id')?.value || '';
   const csrfToken = claimForm.querySelector('input[name="csrf_token"]')?.value || '';
-  const cashReturnDate = claimForm.querySelector('[name="cash_return_date"]')?.value || '';
+  const cashReturnDate = window.appDateToISO(claimForm.querySelector('[name="cash_return_date"]')?.value || '');
   const cashReturnAmount = claimForm.querySelector('[name="cash_return_amount"]')?.value.replace(/,/g, '') || '';
   const note = claimForm.querySelector('[name="note"]')?.value.trim() || '';
 
@@ -970,7 +1021,7 @@ async function autoSavePettyCashDraft() {
         cash_return: { receipt_date: cashReturnDate, amount: cashReturnAmount },
         announcements: announcements,
         reference_number: claimForm.querySelector('[name="reference_number"]')?.value.trim() || '',
-        reference_date: claimForm.querySelector('[name="reference_date"]')?.value || '',
+        reference_date: window.appDateToISO(claimForm.querySelector('[name="reference_date"]')?.value || ''),
         note: note
       })
       }
@@ -1195,8 +1246,8 @@ function getReceiptAgeWarningMessage(receiptDateValue) {
     return "";
   }
 
-  const receiptDate = new Date(`${receiptDateValue}T00:00:00`);
-  if (Number.isNaN(receiptDate.getTime())) {
+  const receiptDate = window.appParseDate(receiptDateValue);
+  if (!receiptDate) {
     return "";
   }
 
@@ -1300,7 +1351,7 @@ function addRow() {
   newRow.innerHTML = `
     <td class="text-center fw-bold row-index"></td>
     <td>
-      <input type="date" name="receipt_date[]" class="form-control form-control-sm receipt-date-input" required>
+      <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker" placeholder="dd/mm/yyyy" required>
       <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
     </td>
     <td>
