@@ -6,6 +6,12 @@
             {% include "messages.html" %}
             <h4 class="title has-text-centered">รายการขออนุมัติทำงานที่บ้าน</h4>
             <h1 class="subtitle has-text-centered">สำหรับหัวหน้างาน</h1>
+            <div class="buttons is-right">
+                <a href="{{ url_for('staff.assign_special_wfh_day_staff') }}" class="button is-info">
+                    <span class="icon"><i class="fas fa-calendar-check"></i></span>
+                    <span>กำหนดผู้มีสิทธิ์ WFH วันพิเศษ</span>
+                </a>
+            </div>
             <div class="columns">
                 <div class="column">
                     <table class="table is-fullwidth is-striped">
