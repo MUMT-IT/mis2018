@@ -123,7 +123,7 @@
                     <input type="checkbox" name="parcel_return_ids[]" value="{{ p_record.id }}" class="form-check-input row-checkbox normal-row-checkbox" data-amount="{{ p_record.amount_spent }}" onclick="updateSummary()">
                   </td>
                   <td>
-                    <span class="badge bg-warning-subtle text-warning-emphasis border px-2.5 py-1">ส่งคืนพัสดุ</span>
+                    {{ parcel_return_type_badge(p_record.type_label, 'px-2.5 py-1') }}
                   </td>
                   <td>
                     <div class="fw-bold text-dark">{{ p_record.borrowing_ticket_number }}</div>
@@ -343,7 +343,7 @@
                         {% for pr in result.parcel_returns %}
                           <tr class="table-warning-subtle">
                             <td class="ps-3"><input type="checkbox" name="selected_parcel_return_ids[]" value="{{ pr.id }}" class="form-check-input closing-item-checkbox" {% if searched_doc.is_settled or not searched_doc.is_active or pr.id in result.historical_parcel_ids or pr.status in ['ล้างลูกหนี้เงินยืม', 'เสร็จสิ้นกระบวนการ'] %}disabled{% endif %}></td>
-                            <td><span class="badge bg-warning-subtle text-warning-emphasis border px-2.5 py-1">ส่งคืนพัสดุ</span></td>
+                            <td>{{ parcel_return_type_badge(pr.type_label, 'px-2.5 py-1') }}</td>
                             <td>
                               <div class="fw-bold text-dark">{{ pr.display_ticket_number or '-' }}</div>
                             </td>
@@ -471,7 +471,7 @@
             {% for pr in searched_parcel_returns %}
               <tr class="table-warning-subtle">
                 <td class="ps-3">
-                  <span class="badge bg-warning-subtle text-warning-emphasis border px-2.5 py-1">ส่งคืนพัสดุ</span>
+                  {{ parcel_return_type_badge(pr.type_label, 'px-2.5 py-1') }}
                 </td>
                 <td>
                   <div class="fw-bold text-dark">{{ pr.display_ticket_number or '-' }}</div>

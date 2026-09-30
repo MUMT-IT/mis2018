@@ -36,6 +36,22 @@
     <span class="badge {{ status_badge_class(status) }} {{ extra_classes }}">{{ label if label is not none else (status or '-') }}</span>
   {%- endmacro %}
 
+  {% macro parcel_return_type_badge(type_label, extra_classes='') -%}
+    {% if type_label == 'ว-119' %}
+      <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle {{ extra_classes }}">
+        <i class="bi bi-file-earmark-text me-1"></i>{{ type_label }}
+      </span>
+    {% elif type_label == 'ว-5763' %}
+      <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle {{ extra_classes }}">
+        <i class="bi bi-file-earmark-text me-1"></i>{{ type_label }}
+      </span>
+    {% else %}
+      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle {{ extra_classes }}">
+        <i class="bi bi-box-seam me-1"></i>ส่งคืนพัสดุ
+      </span>
+    {% endif %}
+  {%- endmacro %}
+
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
