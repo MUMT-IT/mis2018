@@ -218,7 +218,7 @@ def _build_global_header(
     header_right = Paragraph(
         f"<br/><br/>{department_name}<br/>"
         f"คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>"
-        f"โทร. {telephone_number}",
+        f"โทร. 02-441-4371+{telephone_number}",
         paragraph_style,
     )
     if leave_style:
