@@ -89,6 +89,9 @@
                                                     <p class="notification">
                                                         {{ topic.consensus }}
                                                     </p>
+                                                    {% with private_note=private_notes.get(topic.id) %}
+                                                        {% include "meeting_planner/private_agenda_note.html" %}
+                                                    {% endwith %}
                                                     <label class="label">ผลการดำเนินการ</label>
                                                     <table class="table is-fullwidth">
                                                         <thead>

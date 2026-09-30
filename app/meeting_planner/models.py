@@ -134,9 +134,17 @@ class MeetingAdmin(db.Model):
 
 class MeetingAgendaNote(db.Model):
     __tablename__ = 'meeting_agenda_notes'
+    __table_args__ = (
+        db.UniqueConstraint('agenda_id', 'staff_id', name='uq_meeting_agenda_note_agenda_staff'),
+    )
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     note = db.Column('note', db.Text())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now)
+    agenda_id = db.Column('agenda_id', db.ForeignKey('meeting_agendas.id'))
+    agenda = db.relationship(
+        MeetingAgenda,
+        backref=db.backref('private_notes', cascade='all, delete-orphan')
+    )
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('meeting_agenda_notes',
                                                              lazy='dynamic'))

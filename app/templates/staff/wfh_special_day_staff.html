@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <h4 class="title has-text-centered">กำหนดผู้มีสิทธิ์ WFH วันพิเศษ</h4>
+        <form method="post" class="box" action="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=editing_day.id) if editing_day else url_for('staff.assign_special_wfh_day_staff') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+                <label class="label" for="special-day">เลือกวัน</label>
+                <div class="control">
+                    <select class="input" id="special-day" name="special_day_id" required {% if editing_day %}disabled{% endif %}>
+                        <option value="">เลือกวัน WFH พิเศษ</option>
+                        {% for special_day in special_days %}
+                            <option value="{{ special_day.id }}" {% if editing_day and editing_day.id == special_day.id %}selected{% endif %}>
+                                {{ special_day.work_date|localdate }} - {{ special_day.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label" for="special-day-staff">เพิ่มรายชื่อบุคลากร (เลือกได้หลายคน)</label>
+                <div class="control">
+                    <select class="js-example-basic-multiple" id="special-day-staff" name="staff_ids" multiple required>
+                        {% for staff in allowed_staff %}
+                            <option value="{{ staff.id }}" {% if editing_day and staff in editing_day.staff %}selected{% endif %}>{{ staff.fullname }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <p class="help">แสดงเฉพาะบุคลากรที่อยู่ในขอบเขตการอนุมัติ WFH ของคุณ</p>
+            </div>
+            <div class="buttons">
+                <button class="button is-info" type="submit">{{ 'บันทึกการแก้ไข' if editing_day else 'บันทึกรายชื่อ' }}</button>
+                {% if editing_day %}
+                    <a class="button is-light" href="{{ url_for('staff.assign_special_wfh_day_staff') }}">ยกเลิกแก้ไข</a>
+                {% endif %}
+                <a class="button is-light" href="{{ url_for('staff.show_wfh_requests_for_approval') }}">กลับ</a>
+            </div>
+        </form>
+
+        <div class="box">
+            <h5 class="title is-5">รายชื่อที่กำหนดแล้ว</h5>
+            <table class="table is-fullwidth">
+                <thead><tr><th>วันที่</th><th>ชื่อวัน</th><th>บุคลากร</th><th></th></tr></thead>
+                <tbody>
+                {% for special_day in special_days %}
+                    <tr>
+                        <td>{{ special_day.work_date|localdate }}</td>
+                        <td>{{ special_day.name }}</td>
+                        <td>{{ special_day.staff|map(attribute='fullname')|join(', ') or '-' }}</td>
+                        <td>
+                            <a class="button is-small is-warning is-light" href="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id) }}">
+                                <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                                <span>แก้ไข</span>
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4">ยังไม่มีวัน WFH พิเศษ</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $('.js-example-basic-multiple').select2({width: '100%', placeholder: 'เลือกบุคลากร'});
+</script>
+{% endblock %}
