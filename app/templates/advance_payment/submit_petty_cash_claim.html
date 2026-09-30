@@ -630,7 +630,7 @@ function togglePettyCashClaimForm() {
           {% for pr in parcel_return_history %}
           <tr class="align-top">
             <td>{{ pr.sent_date|thai_date }}</td>
-            <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}</div></td>
+            <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
             <td class="fw-semibold text-dark">{{ "{:,.2f}".format(pr.amount_spent or 0) }}</td>
             <td>
               {{ status_badge(pr.status) }}

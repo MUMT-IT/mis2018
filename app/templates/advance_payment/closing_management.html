@@ -130,7 +130,7 @@
                   </td>
                   <td>
                     <div class="fw-bold text-dark">{{ p_record.borrower_name }}</div>
-                    <small class="text-muted">{{ p_record.items_description }}</small>
+                    <small class="text-muted">{{ p_record.items_description }}{% if p_record.type_label %} ส่ง {{ p_record.type_label }}{% endif %}</small>
                   </td>
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(p_record.amount_spent) }}</td>
                   <td class="text-center small">{{ p_record.created_at|thai_date }}</td>

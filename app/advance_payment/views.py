@@ -3901,6 +3901,8 @@ def verification_view(ticket_id):
         .order_by(ParcelReturnDetail.id.desc())
         .all()
     )
+    for parcel_return in parcel_returns:
+        _attach_parcel_return_context(parcel_return)
 
     for return_detail in return_details:
         numbered_descriptions = []
@@ -6617,6 +6619,7 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             "borrower_name": borrower_name,
             "amount_spent": float(pr.amount_spent or 0),
             "items_description": pr.items_description,
+            "type_label": pr.type_label,
             "status": pr.status,
             "created_at": pr.created_at,
         })
