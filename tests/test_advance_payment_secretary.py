@@ -69,5 +69,87 @@ class SecretaryPermissionTests(unittest.TestCase):
         self.assertFalse(self.check())
 
 
+class PettyCashOrganizationScopeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        source = ast.parse(
+            (ROOT / "app/advance_payment/views.py").read_text(encoding="utf-8-sig")
+        )
+        helpers = ast.Module(
+            body=[
+                node
+                for node in source.body
+                if isinstance(node, ast.FunctionDef)
+                and node.name in {
+                    "_is_petty_cash_custodian",
+                    "_can_access_petty_cash_setting",
+                    "_can_manage_petty_cash_claim",
+                }
+            ],
+            type_ignores=[],
+        )
+        cls.context = {
+            "_current_petty_cash_fiscal_year": lambda: 2026,
+            "_get_staff_org": lambda user: getattr(user, "org", None),
+        }
+        exec(compile(helpers, "views.py", "exec"), cls.context)
+        cls.is_custodian = staticmethod(cls.context["_is_petty_cash_custodian"])
+        cls.can_access = staticmethod(cls.context["_can_access_petty_cash_setting"])
+        cls.can_manage_claim = staticmethod(cls.context["_can_manage_petty_cash_claim"])
+
+    def setUp(self):
+        self.org = SimpleNamespace(id=10)
+        self.user = SimpleNamespace(id=7, org=self.org)
+        self.setting = SimpleNamespace(
+            id=1,
+            org_id=10,
+            custodian_id=8,
+            valid=True,
+            fiscal_year=2026,
+        )
+
+    def test_staff_can_access_only_their_organization_setting(self):
+        self.assertTrue(self.can_access(self.user, self.setting))
+
+        other_setting = SimpleNamespace(**vars(self.setting))
+        other_setting.org_id = 11
+        self.assertFalse(self.can_access(self.user, other_setting))
+
+        old_setting = SimpleNamespace(**vars(self.setting))
+        old_setting.fiscal_year = 2025
+        self.assertFalse(self.can_access(self.user, old_setting))
+
+    def test_assigned_custodian_can_access_managed_setting(self):
+        self.setting.custodian_id = self.user.id
+        self.setting.org_id = 11
+
+        self.assertTrue(self.is_custodian(self.user, self.setting))
+        self.assertTrue(self.can_access(self.user, self.setting))
+
+    def test_claim_management_is_narrower_than_organization_visibility(self):
+        unrelated_claim = SimpleNamespace(
+            user_id=9,
+            fund_request=SimpleNamespace(creator_id=12),
+        )
+        own_claim = SimpleNamespace(
+            user_id=self.user.id,
+            fund_request=SimpleNamespace(creator_id=12),
+        )
+        created_request_claim = SimpleNamespace(
+            user_id=9,
+            fund_request=SimpleNamespace(creator_id=self.user.id),
+        )
+
+        self.assertFalse(self.can_manage_claim(self.user, unrelated_claim, self.setting))
+        self.assertTrue(self.can_manage_claim(self.user, own_claim, self.setting))
+        self.assertTrue(self.can_manage_claim(self.user, created_request_claim, self.setting))
+
+    def test_custodian_can_manage_claims_for_the_setting(self):
+        self.setting.custodian_id = self.user.id
+        claim = SimpleNamespace(user_id=9, fund_request=SimpleNamespace(creator_id=12))
+
+        self.assertTrue(self.can_manage_claim(self.user, claim, self.setting))
+
+
 if __name__ == "__main__":
     unittest.main()
