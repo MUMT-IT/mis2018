@@ -488,6 +488,12 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     _closing_fk = "parcel_return_id"
     _closing_record = "parcel_return"
     __tablename__ = "cash_mng_parcel_return_details"
+    __table_args__ = (
+        CheckConstraint(
+            "type IS NULL OR type IN (1, 5)",
+            name="ck_cash_mng_parcel_return_details_type",
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
@@ -495,6 +501,7 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     amount_spent = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     items_description = Column(String(1000), nullable=False)
     sent_date = Column(Date, nullable=False)
+    type = Column(Integer, nullable=True)
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)

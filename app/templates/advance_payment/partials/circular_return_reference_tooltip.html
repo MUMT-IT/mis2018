@@ -1,0 +1,38 @@
+{% set circular_reference_tooltip_id = 'circularReturnReferenceTooltip_' ~ (borrowing_ticket.id if borrowing_ticket is defined and borrowing_ticket else 'petty') %}
+<span class="circular-reference-tooltip">
+  <button type="button"
+          class="circular-reference-tooltip__trigger"
+          aria-label="ดูเอกสารอ้างอิง ว-119 และ ว-5763"
+          aria-describedby="{{ circular_reference_tooltip_id }}">
+    <i class="bi bi-info-lg" aria-hidden="true"></i>
+    <span>เอกสารสำหรับ ว-119 และ ว-5763</span>
+  </button>
+  <span class="circular-reference-tooltip__panel text-start" id="{{ circular_reference_tooltip_id }}" role="tooltip">
+    <span class="d-block fw-bold text-dark mb-1">
+      {{ circular_return_reference_document.document_title or circular_return_reference_document.filename or 'เอกสารอ้างอิง ว-119 / ว-5763' }}
+    </span>
+    {% if circular_return_reference_document.document_type %}
+      <span class="badge bg-light text-secondary border mb-2">{{ circular_return_reference_document.document_type }}</span>
+    {% endif %}
+    {% if circular_return_reference_document.note %}
+      <span class="circular-reference-tooltip__text d-block small text-secondary mb-2">{{ circular_return_reference_document.note }}</span>
+    {% endif %}
+    {% if circular_return_reference_document.summary %}
+      <span class="circular-reference-tooltip__text d-block small text-secondary mb-3">{{ circular_return_reference_document.summary }}</span>
+    {% endif %}
+    <span class="d-flex flex-wrap gap-2">
+<!--      <a href="{{ circular_return_reference_document.drive_view_url }}"-->
+<!--         class="btn btn-sm btn-outline-primary"-->
+<!--         target="_blank"-->
+<!--         rel="noopener noreferrer">-->
+<!--        <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>ตรวจสอบเงื่อนไข-->
+<!--      </a>-->
+      <a href="https://drive.google.com/drive/folders/1LNnUpt4s25wRhtbV_ZJ59VAC76GnDrjm"
+         class="btn btn-sm btn-outline-primary"
+         target="_blank"
+         rel="noopener noreferrer">
+        <i class="bi bi-folder2-open me-1" aria-hidden="true"></i>ตรวจสอบเงื่อนไขและดาวน์โหลดแบบฟอร์ม
+      </a>
+    </span>
+  </span>
+</span>

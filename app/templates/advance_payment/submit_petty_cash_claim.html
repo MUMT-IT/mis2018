@@ -369,10 +369,64 @@
       </div>
       </div>
 
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
+
+      <div class="card p-4 mb-4 border rounded-4 shadow-sm circular-return-section">
         {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
         {% if parcel_return_fund_request_id %}
+        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่ง ว-119 / ว-5763</h3>
+        <div class="d-flex align-items-start gap-2 mb-2">
+          <span class="text-danger text-sm-left flex-grow-1">คณบดี/รองคณบดี อนุมัติภายใน 5 วันทำการนับถัดจากวันที่ลงในใบเสร็จ (วงเงินไม่เกิน 10,000 บาทต่อใบเสร็จ และอยู่ในหมวดที่ได้รับการยกเว้น)</span>
+          {% include 'advance_payment/partials/circular_return_reference_tooltip.html' %}
+        </div>
+        {% if parcel_return_fund_request_id %}
+        <div class="d-flex flex-wrap gap-4 py-2 mb-2">
+        <div class="form-check">
+          <input
+            class="form-check-input circular-return-input circular-type-radio"
+            type="radio"
+            name="circular_type"
+            value="1"
+            id="circular_type_1"
+          >
+          <label class="form-check-label fw-bold text-primary" for="circular_type_1">
+            ว-119
+          </label>
+        </div>
+
+        <div class="form-check">
+          <input
+            class="form-check-input circular-return-input circular-type-radio"
+            type="radio"
+            name="circular_type"
+            value="5"
+            id="circular_type_5"
+          >
+          <label class="form-check-label fw-bold text-primary" for="circular_type_5">
+            ว-5763
+          </label>
+        </div>
+      </div>
+        <div class="row g-3">
+          <div class="col-md-4 mt-2">
+            <label class="form-label fw-bold">วันที่ในใบเสร็จ</label>
+            <input type="text" name="circular_sent_date" class="form-control circular-return-input app-date-picker" placeholder="dd/mm/yyyy">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">รายการ</label>
+            <input type="text" name="circular_items_description" class="form-control circular-return-input" placeholder="รายละเอียดรายการ...">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+            <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" placeholder="0.00">
+          </div>
+        </div>
+        {% else %}
+        <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกยอดการคืน ว-119 / ว-5763 ได้</div>
+        {% endif %}
+      </div>
+
+      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
@@ -792,7 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const isDraft = event.submitter?.value === 'draft';
       if (isDraft) {
         claimForm.querySelectorAll('[required]').forEach(el => el.removeAttribute('required'));
-        claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .cash-return-amount-input').forEach(input => {
+        claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input').forEach(input => {
           input.value = input.value.replace(/,/g, '');
         });
         return;
@@ -800,13 +854,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
       const parcelInputs = claimForm.querySelectorAll('.parcel-return-input');
       const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
+      const circularInputs = claimForm.querySelectorAll('.circular-return-input');
+      const circularTypeInputs = claimForm.querySelectorAll('.circular-type-radio');
+      const hasCircularData = Array.from(circularInputs).some(input =>
+        input.type === 'checkbox' ? input.checked : input.value.trim()
+      );
       const claimInputs = claimForm.querySelectorAll('input[name="receipt_date[]"], input[name="description[]"], input[name="amount[]"], input[name^="proof_files_"]');
       const hasClaimData = Array.from(claimInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
       const cashInputs = claimForm.querySelectorAll('.cash-return-input');
       const hasCashReturnData = Array.from(cashInputs).some(input => input.type === 'file' ? input.files.length > 0 : input.value.trim());
       let isValid = true;
 
-      if (!hasParcelData && !hasClaimData && !hasCashReturnData) {
+      if (!hasParcelData && !hasCircularData && !hasClaimData && !hasCashReturnData) {
         event.preventDefault();
         window.openAppPopup({
           title: "กรุณากรอกข้อมูล",
@@ -824,6 +883,20 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       if (hasParcelData && !Array.from(parcelInputs).every(input => input.value.trim())) {
         isValid = false;
+      }
+
+      circularInputs.forEach(input => {
+        if (input.type !== 'checkbox') input.required = hasCircularData;
+        input.classList.remove('is-invalid');
+      });
+      const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
+      const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'checkbox')
+        .every(input => input.value.trim());
+      if (hasCircularData && (selectedCircularTypes.length !== 1 || !circularFieldsComplete)) {
+        isValid = false;
+        if (selectedCircularTypes.length !== 1) {
+          circularTypeInputs.forEach(input => input.classList.add('is-invalid'));
+        }
       }
 
       claimForm.querySelectorAll('input[name="receipt_date[]"], select[name="category_type[]"], input[name="description[]"], input[name="amount[]"]').forEach(input => {
@@ -888,7 +961,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
-      claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .cash-return-amount-input').forEach(input => {
+      claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input').forEach(input => {
         input.value = input.value.replace(/,/g, '');
       });
     });
@@ -923,7 +996,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  document.querySelectorAll(".parcel-amount-input, .cash-return-amount-input").forEach(input => {
+  document.querySelectorAll(".parcel-amount-input, .circular-amount-input, .cash-return-amount-input").forEach(input => {
     if (input.value) {
       formatInputNumberWithComma(input);
     }
@@ -938,6 +1011,15 @@ document.addEventListener("DOMContentLoaded", function() {
       calculateTotal();
     });
 
+  });
+
+  document.querySelectorAll('.circular-type-radio').forEach(input => {
+    input.addEventListener('change', function() {
+      if (!this.checked) return;
+      this.closest('.circular-return-section')?.querySelectorAll('.circular-type-radio').forEach(other => {
+        if (other !== this) other.checked = false;
+      });
+    });
   });
 });
 
@@ -1082,16 +1164,18 @@ function calculateTotal() {
   const financeDisplayEl = document.getElementById('totalAmountDisplay');
   if (financeDisplayEl) {
     const parcelInput = document.querySelector('.parcel-amount-input');
+    const circularInput = document.querySelector('.circular-amount-input');
     const existingClaimTotal = parseFloat(financeDisplayEl.dataset.existingClaimTotal || '0') || 0;
     const parcelTotal = parseFloat(financeDisplayEl.dataset.parcelTotal || '0') || 0;
     const currentParcelAmount = parseFloat((parcelInput?.value || '0').replace(/,/g, '')) || 0;
+    const currentCircularAmount = parseFloat((circularInput?.value || '0').replace(/,/g, '')) || 0;
     const cashReturnInput = document.querySelector('.cash-return-amount-input');
     const currentCashReturnAmount = parseFloat((cashReturnInput?.value || '0').replace(/,/g, '')) || 0;
-    const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCashReturnAmount;
+    const totalToClaim = grandTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount + currentCashReturnAmount;
     const requestAmount = parseFloat(financeDisplayEl.dataset.requestAmount || '0') || 0;
     const isOverRequest = totalToClaim > requestAmount;
     const submittedAmount = existingClaimTotal + parcelTotal;
-    const currentAmount = grandTotal + currentParcelAmount + currentCashReturnAmount;
+    const currentAmount = grandTotal + currentParcelAmount + currentCircularAmount + currentCashReturnAmount;
     const remainingAmount = requestAmount - totalToClaim;
 
     document.getElementById('submittedAmountDisplay')?.replaceChildren(
@@ -1188,7 +1272,8 @@ function validateFundRequestTotal(parcelInput = null) {
   const existingClaimTotal = parseFloat(display.dataset.existingClaimTotal || '0') || 0;
   const parcelTotal = parseFloat(display.dataset.parcelTotal || '0') || 0;
   const currentParcelAmount = parseFloat((parcelInput || document.querySelector('.parcel-amount-input'))?.value?.replace(/,/g, '') || '0') || 0;
-  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount;
+  const currentCircularAmount = parseFloat(document.querySelector('.circular-amount-input')?.value?.replace(/,/g, '') || '0') || 0;
+  const projectedTotal = currentClaimTotal + existingClaimTotal + parcelTotal + currentParcelAmount + currentCircularAmount;
 
   if (projectedTotal > requestAmount) {
     window.openAppPopup({
