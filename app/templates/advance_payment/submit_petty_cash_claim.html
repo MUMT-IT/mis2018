@@ -373,7 +373,7 @@
       <div class="card p-4 mb-4 border rounded-4 shadow-sm circular-return-section">
         {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
         {% if parcel_return_fund_request_id %}
-        <h3 class="h5 fw-bold text-dark mb-3">ยอดการคืนที่ส่ง ว-119 / ว-5763</h3>
+        <h3 class="h5 fw-bold text-dark mb-3">รายการส่งการเงิน ว-119 / ว-5763</h3>
         <div class="d-flex align-items-start gap-2 mb-2">
           <span class="text-danger text-sm-left flex-grow-1">คณบดี/รองคณบดี อนุมัติภายใน 5 วันทำการนับถัดจากวันที่ลงในใบเสร็จ (วงเงินไม่เกิน 10,000 บาทต่อใบเสร็จ และอยู่ในหมวดที่ได้รับการยกเว้น)</span>
           {% include 'advance_payment/partials/circular_return_reference_tooltip.html' %}
