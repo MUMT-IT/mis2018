@@ -666,7 +666,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
         logo.hAlign = "CENTER"
         story.append(logo)
     story.extend([
-        p(f"{department}<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>โทร. {telephone}", right),
+        p(f"{department}<br/>คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>โทร. 02-441-4371+{telephone}", right),
         Spacer(1, 24), p("ที่"), p("วันที่"),
         p(f"เรื่อง รายงานสถานะเงินสดย่อยของ{department} ประจำเดือน{month_label}"),
         Spacer(1, 8), p("เรียน คณบดีคณะเทคนิคการแพทย์"), Spacer(1, 8),
