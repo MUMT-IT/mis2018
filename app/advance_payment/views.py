@@ -6351,7 +6351,7 @@ def _carryover_amount(value):
 @module_system_required(FINANCE_SYSTEM)
 def petty_cash_fiscal_year_carryover():
     """หน้ากรอกข้อมูลยกยอดเงินสดย่อยสำหรับฝ่ายการเงิน."""
-    source_fiscal_year = _current_petty_cash_fiscal_year()
+    source_fiscal_year = _current_petty_cash_fiscal_year() -1
     target_fiscal_year = source_fiscal_year + 1
 
     rows = db.session.query(PettyCashFiscalYearCarryover).filter_by(
