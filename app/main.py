@@ -2080,7 +2080,9 @@ class FundRequestAdminModelView(ModelView):
     column_list = (
         'id',
         'requester_id',
+        'requester',
         'creator_id',
+        'creator',
         'org_id',
         'petty_cash_setting_id',
         'borrowing_ticket_id',
