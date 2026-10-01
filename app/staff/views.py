@@ -2897,6 +2897,15 @@ def _notify_special_wfh_removal(staff_accounts, special_day, removed_by):
     return _send_special_wfh_line_message(staff_accounts, message)
 
 
+def _special_wfh_staff_in_scope(special_days, allowed_staff):
+    allowed_staff_ids = {staff.id for staff in allowed_staff}
+    return {
+        special_day.id: [staff for staff in special_day.staff
+                         if staff.id in allowed_staff_ids]
+        for special_day in special_days
+    }
+
+
 @staff.route('/wfh/requests/approval/special-day', methods=['GET', 'POST'])
 @login_required
 def assign_special_wfh_day_staff():
@@ -2951,6 +2960,7 @@ def assign_special_wfh_day_staff():
         'staff/wfh_special_day_staff.html',
         special_days=special_days,
         allowed_staff=sorted(allowed_staff, key=lambda staff: staff.fullname),
+        assigned_staff_by_day=_special_wfh_staff_in_scope(special_days, allowed_staff),
         editing_day=None,
     )
 
@@ -2976,13 +2986,18 @@ def edit_special_wfh_day_staff(special_day_id):
         if not selected_staff:
             flash('กรุณาเลือกบุคลากรอย่างน้อยหนึ่งคน', 'danger')
             return redirect(url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id))
-        existing_staff_ids = {staff.id for staff in special_day.staff}
+        allowed_staff_ids = {staff.id for staff in allowed_staff}
+        existing_scoped_staff = [staff for staff in special_day.staff
+                                 if staff.id in allowed_staff_ids]
+        existing_staff_ids = {staff.id for staff in existing_scoped_staff}
         selected_staff_ids = {staff.id for staff in selected_staff}
         added_staff = [staff for staff in selected_staff
                        if staff.id not in existing_staff_ids]
-        removed_staff = [staff for staff in special_day.staff
+        removed_staff = [staff for staff in existing_scoped_staff
                          if staff.id not in selected_staff_ids]
-        special_day.staff = selected_staff
+        staff_outside_scope = [staff for staff in special_day.staff
+                               if staff.id not in allowed_staff_ids]
+        special_day.staff = staff_outside_scope + selected_staff
         db.session.add(special_day)
         db.session.commit()
         refresh_daily_attendance(special_day.work_date,
@@ -3002,14 +3017,16 @@ def edit_special_wfh_day_staff(special_day_id):
         flash('แก้ไขรายชื่อผู้มีสิทธิ์ WFH เรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.assign_special_wfh_day_staff'))
 
+    special_days = StaffSpecialWorkFromHomeDay.query.filter(
+        StaffSpecialWorkFromHomeDay.work_date >= arrow.now('Asia/Bangkok').date()
+    ).order_by(
+        StaffSpecialWorkFromHomeDay.work_date.asc()
+    ).all()
     return render_template(
         'staff/wfh_special_day_staff.html',
-        special_days=StaffSpecialWorkFromHomeDay.query.filter(
-            StaffSpecialWorkFromHomeDay.work_date >= arrow.now('Asia/Bangkok').date()
-        ).order_by(
-            StaffSpecialWorkFromHomeDay.work_date.asc()
-        ).all(),
+        special_days=special_days,
         allowed_staff=sorted(allowed_staff, key=lambda staff: staff.fullname),
+        assigned_staff_by_day=_special_wfh_staff_in_scope(special_days, allowed_staff),
         editing_day=special_day,
     )
 

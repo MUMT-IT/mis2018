@@ -15,7 +15,7 @@
                     <tr>
                         <td>{{ special_day.work_date|localdate }}</td>
                         <td>{{ special_day.name }}</td>
-                        <td>{{ special_day.staff|map(attribute='fullname')|join(', ') or '-' }}</td>
+                        <td>{{ assigned_staff_by_day[special_day.id]|map(attribute='fullname')|join(', ') or '-' }}</td>
                         <td>
                             <a class="button is-small is-warning is-light" href="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id) }}">
                                 <span class="icon"><i class="fas fa-pencil-alt"></i></span>
