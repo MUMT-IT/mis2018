@@ -1,45 +1,10 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <section class="section">
     <div class="container">
         {% include "messages.html" %}
         <h4 class="title has-text-centered">กำหนดผู้มีสิทธิ์ WFH วันพิเศษ</h4>
-        <form method="post" class="box" action="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=editing_day.id) if editing_day else url_for('staff.assign_special_wfh_day_staff') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="field">
-                <label class="label" for="special-day">เลือกวัน</label>
-                <div class="control">
-                    <select class="input" id="special-day" name="special_day_id" required {% if editing_day %}disabled{% endif %}>
-                        <option value="">เลือกวัน WFH พิเศษ</option>
-                        {% for special_day in special_days %}
-                            <option value="{{ special_day.id }}" {% if editing_day and editing_day.id == special_day.id %}selected{% endif %}>
-                                {{ special_day.work_date|localdate }} - {{ special_day.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div class="field">
-                <label class="label" for="special-day-staff">เพิ่มรายชื่อบุคลากร (เลือกได้หลายคน)</label>
-                <div class="control">
-                    <select class="js-example-basic-multiple" id="special-day-staff" name="staff_ids" multiple required>
-                        {% for staff in allowed_staff %}
-                            <option value="{{ staff.id }}" {% if editing_day and staff in editing_day.staff %}selected{% endif %}>{{ staff.fullname }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <p class="help">แสดงเฉพาะบุคลากรที่อยู่ในขอบเขตการอนุมัติ WFH ของคุณ</p>
-            </div>
-            <div class="buttons">
-                <button class="button is-info" type="submit">{{ 'บันทึกการแก้ไข' if editing_day else 'บันทึกรายชื่อ' }}</button>
-                {% if editing_day %}
-                    <a class="button is-light" href="{{ url_for('staff.assign_special_wfh_day_staff') }}">ยกเลิกแก้ไข</a>
-                {% endif %}
-                <a class="button is-light" href="{{ url_for('staff.show_wfh_requests_for_approval') }}">กลับ</a>
-            </div>
-        </form>
 
         <div class="box">
             <h5 class="title is-5">รายชื่อที่กำหนดแล้ว</h5>
@@ -64,13 +29,121 @@
                 </tbody>
             </table>
         </div>
+
+        <form method="post" class="box" action="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=editing_day.id) if editing_day else url_for('staff.assign_special_wfh_day_staff') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+                <p class="label" id="special-days-label">เลือกวัน</p>
+                <div class="control" role="group" aria-labelledby="special-days-label">
+                    {% if editing_day %}
+                        <label class="checkbox" for="special-day-{{ editing_day.id }}">
+                            <input type="checkbox" id="special-day-{{ editing_day.id }}" checked disabled>
+                            {{ editing_day.work_date|localdate }} - {{ editing_day.name }}
+                        </label>
+                    {% else %}
+                        {% for special_day in special_days %}
+                            <div class="py-2">
+                                <label class="checkbox" for="special-day-{{ special_day.id }}">
+                                    <input
+                                        type="checkbox"
+                                        id="special-day-{{ special_day.id }}"
+                                        name="special_day_ids"
+                                        value="{{ special_day.id }}"
+                                    >
+                                    {{ special_day.work_date|localdate }} - {{ special_day.name }}
+                                </label>
+                            </div>
+                        {% else %}
+                            <p class="has-text-grey">ไม่มีวัน WFH พิเศษที่กำลังจะมาถึง</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="field">
+                <p class="label" id="special-day-staff-label">เพิ่มรายชื่อบุคลากร (เลือกได้หลายคน)</p>
+                <div class="control" role="group" aria-labelledby="special-day-staff-label">
+                    {% if allowed_staff %}
+                        <div class="mb-3">
+                            <label class="checkbox has-text-weight-bold" for="select-all-staff">
+                                <input type="checkbox" id="select-all-staff">
+                                เลือกทั้งหมด
+                            </label>
+                        </div>
+                    {% endif %}
+                    <div>
+                        {% for staff in allowed_staff %}
+                            <div class="py-2">
+                                <label class="checkbox" for="special-day-staff-{{ staff.id }}">
+                                    <input
+                                        type="checkbox"
+                                        id="special-day-staff-{{ staff.id }}"
+                                        name="staff_ids"
+                                        value="{{ staff.id }}"
+                                        {% if editing_day and staff in editing_day.staff %}checked{% endif %}
+                                    >
+                                    {{ staff.fullname }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <p class="help">แสดงเฉพาะบุคลากรที่อยู่ในขอบเขตการอนุมัติ WFH ของคุณ</p>
+            </div>
+            <div class="buttons">
+                <button class="button is-info" type="submit">{{ 'บันทึกการแก้ไข' if editing_day else 'บันทึกรายชื่อ' }}</button>
+                {% if editing_day %}
+                    <a class="button is-light" href="{{ url_for('staff.assign_special_wfh_day_staff') }}">ยกเลิกแก้ไข</a>
+                {% endif %}
+                <a class="button is-light" href="{{ url_for('staff.show_wfh_requests_for_approval') }}">กลับ</a>
+            </div>
+        </form>
+
     </div>
 </section>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $('.js-example-basic-multiple').select2({width: '100%', placeholder: 'เลือกบุคลากร'});
+    const specialDayCheckboxes = Array.from(document.querySelectorAll('input[name="special_day_ids"]'));
+    const staffCheckboxes = Array.from(document.querySelectorAll('input[name="staff_ids"]'));
+    const selectAllStaff = document.getElementById('select-all-staff');
+
+    function updateSpecialDaySelectionRequirement() {
+        if (!specialDayCheckboxes.length) return;
+        specialDayCheckboxes[0].required = !specialDayCheckboxes.some((checkbox) => checkbox.checked);
+    }
+
+    function updateStaffSelectionRequirement() {
+        if (!staffCheckboxes.length) return;
+        staffCheckboxes[0].required = !staffCheckboxes.some((checkbox) => checkbox.checked);
+    }
+
+    function updateSelectAllState() {
+        if (!selectAllStaff) return;
+        const checkedCount = staffCheckboxes.filter((checkbox) => checkbox.checked).length;
+        selectAllStaff.checked = checkedCount === staffCheckboxes.length;
+        selectAllStaff.indeterminate = checkedCount > 0 && checkedCount < staffCheckboxes.length;
+    }
+
+    selectAllStaff?.addEventListener('change', () => {
+        staffCheckboxes.forEach((checkbox) => {
+            checkbox.checked = selectAllStaff.checked;
+        });
+        updateStaffSelectionRequirement();
+        updateSelectAllState();
+    });
+
+    staffCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', () => {
+            updateStaffSelectionRequirement();
+            updateSelectAllState();
+        });
+    });
+    specialDayCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', updateSpecialDaySelectionRequirement);
+    });
+    updateSpecialDaySelectionRequirement();
+    updateStaffSelectionRequirement();
+    updateSelectAllState();
 </script>
 {% endblock %}

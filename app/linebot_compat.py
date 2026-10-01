@@ -43,6 +43,9 @@ except Exception:  # pragma: no cover - fallback for local/dev environments
         def push_message(self, *args, **kwargs):
             raise RuntimeError('linebot-sdk is not installed')
 
+        def multicast(self, *args, **kwargs):
+            raise RuntimeError('linebot-sdk is not installed')
+
 
     class WebhookHandler(_LinebotPlaceholder):
         def add(self, *args, **kwargs):

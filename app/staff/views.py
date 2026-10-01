@@ -2850,6 +2850,53 @@ def show_wfh_requests_for_approval():
                            checkjob=checkjob, last_two_month=last_two_month)
 
 
+def _send_special_wfh_line_message(staff_accounts, message):
+    line_ids = list({staff_account.line_id for staff_account in staff_accounts
+                     if staff_account.line_id})
+    failed_count = sum(1 for staff_account in staff_accounts if not staff_account.line_id)
+    if current_app.debug:
+        print(message, line_ids)
+        return failed_count
+    for batch_start in range(0, len(line_ids), 500):
+        batch = line_ids[batch_start:batch_start + 500]
+        try:
+            line_bot_api.multicast(
+                to=batch,
+                messages=TextSendMessage(text=message),
+            )
+        except LineBotApiError:
+            failed_count += len(batch)
+    return failed_count
+
+
+def _notify_special_wfh_grant(staff_accounts, special_days, granted_by):
+    day_lines = '\n'.join(
+        '- {} - {}'.format(special_day.work_date.strftime('%d/%m/%Y'), special_day.name)
+        for special_day in sorted(special_days, key=lambda item: item.work_date)
+    )
+    message = (
+        'แจ้งอนุมัติ Work From Home วันพิเศษ\n'
+        'ท่านได้รับอนุมัติ Work From Home (WFH) สำหรับวันพิเศษดังต่อไปนี้\n\n'
+        '{}\n\n'
+        'อนุมัติโดย {}'
+    ).format(day_lines, granted_by.personal_info.fullname)
+    return _send_special_wfh_line_message(staff_accounts, message)
+
+
+def _notify_special_wfh_removal(staff_accounts, special_day, removed_by):
+    message = (
+        'แจ้งยกเลิกอนุมัติ Work From Home วันพิเศษ\n'
+        'สิทธิ์ Work From Home (WFH) สำหรับวันพิเศษของท่านถูกยกเลิก\n\n'
+        '- {} - {}\n\n'
+        'ยกเลิกโดย {}'
+    ).format(
+        special_day.work_date.strftime('%d/%m/%Y'),
+        special_day.name,
+        removed_by.personal_info.fullname,
+    )
+    return _send_special_wfh_line_message(staff_accounts, message)
+
+
 @staff.route('/wfh/requests/approval/special-day', methods=['GET', 'POST'])
 @login_required
 def assign_special_wfh_day_staff():
@@ -2861,28 +2908,42 @@ def assign_special_wfh_day_staff():
 
     allowed_staff = {approver.requester for approver in approvers
                      if approver.requester and not approver.requester.personal_info.retired}
-    special_days = StaffSpecialWorkFromHomeDay.query.order_by(
-        StaffSpecialWorkFromHomeDay.work_date.desc()
+    today = arrow.now('Asia/Bangkok').date()
+    special_days = StaffSpecialWorkFromHomeDay.query.filter(
+        StaffSpecialWorkFromHomeDay.work_date >= today
+    ).order_by(
+        StaffSpecialWorkFromHomeDay.work_date.asc()
     ).all()
     if request.method == 'POST':
         try:
-            special_day_id = int(request.form.get('special_day_id'))
+            special_day_ids = {int(value) for value in request.form.getlist('special_day_ids')}
             staff_ids = {int(value) for value in request.form.getlist('staff_ids')}
         except (TypeError, ValueError):
             flash('ข้อมูลที่เลือกไม่ถูกต้อง', 'danger')
             return redirect(url_for('staff.assign_special_wfh_day_staff'))
 
-        special_day = StaffSpecialWorkFromHomeDay.query.get_or_404(special_day_id)
+        selected_days = [special_day for special_day in special_days
+                         if special_day.id in special_day_ids]
+        if not selected_days:
+            flash('กรุณาเลือกวัน WFH พิเศษอย่างน้อยหนึ่งวัน', 'danger')
+            return redirect(url_for('staff.assign_special_wfh_day_staff'))
         selected_staff = [staff for staff in allowed_staff if staff.id in staff_ids]
         if not selected_staff:
             flash('กรุณาเลือกบุคลากรอย่างน้อยหนึ่งคน', 'danger')
             return redirect(url_for('staff.assign_special_wfh_day_staff'))
-        special_day.staff = list({staff.id: staff for staff in special_day.staff + selected_staff}.values())
-        db.session.add(special_day)
+        for special_day in selected_days:
+            special_day.staff = list({staff.id: staff for staff in special_day.staff + selected_staff}.values())
+            db.session.add(special_day)
         db.session.commit()
-        refresh_daily_attendance(special_day.work_date,
-                                 staff_ids=[staff.id for staff in special_day.staff])
+        for special_day in selected_days:
+            refresh_daily_attendance(special_day.work_date,
+                                     staff_ids=[staff.id for staff in special_day.staff])
         db.session.commit()
+        line_notification_failures = _notify_special_wfh_grant(
+            selected_staff, selected_days, current_user
+        )
+        if line_notification_failures:
+            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ให้บุคลากรบางรายได้', 'warning')
         flash('เพิ่มรายชื่อผู้มีสิทธิ์ WFH สำหรับวันพิเศษเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.assign_special_wfh_day_staff'))
 
@@ -2915,19 +2976,38 @@ def edit_special_wfh_day_staff(special_day_id):
         if not selected_staff:
             flash('กรุณาเลือกบุคลากรอย่างน้อยหนึ่งคน', 'danger')
             return redirect(url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id))
+        existing_staff_ids = {staff.id for staff in special_day.staff}
+        selected_staff_ids = {staff.id for staff in selected_staff}
+        added_staff = [staff for staff in selected_staff
+                       if staff.id not in existing_staff_ids]
+        removed_staff = [staff for staff in special_day.staff
+                         if staff.id not in selected_staff_ids]
         special_day.staff = selected_staff
         db.session.add(special_day)
         db.session.commit()
         refresh_daily_attendance(special_day.work_date,
-                                 staff_ids=[staff.id for staff in special_day.staff])
+                                 staff_ids=[staff.id for staff in selected_staff + removed_staff])
         db.session.commit()
+        line_notification_failures = 0
+        if added_staff:
+            line_notification_failures += _notify_special_wfh_grant(
+                added_staff, [special_day], current_user
+            )
+        if removed_staff:
+            line_notification_failures += _notify_special_wfh_removal(
+                removed_staff, special_day, current_user
+            )
+        if line_notification_failures:
+            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ให้บุคลากรบางรายได้', 'warning')
         flash('แก้ไขรายชื่อผู้มีสิทธิ์ WFH เรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.assign_special_wfh_day_staff'))
 
     return render_template(
         'staff/wfh_special_day_staff.html',
-        special_days=StaffSpecialWorkFromHomeDay.query.order_by(
-            StaffSpecialWorkFromHomeDay.work_date.desc()
+        special_days=StaffSpecialWorkFromHomeDay.query.filter(
+            StaffSpecialWorkFromHomeDay.work_date >= arrow.now('Asia/Bangkok').date()
+        ).order_by(
+            StaffSpecialWorkFromHomeDay.work_date.asc()
         ).all(),
         allowed_staff=sorted(allowed_staff, key=lambda staff: staff.fullname),
         editing_day=special_day,
