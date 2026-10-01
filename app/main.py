@@ -2053,8 +2053,45 @@ from app.academic_service_payment import academic_service_payment as academic_se
 app.register_blueprint(academic_service_payment_blueprint)
 
 from app.advance_payment import advance_payment as advance_payment_blueprint
+from app.advance_payment.models import (
+    BankAccountInfo,
+    CashAdvanceBorrowingTicket,
+    CashManagementNotifications,
+    ClosingDocument,
+    ClosingDocumentLink,
+    Document,
+    FundRequest,
+    FundRequestItem,
+    ParcelReturnDetail,
+    PettyCashClaimDetail,
+    PettyCashClaimItem,
+    PettyCashClaimProofFile,
+    PettyCashFiscalYearCarryover,
+    PettyCashSetting,
+    ReturnDetail,
+    ReturnProofFile,
+    ReturnReceiptItem,
+)
 
 app.register_blueprint(advance_payment_blueprint)
+
+admin.add_view(ModelView(CashAdvanceBorrowingTicket, db.session, category='Advance Payment'))
+admin.add_view(ModelView(CashManagementNotifications, db.session, category='Advance Payment'))
+admin.add_view(ModelView(Document, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ReturnDetail, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ReturnReceiptItem, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ReturnProofFile, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ParcelReturnDetail, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ClosingDocument, db.session, category='Advance Payment'))
+admin.add_view(ModelView(ClosingDocumentLink, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashSetting, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashFiscalYearCarryover, db.session, category='Advance Payment'))
+admin.add_view(ModelView(BankAccountInfo, db.session, category='Advance Payment'))
+admin.add_view(ModelView(FundRequest, db.session, category='Advance Payment'))
+admin.add_view(ModelView(FundRequestItem, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashClaimDetail, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashClaimItem, db.session, category='Advance Payment'))
+admin.add_view(ModelView(PettyCashClaimProofFile, db.session, category='Advance Payment'))
 
 from app.software_request import software_request as software_request_blueprint
 
