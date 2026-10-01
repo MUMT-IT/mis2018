@@ -28,7 +28,6 @@ from flask_mail import Message
 from app.roles import (
     cash_management_coordinator_permission,
     finance_permission,
-    secretary_permission,
 )
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
@@ -60,24 +59,26 @@ def render_template(template_name, *args, **kwargs):
     kwargs.setdefault("advance_payment_user", current_user)
     kwargs.setdefault("advance_payment_role", _current_module_role())
     available_roles = set(_available_module_roles(current_user))
+    custodian_settings = (
+        _petty_cash_settings_for_custodian(current_user)
+        if current_user.is_authenticated
+        else []
+    )
+    is_custodian = bool(custodian_settings)
     kwargs.setdefault(
         "advance_payment_can_switch_systems",
         current_user.is_authenticated
         and (
             FINANCE_SYSTEM not in available_roles
-            or SECRETARY_ROLE in available_roles
+            or bool(custodian_settings)
         ),
     )
     kwargs.setdefault(
         "advance_payment_can_use_finance",
         FINANCE_SYSTEM in available_roles,
     )
-    kwargs.setdefault(
-        "petty_cash_settings",
-        _petty_cash_settings_for_custodian(current_user)
-        if SECRETARY_ROLE in available_roles
-        else [],
-    )
+    kwargs.setdefault("petty_cash_settings", custodian_settings)
+    kwargs.setdefault("advance_payment_is_custodian", is_custodian)
     kwargs.setdefault(
         "selected_petty_cash_setting_id",
         session.get(PETTY_CASH_SETTING_SESSION_KEY),
@@ -144,7 +145,6 @@ def _validation_redirect_response(message, location=None):
     return _validation_error_response(message)
 
 COORDINATOR_ROLE = "cash_management_coordinator"
-SECRETARY_ROLE = "secretary"
 ADVANCE_PAYMENT_SYSTEM = "advance_payment"
 PETTY_CASH_SYSTEM = "petty_cash"
 FINANCE_SYSTEM = "finance"
@@ -220,7 +220,7 @@ def _is_coordinator_role(role):
 
 
 def _is_petty_cash_role(role):
-    return role == SECRETARY_ROLE
+    return role == PETTY_CASH_SYSTEM
 
 
 def _dashboard_endpoint_for_role(role):
@@ -481,24 +481,28 @@ def _get_staff_accounts_from_directory():
 
 
 def _get_coordinator_dashboard_users(staff):
-    """Return dashboard borrower choices, scoped for secretary users."""
+    """Return proxy borrower choices across every org managed by a custodian."""
     users = _get_staff_accounts_from_directory()
-    if _current_module_role() != SECRETARY_ROLE:
+    if _current_module_role() == COORDINATOR_ROLE:
         return users
 
-    secretary_org = _get_staff_org(staff)
-    if secretary_org is None:
-        secretary_setting = _resolve_petty_cash_setting(staff)
-        secretary_org = getattr(secretary_setting, "org", None) if secretary_setting else None
+    custodian_settings = _petty_cash_settings_for_custodian(staff)
+    if not custodian_settings:
+        return [staff]
 
-    org_id = getattr(secretary_org, "id", None)
-    if org_id is None:
+    managed_org_ids = {
+        getattr(setting, "org_id", None)
+        or getattr(getattr(setting, "org", None), "id", None)
+        for setting in custodian_settings
+    }
+    managed_org_ids.discard(None)
+    if not managed_org_ids:
         return [staff]
 
     return [
         user
         for user in users
-        if getattr(getattr(user, "personal_info", None), "org_id", None) == org_id
+        if getattr(getattr(user, "personal_info", None), "org_id", None) in managed_org_ids
     ]
 
 
@@ -578,7 +582,7 @@ def _available_module_roles(staff):
         role_names.add(direct_role)
     return [
         role
-        for role in (COORDINATOR_ROLE, SECRETARY_ROLE, FINANCE_SYSTEM)
+        for role in (COORDINATOR_ROLE, FINANCE_SYSTEM)
         if role in role_names
     ]
 
@@ -657,10 +661,6 @@ def _can_use_module_system(staff, system):
     available_roles = set(_available_module_roles(staff))
     if system == FINANCE_SYSTEM:
         return FINANCE_SYSTEM in available_roles
-    if system == PETTY_CASH_SYSTEM:
-        return SECRETARY_ROLE in available_roles
-    if system == ADVANCE_PAYMENT_SYSTEM:
-        return bool(available_roles.intersection({COORDINATOR_ROLE, SECRETARY_ROLE}))
     return False
 
 
@@ -677,12 +677,11 @@ def _current_module_role():
     available_roles = set(_available_module_roles(current_user))
     if selected_system == FINANCE_SYSTEM:
         return FINANCE_SYSTEM if FINANCE_SYSTEM in available_roles else None
-    if selected_system == PETTY_CASH_SYSTEM and SECRETARY_ROLE in available_roles:
-        return SECRETARY_ROLE
+    if selected_system == PETTY_CASH_SYSTEM:
+        setting = _resolve_petty_cash_setting(current_user)
+        return PETTY_CASH_SYSTEM if _is_petty_cash_custodian(current_user, setting) else None
     if selected_system == ADVANCE_PAYMENT_SYSTEM and COORDINATOR_ROLE in available_roles:
         return COORDINATOR_ROLE
-    if selected_system == ADVANCE_PAYMENT_SYSTEM and SECRETARY_ROLE in available_roles:
-        return SECRETARY_ROLE
     return None
 
 
@@ -747,31 +746,12 @@ def _is_current_coordinator():
 
 
 def _can_use_coordinator_dashboard():
-    return (
-        current_user.is_authenticated
-        and _selected_system() == ADVANCE_PAYMENT_SYSTEM
-        and _current_module_role() in {COORDINATOR_ROLE, SECRETARY_ROLE}
-    )
-
-
-def _is_current_secretary(user=None, setting=None):
-    """Require a current secretary role and the account's custodian assignment."""
-    if _selected_system() != PETTY_CASH_SYSTEM:
+    if not current_user.is_authenticated or _selected_system() != ADVANCE_PAYMENT_SYSTEM:
         return False
-    if user is None:
-        user = _module_user_from_session()
-    if not user or SECRETARY_ROLE not in _available_module_roles(user):
-        return False
-    if setting is None:
-        setting = _resolve_petty_cash_setting(user)
-    return bool(
-        setting
-        and getattr(setting, "id", None)
-        and getattr(setting, "valid", False)
-        and getattr(setting, "fiscal_year", None) == _current_petty_cash_fiscal_year()
-        and getattr(user, "id", None) is not None
-        and user.id == getattr(setting, "custodian_id", None)
-    )
+    if _is_current_coordinator():
+        return True
+
+    return bool(_petty_cash_settings_for_custodian(current_user))
 
 
 def _is_petty_cash_custodian(user, setting):
@@ -2739,8 +2719,8 @@ def _render_role_selection(selected_role=None, error_message=None):
             elevated_role = None
             if requested_system == ADVANCE_PAYMENT_SYSTEM and COORDINATOR_ROLE in _available_module_roles(staff):
                 elevated_role = COORDINATOR_ROLE
-            elif requested_system == PETTY_CASH_SYSTEM and SECRETARY_ROLE in _available_module_roles(staff):
-                elevated_role = SECRETARY_ROLE
+            elif requested_system == PETTY_CASH_SYSTEM and _petty_cash_settings_for_custodian(staff):
+                elevated_role = PETTY_CASH_SYSTEM
             elif requested_system == FINANCE_SYSTEM:
                 elevated_role = FINANCE_SYSTEM
             _set_selected_system(requested_system)
@@ -2770,7 +2750,7 @@ def petty_cash_setting_selection():
         else:
             session.pop(PETTY_CASH_SETTING_SESSION_KEY, None)
         _set_selected_system(PETTY_CASH_SYSTEM)
-        return redirect(url_for(_dashboard_endpoint_for_role(SECRETARY_ROLE)))
+        return redirect(url_for(_dashboard_endpoint_for_role(PETTY_CASH_SYSTEM)))
 
     error_message = None
     if request.method == "POST":
@@ -2784,7 +2764,7 @@ def petty_cash_setting_selection():
         else:
             session[PETTY_CASH_SETTING_SESSION_KEY] = selected_setting.id
             _set_selected_system(PETTY_CASH_SYSTEM)
-            return redirect(url_for(_dashboard_endpoint_for_role(SECRETARY_ROLE)))
+            return redirect(url_for(_dashboard_endpoint_for_role(PETTY_CASH_SYSTEM)))
 
     return render_template(
         "petty_cash_setting_selection.html",
@@ -2839,6 +2819,8 @@ def logout():
 def coordinator_dashboard():
     user_id = current_user.id
     user_role = _current_module_role()
+    is_custodian = bool(_petty_cash_settings_for_custodian(current_user))
+    is_custodian_proxy = is_custodian and user_role != COORDINATOR_ROLE
     is_borrower_mode = (
         request.endpoint == "advance_payment.borrower_dashboard"
         or not _can_use_coordinator_dashboard()
@@ -2855,7 +2837,8 @@ def coordinator_dashboard():
         dashboard_scope = default_dashboard_scope
 
     # Borrower dashboards are department-scoped, but default to the current user.
-    # Coordinators keep their existing organization-wide/secretary-scoped choices.
+    # Coordinators keep organization-wide choices; custodians are scoped to the
+    # organization configured on their petty-cash setting.
     if is_borrower_mode:
         current_org = _get_staff_org(staff)
         current_org_id = getattr(current_org, "id", None)
@@ -2911,8 +2894,8 @@ def coordinator_dashboard():
             else []
         )
     else:
-        # Coordinators see the tickets they created, with secretary scoping
-        # applied below.
+        # Coordinators and custodians see the tickets they created, with
+        # custodian organization scoping applied below.
         all_borrowing_ticket_history = (
             db.session.query(BorrowingTicket)
             .filter(BorrowingTicket.creator_id == current_user.id)
@@ -2920,7 +2903,7 @@ def coordinator_dashboard():
             .all()
         )
 
-    if not is_borrower_mode and user_role == SECRETARY_ROLE:
+    if not is_borrower_mode and is_custodian_proxy:
         allowed_borrower_ids = {user.id for user in dept_users if user.id}
         all_borrowing_ticket_history = [
             ticket
@@ -3331,7 +3314,7 @@ def coordinator_dashboard():
     )
     dashboard_party_scope = (
         "เฉพาะหน่วยงาน"
-        if user_role == SECRETARY_ROLE and not is_borrower_mode
+        if is_custodian_proxy and not is_borrower_mode
         else "เฉพาะหน่วยงาน (เริ่มต้นแสดงข้อมูลของตนเอง)" if is_borrower_mode else "บุคลากรทั้งองค์กร"
     )
 
@@ -3376,9 +3359,12 @@ def export_ticket_pdf(ticket_id):
         abort(404)
 
     if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
+        is_custodian = bool(_petty_cash_settings_for_custodian(current_user))
         if _is_current_coordinator():
             if ticket.creator_id != _current_user_id():
                 abort(403)
+        elif is_custodian and ticket.creator_id == _current_user_id():
+            pass
         elif not _can_submit_return_detail(_current_user_id(), ticket):
             abort(403)
 
@@ -3910,10 +3896,11 @@ def verification_view(ticket_id):
         abort(404)
 
     if _selected_system() == ADVANCE_PAYMENT_SYSTEM:
+        is_custodian = bool(_petty_cash_settings_for_custodian(current_user))
         can_manage_as_coordinator = (
             _is_current_coordinator()
             or (
-                _current_module_role() == SECRETARY_ROLE
+                is_custodian
                 and borrowing_ticket.creator_id == _current_user_id()
             )
         )
@@ -6231,6 +6218,7 @@ def petty_cash_settings(_render_after_post=False):
         request_summary[key] = {
             "fiscal_year": setting.fiscal_year,
             "department_name": setting.department_name or "ไม่พบข้อมูลหน่วยงาน",
+            "budget": setting.budget,
             "request_count": 0,
             "used_amount": Decimal("0.00"),
         }
@@ -6247,12 +6235,15 @@ def petty_cash_settings(_render_after_post=False):
 
     for fund_request in history_requests:
         fiscal_year = convert_to_fiscal_year(fund_request.request_date)
+        setting = getattr(fund_request, "petty_cash_setting_id", None)
+        budget = getattr(setting, "budget", '6250')
         key = (fiscal_year, getattr(fund_request, "org_id", None))
         summary = request_summary.setdefault(
             key,
             {
                 "fiscal_year": fiscal_year,
                 "department_name": fund_request.department_name or "ไม่พบข้อมูลหน่วยงาน",
+                "budget": budget,
                 "request_count": 0,
                 "used_amount": Decimal("0.00"),
             },
@@ -6901,7 +6892,6 @@ def staff_fund_request():
             )
         )
 
-    is_secretary = _is_current_secretary(user, setting)
     is_custodian = _is_petty_cash_custodian(user, setting)
     _attach_petty_cash_setting_people(setting)
     approved_borrowing_tickets = _get_approved_borrowing_tickets_for_setting(setting)
@@ -6916,7 +6906,7 @@ def staff_fund_request():
         user_id=user.id if not (setting and setting.id) else None,
     )
     # Borrower choices must follow the organization configured for the petty-cash
-    # setting, not the secretary's own organization.
+    # setting, not the custodian's own profile organization.
     setting_org = getattr(setting, "org", None) if setting else None
     if setting_org is None and setting:
         setting_org = _resolve_org_by_department_name(getattr(setting, "department_name", None))
@@ -7185,7 +7175,6 @@ def staff_fund_request():
         current_year_be=convert_to_fiscal_year(datetime.now().date()) + 543,
         selected_form_type=selected_form_type,
         selected_borrowing_ticket_id=selected_borrowing_ticket_id,
-        is_secretary=is_secretary,
         is_custodian=is_custodian,
         current_user_display_name=user_display_name,
         current_user_display_position=user_display_position,
@@ -7195,17 +7184,17 @@ def staff_fund_request():
     )
 
 @bp.route("/staff/fund-request/<int:request_id>/cancel", methods=["POST"])
-@module_role_required(secretary_permission, SECRETARY_ROLE, PETTY_CASH_SYSTEM)
+@module_system_required(PETTY_CASH_SYSTEM)
 def cancel_fund_request(request_id):
     staff = current_user
-    if not staff.is_authenticated or not _is_current_secretary(staff):
+    setting = _resolve_petty_cash_setting(staff)
+    if not staff.is_authenticated or not _is_petty_cash_custodian(staff, setting):
         abort(403)
 
     fund_req = db.session.query(FundRequest).get(request_id)
     if not fund_req:
         abort(404)
 
-    setting = _resolve_petty_cash_setting(staff)
     if not _fund_request_setting_filter(
         db.session.query(FundRequest).filter(FundRequest.id == fund_req.id),
         setting,
@@ -7257,7 +7246,6 @@ def staff_fund_request_history():
 
     carryover_setting, _carryover = _resolve_petty_cash_carryover_context(user)
     setting = carryover_setting if getattr(carryover_setting, "id", None) else _resolve_petty_cash_setting(user)
-    is_secretary = _is_current_secretary(user, setting)
     is_custodian = _is_petty_cash_custodian(user, setting)
 
     if setting and setting.id:
@@ -7359,7 +7347,6 @@ def staff_fund_request_history():
 
     return render_template(
         "staff_fund_request_history.html",
-        is_secretary=is_secretary,
         is_custodian=is_custodian,
         setting=setting,
         fund_requests=fund_requests,
@@ -7510,7 +7497,7 @@ def update_petty_cash_claim_number(claim_id):
     same_setting = bool(
         setting and setting.id and claim.petty_cash_setting_id == setting.id
     )
-    if _is_current_secretary(staff, setting):
+    if _is_petty_cash_custodian(staff, setting):
         can_edit = same_setting
     else:
         can_edit = same_setting and claim.user_id == staff.id
@@ -7880,9 +7867,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         current_user,
         selected_fund_request_context,
     )
-    is_secretary = (
+    is_custodian = (
         _selected_system() == PETTY_CASH_SYSTEM
-        and SECRETARY_ROLE in _available_module_roles(current_user)
+        and _is_petty_cash_custodian(current_user, setting)
     )
     is_finance_user = (current_role == "finance")
     can_submit_claim = _selected_system() == PETTY_CASH_SYSTEM
@@ -7916,18 +7903,18 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
 
     # 2. ตรวจสอบการเลือก Fund Request เพื่อ Auto-fill ในหน้า Submit Claim
     selected_fund_request = None
-    # A secretary may be the custodian of multiple petty-cash accounts. When
+    # A custodian may be assigned to multiple petty-cash accounts. When
     # opening a fund request directly, use the account attached to that
-    # request instead of falling back to the secretary's default account.
-    if selected_fr_id and SECRETARY_ROLE in _available_module_roles(current_user):
+    # request instead of falling back to the custodian's default account.
+    if selected_fr_id and is_custodian:
         requested_fund_request = db.session.query(FundRequest).filter_by(id=selected_fr_id).first()
         if requested_fund_request:
-            secretary_setting_query = db.session.query(PettyCashSetting).filter(
+            custodian_setting_query = db.session.query(PettyCashSetting).filter(
                 PettyCashSetting.custodian_id == user_id,
                 PettyCashSetting.valid == True,
                 PettyCashSetting.fiscal_year == _current_petty_cash_fiscal_year(),
             )
-            managed_settings = secretary_setting_query.all()
+            managed_settings = custodian_setting_query.all()
             managed_setting_ids = {item.id for item in managed_settings}
             managed_org_ids = {item.org_id for item in managed_settings if item.org_id}
             creator = _get_user_by_id(getattr(requested_fund_request, "creator_id", None))
@@ -7968,10 +7955,10 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             and requested_fund_request is not None
             and requested_fund_request.requester_id == user_id
         )
-        direct_secretary_request = bool(
+        direct_custodian_request = bool(
             direct_owned_request
             or (
-                is_secretary
+                is_custodian
                 and selected_fr_id
                 and 'requested_fund_request' in locals()
                 and requested_fund_request is not None
@@ -7980,7 +7967,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         )
         if can_work_org_requests:
             selected_request_query = _fund_request_setting_filter(selected_request_query, setting)
-        elif (setting and setting.id and not is_finance_user) and not direct_secretary_request:
+        elif (setting and setting.id and not is_finance_user) and not direct_custodian_request:
             selected_request_query = _fund_request_setting_filter(selected_request_query, setting)
         if (can_submit_claim or not is_finance_user) and not can_work_org_requests:
             selected_request_query = selected_request_query.filter_by(requester_id=user_id)
@@ -8689,7 +8676,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     if (
         verification_fund_request
         and fund_request_status == "อนุมัติแล้ว"
-        and _is_current_secretary(current_user, setting)
+        and _is_petty_cash_custodian(current_user, setting)
         and _fund_request_setting_filter(
             db.session.query(FundRequest).filter(
                 FundRequest.id == verification_fund_request.id,
@@ -9055,10 +9042,13 @@ def confirm_petty_claim_edit(claim_id):
     return petty_cash_claim_detail(claim.id)
 
 @bp.route("/staff/petty-cash-ledger", methods=["GET"])
-@module_role_required(secretary_permission, SECRETARY_ROLE, PETTY_CASH_SYSTEM)
+@module_system_required(PETTY_CASH_SYSTEM)
 def petty_cash_ledger():
     user_id = _current_user_id()
     staff = current_user
+    active_setting = _resolve_petty_cash_setting(staff)
+    if not _is_petty_cash_custodian(staff, active_setting):
+        abort(403)
     selected_month = (request.args.get("month") or "").strip()
     today = datetime.now().date()
     default_month = today.replace(day=1)
