@@ -86,12 +86,65 @@
                                     <tr>
                                         <td>{{ special_day.work_date|localdate }}</td>
                                         <td>{{ special_day.name }}</td>
-                                        <td>{{ special_day.staff|length }}</td>
+                                        <td>
+                                            <a
+                                                href="#special-wfh-staff-modal-{{ special_day.id }}"
+                                                class="js-open-special-wfh-staff-modal"
+                                                data-target="special-wfh-staff-modal-{{ special_day.id }}"
+                                                aria-haspopup="dialog"
+                                                aria-controls="special-wfh-staff-modal-{{ special_day.id }}"
+                                            >
+                                                {{ special_day.staff|length }}
+                                            </a>
+                                        </td>
                                     </tr>
                                 {% endfor %}
                                 </tbody>
                             </table>
                         </div>
+                        {% for special_day in special_wfh_days %}
+                            <div
+                                class="modal js-special-wfh-staff-modal"
+                                id="special-wfh-staff-modal-{{ special_day.id }}"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-labelledby="special-wfh-staff-modal-title-{{ special_day.id }}"
+                            >
+                                <div class="modal-background js-close-special-wfh-staff-modal"></div>
+                                <div class="modal-card">
+                                    <header class="modal-card-head">
+                                        <p class="modal-card-title" id="special-wfh-staff-modal-title-{{ special_day.id }}">
+                                            ผู้มีสิทธิ์ WFH วันที่ {{ special_day.work_date|localdate }}
+                                        </p>
+                                        <button
+                                            class="delete js-close-special-wfh-staff-modal"
+                                            type="button"
+                                            aria-label="ปิด"
+                                        ></button>
+                                    </header>
+                                    <section class="modal-card-body">
+                                        <div class="table-container">
+                                            <table class="table is-fullwidth">
+                                                <thead><tr><th>ชื่อ</th><th>สังกัด</th></tr></thead>
+                                                <tbody>
+                                                {% for staff in special_day.staff|sort(attribute='fullname') %}
+                                                    <tr>
+                                                        <td>{{ staff.fullname }}</td>
+                                                        <td>{{ staff.personal_info.org.name if staff.personal_info.org else '-' }}</td>
+                                                    </tr>
+                                                {% else %}
+                                                    <tr><td colspan="2">ยังไม่มีผู้มีสิทธิ์</td></tr>
+                                                {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </section>
+                                    <footer class="modal-card-foot">
+                                        <button class="button js-close-special-wfh-staff-modal" type="button">ปิด</button>
+                                    </footer>
+                                </div>
+                            </div>
+                        {% endfor %}
                     {% endif %}
                 {% endif %}
             </div>
@@ -109,6 +162,32 @@
                     selectedDates: [],
                 }
             }
+        });
+
+        const specialWfhStaffModals = document.querySelectorAll('.js-special-wfh-staff-modal');
+
+        function closeSpecialWfhStaffModals() {
+            specialWfhStaffModals.forEach((modal) => modal.classList.remove('is-active'));
+            document.documentElement.classList.remove('is-clipped');
+        }
+
+        document.querySelectorAll('.js-open-special-wfh-staff-modal').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                const modal = document.getElementById(link.dataset.target);
+                if (!modal) return;
+                modal.classList.add('is-active');
+                document.documentElement.classList.add('is-clipped');
+                modal.querySelector('.delete').focus();
+            });
+        });
+
+        document.querySelectorAll('.js-close-special-wfh-staff-modal').forEach((control) => {
+            control.addEventListener('click', closeSpecialWfhStaffModals);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeSpecialWfhStaffModals();
         });
     </script>
 {% endblock %}
