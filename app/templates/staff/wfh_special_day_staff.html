@@ -17,7 +17,7 @@
                         <td>{{ special_day.name }}</td>
                         <td>{{ assigned_staff_by_day[special_day.id]|map(attribute='fullname')|join(', ') or '-' }}</td>
                         <td>
-                            <a class="button is-small is-warning is-light" href="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id) }}">
+                            <a class="button is-small is-warning is-light" href="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id) }}#special-wfh-form">
                                 <span class="icon"><i class="fas fa-pencil-alt"></i></span>
                                 <span>แก้ไข</span>
                             </a>
@@ -30,7 +30,7 @@
             </table>
         </div>
 
-        <form method="post" class="box" action="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=editing_day.id) if editing_day else url_for('staff.assign_special_wfh_day_staff') }}">
+        <form id="special-wfh-form" method="post" class="box" action="{{ url_for('staff.edit_special_wfh_day_staff', special_day_id=editing_day.id) if editing_day else url_for('staff.assign_special_wfh_day_staff') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="field">
                 <p class="label" id="special-days-label">เลือกวัน</p>
