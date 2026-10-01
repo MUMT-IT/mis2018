@@ -1245,6 +1245,19 @@ def _resolve_petty_cash_carryover_context(user):
     if not user_id:
         return None, None
 
+    selected_setting_id = session.get(PETTY_CASH_SETTING_SESSION_KEY)
+    selected_setting = None
+    if selected_setting_id:
+        selected_setting = (
+            db.session.query(PettyCashSetting)
+            .filter(
+                PettyCashSetting.id == selected_setting_id,
+                PettyCashSetting.custodian_id == user_id,
+                PettyCashSetting.valid.is_(True),
+            )
+            .first()
+        )
+
     query = (
         db.session.query(PettyCashSetting, PettyCashFiscalYearCarryover)
         .join(
@@ -1262,11 +1275,11 @@ def _resolve_petty_cash_carryover_context(user):
 
     # If the custodian selected a setting explicitly, keep that organization
     # and target fiscal year even when it is not the system's current year.
-    selected_setting_id = session.get(PETTY_CASH_SETTING_SESSION_KEY)
-    if selected_setting_id:
+    if selected_setting is not None:
         context = query.filter(PettyCashSetting.id == selected_setting_id).first()
         if context:
             return context
+        return selected_setting, None
 
     current_fiscal_year = _current_petty_cash_fiscal_year()
     contexts = query.order_by(
