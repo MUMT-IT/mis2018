@@ -433,6 +433,19 @@ def _fund_request_setting_filter(query, setting, *, include_legacy=True):
     return query.filter(or_(*scopes))
 
 
+def _exclude_legacy_fund_request_claims(query):
+    """Exclude claims attached to fund requests imported from a prior year."""
+    legacy_fund_request_ids = db.session.query(FundRequest.id).filter(
+        FundRequest.is_legacy_import.is_(True),
+    )
+    return query.filter(
+        or_(
+            PettyCashClaimDetail.fund_request_id.is_(None),
+            PettyCashClaimDetail.fund_request_id.notin_(legacy_fund_request_ids),
+        )
+    )
+
+
 def _org_account_controller(org):
     if not org:
         return None
@@ -1355,17 +1368,17 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
 
     approved_claims = []
     if setting_id:
-        approved_claims = (
-            db.session.query(PettyCashClaimDetail)
-            .filter(PettyCashClaimDetail.petty_cash_setting_id == setting_id)
-            .all()
-        )
+        approved_claims = _exclude_legacy_fund_request_claims(
+            db.session.query(PettyCashClaimDetail).filter(
+                PettyCashClaimDetail.petty_cash_setting_id == setting_id,
+            )
+        ).all()
     elif user_id:
-        approved_claims = (
-            db.session.query(PettyCashClaimDetail)
-            .filter(PettyCashClaimDetail.user_id == user_id)
-            .all()
-        )
+        approved_claims = _exclude_legacy_fund_request_claims(
+            db.session.query(PettyCashClaimDetail).filter(
+                PettyCashClaimDetail.user_id == user_id,
+            )
+        ).all()
 
     approved_claims = [
         claim
@@ -7264,15 +7277,17 @@ def staff_fund_request_history():
     if setting and setting.id:
         fund_requests_query = _fund_request_setting_filter(
             db.session.query(FundRequest), setting
-        )
+        ).filter(FundRequest.is_legacy_import.is_(False))
     else:
         fund_requests_query = db.session.query(FundRequest).filter(False)
     fund_requests = fund_requests_query.order_by(FundRequest.id.desc()).all()
     for fund_request in fund_requests:
         fund_request.display_requester_name = _fund_request_requester_name(fund_request, "-")
 
-    history_items_query = db.session.query(PettyCashClaimDetail).filter(
-        PettyCashClaimDetail.status != "ฉบับร่าง",
+    history_items_query = _exclude_legacy_fund_request_claims(
+        db.session.query(PettyCashClaimDetail).filter(
+            PettyCashClaimDetail.status != "ฉบับร่าง",
+        )
     )
     if setting and setting.id:
         history_items_query = history_items_query.filter(
@@ -7289,7 +7304,9 @@ def staff_fund_request_history():
     dept_summary["total_claims"] = len(history_items)
     dept_summary["history"] = history_items
 
-    claim_history_query = db.session.query(PettyCashClaimDetail)
+    claim_history_query = _exclude_legacy_fund_request_claims(
+        db.session.query(PettyCashClaimDetail)
+    )
     if setting and setting.id:
         claim_history_query = claim_history_query.filter(
             PettyCashClaimDetail.petty_cash_setting_id == setting.id,
