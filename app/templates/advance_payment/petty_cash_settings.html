@@ -393,6 +393,7 @@
             <tr>
               <th class="text-center">ปีงบประมาณ</th>
               <th>หน่วยงาน</th>
+              <th class="text-end">งบประมาณจัดตั้ง</th>
               <th class="text-center">จำนวนครั้งที่เบิก</th>
               <th class="text-end">จำนวนเงินที่ใช้ (บาท)</th>
             </tr>
@@ -402,6 +403,7 @@
             <tr>
               <td class="text-center fw-bold">{{ history.fiscal_year + 543 }}</td>
               <td class="fw-semibold">{{ history.department_name }}</td>
+              <td class="text-end fw-bold text-success">{{ '{:,.2f}'.format(history.budget) }}</td>
               <td class="text-center">{{ history.request_count }}</td>
               <td class="text-end fw-bold text-danger">{{ '{:,.2f}'.format(history.used_amount) }}</td>
             </tr>

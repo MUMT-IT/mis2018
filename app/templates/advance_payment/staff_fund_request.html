@@ -1,13 +1,13 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}สร้างใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
+{% block title %}สร้างใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย | ระบบเงินสดย่อย{% endblock %}
 
 {% block content %}
   <header class="mb-4 pb-2 border-bottom">
     <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
       <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
     </a>
-    <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
+    <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ระบบเงินสดย่อย</p>
     <h1 class="fw-bold display-6 mb-2">สร้างใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย</h1>
   </header>
 
@@ -34,8 +34,11 @@
                   <label class="form-check-label fw-bold text-primary" for="form_type_petty_cash">ขออนุมัติเบิกเงินสดย่อย</label>
                 </div>
                 <div class="form-check form-check-inline m-0 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_interest" value="interest" {% if selected_form_type == 'interest' %}checked{% endif %}>
+                  <input class="form-check-input" type="radio" name="form_type" id="form_type_interest" value="interest" {% if selected_form_type == 'interest' %}checked{% endif %}{% if not is_custodian %} disabled{% endif %}>
                   <label class="form-check-label fw-bold text-primary" for="form_type_interest">ขออนุมัติเบิกดอกเบี้ย</label>
+                  {% if not is_custodian %}
+                    <span class="badge bg-secondary ms-1">เฉพาะผู้ดูแลเงินสดย่อย</span>
+                  {% endif %}
                 </div>
                 <div class="form-check form-check-inline m-0 py-1">
                   <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}>
@@ -49,7 +52,7 @@
               <div class="row g-3 mb-4 p-3 bg-light rounded-3 border mt-3">
                 <div class="col-md-6">
                     <label for="requester_input" class="form-label fw-bold text-muted small">ชื่อ-นามสกุล ผู้ขอยืม <span class="text-danger">*</span></label>
-                    {% if is_secretary %}
+                    {% if is_custodian %}
                       <select name="requester_id" id="requester_input" class="form-select bg-white" required onchange="onBorrowerChange()">
                         <option value="">พิมพ์เพื่อค้นหา หรือเลือกพนักงาน...</option>
                         {% if selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id and not (department_employees | selectattr('id', 'equalto', setting.custodian_id) | list) %}
@@ -63,8 +66,8 @@
                         <div class="form-text text-danger">ไม่พบรายชื่อบุคลากรในหน่วยงาน กรุณาตรวจสอบหน่วยงานที่ผูกกับการตั้งค่าเงินสดย่อย</div>
                       {% endif %}
                     {% else %}
-                      <input type="text" id="requester_input" class="form-control bg-light" value="{{ custodian_display_name if selected_form_type in ['interest', 'petty_cash'] else current_user_display_name }}" readonly>
-                      <input type="hidden" name="requester_id" id="requester_id_input" value="{{ setting.custodian_id if selected_form_type in ['interest', 'petty_cash'] and setting else (advance_payment_user.id if advance_payment_user.is_authenticated else '') }}">
+                      <input type="text" id="requester_input" class="form-control bg-light" value="{{ current_user_display_name }}" readonly>
+                      <input type="hidden" name="requester_id" id="requester_id_input" value="{{ advance_payment_user.id if advance_payment_user.is_authenticated else '' }}">
                     {% endif %}
                 </div>
                 <div class="col-md-6">
