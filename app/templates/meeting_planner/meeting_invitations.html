@@ -36,7 +36,6 @@
                         <th>เริ่ม</th>
                         <th>สิ้นสุด</th>
                         <th>ห้อง</th>
-                        <th>รายละเอียด</th>
                         <th>ผู้เข้าร่วมประชุม</th>
                         <th>การเข้าร่วม</th>
                         <th></th>
@@ -51,17 +50,15 @@
                         {% endif %}
                         {% for i in invitations %}
                             <tr>
-                                <td>{{ i.meeting.title }}</td>
+                                <td>
+                                    <a href="{{ url_for('meeting_planner.detail_meeting_member',
+                                        meeting_id=i.meeting.id) }}">
+                                        {{ i.meeting.title }}
+                                    </a>
+                                </td>
                                 <td>{{ i.meeting.start.isoformat() }}</td>
                                 <td>{{ i.meeting.end.isoformat() }}</td>
                                 <td>{{ i.meeting.rooms }}</td>
-                                <td>
-                                    <a href="{{ url_for('meeting_planner.detail_meeting_member', meeting_id=i.meeting.id) }}">
-                                        <span class="icon">
-                                            <i class="fa-solid fa-circle-info"></i>
-                                        </span>
-                                    </a>
-                                </td>
                                 <td>
                                     {{ i.meeting.participants|join(', ') }}
                                 </td>
@@ -77,32 +74,34 @@
                                 </span>
                                 </td>
                                 <td>
-                                    <div class="field has-addons" id="target-{{ i.id }}">
-                                        <div class="control">
-                                            <a class="button is-rounded is-small is-success"
-                                               hx-target="#left-icon-{{ i.id }}"
-                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='เข้าร่วม', keep="true") }}">
-                                                เข้าร่วม
-                                            </a>
+                                    {% if i.meeting.active_meeting %}
+                                        <div class="field has-addons" id="target-{{ i.id }}">
+                                            <div class="control">
+                                                <a class="button is-rounded is-small is-success"
+                                                   hx-target="#left-icon-{{ i.id }}"
+                                                   hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='เข้าร่วม', keep="true") }}">
+                                                    เข้าร่วม
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-rounded is-small is-danger"
+                                                   hx-target="#left-icon-{{ i.id }}"
+                                                   hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่เข้าร่วม', keep="true") }}">
+                                                    ไม่เข้าร่วม
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-rounded is-small is-light"
+                                                   hx-target="#left-icon-{{ i.id }}"
+                                                   hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่แน่ใจ', keep="true") }}">
+                                                    ไม่แน่ใจ
+                                                </a>
+                                            </div>
                                         </div>
-                                        <div class="control">
-                                            <a class="button is-rounded is-small is-danger"
-                                               hx-target="#left-icon-{{ i.id }}"
-                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่เข้าร่วม', keep="true") }}">
-                                                ไม่เข้าร่วม
-                                            </a>
+                                        <div class="field">
+                                            <div id="note-target-{{ i.id }}"></div>
                                         </div>
-                                        <div class="control">
-                                            <a class="button is-rounded is-small is-light"
-                                               hx-target="#left-icon-{{ i.id }}"
-                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่แน่ใจ', keep="true") }}">
-                                                ไม่แน่ใจ
-                                            </a>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <div id="note-target-{{ i.id }}"></div>
-                                    </div>
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}
@@ -121,8 +120,10 @@
     <script src="https://cdn.datatables.net/datetime/1.5.0/js/dataTables.dateTime.min.js"></script>
     <script>
     $(document).ready(function() {
+        $.fn.dataTable.moment('lll');
         $('#meetings').DataTable({
-            order: [[1, 'desc']],
+            order: [[1, 'desc'],
+                    [2, 'desc']],
             columnDefs: [
                 {
                     targets: [1,2],

@@ -360,6 +360,8 @@ def respond(invitation_id):
             resp = '<i class="fas fa-circle-check has-text-success"></i>'
             if keep == 'false':
                 resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
+            else:
+                resp += f'<div id="note-target-{invitation.id}" hx-swap-oob="true"></div>'
         elif invitation.response == 'ไม่เข้าร่วม':
             add_note_to_response_url = url_for('meeting_planner.add_note_to_response',
                                                invitation_id=invitation.id,
@@ -367,11 +369,13 @@ def respond(invitation_id):
             resp = '<i class="fas fa-times-circle has-text-danger"></i>'
             resp += (f'<div id="note-target-{invitation.id}" hx-swap-oob="true">'
                      f'<form hx-patch="{add_note_to_response_url}">'
+                     f'<div class="field"><div class="control">'
                      f'<input type="text" placeholder="โปรดระบุเหตุผล" value="{invitation.note}" '
                      f'name="note" class="input is-small">'
-                     f'<input class="tag is-small" type="submit" value="Send">'
-                     f'<button class="tag is-small" hx=get={add_note_to_response_url}>Cancel</button>'
-                     f'</form></div>'
+                     f'</div></div><div class="field">'
+                     f'<input class="tag is-info is-small" type="submit" value="Send">'
+                     f'<button class="tag is-small" style="margin-left: .3em;" hx=get={add_note_to_response_url}>Cancel</button>'
+                     f'</div></form></div>'
                      )
             '''
             if keep == 'false':
@@ -382,6 +386,8 @@ def respond(invitation_id):
             resp = '<i class="fas fa-question-circle"></i>'
             if keep == 'false':
                 resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
+            else:
+                resp += f'<div id="note-target-{invitation.id}" hx-swap-oob="true"></div>'
         db.session.add(invitation)
         db.session.commit()
         resp += f'<span id="response-time-{invitation_id}" hx-swap-oob="true">{invitation.responded_at.strftime("%d/%m/%Y %H:%M:%S")}</span>'
@@ -473,7 +479,39 @@ def detail_meeting(meeting_id):
 @login_required
 def detail_meeting_member(meeting_id):
     meeting = MeetingEvent.query.get(meeting_id)
-    return render_template('meeting_planner/meeting_detail_member.html', meeting=meeting)
+    agenda_ids = [agenda.id for agenda in meeting.agendas]
+    notes = MeetingAgendaNote.query.filter(
+        MeetingAgendaNote.staff_id == current_user.id,
+        MeetingAgendaNote.agenda_id.in_(agenda_ids)
+    ).all() if agenda_ids else []
+    private_notes = {note.agenda_id: note for note in notes}
+    return render_template(
+        'meeting_planner/meeting_detail_member.html',
+        meeting=meeting,
+        private_notes=private_notes
+    )
+
+
+@meeting_planner.route('/api/meeting_planner/topics/<int:topic_id>/private-note', methods=['POST'])
+@login_required
+def save_private_agenda_note(topic_id):
+    topic = MeetingAgenda.query.get_or_404(topic_id)
+    note = MeetingAgendaNote.query.filter_by(
+        agenda_id=topic.id,
+        staff_id=current_user.id
+    ).first()
+    if note is None:
+        note = MeetingAgendaNote(agenda=topic, staff=current_user)
+
+    note.note = request.form.get('note', '')
+    note.updated_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(note)
+    db.session.commit()
+    return render_template(
+        'meeting_planner/private_agenda_note.html',
+        topic=topic,
+        private_note=note
+    )
 
 
 @meeting_planner.route('/api/invitations/<int:invitation_id>/notify')
@@ -513,6 +551,13 @@ def notify_participant(invitation_id):
 def edit_topic_form(topic_id):
     topic = MeetingAgenda.query.get(topic_id)
     form = MeetingAgendaForm(obj=topic)
+    task_html = ''.join(
+        render_template(
+            'meeting_planner/task_row.html',
+            task=task
+        )
+        for task in sorted(topic.tasks, key=lambda task: task.no)
+    )
     if request.method == 'GET':
         template = '''
         <tr>
@@ -520,9 +565,27 @@ def edit_topic_form(topic_id):
             <td>
                 {}
                 <hr>
-                <label class="label">รายละเอียดเพิ่มเติม</label>{}
+                <label class="label">รายละเอียด</label>{}
                 <hr>
                 <label class="label">มติที่ประชุม</label>{}
+                <label class="label">ผลการดำเนินการ</label>
+                <table class="table is-fullwidth">
+                    <thead>
+                        <th style="width: 10%">ลำดับ</th>
+                        <th>รายละเอียด</th>
+                        <th></th>
+                    </thead>
+                    <tbody id="tasks-{}" hx-target="closest tr" hx-swap="outerHTML">
+                        {}
+                    </tbody>
+                </table>
+                <a class="button is-small is-info is-rounded is-outlined"
+                    hx-get="{}"
+                    hx-target="#tasks-{}"
+                    hx-swap="beforeend">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่ม</span>
+                 </a>
             </td>
             <td style="width: 10%">
                 <a class="button is-success is-outlined"
@@ -535,6 +598,10 @@ def edit_topic_form(topic_id):
                    form.detail(class_="textarea"),
                    form.note(class_="textarea"),
                    form.consensus(class_="textarea"),
+                   topic_id,
+                   task_html,
+                   topic_id,
+                   url_for('meeting_planner.add_task_form', topic_id=topic.id),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
                    )
     if request.method == 'POST':
@@ -550,11 +617,29 @@ def edit_topic_form(topic_id):
             <td>
             {}
             <hr>
-            <label class="label">รายละเอียดเพิ่มเติม</label>
+            <label class="label">รายละเอียด</label>
             <p class="notification">{}</p>
             <hr>
             <label class="label">มติที่ประชุม</label>
             <p class="notification">{}</p>
+            <label class="label">ผลการดำเนินการ</label>
+                <table class="table is-fullwidth">
+                    <thead>
+                        <th style="width: 10%">ลำดับ</th>
+                        <th>รายละเอียด</th>
+                        <th></th>
+                    </thead>
+                    <tbody id="tasks-{}" hx-target="closest tr" hx-swap="outerHTML">
+                        {}
+                    </tbody>
+                </table>
+                <a class="button is-small is-info is-rounded is-outlined"
+                    hx-get="{}"
+                    hx-target="#tasks-{}"
+                    hx-swap="beforeend">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>เพิ่ม</span>
+                 </a>
             </td>
             <td style="width: 10%">
                 <div class="field has-addons">
@@ -583,6 +668,10 @@ def edit_topic_form(topic_id):
                    topic.detail,
                    topic.note or '',
                    topic.consensus,
+                   topic_id,
+                   task_html,
+                   topic_id,
+                   url_for('meeting_planner.add_task_form', topic_id=topic.id),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
                    url_for('meeting_planner.edit_topic_form', topic_id=topic.id)
                    )

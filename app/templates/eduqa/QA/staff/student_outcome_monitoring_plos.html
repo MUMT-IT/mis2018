@@ -96,8 +96,12 @@
             {% if yearly_outcomes %}
             {% for yearly_outcome in yearly_outcomes %}
             <div class="mb-5">
-                <h3 class="title is-6">ปี {{ yearly_outcome.year_level }}.{{ yearly_outcome.number }}</h3>
-                <p>{{ yearly_outcome.outcome }}</p>
+                <h3 class="title is-6">
+                    <a href="{{ url_for('eduqa.student_outcome_yearly_outcome_dashboard', revision_id=revision.id, yearly_outcome_id=yearly_outcome.id) }}">
+                        ปี {{ yearly_outcome.year_level }}.{{ yearly_outcome.number }}
+                    </a>
+                </h3>
+                <p><a href="{{ url_for('eduqa.student_outcome_yearly_outcome_dashboard', revision_id=revision.id, yearly_outcome_id=yearly_outcome.id) }}">{{ yearly_outcome.outcome }}</a></p>
                 <div class="tags mt-2">
                     {% for plo in yearly_outcome.plos|sort(attribute='number') %}
                     <span class="tag is-link is-light">PLO{{ plo.number }}</span>

@@ -762,6 +762,9 @@ class FundRequest(FinanceEditMixin, db.Model):
     withdrawal_proof_reference = Column(String(500), nullable=True)
     withdrawal_proof_filename = Column(String(255), nullable=True)
 
+    requester = relationship(StaffAccount, foreign_keys=[requester_id])
+    creator = relationship(StaffAccount, foreign_keys=[creator_id])
+
     @property
     def borrowing_ticket(self):
         cached_ticket = getattr(self, "_borrowing_ticket", None)
@@ -793,22 +796,16 @@ class FundRequest(FinanceEditMixin, db.Model):
 
     @property
     def requester_name(self):
-        requester = _session_get(object_session(self), StaffAccount, self.requester_id)
         ticket = self.borrowing_ticket
         return (
             getattr(ticket, "borrower_name", None)
-            or getattr(requester, "name", None)
-            or getattr(requester, "fullname", None)
+            or getattr(self.requester, "name", None)
+            or getattr(self.requester, "fullname", None)
         )
 
     @property
     def requester_position(self):
-        requester = _session_get(object_session(self), StaffAccount, self.requester_id)
-        return getattr(requester, "position", None)
-
-    @property
-    def creator(self):
-        return _session_get(object_session(self), StaffAccount, self.creator_id)
+        return getattr(self.requester, "position", None)
 
     @property
     def account_number(self):

@@ -4,137 +4,134 @@
 {% include "service_admin/admin_nav.html" %}
 <section class="section">
     <div class="container">
-        <h1 class="title has-text-centered">รายชื่อลูกค้า</h1>
-        {% include 'messages.html' %}
-        <div class="columns is-centered">
-            <div class="column is-full">
-                <div class="buttons is-centered">
-                    <a class="button is-info" href="{{ url_for('service_admin.create_customer') }}">
-                        <span class="icon">
-                            <i class="fas fa-plus"></i>
-                        </span>
-                        <span>เพิ่มลูกค้า</span>
-                    </a>
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <div class="column">
+                    {% include "messages.html" %}
+                    <h1 class="title has-text-centered">ข้อมูลผู้รับบริการ</h1>
                 </div>
-                <table id="customer" class="table is-fullwidth is-narrow">
-                    <thead>
-                        <th style="width: 5em">ลำดับ</th>
-                        <th>รายชื่อลูกค้า</th>
-                        <th>ประเภท</th>
-                        <th>ข้อมูลผู้ประสานงาน</th>
-                        <th>เบอร์โทรศัพท์</th>
-                        <th>เลขประจำตัวผู้เสียภาษีอากร</th>
-                        <th>ที่อยู่</th>
-                        <th>Request</th>
-                        <th style="width: 5em"></th>
-                    </thead>
-                    <tbody>
-                        {% for customer in customers %}
+                <div class="column box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <b class="is-size-4">รายละเอียด</b>
+                    </div>
+                    <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                        <table class="table is-fullwidth">
                             <tr>
-                                <td>{{ loop.index }}</td>
-                                <td>{{ customer.cus_name }}</td>
-                                <td>{{ customer.type }}</td>
-                                <td>
-                                    {% for cus_contact in customer.customer_contacts %}
-                                        <p>
-                                            <b>ชื่อ-นามสกุล :</b>
-                                            {{ cus_contact.contact_name }}
-                                        </p>
-                                        <p>
-                                            <b>เบอร์โทรศัพท์ :</b>
-                                            {{ cus_contact.phone_number }}
-                                        </p>
-                                        <p>
-                                            <b>อีเมล :</b>
-                                            {{ cus_contact.email }}
-                                        </p>
-                                        {% if cus_contact.remark %}
-                                            <p>
-                                                <b>หมายเหตุ :</b>
-                                                {{ cus_contact.remark }}
-                                            </p>
-                                        {% endif %}
-                                    {% endfor %}
-                                </td>
-                                <td>{{ customer.phone_number }}</td>
-                                <td>{{ customer.taxpayer_identification_no or '' }}</td>
-                                <td>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-outlined is-success is-rounded"
-                                               href="{{ url_for('service_admin.create_customer_address', customer_id=customer.id) }}">
-                                                <span class="icon">
-                                                    <i class="fas fa-plus"></i>
-                                                </span>
-                                                <span>เพิ่มข้อมูล</span>
-                                            </a>
-                                        </div>
-                                        <div class="control">
-                                            <a class="button is-small is-info is-outlined is-rounded"
-                                               href="{{ url_for('service_admin.address_index', customer_id=customer.id) }}">
-                                                <span class="icon">
-                                                    <i class="fas fa-eye"></i>
-                                                </span>
-                                                <span>รายละเอียด</span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    {% for account in customer.accounts %}
-                                        {% if admin|length > 1 %}
-                                            <div class="field has-addons">
-                                                <div class="control">
-                                                    <div class="buttons is-centered">
-                                                        <a class="button is-info is-small is-rounded"
-                                                            href="{{ url_for('service_admin.lab_index', customer_id=account.id) }}"
-                                                        >
-                                                            <span class="icon">
-                                                                <i class="fas fa-file-signature"></i>
-                                                            </span>
-                                                            <span>New request</span>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {% else %}
-                                            {% for a in admin %}
-                                                <div class="field has-addons">
-                                                    <div class="control">
-                                                        <div class="buttons is-centered">
-                                                            <a class="button is-info is-small is-rounded"
-                                                               href="{{ url_for('service_admin.create_request',
-                                                               code=a.sub_lab.code, customer_id=account.id, menu='request') }}"
-                                                            >
-                                                                <span class="icon">
-                                                                    <i class="fas fa-file-signature"></i>
-                                                                </span>
-                                                                <span>New request</span>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            {% endfor %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </td>
-                                <td>
-                                    <div class="field has-addons">
-                                        <div class="control">
-                                            <a class="button is-small is-warning is-light is-rounded"
-                                               href="{{ url_for('service_admin.create_customer', customer_id=customer.id) }}">
-                                                <span class="icon">
-                                                    <i class="fas fa-pencil-alt"></i>
-                                                </span>
-                                                <span>แก้ไข</span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </td>
+                                <td><h1 class="subtitle">ชื่อผู้รับบริการ</h1></td>
+                                <td><h1 class="subtitle">{{ customer.cus_name }}</h1></td>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            <tr>
+                                <td><h1 class="subtitle">ประเภท</h1></td>
+                                <td><span class="tag is-medium">{{ customer.type }}</span></td>
+                            </tr>
+                            <tr>
+                                <td><h1 class="subtitle">เลขประจำตัวผู้เสียภาษีอากร</h1></td>
+                                <td><h1 class="subtitle">{{ customer.taxpayer_identification_no }}</h1></td>
+                            </tr>
+                            {% if customer.fax_no %}
+                                <tr>
+                                    <td><h1 class="subtitle">fax</h1></td>
+                                    <td><h1 class="subtitle">{{ customer.fax_no }}</h1></td>
+                                </tr>
+                            {% endif %}
+                            <tr>
+                                <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
+                                <td><h1 class="subtitle">{{ customer.phone_number }}</h1></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="column">
+                    <h1 class="title has-text-centered">ข้อมูลผู้ประสานงาน</h1>
+                </div>
+                <div class="column box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        <b class="is-size-4">รายละเอียด</b>
+                    </div>
+                    <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                        <table class="table is-fullwidth">
+                            {% for cus_contact in customer.customer_contacts %}
+                                <tr>
+                                    <td><h1 class="subtitle">ชื่อผู้ประสานงาน</h1></td>
+                                    <td><h1 class="subtitle">{{ cus_contact.contact_name }}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">เบอร์โทรศัพท์</h1></td>
+                                    <td><h1 class="subtitle">{{ cus_contact.phone_number }}</h1></td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">อีเมล</h1></td>
+                                    <td><h1 class="subtitle">{{ cus_contact.email }}</h1></td>
+                                </tr>
+                                {% if cus_contact.remark %}
+                                    <tr>
+                                        <td><h1 class="subtitle">หมายเหตุ</h1></td>
+                                        <td><h1 class="subtitle">{{ cus_contact.remark }}</h1>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+                <div class="column">
+                    <h1 class="title has-text-centered">เอกสารเพิ่มเติม</h1>
+                </div>
+                <div class="column box">
+                    <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                        {% if customer.attachments %}
+                            <div class="table-container">
+                                <table class="table is-fullwidth customer-detail-attachment-table">
+                                    <thead><tr><th>ชื่อเอกสาร</th><th>รายละเอียด</th><th class="has-text-centered">ไฟล์</th></tr></thead>
+                                    <tbody>
+                                    {% for attachment in customer.attachments %}
+                                        <tr>
+                                            <td>{{ attachment.file_name or '-' }}</td>
+                                            <td>{{ attachment.note or '-' }}</td>
+                                            <td class="has-text-centered">
+                                                {% if attachment.file %}
+                                                    <a class="button is-small is-link is-light"
+                                                       href="{{ url_for('service_admin.download_file', key=attachment.file,
+                                                       download_filename=attachment.file_name + '.pdf') }}">
+                                                        <span class="icon"><i class="fas fa-download"></i></span><span>ดาวน์โหลด</span>
+                                                    </a>
+                                                {% else %}-{% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="customer-detail-empty">ยังไม่มีเอกสารเพิ่มเติม</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-centered">
+                    <div class="control">
+                        <a class="button" href="{{ url_for('service_admin.customer_index', tab=tab) }}">
+                            ย้อนกลับ
+                        </a>
+                        {% if customer.is_document_verified == None %}
+                            <a class="button is-success"
+                               hx-post="{{ url_for('service_admin.approve_document_customer', tab=tab,
+                               customer_id=customer.id) }}"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                               hx-confirm="ท่านต้องการอนุมัติใช่หรือไม่"
+                            >
+                                อนุมัติ
+                            </a>
+                            <a class="button is-danger"
+                               hx-post="{{ url_for('service_admin.disapprove_document_customer', tab=tab,
+                               customer_id=customer.id) }}"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                               hx-confirm="ท่านต้องการไม่อนุมัติใช่หรือไม่"
+                            >
+                                ไม่อนุมัติ
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -142,9 +139,4 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script>
-        $(document).ready(function () {
-            $('#customer').DataTable();
-        });
-    </script>
 {% endblock %}

@@ -208,6 +208,11 @@ def _to_bangkok(dt):
     return dt.astimezone(tz)
 
 
+def _format_bangkok_datetime(dt):
+    local_dt = _to_bangkok(dt)
+    return local_dt.strftime('%d/%m/%Y %H:%M') if local_dt else ''
+
+
 def _daily_work_login_rows(records):
     grouped = defaultdict(list)
     for rec in records:
@@ -745,6 +750,9 @@ def _build_login_summary_dashboard(start_date, end_date, dept_id):
             if wfh_request.cancelled_at or not wfh_request.get_approved:
                 continue
             wfh_dates.update(covered_dates(wfh_request.start_datetime, wfh_request.end_datetime))
+        for special_wfh_day in account.special_wfh_days:
+            if special_wfh_day.work_date in working_days:
+                wfh_dates.add(special_wfh_day.work_date)
         seminar_dates = set()
         for seminar_attendance in account.seminar_attends:
             seminar = seminar_attendance.seminar
@@ -2653,8 +2661,11 @@ def show_work_from_home():
                     wfh_list.append(wfh)
     is_approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
     approvers = StaffWorkFromHomeApprover.query.filter_by(requester=current_user, is_active=True).all()
+    special_wfh_days = current_user.special_wfh_days.order_by(
+        StaffSpecialWorkFromHomeDay.work_date.desc()
+    ).all()
     return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, is_approver=is_approver,
-                           approvers=approvers)
+                           approvers=approvers, special_wfh_days=special_wfh_days)
 
 
 @staff.route('/wfh/others-records')
@@ -2764,7 +2775,10 @@ def request_work_from_home():
         flash('ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
         return redirect(url_for('staff.show_work_from_home'))
     else:
-        return render_template('staff/wfh_request.html')
+        approvers = StaffWorkFromHomeApprover.query.filter_by(
+            requester=current_user, is_active=True
+        ).all()
+        return render_template('staff/wfh_request.html', approvers=approvers)
 
 
 @staff.route('/wfh/request/<int:request_id>/edit', methods=['GET', 'POST'])
@@ -2836,6 +2850,90 @@ def show_wfh_requests_for_approval():
                            checkjob=checkjob, last_two_month=last_two_month)
 
 
+@staff.route('/wfh/requests/approval/special-day', methods=['GET', 'POST'])
+@login_required
+def assign_special_wfh_day_staff():
+    approvers = StaffWorkFromHomeApprover.query.filter_by(
+        approver_account_id=current_user.id, is_active=True
+    ).all()
+    if not approvers:
+        abort(403)
+
+    allowed_staff = {approver.requester for approver in approvers
+                     if approver.requester and not approver.requester.personal_info.retired}
+    special_days = StaffSpecialWorkFromHomeDay.query.order_by(
+        StaffSpecialWorkFromHomeDay.work_date.desc()
+    ).all()
+    if request.method == 'POST':
+        try:
+            special_day_id = int(request.form.get('special_day_id'))
+            staff_ids = {int(value) for value in request.form.getlist('staff_ids')}
+        except (TypeError, ValueError):
+            flash('ข้อมูลที่เลือกไม่ถูกต้อง', 'danger')
+            return redirect(url_for('staff.assign_special_wfh_day_staff'))
+
+        special_day = StaffSpecialWorkFromHomeDay.query.get_or_404(special_day_id)
+        selected_staff = [staff for staff in allowed_staff if staff.id in staff_ids]
+        if not selected_staff:
+            flash('กรุณาเลือกบุคลากรอย่างน้อยหนึ่งคน', 'danger')
+            return redirect(url_for('staff.assign_special_wfh_day_staff'))
+        special_day.staff = list({staff.id: staff for staff in special_day.staff + selected_staff}.values())
+        db.session.add(special_day)
+        db.session.commit()
+        refresh_daily_attendance(special_day.work_date,
+                                 staff_ids=[staff.id for staff in special_day.staff])
+        db.session.commit()
+        flash('เพิ่มรายชื่อผู้มีสิทธิ์ WFH สำหรับวันพิเศษเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.assign_special_wfh_day_staff'))
+
+    return render_template(
+        'staff/wfh_special_day_staff.html',
+        special_days=special_days,
+        allowed_staff=sorted(allowed_staff, key=lambda staff: staff.fullname),
+        editing_day=None,
+    )
+
+
+@staff.route('/wfh/requests/approval/special-day/<int:special_day_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_special_wfh_day_staff(special_day_id):
+    approvers = StaffWorkFromHomeApprover.query.filter_by(
+        approver_account_id=current_user.id, is_active=True
+    ).all()
+    if not approvers:
+        abort(403)
+    allowed_staff = {approver.requester for approver in approvers
+                     if approver.requester and not approver.requester.personal_info.retired}
+    special_day = StaffSpecialWorkFromHomeDay.query.get_or_404(special_day_id)
+    if request.method == 'POST':
+        try:
+            staff_ids = {int(value) for value in request.form.getlist('staff_ids')}
+        except (TypeError, ValueError):
+            flash('ข้อมูลรายชื่อไม่ถูกต้อง', 'danger')
+            return redirect(url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id))
+        selected_staff = [staff for staff in allowed_staff if staff.id in staff_ids]
+        if not selected_staff:
+            flash('กรุณาเลือกบุคลากรอย่างน้อยหนึ่งคน', 'danger')
+            return redirect(url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id))
+        special_day.staff = selected_staff
+        db.session.add(special_day)
+        db.session.commit()
+        refresh_daily_attendance(special_day.work_date,
+                                 staff_ids=[staff.id for staff in special_day.staff])
+        db.session.commit()
+        flash('แก้ไขรายชื่อผู้มีสิทธิ์ WFH เรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.assign_special_wfh_day_staff'))
+
+    return render_template(
+        'staff/wfh_special_day_staff.html',
+        special_days=StaffSpecialWorkFromHomeDay.query.order_by(
+            StaffSpecialWorkFromHomeDay.work_date.desc()
+        ).all(),
+        allowed_staff=sorted(allowed_staff, key=lambda staff: staff.fullname),
+        editing_day=special_day,
+    )
+
+
 @staff.route('/wfh/requests/approval/pending/<int:req_id>')
 @login_required
 def pending_wfh_request_for_approval(req_id):
@@ -2897,8 +2995,14 @@ def wfh_approve(req_id, approver_id):
 @login_required
 def show_wfh_approved_list_each_person(requester_id):
     requester = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=requester_id)
+    requester_staff = StaffAccount.query.get_or_404(requester_id)
+    special_wfh_days = StaffSpecialWorkFromHomeDay.query.filter(
+        StaffSpecialWorkFromHomeDay.staff.any(id=requester_id)
+    ).order_by(StaffSpecialWorkFromHomeDay.work_date.asc()).all()
 
-    return render_template('staff/wfh_all_approved_list_each_person.html', requester=requester)
+    return render_template('staff/wfh_all_approved_list_each_person.html',
+                           requester=requester, requester_staff=requester_staff,
+                           special_wfh_days=special_wfh_days)
 
 
 @staff.route('/wfh/requests/<int:request_id>/approvals')
@@ -3031,7 +3135,48 @@ def wfh_requests_list():
         return render_template('staff/wfh_request_result_by_date.html', request=wfh_request,
                                start_date=start_date.date(), end_date=end_date.date())
     else:
-        return render_template('staff/wfh_request_info_by_date.html')
+        can_manage_special_days = hr_permission.can()
+        special_wfh_days = StaffSpecialWorkFromHomeDay.query.order_by(
+            StaffSpecialWorkFromHomeDay.work_date.desc()
+        ).limit(20).all() if can_manage_special_days else []
+        return render_template(
+            'staff/wfh_request_info_by_date.html',
+            can_manage_special_days=can_manage_special_days,
+            special_wfh_days=special_wfh_days,
+        )
+
+
+@staff.route('/wfh/special-days', methods=['POST'])
+@login_required
+def create_special_wfh_day():
+    if not hr_permission.can():
+        abort(403)
+
+    work_date_raw = (request.form.get('work_date') or '').strip()
+    name = (request.form.get('name') or '').strip()
+    if not work_date_raw or not name:
+        flash('กรุณาระบุวันที่และชื่อวัน', 'danger')
+        return redirect(url_for('staff.wfh_requests_list'))
+
+    try:
+        work_date = datetime.strptime(work_date_raw, '%Y-%m-%d').date()
+    except ValueError:
+        flash('รูปแบบวันที่ไม่ถูกต้อง', 'danger')
+        return redirect(url_for('staff.wfh_requests_list'))
+
+    if StaffSpecialWorkFromHomeDay.query.filter_by(work_date=work_date).first():
+        flash('มีวัน WFH พิเศษสำหรับวันที่นี้แล้ว', 'danger')
+        return redirect(url_for('staff.wfh_requests_list'))
+
+    special_day = StaffSpecialWorkFromHomeDay(
+        work_date=work_date,
+        name=name,
+        created_by=current_user,
+    )
+    db.session.add(special_day)
+    db.session.commit()
+    flash('บันทึกวัน WFH พิเศษเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('staff.wfh_requests_list'))
 
 
 @staff.route('/for-hr/wfh/approvers',
@@ -4426,16 +4571,17 @@ def approved_for_clockin_clockout(request_id):
         flash(flash_message, 'success' if approved == 'yes' else 'warning')
 
         title = u'เข้างาน' if clock_request.is_checkin else u'กลับบ้าน'
+        work_datetime_display = _format_bangkok_datetime(clock_request.work_datetime)
         if clock_request.approved_at:
             approve_msg = u'การขอรับรอง{} ในวันที่ {} ได้รับการรับรองโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                title, clock_request.work_datetime, clock_request.approver.fullname,
+                title, work_datetime_display, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
                         approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         else:
             approve_msg = u'การขอรับรอง{} ในวันที่ {} ไม่ถูกอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                title, clock_request.work_datetime, clock_request.approver.fullname,
+                title, work_datetime_display, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
                         approver_id=clock_request.approver_id, _external=True, _scheme='https'))
         if clock_request.staff.line_id:
@@ -4520,6 +4666,10 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
         if rec.staff_id and getattr(rec, 'date_id', None) == target_date_id
     ]
     checked_in_staff_ids = {rec.staff_id for rec in eligible_records}
+    special_wfh_day = StaffSpecialWorkFromHomeDay.query.filter_by(work_date=target_date).first()
+    special_wfh_staff_ids = {
+        staff.id for staff in special_wfh_day.staff
+    } if special_wfh_day else set()
 
     recipients = []
     for staff_account in StaffAccount.get_active_accounts():
@@ -4530,6 +4680,8 @@ def _build_missing_checkin_recipients(target_date, records=None, staff_email=Non
         if staff_email and (staff_account.email or '').strip().lower() != staff_email:
             continue
         if staff_account.id in checked_in_staff_ids:
+            continue
+        if staff_account.id in special_wfh_staff_ids:
             continue
         recipients.append(staff_account)
     return recipients
@@ -4640,6 +4792,13 @@ def refresh_daily_attendance(target_date, staff_ids=None):
         ).all()
         if wfh_request.staff_account_id in account_ids and wfh_request.get_approved
     }
+    special_wfh_staff_ids = set()
+    special_wfh_day = StaffSpecialWorkFromHomeDay.query.filter_by(work_date=target_date).first()
+    if special_wfh_day:
+        special_wfh_staff_ids = {
+            staff.id for staff in special_wfh_day.staff
+            if staff.id in account_ids
+        }
     holiday = _get_holiday_for_date(target_date)
     is_weekend = target_date.weekday() >= 5
     calculated_at = datetime.now(pytz.utc)
@@ -4713,6 +4872,13 @@ def refresh_daily_attendance(target_date, staff_ids=None):
             source_record_id = None
             created_by_id = None
             approved_by_id = None
+        elif staff_account.id in special_wfh_staff_ids:
+            status = 'work_from_home'
+            source = 'special_wfh_day'
+            note = special_wfh_day.name
+            source_record_id = special_wfh_day.id
+            created_by_id = special_wfh_day.created_by_id
+            approved_by_id = special_wfh_day.created_by_id
         else:
             status = 'absent'
             source = 'attendance_reconciliation'
@@ -5301,6 +5467,22 @@ def send_summary_data():
                         'status': wfh_status,
                         'type': 'wfh'
                     })
+            for special_day in emp.staff_account.special_wfh_days:
+                if not calendar_start_date <= special_day.work_date <= calendar_end_date:
+                    continue
+                event_end = special_day.work_date + timedelta(days=1)
+                wfhs.append({
+                    'id': 'special-wfh-{}'.format(special_day.id),
+                    'start': special_day.work_date.isoformat(),
+                    'end': event_end.isoformat(),
+                    'allDay': True,
+                    'title': emp.th_firstname + ' WFH (วันพิเศษ)',
+                    'backgroundColor': '#C5ECFB',
+                    'borderColor': '#109AD3',
+                    'textColor': '#285D9B',
+                    'status': 'Approved',
+                    'type': 'wfh'
+                })
         if tab in ['smr', 'all']:
             for smr in emp.staff_account.seminar_attends.all():
                 text_color = '#ffffff'

@@ -1,19 +1,37 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
+<style>
+    .wfh-approver-area {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        border: 2px solid #3273dc;
+        border-radius: 1rem;
+        background: linear-gradient(135deg, #f4f8ff 0%, #ffffff 70%);
+        box-shadow: 0 8px 24px rgba(50, 115, 220, .12);
+    }
+    .wfh-approver-area-heading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .6rem;
+        color: #2455a4;
+    }
+    .wfh-approver-area-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        margin: 0 auto 1rem;
+        padding: .3rem .75rem;
+        border-radius: 999px;
+        color: #2455a4;
+        background: #e5efff;
+        font-size: .8rem;
+        font-weight: 700;
+    }
+</style>
 <section class="section" id="app">
     {% include "messages.html" %}
-        {% if current_user.wfh_requesters %}
-        <div class="notification is-light is-info">
-            *****ท่านจะได้พิจารณาและอนุมัติ WFH โดย
-            <strong>
-                {% for approver in approvers %}
-                    {{ loop.index }}. {{ approver.account.personal_info.fullname }}
-                {% endfor %}
-            </strong>
-            หากข้อมูลผู้บังคับบัญชาไม่ถูกต้อง กรุณาติดต่อ HR เพื่อทำการแก้ไขก่อนส่งคำขอ
-        </div>
-        {% endif %}
         <div class="columns">
             <div class="column">
                 <h4 class="title has-text-centered">รายการขออนุมัติ Work From Home</h4>
@@ -109,20 +127,53 @@
                 </table>
             </div>
         </div>
+        {% if special_wfh_days %}
+            <div class="box">
+                <h4 class="title is-5">วัน WFH พิเศษที่ได้รับสิทธิ์</h4>
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                    <tr>
+                        <th>วันที่</th>
+                        <th>รายละเอียด</th>
+                        <th>สถานะ</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for special_day in special_wfh_days %}
+                        <tr>
+                            <td>{{ special_day.work_date|localdate }}</td>
+                            <td>{{ special_day.name }}</td>
+                            <td>
+                                <span class="tag is-info">
+                                    <span class="icon"><i class="fas fa-house-chimney-user"></i></span>
+                                    <span>ได้รับสิทธิ์ WFH</span>
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
         {% if is_approver %}
-        <hr>
-            <h1 class="title has-text-danger has-text-centered is-size-4">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
-        <div class="columns">
-            <div class="column">
-                <div class="has-text-centered">
+        <div class="wfh-approver-area">
+            <div class="wfh-approver-area-badge">
+                <span class="icon"><i class="fas fa-lock"></i></span>
+                <span>สิทธิ์เฉพาะผู้อนุมัติ</span>
+            </div>
+            <h1 class="title has-text-centered is-size-4 wfh-approver-area-heading">
+                <span class="icon"><i class="fas fa-user-shield"></i></span>
+                <span>สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</span>
+            </h1>
+            <p class="has-text-centered mb-4">จัดการและพิจารณาข้อมูลการทำงานที่บ้านของบุคลากรในสังกัด</p>
+            <div class="buttons is-centered">
                     <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}"
-                       class="button is-light">
+                       class="button is-primary is-medium is-rounded is-responsive">
                         <span class="icon">
                            <i class="fas fa-users"></i>
                         </span>
-                        <span>ข้อมูลการขออนุมัติทำงานที่บ้านของบุคลากรในสังกัด</span>
+                        <strong>ข้อมูลการขออนุมัติทำงานที่บ้านของบุคลากรในสังกัด</strong>
                     </a>
-                </div>
             </div>
         </div>
         {% endif %}

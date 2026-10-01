@@ -7,7 +7,7 @@ from app.staff.models import Role
 
 
 # The roles need to be loaded for the admin index view.
-with app.app_context():
+with (app.app_context()):
     # The app failed if the database table does not exist yet.
     try:
         executive_role = Role.query.filter_by(role_need='executive', action_need=None, resource_id=None).first()
@@ -40,6 +40,8 @@ with app.app_context():
             action_need=None,
             resource_id=None,
         ).first()
+        central_admin_academic_service_role = Role.query.filter_by(role_need='central_admin_academic_service',
+                                                                   action_need=None, resource_id=None).first()
 
     except (ProgrammingError, OperationalError):
         executive_role = None
@@ -62,6 +64,7 @@ with app.app_context():
         center_standardization_product_validation_role = None
         continuing_edu_admin_role = None
         cash_management_coordinator_role = None
+        central_admin_academic_service_role = None
 
     executive_permission = Permission() if not executive_role else Permission(executive_role.to_tuple())
     admin_permission = Permission() if not admin_role else Permission(admin_role.to_tuple())
@@ -101,3 +104,5 @@ with app.app_context():
         if not cash_management_coordinator_role
         else Permission(cash_management_coordinator_role.to_tuple())
     )
+    central_admin_academic_service_permission = Permission() if not central_admin_academic_service_role else \
+        Permission(central_admin_academic_service_role.to_tuple())

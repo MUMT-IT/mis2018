@@ -189,11 +189,12 @@ class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     cus_name = db.Column('cus_name', db.String())
-    email = db.Column('email', db.String(), info={'label': 'อีเมล'})
+    # email = db.Column('email', db.String(), info={'label': 'อีเมล'})
     taxpayer_identification_no = db.Column('taxpayer_identification_no', db.String(),
                                            info={'label': 'เลขประจำตัวผู้เสียภาษีอากร'})
     fax_no = db.Column('fax_no', db.String(), info={'label': 'fax'})
     phone_number = db.Column('phone_number', db.String(), info={'label': 'เบอร์โทรศัพท์'})
+    is_document_verified = db.Column('is_document_verified', db.Boolean())
     type_id = db.Column('type_id', db.ForeignKey('service_customer_types.id'))
     type = db.relationship('ServiceCustomerType', backref=db.backref('customers'))
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
@@ -206,8 +207,12 @@ class ServiceCustomerInfo(db.Model):
         for address in self.addresses:
             if address.address_type == 'document':
                 return True
-                break
         return False
+
+    @property
+    def email(self):
+        for account in self.accounts:
+            return account.email
 
     @property
     def customer_name(self):
@@ -223,6 +228,43 @@ class ServiceCustomerInfo(db.Model):
     def contact_phone_number(self):
         for cus_contact in self.customer_contacts:
             return cus_contact.phone_number
+
+    @property
+    def status_document_verified(self):
+        if self.is_document_verified is True:
+            status = 'อนุมัติ'
+        elif self.is_document_verified is False:
+            status = 'ไม่อนุมัติ'
+        elif not self.is_document_verified and self.attachments:
+            status = 'รออนุมัติ'
+        else:
+            status = 'ยังไม่แนบเอกสาร'
+        return status
+
+    @property
+    def status_document_verified_color(self):
+        if self.is_document_verified is True:
+            color = 'is-success'
+        elif self.is_document_verified is False:
+            color = 'is-danger'
+        elif not self.is_document_verified and self.attachments:
+            color = 'is-warning'
+        else:
+            color = 'is-light'
+        return color
+
+    @property
+    def status_document_verified_icon(self):
+        if self.is_document_verified is True:
+            color = '<i class="fas fa-check"></i>'
+        elif self.is_document_verified is False:
+            color = '<i class="fas fa-times"></i>'
+        elif not self.is_document_verified and self.attachments:
+            color = '<i class="fas fa-hourglass-half"></i>'
+        else:
+            color = '<i class="fas fa-inbox"></i>'
+        return color
+
 
 
 class ServiceCustomerContact(db.Model):
@@ -256,12 +298,13 @@ class ServiceCustomerAttachment(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
     note = db.Column('note', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
+    type = db.Column('type', db.String())
     file = db.Column('file', db.String(), info={'label': 'ไฟล์'})
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('attachments', cascade='all, delete-orphan'))
 
     def __str__(self):
-        return self.name
+        return self.file_name
 
 
 class ServiceCustomerAddress(db.Model):

@@ -179,7 +179,12 @@ class StaffAccount(db.Model):
 
     @property
     def total_wfh_duration(self):
-        return sum([wfh.duration for wfh in self.wfh_requests if not wfh.cancelled_at and wfh.get_approved])
+        approved_requests = sum(
+            wfh.duration for wfh in self.wfh_requests
+            if not wfh.cancelled_at and wfh.get_approved
+        )
+        special_days = self.special_wfh_days.count()
+        return approved_requests + special_days
 
     @property
     def new_invitations(self):
@@ -713,6 +718,28 @@ class StaffWorkFromHomeRequest(db.Model):
     @property
     def get_unapproved(self):
         return [a for a in self.wfh_approvals if a.is_approved == False]
+
+
+staff_special_wfh_day_staff = db.Table(
+    'staff_special_wfh_day_staff',
+    db.Column('special_day_id', db.Integer(), db.ForeignKey('staff_special_wfh_days.id'), primary_key=True),
+    db.Column('staff_id', db.Integer(), db.ForeignKey('staff_account.id'), primary_key=True),
+)
+
+
+class StaffSpecialWorkFromHomeDay(db.Model):
+    __tablename__ = 'staff_special_wfh_days'
+    id = db.Column(db.Integer(), primary_key=True, autoincrement=True)
+    work_date = db.Column(db.Date(), nullable=False, unique=True)
+    name = db.Column(db.String(), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.now)
+    created_by_id = db.Column(db.Integer(), db.ForeignKey('staff_account.id'), nullable=False)
+    created_by = db.relationship('StaffAccount', foreign_keys=[created_by_id])
+    staff = db.relationship(
+        'StaffAccount',
+        secondary=staff_special_wfh_day_staff,
+        backref=db.backref('special_wfh_days', lazy='dynamic'),
+    )
 
 
 class StaffWorkFromHomeJobDetail(db.Model):

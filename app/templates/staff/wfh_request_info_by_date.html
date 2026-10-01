@@ -56,6 +56,44 @@
                         </div>
                     </div>
                 </div>
+                {% if can_manage_special_days %}
+                    <hr>
+                    <div class="box">
+                        <h4 class="title is-4">เพิ่มวัน WFH พิเศษ</h4>
+                        <p class="help mb-4">เพิ่มวันที่กำหนดให้สามารถจัดสรรสิทธิ์ WFH ได้ในขั้นตอนถัดไป</p>
+                        <form method="post" action="{{ url_for('staff.create_special_wfh_day') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="columns">
+                                <div class="column is-one-quarter">
+                                    <label class="label" for="special-work-date">วันที่</label>
+                                    <input class="input" id="special-work-date" type="date" name="work_date" required>
+                                </div>
+                                <div class="column">
+                                    <label class="label" for="special-work-name">ชื่อวัน/เหตุผล</label>
+                                    <input class="input" id="special-work-name" type="text" name="name" placeholder="เช่น ปิดปรับปรุงอาคาร" required>
+                                </div>
+                            </div>
+                            <button class="button is-info" type="submit">บันทึกวัน WFH พิเศษ</button>
+                        </form>
+                    </div>
+                    {% if special_wfh_days %}
+                        <div class="box">
+                            <h4 class="title is-5">วัน WFH พิเศษล่าสุด</h4>
+                            <table class="table is-fullwidth">
+                                <thead><tr><th>วันที่</th><th>ชื่อวัน</th><th>ผู้มีสิทธิ์</th></tr></thead>
+                                <tbody>
+                                {% for special_day in special_wfh_days %}
+                                    <tr>
+                                        <td>{{ special_day.work_date|localdate }}</td>
+                                        <td>{{ special_day.name }}</td>
+                                        <td>{{ special_day.staff|map(attribute='fullname')|join(', ') }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                {% endif %}
             </div>
         </div>
     </section>

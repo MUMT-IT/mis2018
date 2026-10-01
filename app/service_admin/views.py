@@ -18,6 +18,7 @@ from reportlab.lib.pagesizes import A4
 from sqlalchemy.orm import make_transient, joinedload, selectinload
 from app.linebot_compat import LineBotApiError, TextSendMessage
 from app.auth.views import line_bot_api
+from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 from app.academic_services.forms import BacteriaSterilityTestRequestForm, BacteriaAntimicrobialActivityRequestForm, \
     VirusAirDisinfectionRequestForm, BacteriaDisinfectionRequestForm, VirusDisinfectionRequestForm, \
     HeavyMetalRequestForm, FoodSafetyRequestForm, ProteinIdentificationRequestForm, SDSPageRequestForm, \
@@ -34,7 +35,7 @@ from app.service_admin.forms import *
 from app.main import app, get_credential
 from app.main import mail
 from flask_mail import Message
-from ..roles import admin_permission
+from ..roles import central_admin_academic_service_permission
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -42,6 +43,10 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, KeepTogether, PageBreak
 
+from ..staff.models import Role
+
+CREDIT_DATE = 60
+CREDIT_OVERDUE_DATE = 30
 localtz = timezone('Asia/Bangkok')
 TYPHOON_API_URL = 'https://api.opentyphoon.ai/v1/chat/completions'
 TYPHOON_MODEL = os.getenv('SCB_TYPHOON_MODEL', 'typhoon-v2.5-30b-a3b-instruct')
@@ -101,6 +106,16 @@ def sort_quotation_item(items):
     else:
         priority = 0
     return (priority, items.id)
+
+
+def get_central_admin_academic_service():
+    roles = Role.query.filter_by(role_need='central_admin_academic_service')
+    if roles:
+        accounts = [account for role in roles for account in role.staff_account]
+    else:
+        accounts = None
+    return accounts
+
 
 
 def build_notification(invoice, service_request, link):
@@ -269,6 +284,14 @@ def _build_service_admin_menu_counts(admin_id):
     return counts
 
 
+def _get_service_admin_invoice_overdue_days(invoice, today=None):
+    if not invoice.due_date:
+        return None
+    today = today or arrow.now('Asia/Bangkok').date()
+    due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+    return (today - due_date).days
+
+
 def _group_service_admin_recipients(predicate):
     recipients = {}
     query = ServiceAdmin.query.join(ServiceAdmin.admin).join(ServiceAdmin.sub_lab).join(ServiceSubLab.lab)
@@ -336,8 +359,6 @@ def _group_service_admin_recipients(predicate):
 
 def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     now = arrow.now('Asia/Bangkok')
-    cutoff_60 = now.shift(days=-60).date()
-    cutoff_90 = now.shift(days=-90).date()
     today = now.date()
     due_soon_end = today + timedelta(days=7)
 
@@ -356,39 +377,33 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     due_soon = []
     top_labs = defaultdict(int)
     for invoice in query.all():
-        due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date() if invoice.due_date else None
-        if due_date is None:
+        days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
+        if days_overdue is None:
             continue
-
-        days_overdue = max((today - due_date).days, 0)
         lab_name = invoice.quotation.request.sub_lab.sub_lab if invoice.quotation and invoice.quotation.request and invoice.quotation.request.sub_lab else 'ไม่ระบุหน่วยงาน'
         item = {
             'invoice_id': invoice.id,
             'invoice_no': invoice.invoice_no,
             'request_no': invoice.quotation.request.request_no if invoice.quotation and invoice.quotation.request else None,
             'lab_name': lab_name,
-            'due_date': due_date,
-            'days_overdue': days_overdue,
+            'due_date': invoice.due_date if invoice.due_date else None,
+            'days_overdue': max(days_overdue, 0),
             'amount': float(invoice.grand_total) if getattr(invoice, 'grand_total', None) is not None else None,
         }
-
-        if due_date <= cutoff_60:
-            top_labs[lab_name] += 1
-
-        if cutoff_90 < due_date <= cutoff_60:
-            overdue_60.append(item)
-        elif due_date <= cutoff_90:
-            overdue_90.append(item)
+        if days_overdue >= 1:
+            if days_overdue > CREDIT_OVERDUE_DATE:
+                overdue_90.append(item)
+            else:
+                overdue_60.append(item)
 
         # due_date = _service_admin_invoice_due_date_local_date(invoice)
-        if due_date is not None and today <= due_date <= due_soon_end:
+        if -7 <= days_overdue <= 0:
             due_soon.append({
                 'invoice_id': invoice.id,
                 'invoice_no': invoice.invoice_no,
                 'request_no': item['request_no'],
                 'lab_name': lab_name,
-                'due_date': due_date,
-                'days_until_due': (due_date - today).days,
+                'days_until_due': days_overdue,
                 'amount': item['amount'],
             })
 
@@ -396,16 +411,13 @@ def _build_service_admin_overdue_snapshot(sub_lab_ids=None):
     overdue_90.sort(key=lambda item: (item['days_overdue'], item['invoice_no'] or ''))
     due_soon.sort(key=lambda item: (item['days_until_due'], item['invoice_no'] or ''))
     return {
-        'generated_at': now.strftime('%d/%m/%Y %H:%M'),
-        'cutoff_60': cutoff_60,
-        'cutoff_90': cutoff_90,
+        'generated_at': today.strftime('%d/%m/%Y %H:%M'),
         'overdue_60_count': len(overdue_60),
         'overdue_90_count': len(overdue_90),
         'overdue_60_items': overdue_60,
         'overdue_90_items': overdue_90,
         'due_soon_count': len(due_soon),
-        'due_soon_items': due_soon,
-        'invoice_top_labs': sorted(top_labs.items(), key=lambda item: (-item[1], item[0])),
+        'due_soon_items': due_soon
     }
 
 
@@ -667,14 +679,6 @@ def _normalize_customer_email(email_value):
     return email_value or None
 
 
-def _get_service_admin_invoice_overdue_days(invoice, today=None):
-    if not invoice.due_date:
-        return None
-    today = today or arrow.now('Asia/Bangkok').date()
-    due_date = arrow.get(invoice.due_date).to('Asia/Bangkok').date()
-    return (today - due_date).days
-
-
 def _build_service_admin_weekly_overdue_invoice_snapshot():
     scheme = 'http' if current_app.debug else 'https'
     today = arrow.now('Asia/Bangkok').date()
@@ -703,10 +707,10 @@ def _build_service_admin_weekly_overdue_invoice_snapshot():
             continue
 
         days_overdue = _get_service_admin_invoice_overdue_days(invoice, today=today)
-        if days_overdue is None or days_overdue < 60:
+        if days_overdue is None or days_overdue < 1:
             continue
 
-        if days_overdue >= 90:
+        if days_overdue > CREDIT_OVERDUE_DATE:
             bucket = 'overdue_90'
             overdue_90_count += 1
         else:
@@ -2302,8 +2306,8 @@ def search_customer():
             .filter(or_(
                 ServiceCustomerInfo.cus_name.ilike(search_term),
                 ServiceCustomerInfo.taxpayer_identification_no.ilike(search_term),
-                ServiceCustomerInfo.email.ilike(search_term),
-                ServiceCustomerInfo.phone_number.ilike(search_term),
+                ServiceCustomerInfo.accounts.any(ServiceCustomerAccount.email.ilike(search_term)),
+                ServiceCustomerInfo.phone_number.ilike(search_term)
             ))
             .order_by(ServiceCustomerInfo.cus_name.asc())
             .limit(100)
@@ -2388,8 +2392,8 @@ def customer_detail(customer_id):
 
 
 def _get_customer_overdue_invoices(customer):
-    today = arrow.now('Asia/Bangkok')
-    cutoff_date = today.shift(days=-90).date()
+    today = arrow.now('Asia/Bangkok').date()
+    # cutoff_date = today.shift(days=-90).date()
     invoices = (
         ServiceInvoice.query
         .options(
@@ -2398,7 +2402,7 @@ def _get_customer_overdue_invoices(customer):
             .joinedload(ServiceRequest.customer)
         )
         .filter(ServiceInvoice.due_date.isnot(None),
-                cast(ServiceInvoice.due_date, Date) < cutoff_date,
+                cast(ServiceInvoice.due_date, Date) < today,
                 ~ServiceInvoice.payments.any(),
                 ServiceInvoice.quotation.has(
                     ServiceQuotation.request.has(
@@ -2410,13 +2414,12 @@ def _get_customer_overdue_invoices(customer):
         )
         .order_by(ServiceInvoice.due_date.asc())
     )
-
     return [
         {
             'invoice': invoice,
             'request_no': invoice.quotation.request.request_no,
             'lab_name': invoice.quotation.request.sub_lab.lab.lab,
-            'days_overdue': (today.date() - arrow.get(invoice.due_date).to('Asia/Bangkok').date()
+            'days_overdue': (today - arrow.get(invoice.due_date).to('Asia/Bangkok').date()
             ).days,
         }
         for invoice in invoices
@@ -2461,17 +2464,49 @@ def view_overdue_invoice(invoice_id):
                            customer_id=customer_id)
 
 
-@service_admin.route('/customer/view')
+@service_admin.route('/customer/index')
 @login_required
-def view_customer():
-    customers = ServiceCustomerInfo.query.all()
+def customer_index():
+    tab = request.args.get('tab')
+    not_attached_query = ServiceCustomerInfo.query.filter(
+            ServiceCustomerInfo.is_document_verified==None,
+            ~ServiceCustomerInfo.attachments.any()
+        )
+    pending_query = ServiceCustomerInfo.query.filter(
+            ServiceCustomerInfo.is_document_verified == None,
+            ServiceCustomerInfo.attachments.any()
+        )
+    rejected_query = ServiceCustomerInfo.query.filter_by(is_document_verified=False)
+    approved_query = ServiceCustomerInfo.query.filter_by(is_document_verified=True)
+    all_query = ServiceCustomerInfo.query.yield_per(100)
+    if tab == 'not_attached':
+        customers = not_attached_query
+    elif tab == 'pending':
+        customers = pending_query
+    elif tab == 'rejected':
+        customers = rejected_query
+    elif tab == 'approved':
+        customers = approved_query
+    else:
+        customers = all_query
     admin = ServiceAdmin.query.filter_by(admin_id=current_user.id).all()
-    return render_template('service_admin/view_customer.html', customers=customers, admin=admin)
+    return render_template('service_admin/customer_index.html', customers=customers, admin=admin,
+                           tab=tab, not_attached_count=not_attached_query.count(), pending_count=pending_query.count(),
+                           central_admin_academic_service_permission=central_admin_academic_service_permission)
+
+
+@service_admin.route('/customer/view/<int:customer_id>')
+@login_required
+def view_customer(customer_id):
+    tab = request.args.get('tab')
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    return render_template('service_admin/view_customer.html', customer=customer, tab=tab)
 
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
 @service_admin.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
 def create_customer(customer_id=None):
+    tab = request.args.get('tab')
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
@@ -2497,13 +2532,16 @@ def create_customer(customer_id=None):
                     )
                     item.file.data = file_name
         form.populate_obj(customer)
+        email = request.form.get('email')
         if customer_id is None:
             if current_user.is_authenticated:
                 customer.creator_id = current_user.id
-            account = ServiceCustomerAccount(email=form.email.data, customer_info=customer,
+            account = ServiceCustomerAccount(email=email, customer_info=customer,
                                              verify_datetime=arrow.now('Asia/Bangkok').datetime)
         else:
-            account.email = form.email.data
+            account.email = email
+        if customer.is_document_verified is None:
+            customer.is_document_verified = None
         db.session.add(account)
         db.session.add(customer)
         db.session.commit()
@@ -2511,15 +2549,29 @@ def create_customer(customer_id=None):
             flash('แก้ไขข้อมูลสำเร็จ', 'success')
         else:
             flash('เพิ่มลูกค้าสำเร็จ', 'success')
+        central_admin_accounts = get_central_admin_academic_service()
+        if not customer_id and central_admin_accounts:
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for("service_admin.view_customer", tab='pending', customer_id=customer_id, _external=True,
+                           _scheme=scheme)
+            title = f'''แจ้งเตือนการลงทะเบียนผู้รับบริการใหม่'''
+            message = f'''เรียน แอดมินส่วนกลาง\n\n'''
+            message += f'''มีผู้รับบริการที่ดำเนินการลงทะเบียนเพื่อรับบริการเรียบร้อยแล้ว กรุณาตรวจสอบข้อมูลและอนุมัติรายการได้ที่ลิงก์ด้านล่าง\n'''
+            message += f'''{link}\n\n'''
+            message += f'''ระบบงานงานบริการวิชาการ'''
+            if not current_app.debug:
+                send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
+            else:
+                print('message', message)
         if current_user.is_authenticated:
-            return redirect(url_for('service_admin.view_customer'))
+            return redirect(url_for('service_admin.customer_index', tab=tab))
         else:
             return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('service_admin/create_customer.html', customer_id=customer_id,
-                           form=form, account=account)
+                           form=form, account=account, tab=tab)
 
 
 @service_admin.route('/api/customer/account/file/add', methods=['POST'])
@@ -2601,6 +2653,60 @@ def remove_attachment():
     for entry in temp_entries:
         form.attachments.append_entry(entry)
     return ""
+
+
+@service_admin.route('/customer/approve/<int:customer_id>', methods=['POST'])
+@login_required
+def approve_document_customer(customer_id):
+    tab = request.args.get('tab')
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    customer.is_document_verified = True
+    db.session.add(customer)
+    db.session.commit()
+    flash('อนุมัติเรียบร้อยแล้ว', 'success')
+    title_prefix = 'คุณ' if customer.type.type == 'บุคคล' else ''
+    title = f'''แจ้งผลการตรวจสอบข้อมูลการลงทะเบียน'''
+    message = f'''เรียน {title_prefix}{customer.cus_name}\n\n'''
+    message += f'''ตามที่ท่านได้ลงทะเบียนขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจสอบข้อมูลการลง'''
+    message += f'''ทะเบียนของท่าน และดำเนินการอนุมัติเรียบร้อยแล้ว\nท่านสามารถติดต่อขอรับบริการตรวจวิเคราะห์กับคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดลได้ตาม'''
+    message += f'''ช่องทางที่กำหนด\n\n'''
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอขอบพระคุณที่ใช้บริการ\n\n'''
+    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([account.email for account in customer.accounts], title, message)
+    resp = make_response()
+    resp.headers['HX-Redirect'] = url_for('service_admin.view_customer', tab=tab, customer_id=customer_id)
+    return resp
+
+
+@service_admin.route('/customer/disapprove/<int:customer_id>', methods=['POST'])
+@login_required
+def disapprove_document_customer(customer_id):
+    tab = request.args.get('tab')
+    customer = ServiceCustomerInfo.query.get(customer_id)
+    customer.is_document_verified = False
+    db.session.add(customer)
+    db.session.commit()
+    flash('ไม่อนุมัติเรียบร้อยแล้ว', 'success')
+    scheme = 'http' if current_app.debug else 'https'
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    token = serializer.dumps({'email': customer.accounts[0].email})
+    link = url_for("academic_services.login_by_token", token=token, _external=True, _scheme=scheme)
+    title_prefix = 'คุณ' if customer.type.type == 'บุคคล' else ''
+    title = f'''แจ้งผลการตรวจสอบข้อมูลการลงทะเบียน'''
+    message = f'''เรียน {title_prefix}{customer.cus_name}\n\n'''
+    message += f'''ตามที่ท่านได้ลงทะเบียนขอรับบริการตรวจวิเคราะห์จากคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล\nขณะนี้ทางเจ้าหน้าที่ได้ตรวจสอบข้อมูลการลง'''
+    message += f'''ทะเบียนของท่าน พบว่ามีข้อมูลบางส่วนที่ต้องแก้ไขเพิ่มเติม\nกรุณาดำเนินการแก้ไขข้อมูลให้ถูกต้องครบถ้วน ภายใน 7 วัน นับจากวันที่ได้รับอีเมลฉบับนี้ '''
+    message += f'โดยท่านสามารถแก้ไขข้อมูลได้ที่ลิงก์ด้านล่าง\n\n{link}\n\n'
+    message += f'''หมายเหตุ : อีเมลฉบับนี้จัดส่งโดยระบบอัตโนมัติ โปรดอย่าตอบกลับมายังอีเมลนี้\n\n'''
+    message += f'''ขอแสดงความนับถือ\n'''
+    message += f'''ระบบงานบริการตรวจวิเคราะห์\n'''
+    message += f'''คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล'''
+    send_mail([account.email for account in customer.accounts], title, message)
+    resp = make_response()
+    resp.headers['HX-Redirect'] = url_for('service_admin.view_customer', tab=tab, customer_id=customer_id)
+    return resp
 
 
 @service_admin.route('/customer/register/closing-page')
@@ -6928,10 +7034,10 @@ def upload_invoice_file(invoice_id):
         invoice.quotation.request.status_id = status_id
         invoice.file_attached_id = current_user.id
         invoice.file_attached_at = arrow.now('Asia/Bangkok').datetime
-        invoice.due_date = arrow.get(invoice.file_attached_at).shift(days=+30).datetime
+        invoice.due_date = arrow.get(invoice.file_attached_at).shift(days=CREDIT_DATE).datetime
         if file and allowed_file(file.filename):
             mime_type = file.mimetype
-            file_name = '{}.{}'.format(uuid.uuid4().hex, file.filename.split('.')[-1])
+            file_name = '{}.{}'.format(f'Invoice {invoice.invoice_no}', file.filename.split('.')[-1])
             file_data = file.stream.read()
             response = s3.put_object(
                 Bucket=S3_BUCKET_NAME,
@@ -7207,8 +7313,8 @@ def generate_invoice_pdf(invoice, qr_image_base64=None):
             "<font size=12>2. จัดส่งหลักฐานการชำระเงินผ่านทาง <u>Scan QR Code</u> ด้านล่าง<br/></font>",
             style=remark_style)],
         [Paragraph(
-            "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน 30 วัน</b></u> นับถัดจากวันที่ลงนามใน"
-            "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>", style=remark_style)],
+            "<font size=12>3. โปรดชำระค่าบริการตรวจวิเคราะห์ทางห้องปฏิบัติการ <u><b>ภายใน {} วัน</b></u> นับถัดจากวันที่ลงนามใน"
+            "หนังสือแจ้งชำระค่าบริการฉบับนี้<br/></font>".format(CREDIT_DATE), style=remark_style)],
         [Paragraph(
             "<font size=12>4. โปรดตรวจสอบรายละเอียดข้อมูลการชำระเงิน หากพบข้อมูลไม่ถูกต้อง โปรดทำหนังสือแจ้งกลับมายัง <u><b>หน่วย"
             "การเงินและบัญชี งานคลังและพัสดุ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</b></u><br/></font>",

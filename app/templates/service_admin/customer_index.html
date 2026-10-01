@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+{% block page_content %}
+{% include "service_admin/admin_nav.html" %}
+<section class="section">
+    <div class="container">
+        <h1 class="title has-text-centered">รายชื่อผู้รับบริการ</h1>
+        {% include 'messages.html' %}
+        <div class="columns is-centered">
+            <div class="column">
+                {% if not central_admin_academic_service_permission.can() %}
+                    <div class="buttons is-centered">
+                        <a class="button is-info" href="{{ url_for('service_admin.create_customer', tab='all') }}">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>เพิ่มลูกค้า</span>
+                        </a>
+                    </div>
+                {% endif %}
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab == 'not_attached' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.customer_index', tab='not_attached') }}">
+                                <span class="icon is-small"><i class="fas fa-inbox"></i></span>
+                                <span>ยังไม่แนบเอกสาร</span>
+                                {% if not_attached_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ not_attached_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'pending' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.customer_index', tab='pending') }}">
+                                <span class="icon is-small"><i class="fas fa-hourglass"></i></span>
+                                <span>รออนุมัติ</span>
+                                {% if pending_count > 0 %}
+                                    <span class="tag is-danger is-rounded is-size-7 ml-1">{{ pending_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li {% if tab == 'rejected' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.customer_index', tab='rejected') }}">
+                                <span class="icon is-small"><i class="fa fa-times"></i></span>
+                                <span>ไม่อนุมัติ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'approved' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.customer_index', tab='approved') }}">
+                                <span class="icon is-small"><i class="fa fa-check"></i></span>
+                                <span>อนุมัติ</span>
+                            </a>
+                        </li>
+                        <li {% if tab == 'all' %}class="is-active"{% endif %}>
+                            <a href="{{ url_for('service_admin.customer_index', tab='all') }}">
+                                <span class="icon is-small"><i class="fas fa-list-ul"></i></span>
+                                <span>ทั้งหมด</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <table id="customer" class="table is-fullwidth is-narrow">
+                    <thead>
+                        <th style="width: 5em">ลำดับ</th>
+                        <th>รายชื่อ</th>
+                        <th>ประเภท</th>
+{#                        <th>ข้อมูลผู้ประสานงาน</th>#}
+                        <th>เบอร์โทรศัพท์</th>
+                        <th>เลขประจำตัวผู้เสียภาษีอากร</th>
+                        {% if not central_admin_academic_service_permission.can() %}
+                            <th>ที่อยู่</th>
+                            <th>สถานะ</th>
+                            <th>Request</th>
+                        {% else %}
+                            <th>สถานะ</th>
+                        {% endif %}
+                        <th style="width: 5em">รายละเอียด</th>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ customer.cus_name }}</td>
+                                <td>{{ customer.type }}</td>
+{#                                <td>#}
+{#                                    {% for cus_contact in customer.customer_contacts %}#}
+{#                                        <p>#}
+{#                                            <b>ชื่อ-นามสกุล :</b>#}
+{#                                            {{ cus_contact.contact_name }}#}
+{#                                        </p>#}
+{#                                        <p>#}
+{#                                            <b>เบอร์โทรศัพท์ :</b>#}
+{#                                            {{ cus_contact.phone_number }}#}
+{#                                        </p>#}
+{#                                        <p>#}
+{#                                            <b>อีเมล :</b>#}
+{#                                            {{ cus_contact.email }}#}
+{#                                        </p>#}
+{#                                        {% if cus_contact.remark %}#}
+{#                                            <p>#}
+{#                                                <b>หมายเหตุ :</b>#}
+{#                                                {{ cus_contact.remark }}#}
+{#                                            </p>#}
+{#                                        {% endif %}#}
+{#                                    {% endfor %}#}
+{#                                </td>#}
+                                <td>{{ customer.phone_number }}</td>
+                                <td>{{ customer.taxpayer_identification_no or '' }}</td>
+                                {% if not central_admin_academic_service_permission.can() %}
+                                    <td>
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <a class="button is-small is-outlined is-success is-rounded"
+                                                   href="{{ url_for('service_admin.create_customer_address', customer_id=customer.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                    <span>เพิ่มข้อมูล</span>
+                                                </a>
+                                            </div>
+                                            <div class="control">
+                                                <a class="button is-small is-info is-outlined is-rounded"
+                                                   href="{{ url_for('service_admin.address_index', customer_id=customer.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-eye"></i>
+                                                    </span>
+                                                    <span>รายละเอียด</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="tag is-rounded {{ customer.status_document_verified_color }}">
+                                            <span class="icon">{{ customer.status_document_verified_icon|safe }}</span>
+                                            <span>{{ customer.status_document_verified }}</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% for account in customer.accounts %}
+                                            {% if admin|length > 1 %}
+                                                <div class="field has-addons">
+                                                    <div class="control">
+                                                        <div class="buttons is-centered">
+                                                            <a class="button is-info is-small is-rounded"
+                                                                href="{{ url_for('service_admin.lab_index', customer_id=account.id) }}"
+                                                            >
+                                                                <span class="icon">
+                                                                    <i class="fas fa-file-signature"></i>
+                                                                </span>
+                                                                <span>New request</span>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                {% for a in admin %}
+                                                    <div class="field has-addons">
+                                                        <div class="control">
+                                                            <div class="buttons is-centered">
+                                                                <a class="button is-info is-small is-rounded"
+                                                                   href="{{ url_for('service_admin.create_request',
+                                                                   code=a.sub_lab.code, customer_id=account.id, menu='request') }}"
+                                                                >
+                                                                    <span class="icon">
+                                                                        <i class="fas fa-file-signature"></i>
+                                                                    </span>
+                                                                    <span>New request</span>
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                {% else %}
+                                    <td>
+                                        <span class="tag is-rounded {{ customer.status_document_verified_color }}">
+                                            <span class="icon">{{ customer.status_document_verified_icon|safe }}</span>
+                                            <span>{{ customer.status_document_verified }}</span>
+                                        </span>
+                                    </td>
+                                {% endif %}
+                                <td>
+                                    <div class="field has-addons">
+                                        {% if not central_admin_academic_service_permission.can() %}
+                                            <div class="control">
+                                                <a class="button is-small is-warning is-outlined is-rounded"
+                                                   href="{{ url_for('service_admin.create_customer', customer_id=customer.id,
+                                                   tab='all') }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-pencil-alt"></i>
+                                                    </span>
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                        <div class="control">
+                                            <a class="button is-small is-info is-outlined is-rounded"
+                                               href="{{ url_for('service_admin.view_customer', customer_id=customer.id,
+                                               tab='all') }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-eye"></i>
+                                                </span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#customer').DataTable();
+        });
+    </script>
+{% endblock %}
