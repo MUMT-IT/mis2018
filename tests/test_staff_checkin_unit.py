@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 import pytz
+from werkzeug.exceptions import Forbidden, NotFound
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -424,6 +425,76 @@ def test_to_bangkok_normalizes_naive_utc_datetimes(staff_views):
 )
 def test_format_bangkok_datetime_normalizes_database_values(staff_views, stored_datetime):
     assert staff_views._format_bangkok_datetime(stored_datetime) == "26/06/2026 07:48"
+
+
+def test_clock_requester_can_view_approved_request(staff_views, monkeypatch):
+    clock_request = SimpleNamespace(
+        id=5051,
+        staff_account_id=42,
+        approver_id=29,
+        approved_at=pytz.utc.localize(datetime(2026, 9, 30, 3, 0)),
+    )
+    monkeypatch.setattr(
+        staff_views,
+        "StaffRequestWorkLogin",
+        SimpleNamespace(query=SimpleNamespace(get_or_404=lambda request_id: clock_request)),
+    )
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=42))
+    monkeypatch.setattr(
+        staff_views,
+        "request",
+        SimpleNamespace(method="GET", args=SimpleNamespace(get=lambda _key: None)),
+    )
+    monkeypatch.setattr(
+        staff_views,
+        "render_template",
+        lambda template, **context: (template, context),
+    )
+
+    template, context = staff_views.approved_for_clockin_clockout.__wrapped__(5051)
+
+    assert template == "staff/checkin_approval.html"
+    assert context["clock_request"] is clock_request
+    assert context["can_approve"] is False
+
+
+def test_clock_requester_cannot_submit_approval_decision(staff_views, monkeypatch):
+    clock_request = SimpleNamespace(
+        id=5051,
+        staff_account_id=42,
+        approver_id=29,
+    )
+    monkeypatch.setattr(
+        staff_views,
+        "StaffRequestWorkLogin",
+        SimpleNamespace(query=SimpleNamespace(get_or_404=lambda request_id: clock_request)),
+    )
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=42))
+    monkeypatch.setattr(
+        staff_views,
+        "request",
+        SimpleNamespace(method="GET", args=SimpleNamespace(get=lambda _key: "yes")),
+    )
+
+    with pytest.raises(Forbidden):
+        staff_views.approved_for_clockin_clockout.__wrapped__(5051)
+
+
+def test_unrelated_staff_cannot_view_clock_request(staff_views, monkeypatch):
+    clock_request = SimpleNamespace(
+        id=5051,
+        staff_account_id=42,
+        approver_id=29,
+    )
+    monkeypatch.setattr(
+        staff_views,
+        "StaffRequestWorkLogin",
+        SimpleNamespace(query=SimpleNamespace(get_or_404=lambda request_id: clock_request)),
+    )
+    monkeypatch.setattr(staff_views, "current_user", SimpleNamespace(id=77))
+
+    with pytest.raises(NotFound):
+        staff_views.approved_for_clockin_clockout.__wrapped__(5051)
 
 
 @pytest.mark.parametrize(

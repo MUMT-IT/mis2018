@@ -64,6 +64,7 @@ EXTERNAL_STAFF_ALLOWED_ENDPOINTS = {
     'staff.send_time_report_records',
     'staff.send_time_report_quota',
     'staff.send_holidays_data',
+    'staff.approved_for_clockin_clockout',
 }
 
 gauth = GoogleAuth()
@@ -4687,14 +4688,19 @@ def list_for_clockin_clockout():
 @staff.route('/clockin-clockout/approved/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def approved_for_clockin_clockout(request_id):
-    clock_request = StaffRequestWorkLogin.query.filter_by(
-        id=request_id,
-        approver_id=current_user.id,
-    ).filter(
-        StaffRequestWorkLogin.staff_account_id != current_user.id,
-    ).first_or_404()
+    clock_request = StaffRequestWorkLogin.query.get_or_404(request_id)
+    can_approve = (
+        clock_request.approver_id == current_user.id
+        and clock_request.staff_account_id != current_user.id
+    )
+    is_requester = clock_request.staff_account_id == current_user.id
+    if not can_approve and not is_requester:
+        abort(404)
+
     approved = request.form.get('approved') if request.method == 'POST' else request.args.get('approved')
     if approved:
+        if not can_approve:
+            abort(403)
         if approved == 'yes':
             clock_request.approved_at = datetime.now(pytz.utc)
 
@@ -4729,13 +4735,13 @@ def approved_for_clockin_clockout(request_id):
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 title, work_datetime_display, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
-                        approver_id=clock_request.approver_id, _external=True, _scheme='https'))
+                        _external=True, _scheme='https'))
         else:
             approve_msg = u'การขอรับรอง{} ในวันที่ {} ไม่ถูกอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
                 title, work_datetime_display, clock_request.approver.fullname,
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
-                        approver_id=clock_request.approver_id, _external=True, _scheme='https'))
+                        _external=True, _scheme='https'))
         if clock_request.staff.line_id:
             if not current_app.debug:
                 try:
@@ -4755,7 +4761,11 @@ def approved_for_clockin_clockout(request_id):
 
         all_requests = StaffRequestWorkLogin.query.all()
         return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
-    return render_template('staff/checkin_approval.html', clock_request=clock_request)
+    return render_template(
+        'staff/checkin_approval.html',
+        clock_request=clock_request,
+        can_approve=can_approve,
+    )
 
 
 @staff.route('/login-scan/gj', methods=['GET', 'POST'])
