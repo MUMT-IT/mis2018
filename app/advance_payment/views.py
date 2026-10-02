@@ -9443,7 +9443,13 @@ def petty_cash_ledger():
         cat_10 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "4")
         cat_11 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "5")
         cat_12 = sum(float(item.amount or 0) for item in fr.items if str(item.category_type) == "6")
-        custom_category = next((item.description for item in fr.items if str(item.category_type) == "5" and item.description), None)
+        custom_category = " / ".join(
+            dict.fromkeys(
+                item.description.strip()
+                for item in fr.items
+                if str(item.category_type) == "5" and (item.description or "").strip()
+            )
+        ) or None
 
         _append_ledger_row(
             receipt_date=fr.request_date,
@@ -9613,6 +9619,13 @@ def petty_cash_ledger():
         cat_9 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "3")
         cat_10 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "4")
         cat_11 = sum(float(i.amount or 0) for i in claim.items if str(i.category_type) == "5")
+        custom_category = " / ".join(
+            dict.fromkeys(
+                item.description.strip()
+                for item in claim.items
+                if str(item.category_type) == "5" and (item.description or "").strip()
+            )
+        ) or None
 
         # เพิ่ม Row หลักสำหรับเงินที่ได้รับโอนคืนจากคณะ (หมวด 1-5)
         _append_ledger_row(
@@ -9626,6 +9639,7 @@ def petty_cash_ledger():
             cat_9=cat_9,
             cat_10=cat_10,
             cat_11=cat_11,
+            custom_category=custom_category,
             cat_12=0.0,  # กำหนด cat_12 ของ Row หลักให้เป็น 0
             submitted_date=claim.created_at.date(),
             is_fund_request=False,
