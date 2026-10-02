@@ -438,7 +438,7 @@
       const circularInputs = form.querySelectorAll('.circular-return-input');
       const circularTypeInputs = form.querySelectorAll('.circular-type-radio');
       const hasCircularData = Array.from(circularInputs).some(input =>
-        input.type === 'checkbox' ? input.checked : input.value.trim()
+        ['checkbox', 'radio'].includes(input.type) ? input.checked : input.value.trim()
       );
       const receiptInputs = form.querySelectorAll('input[name="receipt_date[]"], textarea[name="store_name[]"], textarea[name="description[]"], input[name="amount[]"]');
       const receiptProofInputs = form.querySelectorAll('input[name^="proof_files_"]');
@@ -466,11 +466,11 @@
       }
 
       circularInputs.forEach(input => {
-        if (input.type !== 'checkbox') input.required = hasCircularData;
+        if (!['checkbox', 'radio'].includes(input.type)) input.required = hasCircularData;
         input.classList.remove('is-invalid');
       });
       const selectedCircularTypes = Array.from(circularTypeInputs).filter(input => input.checked);
-      const circularFieldsComplete = Array.from(circularInputs).filter(input => input.type !== 'checkbox')
+      const circularFieldsComplete = Array.from(circularInputs).filter(input => !['checkbox', 'radio'].includes(input.type))
         .every(input => input.value.trim());
       if (hasCircularData && (selectedCircularTypes.length !== 1 || !circularFieldsComplete)) {
         isValid = false;
