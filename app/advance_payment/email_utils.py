@@ -271,11 +271,11 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
             intro = f"{item_name} ของ{reference} อยู่ระหว่างรอการตรวจสอบ"
             tail = "\n\nกรุณารอการตรวจสอบจากฝ่ายการเงิน"
         elif status == "พัสดุกำลังดำเนินการ":
-            intro = f"{item_name}ของ{reference}\nอยู่ระหว่างกระบวนการการทำงานของพัสดุ"
+            intro = f"{item_name} ของ{reference}\nอยู่ระหว่างกระบวนการการทำงานของพัสดุ"
         elif status == "ยืนยันการตรวจสอบ":
-            intro = f"ฝ่ายการเงินได้รับเอกสาร{item_name}ของ{reference} เรียบร้อยแล้ว"
+            intro = f"ฝ่ายการเงินได้รับเอกสาร{item_name} ของ{reference} เรียบร้อยแล้ว"
         elif status == "ได้รับเอกสารแล้ว":
-            intro = f"ฝ่ายการเงินได้รับเอกสาร{item_name}ของ{reference} เรียบร้อยแล้ว"
+            intro = f"ฝ่ายการเงินได้รับเอกสาร{item_name} ของ{reference} เรียบร้อยแล้ว"
         elif status == "โอนเงินสดย่อยสำเร็จ":
             intro = f"{item_name} ของ{reference} ได้รับการดำเนินการโอนคืนเงินสดย่อยสำเร็จแล้ว"
         elif status in {"ปฏิเสธ", "ถูกปฏิเสธ"}:
