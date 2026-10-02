@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}ตั้งค่าระบบตรวจเช็คห้อง | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .setting-page { padding: 2rem 0 3rem; }
+        .setting-shell { background: #fff; border: 1px solid rgba(18,39,84,.1); border-radius: 24px; box-shadow: 0 18px 42px rgba(18,39,84,.08); overflow: hidden; }
+        .setting-head { background: radial-gradient(circle at 90% 15%, rgba(220,177,72,.3), transparent 28%), linear-gradient(135deg,#14294f,#294b88); color: #fff; padding: 1.45rem 1.5rem; }
+        .setting-title { font-size: 1.55rem; font-weight: 800; margin: 0; }
+        .setting-subtitle { color: rgba(255,255,255,.78); margin: .35rem 0 0; }
+        .setting-content { padding: 1.5rem; }
+        .add-system { background: #f4f8ff; border: 1px solid rgba(51,87,179,.12); border-radius: 18px; margin-bottom: 1.25rem; padding: 1rem; }
+        .add-system-title { color: #29436f; font-size: 1rem; font-weight: 800; margin: 0 0 .85rem; }
+        .form-grid { align-items: end; display: grid; gap: .75rem; grid-template-columns: minmax(0,1fr) 100px auto; }
+        .form-grid .field { margin: 0; }
+        .form-grid .input { border-radius: 11px; }
+        .form-grid .button { border-radius: 11px; font-weight: 800; }
+        .active-toggle { align-items: center; color: #536680; display: flex; font-size: .86rem; font-weight: 700; gap: .4rem; min-height: 40px; }
+        .list-head { align-items: center; display: flex; justify-content: space-between; margin-bottom: .65rem; }
+        .list-title { color: #263d65; font-size: 1.05rem; font-weight: 800; margin: 0; }
+        .list-count { color: #72819a; font-size: .82rem; }
+        .table-wrap { border: 1px solid rgba(18,39,84,.1); border-radius: 18px; overflow-x: auto; }
+        .system-table { margin: 0; min-width: 720px; width: 100%; }
+        .system-table th { background: #eef3fb; color: #41506a; font-size: .83rem; font-weight: 800; padding: .8rem; }
+        .system-table td { color: #435570; padding: .8rem; vertical-align: middle; }
+        .system-name { color: #1d345e; font-weight: 800; }
+        .status { border-radius: 999px; font-size: .72rem; font-weight: 800; padding: .25rem .55rem; }
+        .status.active { background: #eafaf1; color: #118553; }
+        .status.inactive { background: #f1f3f7; color: #6d7a8d; }
+        .actions { display: flex; gap: .4rem; justify-content: center; }
+        .actions .button { border-radius: 9px; }
+        .edit-panel { background: #f8faff; border-top: 1px solid rgba(18,39,84,.09); padding: 1rem; }
+        .group-panel { background: #f8faff; border-top: 1px solid rgba(18,39,84,.09); padding: 1rem; }
+        .group-panel-title { color: #29436f; font-size: .98rem; font-weight: 800; margin: 0 0 .75rem; }
+        .group-list { display: grid; gap: .55rem; margin-top: .9rem; }
+        .group-card { background: #fff; border: 1px solid rgba(18,39,84,.1); border-radius: 12px; overflow: hidden; }
+        .group-card summary { align-items: center; color: #40536f; cursor: pointer; display: flex; font-size: .88rem; font-weight: 800; gap: .5rem; list-style: none; padding: .7rem .8rem; }
+        .group-card summary::-webkit-details-marker { display: none; }
+        .group-card summary .icon { color: #7184a2; }
+        .group-card summary small { color: #7b899d; font-weight: 600; margin-left: auto; }
+        .group-card[open] summary { background: #f2f6fd; }
+        .group-edit { border-top: 1px solid rgba(18,39,84,.08); padding: .8rem; }
+        .group-edit-actions { align-items: end; display: flex; gap: .45rem; }
+        .group-edit-actions .button { border-radius: 10px; }
+        .item-manager { border-top: 1px dashed rgba(18,39,84,.14); margin-top: .9rem; padding-top: .9rem; }
+        .item-manager-title { color: #40536f; font-size: .88rem; font-weight: 800; margin: 0 0 .6rem; }
+        .item-list { display: grid; gap: .45rem; margin-top: .75rem; }
+        .item-card { background: #fbfcff; border: 1px solid rgba(18,39,84,.09); border-radius: 10px; overflow: hidden; }
+        .item-card summary { align-items: center; color: #586a83; cursor: pointer; display: flex; font-size: .84rem; gap: .45rem; list-style: none; padding: .58rem .65rem; }
+        .item-card summary::-webkit-details-marker { display: none; }
+        .item-card summary .icon { color: #8292a9; }
+        .item-card summary small { color: #7d8ba0; margin-left: auto; }
+        .item-edit { background: #fff; border-top: 1px solid rgba(18,39,84,.08); padding: .75rem; }
+        .empty { color: #77869b; padding: 3rem 1rem; text-align: center; }
+        @media screen and (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .active-toggle { min-height: auto; } }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section setting-page">
+        <div class="container is-max-desktop">
+            <div class="setting-shell">
+                <header class="setting-head">
+                    <h1 class="setting-title">ตั้งค่าระบบหลักสำหรับตรวจเช็คห้อง</h1>
+                    <p class="setting-subtitle">เพิ่ม แก้ไข ปิดใช้งาน หรือลบระบบหลัก เช่น ระบบแสดงภาพ ระบบเสียง และระบบควบคุม</p>
+                </header>
+                <div class="setting-content">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% for category, message in messages %}
+                            <div class="notification is-{{ category }} is-light">{{ message }}</div>
+                        {% endfor %}
+                    {% endwith %}
+
+                    <form class="add-system" method="post" action="{{ url_for('maintenance.maintenance_room_system_setting') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <h2 class="add-system-title">เพิ่มระบบหลัก</h2>
+                        <div class="form-grid">
+                            <div class="field"><label class="label">ชื่อระบบ</label><div class="control"><input class="input" name="name" placeholder="เช่น ระบบแสดงภาพ" required></div></div>
+                            <div class="field"><label class="label">ลำดับ</label><div class="control"><input class="input" type="number" name="sort_order" value="0" min="0"></div></div>
+                            <div class="field"><label class="active-toggle"><input type="checkbox" name="is_active" checked> ใช้งาน</label><div class="control"><button class="button is-link" type="submit"><span class="icon"><i class="fa-solid fa-plus"></i></span><span>เพิ่ม</span></button></div></div>
+                        </div>
+                    </form>
+
+                    <div class="list-head"><h2 class="list-title">ระบบหลัก</h2><span class="list-count">{{ systems|length }} ระบบ</span></div>
+                    <div class="table-wrap">
+                        <table class="table is-fullwidth system-table">
+                            <thead><tr><th>ลำดับ</th><th>ชื่อระบบ</th><th>สถานะ</th><th class="has-text-centered">จัดการ</th></tr></thead>
+                            <tbody>
+                                {% for system in systems %}
+                                    <tr>
+                                        <td>{{ system.sort_order }}</td>
+                                        <td><span class="system-name">{{ system.name }}</span></td>
+                                        <td><span class="status {% if system.is_active %}active{% else %}inactive{% endif %}">{% if system.is_active %}ใช้งาน{% else %}ปิดใช้งาน{% endif %}</span></td>
+                                        <td><div class="actions"><button class="button is-small is-info is-light" type="button" onclick="document.getElementById('groups-system-{{ system.id }}').toggleAttribute('hidden')"><span class="icon"><i class="fa-solid fa-layer-group"></i></span><span>กลุ่ม</span></button><button class="button is-small is-light" type="button" onclick="document.getElementById('edit-system-{{ system.id }}').toggleAttribute('hidden')"><span class="icon"><i class="fa-solid fa-pen"></i></span><span>แก้ไข</span></button><form method="post" action="{{ url_for('maintenance.delete_maintenance_room_system', system_id=system.id) }}" onsubmit="return confirm('ยืนยันการลบระบบ {{ system.name }} หรือไม่?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button is-small is-danger is-light" type="submit"><span class="icon"><i class="fa-regular fa-trash-can"></i></span><span>ลบ</span></button></form></div></td>
+                                    </tr>
+                                    <tr id="edit-system-{{ system.id }}" hidden><td colspan="4"><form class="edit-panel" method="post" action="{{ url_for('maintenance.edit_maintenance_room_system', system_id=system.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid"><div class="field"><label class="label">ชื่อระบบ</label><div class="control"><input class="input" name="name" value="{{ system.name }}" required></div></div><div class="field"><label class="label">ลำดับ</label><div class="control"><input class="input" type="number" name="sort_order" value="{{ system.sort_order }}" min="0"></div></div><div class="field"><label class="active-toggle"><input type="checkbox" name="is_active" {% if system.is_active %}checked{% endif %}> ใช้งาน</label><div class="control"><button class="button is-link" type="submit"><span class="icon"><i class="fa-solid fa-floppy-disk"></i></span><span>บันทึก</span></button></div></div></div></form></td></tr>
+                                    <tr id="groups-system-{{ system.id }}" hidden>
+                                        <td colspan="4">
+                                            <div class="group-panel">
+                                                <h3 class="group-panel-title">กลุ่มอุปกรณ์ / หมวดตรวจเช็ค: {{ system.name }}</h3>
+                                                <form method="post" action="{{ url_for('maintenance.add_maintenance_room_system_check_group', system_id=system.id) }}">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <div class="form-grid">
+                                                        <div class="field"><label class="label">ชื่อกลุ่ม</label><div class="control"><input class="input" name="name" placeholder="เช่น ไมโครโฟน" required></div></div>
+                                                        <div class="field"><label class="label">ลำดับ</label><div class="control"><input class="input" type="number" name="sort_order" value="0" min="0"></div></div>
+                                                        <div class="field"><label class="active-toggle"><input type="checkbox" name="is_active" checked> ใช้งาน</label><div class="control"><button class="button is-link" type="submit"><span class="icon"><i class="fa-solid fa-plus"></i></span><span>เพิ่มกลุ่ม</span></button></div></div>
+                                                    </div>
+                                                </form>
+                                                <div class="group-list">
+                                                    {% for group in groups_by_system.get(system.id, []) %}
+                                                        <details class="group-card" id="group-{{ group.id }}">
+                                                            <summary><span class="icon"><i class="fa-solid fa-folder"></i></span><span>{{ group.name }}</span><small>{% if group.is_active %}ใช้งาน{% else %}ปิดใช้งาน{% endif %}</small></summary>
+                                                            <div class="group-edit">
+                                                                <form method="post" action="{{ url_for('maintenance.edit_maintenance_room_system_check_group', group_id=group.id) }}">
+                                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                    <div class="form-grid">
+                                                                        <div class="field"><label class="label">ชื่อกลุ่ม</label><div class="control"><input class="input" name="name" value="{{ group.name }}" required></div></div>
+                                                                        <div class="field"><label class="label">ลำดับ</label><div class="control"><input class="input" type="number" name="sort_order" value="{{ group.sort_order }}" min="0"></div></div>
+                                                                        <div class="field"><label class="active-toggle"><input type="checkbox" name="is_active" {% if group.is_active %}checked{% endif %}> ใช้งาน</label><div class="group-edit-actions"><button class="button is-link" type="submit"><span class="icon"><i class="fa-solid fa-floppy-disk"></i></span><span>บันทึก</span></button></div></div>
+                                                                    </div>
+                                                                </form>
+                                                                <form class="mt-3" method="post" action="{{ url_for('maintenance.delete_maintenance_room_system_check_group', group_id=group.id) }}" onsubmit="return confirm('ยืนยันการลบกลุ่ม {{ group.name }} หรือไม่?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button is-small is-danger is-light" type="submit"><span class="icon"><i class="fa-regular fa-trash-can"></i></span><span>ลบกลุ่ม</span></button></form>
+                                                                <div class="item-manager">
+                                                                    <h4 class="item-manager-title">ข้อความ Checklist</h4>
+                                                                    <form class="add-checklist-form" method="post" action="{{ url_for('maintenance.add_maintenance_room_system_check_item', group_id=group.id) }}" autocomplete="off">
+                                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                        <div class="form-grid">
+                                                                            <div class="field"><label class="label">ข้อความ checklist</label><div class="control"><input class="input" name="label" placeholder="เช่น ภาพคมชัด สีไม่เพี้ยน" required></div></div>
+                                                                            <div class="field"><label class="label">ลำดับ</label><div class="control"><input class="input" type="number" name="sort_order" value="0" min="0"></div></div>
+                                                                            <div class="field"><label class="active-toggle"><input type="checkbox" name="is_required"> บังคับตรวจ</label><label class="active-toggle"><input type="checkbox" name="is_active" checked> ใช้งาน</label><div class="control"><button class="button is-link is-light" type="submit"><span class="icon"><i class="fa-solid fa-plus"></i></span><span>เพิ่ม checklist</span></button></div></div>
+                                                                        </div>
+                                                                    </form>
+                                                                    <div class="item-list">
+                                                                        {% for item in items_by_group.get(group.id, []) %}
+                                                                            <details class="item-card" id="item-{{ item.id }}">
+                                                                                <summary><span class="icon"><i class="fa-regular fa-square-check"></i></span><span>{{ item.label }}</span><small>{% if item.is_required %}บังคับตรวจ{% else %}ไม่บังคับ{% endif %} | {% if item.is_active %}ใช้งาน{% else %}ปิดใช้งาน{% endif %}</small></summary>
+                                                                                <div class="item-edit">
+                                                                                    <form method="post" action="{{ url_for('maintenance.edit_maintenance_room_system_check_item', item_id=item.id) }}">
+                                                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                                                        <div class="form-grid">
+                                                                                            <div class="field"><label class="label">ข้อความ checklist</label><div class="control"><input class="input" name="label" value="{{ item.label }}" required></div></div>
+                                                                                            <div class="field"><label class="label">ลำดับ</label><div class="control"><input class="input" type="number" name="sort_order" value="{{ item.sort_order }}" min="0"></div></div>
+                                                                                            <div class="field"><label class="active-toggle"><input type="checkbox" name="is_required" {% if item.is_required %}checked{% endif %}> บังคับตรวจ</label><label class="active-toggle"><input type="checkbox" name="is_active" {% if item.is_active %}checked{% endif %}> ใช้งาน</label><div class="group-edit-actions"><button class="button is-link" type="submit"><span class="icon"><i class="fa-solid fa-floppy-disk"></i></span><span>บันทึก</span></button></div></div>
+                                                                                        </div>
+                                                                                    </form>
+                                                                                    <form class="mt-3" method="post" action="{{ url_for('maintenance.delete_maintenance_room_system_check_item', item_id=item.id) }}" onsubmit="return confirm('ยืนยันการลบ checklist นี้หรือไม่?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button is-small is-danger is-light" type="submit"><span class="icon"><i class="fa-regular fa-trash-can"></i></span><span>ลบ checklist</span></button></form>
+                                                                                </div>
+                                                                            </details>
+                                                                        {% else %}
+                                                                            <p class="empty">ยังไม่มีข้อความ checklist</p>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </details>
+                                                    {% else %}
+                                                        <p class="empty">ยังไม่มีกลุ่มอุปกรณ์หรือหมวดตรวจเช็ค</p>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="4" class="empty">ยังไม่มีระบบหลัก กรุณาเพิ่มระบบแรก</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        function resetNewChecklistDefaults(container) {
+            container.querySelectorAll('.add-checklist-form input[name="is_required"]').forEach(function (checkbox) {
+                checkbox.checked = false;
+            });
+        }
+
+        resetNewChecklistDefaults(document);
+
+        document.addEventListener('submit', async function (event) {
+            const form = event.target;
+            if (!form.closest('.setting-content')) return;
+
+            event.preventDefault();
+            const currentContent = document.querySelector('.setting-content');
+            const scrollPosition = window.scrollY;
+            const visiblePanelIds = Array.from(currentContent.querySelectorAll('tr[id]'))
+                .filter(function (panel) { return !panel.hidden; })
+                .map(function (panel) { return panel.id; });
+            const openDetailIds = Array.from(currentContent.querySelectorAll('details[open][id]'))
+                .map(function (detail) { return detail.id; });
+            const submitButton = event.submitter;
+            if (submitButton) submitButton.classList.add('is-loading');
+
+            try {
+                const response = await fetch(form.action, {
+                    method: form.method || 'POST',
+                    body: new FormData(form),
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) throw new Error('ไม่สามารถบันทึกข้อมูลได้');
+
+                const documentResult = new DOMParser().parseFromString(await response.text(), 'text/html');
+                const newContent = documentResult.querySelector('.setting-content');
+                if (!newContent || !currentContent) throw new Error('ไม่พบข้อมูลหน้าตั้งค่า');
+
+                currentContent.innerHTML = newContent.innerHTML;
+                visiblePanelIds.forEach(function (panelId) {
+                    const panel = currentContent.querySelector('#' + panelId);
+                    if (panel) panel.hidden = false;
+                });
+                openDetailIds.forEach(function (detailId) {
+                    const detail = currentContent.querySelector('#' + detailId);
+                    if (detail) detail.open = true;
+                });
+                resetNewChecklistDefaults(currentContent);
+                window.requestAnimationFrame(function () {
+                    window.scrollTo(0, scrollPosition);
+                });
+            } catch (error) {
+                window.alert(error.message);
+                if (submitButton) submitButton.classList.remove('is-loading');
+            }
+        });
+    </script>
+{% endblock %}

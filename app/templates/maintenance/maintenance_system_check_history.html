@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}ประวัติการตรวจเช็ค | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .history-page { padding: 2rem 0 3rem; }
+        .history-shell { background: #fff; border: 1px solid rgba(18,39,84,.1); border-radius: 24px; box-shadow: 0 18px 42px rgba(18,39,84,.08); overflow: hidden; }
+        .history-head { background: linear-gradient(135deg,#14294f,#294b88); color: #fff; padding: 1.5rem; }
+        .history-title { font-size: 1.55rem; font-weight: 800; margin: 0; }
+        .history-subtitle { color: rgba(255,255,255,.8); margin: .35rem 0 0; }
+        .history-content { padding: 1.3rem; }
+        .history-entry { border: 1px solid #dfe6f2; border-radius: 17px; margin-bottom: 1rem; overflow: hidden; }
+        .history-entry-head { align-items: flex-start; background: #f6f9ff; display: flex; gap: .8rem; justify-content: space-between; padding: 1rem; }
+        .history-system { color: #193a69; font-size: 1.05rem; font-weight: 800; }
+        .history-meta { color: #687d9c; font-size: .84rem; line-height: 1.6; margin-top: .3rem; }
+        .history-remark { background: #fff8e9; border-left: 3px solid #e8ac3d; color: #70531b; font-size: .86rem; margin-top: .65rem; padding: .5rem .65rem; }
+        .history-details { border-top: 1px solid #dfe6f2; }
+        .history-details summary { color: #285c9f; cursor: pointer; font-size: .87rem; font-weight: 800; list-style: none; padding: .75rem 1rem; }
+        .history-details summary::-webkit-details-marker { display: none; }
+        .history-details summary::before { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; margin-right: .45rem; }
+        .history-details[open] summary::before { content: '\f077'; }
+        .history-details-body { border-top: 1px solid #dfe6f2; }
+        .history-loading { color: #71809a; font-size: .85rem; padding: .8rem 1rem; }
+        .empty-state { background: #f7f9fc; border: 1px dashed #cfd9e8; border-radius: 14px; color: #6e7f9a; padding: 1.2rem; text-align: center; }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section history-page">
+        <div class="container is-max-desktop">
+            <div class="history-shell">
+                <header class="history-head">
+                    <h1 class="history-title">ประวัติการตรวจเช็ค</h1>
+                    <p class="history-subtitle">ห้อง {{ room.number }} {{ room.location }}</p>
+                </header>
+                <div class="history-content">
+                    <a class="button is-link is-light mb-4" href="{{ url_for('maintenance.maintenance_system_check', room_id=room.id) }}"><span class="icon"><i class="fa-solid fa-clipboard-check"></i></span><span>ตรวจเช็คห้องนี้</span></a>
+                    {% for submission in submissions %}
+                        <article class="history-entry">
+                            <header class="history-entry-head">
+                                <div>
+                                    <div class="history-system"><i class="fa-solid fa-circle-check mr-1"></i>{{ submission.system.name }}</div>
+                                    <div class="history-meta"><i class="fa-regular fa-clock"></i> {{ submission.checked_at.strftime('%d/%m/%Y %H:%M') }} น. | <i class="fa-regular fa-user"></i> {{ submission.inspected_by.personal_info.fullname if submission.inspected_by and submission.inspected_by.personal_info else submission.inspected_by.email }}</div>
+                                    {% if submission.remark %}<div class="history-remark"><strong>หมายเหตุ:</strong> {{ submission.remark }}</div>{% endif %}
+                                </div>
+                                {% if submission.status == 'normal' %}
+                                    <span class="tag is-success is-light">ปกติ</span>
+                                {% elif submission.status == 'unavailable' %}
+                                    <span class="tag is-danger is-light">ไม่พร้อมใช้งาน</span>
+                                {% else %}
+                                    <span class="tag is-warning is-light">พบปัญหาเล็กน้อย</span>
+                                {% endif %}
+                            </header>
+                            <details class="history-details" data-details-url="{{ url_for('maintenance.maintenance_system_check_history_details', room_id=room.id, submission_id=submission.id) }}">
+                                <summary>ดูผล checklist</summary>
+                                <div class="history-details-body"><div class="history-loading">กดเพื่อโหลดผล checklist</div></div>
+                            </details>
+                        </article>
+                    {% else %}
+                        <div class="empty-state">ยังไม่มีประวัติการตรวจเช็คของห้องนี้</div>
+                    {% endfor %}
+
+                    {% if pagination.pages > 1 %}
+                        <nav class="pagination is-centered mt-5" role="navigation" aria-label="pagination">
+                            <a class="pagination-previous" {% if pagination.has_prev %}href="{{ url_for('maintenance.maintenance_system_check_history', room_id=room.id, page=pagination.prev_num) }}"{% else %}disabled{% endif %}>Previous</a>
+                            <a class="pagination-next" {% if pagination.has_next %}href="{{ url_for('maintenance.maintenance_system_check_history', room_id=room.id, page=pagination.next_num) }}"{% else %}disabled{% endif %}>Next page</a>
+                        </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.querySelectorAll('.history-details').forEach((details) => {
+            details.addEventListener('toggle', async () => {
+                if (!details.open || details.dataset.loaded) return;
+
+                const body = details.querySelector('.history-details-body');
+                body.innerHTML = '<div class="history-loading">กำลังโหลดผล checklist...</div>';
+                try {
+                    const response = await fetch(details.dataset.detailsUrl);
+                    if (!response.ok) throw new Error('Unable to load history details');
+                    body.innerHTML = await response.text();
+                    details.dataset.loaded = 'true';
+                } catch (error) {
+                    body.innerHTML = '<div class="history-loading has-text-danger">ไม่สามารถโหลดผล checklist ได้</div>';
+                }
+            });
+        });
+    </script>
+{% endblock %}
