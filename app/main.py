@@ -268,6 +268,28 @@ def block_external_routes_globally():
     abort(403)
 
 
+@app.before_request
+def restrict_international_relations_participants():
+    """Keep participant identities inside their dedicated application area.
+
+    International Relations participants are not StaffAccount users.  This
+    global boundary prevents a participant session from reaching host routes
+    that may only check ``login_required`` and otherwise assume a staff model.
+    """
+    if session.get('user_type') != 'international_relations_participant':
+        return
+    if not current_user.is_authenticated:
+        # A stale session marker must not prevent the user from signing in
+        # again after the Flask-Login session has expired.
+        session.pop('user_type', None)
+        return
+
+    endpoint = request.endpoint or ''
+    if endpoint == 'static' or endpoint.startswith('international_relations.'):
+        return
+    abort(403)
+
+
 @app.route('/external')
 @login_required
 def external_landing():
