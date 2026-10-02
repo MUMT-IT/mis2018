@@ -36,7 +36,7 @@ from werkzeug.utils import secure_filename
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
-from .email_utils import generate_notification_email_content
+from .email_utils import generate_notification_email_content, latest_rejection_comment
 from . import advance_payment as bp, thai_date
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
@@ -135,6 +135,12 @@ def advance_payment_file_url(reference):
     return url_for("static", filename=reference.lstrip("/"))
 
 
+@bp.app_template_filter("latest_rejection_comment")
+def latest_rejection_comment_filter(value):
+    """Show the newest rejection while keeping the full database history."""
+    return latest_rejection_comment(value)
+
+
 def _validation_error_response(message, status_code=422):
     """Return a non-navigating validation response for AJAX form submissions."""
     return jsonify(ok=False, message=message), status_code
@@ -158,6 +164,26 @@ FUND_REQUEST_STATUS_STEPS = ["อนุมัติแล้ว", "ส่งเ�
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
 CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
 PARCEL_RETURN_CONFIRMED_STATUS = "ยืนยันการตรวจสอบ"
+
+
+def _append_rejection_comment(existing_comment, new_comment, actor_label, actor_name):
+    """Append an auditable rejection entry without changing older entries."""
+    existing_comment = str(existing_comment or "").strip()
+    history_count = len(
+        re.findall(r"(?m)^ครั้งที่\s+\d+\s*:", existing_comment)
+    )
+    if existing_comment and history_count == 0:
+        # Treat a legacy plain-text reason as the first preserved history entry.
+        history_count = 1
+    formatted_comment = (
+        f"ครั้งที่ {history_count + 1}: {new_comment} "
+        f"{actor_label}: {actor_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+    return (
+        f"{existing_comment}\n{formatted_comment}"
+        if existing_comment
+        else formatted_comment
+    )
 
 from .pdf_utils import (
     generate_fnar02_pdf,
@@ -2145,16 +2171,13 @@ def mark_return_bounced(return_id):
     if not rejection_comment:
         return _validation_error_response("กรุณาระบุเหตุผลที่ตีกลับเอกสาร")
 
-    existing_comment = return_detail.rejection_comment or ""
-    count = existing_comment.count("ครั้งที่") + 1
     staff = current_user
     user_name = staff.name if staff else "ไม่ระบุชื่อ"
-    formatted_comment = (
-        f"ครั้งที่ {count}: {rejection_comment} "
-        f"ผู้ตีกลับ: {user_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-    )
-    return_detail.rejection_comment = (
-        f"{existing_comment}\n{formatted_comment}" if existing_comment else formatted_comment
+    return_detail.rejection_comment = _append_rejection_comment(
+        return_detail.rejection_comment,
+        rejection_comment,
+        "ผู้ตีกลับ",
+        user_name,
     )
     return_detail.reject_approved_at = datetime.now()
     return_detail.status = RETURN_DETAIL_BOUNCED_STATUS
@@ -4706,19 +4729,14 @@ def reject_parcel_return(parcel_return_id):
     if not new_comment:
         return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธรายการ")
 
-    if new_comment:
-        existing_comment = parcel_return.rejection_comment or ""
-        count = existing_comment.count("ครั้งที่") + 1
-        staff = current_user
-        user_name = staff.name if staff else "ไม่ระบุชื่อ"
-        formatted_new_comment = (
-            f"ครั้งที่ {count}: {new_comment} "
-            f"ผู้ปฏิเสธ: {user_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-        if existing_comment:
-            parcel_return.rejection_comment = f"{existing_comment}\n{formatted_new_comment}"
-        else:
-            parcel_return.rejection_comment = formatted_new_comment
+    staff = current_user
+    user_name = staff.name if staff else "ไม่ระบุชื่อ"
+    parcel_return.rejection_comment = _append_rejection_comment(
+        parcel_return.rejection_comment,
+        new_comment,
+        "ผู้ปฏิเสธ",
+        user_name,
+    )
 
     parcel_return.status = "ปฏิเสธ"
     db.session.commit()
@@ -5731,20 +5749,14 @@ def reject_return_detail(return_id):
     if not new_comment:
         return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธรายการ")
 
-    if new_comment:
-        existing_comment = return_detail.rejection_comment or ""
-        count = existing_comment.count("ครั้งที่") + 1
-        staff = current_user
-        user_name = staff.name if staff else "ไม่ระบุชื่อ"
-        formatted_new_comment = (
-            f"ครั้งที่ {count}: {new_comment} "
-            f"ผู้ปฏิเสธ: {user_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-
-        if existing_comment:
-            return_detail.rejection_comment = f"{existing_comment}\n{formatted_new_comment}"
-        else:
-            return_detail.rejection_comment = formatted_new_comment
+    staff = current_user
+    user_name = staff.name if staff else "ไม่ระบุชื่อ"
+    return_detail.rejection_comment = _append_rejection_comment(
+        return_detail.rejection_comment,
+        new_comment,
+        "ผู้ปฏิเสธ",
+        user_name,
+    )
 
     return_detail.status = "ปฏิเสธ"
     db.session.commit()
@@ -5844,12 +5856,20 @@ def reject_borrowing_ticket(ticket_id):
     if borrowing_ticket.status != "กำลังส่งคำขอ":
         return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถปฏิเสธได้")
 
-    borrowing_ticket.rejection_comment = request.form.get(
+    new_comment = request.form.get(
         "rejection_comment",
         ""
     ).strip()
-    if not borrowing_ticket.rejection_comment:
+    if not new_comment:
         return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธสัญญา")
+    staff = current_user
+    user_name = staff.name if staff else "ไม่ระบุชื่อ"
+    borrowing_ticket.rejection_comment = _append_rejection_comment(
+        borrowing_ticket.rejection_comment,
+        new_comment,
+        "ผู้ปฏิเสธ",
+        user_name,
+    )
     borrowing_ticket.finance_verified = False
     borrowing_ticket.status = "ปฏิเสธ"
     db.session.commit()
@@ -9173,19 +9193,14 @@ def reject_petty_claim(claim_id):
     rejection_comment = request.form.get("rejection_comment", "").strip()
     if not rejection_comment:
         return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธรายการ")
-    if rejection_comment:
-        existing = claim.rejection_comment or ""
-        count = existing.count("ครั้งที่") + 1
-        staff = current_user
-        user_name = staff.name if staff else "ไม่ระบุชื่อ"
-        formatted_new_comment = (
-            f"ครั้งที่ {count}: {rejection_comment} "
-            f"ผู้ปฏิเสธ: {user_name} เมื่อ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        )
-        if existing:
-            claim.rejection_comment = f"{existing}\n{formatted_new_comment}"
-        else:
-            claim.rejection_comment = formatted_new_comment
+    staff = current_user
+    user_name = staff.name if staff else "ไม่ระบุชื่อ"
+    claim.rejection_comment = _append_rejection_comment(
+        claim.rejection_comment,
+        rejection_comment,
+        "ผู้ปฏิเสธ",
+        user_name,
+    )
 
     claim.status = "ปฏิเสธ"
     db.session.commit()

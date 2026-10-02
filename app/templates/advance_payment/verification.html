@@ -60,7 +60,7 @@
       {% if borrowing_ticket.status|lower == "ปฏิเสธ" %}
       <div class="col-12 col-md-4">
         <p class="text-muted small mb-1"><strong>เหตุผลในการปฏิเสธ</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.rejection_comment }}</p>
+        <p class="mb-0 text-dark fw-semibold" style="white-space: pre-line;">{{ borrowing_ticket.rejection_comment|latest_rejection_comment }}</p>
       </div>
       {% else %}
       <div class="col-12 col-md-4">
@@ -384,7 +384,7 @@
               <td>
                 {{ status_badge(pr.status) }}
                 {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
-                  <div class="small text-danger mt-1 text-start">{{ pr.rejection_comment }}</div>
+                  <div class="small text-danger mt-1 text-start" style="white-space: pre-line;">{{ pr.rejection_comment|latest_rejection_comment }}</div>
                 {% endif %}
               </td>
               <td class="text-center">

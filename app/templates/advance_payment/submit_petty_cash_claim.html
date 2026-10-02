@@ -635,7 +635,7 @@ function togglePettyCashClaimForm() {
             <td>
               {{ status_badge(pr.status) }}
               {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
-                <div class="small text-danger mt-1 text-start">{{ pr.rejection_comment }}</div>
+                <div class="small text-danger mt-1 text-start" style="white-space: pre-line;">{{ pr.rejection_comment|latest_rejection_comment }}</div>
               {% endif %}
             </td>
             <td class="text-center">
