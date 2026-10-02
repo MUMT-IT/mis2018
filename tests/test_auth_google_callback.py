@@ -50,6 +50,7 @@ def _install_import_stubs(monkeypatch):
     flask_principal = _module(
         "flask_principal",
         Identity=object,
+        Permission=lambda *_args, **_kwargs: SimpleNamespace(needs=set()),
         identity_changed=SimpleNamespace(send=lambda *_args, **_kwargs: None),
         AnonymousIdentity=object,
         identity_loaded=_IdentitySignal(),
@@ -133,6 +134,12 @@ def _install_import_stubs(monkeypatch):
         StaffLeaveApprover=_StaffLeaveApprover,
     )
     monkeypatch.setitem(sys.modules, "app.staff.models", staff_models_mod)
+
+    roles_mod = _module(
+        "app.roles",
+        head_permission=SimpleNamespace(needs=set()),
+    )
+    monkeypatch.setitem(sys.modules, "app.roles", roles_mod)
 
     forms_mod = _module(
         "app.auth.forms",

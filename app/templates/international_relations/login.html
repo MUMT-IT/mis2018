@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}International Relations Sign In{% endblock %}
+
+{% block page_content %}
+<section class="section">
+  <div class="container" style="max-width: 38rem">
+    <div class="box has-text-centered">
+      <h1 class="title">International Relations</h1>
+      <p class="subtitle">Sign in with the external Google account you use for this program.</p>
+      <a class="button is-link is-medium" href="{{ url_for('international_relations.google_login') }}">
+        <span class="icon"><i class="fab fa-google"></i></span>
+        <span>Continue with Google</span>
+      </a>
+      <hr>
+      <p class="mb-3">Mahidol staff administrator</p>
+      <a class="button is-light" href="{{ url_for('international_relations.admin_login') }}">
+        <span class="icon"><i class="fa-solid fa-user-shield"></i></span>
+        <span>Open admin section</span>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}
