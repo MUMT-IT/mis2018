@@ -4137,6 +4137,7 @@ def verification_view(ticket_id):
         .order_by(ReturnDetail.id.desc())
         .all()
     )
+    approved_return_totals = _calculate_ticket_group_totals(ticket_group_ids)
     return_form_totals = _calculate_return_form_group_totals(ticket_group_ids)
     parcel_returns = (
         db.session.query(ParcelReturnDetail)
@@ -4167,7 +4168,10 @@ def verification_view(ticket_id):
     group_tickets = db.session.query(BorrowingTicket).filter(
         BorrowingTicket.id.in_(ticket_group_ids)
     ).all()
-    ticket_allocation_rows = _ticket_allocation_rows(group_tickets, return_form_totals)
+    ticket_allocation_rows = _ticket_allocation_rows(
+        group_tickets,
+        approved_return_totals,
+    )
     summary = next(
         (row for row in ticket_allocation_rows if row["ticket_id"] == ticket_id),
         {
@@ -4210,7 +4214,7 @@ def verification_view(ticket_id):
         return_details=return_details,
         parcel_returns=parcel_returns,
         summary=summary,
-        group_summary=return_form_totals,
+        group_summary=approved_return_totals,
         ticket_allocation_rows=ticket_allocation_rows,
         notifications=notifications,
         proof_files_dict=proof_files_dict,
