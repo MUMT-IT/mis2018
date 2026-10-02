@@ -185,6 +185,20 @@ def _append_rejection_comment(existing_comment, new_comment, actor_label, actor_
         else formatted_comment
     )
 
+
+def _fund_request_is_borrowing_passthrough(fund_request):
+    """Return whether a fund request only transfers money to a loan contract."""
+    return (
+        str(getattr(fund_request, "form_type", "") or "").strip()
+        == FUND_REQUEST_FORM_BORROWING_TICKET
+    )
+
+
+def _borrowing_passthrough_validation_message():
+    return (
+        "กรุณาส่งเอกสารส่งใช้เงินยืมที่สัญญาเงินยืมโดยตรง"
+    )
+
 from .pdf_utils import (
     generate_fnar02_pdf,
     generate_fund_request_pdf,
@@ -4211,6 +4225,19 @@ def _create_parcel_return_record(
 ):
     if parcel_type not in (None, *PARCEL_RETURN_TYPE_LABELS):
         raise ValueError("ประเภทการคืนพัสดุไม่ถูกต้อง")
+    has_fund_request_parent = fund_request_id is not None
+    if ticket_id is not None and has_fund_request_parent:
+        raise ValueError(
+            "รายการส่งคืนพัสดุต้องผูกกับสัญญาเงินยืมหรือใบเบิกเงินสดย่อยเพียงหนึ่งรายการ"
+        )
+    if has_fund_request_parent and ticket_ids:
+        raise ValueError("รายการส่งคืนพัสดุของเงินสดย่อยต้องไม่เชื่อมสัญญาเงินยืม")
+    if has_fund_request_parent:
+        fund_request = db.session.get(FundRequest, fund_request_id)
+        if fund_request is None:
+            raise ValueError("ไม่พบคำขอเบิกเงินสดย่อยที่เลือก")
+        if _fund_request_is_borrowing_passthrough(fund_request):
+            raise ValueError(_borrowing_passthrough_validation_message())
     parcel_return = ParcelReturnDetail(
         ticket_id=ticket_id,
         fund_request_id=fund_request_id,
@@ -4223,7 +4250,9 @@ def _create_parcel_return_record(
     )
     db.session.add(parcel_return)
     db.session.flush()
-    linked_ticket_ids = set(ticket_ids or ([ticket_id] if ticket_id else []))
+    linked_ticket_ids = set(ticket_ids or [])
+    if ticket_id is not None:
+        linked_ticket_ids.add(ticket_id)
     if linked_ticket_ids:
         db.session.execute(
             parcel_borrowing_ticket_association.insert(),
@@ -4377,8 +4406,15 @@ def submit_parcel_return(ticket_id):
     amount = request.form.get("amount", "0").replace(",", "")
     items_description = request.form.get("items_description", "").strip()
     sent_date_str = request.form.get("sent_date")
-    fund_request_id_raw = (request.form.get("fund_request_id") or request.args.get("fund_request_id") or "").strip()
-    fund_request_id = int(fund_request_id_raw) if fund_request_id_raw.isdigit() else None
+    unexpected_fund_request_id = (
+        request.form.get("fund_request_id")
+        or request.args.get("fund_request_id")
+        or ""
+    ).strip()
+    if unexpected_fund_request_id:
+        return _validation_error_response(
+            "รายการส่งคืนจากสัญญาเงินยืมไม่สามารถผูกใบเบิกเงินสดย่อยพร้อมกันได้"
+        )
 
     if not items_description or not sent_date_str:
         return _validation_redirect_response(
@@ -4406,30 +4442,19 @@ def submit_parcel_return(ticket_id):
             ),
         )
 
-    if fund_request_id:
-        fund_totals = _calculate_fund_request_totals(fund_request_id)
-        projected_fund_total = fund_totals["cumulative_total"] + parsed_amount
-        if _is_over_limit(projected_fund_total, fund_totals["request_amount"]):
-            return _redirect_with_limit_popup(
-                url_for(_dashboard_endpoint_for_role(_current_module_role())),
-                (
-                    "ยอดรวมใบเบิกเงินสดย่อยและส่งคืนพัสดุจะเป็น "
-                    f"{_format_currency_amount(projected_fund_total)} บาท "
-                    f"ซึ่งเกินยอดขอเบิก {_format_currency_amount(fund_totals['request_amount'])} บาท"
-                ),
-            )
-
     sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
 
     try:
         _create_parcel_return_record(
             ticket_id=ticket_id,
-            fund_request_id=fund_request_id,
             amount=parsed_amount,
             items_description=items_description,
             sent_date=sent_date,
             status="รอตรวจสอบ",
         )
+    except ValueError as error:
+        db.session.rollback()
+        return _validation_error_response(str(error))
     except IntegrityError:
         db.session.rollback()
         return _validation_error_response(
@@ -4444,14 +4469,20 @@ def submit_parcel_return(ticket_id):
 @module_system_required(PETTY_CASH_SYSTEM)
 def submit_fund_request_parcel_return(fund_request_id):
     fund_request = db.session.query(FundRequest).filter_by(id=fund_request_id).first()
-    if request.method == "GET":
-        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
-
     if fund_request is None:
         return _validation_redirect_response(
             "ไม่พบคำขอที่เลือก",
             url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id),
         )
+    if _fund_request_is_borrowing_passthrough(fund_request):
+        if request.method == "GET":
+            flash(_borrowing_passthrough_validation_message(), "warning")
+            return redirect(url_for("advance_payment.staff_fund_request_history"))
+        return _validation_error_response(
+            _borrowing_passthrough_validation_message()
+        )
+    if request.method == "GET":
+        return redirect(url_for("advance_payment.submit_petty_cash_claim", fund_request_id=fund_request_id))
 
     setting = _resolve_petty_cash_setting(current_user)
     accessible_request = _fund_request_setting_filter(
@@ -7934,6 +7965,10 @@ def autosave_petty_cash_claim_draft():
         if normalized_fund_request_id
         else None
     )
+    if _fund_request_is_borrowing_passthrough(fund_request):
+        return _validation_error_response(
+            _borrowing_passthrough_validation_message()
+        )
 
     # 1. ใช้ Setting ที่ผูกกับ FundRequest ก่อน เพื่อรองรับรายการเบิกเดิม
     staff = current_user
@@ -8066,6 +8101,13 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         if selected_fr_id
         else None
     )
+    if _fund_request_is_borrowing_passthrough(selected_fund_request_context):
+        if request.method == "GET" or _render_after_post:
+            flash(_borrowing_passthrough_validation_message(), "warning")
+            return redirect(url_for("advance_payment.staff_fund_request_history"))
+        return _validation_error_response(
+            _borrowing_passthrough_validation_message()
+        )
     setting = _resolve_petty_cash_setting_for_fund_request(
         current_user,
         selected_fund_request_context,
@@ -8087,6 +8129,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         approved_fund_requests = [
             fund_request for fund_request in fund_request_query.order_by(FundRequest.id.desc()).all()
             if (fund_request.status or "").strip() == "อนุมัติแล้ว"
+            and not _fund_request_is_borrowing_passthrough(fund_request)
         ]
     elif setting and setting.id and not is_finance_user:
         fund_request_query = db.session.query(FundRequest).filter(FundRequest.requester_id == user_id)
@@ -8094,6 +8137,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         approved_fund_requests = [
             fund_request for fund_request in fund_request_query.order_by(FundRequest.id.desc()).all()
             if (fund_request.status or "").strip() == "อนุมัติแล้ว"
+            and not _fund_request_is_borrowing_passthrough(fund_request)
         ]
     else:
         approved_fund_requests = [
@@ -8102,6 +8146,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 FundRequest.requester_id == user_id,
             ).order_by(FundRequest.id.desc()).all()
             if (fund_request.status or "").strip() == "อนุมัติแล้ว"
+            and not _fund_request_is_borrowing_passthrough(fund_request)
         ]
 
     # 2. ตรวจสอบการเลือก Fund Request เพื่อ Auto-fill ในหน้า Submit Claim
@@ -8215,6 +8260,10 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 FundRequest.id == fund_request_id,
             )
             posted_request = posted_request_query.first()
+            if _fund_request_is_borrowing_passthrough(posted_request):
+                return _validation_error_response(
+                    _borrowing_passthrough_validation_message()
+                )
             if posted_request is not None:
                 setting = _resolve_petty_cash_setting_for_fund_request(
                     current_user,

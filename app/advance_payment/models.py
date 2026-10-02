@@ -493,6 +493,11 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
             "type IS NULL OR type IN (1, 5)",
             name="ck_cash_mng_parcel_return_details_type",
         ),
+        CheckConstraint(
+            "(ticket_id IS NOT NULL AND fund_request_id IS NULL) OR "
+            "(ticket_id IS NULL AND fund_request_id IS NOT NULL)",
+            name="ck_cash_mng_parcel_return_details_exactly_one_parent",
+        ),
     )
 
     id = Column(Integer, primary_key=True)
