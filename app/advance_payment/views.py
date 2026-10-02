@@ -1983,13 +1983,9 @@ def _download_cash_mng_document(file_id):
 
 
 def _send_notification_email(target_object, object_type="ticket", extra_ctx=None):
-    if os.environ.get("ADVANCE_PAYMENT_EMAIL_ENABLED", "true").lower() not in {
+    email_enabled = os.environ.get("ADVANCE_PAYMENT_EMAIL_ENABLED", "true").lower() in {
         "1", "true", "yes", "on"
-    }:
-        current_app.logger.info(
-            "ยกเลิกการส่งอีเมล advance payment เพราะ ADVANCE_PAYMENT_EMAIL_ENABLED=false"
-        )
-        return False
+    }
 
     if extra_ctx is None:
         extra_ctx = {}
@@ -2127,6 +2123,17 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
 
     email_data = generate_notification_email_content(target_object, object_type=object_type, extra_ctx=extra_ctx)
 
+    def _log_email_content():
+        current_app.logger.warning(
+            f"ผู้รับ: {', '.join(email_data['to_emails']) or 'ไม่พบอีเมลผู้รับ'}\n"
+            f"หัวข้ออีเมล: {email_data['subject']}\n"
+            f"เนื้อหาอีเมล:\n{email_data['body']}"
+        )
+
+    if not email_enabled:
+        _log_email_content()
+        return False
+
     try:
         recipients = email_data["to_emails"]
         current_app.logger.info(
@@ -2136,6 +2143,7 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
         current_app.logger.info(f"เนื้อหากล่องข้อความ:\n{email_data['body']}")
 
         if not recipients:
+            _log_email_content()
             current_app.logger.warning(
                 "ยกเลิกการส่งอีเมลแจ้งเตือน เนื่องจากไม่พบอีเมลผู้รับ"
             )
@@ -2155,6 +2163,7 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
         current_app.logger.exception(
             "ไม่สามารถจัดส่งอีเมลแจ้งเตือนได้เนื่องจาก: %s", e
         )
+        _log_email_content()
         return False
 
 @bp.route("/finance/returns/<int:return_id>/checking", methods=["POST"])
