@@ -313,6 +313,9 @@ def google_login():
         return redirect(url_for('auth.login'))
 
     next_url = request.args.get('next')
+    mode = request.args.get('mode', 'staff')
+    if mode not in {'staff', 'international_relations'}:
+        return abort(400)
     if next_url and not is_safe_url(next_url):
         return abort(400)
 
@@ -320,13 +323,18 @@ def google_login():
     authorization_base_url = 'https://accounts.google.com/o/oauth2/v2/auth'
     state = secrets.token_urlsafe(16)
     session['auth_google_oauth_state'] = state
+    session['auth_google_oauth_mode'] = mode
     if next_url:
         session['auth_google_oauth_next'] = next_url
+    authorization_kwargs = {
+        'state': state,
+        'prompt': 'select_account',
+    }
+    if mode == 'staff':
+        authorization_kwargs['hd'] = 'mahidol.ac.th'
     authorization_url, _ = oauth.authorization_url(
         authorization_base_url,
-        state=state,
-        hd='mahidol.ac.th',
-        prompt='select_account',
+        **authorization_kwargs,
     )
     return redirect(authorization_url)
 
@@ -339,6 +347,7 @@ def google_callback():
 
     expected_state = session.pop('auth_google_oauth_state', None)
     next_url = session.pop('auth_google_oauth_next', None)
+    mode = session.pop('auth_google_oauth_mode', 'staff')
     state = request.args.get('state')
     if not state or state != expected_state:
         flash(u'Invalid Google sign-in state. Please try again.', 'danger')
@@ -363,6 +372,39 @@ def google_callback():
         return redirect(url_for('auth.login'))
 
     email = (profile.get('email') or '').strip().lower()
+    if mode == 'international_relations':
+        if not email or profile.get('email_verified') is not True or not profile.get('sub'):
+            flash(u'Google did not provide a verified email address.', 'danger')
+            return redirect(url_for('international_relations.login'))
+
+        from app.international_relations.models import InternalRelationParticipant
+
+        google_subject = str(profile['sub'])
+        user = InternalRelationParticipant.query.filter_by(
+            google_subject=google_subject,
+        ).first()
+        if user is None:
+            email_owner = InternalRelationParticipant.query.filter_by(email=email).first()
+            if email_owner is not None:
+                flash(u'This email is already linked to another Google identity.', 'danger')
+                return redirect(url_for('international_relations.login'))
+            user = InternalRelationParticipant(
+                google_subject=google_subject,
+                email=email,
+            )
+            db.session.add(user)
+        user.update_from_google_profile(profile)
+        db.session.commit()
+        if not user.is_active or not login_user(user, True):
+            flash(u'Your participant account is inactive.', 'danger')
+            return redirect(url_for('international_relations.login'))
+        session['user_type'] = 'international_relations_participant'
+        identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
+        flash(u'You have signed in with Google.', 'success')
+        if next_url and not is_safe_url(next_url):
+            return abort(400)
+        return redirect(next_url or url_for('international_relations.dashboard'))
+
     if not email.endswith('@mahidol.ac.th'):
         flash(u'Please use your Mahidol Google account (@mahidol.ac.th).', 'danger')
         return redirect(url_for('auth.login'))

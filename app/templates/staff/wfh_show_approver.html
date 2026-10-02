@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
 <section class="section">
     <div class="container" id="app">
         <h1 class="title has-text-centered is-size-4">ข้อมูลผู้อนุมัติ WFH และ รับรองการเข้าออกงาน</h1>
@@ -8,9 +9,10 @@
             <div class="column">
                 <div class="field">
                     <label class="label">สังกัด</label>
-                    <div class="select">
-                        <select v-model="department" v-on:change="proceed()">
-                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
+                    <div class="control">
+                        <select id="department-select" v-model="department" v-on:change="proceed()">
+                            <option v-bind:value="null">เลือกหรือค้นหาสังกัด</option>
+                            <option v-for="d in departments" v-bind:value="d.id" v-bind:key="d.id">
                                 <% d.name %>
                             </option>
                         </select>
@@ -69,13 +71,22 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function(){
         $('#approversTable').DataTable();
+        $('#department-select').select2({
+            width: '100%',
+            placeholder: 'เลือกหรือค้นหาสังกัด'
+        }).on('change', function () {
+            const departmentId = $(this).val();
+            app.department = departmentId ? Number(departmentId) : null;
+            app.proceed();
+        });
     });
 </script>
 <script>
-    new Vue({
+    const app = new Vue({
         el : "#app",
         delimiters : ["<%", "%>"],
         data(){

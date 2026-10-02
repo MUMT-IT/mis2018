@@ -2906,17 +2906,64 @@ def _special_wfh_staff_in_scope(special_days, allowed_staff):
     }
 
 
+def _get_special_wfh_allowed_staff(account):
+    approvers = StaffWorkFromHomeApprover.query.filter_by(
+        approver_account_id=account.id, is_active=True
+    ).all()
+    allowed_staff = {
+        approver.requester for approver in approvers
+        if approver.requester and approver.requester.is_active
+    }
+
+    headed_orgs = Org.query.filter_by(head=account.email).all()
+    active_approver_staff_ids = {
+        staff_id for staff_id, in StaffWorkFromHomeApprover.query.with_entities(
+            StaffWorkFromHomeApprover.staff_account_id
+        ).filter_by(is_active=True).all()
+    }
+    for org in headed_orgs:
+        allowed_staff.update(
+            staff_account for staff_account in org.active_staff_accounts
+            if staff_account.id not in active_approver_staff_ids
+        )
+
+    return allowed_staff, approvers, headed_orgs
+
+
+def _ensure_active_wfh_approver(staff_accounts, approver_account):
+    staff_ids = {staff_account.id for staff_account in staff_accounts}
+    active_approver_staff_ids = {
+        staff_id for staff_id, in StaffWorkFromHomeApprover.query.with_entities(
+            StaffWorkFromHomeApprover.staff_account_id
+        ).filter(
+            StaffWorkFromHomeApprover.staff_account_id.in_(staff_ids),
+            StaffWorkFromHomeApprover.is_active.is_(True),
+        ).all()
+    }
+    for staff_account in staff_accounts:
+        if staff_account.id in active_approver_staff_ids:
+            continue
+        approver = StaffWorkFromHomeApprover.query.filter_by(
+            staff_account_id=staff_account.id,
+            approver_account_id=approver_account.id,
+        ).first()
+        if approver:
+            approver.is_active = True
+        else:
+            db.session.add(StaffWorkFromHomeApprover(
+                requester=staff_account,
+                account=approver_account,
+                is_active=True,
+            ))
+
+
 @staff.route('/wfh/requests/approval/special-day', methods=['GET', 'POST'])
 @login_required
 def assign_special_wfh_day_staff():
-    approvers = StaffWorkFromHomeApprover.query.filter_by(
-        approver_account_id=current_user.id, is_active=True
-    ).all()
-    if not approvers:
+    allowed_staff, approvers, headed_orgs = _get_special_wfh_allowed_staff(current_user)
+    if not approvers and not headed_orgs:
         abort(403)
 
-    allowed_staff = {approver.requester for approver in approvers
-                     if approver.requester and not approver.requester.personal_info.retired}
     today = arrow.now('Asia/Bangkok').date()
     special_days = StaffSpecialWorkFromHomeDay.query.filter(
         StaffSpecialWorkFromHomeDay.work_date >= today
@@ -2940,6 +2987,7 @@ def assign_special_wfh_day_staff():
         if not selected_staff:
             flash('กรุณาเลือกบุคลากรอย่างน้อยหนึ่งคน', 'danger')
             return redirect(url_for('staff.assign_special_wfh_day_staff'))
+        _ensure_active_wfh_approver(selected_staff, current_user)
         for special_day in selected_days:
             special_day.staff = list({staff.id: staff for staff in special_day.staff + selected_staff}.values())
             db.session.add(special_day)
@@ -2968,13 +3016,9 @@ def assign_special_wfh_day_staff():
 @staff.route('/wfh/requests/approval/special-day/<int:special_day_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_special_wfh_day_staff(special_day_id):
-    approvers = StaffWorkFromHomeApprover.query.filter_by(
-        approver_account_id=current_user.id, is_active=True
-    ).all()
-    if not approvers:
+    allowed_staff, approvers, headed_orgs = _get_special_wfh_allowed_staff(current_user)
+    if not approvers and not headed_orgs:
         abort(403)
-    allowed_staff = {approver.requester for approver in approvers
-                     if approver.requester and not approver.requester.personal_info.retired}
     special_day = StaffSpecialWorkFromHomeDay.query.get_or_404(special_day_id)
     if request.method == 'POST':
         try:
@@ -2986,6 +3030,7 @@ def edit_special_wfh_day_staff(special_day_id):
         if not selected_staff:
             flash('กรุณาเลือกบุคลากรอย่างน้อยหนึ่งคน', 'danger')
             return redirect(url_for('staff.edit_special_wfh_day_staff', special_day_id=special_day.id))
+        _ensure_active_wfh_approver(selected_staff, current_user)
         allowed_staff_ids = {staff.id for staff in allowed_staff}
         existing_scoped_staff = [staff for staff in special_day.staff
                                  if staff.id in allowed_staff_ids]
@@ -3281,7 +3326,7 @@ def create_special_wfh_day():
 @hr_permission.require()
 @login_required
 def show_wfh_approvers():
-    org_id = request.args.get('deptid')
+    org_id = request.args.get('deptid', type=int)
     departments = Org.query.order_by(Org.id.asc()).all()
     if org_id is None:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))

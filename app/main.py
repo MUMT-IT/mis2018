@@ -335,6 +335,9 @@ def get_weekdays(req):
 @login.user_loader
 def load_user(user_id):
     user_type = session.get('user_type')
+    if user_type == 'international_relations_participant':
+        from app.international_relations.models import InternalRelationParticipant
+        return InternalRelationParticipant.query.get(int(user_id))
     if user_type == 'service_customer':
         return ServiceCustomerAccount.query.get(int(user_id))
     if user_type == 'staff':
@@ -3587,3 +3590,8 @@ from app.continuing_edu.admin.views import admin_bp as continuing_edu_admin_bp
 from app.continuing_edu.admin.certifications import cert_bp as continuing_edu_admin_cert_bp
 app.register_blueprint(continuing_edu_admin_bp)
 app.register_blueprint(continuing_edu_admin_cert_bp)
+
+# International Relations uses external Google identities for participants and
+# the existing StaffAccount/Flask-Principal role system for administrators.
+from app.international_relations import bp as international_relations_bp
+app.register_blueprint(international_relations_bp)
