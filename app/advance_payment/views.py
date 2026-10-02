@@ -159,11 +159,33 @@ PETTY_CASH_SETTING_SESSION_KEY = "advance_payment_petty_cash_setting_id"
 FUND_REQUEST_FORM_PETTY_CASH = "petty_cash"
 FUND_REQUEST_FORM_INTEREST = "interest"
 FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
-FUND_REQUEST_NUMBERED_STATUSES = {"อนุมัติแล้ว", "เบิกเงินแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}
-FUND_REQUEST_STATUS_STEPS = ["อนุมัติแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"]
+FUND_REQUEST_NUMBERED_STATUSES = {
+    "รอการอนุมัติ",
+    "อนุมัติแล้ว",
+    "เบิกเงินแล้ว",
+    "ส่งเบิกครบแล้ว",
+    "เคลียร์ยอดสำเร็จ",
+}
+FUND_REQUEST_STATUS_STEPS = ["รอการอนุมัติ", "อนุมัติแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"]
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
 CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
 PARCEL_RETURN_CONFIRMED_STATUS = "ยืนยันการตรวจสอบ"
+
+
+def _approved_fund_request_status(form_type):
+    return (
+        "อนุมัติแล้ว"
+        if form_type == FUND_REQUEST_FORM_PETTY_CASH
+        else "เบิกเงินแล้ว"
+    )
+
+
+def _closed_fund_request_status(fund_request):
+    return (
+        "ยกเลิกใบเบิก"
+        if getattr(fund_request, "approved_at", None)
+        else "ใบเบิกถูกปฏิเสธ"
+    )
 
 
 def _append_rejection_comment(existing_comment, new_comment, actor_label, actor_name):
@@ -1428,7 +1450,10 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
             if not getattr(fund_request, "is_legacy_import", False)
             if (fund_request.status or "").strip() != "ฉบับร่าง"
             if (fund_request.status or "").strip() not in {
+                "รอการอนุมัติ",
                 "ยกเลิก",
+                "ยกเลิกใบเบิก",
+                "ใบเบิกถูกปฏิเสธ",
                 "เบิกเงินแล้ว",
             }
             and getattr(fund_request, "request_date", None)
@@ -1533,7 +1558,11 @@ def _assign_fund_request_ticket_number(fund_request, reference_date=None):
         FundRequest.org_id == org_id,
         FundRequest.request_date >= year_start,
         FundRequest.request_date <= year_end,
-        FundRequest.status != "ยกเลิก",
+        FundRequest.status.notin_([
+            "ยกเลิก",
+            "ยกเลิกใบเบิก",
+            "ใบเบิกถูกปฏิเสธ",
+        ]),
         func.trim(func.coalesce(FundRequest.ticket_number, "")) != "",
     )
     if getattr(fund_request, "id", None):
@@ -3688,6 +3717,7 @@ def finance_dashboard():
     # ==========================================
     approved_interest_requests = db.session.query(FundRequest).filter(
         FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
+        FundRequest.status == "เบิกเงินแล้ว",
     ).all()
 
     matched_requests = []
@@ -4491,6 +4521,13 @@ def submit_fund_request_parcel_return(fund_request_id):
     ).first()
     if accessible_request is None:
         abort(403)
+    if (
+        (fund_request.status or "").strip() != "อนุมัติแล้ว"
+        or not fund_request.approved_at
+    ):
+        return _validation_error_response(
+            "ไม่สามารถส่งคืนพัสดุจากรายการที่ยังไม่ได้รับอนุมัติ"
+        )
 
     amount = request.form.get("amount", "0").replace(",", "")
     items_description = request.form.get("items_description", "").strip()
@@ -6053,6 +6090,7 @@ def _get_interest_tracker_data():
 
     approved_interest_requests = db.session.query(FundRequest).filter(
         FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
+        FundRequest.status == "เบิกเงินแล้ว",
     ).all()
     submitted_periods_by_org = {}
     submitted_requests_by_org = {}
@@ -6442,7 +6480,12 @@ def petty_cash_settings(_render_after_post=False):
         db.session.query(FundRequest)
         .filter(
             FundRequest.form_type == FUND_REQUEST_FORM_PETTY_CASH,
-            FundRequest.status.notin_(["ยกเลิก"]),
+            FundRequest.status.notin_([
+                "รอการอนุมัติ",
+                "ยกเลิก",
+                "ยกเลิกใบเบิก",
+                "ใบเบิกถูกปฏิเสธ",
+            ]),
             FundRequest.request_date.isnot(None),
         )
         .all()
@@ -7293,7 +7336,7 @@ def staff_fund_request():
                     url_for("advance_payment.staff_fund_request", **redirect_kwargs),
                 )
 
-            # รายการใหม่ออกเลขที่ใบเบิกทันที โดยประเภทเบิกเงินยืมถือว่าเบิกเงินแล้ว
+            # ออกเลขที่ใบเบิกทันที แต่เริ่มกระบวนการที่สถานะรอการอนุมัติ
             new_request = FundRequest(
                 requester_id=requester_id,
                 creator_id=user.id,
@@ -7308,7 +7351,7 @@ def staff_fund_request():
                 period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == FUND_REQUEST_FORM_INTEREST else "",
                 borrowing_ticket_id=selected_borrowing_ticket.id if selected_borrowing_ticket else None,
                 created_at=datetime.now(),
-                status="เบิกเงินแล้ว" if form_type == FUND_REQUEST_FORM_BORROWING_TICKET else "อนุมัติแล้ว"
+                status="รอการอนุมัติ",
             )
 
             db.session.add(new_request)
@@ -7359,8 +7402,6 @@ def staff_fund_request():
 
                 withdrawal_proof_file = request.files.get("withdrawal_proof_file")
                 new_request.period_year = period_year_val
-                new_request.status = "เบิกเงินแล้ว"
-
                 if withdrawal_proof_file and withdrawal_proof_file.filename:
                     original_filename = os.path.basename(withdrawal_proof_file.filename)
                     if original_filename:
@@ -7413,6 +7454,93 @@ def staff_fund_request():
         dept_summary=dept_summary,
     )
 
+
+@bp.route("/staff/fund-request/<int:request_id>/approve", methods=["POST"])
+@module_system_required(PETTY_CASH_SYSTEM)
+def approve_fund_request(request_id):
+    fund_req = db.session.query(FundRequest).get(request_id)
+    if not fund_req:
+        abort(404)
+
+    staff = current_user
+    setting = _resolve_petty_cash_setting_for_fund_request(staff, fund_req)
+    if not staff.is_authenticated or not _is_petty_cash_custodian(staff, setting):
+        abort(403)
+
+    same_setting = _fund_request_setting_filter(
+        db.session.query(FundRequest).filter(FundRequest.id == fund_req.id),
+        setting,
+    ).first()
+    if not same_setting:
+        abort(403)
+
+    if (fund_req.status or "").strip() != "รอการอนุมัติ":
+        flash("สามารถอนุมัติได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
+    else:
+        fund_req.approved_at = datetime.now()
+        fund_req.status = _approved_fund_request_status(fund_req.form_type)
+        db.session.commit()
+        flash("อนุมัติใบยืม/ใบเบิกเรียบร้อยแล้ว", "success")
+
+    if request.form.get("source") == "claim" and fund_req.form_type == FUND_REQUEST_FORM_PETTY_CASH:
+        return redirect(
+            url_for(
+                "advance_payment.submit_petty_cash_claim",
+                fund_request_id=fund_req.id,
+            )
+        )
+    return redirect(url_for("advance_payment.staff_fund_request_history"))
+
+
+@bp.route("/staff/fund-request/<int:request_id>/reject", methods=["POST"])
+@module_system_required(PETTY_CASH_SYSTEM)
+def reject_fund_request(request_id):
+    fund_req = db.session.query(FundRequest).get(request_id)
+    if not fund_req:
+        abort(404)
+
+    staff = current_user
+    setting = _resolve_petty_cash_setting_for_fund_request(staff, fund_req)
+    if not staff.is_authenticated or not _is_petty_cash_custodian(staff, setting):
+        abort(403)
+
+    same_setting = _fund_request_setting_filter(
+        db.session.query(FundRequest).filter(FundRequest.id == fund_req.id),
+        setting,
+    ).first()
+    if not same_setting:
+        abort(403)
+
+    if (fund_req.status or "").strip() != "รอการอนุมัติ" or fund_req.approved_at:
+        flash("สามารถปฏิเสธได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
+        return redirect(
+            url_for(
+                "advance_payment.submit_petty_cash_claim",
+                fund_request_id=fund_req.id,
+            )
+        )
+
+    rejection_comment = (request.form.get("rejection_comment") or "").strip()
+    if not rejection_comment:
+        return _validation_error_response("กรุณาระบุเหตุผลที่ปฏิเสธใบยืม/ใบเบิก")
+
+    original_ticket_number = (fund_req.ticket_number or "").strip()
+    fund_req.status = _closed_fund_request_status(fund_req)
+    fund_req.cancel_at = datetime.now()
+    fund_req.rejection_comment = rejection_comment
+    if original_ticket_number and not original_ticket_number.endswith("(ยกเลิก)"):
+        fund_req.ticket_number = f"{original_ticket_number}(ยกเลิก)"
+
+    db.session.commit()
+    flash("ปฏิเสธใบยืม/ใบเบิกเรียบร้อยแล้ว", "info")
+    return redirect(
+        url_for(
+            "advance_payment.submit_petty_cash_claim",
+            fund_request_id=fund_req.id,
+        )
+    )
+
+
 @bp.route("/staff/fund-request/<int:request_id>/cancel", methods=["POST"])
 @module_system_required(PETTY_CASH_SYSTEM)
 def cancel_fund_request(request_id):
@@ -7431,10 +7559,16 @@ def cancel_fund_request(request_id):
     ).first():
         abort(403)
 
-    if fund_req.status in {"ยกเลิก", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"}:
+    if fund_req.status in {
+        "ยกเลิก",
+        "ยกเลิกใบเบิก",
+        "ใบเบิกถูกปฏิเสธ",
+        "ส่งเบิกครบแล้ว",
+        "เคลียร์ยอดสำเร็จ",
+    }:
         return _validation_error_response("ไม่สามารถยกเลิกรายการที่สิ้นสุดกระบวนการแล้วได้")
     if fund_req.status != "อนุมัติแล้ว":
-        return _validation_error_response("สามารถยกเลิกได้เฉพาะใบเบิกที่ยังไม่ได้เริ่มส่ง claim หรือส่งคืนพัสดุ")
+        return _validation_error_response("สามารถยกเลิกได้เฉพาะใบยืม/ใบเบิกที่ยังไม่ได้เริ่มส่งเบิก")
 
     submitted_claim_exists = db.session.query(PettyCashClaimDetail.id).filter(
         PettyCashClaimDetail.fund_request_id == fund_req.id,
@@ -7455,13 +7589,12 @@ def cancel_fund_request(request_id):
     cancellation_reason = request.form.get("cancellation_reason", "").strip()
 
     original_ticket_number = (fund_req.ticket_number or "").strip()
-    fund_req.status = "ยกเลิก"
+    fund_req.status = _closed_fund_request_status(fund_req)
     fund_req.cancel_at = datetime.now()
     fund_req.cancel_transferred_at = cancel_transferred_at
     if original_ticket_number and not original_ticket_number.endswith("(ยกเลิก)"):
         fund_req.ticket_number = f"{original_ticket_number}(ยกเลิก)"
-    if hasattr(fund_req, 'rejection_comment'):
-        fund_req.rejection_comment = cancellation_reason
+    fund_req.rejection_comment = cancellation_reason
 
     db.session.commit()
     flash("ยกเลิกใบเบิกเรียบร้อยแล้ว (สิ้นสุดกระบวนการ)", "info")
@@ -7655,7 +7788,11 @@ def staff_legacy_fund_request():
                 .filter(
                     FundRequest.org_id == setting.org_id,
                     FundRequest.is_legacy_import.is_(True),
-                    FundRequest.status != "ยกเลิก",
+                    FundRequest.status.notin_([
+                        "ยกเลิก",
+                        "ยกเลิกใบเบิก",
+                        "ใบเบิกถูกปฏิเสธ",
+                    ]),
                     func.lower(func.trim(FundRequest.ticket_number)) == normalized_ticket,
                 )
                 .first()
@@ -7675,6 +7812,7 @@ def staff_legacy_fund_request():
                 status="อนุมัติแล้ว",
                 amount=amount,
                 is_legacy_import=True,
+                approved_at=datetime.now(),
                 purpose=form_values["purpose"] or "รายการเบิกเดิมจากปีงบประมาณก่อนหน้า",
                 personal_note=form_values["personal_note"] or None,
                 period_year="",
@@ -7969,6 +8107,13 @@ def autosave_petty_cash_claim_draft():
         return _validation_error_response(
             _borrowing_passthrough_validation_message()
         )
+    if fund_request and (
+        (fund_request.status or "").strip() != "อนุมัติแล้ว"
+        or not fund_request.approved_at
+    ):
+        return _validation_error_response(
+            "ไม่สามารถบันทึกร่างจากรายการที่ยังไม่ได้รับอนุมัติ"
+        )
 
     # 1. ใช้ Setting ที่ผูกกับ FundRequest ก่อน เพื่อรองรับรายการเบิกเดิม
     staff = current_user
@@ -8101,7 +8246,13 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         if selected_fr_id
         else None
     )
-    if _fund_request_is_borrowing_passthrough(selected_fund_request_context):
+    if (
+        _fund_request_is_borrowing_passthrough(selected_fund_request_context)
+        and not (
+            request.method == "GET"
+            and (selected_fund_request_context.status or "").strip() == "รอการอนุมัติ"
+        )
+    ):
         if request.method == "GET" or _render_after_post:
             flash(_borrowing_passthrough_validation_message(), "warning")
             return redirect(url_for("advance_payment.staff_fund_request_history"))
@@ -8289,9 +8440,12 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 selected_fund_request = posted_request_query.first()
             if selected_fund_request is None:
                 abort(403)
-            if (selected_fund_request.status or "").strip() == "ฉบับร่าง":
+            if (
+                (selected_fund_request.status or "").strip() != "อนุมัติแล้ว"
+                or not selected_fund_request.approved_at
+            ):
                 return _validation_redirect_response(
-                    "ไม่สามารถส่งเบิกจากรายการที่เป็นฉบับร่างได้ กรุณาส่งใบเบิกให้อนุมัติก่อน",
+                    "ไม่สามารถส่งเบิกจากรายการที่ยังไม่ได้รับอนุมัติ",
                     request.referrer or url_for(
                         "advance_payment.submit_petty_cash_claim",
                         fund_request_id=fund_request_id,
@@ -8924,6 +9078,17 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_fund_request = getattr(claim_detail, "fund_request", None)
 
     fund_request_status = getattr(verification_fund_request, "status", None)
+    can_approve_fund_request = bool(
+        verification_fund_request
+        and fund_request_status == "รอการอนุมัติ"
+        and _is_petty_cash_custodian(current_user, setting)
+        and _fund_request_setting_filter(
+            db.session.query(FundRequest).filter(
+                FundRequest.id == verification_fund_request.id,
+            ),
+            setting,
+        ).first()
+    )
     can_cancel_fund_request = False
     if (
         verification_fund_request
@@ -9010,6 +9175,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         parcel_return_history=parcel_return_history,
         fund_request_total_info=fund_request_total_info,
         fund_request_status=fund_request_status,
+        can_approve_fund_request=can_approve_fund_request,
         can_cancel_fund_request=can_cancel_fund_request,
         verification_fund_request=verification_fund_request,
         verification_creator_name=verification_creator_name,
@@ -9390,8 +9556,12 @@ def petty_cash_ledger():
     approved_fund_requests = fund_request_query.all()
 
     for fr in approved_fund_requests:
-        if (fr.status or "").strip() == "ฉบับร่าง":
-            # ใบเบิกที่ยังเป็นฉบับร่างยังไม่ใช่รายการเงินออกใน ledger
+        if (fr.status or "").strip() in {
+            "ฉบับร่าง",
+            "รอการอนุมัติ",
+            "ใบเบิกถูกปฏิเสธ",
+        }:
+            # ใบเบิกที่ยังไม่ผ่านการอนุมัติยังไม่ใช่รายการเงินออกใน ledger
             continue
         if getattr(fr, "is_legacy_import", False):
             # รายการเบิกเดิมเกิดก่อนวันที่ 1 ตุลาคมแล้ว ไม่หักซ้ำจากยอดยกมา
@@ -9501,7 +9671,7 @@ def petty_cash_ledger():
     if current_setting and current_setting.id:
         cancelled_fund_requests = (
             _fund_request_setting_filter(db.session.query(FundRequest), current_setting)
-            .filter(FundRequest.status == "ยกเลิก")
+            .filter(FundRequest.status.in_(["ยกเลิก", "ยกเลิกใบเบิก"]))
             .all()
         )
         for fr in cancelled_fund_requests:
@@ -9777,7 +9947,12 @@ def petty_cash_ledger():
                 db.session.query(FundRequest),
                 current_setting,
             )
-            .filter(~FundRequest.status.in_(["ยกเลิก"]))
+            .filter(~FundRequest.status.in_([
+                "รอการอนุมัติ",
+                "ยกเลิก",
+                "ยกเลิกใบเบิก",
+                "ใบเบิกถูกปฏิเสธ",
+            ]))
             .all()
         )
         summary = summarize_petty_cash_month(selected_month_start, summary_fund_requests, all_claims)
