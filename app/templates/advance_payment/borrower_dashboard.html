@@ -315,11 +315,11 @@
               </option>
             {% endfor %}
           </select>
-          <div class="mt-2">
-            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="toggleMultiReturnSelection()">
-              <i class="bi bi-check2-square me-1"></i> ส่งใช้เงินยืมหลาย บย.
-            </button>
-          </div>
+<!--          <div class="mt-2">-->
+<!--            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="toggleMultiReturnSelection()">-->
+<!--              <i class="bi bi-check2-square me-1"></i> ส่งใช้เงินยืมหลาย บย.-->
+<!--            </button>-->
+<!--          </div>-->
           <div id="multiReturnSelectionPanel" class="border rounded-3 p-3 mt-3 d-none">
             <div class="fw-bold text-dark mb-2">เลือกสัญญาที่ต้องการส่งใช้พร้อมกัน</div>
             <div class="list-group mb-3">
@@ -574,7 +574,7 @@
                   </td>
                   <td><span class="text-dark fw-medium">{{ parcel_return.display_borrower_name or '-' }}</span></td>
                   <td class="text-center">{{ parcel_return_type_badge(parcel_return.type_label, 'px-2 py-1') }}</td>
-                  <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
+                  <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                   <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                   <td class="text-center">
