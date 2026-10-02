@@ -12,8 +12,9 @@
                     <div class="control">
                         <select id="department-select" v-model="department" v-on:change="proceed()">
                             <option v-bind:value="null">เลือกหรือค้นหาสังกัด</option>
-                            <option v-for="d in departments" v-bind:value="d.id" v-bind:key="d.id">
-                                <% d.name %>
+                            <option v-for="d in departments" v-bind:value="d.id" v-bind:key="d.id"
+                                    v-bind:data-depth="d.depth">
+                                <% '— '.repeat(d.depth) + d.name %>
                             </option>
                         </select>
                     </div>
@@ -75,9 +76,20 @@
 <script>
     $(document).ready(function(){
         $('#approversTable').DataTable();
+        function formatDepartment(department) {
+            if (!department.id) return department.text;
+            const depth = Number($(department.element).data('depth')) || 0;
+            return $('<span>').css('padding-left', (depth * 1.25) + 'rem')
+                .text(department.text.replace(/^(— )+/, '').trim());
+        }
+
         $('#department-select').select2({
             width: '100%',
-            placeholder: 'เลือกหรือค้นหาสังกัด'
+            placeholder: 'เลือกหรือค้นหาสังกัด',
+            templateResult: formatDepartment,
+            templateSelection: function (department) {
+                return department.text.replace(/^(— )+/, '').trim();
+            }
         }).on('change', function () {
             const departmentId = $(this).val();
             app.department = departmentId ? Number(departmentId) : null;
