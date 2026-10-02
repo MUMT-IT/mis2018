@@ -146,7 +146,7 @@
                <td>{{ parcel.display_borrower_name or '-' }}</td>
                <td class="text-end fw-bold text-primary">{{ '{:,.2f}'.format(parcel.amount_spent or 0.0) }}</td>
                <td class="text-center">
-                 {{ status_badge('ได้รับเอกสารแล้ว', none, 'border') }}
+                 {{ status_badge(parcel.status, none, 'border') }}
                </td>
                <td class="text-center"><span class="text-muted small">-</span></td>
                <td class="text-center small text-secondary">-</td>

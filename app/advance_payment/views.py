@@ -157,6 +157,7 @@ FUND_REQUEST_NUMBERED_STATUSES = {"อนุมัติแล้ว", "เบ�
 FUND_REQUEST_STATUS_STEPS = ["อนุมัติแล้ว", "ส่งเบิกครบแล้ว", "เคลียร์ยอดสำเร็จ"]
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
 CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
+PARCEL_RETURN_CONFIRMED_STATUS = "ยืนยันการตรวจสอบ"
 
 from .pdf_utils import (
     generate_fnar02_pdf,
@@ -1028,24 +1029,54 @@ def _parcel_return_is_cash_transfer(parcel_return):
     return bool(getattr(parcel_return, "fund_request_id", None))
 
 
-def _parcel_return_ready_for_closing(parcel_return):
-    """Return whether a parcel return is at the correct pre-closing status."""
-    expected_status = (
-        CASH_TRANSFER_STATUS
-        if _parcel_return_is_cash_transfer(parcel_return)
+def _parcel_return_uses_confirmation_status(parcel_return):
+    """Return whether this is a typed ว-119/ว-5763 parcel return."""
+    return getattr(parcel_return, "type", None) in PARCEL_RETURN_TYPE_LABELS
+
+
+def _parcel_return_status_after_review(parcel_return):
+    """Return the first finance-approved status for the parcel-return type."""
+    return (
+        PARCEL_RETURN_CONFIRMED_STATUS
+        if _parcel_return_uses_confirmation_status(parcel_return)
+        else "พัสดุกำลังดำเนินการ"
+    )
+
+
+def _parcel_return_status_before_cash_transfer(parcel_return):
+    """Return the status required before recording a petty-cash transfer."""
+    return (
+        PARCEL_RETURN_CONFIRMED_STATUS
+        if _parcel_return_uses_confirmation_status(parcel_return)
         else "ได้รับเอกสารแล้ว"
     )
+
+
+def _parcel_return_ready_for_closing(parcel_return):
+    """Return whether a parcel return is at the correct pre-closing status."""
+    if _parcel_return_is_cash_transfer(parcel_return):
+        expected_status = CASH_TRANSFER_STATUS
+    elif _parcel_return_uses_confirmation_status(parcel_return):
+        expected_status = PARCEL_RETURN_CONFIRMED_STATUS
+    else:
+        expected_status = "ได้รับเอกสารแล้ว"
     return (getattr(parcel_return, "status", None) or "").strip() == expected_status
 
 
 def _parcel_return_status_after_closing_cancel(parcel_return):
     """Restore the status that preceded closing-document creation."""
-    return (
-        CASH_TRANSFER_STATUS
-        if _parcel_return_is_cash_transfer(parcel_return)
+    if _parcel_return_uses_confirmation_status(parcel_return):
+        return (
+            CASH_TRANSFER_STATUS
+            if _parcel_return_is_cash_transfer(parcel_return)
+            else PARCEL_RETURN_CONFIRMED_STATUS
+        )
+    if (
+        _parcel_return_is_cash_transfer(parcel_return)
         and getattr(parcel_return, "transferred_at", None)
-        else "ได้รับเอกสารแล้ว"
-    )
+    ):
+        return CASH_TRANSFER_STATUS
+    return "ได้รับเอกสารแล้ว"
 
 
 def _attach_petty_cash_claim_context(claim):
@@ -2445,11 +2476,23 @@ def _calculate_ticket_group_totals(ticket_ids):
     }
 
 
-def _calculate_return_form_group_totals(ticket_ids):
-    """แหล่งยอดเฉพาะฟอร์มส่งหลักฐาน: นับทุกสถานะยกเว้นฉบับร่าง."""
+def _calculate_return_form_group_totals(
+    ticket_ids,
+    *,
+    exclude_return_id=None,
+    exclude_parcel_return_id=None,
+):
+    """ยอดตรวจวงเงิน: นับรายการที่ส่งแล้วตั้งแต่รอตรวจสอบเป็นต้นไป."""
     ticket_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
     if not ticket_ids:
-        return {"cumulative_total": 0.0, "budget": 0.0, "remaining_amount": 0.0}
+        return {
+            "cumulative_total": 0.0,
+            "budget": 0.0,
+            "remaining_amount": 0.0,
+            "allocated_by_ticket": {},
+            "parcel_allocated_by_ticket": {},
+            "normal_allocated_by_ticket": {},
+        }
 
     tickets = db.session.query(BorrowingTicket).filter(BorrowingTicket.id.in_(ticket_ids)).all()
     ticket_order = sorted(
@@ -2458,9 +2501,10 @@ def _calculate_return_form_group_totals(ticket_ids):
     )
     remaining = {ticket.id: float(ticket.required_budget or 0) for ticket in ticket_order}
     allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    excluded_statuses = {"ฉบับร่าง", "ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"}
 
-    return_rows = db.session.query(ReturnDetail).filter(
-        ReturnDetail.status != "ฉบับร่าง",
+    return_query = db.session.query(ReturnDetail).filter(
+        ReturnDetail.status.notin_(excluded_statuses),
         or_(
             ReturnDetail.ticket_id.in_(ticket_ids),
             ReturnDetail.id.in_(
@@ -2469,9 +2513,13 @@ def _calculate_return_form_group_totals(ticket_ids):
                 )
             ),
         ),
-    ).all()
-    parcel_rows = db.session.query(ParcelReturnDetail).filter(
-        ParcelReturnDetail.status != "ฉบับร่าง",
+    )
+    if exclude_return_id:
+        return_query = return_query.filter(ReturnDetail.id != exclude_return_id)
+    return_rows = return_query.all()
+
+    parcel_query = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.status.notin_(excluded_statuses),
         or_(
             ParcelReturnDetail.ticket_id.in_(ticket_ids),
             ParcelReturnDetail.id.in_(
@@ -2480,10 +2528,21 @@ def _calculate_return_form_group_totals(ticket_ids):
                 )
             ),
         ),
-    ).all()
+    )
+    if exclude_parcel_return_id:
+        parcel_query = parcel_query.filter(
+            ParcelReturnDetail.id != exclude_parcel_return_id
+        )
+    parcel_rows = parcel_query.all()
 
     records = [
-        (row.created_at, row.id, float(row.amount_spent or 0), _return_ticket_ids(row))
+        (
+            row.created_at,
+            row.id,
+            float(row.amount_spent or 0),
+            _return_ticket_ids(row),
+            False,
+        )
         for row in return_rows
     ]
     for row in parcel_rows:
@@ -2493,15 +2552,26 @@ def _calculate_return_form_group_totals(ticket_ids):
                 parcel_borrowing_ticket_association.c.ticket_id
             ).filter(parcel_borrowing_ticket_association.c.parcel_return_id == row.id).all()
         )
-        records.append((row.created_at, row.id, float(row.amount_spent or 0), linked_ids))
+        records.append(
+            (row.created_at, row.id, float(row.amount_spent or 0), linked_ids, True)
+        )
 
     priority = {ticket.id: index for index, ticket in enumerate(ticket_order)}
-    for _, _, amount, linked_ids in sorted(records, key=lambda item: (item[0] or datetime.min, item[1])):
+    parcel_allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    normal_allocated = {ticket.id: 0.0 for ticket in ticket_order}
+    for _, _, amount, linked_ids, is_parcel in sorted(
+        records,
+        key=lambda item: (item[0] or datetime.min, item[1]),
+    ):
         for linked_id in sorted(linked_ids & ticket_ids, key=lambda value: priority.get(value, 10**9)):
             if amount <= 0:
                 break
             portion = min(amount, remaining.get(linked_id, 0.0))
             allocated[linked_id] += portion
+            if is_parcel:
+                parcel_allocated[linked_id] += portion
+            else:
+                normal_allocated[linked_id] += portion
             remaining[linked_id] -= portion
             amount -= portion
 
@@ -2512,6 +2582,8 @@ def _calculate_return_form_group_totals(ticket_ids):
         "budget": budget,
         "remaining_amount": budget - cumulative_total,
         "allocated_by_ticket": allocated,
+        "parcel_allocated_by_ticket": parcel_allocated,
+        "normal_allocated_by_ticket": normal_allocated,
     }
 
 
@@ -2581,6 +2653,39 @@ def _calculate_ticket_return_totals_with_parcel(ticket_id, *, exclude_return_id=
     }
 
 
+def _calculate_ticket_submission_totals_with_parcel(
+    ticket_id,
+    *,
+    exclude_return_id=None,
+    exclude_parcel_return_id=None,
+):
+    """Return pending-and-later totals used only for over-limit validation."""
+    group_totals = _calculate_return_form_group_totals(
+        _ticket_group_ids(ticket_id),
+        exclude_return_id=exclude_return_id,
+        exclude_parcel_return_id=exclude_parcel_return_id,
+    )
+    return_total = float(
+        group_totals.get("normal_allocated_by_ticket", {}).get(ticket_id, 0.0)
+    )
+    parcel_total = float(
+        group_totals.get("parcel_allocated_by_ticket", {}).get(ticket_id, 0.0)
+    )
+    budget = float(
+        db.session.query(BorrowingTicket.required_budget)
+        .filter(BorrowingTicket.id == ticket_id)
+        .scalar() or 0
+    )
+    combined_total = return_total + parcel_total
+    return {
+        "return_total": return_total,
+        "parcel_total": parcel_total,
+        "cumulative_total": combined_total,
+        "budget": budget,
+        "remaining_amount": budget - combined_total,
+    }
+
+
 def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, exclude_parcel_return_id=None):
     claim_query = db.session.query(func.coalesce(func.sum(PettyCashClaimItem.amount), 0)).join(
         PettyCashClaimDetail,
@@ -2598,7 +2703,10 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
             "รอตรวจสอบ",
             "พัสดุกำลังดำเนินการ",
             "ได้รับเอกสารแล้ว",
+            PARCEL_RETURN_CONFIRMED_STATUS,
             CASH_TRANSFER_STATUS,
+            "เอกสารตั้งฎีกา",
+            "ล้างลูกหนี้เงินยืม",
         ]),
     )
     if exclude_parcel_return_id:
@@ -3430,7 +3538,9 @@ def finance_dashboard():
     ]
 
     proofed_return_count = db.session.query(ReturnDetail).filter(ReturnDetail.status == "ผ่านการตรวจสอบ").count()
-    proofed_parcel_count = db.session.query(ParcelReturnDetail).filter(ParcelReturnDetail.status == "ได้รับเอกสารแล้ว").count()
+    proofed_parcel_count = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.status.in_(["ได้รับเอกสารแล้ว", PARCEL_RETURN_CONFIRMED_STATUS])
+    ).count()
     proofed_claims = (
         db.session.query(PettyCashClaimDetail)
         .filter(PettyCashClaimDetail.status == "ผ่านการตรวจสอบ")
@@ -4184,6 +4294,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
         db.session.query(ParcelReturnDetail)
         .filter(
             ParcelReturnDetail.fund_request_id == fund_request_id,
+            ParcelReturnDetail.approved_at.isnot(None),
             ParcelReturnDetail.status.not_in(["ปฏิเสธ", "ถูกปฏิเสธ"]),
         )
         .all()
@@ -4196,6 +4307,7 @@ def _recalculate_fund_request_submission_status(fund_request_id):
             "รอตรวจสอบ",
             "พัสดุกำลังดำเนินการ",
             "ได้รับเอกสารแล้ว",
+            PARCEL_RETURN_CONFIRMED_STATUS,
             CASH_TRANSFER_STATUS,
             "เอกสารตั้งฎีกา",
             "ล้างลูกหนี้เงินยืม",
@@ -4259,7 +4371,7 @@ def submit_parcel_return(ticket_id):
             url_for(_dashboard_endpoint_for_role(_current_module_role())),
         )
 
-    ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id)
+    ticket_totals = _calculate_ticket_submission_totals_with_parcel(ticket_id)
     projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
     if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
         return _redirect_with_limit_popup(
@@ -4346,7 +4458,7 @@ def submit_fund_request_parcel_return(fund_request_id):
 
     ticket_id = getattr(fund_request, "borrowing_ticket_id", None)
     if ticket_id:
-        ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id)
+        ticket_totals = _calculate_ticket_submission_totals_with_parcel(ticket_id)
         projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
         if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
             return _redirect_with_limit_popup(
@@ -4416,7 +4528,10 @@ def update_parcel_return(parcel_return_id):
     except (TypeError, ValueError):
         return _validation_error_response("กรุณาระบุจำนวนเงินให้ถูกต้อง")
 
-    ticket_totals = _calculate_ticket_return_totals_with_parcel(parcel_return.ticket_id, exclude_parcel_return_id=parcel_return.id)
+    ticket_totals = _calculate_ticket_submission_totals_with_parcel(
+        parcel_return.ticket_id,
+        exclude_parcel_return_id=parcel_return.id,
+    )
     projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
     if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
         return _redirect_with_limit_popup(
@@ -4463,13 +4578,19 @@ def mark_parcel_proofed(parcel_return_id):
         abort(404)
 
     current_status = (parcel_return.status or "").strip()
-    if current_status in {"ได้รับเอกสารแล้ว", "เอกสารตั้งฎีกา"}:
+    if current_status in {
+        PARCEL_RETURN_CONFIRMED_STATUS,
+        "ได้รับเอกสารแล้ว",
+        CASH_TRANSFER_STATUS,
+        "เอกสารตั้งฎีกา",
+        "ล้างลูกหนี้เงินยืม",
+    }:
         return _validation_error_response("รายการนี้ผ่านขั้นตอนตรวจสอบแล้ว")
 
     if current_status not in {"รอตรวจสอบ", "กำลังตรวจสอบ"}:
         return _validation_error_response("ต้องอยู่ในสถานะรอตรวจสอบก่อนจึงจะยืนยันการมีอยู่ของเอกสารพัสดุได้")
 
-    parcel_return.status = "พัสดุกำลังดำเนินการ"
+    parcel_return.status = _parcel_return_status_after_review(parcel_return)
     parcel_return.approved_at = datetime.now()
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
@@ -4477,7 +4598,12 @@ def mark_parcel_proofed(parcel_return_id):
         _recalculate_fund_request_submission_status(parcel_return.fund_request_id)
 
     _recalculate_borrowing_ticket_status(parcel_return.ticket_id)
-    flash("ยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุเรียบร้อยแล้ว", "success")
+    flash(
+        "ยืนยันการตรวจสอบรายการเรียบร้อยแล้ว"
+        if _parcel_return_uses_confirmation_status(parcel_return)
+        else "ยืนยันการมีอยู่ของเอกสารส่งคืนพัสดุเรียบร้อยแล้ว",
+        "success",
+    )
     if parcel_return.ticket_id:
         return verification_view(parcel_return.ticket_id)
     return submit_petty_cash_claim(
@@ -4492,6 +4618,11 @@ def mark_parcel_received(parcel_return_id):
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
         abort(404)
+
+    if _parcel_return_uses_confirmation_status(parcel_return):
+        return _validation_error_response(
+            "รายการ ว-119/ว-5763 ใช้สถานะยืนยันการตรวจสอบและไม่มีขั้นตอนได้รับเอกสารแล้ว"
+        )
 
     current_status = (parcel_return.status or "").strip()
     if current_status not in {"พัสดุกำลังดำเนินการ", "กำลังตรวจสอบ"}:
@@ -4527,9 +4658,10 @@ def mark_parcel_return_transferred(parcel_return_id):
             "รายการส่งคืนพัสดุนี้ไม่ได้ผูกกับคำขอเงินสดย่อย จึงไม่ต้องบันทึกการโอนเงินสดย่อย"
         )
 
-    if (parcel_return.status or "").strip() != "ได้รับเอกสารแล้ว":
+    required_status = _parcel_return_status_before_cash_transfer(parcel_return)
+    if (parcel_return.status or "").strip() != required_status:
         return _validation_error_response(
-            "ต้องอยู่ในสถานะได้รับเอกสารแล้วก่อนจึงจะบันทึกการโอนเงินสดย่อยได้"
+            f"ต้องอยู่ในสถานะ{required_status}ก่อนจึงจะบันทึกการโอนเงินสดย่อยได้"
         )
 
     transferred_date_str = (request.form.get("transferred_at") or "").strip()
@@ -5329,7 +5461,10 @@ def edit_receipt_item_inline(file_id):
                 )
     else:
         total_spent_for_return = sum(float(i.amount or 0) for i in return_detail.receipt_items)
-        ticket_totals = _calculate_ticket_return_totals_with_parcel(return_detail.ticket_id, exclude_return_id=return_detail.id)
+        ticket_totals = _calculate_ticket_submission_totals_with_parcel(
+            return_detail.ticket_id,
+            exclude_return_id=return_detail.id,
+        )
         projected_total = ticket_totals["cumulative_total"] + total_spent_for_return
         if _is_over_limit(projected_total, ticket_totals["budget"]):
             db.session.rollback()
@@ -5811,7 +5946,8 @@ def return_records_history():
     proofed_count = sum(
         1
         for record in processed_records
-        if (record.get("status") or "").strip() in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว"}
+        if (record.get("status") or "").strip()
+        in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว", PARCEL_RETURN_CONFIRMED_STATUS}
     )
 
     return render_template(
@@ -6049,7 +6185,8 @@ def petty_cash_claim_history():
         or (
             record["record_type"] == "parcel_return"
             and record.get("fund_request_id")
-            and (record["status"] or "").strip() == "ได้รับเอกสารแล้ว"
+            and (record["status"] or "").strip()
+            in {"ได้รับเอกสารแล้ว", PARCEL_RETURN_CONFIRMED_STATUS}
         )
     )
     pending_review_count = sum(
@@ -6060,7 +6197,8 @@ def petty_cash_claim_history():
     proofed_count = sum(
         1
         for record in processed_claims
-        if (record.get("status") or "").strip() in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว"}
+        if (record.get("status") or "").strip()
+        in {"ผ่านการตรวจสอบ", "ได้รับเอกสารแล้ว", PARCEL_RETURN_CONFIRMED_STATUS}
     )
 
     pending_interest_departments, pending_interest_count, current_interest_period = _get_interest_tracker_data()
@@ -6244,7 +6382,7 @@ def petty_cash_settings(_render_after_post=False):
         request_summary[key] = {
             "fiscal_year": setting.fiscal_year,
             "department_name": setting.department_name or "ไม่พบข้อมูลหน่วยงาน",
-            "budget": setting.budget,
+            "budget": Decimal(setting.budget),
             "request_count": 0,
             "used_amount": Decimal("0.00"),
         }
@@ -6301,7 +6439,16 @@ def petty_cash_settings(_render_after_post=False):
         db.session.query(ParcelReturnDetail)
         .filter(
             ParcelReturnDetail.fund_request_id.isnot(None),
-            ParcelReturnDetail.status == "ได้รับเอกสารแล้ว",
+            or_(
+                and_(
+                    ParcelReturnDetail.type.is_(None),
+                    ParcelReturnDetail.status == "ได้รับเอกสารแล้ว",
+                ),
+                and_(
+                    ParcelReturnDetail.type.in_(tuple(PARCEL_RETURN_TYPE_LABELS)),
+                    ParcelReturnDetail.status == PARCEL_RETURN_CONFIRMED_STATUS,
+                ),
+            ),
             ~ParcelReturnDetail.closing_links.any(is_active=True),
         )
         .order_by(ParcelReturnDetail.created_at.desc(), ParcelReturnDetail.id.desc())
@@ -6668,7 +6815,13 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             or_(
                 and_(
                     ParcelReturnDetail.fund_request_id.is_(None),
+                    ParcelReturnDetail.type.is_(None),
                     ParcelReturnDetail.status == "ได้รับเอกสารแล้ว",
+                ),
+                and_(
+                    ParcelReturnDetail.fund_request_id.is_(None),
+                    ParcelReturnDetail.type.in_(tuple(PARCEL_RETURN_TYPE_LABELS)),
+                    ParcelReturnDetail.status == PARCEL_RETURN_CONFIRMED_STATUS,
                 ),
                 and_(
                     ParcelReturnDetail.fund_request_id.isnot(None),
@@ -8858,7 +9011,10 @@ def staff_parcel_return_edit(parcel_return_id):
 
     ticket_id = getattr(fund_request, "borrowing_ticket_id", None)
     if ticket_id:
-        ticket_totals = _calculate_ticket_return_totals_with_parcel(ticket_id, exclude_parcel_return_id=parcel_return.id)
+        ticket_totals = _calculate_ticket_submission_totals_with_parcel(
+            ticket_id,
+            exclude_parcel_return_id=parcel_return.id,
+        )
         projected_ticket_total = ticket_totals["cumulative_total"] + parsed_amount
         if _is_over_limit(projected_ticket_total, ticket_totals["budget"]):
             return _redirect_with_limit_popup(

@@ -16,3 +16,4 @@ app/.idea/
 *.dump*
 *.pem
 .venv/
+/docs/parcel_return_flow_review_2026-10-01.md

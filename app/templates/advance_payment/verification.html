@@ -408,14 +408,14 @@
                         style="max-width: 150px;"
                         data-popup-trigger="true"
                         data-popup-title="ยืนยันการตรวจสอบเอกสารพัสดุ"
-                        data-popup-message="คุณต้องการเปลี่ยนสถานะรายการส่งคืนพัสดุนี้เป็น 'ยืนยันเอกสารแล้ว' ใช่หรือไม่?"
+                        data-popup-message="คุณต้องการเปลี่ยนสถานะรายการนี้เป็น '{% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}' ใช่หรือไม่?"
                         data-popup-confirm-text="ยืนยันการตรวจสอบ"
                         data-popup-confirm-class="btn-primary"
                         data-popup-target-form-id="parcelProofedForm{{ pr.id }}">
-                        ยืนยันเอกสารแล้ว
+                        {% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}
                       </button>
                     </form>
-                  {% elif advance_payment_role == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                  {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status == 'พัสดุกำลังดำเนินการ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button

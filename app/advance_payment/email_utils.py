@@ -239,6 +239,8 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         subject = f"แจ้งสถานะรายการส่งคืนพัสดุ [{ {'ปฏิเสธ': 'ถูกปฏิเสธ'}.get(status, status) }]"
         if status == "พัสดุกำลังดำเนินการ":
             intro = f"รายการส่งคืนพัสดุของ{reference}\nอยู่ระหว่างกระบวนการการทำงานของพัสดุ"
+        elif status == "ยืนยันการตรวจสอบ":
+            intro = f"ฝ่ายการเงินได้รับเอกสารรายการส่งคืนพัสดุของ{reference} เรียบร้อยแล้ว"
         elif status == "ได้รับเอกสารแล้ว":
             intro = f"ฝ่ายการเงินได้รับเอกสารรายการส่งคืนพัสดุของ{reference} เรียบร้อยแล้ว"
         elif status == "โอนเงินสดย่อยสำเร็จ":

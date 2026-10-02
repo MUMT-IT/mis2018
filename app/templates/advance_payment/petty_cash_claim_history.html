@@ -260,7 +260,7 @@
                      <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=record.fund_request_id) }}" class="btn btn-outline-primary btn-sm px-2">
                        ตรวจสอบการส่งเบิก
                      </a>
-                     {% if record.status == 'ได้รับเอกสารแล้ว' %}
+                     {% if record.status == ('ยืนยันการตรวจสอบ' if record.type_label else 'ได้รับเอกสารแล้ว') %}
                      <button type="button" class="btn btn-outline-primary btn-sm px-2" data-bs-toggle="modal" data-bs-target="#parcelTransferModal{{ record.id }}">
                        บันทึกโอนสำเร็จ
                      </button>
@@ -376,6 +376,7 @@
       else if (['ได้รับเอกสารแล้ว', 'ได้รับเอกสารแล้ว'].includes(rStatusRaw)) {
         rStatus = rType === 'parcel_return' && !hasFundRequest ? 'ได้รับเอกสารแล้ว' : 'ผ่านการตรวจสอบ';
       }
+      else if (rStatusRaw === 'ยืนยันการตรวจสอบ') rStatus = 'ผ่านการตรวจสอบ';
       else if (rStatusRaw === 'โอนเงินสดย่อยสำเร็จ') rStatus = 'โอนเงินสดย่อยสำเร็จ';
       else if (['เอกสารตั้งฎีกา', 'เอกสารตั้งฎีกา'].includes(rStatusRaw)) rStatus = 'เอกสารตั้งฎีกา';
       else if (['ล้างลูกหนี้เงินยืม', 'ล้างลูกหนี้เงินยืม', 'ได้รับเงินคืนแล้ว'].includes(rStatusRaw)) rStatus = 'ล้างลูกหนี้เงินยืม';

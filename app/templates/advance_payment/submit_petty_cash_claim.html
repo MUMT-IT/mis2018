@@ -649,6 +649,7 @@ function togglePettyCashClaimForm() {
               {% endif %}
             </td>
             <td class="text-center">
+              {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
               <div class="d-flex flex-wrap gap-2 justify-content-center">
                 {% if advance_payment_role == 'finance' and pr.status == 'รอตรวจสอบ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}" data-ajax-validation="true">
@@ -659,14 +660,14 @@ function togglePettyCashClaimForm() {
                       style="max-width: 150px;"
                       data-popup-trigger="true"
                       data-popup-title="ยืนยันการตรวจสอบเอกสารพัสดุ"
-                      data-popup-message="คุณต้องการเปลี่ยนสถานะรายการส่งคืนพัสดุนี้เป็น 'ยืนยันเอกสารแล้ว' ใช่หรือไม่?"
+                      data-popup-message="คุณต้องการเปลี่ยนสถานะรายการนี้เป็น '{% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}' ใช่หรือไม่?"
                       data-popup-confirm-text="ยืนยันการตรวจสอบ"
                       data-popup-confirm-class="btn-primary"
                       data-popup-target-form-id="parcelProofedForm{{ pr.id }}">
-                      ยืนยันเอกสารแล้ว
+                      {% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}
                     </button>
                   </form>
-                {% elif advance_payment_role == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status == 'พัสดุกำลังดำเนินการ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -684,7 +685,7 @@ function togglePettyCashClaimForm() {
                   </form>
                 {% endif %}
 
-                {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+                {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}
                   <button type="button"
                           class="btn btn-success btn-sm fw-bold px-3 py-2"
                           data-bs-toggle="modal"
@@ -712,7 +713,8 @@ function togglePettyCashClaimForm() {
       </table>
     </div>
     {% for pr in parcel_return_history %}
-      {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+      {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
+      {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}
         <div class="modal fade text-start" id="parcelTransferModal{{ pr.id }}" tabindex="-1" aria-labelledby="parcelTransferModalLabel{{ pr.id }}" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
