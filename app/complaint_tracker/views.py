@@ -1066,6 +1066,7 @@ def new_record(topic_id, room=None, procurement=None):
     location = request.values.get('location')
     procurement_no = request.values.get('procurement_no')
     pro_number = request.values.get('pro_number')
+    erp_code = request.values.get('erp_code')
     is_admin = False
     if not current_user.is_authenticated and topic.topic == 'แจ้งครุภัณฑ์ชำรุด':
         return redirect(url_for('auth.login'))
@@ -1076,6 +1077,8 @@ def new_record(topic_id, room=None, procurement=None):
     elif procurement_no or pro_number:
         procurement = ProcurementDetail.query.filter_by(
             procurement_no=procurement_no if procurement_no else pro_number).first()
+    elif erp_code:
+        procurement = ProcurementDetail.query.filter_by(erp_code=erp_code).first()
     if form.validate_on_submit():
         record = ComplaintRecord()
         form.populate_obj(record)

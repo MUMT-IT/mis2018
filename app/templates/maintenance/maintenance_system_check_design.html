@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}ตัวอย่างตรวจเช็คตามระบบ | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .system-check-page { padding: 2rem 0 3rem; }
+        .system-check-shell { background: #fff; border: 1px solid rgba(18,39,84,.1); border-radius: 24px; box-shadow: 0 18px 42px rgba(18,39,84,.08); overflow: hidden; }
+        .system-check-head { background: radial-gradient(circle at 88% 10%, rgba(220,177,72,.3), transparent 28%), linear-gradient(135deg,#14294f,#294b88); color: #fff; padding: 1.5rem; }
+        .system-check-title { font-size: 1.65rem; font-weight: 800; margin: 0; }
+        .system-check-subtitle { color: rgba(255,255,255,.78); margin: .4rem 0 0; }
+        .system-check-content { padding: 1.5rem; }
+        .system-check-info { display: grid; gap: .8rem; grid-template-columns: minmax(0, 1fr); margin-bottom: 1.4rem; }
+        .system-info-card { background: #f5f8fd; border: 1px solid rgba(18,39,84,.09); border-radius: 16px; padding: .85rem 1rem; }
+        .system-info-label { color: #748198; display: block; font-size: .76rem; font-weight: 800; margin-bottom: .3rem; text-transform: uppercase; }
+        .system-info-value { color: #1c3158; font-size: .98rem; font-weight: 800; }
+        .system-check-list { display: grid; gap: 1rem; }
+        .system-card { border: 1px solid rgba(18,39,84,.12); border-radius: 20px; overflow: hidden; }
+        .system-card.visual { border-top: 5px solid #415fd0; }
+        .system-card.audio { border-top: 5px solid #cb7922; }
+        .system-card.control { border-top: 5px solid #15846b; }
+        .system-card-head { align-items: center; background: #fbfcff; border-bottom: 1px solid rgba(18,39,84,.08); display: flex; gap: .8rem; padding: 1rem 1.1rem; }
+        .system-icon { align-items: center; border-radius: 14px; display: inline-flex; height: 44px; justify-content: center; width: 44px; }
+        .visual .system-icon { background: #eaf0ff; color: #415fd0; }
+        .audio .system-icon { background: #fff3e5; color: #c36c14; }
+        .control .system-icon { background: #e8f7f2; color: #15846b; }
+        .system-name { color: #19305a; font-size: 1.12rem; font-weight: 800; margin: 0; }
+        .system-description { color: #77859a; font-size: .84rem; margin: .16rem 0 0; }
+        .system-last-check { color: #5f718d; display: inline-flex; font-size: .78rem; gap: .35rem; margin-top: .4rem; }
+        .equipment-repair-btn { border-radius: 999px; font-size: .72rem; font-weight: 800; margin-left: .45rem; padding: .15rem .5rem; vertical-align: middle; }
+        .system-state { border-radius: 999px; font-size: .75rem; font-weight: 800; margin-left: auto; padding: .35rem .65rem; }
+        .system-state.ready { background: #eafaf1; color: #0d8655; }
+        .system-card-body { padding: .65rem 1.1rem 1.1rem; }
+        .check-group { border-bottom: 1px dashed rgba(18,39,84,.12); padding: .85rem 0; }
+        .check-group:last-child { border-bottom: 0; }
+        .check-group-title { color: #34496e; font-weight: 800; margin: 0 0 .55rem; }
+        .check-option { align-items: flex-start; color: #506078; display: flex; font-size: .92rem; gap: .55rem; line-height: 1.45; margin: .48rem 0; }
+        .check-option input { accent-color: #2c9c69; height: 1.05rem; margin-top: .15rem; width: 1.05rem; }
+        .system-card-foot { align-items: center; background: #f7f9fd; border-top: 1px solid rgba(18,39,84,.08); display: flex; gap: .8rem; padding: .8rem 1.1rem; }
+        .system-card-foot .field { flex: 1; margin: 0; }
+        .system-card-foot .input { border-radius: 10px; font-size: .88rem; }
+        .system-card-foot .button { border-radius: 10px; font-weight: 700; }
+        @media screen and (max-width: 768px) { .system-check-info { grid-template-columns: 1fr; } .system-card-foot { align-items: stretch; flex-direction: column; } .system-state { margin-left: 0; } .system-card-head { align-items: flex-start; flex-wrap: wrap; } }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section system-check-page">
+        <div class="container is-max-desktop">
+            <div class="system-check-shell">
+                <header class="system-check-head">
+                    <h1 class="system-check-title">ตรวจเช็คความพร้อมตามระบบ</h1>
+                    <p class="system-check-subtitle">หน้าจำลองสำหรับประเมินรูปแบบการตรวจเช็คห้องเรียน</p>
+                </header>
+                <div class="system-check-content">
+                    <div class="system-check-info">
+                        <div class="system-info-card"><span class="system-info-label">ห้อง</span><span class="system-info-value">302 ศาลายา</span></div>
+                    </div>
+
+                    <div class="system-check-list">
+                        <article class="system-card visual">
+                            <header class="system-card-head"><span class="system-icon"><i class="fa-solid fa-display"></i></span><div><h2 class="system-name">1. ระบบแสดงภาพ</h2><p class="system-description">Projector, จอรับภาพ และสายสัญญาณภาพ</p><span class="system-last-check"><i class="fa-regular fa-clock"></i><span>ตรวจล่าสุดโดย นายตัวอย่าง เจ้าหน้าที่ | 30/09/2569 10:30 น.</span></span></div></header>
+                            <div class="system-card-body">
+                                <div class="check-group"><p class="check-group-title">เครื่องโปรเจคเตอร์ / จอ TV</p><label class="check-option"><input type="checkbox">ภาพคมชัด สีไม่เพี้ยน</label><label class="check-option"><input type="checkbox">หลอดภาพไม่เตือนหมดอายุ</label><label class="check-option"><input type="checkbox">รีโมทควบคุมใช้งานได้ ปุ่มไม่ติด</label></div>
+                                <div class="check-group"><p class="check-group-title">จอรับภาพและสายสัญญาณ</p><label class="check-option"><input type="checkbox">จอไฟฟ้าหรือจอมืดดึง เลื่อนขึ้น-ลงได้ปกติ</label><label class="check-option"><input type="checkbox">สาย HDMI ภาพและเสียงออกปกติ</label><label class="check-option"><input type="checkbox">สาย VGA / Type-C ใช้งานได้ (ถ้ามี)</label></div>
+                            </div>
+                            <footer class="system-card-foot"><div class="field"><div class="control"><input class="input" placeholder="หมายเหตุระบบแสดงภาพ (ถ้ามี)"></div></div><button class="button is-link is-light"><span class="icon"><i class="fa-solid fa-clipboard-check"></i></span><span>บันทึกผลระบบ</span></button></footer>
+                        </article>
+
+                        <article class="system-card audio">
+                            <header class="system-card-head"><span class="system-icon"><i class="fa-solid fa-volume-high"></i></span><div><h2 class="system-name">2. ระบบเสียง</h2><p class="system-description">Amplifier, Mixer, ไมโครโฟน และสายต่อเสียง</p><span class="system-last-check"><i class="fa-regular fa-clock"></i><span>ตรวจล่าสุดโดย นายตัวอย่าง เจ้าหน้าที่ | 30/09/2569 10:30 น.</span></span></div></header>
+                            <div class="system-card-body">
+                                <div class="check-group"><p class="check-group-title">เครื่องขยายเสียง (Amplifier / Mixer)</p><label class="check-option"><input type="checkbox">เปิดติด และเสียงออกลำโพงทุกตัว</label></div>
+                                <div class="check-group"><p class="check-group-title">ไมโครโฟน</p><p class="system-description">ERP Code: 0462010-404000020184-0 | ไมโครโฟนชนิดไร้สายแบบมือถือ <a href="{{ url_for('comp_tracker.new_record', topic_id=4, erp_code='0462010-404000020184-0') }}" class="button is-danger is-light equipment-repair-btn"><span class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></span><span>ส่งซ่อม</span></a></p><p class="system-description">ERP Code: 0462010-404000020185-0 | ไมโครโฟนชนิดมีสาย <a href="{{ url_for('comp_tracker.new_record', topic_id=4, erp_code='0462010-404000020185-0') }}" class="button is-danger is-light equipment-repair-btn"><span class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></span><span>ส่งซ่อม</span></a></p><label class="check-option"><input type="checkbox">ไมโครโฟนสาย เปิด-ปิดได้ สายไม่ขาดใน</label><label class="check-option"><input type="checkbox">ไมโครโฟนไร้สาย รับสัญญาณชัดเจน ไม่มีคลื่นแทรก</label><label class="check-option"><input type="checkbox">แบตเตอรี่เพียงพอและพร้อมใช้งาน</label></div>
+                                <div class="check-group"><p class="check-group-title">สายต่อเสียงภายนอก</p><label class="check-option"><input type="checkbox">สัญญาณเสียงออกซ้าย-ขวาครบถ้วน</label></div>
+                            </div>
+                            <footer class="system-card-foot"><div class="field"><div class="control"><input class="input" placeholder="หมายเหตุระบบเสียง (ถ้ามี)"></div></div><button class="button is-warning is-light"><span class="icon"><i class="fa-solid fa-clipboard-check"></i></span><span>บันทึกผลระบบ</span></button></footer>
+                        </article>
+
+                        <article class="system-card control">
+                            <header class="system-card-head"><span class="system-icon"><i class="fa-solid fa-sliders"></i></span><div><h2 class="system-name">3. ระบบควบคุม</h2><span class="system-last-check"><i class="fa-regular fa-clock"></i><span>ตรวจล่าสุดโดย นายตัวอย่าง เจ้าหน้าที่ | 30/09/2569 10:30 น.</span></span></div></header>
+                            <div class="system-card-body">
+                                <div class="check-group"><p class="check-group-title">ตู้ควบคุม</p><label class="check-option"><input type="checkbox">กุญแจตู้และระบบล็อกสมบูรณ์</label><label class="check-option"><input type="checkbox">กล่องกระแสไฟฟ้า / ปลั๊กไฟ ใช้งานได้ทุกช่อง</label></div>
+                                <div class="check-group"><p class="check-group-title">คอมพิวเตอร์ประจำห้อง (ถ้ามี)</p><p class="system-description">ERP Code: 7440-001-0226 | คอมพิวเตอร์โน้ตบุ๊ค ยี่ห้อ ACER รุ่น Aspire One A150 <a href="{{ url_for('comp_tracker.new_record', topic_id=4, erp_code='7440-001-0226') }}" class="button is-danger is-light equipment-repair-btn"><span class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></span><span>ส่งซ่อม</span></a></p><label class="check-option"><input type="checkbox">เปิดเครื่องเข้าใช้งานได้ และอินเทอร์เน็ตใช้งานได้</label><label class="check-option"><input type="checkbox">เมาส์และคีย์บอร์ดใช้งานได้ปกติ</label></div>
+                                <div class="check-group"><p class="check-group-title">อุปกรณ์ประกอบ</p><label class="check-option"><input type="checkbox">เลเซอร์พอยเตอร์ ปุ่มกดปกติ</label><label class="check-option"><input type="checkbox">Webcam ส่งสัญญาณภาพออกปกติ (ถ้ามี)</label></div>
+                            </div>
+                            <footer class="system-card-foot"><div class="field"><div class="control"><input class="input" placeholder="หมายเหตุระบบควบคุม (ถ้ามี)"></div></div><button class="button is-success is-light"><span class="icon"><i class="fa-solid fa-clipboard-check"></i></span><span>บันทึกผลระบบ</span></button></footer>
+                        </article>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

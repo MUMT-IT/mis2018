@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}ตั้งค่าห้องและครุภัณฑ์สำหรับตรวจเช็ค | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .room-bind-page { padding: 1.75rem 0 3rem; }
+        .room-bind-shell { background: #fff; border: 1px solid #dfe6f2; border-radius: 22px; box-shadow: 0 18px 42px rgba(18,39,84,.08); overflow: hidden; }
+        .room-bind-header { background: linear-gradient(135deg,#123365,#236c80); color: #fff; padding: 1.5rem; }
+        .room-bind-header h1 { font-size: 1.45rem; font-weight: 800; margin: 0; }
+        .room-bind-header p { color: rgba(255,255,255,.8); margin: .35rem 0 0; }
+        .room-bind-body { padding: 1.35rem; }
+        .room-search { background: #f5f8fd; border: 1px solid #dce5f2; border-radius: 15px; padding: 1rem; }
+        .room-search label, .binding-card label { color: #233d68; font-size: .88rem; font-weight: 800; }
+        .room-result { border: 1px solid #dce5f2; border-radius: 12px; color: #233d68; display: flex; justify-content: space-between; margin-top: .65rem; padding: .8rem .9rem; text-decoration: none; }
+        .room-result:hover { background: #f3f7ff; color: #1e56bb; }
+        .room-result strong { display: block; }
+        .room-result small { color: #71809a; }
+        .selected-room { align-items: center; background: linear-gradient(135deg,#effaf6,#f8fcff); border: 1px solid #bee7d8; border-radius: 15px; display: flex; gap: .9rem; margin: 1.3rem 0; padding: 1rem; }
+        .selected-room-icon { align-items: center; background: #d7f4e8; border-radius: 12px; color: #08765b; display: inline-flex; height: 45px; justify-content: center; width: 45px; }
+        .selected-room h2 { color: #183b67; font-size: 1.15rem; font-weight: 800; margin: 0; }
+        .selected-room p { color: #5b7395; font-size: .86rem; margin: .15rem 0 0; }
+        .section-heading { color: #183b67; font-size: 1.05rem; font-weight: 800; margin: 1.45rem 0 .7rem; }
+        .section-heading i { color: #17866b; margin-right: .4rem; }
+        .binding-card { border: 1px solid #dfe6f2; border-radius: 15px; margin-bottom: .8rem; overflow: hidden; }
+        .binding-card-head { align-items: start; background: #f8faff; display: flex; gap: .75rem; justify-content: space-between; padding: .85rem 1rem; }
+        .binding-card-name { color: #1f3d6c; font-weight: 800; line-height: 1.4; }
+        .binding-card-meta { color: #73829b; font-size: .8rem; margin-top: .2rem; }
+        .binding-card-body { border-top: 1px solid #e4eaf4; display: grid; gap: .75rem; grid-template-columns: minmax(0,1fr) auto; padding: .8rem 1rem; }
+        .binding-card select { min-width: 0; }
+        .linked-table td, .linked-table th { vertical-align: middle; }
+        .linked-source { color: #6e7f9a; font-size: .82rem; }
+        .empty-state { background: #f7f9fc; border: 1px dashed #cfd9e8; border-radius: 14px; color: #6e7f9a; padding: 1.1rem; text-align: center; }
+        .help-note { color: #73829b; font-size: .83rem; margin-bottom: 1rem; }
+        @media screen and (max-width: 768px) {
+            .room-bind-body { padding: 1rem; }
+            .binding-card-body { grid-template-columns: 1fr; }
+            .binding-card-body .button { width: 100%; }
+            .room-result { align-items: start; flex-direction: column; gap: .45rem; }
+        }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section room-bind-page">
+        <div class="container is-max-desktop">
+            <div class="room-bind-shell">
+                <header class="room-bind-header">
+                    <h1>ตั้งค่าห้องและครุภัณฑ์สำหรับตรวจเช็ค</h1>
+                    <p>ค้นหาห้อง เลือกห้อง แล้วผูกครุภัณฑ์จริงเข้ากับระบบและกลุ่มตรวจเช็ค</p>
+                </header>
+                <div class="room-bind-body">
+                    <form class="room-search" method="get">
+                        <label for="room-search-text">ค้นหาหมายเลขห้องหรือสถานที่</label>
+                        <div class="field has-addons mt-2 mb-0">
+                            <div class="control is-expanded">
+                                <input id="room-search-text" class="input" name="q" value="{{ search_text }}" placeholder="เช่น 201 ศาลายา หรือ ห้องประชุม">
+                            </div>
+                            <div class="control">
+                                <button class="button is-link" type="submit"><span class="icon"><i class="fas fa-search"></i></span><span>ค้นหา</span></button>
+                            </div>
+                        </div>
+                    </form>
+
+                    {% if search_text and not room %}
+                        <div class="mt-3">
+                            <p class="has-text-weight-bold has-text-grey-dark mb-2">ผลการค้นหา</p>
+                            {% for found_room in rooms %}
+                                <a class="room-result" href="{{ url_for('maintenance.edit_maintenance_room_system_item', q=search_text, room_id=found_room.id) }}">
+                                    <span><strong>{{ found_room.number }} {{ found_room.location }}</strong><small>เลือกห้องนี้เพื่อตั้งค่าระบบตรวจเช็ค</small></span>
+                                    <span class="button is-small is-success is-light">เลือกห้อง</span>
+                                </a>
+                            {% else %}
+                                <div class="empty-state">ไม่พบห้องที่ตรงกับคำค้นหา</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if room %}
+                        <div class="selected-room">
+                            <span class="selected-room-icon"><i class="fas fa-door-open fa-lg"></i></span>
+                            <div>
+                                <h2>{{ room.number }} {{ room.location }}</h2>
+                                <p>ห้องที่เลือกสำหรับกำหนดครุภัณฑ์ในระบบตรวจเช็ค</p>
+                            </div>
+                        </div>
+
+                        <h2 class="section-heading"><i class="fas fa-link"></i>ครุภัณฑ์ที่ผูกกับระบบตรวจเช็คแล้ว</h2>
+                        {% if linked_equipment %}
+                            <div class="table-container">
+                                <table class="table is-fullwidth is-hoverable linked-table">
+                                    <thead><tr><th>ครุภัณฑ์</th><th>ระบบ / กลุ่มตรวจเช็ค</th><th class="has-text-centered">จัดการ</th></tr></thead>
+                                    <tbody>
+                                        {% for linked in linked_equipment %}
+                                            {% set asset = linked.procurement_detail or linked.room_equipment %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ linked.display_name_override or (asset.name if linked.procurement_detail else asset.equipment_name) }}</strong>
+                                                    {% if linked.procurement_detail and asset.erp_code %}<div class="linked-source">ERP: {{ asset.erp_code }}</div>{% endif %}
+                                                    {% if linked.room_equipment %}<div class="linked-source">อุปกรณ์ที่เพิ่มในระบบ{% if asset.serial_number %} | Serial: {{ asset.serial_number }}{% endif %}</div>{% endif %}
+                                                </td>
+                                                <td><span class="tag is-link is-light">{{ linked.system.name }}</span> <span class="tag is-info is-light">{{ linked.check_group.name }}</span></td>
+                                                <td class="has-text-centered">
+                                                    <form method="post" action="{{ url_for('maintenance.delete_maintenance_room_system_equipment_link', link_id=linked.id) }}" onsubmit="return confirm('ยืนยันยกเลิกการผูกครุภัณฑ์รายการนี้หรือไม่');">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                        <button class="button is-small is-danger is-light" type="submit"><span class="icon"><i class="fas fa-unlink"></i></span><span>ยกเลิกผูก</span></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="empty-state">ยังไม่มีครุภัณฑ์ที่ผูกกับระบบตรวจเช็คสำหรับห้องนี้</div>
+                        {% endif %}
+
+                        <h2 class="section-heading"><i class="fas fa-building"></i>ครุภัณฑ์จากระบบพัสดุในห้องนี้</h2>
+                        <p class="help-note">แสดงครุภัณฑ์ที่มีตำแหน่งปัจจุบันอยู่ในห้องนี้จากระบบพัสดุ เลือกกลุ่มตรวจเช็คก่อนบันทึกการผูกข้อมูล</p>
+                        <form class="room-search mb-4" method="get">
+                            <input type="hidden" name="room_id" value="{{ room.id }}">
+                            {% if search_text %}<input type="hidden" name="q" value="{{ search_text }}">{% endif %}
+                            <label for="procurement-category">คัดกรองตามประเภทครุภัณฑ์</label>
+                            <div class="field has-addons mt-2 mb-0">
+                                <div class="control is-expanded">
+                                    <div class="select is-fullwidth">
+                                        <select id="procurement-category" name="category_id">
+                                            <option value="">ทุกประเภทครุภัณฑ์</option>
+                                            {% for category in procurement_categories %}
+                                                <option value="{{ category.id }}" {% if category.id == selected_category_id %}selected{% endif %}>{{ category.category }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="control">
+                                    <button class="button is-link" type="submit"><span class="icon"><i class="fas fa-filter"></i></span><span>คัดกรอง</span></button>
+                                </div>
+                            </div>
+                        </form>
+                        {% if not selected_category_id %}
+                            <div class="empty-state">เลือกประเภทครุภัณฑ์ก่อน เพื่อแสดงรายการสำหรับผูกเข้ากับระบบตรวจเช็ค</div>
+                        {% else %}
+                            {% for asset in procurement_assets %}
+                                <form class="binding-card" method="post" action="{{ url_for('maintenance.bind_maintenance_room_system_equipment') }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="room_id" value="{{ room.id }}">
+                                    <input type="hidden" name="source_type" value="procurement">
+                                    <input type="hidden" name="source_id" value="{{ asset.id }}">
+                                    <div class="binding-card-head">
+                                        <div><div class="binding-card-name">{{ asset.name }}</div><div class="binding-card-meta">ERP: {{ asset.erp_code or '-' }} | Serial: {{ asset.serial_no or '-' }}{% if asset.category %} | {{ asset.category.category }}{% endif %}</div></div>
+                                        <span class="tag is-link is-light">ครุภัณฑ์</span>
+                                    </div>
+                                    <div class="binding-card-body">
+                                        <div><label>ผูกเข้ากับกลุ่มตรวจเช็ค</label><div class="select is-fullwidth mt-1"><select name="check_group_id" required><option value="">เลือกกลุ่มตรวจเช็ค</option>{% for group in check_groups %}<option value="{{ group.id }}">{{ group.system.name }} / {{ group.name }}</option>{% endfor %}</select></div></div>
+                                        <button class="button is-success is-align-self-end" type="submit"><span class="icon"><i class="fas fa-link"></i></span><span>บันทึกการผูก</span></button>
+                                    </div>
+                                </form>
+                            {% else %}
+                                <div class="empty-state">ไม่พบครุภัณฑ์ประเภทที่เลือก ซึ่งมีตำแหน่งปัจจุบันอยู่ในห้องนี้</div>
+                            {% endfor %}
+                        {% endif %}
+
+                    {% elif not search_text %}
+                        <div class="empty-state mt-4">ค้นหาห้องตามหมายเลขห้องหรือสถานที่ แล้วเลือกห้องที่ต้องการตั้งค่าการตรวจเช็ค</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}ตรวจเช็คตามระบบ | Maintenance{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        .system-check-page { padding: 2rem 0 3rem; }
+        .system-check-shell { background: #fff; border: 1px solid rgba(18,39,84,.1); border-radius: 24px; box-shadow: 0 18px 42px rgba(18,39,84,.08); overflow: hidden; }
+        .system-check-head { background: radial-gradient(circle at 88% 10%,rgba(220,177,72,.3),transparent 28%),linear-gradient(135deg,#14294f,#294b88); color: #fff; padding: 1.5rem; }
+        .system-check-title { font-size: 1.65rem; font-weight: 800; margin: 0; }
+        .system-check-subtitle { color: rgba(255,255,255,.78); margin: .4rem 0 0; }
+        .system-check-content { padding: 1.5rem; }
+        .system-info-card { background: #f5f8fd; border: 1px solid rgba(18,39,84,.09); border-radius: 16px; margin-bottom: 1.4rem; padding: .85rem 1rem; }
+        .system-info-label { color: #748198; display: block; font-size: .76rem; font-weight: 800; margin-bottom: .3rem; }
+        .system-info-value { color: #1c3158; font-size: 1rem; font-weight: 800; }
+        .system-check-list { display: grid; gap: 1rem; }
+        .system-card { border: 1px solid rgba(18,39,84,.12); border-radius: 20px; overflow: hidden; }
+        .system-card:nth-child(3n+1) { border-top: 5px solid #415fd0; }
+        .system-card:nth-child(3n+2) { border-top: 5px solid #cb7922; }
+        .system-card:nth-child(3n) { border-top: 5px solid #15846b; }
+        .system-card-head { align-items: center; background: #fbfcff; border-bottom: 1px solid rgba(18,39,84,.08); display: flex; gap: .8rem; padding: 1rem 1.1rem; }
+        .system-icon { align-items: center; background: #eaf0ff; border-radius: 14px; color: #415fd0; display: inline-flex; height: 44px; justify-content: center; width: 44px; }
+        .system-name { color: #19305a; font-size: 1.12rem; font-weight: 800; margin: 0; }
+        .system-last-check { color: #5f718d; display: inline-flex; font-size: .78rem; gap: .35rem; margin-top: .4rem; }
+        .system-card-body { padding: .65rem 1.1rem 1.1rem; }
+        .check-group { border-bottom: 1px dashed rgba(18,39,84,.12); padding: .85rem 0; }
+        .check-group:last-child { border-bottom: 0; }
+        .check-group-title { color: #34496e; font-weight: 800; margin: 0 0 .4rem; }
+        .equipment-line { color: #657895; font-size: .82rem; margin: .25rem 0 .5rem; }
+        .equipment-repair-btn { border-radius: 999px; font-size: .7rem; font-weight: 800; margin-left: .35rem; padding: .12rem .45rem; vertical-align: middle; }
+        .check-option { align-items: flex-start; color: #506078; display: flex; font-size: .92rem; gap: .55rem; line-height: 1.45; margin: .48rem 0; }
+        .check-option input { accent-color: #2c9c69; height: 1.05rem; margin-top: .15rem; width: 1.05rem; }
+        .required-mark { color: #d13b52; font-size: .75rem; font-weight: 800; }
+        .system-card-foot { align-items: center; background: #f7f9fd; border-top: 1px solid rgba(18,39,84,.08); display: flex; gap: .8rem; padding: .8rem 1.1rem; }
+        .system-card-foot .field { flex: 1; margin: 0; }
+        .system-card-foot .input, .system-card-foot .button { border-radius: 10px; }
+        .system-card-foot .button { font-weight: 700; }
+        .unavailable-toggle { align-items: center; color: #a23445; display: inline-flex; font-size: .85rem; font-weight: 800; gap: .35rem; white-space: nowrap; }
+        .unavailable-toggle input { accent-color: #c33c55; height: 1rem; width: 1rem; }
+        .empty-state { background: #f7f9fc; border: 1px dashed #cfd9e8; border-radius: 14px; color: #6e7f9a; padding: 1.1rem; text-align: center; }
+        @media screen and (max-width: 768px) { .system-card-head, .system-card-foot { align-items: stretch; flex-direction: column; } }
+    </style>
+{% endblock %}
+
+{% block page_content %}
+    {% include "maintenance/nav.html" %}
+    <section class="section system-check-page">
+        <div class="container is-max-desktop">
+            <div class="system-check-shell">
+                <header class="system-check-head">
+                    <h1 class="system-check-title">ตรวจเช็คความพร้อมตามระบบ</h1>
+                    <p class="system-check-subtitle">บันทึกผลการตรวจแยกตามระบบของห้อง</p>
+                </header>
+                <div class="system-check-content">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% for category, message in messages %}
+                            <div class="notification {% if category == 'success' %}is-success{% elif category == 'danger' %}is-danger{% else %}is-warning{% endif %}">
+                                <button class="delete" type="button" aria-label="ปิดข้อความ" onclick="this.parentElement.remove()"></button>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endwith %}
+                    <div class="system-info-card"><span class="system-info-label">ห้อง</span><span class="system-info-value">{{ room.number }} {{ room.location }}</span></div>
+                    <form class="system-check-list" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {% for system in systems %}
+                            {% set latest = latest_submissions.get(system.id) %}
+                            <article class="system-card">
+                                <header class="system-card-head">
+                                    <span class="system-icon"><i class="fa-solid fa-clipboard-check"></i></span>
+                                    <div>
+                                        <h2 class="system-name">{{ loop.index }}. {{ system.name }}</h2>
+                                        {% if latest %}
+                                            <span class="system-last-check"><i class="fa-regular fa-clock"></i><span>ตรวจล่าสุดโดย {{ latest.inspected_by.personal_info.fullname if latest.inspected_by and latest.inspected_by.personal_info else latest.inspected_by.email }} | {{ latest.checked_at.strftime('%d/%m/%Y %H:%M') }}</span></span>
+                                        {% else %}
+                                            <span class="system-last-check"><i class="fa-regular fa-clock"></i><span>ยังไม่มีประวัติการตรวจเช็ค</span></span>
+                                        {% endif %}
+                                    </div>
+                                </header>
+                                <div class="system-card-body">
+                                    {% for group in groups_by_system.get(system.id, []) %}
+                                        <div class="check-group">
+                                            <p class="check-group-title">{{ group.name }}</p>
+                                            {% for equipment_link in equipment_by_group.get(group.id, []) %}
+                                                {% set equipment = equipment_link.procurement_detail %}
+                                                <p class="equipment-line">ERP Code: {{ equipment.erp_code or '-' }} | {{ equipment.name }} <a href="{{ url_for('comp_tracker.new_record', topic_id=4, erp_code=equipment.erp_code) }}" target="_blank" rel="noopener" class="button is-danger is-light equipment-repair-btn" data-system-id="{{ system.id }}" data-repair-note="ERP Code: {{ equipment.erp_code or '-' }} | {{ equipment.name }} (ส่งซ่อม)" onclick="setRepairRemark(this)"><span class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></span><span>ส่งซ่อม</span></a>{% if equipment.procurement_no %}<a href="{{ url_for('procurement.view_procurement_for_mumt', procurement_no=equipment.procurement_no) }}" target="_blank" rel="noopener" class="button is-info is-light equipment-repair-btn"><span class="icon"><i class="fa-solid fa-circle-info"></i></span><span>Detail</span></a>{% endif %}</p>
+                                            {% endfor %}
+                                            {% for item in items_by_group.get(group.id, []) %}
+                                                <label class="check-option"><input type="checkbox" name="checked_item_ids" value="{{ item.id }}"><span>{{ item.label }} {% if item.is_required %}<span class="required-mark">* บังคับตรวจ</span>{% endif %}</span></label>
+                                            {% else %}
+                                                <p class="has-text-grey is-size-7">ยังไม่มีข้อความ checklist ในกลุ่มนี้</p>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="empty-state">ยังไม่มีการตั้งค่ากลุ่มตรวจเช็คสำหรับระบบนี้</div>
+                                    {% endfor %}
+                                </div>
+                                <footer class="system-card-foot"><label class="unavailable-toggle"><input type="checkbox" name="unavailable_system_ids" value="{{ system.id }}"> ไม่พร้อมใช้งาน</label><div class="field"><div class="control"><input id="remark-{{ system.id }}" class="input" name="remark-{{ system.id }}" placeholder="หมายเหตุ{{ system.name }} (ถ้ามี)"></div></div></footer>
+                            </article>
+                        {% else %}
+                            <div class="empty-state">ห้องนี้ยังไม่มีครุภัณฑ์ที่ผูกกับระบบตรวจเช็ค</div>
+                        {% endfor %}
+                        {% if systems %}<div class="has-text-right"><button class="button is-link is-medium" type="submit"><span class="icon"><i class="fa-solid fa-floppy-disk"></i></span><span>บันทึกระบบที่ตรวจแล้ว</span></button></div>{% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        function setRepairRemark(button) {
+            const remarkInput = document.getElementById(`remark-${button.dataset.systemId}`);
+            if (remarkInput) {
+                remarkInput.value = button.dataset.repairNote;
+                remarkInput.focus();
+            }
+        }
+    </script>
+{% endblock %}
