@@ -39,7 +39,13 @@ from app.roles import (admin_permission, hr_permission, secretary_permission, ma
                        event_staff_permission, head_permission)
 from app.staff.models import *
 from app.url_utils import external_url
-from app.org_directory import academic_rank_from_name, email_local_part, parse_saved_page
+from app.org_directory import (
+    academic_rank_from_name,
+    email_local_part,
+    organization_ids_with_ancestors,
+    organizations_in_hierarchy,
+    parse_saved_page,
+)
 from app.auth.views import _normalize_staff_email
 from app.google_credential_utils import load_google_credentials_json
 
@@ -3328,6 +3334,7 @@ def create_special_wfh_day():
 def show_wfh_approvers():
     org_id = request.args.get('deptid', type=int)
     departments = Org.query.order_by(Org.id.asc()).all()
+    department_options = organizations_in_hierarchy(departments)
     if org_id is None:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
@@ -3339,7 +3346,10 @@ def show_wfh_approvers():
 
     return render_template('staff/wfh_show_approver.html',
                            sel_dept=org_id, account_list=account_query,
-                           departments=[{'id': d.id, 'name': d.name} for d in departments])
+                           departments=[
+                               {'id': department.id, 'name': department.name, 'depth': depth}
+                               for department, depth in department_options
+                           ])
 
 
 @staff.route('/for-hr/wfh/approvers/requester/<int:requester_id>',
@@ -7534,17 +7544,29 @@ def sync_faculty_directory():
         .all()
         if org_id is not None
     }
-    organizations = Org.query.filter(Org.id.in_(active_org_ids)).order_by(Org.name.asc()).all()
+    parent_by_id = dict(Org.query.with_entities(Org.id, Org.parent_id).all())
+    selectable_org_ids = organization_ids_with_ancestors(active_org_ids, parent_by_id)
+    organizations = (
+        Org.query.filter(Org.id.in_(selectable_org_ids)).order_by(Org.name.asc()).all()
+        if selectable_org_ids else []
+    )
+    organization_options = organizations_in_hierarchy(organizations)
     if request.method == 'POST':
         org_id = request.form.get('org_id', type=int)
         uploaded = request.files.get('html_file')
-        org = Org.query.filter(Org.id == org_id, Org.id.in_(active_org_ids)).first()
+        org = Org.query.filter(Org.id == org_id, Org.id.in_(selectable_org_ids)).first()
         if not org:
             flash('กรุณาเลือกหน่วยงานที่ถูกต้อง', 'danger')
-            return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+            return render_template(
+                'staff/sync_faculty_directory.html',
+                organization_options=organization_options,
+            )
         if not uploaded or not uploaded.filename:
             flash('กรุณาเลือกไฟล์ HTML ที่บันทึกจากเว็บไซต์คณะ', 'danger')
-            return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+            return render_template(
+                'staff/sync_faculty_directory.html',
+                organization_options=organization_options,
+            )
 
         import tempfile
         with tempfile.NamedTemporaryFile(suffix='.html') as saved:
@@ -7628,11 +7650,14 @@ def sync_faculty_directory():
             flash('ไม่พบอีเมลในหน่วยงานที่เลือก: ' + ', '.join(unmatched), 'warning')
         return render_template(
             'staff/sync_faculty_directory.html',
-            organizations=organizations,
+            organization_options=organization_options,
             selected_org_id=org.id,
         )
 
-    return render_template('staff/sync_faculty_directory.html', organizations=organizations)
+    return render_template(
+        'staff/sync_faculty_directory.html',
+        organization_options=organization_options,
+    )
 
 
 @staff.route('/for-hr/staff-info/dashboard')
