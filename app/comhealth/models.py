@@ -500,13 +500,26 @@ class ComHealthReceiptID(db.Model):
         return u'{:06}'.format(self.count + 1)
 
     @classmethod
-    def get_number(cls, code, db, date = arrow.now('Asia/Bangkok').date()):
+    def get_number(cls, code, db, date=None):
+        if date is None:
+            date = arrow.now('Asia/Bangkok').date()
         fiscal_year = convert_to_fiscal_year(date)
+        # Serialize allocation, including the first receipt of a fiscal year.
+        db.session.execute(text('SELECT pg_advisory_xact_lock(hashtext(:key))'),
+                           {'key': 'comhealth_receipt:{}:{}'.format(code, fiscal_year)})
         number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543).first()
         if not number:
             number = cls(buddhist_year=fiscal_year+543, code=code, count=0)
             db.session.add(number)
-            db.session.commit()
+            db.session.flush()
+        # Older issuance incremented count before reading number (count + 1).
+        # Keep existing receipt numbers and advance past the highest issued one.
+        prefix = '{}{}'.format(code, str(fiscal_year + 543)[-2:])
+        latest = ComHealthReceipt.query.filter(
+            ComHealthReceipt.code.op('~')('^' + prefix + '[0-9]{6}$')
+        ).order_by(ComHealthReceipt.code.desc()).first()
+        if latest:
+            number.count = max(number.count, int(latest.code[len(prefix):]))
         return number
 
     @property

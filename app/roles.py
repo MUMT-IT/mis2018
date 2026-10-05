@@ -76,6 +76,7 @@ with app.app_context():
     # signed-in StaffAccount. Keeping the need explicit also fails closed when
     # the comhealth_approve_lab row has not been created in the database yet.
     approve_lab_permission = Permission(('comhealth_approve_lab', None, None))
+    comhealth_admin_permission = Permission(('comhealth_admin', None, None))
     event_staff_permission = Permission() if not event_staff else Permission(event_staff.to_tuple())
     center_standardization_product_validation_permission = Permission() if not \
         center_standardization_product_validation_role else \
