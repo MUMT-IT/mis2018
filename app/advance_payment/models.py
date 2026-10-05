@@ -742,6 +742,52 @@ class BankAccountInfo(FinanceEditMixin, db.Model):
         from app.models import Org
         return _session_get(object_session(self), Org, self.org_id)
 
+    @property
+    def cash_advance_managers(self):
+        return [
+            link.staff
+            for link in self.cash_advance_manager_links
+            if link.staff is not None
+        ]
+
+
+class CashAdvanceAccountManager(db.Model):
+    """Staff accounts allowed to manage an organization's cash-advance account."""
+
+    __tablename__ = "cash_advance_account_managers"
+    __table_args__ = (
+        UniqueConstraint(
+            "bank_account_info_id",
+            "staff_account_id",
+            name="uq_cash_advance_account_manager",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    bank_account_info_id = Column(
+        Integer,
+        ForeignKey("cash_mng_bank_account_infos.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    staff_account_id = Column(
+        Integer,
+        ForeignKey("staff_account.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    bank_account = relationship(
+        "BankAccountInfo",
+        backref=db.backref(
+            "cash_advance_manager_links",
+            cascade="all, delete-orphan",
+            order_by="CashAdvanceAccountManager.id",
+        ),
+    )
+    staff = relationship(StaffAccount)
+
 
 class FundRequest(FinanceEditMixin, db.Model):
     __tablename__ = "petty_cash_fund_requests"
