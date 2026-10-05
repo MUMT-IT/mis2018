@@ -214,6 +214,33 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         else:
             body = f"ขอแจ้งอัปเดตสถานะเอกสารส่งใช้เงินยืม\n\n- สถานะปัจจุบัน {status}"
 
+    elif object_type == "fund_request":
+        ticket_number = getattr(target_object, "ticket_number", None) or "-"
+        status = getattr(target_object, "status", "")
+        action = ctx.get("action", "status")
+        action_messages = {
+            "confirm": "กรุณาตรวจสอบและยืนยันข้อมูลใบเบิก",
+            "approve": "กรุณาตรวจสอบและอนุมัติใบเบิก",
+            "withdrawal": "การอนุมัติครบถ้วนแล้ว กรุณาบันทึกวันที่เบิกเงิน",
+            "withdrawn": "บันทึกการเบิกเงินเรียบร้อยแล้ว",
+        }
+        action_message = action_messages.get(
+            action,
+            f"สถานะปัจจุบัน: {status}",
+        )
+        action_url = ctx.get("action_url")
+        action_link = f"\n- เปิดรายการ {action_url}" if action_url else ""
+        subject = f"แจ้งดำเนินการใบเบิกเงินสดย่อย เลขที่ {ticket_number}"
+        body = f"""{action_message}
+
+รายละเอียดรายการ:
+- เลขที่ใบเบิก {ticket_number}
+- ผู้ขอเบิก {requester_name}
+- จำนวนเงิน {_amount(getattr(target_object, 'amount', 0))} บาท
+- สถานะ {status}{action_link}
+
+{footer}"""
+
     elif object_type == "petty_claim":
         status = getattr(target_object, "status", "")
         fund_request = ctx.get("fund_request")

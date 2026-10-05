@@ -90,13 +90,9 @@
             <div id="section_form_petty_cash" class="p-3 border rounded-3 mb-4 bg-light-subtle">
               <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับขออนุมัติเบิกเงินสดย่อย</h6>
               <div class="row g-3 mb-2">
-                <div class="col-md-8">
+                <div class="col-md-12">
                   <label for="purpose" class="form-label fw-bold">วัตถุประสงค์ในการเบิก <span class="text-danger">*</span></label>
                   {{ form.purpose(class="form-control", id="purpose", style="border-radius: 12px;") }}
-                </div>
-                <div class="col-md-4">
-                  <label for="request_date" class="form-label fw-bold">วันที่ทำการเบิก <span class="text-danger">*</span></label>
-                  {{ form.request_date(class="form-control app-date-picker", id="request_date", type="text", required=True, placeholder="dd/mm/yyyy", style="border-radius: 12px;") }}
                 </div>
                 <div class="col-md-12">
                   <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
@@ -109,7 +105,7 @@
             <div id="section_form_interest" class="p-3 border rounded-3 mb-4 bg-light-subtle" style="display: none;">
               <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-info-circle me-1"></i> ข้อมูลเพิ่มเติมสำหรับขออนุมัติเบิกดอกเบี้ย</h6>
               <div class="row g-3 align-items-end">
-                <div class="col-lg-5">
+                <div class="col-lg-12">
                   <label class="form-label fw-bold mb-2">งวดวันที่ <span class="text-danger">*</span></label>
                   <div class="d-flex flex-wrap gap-3">
                     <div class="form-check">
@@ -127,14 +123,6 @@
                   </div>
                   <input type="hidden" name="period_year" id="hidden_period_year" value="">
                 </div>
-                <div class="col-lg-3">
-                  <label for="interest_request_date" class="form-label fw-bold mb-2">วันที่ทำการเบิก <span class="text-danger">*</span></label>
-                  {{ form.request_date(class="form-control app-date-picker", id="interest_request_date", type="text", required=True, disabled=True, placeholder="dd/mm/yyyy", style="border-radius: 10px;") }}
-                </div>
-                <div class="col-lg-4">
-                  <label for="withdrawal_proof_file" class="form-label fw-bold mb-2">หลักฐานการเบิก</label>
-                  <input type="file" name="withdrawal_proof_file" id="withdrawal_proof_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif">
-                </div>
               </div>
             </div>
 
@@ -142,7 +130,7 @@
               <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-journal-text me-1"></i> ข้อมูลใบยืมเงินสำหรับเบิกผ่านบัญชีเงินสดย่อย</h6>
               {% if approved_borrowing_tickets and approved_borrowing_tickets|length > 0 %}
                 <div class="row g-3 mb-3">
-                  <div class="col-md-8">
+                  <div class="col-md-12">
                   <label for="borrowing_ticket_id" class="form-label fw-bold">เลือกใบยืมเงิน <span class="text-danger">*</span></label>
                   <select name="borrowing_ticket_id" id="borrowing_ticket_id" class="form-select">
                     <option value="">-- เลือกใบยืมเงิน --</option>
@@ -163,10 +151,6 @@
                       </option>
                     {% endfor %}
                   </select>
-                  </div>
-                  <div class="col-md-4">
-                    <label for="borrowing_request_date" class="form-label fw-bold">วันที่ทำการเบิก <span class="text-danger">*</span></label>
-                    {{ form.request_date(class="form-control app-date-picker", id="borrowing_request_date", type="text", disabled=True, placeholder="dd/mm/yyyy", style="border-radius: 12px;") }}
                   </div>
                 </div>
                 <div class="row g-3">
@@ -532,9 +516,6 @@
       const custodianPosition = {{ custodian_display_position | tojson }};
       
       const inputPurpose = document.getElementById("purpose");
-      const requestDateInput = document.getElementById("request_date");
-      const interestRequestDateInput = document.getElementById("interest_request_date");
-      const borrowingRequestDateInput = document.getElementById("borrowing_request_date");
       const mainForm = document.getElementById("fundRequestForm");
       const userTotalInput = document.getElementById("user_total_amount");
       const manualAmountSection = document.getElementById("manualAmountSection");
@@ -629,19 +610,6 @@
       });
 
       function toggleFormFields() {
-        const proofFileInput = document.getElementById("withdrawal_proof_file");
-        if (requestDateInput) {
-          requestDateInput.required = pettyCashRadio.checked;
-          requestDateInput.disabled = !pettyCashRadio.checked;
-        }
-        if (interestRequestDateInput) {
-          interestRequestDateInput.required = interestRadio.checked;
-          interestRequestDateInput.disabled = !interestRadio.checked;
-        }
-        if (borrowingRequestDateInput) {
-          borrowingRequestDateInput.required = borrowingRadio.checked;
-          borrowingRequestDateInput.disabled = !borrowingRadio.checked;
-        }
         const isBorrowingTicketForm = borrowingRadio && borrowingRadio.checked;
         const isInterestForm = interestRadio.checked;
         if (requesterInput) {
@@ -666,7 +634,6 @@
           
           if (inputPurpose) inputPurpose.setAttribute("required", "required");
           if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
-          if (proofFileInput) proofFileInput.removeAttribute("required"); // Not required for petty cash
           
           toggleTableRequired(true);
           setBorrowingTicketMode(false);
@@ -680,7 +647,6 @@
 
           if (inputPurpose) inputPurpose.setAttribute("required", "required");
           if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
-          if (proofFileInput) proofFileInput.removeAttribute("required");
 
           toggleTableRequired(false);
           setBorrowingTicketMode(true);
@@ -700,7 +666,6 @@
           
           if (inputPurpose) inputPurpose.removeAttribute("required");
           if (requesterIsEditable && requesterInput) requesterInput.setAttribute("required", "required");
-          if (proofFileInput) proofFileInput.setAttribute("required", "required"); // Required for interest
           
           toggleTableRequired(false);
           document.getElementById("amount_mismatch_alert").style.display = "none";
@@ -791,9 +756,6 @@
         // 3. Unlock input เพื่อให้ส่งค่าได้
         const lockedInputs = mainForm.querySelectorAll("input[disabled], select[disabled], input[readonly], select[readonly]");
         lockedInputs.forEach(input => {
-          if (input === requestDateInput && !pettyCashRadio.checked) return;
-          if (input === interestRequestDateInput && !interestRadio.checked) return;
-          if (input === borrowingRequestDateInput && !borrowingRadio.checked) return;
           input.removeAttribute("disabled");
           input.removeAttribute("readonly");
         });

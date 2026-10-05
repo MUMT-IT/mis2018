@@ -96,7 +96,7 @@
           <thead class="table-light small fw-bold">
             <tr>
               <th class="text-center">เลขที่ใบเบิก</th>
-              <th>วันที่ขอเบิก</th>
+              <th>วันที่เบิกเงิน</th>
               <th class="text-center">ชื่อผู้ขอเบิก</th>
               <th class="text-center">ประเภทแบบฟอร์ม</th>
               <th class="text-end">จำนวนเงิน (บาท)</th>
@@ -144,6 +144,13 @@
                       <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
                       {% endif %}
                     </div>
+                  {% elif request.status == 'เบิกเงินแล้ว' %}
+                    <div class="d-inline-flex flex-column align-items-center gap-1">
+                      <span class="badge {{ status_badge_class('เบิกเงินแล้ว') }} fw-bold px-3 py-2">เบิกเงินแล้ว</span>
+                      {% if request.has_rejected_followup %}
+                      <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
+                      {% endif %}
+                    </div>
                   {% elif request.status == 'ส่งเบิกครบแล้ว' %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge {{ status_badge_class('ส่งเบิกครบแล้ว') }} fw-bold px-3 py-2">ส่งเบิกครบแล้ว</span>
@@ -181,6 +188,13 @@
                   {% elif request.status == 'กำลังดำเนินการ' %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
+                      {% if request.has_rejected_followup %}
+                      <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
+                      {% endif %}
+                    </div>
+                  {% elif request.status == 'อนุมัติแล้ว' %}
+                    <div class="d-inline-flex flex-column align-items-center gap-1">
+                      <span class="badge {{ status_badge_class('อนุมัติแล้ว') }} fw-bold px-3 py-2">อนุมัติแล้ว</span>
                       {% if request.has_rejected_followup %}
                       <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
                       {% endif %}
@@ -226,6 +240,13 @@
                       <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
                       {% endif %}
                     </div>
+                  {% elif request.status == 'เบิกเงินแล้ว' %}
+                    <div class="d-inline-flex flex-column align-items-center gap-1">
+                      <span class="badge {{ status_badge_class('เบิกเงินแล้ว') }} fw-bold px-3 py-2">เบิกเงินแล้ว</span>
+                      {% if request.has_rejected_followup %}
+                      <span class="text-danger small fw-semibold rejected-followup-message">มีรายการรอการแก้ไข</span>
+                      {% endif %}
+                    </div>
                   {% elif request.status in ['ยกเลิก', 'ยกเลิกใบเบิก', 'ใบเบิกถูกปฏิเสธ'] %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge {{ status_badge_class(request.status) }} fw-bold px-3 py-2">{{ request.status }}</span>
@@ -248,12 +269,12 @@
               </td>
               <td class="text-center">
                 <div class="d-flex justify-content-center align-items-center gap-2">
-                  {% if request.status == 'รอการอนุมัติ' or (request.form_type == 'petty_cash' and request.status not in ['ปฏิเสธ', 'ยกเลิก', 'ยกเลิกใบเบิก', 'กำลังดำเนินการ']) %}
+                  {% if request.status in ['รอการอนุมัติ', 'อนุมัติแล้ว'] or (request.form_type == 'petty_cash' and request.status not in ['ปฏิเสธ', 'ยกเลิก', 'ยกเลิกใบเบิก', 'กำลังดำเนินการ']) %}
                   <div class="d-flex justify-content-center align-items-center gap-1">
                     <a href="{{ url_for('advance_payment.submit_petty_cash_claim', fund_request_id=request.id) }}" 
                       class="btn btn-sm btn-outline-primary">
                       <i class="bi bi-file-earmark-plus"></i>
-                      {% if request.status in ['รอการอนุมัติ', 'ใบเบิกถูกปฏิเสธ'] %}ดูรายละเอียด{% else %}ดูประวัติ/ส่งเบิกเงินสดย่อย{% endif %}
+                      {% if request.status == 'อนุมัติแล้ว' %}บันทึกวันที่เบิก{% elif request.status in ['รอการอนุมัติ', 'ใบเบิกถูกปฏิเสธ'] %}ดูรายละเอียด{% else %}ดูประวัติ/ส่งเบิกเงินสดย่อย{% endif %}
                     </a>
                   </div>
                   {% endif %}

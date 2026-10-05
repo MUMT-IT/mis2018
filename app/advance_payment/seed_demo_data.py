@@ -811,7 +811,7 @@ def seed_demo_data(session):
         request_date=today - timedelta(days=9),
         amount="4200.00",
         purpose="Office supplies for demo workflow",
-        status="อนุมัติแล้ว",
+        status="เบิกเงินแล้ว",
     )
     _ensure_fund_request_item(
         session,

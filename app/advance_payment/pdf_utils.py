@@ -1627,7 +1627,11 @@ def generate_fund_request_pdf(fund_request):
     is_borrowing_form = form_type == FUND_REQUEST_FORM_BORROWING_TICKET
     borrowing_ticket = getattr(fund_request, "borrowing_ticket", None)
 
-    date_thai = get_thai_month_year(fund_request.request_date)
+    date_thai = (
+        get_thai_month_year(fund_request.request_date)
+        if getattr(fund_request, "request_date", None)
+        else PDF_BLANK
+    )
     requester_user = _get_user_by_id(getattr(fund_request, "requester_id", None))
     requester = getattr(requester_user, "name", "") or PDF_BLANK
     requester_pos = getattr(requester_user, "position", "") or PDF_BLANK
@@ -1639,16 +1643,75 @@ def generate_fund_request_pdf(fund_request):
         requester_user = getattr(borrowing_ticket, "borrower_user", None) or _get_user_by_id(getattr(borrowing_ticket, "borrower_id", None))
         requester_pos = getattr(requester_user, "position", "") or requester_pos
         purpose = f"เบิกเงินยืมผ่านบัญชีเงินสดย่อยตามใบยืมเงิน บ.ย. {_pdf_text(borrowing_ticket.number)}"
-        if borrowing_ticket.approved_at:
-            date_thai = get_thai_month_year(borrowing_ticket.approved_at.date())
     
     # Resolve the organization by its stable ID; department_name is legacy display data.
     org = db.session.query(Org).get(getattr(fund_request, "org_id", None))
     dept_lookup = getattr(fund_request, "org_id", None) or getattr(org, "name", None)
     dept_info = get_department_info_from_api(dept_lookup)
     head_name, head_position = _get_head_signature(fund_request=fund_request)
-    keeper_name = _pdf_text(dept_info.get("keeper"))
-    keeper_pos = _pdf_text(dept_info.get("position"))
+    request_setting = getattr(fund_request, "petty_cash_setting", None)
+    if request_setting is None and getattr(fund_request, "petty_cash_setting_id", None):
+        request_setting = db.session.query(PettyCashSetting).get(fund_request.petty_cash_setting_id)
+    custodian_user = _get_user_by_id(getattr(request_setting, "custodian_id", None))
+    keeper_name = _pdf_text(
+        getattr(custodian_user, "name", None)
+        or getattr(custodian_user, "fullname", None)
+        or dept_info.get("keeper")
+    )
+    keeper_pos = _pdf_text(
+        getattr(custodian_user, "position", None)
+        or dept_info.get("position")
+    )
+
+    approved_at = getattr(fund_request, "approved_at", None)
+    approved_by_user = _get_user_by_id(getattr(fund_request, "approved_by_id", None))
+    if approved_by_user is not None:
+        approver_name = _pdf_text(
+            getattr(approved_by_user, "name", None)
+            or getattr(approved_by_user, "fullname", None)
+        )
+        approver_position = _pdf_text(getattr(approved_by_user, "position", None))
+    elif approved_at:
+        # Compatibility for records approved before approved_by_id existed.
+        approver_name = _pdf_text(head_name)
+        approver_position = _pdf_text(head_position)
+    else:
+        # A pending document must not imply that a particular person approved it.
+        approver_name = PDF_BLANK
+        approver_position = PDF_BLANK
+
+    creator_id = getattr(fund_request, "creator_id", None)
+    requester_id = getattr(fund_request, "requester_id", None)
+    custodian_id = getattr(request_setting, "custodian_id", None)
+    confirmed_by_id = getattr(fund_request, "confirmed_by_id", None)
+    requester_signed_at = (
+        getattr(fund_request, "created_at", None)
+        if creator_id == requester_id
+        else (
+            getattr(fund_request, "confirmed_at", None)
+            if confirmed_by_id == requester_id
+            else None
+        )
+    )
+    custodian_signed_at = (
+        getattr(fund_request, "created_at", None)
+        if creator_id == custodian_id
+        else (
+            getattr(fund_request, "confirmed_at", None)
+            if confirmed_by_id == custodian_id
+            else None
+        )
+    )
+
+    def signature_date(value):
+        if not value:
+            return "................................................."
+        date_value = value.date() if isinstance(value, datetime) else value
+        return get_thai_month_year(date_value)
+
+    requester_signature_date = signature_date(requester_signed_at)
+    custodian_signature_date = signature_date(custodian_signed_at)
+    approver_signature_date = signature_date(approved_at)
     
     amount_source = fund_request.amount
     if amount_source is None and borrowing_ticket:
@@ -1775,9 +1838,9 @@ def generate_fund_request_pdf(fund_request):
 
     sig_box_data_1 = [
         [
-            Paragraph(f"ลงชื่อผู้ขอยืม<br/><br/>.......................................................<br/>( {requester} )<br/>ตำแหน่ง {requester_pos}<br/>วันที่ .................................................", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>.......................................................<br/>( {keeper_name} )<br/>ตำแหน่ง {keeper_pos}<br/>วันที่ .................................................", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติให้ยืม<br/><br/>.......................................................<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ .................................................", styles['ThaiCenter'])
+            Paragraph(f"ลงชื่อผู้ขอยืม<br/><br/>.......................................................<br/>( {requester} )<br/>ตำแหน่ง {requester_pos}<br/>วันที่ {requester_signature_date}", styles['ThaiCenter']),
+            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>.......................................................<br/>( {keeper_name} )<br/>ตำแหน่ง {keeper_pos}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
+            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>.......................................................<br/>( {approver_name} )<br/>ตำแหน่ง {approver_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
         ]
     ]
     t_sig1 = Table(sig_box_data_1, colWidths=[165, 165, 165])
@@ -1912,8 +1975,8 @@ def generate_fund_request_pdf(fund_request):
 
     sig_box_data_2 = [
         [
-            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>.......................................................<br/>( {keeper_name} )<br/>ตำแหน่ง {keeper_pos}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>.......................................................<br/>( {head_name} )<br/>ตำแหน่ง {head_position}", styles['ThaiCenter'])
+            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>.......................................................<br/>( {keeper_name} )<br/>ตำแหน่ง {keeper_pos}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
+            Paragraph(f"ลงชื่อผู้อนุมัติ/ผู้รับมอบอำนาจ<br/><br/>.......................................................<br/>( {approver_name} )<br/>ตำแหน่ง {approver_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
         ]
     ]
     t_sig2 = Table(sig_box_data_2, colWidths=[220, 220])

@@ -800,12 +800,15 @@ class FundRequest(FinanceEditMixin, db.Model):
     borrowing_ticket_id = Column(Integer, ForeignKey("cash_advance_borrowing_tickets.id"), nullable=True)
     form_type = Column(String(10), nullable=False)
     ticket_number = Column(String(64), nullable=True)
-    request_date = Column(Date, nullable=False)
+    request_date = Column(Date, nullable=True)
     status = Column(String(64), nullable=False, default="รอการอนุมัติ")
     amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     is_legacy_import = Column(Boolean, nullable=False, default=False, server_default=text("false"), index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
+    confirmed_at = Column(DateTime, nullable=True)
+    confirmed_by_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
     approved_at = Column(DateTime, nullable=True)
+    approved_by_id = Column(Integer, ForeignKey("staff_account.id"), nullable=True, index=True)
     cancel_at = Column(DateTime, nullable=True)
     cancel_transferred_at = Column(Date, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
@@ -817,6 +820,8 @@ class FundRequest(FinanceEditMixin, db.Model):
 
     requester = relationship(StaffAccount, foreign_keys=[requester_id])
     creator = relationship(StaffAccount, foreign_keys=[creator_id])
+    confirmed_by = relationship(StaffAccount, foreign_keys=[confirmed_by_id])
+    approved_by = relationship(StaffAccount, foreign_keys=[approved_by_id])
 
     @property
     def borrowing_ticket(self):
