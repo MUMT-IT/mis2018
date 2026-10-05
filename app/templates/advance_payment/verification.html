@@ -45,6 +45,10 @@
         <p class="text-muted small mb-1"><strong>ผู้ยืม</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrower_name }}</p>
       </div>
+      <div class="col-6 col-md-4">
+        <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
+        <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(borrowing_ticket.required_budget or 0) }}</p>
+      </div>
       <div class="col-12 col-md-4">
         <p class="text-muted small mb-1"><strong>ระยะเวลาโครงการ</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_ticket_start_date|thai_date }} ถึง {{ borrowing_ticket.borrowing_ticket_end_date|thai_date }}</p>
@@ -81,7 +85,7 @@
       </div>
     </div>
 
-    {% if borrowing_ticket.status|lower not in ["กำลังส่งคำขอ", "ปฏิเสธ"]  %}
+    {% if borrowing_ticket.status|lower not in ["กำลังส่งคำขอ", "กำลังดำเนินการ", "ปฏิเสธ"]  %}
       <hr class="my-4">
       <div class="row g-3 text-start">
         <div class="col-4">
@@ -123,66 +127,13 @@
         </div>
       </div>
     {% endif %}
-    {% if advance_payment_role == 'finance' %}
-      <div class="my-4"></div>
-      {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
-        <div class="d-flex gap-2">
-          <button
-            type="button"
-            class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
-            data-popup-trigger="true"
-            data-popup-title="ทำการใส่เลขที่สัญญา"
-            data-popup-message="โปรดระบุเลขที่สัญญา เลขที่อว.อนุมัติยืมเงิน วันที่อนุมัติ และวันที่อนุมัติจ่ายเงิน"
-            data-popup-action="{{ url_for('advance_payment.approve_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
-            data-popup-confirm-text="ยืนยันการสร้างสัญญา"
-            data-popup-input-type="text"
-            data-popup-input-name="number"
-            data-popup-input-placeholder="เลขที่บย. เช่น 12/2569"
-            data-popup-extra-fields-template-id="borrowingApprovalFields"
-            data-popup-input-required="true"
-            data-popup-input-rows="1">
-              อนุมัติสัญญา
-          </button>
-          <template id="borrowingApprovalFields">
-            <div class="mt-3">
-              <label for="borrowingApprovedAt" class="form-label">วันที่อนุมัติจ่ายเงิน</label>
-              <input id="borrowingApprovedAt" type="text" name="approved_at" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
-            </div>
-            <div class="mt-3">
-              <label for="borrowingApprovalRefNo" class="form-label">เลขที่อว.อนุมัติยืมเงิน</label>
-              <input id="borrowingApprovalRefNo" type="text" name="borrowing_approval_ref_no" class="form-control" placeholder="เลขที่อว.อนุมัติยืมเงิน" maxlength="255" required>
-            </div>
-            <div class="mt-3">
-              <label for="borrowingApprovalDate" class="form-label">วันที่อนุมัติ</label>
-              <input id="borrowingApprovalDate" type="text" name="borrowing_approval_date" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
-            </div>
-          </template>
-
-          <button
-            type="button"
-            class="btn btn-danger btn-sm fw-bold px-3 py-1.5"
-            data-popup-trigger="true"
-            data-popup-title="สาเหตุของการปฏิเสธสัญญา"
-            data-popup-message="กรุณาระบุเหตุผลเพื่อบันทึกไว้ในระบบ"
-            data-popup-action="{{ url_for('advance_payment.reject_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
-            data-popup-confirm-text="ยืนยันการปฏิเสธ"
-            data-popup-confirm-class="btn-danger"
-            data-popup-input-type="textarea"
-            data-popup-input-name="rejection_comment"
-            data-popup-input-placeholder="ระบุเหตุผลที่ปฏิเสธเอกสารสัญญา..."
-            data-popup-input-required="true"
-            data-popup-input-rows="2">
-              ปฏิเสธสัญญา
-          </button>
-        </div>
-      {% endif %}
-    {% endif %}
-      </div>
+    </div>
 
       <div class="col-12 col-lg-2">
         {% set current_status = (borrowing_ticket.status or '')|trim %}
         {% set status_step = {
           'กำลังส่งคำขอ': 'กำลังส่งคำขอ',
+          'กำลังดำเนินการ': 'กำลังดำเนินการ',
           'รอตรวจสอบ': 'อนุมัติจ่ายเงิน',
           'อนุมัติจ่ายเงิน': 'อนุมัติจ่ายเงิน',
           'ผ่านการตรวจสอบ': 'อนุมัติจ่ายเงิน',
@@ -195,7 +146,7 @@
         } %}
         {% set current_step = status_step.get(current_status, current_status) %}
         {% set status_class = status_badge_class(current_status) %}
-        {% set steps = ['กำลังส่งคำขอ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว'] %}
+        {% set steps = ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว'] %}
         {% if current_step == 'ฎีกาถูกตีกลับจากกองคลัง' %}
           {% set steps = steps + ['ฎีกาถูกตีกลับจากกองคลัง'] %}
         {% endif %}
@@ -217,7 +168,75 @@
         </div>
       </div>
     </div>
-    {% if borrowing_ticket.status|lower != "กำลังส่งคำขอ" and advance_payment_role == 'finance' %}
+    {% if advance_payment_role == 'finance' %}
+      <div class="my-4"></div>
+      {% if borrowing_ticket.status|lower in ["กำลังส่งคำขอ", "กำลังดำเนินการ"] %}
+        <div class="d-flex justify-content-end gap-2">
+          {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
+            <button
+              type="button"
+              class="btn btn-info btn-sm fw-bold text-white px-3 py-1.5"
+              data-popup-trigger="true"
+              data-popup-title="ยืนยันการเริ่มดำเนินการ"
+              data-popup-message="คุณต้องการเปลี่ยนสถานะสัญญาเงินยืมเป็น กำลังดำเนินการ ใช่หรือไม่?"
+              data-popup-action="{{ url_for('advance_payment.start_processing_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
+              data-popup-confirm-text="เริ่มดำเนินการ"
+              data-popup-confirm-class="btn-info">
+                เริ่มดำเนินการ
+            </button>
+          {% elif borrowing_ticket.status|lower == "กำลังดำเนินการ" %}
+            <button
+              type="button"
+              class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
+              data-popup-trigger="true"
+              data-popup-title="ทำการใส่เลขที่สัญญา"
+              data-popup-message="โปรดระบุเลขที่สัญญา เลขที่อว.อนุมัติยืมเงิน วันที่อนุมัติ และวันที่อนุมัติจ่ายเงิน"
+              data-popup-action="{{ url_for('advance_payment.approve_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
+              data-popup-confirm-text="ยืนยันการสร้างสัญญา"
+              data-popup-input-type="text"
+              data-popup-input-name="number"
+              data-popup-input-placeholder="เลขที่บย. เช่น 12/2569"
+              data-popup-extra-fields-template-id="borrowingApprovalFields"
+              data-popup-input-required="true"
+              data-popup-input-rows="1">
+                อนุมัติสัญญา
+            </button>
+            <template id="borrowingApprovalFields">
+              <div class="mt-3">
+                <label for="borrowingApprovedAt" class="form-label">วันที่อนุมัติจ่ายเงิน</label>
+                <input id="borrowingApprovedAt" type="text" name="approved_at" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
+              </div>
+              <div class="mt-3">
+                <label for="borrowingApprovalRefNo" class="form-label">เลขที่อว.อนุมัติยืมเงิน</label>
+                <input id="borrowingApprovalRefNo" type="text" name="borrowing_approval_ref_no" class="form-control" placeholder="เลขที่อว.อนุมัติยืมเงิน" maxlength="255" required>
+              </div>
+              <div class="mt-3">
+                <label for="borrowingApprovalDate" class="form-label">วันที่อนุมัติ</label>
+                <input id="borrowingApprovalDate" type="text" name="borrowing_approval_date" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
+              </div>
+            </template>
+            <button
+              type="button"
+              class="btn btn-danger btn-sm fw-bold px-3 py-1.5"
+              data-popup-trigger="true"
+              data-popup-title="สาเหตุของการปฏิเสธสัญญา"
+              data-popup-message="กรุณาระบุเหตุผลเพื่อบันทึกไว้ในระบบ"
+              data-popup-action="{{ url_for('advance_payment.reject_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
+              data-popup-confirm-text="ยืนยันการปฏิเสธ"
+              data-popup-confirm-class="btn-danger"
+              data-popup-input-type="textarea"
+              data-popup-input-name="rejection_comment"
+              data-popup-input-placeholder="ระบุเหตุผลที่ปฏิเสธเอกสารสัญญา..."
+              data-popup-input-required="true"
+              data-popup-input-rows="2">
+                ปฏิเสธสัญญา
+            </button>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endif %}
+    <div class="my-4"></div>
+    {% if borrowing_ticket.status|lower not in ["กำลังส่งคำขอ", "กำลังดำเนินการ"] and advance_payment_role == 'finance' %}
       <div class="d-flex justify-content-end w-100">
           <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2" data-ajax-validation="true">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

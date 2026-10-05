@@ -26,7 +26,7 @@
         <div class="card border rounded-4 shadow-sm bg-white p-3 h-100">
           <div class="text-muted small fw-bold text-uppercase">กำหนดส่งเงินยืม</div>
           <div class="mt-2">
-            {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status', 'equalto', 'เอกสารตั้งฎีกา') | rejectattr('status', 'equalto', 'เคลียร์ยอดแล้ว') | rejectattr('status', 'equalto', 'ปฏิเสธ') | rejectattr('status', 'equalto', 'กำลังส่งคำขอ') | list %}
+            {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status', 'equalto', 'เอกสารตั้งฎีกา') | rejectattr('status', 'equalto', 'เคลียร์ยอดแล้ว') | rejectattr('status', 'equalto', 'ปฏิเสธ') | rejectattr('status', 'equalto', 'กำลังส่งคำขอ') | rejectattr('status', 'equalto', 'กำลังดำเนินการ') | list %}
             {% if borrowing_ticket_history %}
               {% if active_tickets %}
                 {% set target_ticket = (active_tickets | sort(attribute='due_date')) | first %}
@@ -184,15 +184,15 @@
   </script>
 
   {% set viewing_other_borrower = selected_borrower_id is not none and selected_borrower_id != advance_payment_user.id %}
-  {% if dashboard_scope == 'mine' and not viewing_other_borrower %}
+  {% if (dashboard_scope == 'mine' and not viewing_other_borrower) or editing_ticket %}
   <!-- Create Borrowing Ticket Section -->
-  <section class="mb-5">
+  <section class="mb-5" id="borrowing-ticket-form-section">
     <div class="card shadow-sm border rounded-4">
       <div class="card-header bg-white border-bottom-0 pt-4 px-4">
-        <h2 class="h4 fw-bold mb-0">สร้างสัญญาเงินยืมใหม่</h2>
+        <h2 class="h4 fw-bold mb-0">{{ 'แก้ไขสัญญาเงินยืม' if editing_ticket else 'สร้างสัญญาเงินยืมใหม่' }}</h2>
       </div>
       <div class="card-body px-4 pb-4">
-        {% if borrowing_ticket_form_locked %}
+        {% if borrowing_ticket_form_locked and not editing_ticket %}
           <div class="alert alert-warning d-flex align-items-center mb-0 p-4 rounded-3" role="alert">
             <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
             <div>
@@ -201,8 +201,12 @@
             </div>
           </div>
         {% else %}
-          <form method="post" class="needs-validation" id="createBorrowingTicketForm" data-ajax-validation="true">
+          <form method="post" class="needs-validation" id="createBorrowingTicketForm" data-ajax-validation="true" data-edit-mode="{{ 'true' if editing_ticket else 'false' }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if editing_ticket %}
+              <input type="hidden" name="edit_ticket_id" value="{{ editing_ticket.id }}">
+              <div class="alert alert-info py-2" role="alert">กำลังแก้ไขข้อมูลสัญญาเงินยืม</div>
+            {% endif %}
             <fieldset id="borrowingFormFieldset">
             <div class="mb-3">
               <input type="hidden" id="name" name="name" value="{{ (advance_payment_user.name if advance_payment_user.is_authenticated else '') or '' }}">
@@ -283,7 +287,10 @@
             </div>
             <div class="text-end d-flex justify-content-end align-items-center gap-2">
               <span class="text-danger fw-bold">กรุณาส่งคำขอก่อนถึงวันเริ่มต้นโครงการอย่างน้อย 7 วัน</span>
-              <button class="btn btn-primary fw-bold" type="submit" style="border-radius: 10px;">ส่งสัญญาเงินยืม</button>
+              {% if editing_ticket %}
+                <a class="btn btn-outline-secondary fw-bold" href="{{ url_for('advance_payment.borrower_dashboard', scope='mine') }}" style="border-radius: 10px;">ยกเลิก</a>
+              {% endif %}
+              <button class="btn btn-primary fw-bold" type="submit" style="border-radius: 10px;">{{ 'บันทึกการแก้ไข' if editing_ticket else 'ส่งสัญญาเงินยืม' }}</button>
             </div>
             </fieldset>
           </form>
@@ -442,7 +449,7 @@
                       </div>
                     </td>
                     <td>
-                      {% if ticket_status not in ['กำลังส่งคำขอ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
+                      {% if ticket_status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
                         <div>{{ borrowing_ticket.due_date|thai_date }}</div>
                         
                         {# แสดงเตือนเฉพาะสัญญาที่ยังไม่ปิด/เคลียร์ยอด #}
@@ -470,6 +477,11 @@
                         <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-primary" style="border-radius:6px;">
                           ตรวจสอบสัญญา
                         </a>
+                        {% if borrowing_ticket.can_edit %}
+                          <a href="{{ url_for('advance_payment.borrower_dashboard', scope='mine', edit_ticket_id=borrowing_ticket.id) }}#borrowing-ticket-form-section" class="btn btn-sm btn-outline-secondary" style="border-radius:6px;">
+                            แก้ไข
+                          </a>
+                        {% endif %}
                       </div>
                     </td>
                     <!-- <td>
@@ -617,6 +629,7 @@
             <select id="filterStatus" class="form-select bg-light" onchange="filterTable()">
               <option value="">ทั้งหมด</option>
               <option value="กำลังส่งคำขอ">กำลังส่งคำขอ</option>
+              <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
               <option value="อนุมัติจ่ายเงิน">อนุมัติจ่ายเงิน</option>
               <option value="มียอดคงค้าง">มียอดคงค้าง</option>
               <option value="เคลียร์ยอดแล้ว">เคลียร์ยอดแล้ว</option>
@@ -713,7 +726,8 @@
                   return;
               }
 
-              const confirmMessage = [
+              const isEditMode = borrowingTicketForm.dataset.editMode === "true";
+              const confirmMessage = isEditMode ? "ยืนยันการบันทึกข้อมูลสัญญาเงินยืมที่แก้ไข" : [
                   "ตามประกาศ หลักเกณฑ์และวิธีการจ่ายเงินทดรองจ่าย พ.ศ 2551 ข้อ 3 และ ข้อ 6.2",
                   "",
                   "- การจัดซื้อจัดจ้าง วงเงินเกิน 3 หมื่นบาท (ยกเว้นขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯ) ที่ต้องออก PO  ต้องหักภาษี ณ ที่จ่าย และนำส่งภาษีที่หักด้วยทุกครั้งภายในวันที่ชำระเงิน เพื่อป้องกันเบี้ยปรับเพิ่มเติม",
@@ -745,12 +759,12 @@
                       return;
                   }
                   window.openAppPopup({
-                      title: "ยืนยันการส่งแบบฟอร์ม",
+                      title: isEditMode ? "ยืนยันการแก้ไข" : "ยืนยันการส่งแบบฟอร์ม",
                       message: confirmMessage,
                       targetFormId: borrowingTicketForm.id,
-                      requireAcknowledgement: true,
+                      requireAcknowledgement: !isEditMode,
                       acknowledgementLabel: "ข้าพเจ้าได้อ่านและรับทราบเงื่อนไขข้างต้นแล้ว",
-                      confirmText: "ตกลงและส่งแบบฟอร์ม",
+                      confirmText: isEditMode ? "บันทึกการแก้ไข" : "ตกลงและส่งแบบฟอร์ม",
                       confirmClass: "btn-success",
                   });
               } catch (error) {

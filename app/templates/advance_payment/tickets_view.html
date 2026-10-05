@@ -89,6 +89,7 @@
       <select id="statusFilter" class="form-select style-select" onchange="filterTicketsTable()">
         <option value="all">แสดงสถานะทั้งหมด</option>
         <option value="กำลังส่งคำขอ">กำลังส่งคำขอ</option>
+        <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
         <option value="อนุมัติจ่ายเงิน">อนุมัติจ่ายเงิน</option>
         <option value="มียอดคงค้าง">มียอดคงค้าง</option>
         <option value="เคลียร์ยอดแล้ว">เคลียร์ยอดแล้ว</option>
@@ -226,7 +227,7 @@
 
             <!-- วันครบกำหนด -->
             <td class="text-center small text-secondary">
-            {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
+            {% if borrowing_ticket.status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
                 <div>{{ borrowing_ticket.due_date|thai_date }}</div>
                 
                 {# แสดงเตือนเฉพาะสัญญาที่ยังไม่ปิด/เคลียร์ยอด #}

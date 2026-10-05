@@ -1595,6 +1595,7 @@ def recheck_overdue_and_upcoming_statuses():
     query = db.session.query(BorrowingTicket).filter(
         BorrowingTicket.status != "ปฏิเสธ",
         BorrowingTicket.status != "กำลังส่งคำขอ",
+        BorrowingTicket.status != "กำลังดำเนินการ",
         BorrowingTicket.status != "เคลียร์ยอดแล้ว"
     )
 
@@ -2893,7 +2894,7 @@ def _recalculate_borrowing_ticket_status(ticket_id):
         new_status = "มียอดคงค้าง"
 
     else:
-        if old_status in {"กำลังส่งคำขอ", "อนุมัติจ่ายเงิน", "ปฏิเสธ"}:
+        if old_status in {"กำลังส่งคำขอ", "กำลังดำเนินการ", "อนุมัติจ่ายเงิน", "ปฏิเสธ"}:
             new_status = old_status
 
     borrowing_ticket.status = new_status
@@ -3067,6 +3068,31 @@ def coordinator_dashboard():
     if not dept_users:
         dept_users = [staff]
 
+    edit_ticket_id = (
+        request.form.get("edit_ticket_id", type=int)
+        if request.method == "POST"
+        else request.args.get("edit_ticket_id", type=int)
+    )
+    editing_ticket = None
+    if edit_ticket_id is not None:
+        editing_ticket = db.session.get(BorrowingTicket, edit_ticket_id)
+        if editing_ticket is None:
+            abort(404)
+        if current_user.id not in {
+            editing_ticket.creator_id,
+            editing_ticket.borrower_id,
+        }:
+            abort(403)
+        if (
+            editing_ticket.approved_at is not None
+            or editing_ticket.status == "กำลังดำเนินการ"
+        ):
+            if request.method == "GET":
+                abort(403)
+            return _validation_error_response(
+                "สัญญาเงินยืมที่กำลังดำเนินการหรืออนุมัติเบิกจ่ายแล้วไม่สามารถแก้ไขข้อมูลได้"
+            )
+
     coordinator_user_ids = [user.id for user in dept_users if user.id]
     coordinator_tickets = (
         db.session.query(BorrowingTicket)
@@ -3085,6 +3111,7 @@ def coordinator_dashboard():
         eligibility_by_email[user_email] = calculate_borrowing_ticket_eligibility(
             tickets_by_email.get(user_email, []),
             user.email,
+            current_ticket_id=editing_ticket.id if editing_ticket else None,
         )
         user.is_eligible = eligibility_by_email[user_email].is_eligible
         user.ineligible_reason = ", ".join(
@@ -3321,6 +3348,11 @@ def coordinator_dashboard():
     for ticket in borrowing_ticket_history:
         ticket.summary_overdue_days = None
         ticket.summary_days_remaining = None
+        ticket.can_edit = bool(
+            ticket.approved_at is None
+            and ticket.status != "กำลังดำเนินการ"
+            and current_user.id in {ticket.creator_id, ticket.borrower_id}
+        )
 
         totals = _calculate_ticket_return_totals(ticket.id)
         ticket_display_totals = _calculate_ticket_return_totals_with_parcel(
@@ -3343,7 +3375,7 @@ def coordinator_dashboard():
         }
         ticket.has_rejected_followup = ticket.id in rejected_followup_ticket_ids
 
-        if ticket.status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ"]:
+        if ticket.status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "กำลังดำเนินการ"]:
             shadow_sum_debt += float(ticket_remaining if ticket_remaining > 0 else 0.0)
 
             if ticket.due_date:
@@ -3385,6 +3417,8 @@ def coordinator_dashboard():
         if "required_budget" in post_data:
             post_data["required_budget"] = post_data["required_budget"].replace(",", "")
         form = BorrowingTicketForm(post_data)
+    elif editing_ticket is not None:
+        form = BorrowingTicketForm(obj=editing_ticket)
     else:
         form = BorrowingTicketForm(request.form)
 
@@ -3395,6 +3429,8 @@ def coordinator_dashboard():
         for user in dept_users
         if user.email
     ]
+    if editing_ticket is not None and request.method == "GET":
+        form.borrower_email.data = editing_ticket.borrower_email
 
     current_user_email = (current_user.email or "").strip().lower()
     current_user_eligibility = eligibility_by_email.get(current_user_email)
@@ -3402,7 +3438,8 @@ def coordinator_dashboard():
     # ตรวจสอบสิทธิ์เบื้องต้นของผู้ใช้งานปัจจุบัน
     # Do not lock based on the creator; the selected borrower controls eligibility.
     form_locked = bool(
-        is_borrower_mode
+        editing_ticket is None
+        and is_borrower_mode
         and current_user_eligibility is not None
         and not current_user_eligibility.is_eligible
     )
@@ -3415,10 +3452,16 @@ def coordinator_dashboard():
 
         # ผู้ยืมสร้างได้เฉพาะของตัวเอง ส่วนผู้ประสานงานเลือกแทนได้
         selected_coordinator_email = (
-            (current_user.email or "").strip().lower()
+            (
+                editing_ticket.borrower_email
+                if editing_ticket is not None
+                and editing_ticket.borrower_id != current_user.id
+                else current_user.email
+            ) or ""
             if is_borrower_mode
             else request.form.get("borrower_email", "").strip().lower()
         )
+        selected_coordinator_email = selected_coordinator_email.strip().lower()
         if not selected_coordinator_email:
             return _validation_error_response(
                 f"กรุณาเลือก{_dashboard_party_label(user_role)}ก่อนสร้างสัญญาเงินยืม"
@@ -3475,38 +3518,55 @@ def coordinator_dashboard():
                 return jsonify(ok=True)
 
             if selected_bank_account:
-                new_ticket = BorrowingTicket(
-                    creator_id=current_user.id,
-                    borrower_id=coordinator_user.id,
-                    borrowing_ticket_purpose=form.borrowing_ticket_purpose.data.strip(),
-                    required_budget=form.required_budget.data,
-                    account_number=selected_account_number,
-                    bank_account_info_id=selected_bank_account.id if selected_bank_account else None,
-                    borrowing_ticket_start_date=form.borrowing_ticket_start_date.data,
-                    borrowing_ticket_end_date=form.borrowing_ticket_end_date.data,
-                    due_date=_calculate_due_date(form.borrowing_ticket_end_date.data),
-                    aip_ref_no=form.aip_ref_no.data,
-                    aip_ref_date=form.aip_ref_date.data,
-                    status="กำลังส่งคำขอ",
-                    created_at=datetime.utcnow()
-                )
-                new_ticket.creator_user = current_user
-                new_ticket.borrower_user = coordinator_user
-                db.session.add(new_ticket)
+                if editing_ticket is not None:
+                    editing_ticket.borrower_id = coordinator_user.id
+                    editing_ticket.borrower_user = coordinator_user
+                    editing_ticket.borrowing_ticket_purpose = form.borrowing_ticket_purpose.data.strip()
+                    editing_ticket.required_budget = form.required_budget.data
+                    editing_ticket.account_number = selected_account_number
+                    editing_ticket.bank_account_info_id = selected_bank_account.id
+                    editing_ticket.borrowing_ticket_start_date = form.borrowing_ticket_start_date.data
+                    editing_ticket.borrowing_ticket_end_date = form.borrowing_ticket_end_date.data
+                    editing_ticket.due_date = _calculate_due_date(form.borrowing_ticket_end_date.data)
+                    editing_ticket.aip_ref_no = form.aip_ref_no.data
+                    editing_ticket.aip_ref_date = form.aip_ref_date.data
+                    saved_ticket = editing_ticket
+                else:
+                    saved_ticket = BorrowingTicket(
+                        creator_id=current_user.id,
+                        borrower_id=coordinator_user.id,
+                        borrowing_ticket_purpose=form.borrowing_ticket_purpose.data.strip(),
+                        required_budget=form.required_budget.data,
+                        account_number=selected_account_number,
+                        bank_account_info_id=selected_bank_account.id,
+                        borrowing_ticket_start_date=form.borrowing_ticket_start_date.data,
+                        borrowing_ticket_end_date=form.borrowing_ticket_end_date.data,
+                        due_date=_calculate_due_date(form.borrowing_ticket_end_date.data),
+                        aip_ref_no=form.aip_ref_no.data,
+                        aip_ref_date=form.aip_ref_date.data,
+                        status="กำลังส่งคำขอ",
+                        created_at=datetime.utcnow()
+                    )
+                    saved_ticket.creator_user = current_user
+                    saved_ticket.borrower_user = coordinator_user
+                    db.session.add(saved_ticket)
                 try:
                     db.session.flush()
                     db.session.commit()
-                    db.session.refresh(new_ticket)
+                    db.session.refresh(saved_ticket)
                 except IntegrityError:
                     db.session.rollback()
                     return _validation_error_response(
                         "ไม่สามารถบันทึกสัญญาเงินยืมได้ เนื่องจากข้อมูลซ้ำหรือไม่สอดคล้องกับข้อมูลในระบบ"
                     )
 
-                _send_notification_email(new_ticket)
+                if editing_ticket is None:
+                    _send_notification_email(saved_ticket)
+                else:
+                    flash("แก้ไขข้อมูลสัญญาเงินยืมเรียบร้อยแล้ว")
                 # Render the newly-created ticket immediately instead of leaving
                 # the user on the dashboard with the old form still visible.
-                return verification_view(new_ticket.id)
+                return verification_view(saved_ticket.id)
         form_errors = "; ".join(
             ", ".join(errors)
             for errors in form.errors.values()
@@ -3543,6 +3603,7 @@ def coordinator_dashboard():
         creator_return_details=creator_return_details,
         borrowing_ticket_form=form,
         borrowing_ticket_form_locked=form_locked,
+        editing_ticket=editing_ticket,
         bank_account_options=bank_account_options,
         bank_account_values=bank_account_values,
         shadow_sum_debt=shadow_sum_debt,
@@ -3697,18 +3758,18 @@ def finance_dashboard():
             if today_date > ticket.due_date:
                 ticket.calculated_overdue_days = (today_date - ticket.due_date).days
                 # ถ้ายังไม่ปิดสัญญา และเลยกำหนด ให้เพิ่มนับจำนวน
-                if raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "รออนุมัติสัญญา", "รอตรวจสอบ"]:
+                if raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "กำลังดำเนินการ", "รออนุมัติสัญญา", "รอตรวจสอบ"]:
                     overdue_count += 1
             else:
                 ticket.calculated_days_remaining = (ticket.due_date - today_date).days
                 # ถ้าเหลือวันน้อยกว่าหรือเท่ากับ 15 วัน และยังไม่ปิดสัญญา
-                if 0 <= ticket.calculated_days_remaining <= 15 and raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "รอตรวจสอบ"]:
+                if 0 <= ticket.calculated_days_remaining <= 15 and raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "กำลังดำเนินการ", "รอตรวจสอบ"]:
                     near_due_count += 1
 
         totals = _calculate_ticket_return_totals(ticket.id)
         ticket_remaining = totals["remaining_amount"]
 
-        if raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "รอตรวจสอบ"]:
+        if raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "กำลังดำเนินการ", "รอตรวจสอบ"]:
             shadow_sum_debt += float(ticket_remaining if ticket_remaining > 0 else 0.0)
 
     # ==========================================
@@ -4016,6 +4077,7 @@ def tickets_view():
         "เคลียร์ยอดแล้ว",
         "ปฏิเสธ",
         "กำลังส่งคำขอ",
+        "กำลังดำเนินการ",
         "รออนุมัติสัญญา",
         "รอตรวจสอบ",
     }
@@ -5857,8 +5919,8 @@ def approve_borrowing_ticket(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if borrowing_ticket.status != "กำลังส่งคำขอ":
-        return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถอนุมัติได้")
+    if borrowing_ticket.status != "กำลังดำเนินการ":
+        return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังดำเนินการ เท่านั้นที่สามารถอนุมัติได้")
 
     raw_number = (request.form.get("number") or "").strip()
     if not raw_number:
@@ -5893,6 +5955,25 @@ def approve_borrowing_ticket(ticket_id):
     flash("อนุมัติสัญญาเงินยืมเงินทดรองจ่ายและส่งอีเมลแจ้งเตือนเรียบร้อยแล้ว")
 
     return verification_view(ticket_id)
+
+
+@bp.route("/finance/tickets/<int:ticket_id>/start-processing", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def start_processing_borrowing_ticket(ticket_id):
+    borrowing_ticket = (
+        db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
+    )
+    if borrowing_ticket is None:
+        abort(404)
+
+    if borrowing_ticket.status != "กำลังส่งคำขอ":
+        return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถเริ่มดำเนินการได้")
+
+    borrowing_ticket.status = "กำลังดำเนินการ"
+    db.session.commit()
+    flash("เปลี่ยนสถานะสัญญาเงินยืมเป็นกำลังดำเนินการเรียบร้อยแล้ว")
+    return verification_view(ticket_id)
+
 
 @bp.route("/api/login", methods=["POST"])
 def api_login():
@@ -5934,8 +6015,8 @@ def reject_borrowing_ticket(ticket_id):
     if borrowing_ticket is None:
         abort(404)
 
-    if borrowing_ticket.status != "กำลังส่งคำขอ":
-        return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ เท่านั้นที่สามารถปฏิเสธได้")
+    if borrowing_ticket.status not in {"กำลังส่งคำขอ", "กำลังดำเนินการ"}:
+        return _validation_error_response("เฉพาะสัญญาเงินยืมเงินที่ กำลังส่งคำขอ หรือ กำลังดำเนินการ เท่านั้นที่สามารถปฏิเสธได้")
 
     new_comment = request.form.get(
         "rejection_comment",

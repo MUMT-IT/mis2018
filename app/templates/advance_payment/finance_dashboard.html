@@ -26,6 +26,7 @@
         <select id="statusFilter" class="form-select style-select" onchange="filterTable()">
           <option value="all">แสดงสถานะทั้งหมด</option>
           <option value="รอตรวจสอบ">รอการตรวจสอบ</option>
+          <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
           <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
           <option value="ผ่านการตรวจสอบ">ผ่านการตรวจสอบ / รอการโอนคืน</option>
         </select>
@@ -95,9 +96,9 @@
             <tbody id="ticketsTableBody">
               {% set state = namespace(has_pending=false) %}
 
-              <!-- 1. สัญญาเงินยืม (ticket status = pending / กำลังส่งคำขอ) -->
+              <!-- 1. สัญญาเงินยืมที่รอฝ่ายการเงินตรวจสอบหรือกำลังดำเนินการ -->
               {% for borrowing_ticket in borrowing_tickets %}
-                {% if borrowing_ticket.status|lower in ['กำลังส่งคำขอ', 'รอตรวจสอบ'] %}
+                {% if borrowing_ticket.status|lower in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'รอตรวจสอบ'] %}
                   {% set state.has_pending = true %}
                   <tr class="ticket-row" 
                       data-system="advance"
@@ -117,7 +118,13 @@
                     </td>
                     <td class="fw-semibold text-end">{{ "{:,.2f}".format(borrowing_ticket.required_budget|float) if borrowing_ticket.required_budget else '0.00' }}</td>
                     <td class="text-center">{{ borrowing_ticket.created_at|thai_date if borrowing_ticket.created_at else '-' }}</td>
-                    <td class="text-center"><span class="badge bg-warning text-dark">รออนุมัติสัญญา</span></td>
+                    <td class="text-center">
+                      {% if borrowing_ticket.status|lower == 'กำลังดำเนินการ' %}
+                        {{ status_badge('กำลังดำเนินการ') }}
+                      {% else %}
+                        <span class="badge bg-warning text-dark">รออนุมัติสัญญา</span>
+                      {% endif %}
+                    </td>
                     <td class="text-center">
                       <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:6px;">
                         ไปตรวจสอบ
@@ -331,13 +338,16 @@
       if (["กำลังส่งคำขอ"].includes(status)) {
         return "รอตรวจสอบ";
       }
+      if (["กำลังดำเนินการ"].includes(status)) {
+        return "กำลังดำเนินการ";
+      }
 
       return status;
     }
 
     function isPendingReviewStatus(rawStatus) {
       const status = (rawStatus || "").toLowerCase();
-      return ["กำลังส่งคำขอ", "รอตรวจสอบ", "กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status);
+      return ["กำลังส่งคำขอ", "กำลังดำเนินการ", "รอตรวจสอบ", "กำลังตรวจสอบ", "พัสดุกำลังดำเนินการ"].includes(status);
     }
 
     function calculateSummaryCounts() {
