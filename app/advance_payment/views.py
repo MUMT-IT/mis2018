@@ -64,13 +64,20 @@ def render_template(template_name, *args, **kwargs):
         if current_user.is_authenticated
         else []
     )
+    managed_cash_advance_accounts = (
+        _cash_advance_accounts_for_manager(current_user)
+        if current_user.is_authenticated
+        else []
+    )
     is_custodian = bool(custodian_settings)
+    is_cash_advance_manager = bool(managed_cash_advance_accounts)
     kwargs.setdefault(
         "advance_payment_can_switch_systems",
         current_user.is_authenticated
         and (
             FINANCE_SYSTEM not in available_roles
             or bool(custodian_settings)
+            or is_cash_advance_manager
         ),
     )
     kwargs.setdefault(
@@ -79,6 +86,10 @@ def render_template(template_name, *args, **kwargs):
     )
     kwargs.setdefault("petty_cash_settings", custodian_settings)
     kwargs.setdefault("advance_payment_is_custodian", is_custodian)
+    kwargs.setdefault(
+        "advance_payment_is_cash_advance_manager",
+        is_cash_advance_manager,
+    )
     kwargs.setdefault(
         "selected_petty_cash_setting_id",
         session.get(PETTY_CASH_SETTING_SESSION_KEY),
@@ -557,20 +568,22 @@ def _get_staff_accounts_from_directory():
 
 
 def _get_coordinator_dashboard_users(staff):
-    """Return proxy borrower choices across every org managed by a custodian."""
+    """Return proxy borrower choices across every organization the staff manages."""
     users = _get_staff_accounts_from_directory()
     if _current_module_role() == COORDINATOR_ROLE:
         return users
 
     custodian_settings = _petty_cash_settings_for_custodian(staff)
-    if not custodian_settings:
-        return [staff]
-
     managed_org_ids = {
         getattr(setting, "org_id", None)
         or getattr(getattr(setting, "org", None), "id", None)
         for setting in custodian_settings
     }
+    managed_org_ids.update(
+        getattr(account, "org_id", None)
+        or getattr(getattr(account, "org", None), "id", None)
+        for account in _cash_advance_accounts_for_manager(staff)
+    )
     managed_org_ids.discard(None)
     if not managed_org_ids:
         return [staff]
@@ -694,6 +707,32 @@ def _petty_cash_settings_for_custodian(staff, fiscal_year=None):
             PettyCashSetting.valid == True,
         )
         .order_by(PettyCashSetting.org_id.asc(), PettyCashSetting.id.asc())
+        .all()
+    )
+
+
+def _cash_advance_accounts_for_manager(staff):
+    """Return open cash-advance accounts assigned to a staff account."""
+    staff_id = getattr(staff, "id", None)
+    if not staff_id:
+        return []
+
+    return (
+        db.session.query(BankAccountInfo)
+        .join(
+            CashAdvanceAccountManager,
+            CashAdvanceAccountManager.bank_account_info_id == BankAccountInfo.id,
+        )
+        .filter(
+            CashAdvanceAccountManager.staff_account_id == staff_id,
+            BankAccountInfo.record_type == "cash_advance",
+            BankAccountInfo.closed_at.is_(None),
+        )
+        .order_by(
+            BankAccountInfo.org_id.asc(),
+            BankAccountInfo.thai_name.asc(),
+            BankAccountInfo.account_number.asc(),
+        )
         .all()
     )
 
@@ -827,7 +866,10 @@ def _can_use_coordinator_dashboard():
     if _is_current_coordinator():
         return True
 
-    return bool(_petty_cash_settings_for_custodian(current_user))
+    return bool(
+        _petty_cash_settings_for_custodian(current_user)
+        or _cash_advance_accounts_for_manager(current_user)
+    )
 
 
 def _is_petty_cash_custodian(user, setting):
@@ -1173,16 +1215,17 @@ def _get_finance_visible_claim(claim_id):
     return claim
 
 
-def _get_bank_account_dropdown_options():
-    bank_accounts = (
-        db.session.query(BankAccountInfo)
-        .filter(BankAccountInfo.closed_at.is_(None))
-        .order_by(
-            BankAccountInfo.thai_name.asc(),
-            BankAccountInfo.account_number.asc(),
+def _get_bank_account_dropdown_options(bank_accounts=None, include_org=False):
+    if bank_accounts is None:
+        bank_accounts = (
+            db.session.query(BankAccountInfo)
+            .filter(BankAccountInfo.closed_at.is_(None))
+            .order_by(
+                BankAccountInfo.thai_name.asc(),
+                BankAccountInfo.account_number.asc(),
+            )
+            .all()
         )
-        .all()
-    )
 
     options = []
     for account in bank_accounts:
@@ -1194,12 +1237,17 @@ def _get_bank_account_dropdown_options():
         label = account_number
         if thai_name:
             label = f"{account_number} - {thai_name}"
+        org_name = getattr(getattr(account, "org", None), "name", "") or ""
+        if include_org and org_name:
+            label = f"{label} ({org_name})"
 
         options.append(
             {
                 "id": account.id,
                 "value": account_number,
                 "label": label,
+                "org_id": account.org_id,
+                "org_name": org_name,
             }
         )
 
@@ -3030,7 +3078,13 @@ def coordinator_dashboard():
     user_id = current_user.id
     user_role = _current_module_role()
     is_custodian = bool(_petty_cash_settings_for_custodian(current_user))
+    managed_cash_advance_accounts = _cash_advance_accounts_for_manager(current_user)
+    is_cash_advance_manager = bool(managed_cash_advance_accounts)
     is_custodian_proxy = is_custodian and user_role != COORDINATOR_ROLE
+    is_cash_advance_manager_proxy = (
+        is_cash_advance_manager and user_role != COORDINATOR_ROLE
+    )
+    is_delegated_proxy = is_custodian_proxy or is_cash_advance_manager_proxy
     is_borrower_mode = (
         request.endpoint == "advance_payment.borrower_dashboard"
         or not _can_use_coordinator_dashboard()
@@ -3139,7 +3193,7 @@ def coordinator_dashboard():
             .all()
         )
 
-    if not is_borrower_mode and is_custodian_proxy:
+    if not is_borrower_mode and is_delegated_proxy:
         allowed_borrower_ids = {user.id for user in dept_users if user.id}
         all_borrowing_ticket_history = [
             ticket
@@ -3514,6 +3568,32 @@ def coordinator_dashboard():
                     "เลขที่บัญชีนี้ถูกปิดแล้วหรือไม่อยู่ในรายการที่เลือกได้"
                 )
 
+            if (
+                selected_bank_account
+                and is_cash_advance_manager_proxy
+                and not is_borrower_mode
+            ):
+                managed_account_ids = {
+                    account.id for account in managed_cash_advance_accounts
+                }
+                if selected_bank_account.id not in managed_account_ids:
+                    return _validation_error_response(
+                        "คุณไม่มีสิทธิ์สร้างสัญญาเงินยืมจากบัญชีธนาคารนี้"
+                    )
+
+                borrower_org_id = getattr(
+                    getattr(coordinator_user, "personal_info", None),
+                    "org_id",
+                    None,
+                )
+                if (
+                    not borrower_org_id
+                    or selected_bank_account.org_id != borrower_org_id
+                ):
+                    return _validation_error_response(
+                        "บัญชีธนาคารที่เลือกไม่ตรงกับหน่วยงานของผู้ยืมเงิน"
+                    )
+
             if request.form.get("validation_only") == "1":
                 return jsonify(ok=True)
 
@@ -3574,7 +3654,13 @@ def coordinator_dashboard():
         return _validation_error_response(form_errors or "ข้อมูลไม่ครบหรือไม่ถูกต้อง")
 
     dashboard_template = "borrower_dashboard.html" if is_borrower_mode else "coordinator_dashboard.html"
-    bank_account_options = _get_bank_account_dropdown_options()
+    restrict_bank_accounts_by_org = (
+        is_cash_advance_manager_proxy and not is_borrower_mode
+    )
+    bank_account_options = _get_bank_account_dropdown_options(
+        managed_cash_advance_accounts if restrict_bank_accounts_by_org else None,
+        include_org=restrict_bank_accounts_by_org,
+    )
     bank_account_values = [option["value"] for option in bank_account_options]
     dashboard_party_label = (
         "ผู้ประสานงาน"
@@ -3582,8 +3668,8 @@ def coordinator_dashboard():
         else _dashboard_party_label(user_role)
     )
     dashboard_party_scope = (
-        "เฉพาะหน่วยงาน"
-        if is_custodian_proxy and not is_borrower_mode
+        "เฉพาะหน่วยงานที่ดูแล"
+        if is_delegated_proxy and not is_borrower_mode
         else "เฉพาะหน่วยงาน (เริ่มต้นแสดงข้อมูลของตนเอง)" if is_borrower_mode else "บุคลากรทั้งองค์กร"
     )
 
@@ -3606,6 +3692,7 @@ def coordinator_dashboard():
         editing_ticket=editing_ticket,
         bank_account_options=bank_account_options,
         bank_account_values=bank_account_values,
+        dashboard_restrict_bank_accounts_by_org=restrict_bank_accounts_by_org,
         shadow_sum_debt=shadow_sum_debt,
         summary_days_remaining=summary_days_remaining,
         summary_overdue_days=summary_overdue_days,

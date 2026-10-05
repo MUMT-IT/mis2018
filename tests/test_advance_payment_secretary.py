@@ -131,6 +131,7 @@ class AdvancePaymentCoordinatorAccessTests(unittest.TestCase):
             "system": "advance_payment",
             "is_coordinator": False,
             "settings": [],
+            "accounts": [],
         }
         cls.user = SimpleNamespace(id=7, is_authenticated=True, roles=[])
         cls.context = {
@@ -139,6 +140,7 @@ class AdvancePaymentCoordinatorAccessTests(unittest.TestCase):
             "_selected_system": lambda: cls.state["system"],
             "_is_current_coordinator": lambda: cls.state["is_coordinator"],
             "_petty_cash_settings_for_custodian": lambda user: cls.state["settings"],
+            "_cash_advance_accounts_for_manager": lambda user: cls.state["accounts"],
         }
         exec(compile(helpers, "views.py", "exec"), cls.context)
         cls.can_use_dashboard = staticmethod(
@@ -150,12 +152,18 @@ class AdvancePaymentCoordinatorAccessTests(unittest.TestCase):
             system="advance_payment",
             is_coordinator=False,
             settings=[],
+            accounts=[],
         )
         self.user.is_authenticated = True
         self.user.roles = []
 
     def test_assigned_custodian_can_use_coordinator_dashboard(self):
         self.state["settings"] = [SimpleNamespace(id=1, org_id=10)]
+
+        self.assertTrue(self.can_use_dashboard())
+
+    def test_assigned_cash_advance_manager_can_use_coordinator_dashboard(self):
+        self.state["accounts"] = [SimpleNamespace(id=8, org_id=20)]
 
         self.assertTrue(self.can_use_dashboard())
 
@@ -192,6 +200,7 @@ class CoordinatorDashboardOrganizationScopeTests(unittest.TestCase):
             "is_coordinator": False,
             "users": [],
             "settings": [],
+            "accounts": [],
         }
         cls.context = {
             "COORDINATOR_ROLE": "cash_management_coordinator",
@@ -202,6 +211,7 @@ class CoordinatorDashboardOrganizationScopeTests(unittest.TestCase):
             ),
             "_get_staff_accounts_from_directory": lambda: cls.state["users"],
             "_petty_cash_settings_for_custodian": lambda staff: cls.state["settings"],
+            "_cash_advance_accounts_for_manager": lambda staff: cls.state["accounts"],
         }
         exec(
             compile(ast.Module(body=[helper], type_ignores=[]), "views.py", "exec"),
@@ -225,6 +235,7 @@ class CoordinatorDashboardOrganizationScopeTests(unittest.TestCase):
             SimpleNamespace(org_id=20),
             SimpleNamespace(org_id=30),
         ]
+        self.state["accounts"] = []
 
     def test_custodian_can_choose_staff_from_every_managed_org(self):
         users = self.get_dashboard_users(self.staff)
@@ -237,6 +248,17 @@ class CoordinatorDashboardOrganizationScopeTests(unittest.TestCase):
         users = self.get_dashboard_users(self.staff)
 
         self.assertEqual([user.id for user in users], [1, 2, 3, 4])
+
+    def test_account_manager_can_choose_staff_from_every_managed_org(self):
+        self.state["settings"] = []
+        self.state["accounts"] = [
+            SimpleNamespace(id=8, org_id=20),
+            SimpleNamespace(id=9, org_id=40),
+        ]
+
+        users = self.get_dashboard_users(self.staff)
+
+        self.assertEqual([user.id for user in users], [2, 4])
 
     def test_non_custodian_cannot_receive_all_directory_users(self):
         self.state["settings"] = []

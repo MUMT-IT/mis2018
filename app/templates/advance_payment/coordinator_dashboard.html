@@ -137,6 +137,7 @@
                   <option value="" data-eligible="true" {% if not borrowing_ticket_form.borrower_email.data %}selected{% endif %}>โปรดเลือกผู้ยืมเงิน</option>
                   {% for u in dept_users %}
                     <option value="{{ u.email }}" 
+                            data-org-id="{{ u.personal_info.org_id if u.personal_info else '' }}"
                             data-eligible="{{ 'true' if u.is_eligible else 'false' }}" 
                             data-reason="{{ u.ineligible_reason or 'ไม่ผ่านเงื่อนไขการยืมเงินทดรองจ่าย' }}"
                             {% if borrowing_ticket_form.borrower_email.data|lower == u.email|lower %}selected{% endif %}>
@@ -199,7 +200,7 @@
                         <option value="{{ selected_account_number }}" disabled selected>{{ selected_account_number }} - บัญชีที่ไม่สามารถเลือกได้</option>
                       {% endif %}
                       {% for account in bank_account_options %}
-                        <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}" {% if borrowing_ticket_form.account_number.data == account.value %}selected{% endif %}>{{ account.label }}</option>
+                        <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}" data-org-id="{{ account.org_id or '' }}" {% if borrowing_ticket_form.account_number.data == account.value %}selected{% endif %}>{{ account.label }}</option>
                       {% endfor %}
                     </select>
                     <input type="hidden" name="bank_account_info_id" id="bank_account_info_id" value="">
@@ -575,8 +576,44 @@
   </div>
 
   <script>
+    const restrictBankAccountsByOrg = {{ dashboard_restrict_bank_accounts_by_org|tojson }};
+    const bankAccountSelect = document.getElementById('account_number');
+    const managedBankAccountOptions = bankAccountSelect
+      ? Array.from(bankAccountSelect.options)
+          .filter(option => option.value && option.dataset.orgId)
+          .map(option => option.cloneNode(true))
+      : [];
+
+    function filterBankAccountsForBorrower(selectElem) {
+      if (!restrictBankAccountsByOrg || !bankAccountSelect) {
+        return;
+      }
+
+      const selectedBorrower = selectElem.options[selectElem.selectedIndex];
+      const selectedOrgId = selectedBorrower ? selectedBorrower.dataset.orgId : '';
+      const previousValue = bankAccountSelect.value;
+
+      while (bankAccountSelect.options.length > 1) {
+        bankAccountSelect.remove(1);
+      }
+      managedBankAccountOptions.forEach(option => {
+        if (selectedOrgId && option.dataset.orgId === selectedOrgId) {
+          bankAccountSelect.appendChild(option.cloneNode(true));
+        }
+      });
+
+      const canKeepPreviousValue = Array.from(bankAccountSelect.options)
+        .some(option => option.value === previousValue);
+      bankAccountSelect.value = canKeepPreviousValue ? previousValue : '';
+      syncBankAccountInfo(bankAccountSelect);
+      if (window.jQuery && $(bankAccountSelect).data('select2')) {
+        $(bankAccountSelect).trigger('change.select2');
+      }
+    }
+
     // ฟังก์ชันตรวจสอบคุณสมบัติของผู้ยืมเงินที่เลือกจาก Dropdown
     function checkBorrowerEligibility(selectElem) {
+      filterBankAccountsForBorrower(selectElem);
       const selectedOption = selectElem.options[selectElem.selectedIndex];
       if (!selectedOption || !selectedOption.value) {
         const fieldset = document.getElementById('borrowingFormFieldset');

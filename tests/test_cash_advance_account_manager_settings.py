@@ -49,6 +49,21 @@ class CashAdvanceAccountManagerSettingsTests(unittest.TestCase):
         self.assertIn('ForeignKey("cash_mng_bank_account_infos.id"', source)
         self.assertIn('ForeignKey("staff_account.id"', source)
 
+    def test_managers_are_scoped_to_assigned_accounts_and_organizations(self):
+        source = (ROOT / "app/advance_payment/views.py").read_text(
+            encoding="utf-8-sig"
+        )
+        template = (
+            ROOT / "app/templates/advance_payment/coordinator_dashboard.html"
+        ).read_text(encoding="utf-8-sig")
+
+        self.assertIn("def _cash_advance_accounts_for_manager(staff):", source)
+        self.assertIn("_cash_advance_accounts_for_manager(current_user)", source)
+        self.assertIn("selected_bank_account.id not in managed_account_ids", source)
+        self.assertIn("selected_bank_account.org_id != borrower_org_id", source)
+        self.assertIn('data-org-id="{{ u.personal_info.org_id', template)
+        self.assertIn("filterBankAccountsForBorrower", template)
+
 
 if __name__ == "__main__":
     unittest.main()

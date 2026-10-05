@@ -851,6 +851,8 @@
                 <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
                   {% if session.get('advance_payment_system') == 'finance' %}
                     ฝ่ายการเงิน
+                  {% elif session.get('advance_payment_system') == 'advance_payment' and advance_payment_is_cash_advance_manager %}
+                    ผู้จัดการบัญชีเงินยืม
                   {% elif advance_payment_is_custodian %}
                     ผู้ดูแลเงินสดย่อย
                   {% else %}
