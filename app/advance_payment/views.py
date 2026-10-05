@@ -6405,6 +6405,14 @@ def _parcel_return_history_fallback(parcel_return):
         return "advance_payment.petty_cash_claim_history"
     return "advance_payment.return_records_history"
 
+
+def _petty_cash_history_budget(fund_request):
+    setting = getattr(fund_request, "petty_cash_setting", None)
+    if setting is None:
+        return None
+    return Decimal(str(setting.budget))
+
+
 @bp.route("/finance/petty-cash-settings", methods=["GET", "POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def petty_cash_settings(_render_after_post=False):
@@ -6574,6 +6582,8 @@ def petty_cash_settings(_render_after_post=False):
         db.session.query(FundRequest)
         .filter(
             FundRequest.form_type == FUND_REQUEST_FORM_PETTY_CASH,
+            FundRequest.is_legacy_import.is_(False),
+            FundRequest.petty_cash_setting_id.isnot(None),
             FundRequest.status.notin_([
                 "รอการอนุมัติ",
                 "ยกเลิก",
@@ -6586,15 +6596,18 @@ def petty_cash_settings(_render_after_post=False):
     )
 
     for fund_request in history_requests:
+        setting = getattr(fund_request, "petty_cash_setting", None)
+        if setting is None:
+            continue
+
         fiscal_year = convert_to_fiscal_year(fund_request.request_date)
-        setting = getattr(fund_request, "petty_cash_setting_id", None)
-        budget = getattr(setting, "budget", '6250')
-        key = (fiscal_year, getattr(fund_request, "org_id", None))
+        budget = _petty_cash_history_budget(fund_request)
+        key = (fiscal_year, setting.org_id)
         summary = request_summary.setdefault(
             key,
             {
                 "fiscal_year": fiscal_year,
-                "department_name": fund_request.department_name or "ไม่พบข้อมูลหน่วยงาน",
+                "department_name": setting.department_name or "ไม่พบข้อมูลหน่วยงาน",
                 "budget": budget,
                 "request_count": 0,
                 "used_amount": Decimal("0.00"),
