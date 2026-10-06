@@ -3122,6 +3122,67 @@ def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, ex
     }
 
 
+def _calculate_fund_request_display_summary(
+    fund_request_id,
+    *,
+    exclude_claim_id=None,
+    exclude_parcel_return_id=None,
+):
+    """Split active petty-cash submissions into reviewed and pending amounts."""
+    summary = _calculate_fund_request_totals(
+        fund_request_id,
+        exclude_claim_id=exclude_claim_id,
+        exclude_parcel_return_id=exclude_parcel_return_id,
+    )
+    excluded_statuses = {"ฉบับร่าง", "ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"}
+    claim_query = db.session.query(PettyCashClaimDetail).filter(
+        PettyCashClaimDetail.fund_request_id == fund_request_id,
+        PettyCashClaimDetail.status.notin_(excluded_statuses),
+    )
+    if exclude_claim_id:
+        claim_query = claim_query.filter(PettyCashClaimDetail.id != exclude_claim_id)
+
+    approved_total = 0.0
+    pending_total = 0.0
+    for claim in claim_query.all():
+        claim_items = list(claim.items or [])
+        amount = (
+            sum(float(item.amount or 0) for item in claim_items)
+            if claim_items
+            else float(claim.total_amount or 0)
+        )
+        if claim.approved_at:
+            approved_total += amount
+        else:
+            pending_total += amount
+
+    parcel_query = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.fund_request_id == fund_request_id,
+        ParcelReturnDetail.status.notin_(excluded_statuses),
+    )
+    if exclude_parcel_return_id:
+        parcel_query = parcel_query.filter(
+            ParcelReturnDetail.id != exclude_parcel_return_id
+        )
+
+    for parcel_return in parcel_query.all():
+        amount = float(parcel_return.amount_spent or 0)
+        if parcel_return.approved_at:
+            approved_total += amount
+        else:
+            pending_total += amount
+
+    summary.update({
+        "approved_total": approved_total,
+        "pending_total": pending_total,
+        "unsubmitted_amount": max(
+            summary["request_amount"] - approved_total - pending_total,
+            0.0,
+        ),
+    })
+    return summary
+
+
 def _format_currency_amount(amount):
     return f"{float(amount or 0):,.2f}"
 
@@ -4828,6 +4889,18 @@ def verification_view(ticket_id):
             "remaining_amount": float(borrowing_ticket.required_budget or 0),
         },
     )
+    approved_ticket_total = float(summary["cumulative_total"] or 0)
+    submitted_ticket_total = float(
+        return_form_totals.get("allocated_by_ticket", {}).get(ticket_id, 0.0)
+    )
+    summary["pending_amount"] = max(
+        submitted_ticket_total - approved_ticket_total,
+        0.0,
+    )
+    summary["unsubmitted_amount"] = max(
+        float(summary["budget"] or 0) - submitted_ticket_total,
+        0.0,
+    )
     borrowing_ticket.submitted_return_total = summary["cumulative_total"]
     borrowing_ticket.ticket_remaining = summary["remaining_amount"]
     borrowing_ticket.verification_required_budget = return_form_totals["budget"]
@@ -4976,10 +5049,13 @@ def _recalculate_fund_request_submission_status(fund_request_id):
     for claim in claims:
         claim_items = list(claim.items or [])
         claim_status = (claim.status or "").strip()
-        if (
+        is_cash_return_only = (
             claim_items
             and all(int(item.category_type or 0) == 6 for item in claim_items)
             and sum(float(item.amount or 0) for item in claim_items) > 0
+        )
+        if (
+            is_cash_return_only
             and claim_status not in {
                 "โอนคืนเงินสดย่อย",
                 CASH_TRANSFER_STATUS,
@@ -5002,6 +5078,14 @@ def _recalculate_fund_request_submission_status(fund_request_id):
                     ),
                     default=None,
                 )
+        if (
+            is_cash_return_only
+            and claim_status not in {"ปฏิเสธ", "ถูกปฏิเสธ", "ยกเลิก"}
+            and not claim.approved_at
+        ):
+            # Category 6 is an immediate cash return and has no finance-review
+            # step, so its submission time is also its approval time.
+            claim.approved_at = claim.created_at or datetime.now()
         if claim_items:
             claim_total += sum(float(item.amount or 0) for item in claim_items)
         else:
@@ -5300,6 +5384,7 @@ def update_parcel_return(parcel_return_id):
     parcel_return.items_description = items_description
     parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
     parcel_return.status = "รอตรวจสอบ"
+    parcel_return.approved_at = None
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
@@ -5456,6 +5541,7 @@ def reject_parcel_return(parcel_return_id):
     )
 
     parcel_return.status = "ปฏิเสธ"
+    parcel_return.approved_at = None
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
@@ -6257,6 +6343,7 @@ def edit_receipt_item_inline(file_id):
 
     if is_claim:
         claim_detail.status = "รอยืนยันการแก้ไข"
+        claim_detail.approved_at = None
         claim_detail.total_amount = total_spent_for_claim
 
         db.session.commit()
@@ -6271,6 +6358,7 @@ def edit_receipt_item_inline(file_id):
         return petty_cash_claim_detail(claim_detail.id)
     else:
         return_detail.status = "รอยืนยันการแก้ไข"
+        return_detail.approved_at = None
         return_detail.amount_spent = total_spent_for_return
 
         db.session.commit()
@@ -6476,6 +6564,7 @@ def reject_return_detail(return_id):
     )
 
     return_detail.status = "ปฏิเสธ"
+    return_detail.approved_at = None
     db.session.commit()
 
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
@@ -9662,6 +9751,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             else ("โอนคืนเงินสดย่อย" if is_cash_return_only else "รอตรวจสอบ")
         )
         if is_cash_return_only:
+            claim_detail.approved_at = datetime.now()
             claim_detail.transferred_at = next(
                 (
                     item.get("receipt_date")
@@ -9873,7 +9963,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     parcel_return_history = []
     fund_request_total_info = {"request_amount": 0.0, "parcel_total": 0.0}
     if history_fund_request:
-        fund_request_total_info = _calculate_fund_request_totals(
+        fund_request_total_info = _calculate_fund_request_display_summary(
             history_fund_request.id,
             exclude_claim_id=claim_detail.id if claim_detail else None,
         )
@@ -10159,6 +10249,7 @@ def staff_parcel_return_edit(parcel_return_id):
     parcel_return.items_description = items_description
     parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
     parcel_return.status = "รอตรวจสอบ"
+    parcel_return.approved_at = None
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
 
@@ -10300,6 +10391,7 @@ def reject_petty_claim(claim_id):
     )
 
     claim.status = "ปฏิเสธ"
+    claim.approved_at = None
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("ปฏิเสธรายการเบิกเงินสดย่อยเรียบร้อยแล้ว", "info")
@@ -10332,6 +10424,7 @@ def confirm_petty_claim_edit(claim_id):
         return _validation_error_response("รายการนี้ไม่มีการแก้ไขที่รอการยืนยัน")
 
     claim.status = "รอตรวจสอบ"
+    claim.approved_at = None
     db.session.commit()
     if claim.fund_request_id:
         _recalculate_fund_request_submission_status(claim.fund_request_id)

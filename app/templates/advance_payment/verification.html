@@ -22,24 +22,14 @@
       <div class="col-12 col-lg-10">
     <div class="d-flex align-items-start mb-4">
       <div>
-        <span class="text-uppercase text-primary fw-bold small">ชื่อโครงการ/วัตุถุประสงค์</span>
-        <h2 class="h3 fw-bold mb-0 py-2">{{ borrowing_ticket.borrowing_ticket_purpose }}</h2>
+        <span class="text-uppercase text-primary fw-bold small">เลขที่บย.</span>
+        <h2 class="h3 fw-bold mb-0 py-2">{{ borrowing_ticket.number if borrowing_ticket.number else 'รอการตั้งเลขบย.' }}</h2>
       </div>
     </div>
     <div class="col-6 col-md-4">
-        <h4 class="text-muted small mb-1"><strong>เลขที่บย.</strong></h4>
-        <h5 class="mb-0 text-dark fw-semibold">{{borrowing_ticket.number if borrowing_ticket.number else 'รอการตั้งเลขบย.' }}</h5>
+        <h5 class="text-muted small mb-1"><strong>ชื่อโครงการ/วัตุถุประสงค์</strong></h5>
+        <h6 class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_ticket_purpose }}</h6>
     </div></br>
-    <div class="row g-3 text-start mb-3">
-      <div class="col-12 col-md-4">
-        <p class="text-muted small mb-1"><strong>เลขที่อนุมัติยืมเงิน</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_ref_no or '-' }}</p>
-      </div>
-      <div class="col-12 col-md-4">
-        <p class="text-muted small mb-1"><strong>วันที่หนังสือได้รับการอนุมัติ</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_date|thai_date if borrowing_ticket.borrowing_approval_date else '-' }}</p>
-      </div>
-    </div>
     <div class="row g-3 text-start mb-3">
       <div class="col-6 col-md-4">
         <p class="text-muted small mb-1"><strong>ผู้ยืม</strong></p>
@@ -58,9 +48,9 @@
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.account_number }}</p>
       </div>
       {% if borrowing_ticket.status|lower == "ปฏิเสธ" %}
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-8">
         <p class="text-muted small mb-1"><strong>เหตุผลในการปฏิเสธ</strong></p>
-        <p class="mb-0 text-dark fw-semibold" style="white-space: pre-line;">{{ borrowing_ticket.rejection_comment|latest_rejection_comment }}</p>
+        <p class="mb-0 text-danger fw-semibold" style="white-space: pre-line;">{{ borrowing_ticket.rejection_comment|latest_rejection_comment }}</p>
       </div>
       {% else %}
       <div class="col-12 col-md-4">
@@ -85,48 +75,6 @@
       </div>
     </div>
 
-    {% if borrowing_ticket.status|lower not in ["กำลังส่งคำขอ", "กำลังดำเนินการ", "ปฏิเสธ"]  %}
-      <hr class="my-4">
-      <div class="row g-3 text-start">
-        <div class="col-4">
-          <p class="text-muted small mb-1"><strong>ยอดคืนของสัญญานี้</strong></p>
-          {% if (summary.cumulative_total or 0) >= (summary.budget or 0) %}
-            <h4 class="mb-0 text-success fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</h4>
-          {% else %}
-            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</p>
-          {% endif %}
-        </div>
-        <div class="col-4">
-          <p class="text-muted small mb-1"><strong>ยอดคงค้างของสัญญานี้</strong></p>
-          {% if (summary.remaining_amount or 0) > 0 %}
-            <h4 class="mb-0 text-danger fw-semibold">{{ "{:,.2f}".format(summary.remaining_amount or 0) }}</h4>
-          {% else %}
-            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.remaining_amount or 0) }}</p>
-          {% endif %}
-        </div>
-        <div class="col-4">
-          <p class="text-muted small mb-1"><strong>วันครบกำหนด</strong></p>
-          <p class="mb-0 text-dark fw-semibold">
-            {% set targeted_due_date = notifications.due_date if (notifications and notifications.due_date) else borrowing_ticket.due_date %}
-            {% if targeted_due_date %}
-              {{ targeted_due_date|thai_date }}
-              
-              {% if borrowing_ticket.status|lower == 'เลยกำหนด' and borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and today > targeted_due_date %}
-                {% set diff = (today - targeted_due_date).days %}
-                <span class="text-danger fw-bold">({{ diff }} วัน)</span>
-              {% elif borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and borrowing_ticket.status|lower != 'เคลียร์ยอดแล้ว' and today <= targeted_due_date %}
-                {% set diff_remaining = (targeted_due_date - today).days %}
-                {% if diff_remaining <= 15 %}
-                  <span class="text-warning fw-bold">(เหลือ {{ diff_remaining }} วัน)</span>
-                {% endif %}
-              {% endif %}
-            {% else %}
-              -
-            {% endif %}
-          </p>
-        </div>
-      </div>
-    {% endif %}
     </div>
 
       <div class="col-12 col-lg-2">
@@ -168,6 +116,60 @@
         </div>
       </div>
     </div>
+    {% if borrowing_ticket.approved_at %}
+      <hr class="my-4">
+      <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 text-start">
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.budget or 0) }}</p>
+        </div>
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>ยอดคืนแล้ว</strong></p>
+          {% if (summary.cumulative_total or 0) >= (summary.budget or 0) %}
+            <h4 class="mb-0 text-success fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</h4>
+          {% else %}
+            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</p>
+          {% endif %}
+        </div>
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>ยอดรอตรวจสอบ</strong></p>
+          {% if (summary.pending_amount or 0) > 0 %}
+            <h4 class="mb-0 text-warning fw-semibold">{{ "{:,.2f}".format(summary.pending_amount or 0) }}</h4>
+          {% else %}
+            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.pending_amount or 0) }}</p>
+          {% endif %}
+        </div>
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>ยอดคงค้าง</strong></p>
+          {% if (summary.unsubmitted_amount or 0) > 0 %}
+            <h4 class="mb-0 text-danger fw-semibold">{{ "{:,.2f}".format(summary.unsubmitted_amount or 0) }}</h4>
+          {% else %}
+            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.unsubmitted_amount or 0) }}</p>
+          {% endif %}
+        </div>
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>วันครบกำหนด</strong></p>
+          <p class="mb-0 text-dark fw-semibold">
+            {% set targeted_due_date = notifications.due_date if (notifications and notifications.due_date) else borrowing_ticket.due_date %}
+            {% if targeted_due_date %}
+              {{ targeted_due_date|thai_date }}
+
+              {% if borrowing_ticket.status|lower == 'เลยกำหนด' and borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and today > targeted_due_date %}
+                {% set diff = (today - targeted_due_date).days %}
+                <span class="text-danger fw-bold">({{ diff }} วัน)</span>
+              {% elif borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and borrowing_ticket.status|lower != 'เคลียร์ยอดแล้ว' and today <= targeted_due_date %}
+                {% set diff_remaining = (targeted_due_date - today).days %}
+                {% if diff_remaining <= 15 %}
+                  <span class="text-warning fw-bold">(เหลือ {{ diff_remaining }} วัน)</span>
+                {% endif %}
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    {% endif %}
     {% if advance_payment_role == 'finance' %}
       <div class="my-4"></div>
       {% if borrowing_ticket.status|lower in ["กำลังส่งคำขอ", "กำลังดำเนินการ"] %}
@@ -253,7 +255,7 @@
           <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
         </button>
       </div>
-    {% elif advance_payment_role != 'finance'  %}
+    {% elif advance_payment_role != 'finance' and borrowing_ticket.status|lower != 'ปฏิเสธ'  %}
       <div class="d-flex justify-content-end mt-3">
         <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
           <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน

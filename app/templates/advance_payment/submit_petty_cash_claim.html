@@ -13,8 +13,8 @@
     <div class="col-12 col-lg-10">
       <div class="d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3 mb-4">
         <div>
-          <span class="text-uppercase text-primary fw-bold small">วัตถุประสงค์</span>
-          <h2 class="h3 fw-bold mb-0 py-2">{{ verification_purpose }}</h2>
+          <span class="text-uppercase text-primary fw-bold small">เลขที่ใบเบิก</span>
+          <h2 class="h3 fw-bold mb-0 py-2">{{ verification_ticket_number }}</h2>
         </div>
         <div class="d-flex flex-column align-items-md-end gap-2 flex-wrap">
           <div class="text-md-end">
@@ -28,8 +28,8 @@
       </div>
 
       <div class="col-12 col-md-4 mb-3">
-        <p class="text-muted small mb-1"><strong>เลขที่ใบเบิก</strong></p>
-        <h5 class="mb-0 text-dark fw-semibold">{{ verification_ticket_number }}</h5>
+        <p class="text-muted small mb-1"><strong>วัตถุประสงค์</strong></p>
+        <h5 class="mb-0 text-dark fw-semibold">{{ verification_purpose }}</h5>
       </div>
 
       <div class="row g-3 text-start mb-3">
@@ -83,6 +83,35 @@
       </div>
     </div>
   </div>
+  {% if fund_request_total_info is defined %}
+  <hr class="my-4">
+  <div class="row row-cols-2 row-cols-md-4 g-3 text-start">
+    <div class="col">
+      <p class="text-muted small mb-1"><strong>ยอดที่ขอไป</strong></p>
+      <p class="mb-0 text-dark fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.request_amount or 0) }}</p>
+    </div>
+    <div class="col">
+      <p class="text-muted small mb-1"><strong>ยอดส่งเบิกแล้ว</strong></p>
+      <p class="mb-0 text-success fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.approved_total or 0) }}</p>
+    </div>
+    <div class="col">
+      <p class="text-muted small mb-1"><strong>ยอดรอตรวจสอบ</strong></p>
+      {% if (fund_request_total_info.pending_total or 0) > 0 %}
+        <h4 class="mb-0 text-warning fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.pending_total or 0) }}</h4>
+      {% else %}
+        <p class="mb-0 text-dark fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.pending_total or 0) }}</p>
+      {% endif %}
+    </div>
+    <div class="col">
+      <p class="text-muted small mb-1"><strong>ยอดคงค้าง</strong></p>
+      {% if (fund_request_total_info.unsubmitted_amount or 0) > 0 %}
+        <h4 class="mb-0 text-danger fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.unsubmitted_amount or 0) }}</h4>
+      {% else %}
+        <p class="mb-0 text-dark fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.unsubmitted_amount or 0) }}</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
   {% if verification_fund_request and (can_confirm_fund_request or can_approve_fund_request or can_reject_fund_request or can_record_fund_request_withdrawal or can_cancel_fund_request) %}
   <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top gap-2">
     <div class="text-start flex-grow-1">
