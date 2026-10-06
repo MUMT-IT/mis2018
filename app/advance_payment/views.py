@@ -2103,76 +2103,33 @@ def _prepare_document_display_list(documents):
     return prepared_documents
 
 
-def _sync_document_from_docs_query(source_document):
-    if source_document is None:
-        return None
-
-    canonical_title = (
-        source_document.document_title
-        or source_document.filename
-        or source_document.drive_file_id
-    )
-    view_url = _docs_query_view_url(source_document.drive_file_id)
-    download_url = _docs_query_download_url(source_document.drive_file_id)
-
-    document = (
-        db.session.query(Document)
-        .filter(
-            or_(
-                Document.file_path == view_url,
-                Document.title == canonical_title,
-            )
-        )
-        .first()
-    )
-
-    if document is None:
-        document = Document(
-            title=canonical_title,
-            file_path=view_url or download_url or "#",
-            created_at=datetime.now(),
-        )
-        db.session.add(document)
-        db.session.flush()
-    else:
-        document.title = canonical_title
-        document.file_path = view_url or download_url or document.file_path
-
-    document.download_url = download_url
-    document.view_url = view_url
-    document.file_id = source_document.drive_file_id
-    document.status = source_document.status
-    document.summary = source_document.summary
-    document.document_type = source_document.document_type
-    document.note = source_document.note
-    document.tags = _docs_query_document_tag_names(source_document)
-    document.is_expired = bool(source_document.is_expired)
-    return document
-
-
-def _get_or_create_document(title=None, source_document=None):
+def _get_document(title=None, source_document=None):
     cleaned_title = (title or "").strip()
     if source_document is None:
         source_document = _resolve_docs_query_document(title=cleaned_title)
 
     if source_document is not None:
-        return _sync_document_from_docs_query(source_document)
+        canonical_title = (
+            source_document.document_title
+            or source_document.filename
+            or source_document.drive_file_id
+        )
+        view_url = _docs_query_view_url(source_document.drive_file_id)
+        return (
+            db.session.query(Document)
+            .filter(
+                or_(
+                    Document.file_path == view_url,
+                    Document.title == canonical_title,
+                )
+            )
+            .first()
+        )
 
     if not cleaned_title:
         return None
 
-    document = db.session.query(Document).filter_by(title=cleaned_title).first()
-    # TODO: รอหาโซลูชั่นใหม่
-    if document is None:
-        dummy_file_path = f"/static/dummy_documents/{secure_filename(cleaned_title)}.pdf"
-        document = Document(
-            title=cleaned_title,
-            file_path=dummy_file_path,
-            created_at=datetime.now(),
-        )
-        db.session.add(document)
-        db.session.flush()
-    return document
+    return db.session.query(Document).filter_by(title=cleaned_title).first()
 
 
 def _resolve_document_reference(reference=None, title=None):
@@ -2204,7 +2161,7 @@ def _replace_documents_from_references(association_table, association_key, targe
     seen_document_ids = set()
     for reference in references or []:
         source_document, resolved_title = _resolve_document_reference(reference)
-        document = _get_or_create_document(resolved_title, source_document=source_document)
+        document = _get_document(resolved_title, source_document=source_document)
         if document is None or document.id in seen_document_ids:
             continue
         seen_document_ids.add(document.id)
@@ -8154,11 +8111,13 @@ def staff_fund_request():
             db.session.commit()
             _notify_next_fund_request_actor(new_request)
 
-            pdf_bytes = generate_fund_request_pdf(new_request)
-
-            response = current_app.response_class(pdf_bytes, mimetype='application/pdf')
-            response.headers['Content-Disposition'] = f'attachment; filename=Fund_Request_{new_request.id}.pdf'
-            return response
+            flash("สร้างใบเบิกเรียบร้อยแล้ว", "success")
+            if form_type != FUND_REQUEST_FORM_PETTY_CASH:
+                return staff_fund_request_history()
+            return submit_petty_cash_claim(
+                _render_after_post=True,
+                _forced_fund_request_id=new_request.id,
+            )
 
         except Exception as e:
             db.session.rollback()

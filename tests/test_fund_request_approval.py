@@ -273,6 +273,28 @@ class FundRequestApprovalTests(unittest.TestCase):
             self.views_text,
         )
 
+    def test_creating_fund_request_does_not_download_pdf(self):
+        create_source = self.views_text[
+            self.views_text.index("def staff_fund_request"):
+            self.views_text.index("def confirm_fund_request")
+        ]
+        form_template = (
+            ROOT / "app/templates/advance_payment/staff_fund_request.html"
+        ).read_text(encoding="utf-8-sig")
+
+        self.assertNotIn("generate_fund_request_pdf(new_request)", create_source)
+        self.assertNotIn("Fund_Request.pdf", form_template)
+        self.assertNotIn("return res.blob()", form_template)
+        self.assertIn(
+            "if form_type != FUND_REQUEST_FORM_PETTY_CASH:",
+            create_source,
+        )
+        self.assertIn("return staff_fund_request_history()", create_source)
+        self.assertIn("return submit_petty_cash_claim(", create_source)
+        self.assertIn("_render_after_post=True", create_source)
+        self.assertIn("_forced_fund_request_id=new_request.id", create_source)
+        self.assertIn('submitBtn.innerText = "กำลังบันทึก..."', form_template)
+
     def test_approval_and_rejection_controls_only_exist_on_claim_page(self):
         claim_template = (
             ROOT / "app/templates/advance_payment/submit_petty_cash_claim.html"

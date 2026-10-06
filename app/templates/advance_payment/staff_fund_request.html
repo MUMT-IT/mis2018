@@ -760,53 +760,11 @@
           input.removeAttribute("readonly");
         });
 
-        // 4. ส่งข้อมูลแบบ Fetch (AJAX)
-        const formData = new FormData(mainForm);
+        // 4. ส่งฟอร์มตามปกติ แล้วให้ backend เลือกหน้าปลายทางตามประเภทใบเบิก
         const submitBtn = mainForm.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.innerHTML;
         submitBtn.disabled = true;
-        submitBtn.innerText = "กำลังบันทึกและสร้าง PDF...";
-
-        fetch(mainForm.action, {
-          method: 'POST',
-          body: formData,
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(res => {
-          const contentType = res.headers.get('content-type') || '';
-          if (contentType.includes('application/json')) {
-            return res.json().then(payload => {
-              throw new Error(payload.message || 'กรุณาตรวจสอบข้อมูลในฟอร์ม');
-            });
-          }
-          if (!res.ok) throw new Error('เกิดข้อผิดพลาดในการบันทึกเอกสาร');
-          return res.blob();
-        })
-        .then(blob => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'Fund_Request.pdf';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          window.URL.revokeObjectURL(url);
-
-          setTimeout(() => {
-            window.location.href = "{{ url_for('advance_payment.staff_fund_request_history') }}";
-          }, 300);
-        })
-        .catch(err => {
-          window.openAppPopup({
-            title: "กรุณาตรวจสอบข้อมูล",
-            message: err.message,
-            confirmText: "ตกลง",
-            confirmClass: "btn-danger",
-            alertOnly: true,
-          });
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalBtnText;
-        });
+        submitBtn.innerText = "กำลังบันทึก...";
+        mainForm.submit();
       });
       
       calculateTotalSpent();
