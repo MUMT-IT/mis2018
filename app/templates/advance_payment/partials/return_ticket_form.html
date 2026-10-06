@@ -44,8 +44,21 @@
 <!--        {% endif %}-->
         <input type="hidden" name="action" id="action_{{ borrowing_ticket.id }}" value="submit">
 
-        <div class="mb-4 border rounded-3 p-3 bg-white">
-          <h4 class="h6 fw-bold text-dark mb-3">แนบเอกสารประกาศประกอบ (ถ้ามี)</h4>
+        <div class="accordion" id="returnAccordion_{{ borrowing_ticket.id }}">
+        <div class="card p-3 mb-4 border rounded-4 shadow-sm bg-white">
+          <h3 class="h5 mb-0" id="returnSectionHeading_{{ borrowing_ticket.id }}">
+            <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#returnSectionCollapse_{{ borrowing_ticket.id }}"
+                    aria-expanded="true" aria-controls="returnSectionCollapse_{{ borrowing_ticket.id }}">
+              <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
+              รายการส่งใช้เงินยืมทดรองจ่าย
+              <i class="bi bi-chevron-down ms-auto text-muted"></i>
+            </button>
+          </h3>
+          <div id="returnSectionCollapse_{{ borrowing_ticket.id }}" class="collapse show" aria-labelledby="returnSectionHeading_{{ borrowing_ticket.id }}">
+          <div class="pt-3">
+          <section aria-labelledby="returnAnnouncementHeading_{{ borrowing_ticket.id }}">
+          <h4 class="h6 fw-bold text-dark mb-3" id="returnAnnouncementHeading_{{ borrowing_ticket.id }}"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h4>
 
           <div id="document-inputs-container-{{ borrowing_ticket.id }}">
             {% if borrowing_ticket.draft_announcements and borrowing_ticket.draft_announcements|length > 0 %}
@@ -100,10 +113,10 @@
           <div class="col-md-12 mt-2">
             <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบการเบิกเงินยืมด้วย *</small>
           </div>
-        </div>
+          </section>
 
-        <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-          <h3 class="h5 fw-bold text-dark mb-3">รายการส่งฝ่ายการเงิน</h3>
+          <section class="mt-3" aria-labelledby="returnFinanceItemsHeading_{{ borrowing_ticket.id }}">
+          <h3 class="h5 fw-bold text-dark mb-3" id="returnFinanceItemsHeading_{{ borrowing_ticket.id }}"><i class="bi bi-receipt me-2 text-primary"></i>รายการส่งฝ่ายการเงิน</h3>
           <div class="table-responsive">
             <table class="table table-bordered align-middle mb-0" id="receiptTable_{{ borrowing_ticket.id }}">
               <thead class="table-light small fw-bold">
@@ -168,10 +181,23 @@
               </button>
             </div>
           </div>
+          </section>
+          </div>
+          </div>
         </div>
 
-        <div class="card p-4 mb-4 border rounded-4 shadow-sm circular-return-section">
-          <h3 class="h5 fw-bold text-dark mb-3">รายการส่งการเงิน ว-119 / ว-5763</h3>
+        <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
+          <h3 class="h5 mb-0" id="returnCircularHeading_{{ borrowing_ticket.id }}">
+            <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start collapsed"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#returnCircularCollapse_{{ borrowing_ticket.id }}"
+                    aria-expanded="false" aria-controls="returnCircularCollapse_{{ borrowing_ticket.id }}">
+              <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+              รายการส่งการเงิน ว-119 / ว-5763
+              <i class="bi bi-chevron-down ms-auto text-muted"></i>
+            </button>
+          </h3>
+          <div id="returnCircularCollapse_{{ borrowing_ticket.id }}" class="collapse" aria-labelledby="returnCircularHeading_{{ borrowing_ticket.id }}">
+          <div class="pt-3">
           <div class="d-flex align-items-start gap-2 mb-2">
             <span class="text-danger text-sm-left flex-grow-1">คณบดี/รองคณบดี อนุมัติภายใน 5 วันทำการนับถัดจากวันที่ลงในใบเสร็จ (วงเงินไม่เกิน 10,000 บาทต่อใบเสร็จ และอยู่ในหมวดที่ได้รับการยกเว้น)</span>
             {% include 'advance_payment/partials/circular_return_reference_tooltip.html' %}
@@ -223,10 +249,22 @@
               <input type="text" name="circular_amount" id="circular_amount_{{ borrowing_ticket.id }}" data-ticket-id="{{ borrowing_ticket.id }}" class="form-control circular-amount-input circular-return-input" placeholder="0.00">
             </div>
           </div>
+          </div>
+          </div>
         </div>
 
-        <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-          <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
+        <div class="card p-3 mb-4 border rounded-4 shadow-sm">
+          <h3 class="h5 mb-0" id="returnParcelHeading_{{ borrowing_ticket.id }}">
+            <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start collapsed"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#returnParcelCollapse_{{ borrowing_ticket.id }}"
+                    aria-expanded="false" aria-controls="returnParcelCollapse_{{ borrowing_ticket.id }}">
+              <i class="bi bi-box-seam me-2 text-primary"></i>
+              รายการที่ส่งไปฝ่ายพัสดุ
+              <i class="bi bi-chevron-down ms-auto text-muted"></i>
+            </button>
+          </h3>
+          <div id="returnParcelCollapse_{{ borrowing_ticket.id }}" class="collapse" aria-labelledby="returnParcelHeading_{{ borrowing_ticket.id }}">
+          <div class="pt-3">
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
@@ -241,11 +279,23 @@
               <input type="text" name="amount" id="parcel_amount_{{ borrowing_ticket.id }}" class="form-control parcel-amount-input parcel-return-input" required placeholder="0.00">
             </div>
           </div>
+          </div>
+          </div>
         </div>
 
         {% set cash_return_item = borrowing_ticket.cash_draft_item %}
-        <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-          <h3 class="h5 fw-bold text-dark mb-3">เงินเหลือส่งใช้เงินยืม</h3>
+        <div class="card p-3 mb-4 border rounded-4 shadow-sm">
+          <h3 class="h5 mb-0" id="returnCashHeading_{{ borrowing_ticket.id }}">
+            <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start{% if not cash_return_item %} collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse" data-bs-target="#returnCashCollapse_{{ borrowing_ticket.id }}"
+                    aria-expanded="{{ 'true' if cash_return_item else 'false' }}" aria-controls="returnCashCollapse_{{ borrowing_ticket.id }}">
+              <i class="bi bi-cash-coin me-2 text-primary"></i>
+              เงินเหลือส่งใช้เงินยืม
+              <i class="bi bi-chevron-down ms-auto text-muted"></i>
+            </button>
+          </h3>
+          <div id="returnCashCollapse_{{ borrowing_ticket.id }}" class="collapse{% if cash_return_item %} show{% endif %}" aria-labelledby="returnCashHeading_{{ borrowing_ticket.id }}">
+          <div class="pt-3">
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">วันที่ทำการโอน</label>
@@ -269,6 +319,9 @@
               {% endif %}
             </div>
           </div>
+          </div>
+          </div>
+        </div>
         </div>
 
         <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
@@ -527,6 +580,15 @@
         });
         form.submit();
       } else {
+        const firstInvalidField = form.querySelector('.is-invalid, :invalid');
+        const collapsedSection = firstInvalidField?.closest('.collapse');
+        if (collapsedSection && !collapsedSection.classList.contains('show')) {
+          if (window.bootstrap?.Collapse) {
+            window.bootstrap.Collapse.getOrCreateInstance(collapsedSection, { toggle: false }).show();
+          } else {
+            collapsedSection.classList.add('show');
+          }
+        }
         window.openAppPopup({
           title: "กรุณาตรวจสอบข้อมูล",
           message: "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วนก่อนทำการส่งเอกสาร",

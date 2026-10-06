@@ -259,7 +259,7 @@
 </div>
 {% endif %}
 <div id="pettyCashClaimFormPanel"{% if can_toggle_claim_form %} class="d-none"{% endif %}>
-<div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
+  <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
     <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm" novalidate data-ajax-validation="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden"
@@ -274,9 +274,25 @@
         </span>
       </div> -->
 
-      <!-- ข้อมูลหนังสืออนุมัติในหลักการ -->
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h5>
+      <div class="accordion" id="claimReturnAccordion">
+      <!-- ข้อมูลประกอบการส่งเบิก -->
+      <div class="card p-3 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 mb-0" id="claimSectionHeading">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#claimSectionCollapse"
+                  aria-expanded="true"
+                  aria-controls="claimSectionCollapse">
+            <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
+            รายการส่งเบิกเงินสดย่อย
+            <i class="bi bi-chevron-down ms-auto text-muted"></i>
+          </button>
+        </h3>
+        <div id="claimSectionCollapse" class="collapse show" aria-labelledby="claimSectionHeading">
+        <div class="pt-2">
+        <section class="mt-3" aria-labelledby="referenceInfoHeading">
+        <h5 class="fw-bold text-dark mb-3" id="referenceInfoHeading"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h5>
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" name="has_reference_info" id="hasReferenceInfo" value="true">
           <label class="form-check-label text-muted" for="hasReferenceInfo">ไม่มีหนังสือขออนุมัติในหลักการ</label>
@@ -294,7 +310,7 @@
             <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง</label>
             <input type="file" class="form-control reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
           </div>
-          <div class="col-md-5 mt-5">
+          <div class="col-md-4 d-flex flex-column-reverse">
             <div class="reference-filenames-container"></div>
             {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
               <input type="hidden" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
@@ -305,11 +321,11 @@
             {% endfor %}
           </div>
         </div>
-      </div>
+        </section>
 
       <!-- 2. ส่วนแนบเอกสารประกาศประกอบ -->
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h5>
+      <section class="mt-4" aria-labelledby="announcementHeading">
+        <h5 class="fw-bold text-dark mb-3" id="announcementHeading"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h5>
         <div id="document-inputs-container">
           {% if claim_detail and claim_detail.documents %}
             {% for doc in claim_detail.documents %}
@@ -363,24 +379,11 @@
         <div class="col-md-12 mt-2">
           <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบด้วย *</small>
         </div>
-      </div>
-      <div class="mb-4 border rounded-3 p-3 bg-white">
-      <h3 class="h5 fw-bold text-dark mb-3">รายการส่งฝ่ายการเงิน</h3>
+      </section>
+      <section class="mt-4" aria-labelledby="financeItemsHeading">
+      <h3 class="h5 fw-bold text-dark mb-3" id="financeItemsHeading"><i class="bi bi-receipt me-2 text-primary"></i>รายการส่งฝ่ายการเงิน</h3>
       {% set claim_form_items = claim_detail.items if claim_detail else (selected_fund_request.items if selected_fund_request else []) %}
       {% set claim_form_items_from_fund_request = not claim_detail and selected_fund_request and selected_fund_request.items %}
-      {% if claim_form_items_from_fund_request %}
-        <p class="small text-muted mb-3">
-          <i class="bi bi-info-circle me-1"></i>
-          นำรายการจากคำขอเบิกมาแสดงเป็นค่าเริ่มต้น สามารถแก้ไขหรือลบรายการที่ไม่ใช้ได้
-        </p>
-      {% endif %}
-      <div class="d-flex justify-content-end mb-3">
-        <div class="text-end text-secondary">
-          <span class="fw-bold">ยอดที่ขอไป: {{ '%.2f'|format(total_request_amount) }}</span>
-          <span class="fw-bold ms-3">ยอดที่เบิกไปแล้ว: {{ '%.2f'|format(total_claimed_amount + total_parcel_amount) }}</span>
-          <span class="fw-bold ms-3">ยอดคงเหลือ: {{ '%.2f'|format(total_request_amount - total_claimed_amount - total_parcel_amount) }}</span>
-        </div>
-      </div>
       <div class="table-responsive">
         <table class="table table-bordered align-middle" id="claimTable">
           <thead class="table-light small fw-bold">
@@ -489,18 +492,30 @@
           </button>
         </div>
       </div>
+      </section>
+      </div>
+      </div>
       </div>
 
 
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm circular-return-section">
-        {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
+      {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
+      <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
+        <h3 class="h5 mb-0" id="claimCircularHeading">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start collapsed"
+                  type="button" data-bs-toggle="collapse" data-bs-target="#claimCircularCollapse"
+                  aria-expanded="false" aria-controls="claimCircularCollapse">
+            <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+            รายการส่งการเงิน ว-119 / ว-5763
+            <i class="bi bi-chevron-down ms-auto text-muted"></i>
+          </button>
+        </h3>
+        <div id="claimCircularCollapse" class="collapse" aria-labelledby="claimCircularHeading">
+        <div class="pt-3">
         {% if parcel_return_fund_request_id %}
-        <h3 class="h5 fw-bold text-dark mb-3">รายการส่งการเงิน ว-119 / ว-5763</h3>
         <div class="d-flex align-items-start gap-2 mb-2">
           <span class="text-danger text-sm-left flex-grow-1">คณบดี/รองคณบดี อนุมัติภายใน 5 วันทำการนับถัดจากวันที่ลงในใบเสร็จ (วงเงินไม่เกิน 10,000 บาทต่อใบเสร็จ และอยู่ในหมวดที่ได้รับการยกเว้น)</span>
           {% include 'advance_payment/partials/circular_return_reference_tooltip.html' %}
         </div>
-        {% if parcel_return_fund_request_id %}
         <div class="d-flex flex-wrap gap-4 py-2 mb-2">
         <div class="form-check">
           <input
@@ -545,10 +560,23 @@
         {% else %}
         <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกยอดการคืน ว-119 / ว-5763 ได้</div>
         {% endif %}
+        </div>
+        </div>
       </div>
 
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
+      <div class="card p-3 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 mb-0" id="claimParcelHeading">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start collapsed"
+                  type="button" data-bs-toggle="collapse" data-bs-target="#claimParcelCollapse"
+                  aria-expanded="false" aria-controls="claimParcelCollapse">
+            <i class="bi bi-box-seam me-2 text-primary"></i>
+            รายการที่ส่งไปฝ่ายพัสดุ
+            <i class="bi bi-chevron-down ms-auto text-muted"></i>
+          </button>
+        </h3>
+        <div id="claimParcelCollapse" class="collapse" aria-labelledby="claimParcelHeading">
+        <div class="pt-3">
+        {% if parcel_return_fund_request_id %}
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
@@ -566,6 +594,8 @@
         {% else %}
         <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกการส่งคืนพัสดุได้</div>
         {% endif %}
+        </div>
+        </div>
       </div>
 
       {% set cash_return_item = none %}
@@ -576,8 +606,18 @@
           {% endif %}
         {% endfor %}
       {% endif %}
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">โอนคืนบัญชีเงินสดย่อย</h3>
+      <div class="card p-3 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 mb-0" id="claimCashReturnHeading">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start{% if not cash_return_item %} collapsed{% endif %}"
+                  type="button" data-bs-toggle="collapse" data-bs-target="#claimCashReturnCollapse"
+                  aria-expanded="{{ 'true' if cash_return_item else 'false' }}" aria-controls="claimCashReturnCollapse">
+            <i class="bi bi-cash-coin me-2 text-primary"></i>
+            เงินเหลือส่งใช้เงินยืม
+            <i class="bi bi-chevron-down ms-auto text-muted"></i>
+          </button>
+        </h3>
+        <div id="claimCashReturnCollapse" class="collapse{% if cash_return_item %} show{% endif %}" aria-labelledby="claimCashReturnHeading">
+        <div class="pt-3">
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการโอน</label>
@@ -601,6 +641,9 @@
             {% endif %}
           </div>
         </div>
+        </div>
+        </div>
+      </div>
       </div>
 
       <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
@@ -644,9 +687,8 @@
           <i class="bi bi-send me-1"></i> ยืนยันส่งเบิกเงิน
         </button>
       </div>
-
-</form>
-</div>
+    </form>
+  </div>
 </div>
 <script>
 function togglePettyCashClaimForm() {
@@ -1075,6 +1117,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (!isValid) {
         event.preventDefault();
+        const firstInvalidField = claimForm.querySelector('.is-invalid, :invalid');
+        const collapsedSection = firstInvalidField?.closest('.collapse');
+        if (collapsedSection && !collapsedSection.classList.contains('show')) {
+          if (window.bootstrap?.Collapse) {
+            window.bootstrap.Collapse.getOrCreateInstance(collapsedSection, { toggle: false }).show();
+          } else {
+            collapsedSection.classList.add('show');
+          }
+        }
         window.openAppPopup({
           title: "กรุณาตรวจสอบข้อมูล",
           message: "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วนก่อนทำการส่งข้อมูล",
