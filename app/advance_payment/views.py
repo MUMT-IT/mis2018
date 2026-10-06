@@ -595,30 +595,78 @@ def _fund_request_custodian_id(fund_request):
 
 
 def _fund_request_org_head(fund_request):
-    """Resolve the account currently authorized as head for the request org."""
+    """Resolve the same head account used for the PDF approval signature."""
+    requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
+    requester_org = getattr(getattr(requester, "personal_info", None), "org", None)
+    requester_org_id = getattr(requester_org, "id", None)
+
     org = getattr(fund_request, "org", None)
     if org is None and getattr(fund_request, "org_id", None):
         org = db.session.query(Org).get(fund_request.org_id)
+    if org is None:
+        org = requester_org
 
+    # Keep the lookup order aligned with _get_head_signature(): requester org
+    # first, followed by the organization stored on the fund request.
+    candidate_org_ids = []
+    if requester_org_id is not None:
+        candidate_org_ids.append(requester_org_id)
+    request_org_id = getattr(org, "id", None)
+    if request_org_id is not None and request_org_id not in candidate_org_ids:
+        candidate_org_ids.append(request_org_id)
+
+    for candidate_org_id in candidate_org_ids:
+        candidate_org = (
+            org
+            if getattr(org, "id", None) == candidate_org_id
+            else db.session.query(Org).get(candidate_org_id)
+        )
+        head_identifier = (getattr(candidate_org, "head", None) or "").strip()
+        head_account = (
+            db.session.query(StaffAccount)
+            .filter(StaffAccount.email == head_identifier)
+            .first()
+            if head_identifier
+            else None
+        )
+
+        head_position_query = db.session.query(StaffHeadPosition).filter(
+            StaffHeadPosition.org_id == candidate_org_id
+        )
+        if head_account is not None:
+            head_position_query = head_position_query.filter(
+                StaffHeadPosition.staff_account_id == head_account.id
+            )
+        head_position = (
+            head_position_query
+            .order_by(StaffHeadPosition.id.desc())
+            .first()
+        )
+        if head_position is None:
+            continue
+
+        resolved_account = getattr(head_position, "staff", None) or head_account
+        personal_id = getattr(resolved_account, "personal_id", None)
+        if personal_id is None:
+            continue
+        personal_info = getattr(resolved_account, "personal_info", None)
+        if personal_info is None:
+            personal_info = (
+                db.session.query(StaffPersonalInfo)
+                .filter(StaffPersonalInfo.id == personal_id)
+                .first()
+            )
+        if personal_info is not None:
+            return resolved_account
+
+    # Match the PDF fallback: walk up the org hierarchy, resolve Org.head as
+    # StaffAccount.email, then follow personal_id to StaffPersonalInfo.
     visited_org_ids = set()
     while org is not None:
         org_key = getattr(org, "id", None) or id(org)
         if org_key in visited_org_ids:
             break
         visited_org_ids.add(org_key)
-
-        # staff_head_positions is the maintained source of truth. Keep the
-        # older org.head email as a fallback for organizations not migrated
-        # to that table yet.
-        head_position = (
-            db.session.query(StaffHeadPosition)
-            .filter(StaffHeadPosition.org_id == getattr(org, "id", None))
-            .order_by(StaffHeadPosition.id.desc())
-            .first()
-        )
-        head_account = getattr(head_position, "staff", None) if head_position else None
-        if head_account is not None:
-            return head_account
 
         head_identifier = (getattr(org, "head", None) or "").strip()
         if head_identifier:
@@ -627,7 +675,15 @@ def _fund_request_org_head(fund_request):
                 .filter(StaffAccount.email == head_identifier)
                 .first()
             )
-            if head_account is not None:
+            personal_id = getattr(head_account, "personal_id", None)
+            personal_info = (
+                db.session.query(StaffPersonalInfo)
+                .filter(StaffPersonalInfo.id == personal_id)
+                .first()
+                if personal_id
+                else None
+            )
+            if head_account is not None and personal_info is not None:
                 return head_account
 
         parent_id = getattr(org, "parent_id", None)
@@ -663,19 +719,32 @@ def _is_fund_request_org_head(user, fund_request):
     return _staff_accounts_match(user, _fund_request_org_head(fund_request))
 
 
+def _fund_request_requester_is_org_head(fund_request):
+    requester = getattr(fund_request, "requester", None)
+    if requester is None:
+        requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
+    return _is_fund_request_org_head(requester, fund_request)
+
+
 def _fund_request_signature_state(fund_request):
     """Return signature timestamps for the requester and custodian roles."""
     creator_id = getattr(fund_request, "creator_id", None)
     requester_id = getattr(fund_request, "requester_id", None)
     custodian_id = _fund_request_custodian_id(fund_request)
     confirmed_by_id = getattr(fund_request, "confirmed_by_id", None)
+    delegated_requester_confirmation = bool(
+        getattr(fund_request, "confirmed_at", None)
+        and confirmed_by_id == custodian_id
+        and getattr(fund_request, "approved_by_id", None) == custodian_id
+        and _fund_request_requester_is_org_head(fund_request)
+    )
 
     requester_signed_at = (
         getattr(fund_request, "created_at", None)
         if creator_id == requester_id
         else (
             getattr(fund_request, "confirmed_at", None)
-            if confirmed_by_id == requester_id
+            if confirmed_by_id == requester_id or delegated_requester_confirmation
             else None
         )
     )
@@ -715,7 +784,29 @@ def _fund_request_is_fully_approved(fund_request):
     )
 
 
+def _apply_delegated_head_requester_confirmation(fund_request):
+    """Fill the one missing confirmation when a custodian approved for a head requester."""
+    if getattr(fund_request, "confirmed_at", None):
+        return False
+
+    custodian_id = _fund_request_custodian_id(fund_request)
+    approved_by_id = getattr(fund_request, "approved_by_id", None)
+    approved_at = getattr(fund_request, "approved_at", None)
+    if not (
+        approved_at
+        and custodian_id
+        and approved_by_id == custodian_id
+        and _fund_request_requester_is_org_head(fund_request)
+    ):
+        return False
+
+    fund_request.confirmed_at = approved_at
+    fund_request.confirmed_by_id = approved_by_id
+    return True
+
+
 def _sync_fund_request_approval_status(fund_request):
+    _apply_delegated_head_requester_confirmation(fund_request)
     if (
         (getattr(fund_request, "status", None) or "").strip() == "รอการอนุมัติ"
         and _fund_request_is_fully_approved(fund_request)
@@ -1843,6 +1934,33 @@ def _coerce_date(value):
         except ValueError:
             return None
     return None
+
+
+def _normalize_ledger_row_dates(receipt_date, created_at):
+    """Return comparable dates for a ledger row, or None when it is undated."""
+    if isinstance(receipt_date, datetime):
+        normalized_receipt_date = receipt_date.date()
+    else:
+        normalized_receipt_date = _coerce_date(receipt_date)
+
+    # An approved request does not have a withdrawal date yet and must not be
+    # recorded as a bank transaction until that date is supplied.
+    if normalized_receipt_date is None:
+        return None
+
+    if isinstance(created_at, datetime):
+        normalized_created_at = created_at
+    else:
+        created_date = _coerce_date(created_at) or normalized_receipt_date
+        if isinstance(created_date, datetime):
+            normalized_created_at = created_date
+        else:
+            normalized_created_at = datetime.combine(
+                created_date,
+                datetime.min.time(),
+            )
+
+    return normalized_receipt_date, normalized_created_at
 
 
 def _receipt_requires_additional_document(receipt_date):
@@ -8150,7 +8268,12 @@ def approve_fund_request(request_id):
 
         # If the approving user is also the outstanding requester/custodian,
         # the same explicit action satisfies both roles.
-        if _fund_request_expected_confirmer_id(fund_req) == staff.id:
+        expected_confirmer_id = _fund_request_expected_confirmer_id(fund_req)
+        delegated_head_requester = bool(
+            is_custodian
+            and _fund_request_requester_is_org_head(fund_req)
+        )
+        if expected_confirmer_id == staff.id or delegated_head_requester:
             fund_req.confirmed_at = acted_at
             fund_req.confirmed_by_id = staff.id
 
@@ -8246,7 +8369,9 @@ def reject_fund_request(request_id):
 
     staff = current_user
     setting = _resolve_petty_cash_setting_for_fund_request(staff, fund_req)
-    if not staff.is_authenticated or not _is_petty_cash_custodian(staff, setting):
+    is_head = _is_fund_request_org_head(staff, fund_req)
+    is_custodian = _is_petty_cash_custodian(staff, setting)
+    if not staff.is_authenticated or not (is_head or is_custodian):
         abort(403)
 
     same_setting = _fund_request_setting_filter(
@@ -9128,6 +9253,19 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     # cat_6-only claims may have been completed before the last status-changing
     # request reached this flow, leaving the FundRequest status stale.
     if request.method == "GET" and selected_fund_request:
+        workflow_state_before = (
+            selected_fund_request.status,
+            selected_fund_request.confirmed_at,
+            selected_fund_request.confirmed_by_id,
+        )
+        _sync_fund_request_approval_status(selected_fund_request)
+        workflow_state_after = (
+            selected_fund_request.status,
+            selected_fund_request.confirmed_at,
+            selected_fund_request.confirmed_by_id,
+        )
+        if workflow_state_after != workflow_state_before:
+            db.session.commit()
         _recalculate_fund_request_submission_status(selected_fund_request.id)
         selected_fund_request = db.session.query(FundRequest).get(selected_fund_request.id)
 
@@ -9863,7 +10001,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     can_reject_fund_request = bool(
         verification_fund_request
         and fund_request_status == "รอการอนุมัติ"
-        and current_is_custodian
+        and (current_is_head or current_is_custodian)
     )
     can_record_fund_request_withdrawal = bool(
         verification_fund_request
@@ -10319,6 +10457,11 @@ def petty_cash_ledger():
         is_fund_request=False,
         sort_order=0,
     ):
+        normalized_dates = _normalize_ledger_row_dates(receipt_date, created_at)
+        if normalized_dates is None:
+            return
+        receipt_date, created_at = normalized_dates
+
         ledger_raw_items.append({
             "receipt_date": receipt_date,
             "created_at": created_at,

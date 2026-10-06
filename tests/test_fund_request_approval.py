@@ -16,6 +16,9 @@ class FundRequestApprovalTests(unittest.TestCase):
         cls.views_text = (
             ROOT / "app/advance_payment/views.py"
         ).read_text(encoding="utf-8-sig")
+        cls.pdf_text = (
+            ROOT / "app/advance_payment/pdf_utils.py"
+        ).read_text(encoding="utf-8-sig")
         wanted_helpers = {
             "_staff_accounts_match",
             "_fund_request_signature_state",
@@ -31,6 +34,10 @@ class FundRequestApprovalTests(unittest.TestCase):
         ]
         namespace = {
             "_fund_request_custodian_id": lambda fund_request: fund_request.custodian_id,
+            "_fund_request_requester_is_org_head": (
+                lambda fund_request: getattr(fund_request, "requester_is_head", False)
+            ),
+            "_apply_delegated_head_requester_confirmation": lambda _fund_request: False,
         }
         exec(compile(ast.Module(helper_nodes, type_ignores=[]), "workflow_helpers", "exec"), namespace)
         cls.workflow = SimpleNamespace(**namespace)
@@ -83,6 +90,50 @@ class FundRequestApprovalTests(unittest.TestCase):
                 login_by_personal_record,
             )
         )
+
+    def test_head_lookup_matches_pdf_signature_resolution(self):
+        source = self.views_text[
+            self.views_text.index("def _fund_request_org_head"):
+            self.views_text.index("def _staff_accounts_match")
+        ]
+        email_lookup = ".filter(StaffAccount.email == head_identifier)"
+        position_lookup = (
+            "StaffHeadPosition.staff_account_id == head_account.id"
+        )
+        personal_lookup = "StaffPersonalInfo.id == personal_id"
+
+        self.assertIn(email_lookup, source)
+        self.assertIn(position_lookup, source)
+        self.assertIn(personal_lookup, source)
+        self.assertLess(source.index(email_lookup), source.index(position_lookup))
+
+    def test_fund_request_pdf_uses_head_and_custodian_names_directly(self):
+        source = self.pdf_text[
+            self.pdf_text.index("def generate_fund_request_pdf"):
+            self.pdf_text.index("def generate_petty_cash_ledger_pdf")
+        ]
+        self.assertNotIn("approver_name", source)
+        self.assertNotIn("approver_position", source)
+        self.assertNotIn("keeper_name", source)
+        self.assertNotIn("keeper_pos", source)
+        self.assertIn("( {head_name} )", source)
+        self.assertIn("( {custodian_name} )", source)
+        self.assertIn("delegated_requester_confirmation", source)
+        self.assertIn(
+            "requester_signature_line = requester if requester_signed_at else signature_placeholder",
+            source,
+        )
+        self.assertIn(
+            "custodian_signature_line = custodian_name if custodian_signed_at else signature_placeholder",
+            source,
+        )
+        self.assertIn(
+            "head_signature_line = head_name if approved_at else signature_placeholder",
+            source,
+        )
+        self.assertIn("<br/>{requester_signature_line}<br/>", source)
+        self.assertIn("<br/>{custodian_signature_line}<br/>", source)
+        self.assertIn("<br/>{head_signature_line}<br/>", source)
 
     def test_requester_creator_waits_for_custodian_then_approval(self):
         created_at = datetime(2026, 10, 5, 9, 0)
@@ -139,6 +190,49 @@ class FundRequestApprovalTests(unittest.TestCase):
         self.assertTrue(signatures["custodian_signed"])
         self.assertIsNone(
             self.workflow._fund_request_expected_confirmer_id(fund_request)
+        )
+
+    def test_custodian_delegated_approval_satisfies_head_requester_role(self):
+        acted_at = datetime(2026, 10, 6, 9, 0)
+        fund_request = SimpleNamespace(
+            creator_id=20,
+            requester_id=10,
+            custodian_id=20,
+            requester_is_head=True,
+            created_at=datetime(2026, 10, 5, 9, 0),
+            confirmed_at=acted_at,
+            confirmed_by_id=20,
+            approved_at=acted_at,
+            approved_by_id=20,
+            status="รอการอนุมัติ",
+        )
+
+        signatures = self.workflow._fund_request_signature_state(fund_request)
+        self.assertTrue(signatures["requester_signed"])
+        self.assertTrue(signatures["custodian_signed"])
+        self.assertEqual(
+            self.workflow._sync_fund_request_approval_status(fund_request),
+            "อนุมัติแล้ว",
+        )
+
+        approve_source = self.views_text[
+            self.views_text.index("def approve_fund_request"):
+            self.views_text.index("def record_fund_request_withdrawal")
+        ]
+        self.assertIn("delegated_head_requester", approve_source)
+        self.assertIn("_fund_request_requester_is_org_head(fund_req)", approve_source)
+
+    def test_existing_delegated_approval_is_reconciled_on_open(self):
+        helper_source = self.views_text[
+            self.views_text.index("def _apply_delegated_head_requester_confirmation"):
+            self.views_text.index("def _sync_fund_request_approval_status")
+        ]
+        self.assertIn("approved_by_id == custodian_id", helper_source)
+        self.assertIn("fund_request.confirmed_at = approved_at", helper_source)
+        self.assertIn("fund_request.confirmed_by_id = approved_by_id", helper_source)
+        self.assertIn(
+            "_sync_fund_request_approval_status(selected_fund_request)",
+            self.views_text,
         )
 
     def test_withdrawal_requires_complete_approval(self):
@@ -200,9 +294,42 @@ class FundRequestApprovalTests(unittest.TestCase):
             self.views_text.index("def reject_fund_request"):
             self.views_text.index("def cancel_fund_request")
         ]
+        self.assertIn("is_head = _is_fund_request_org_head(staff, fund_req)", reject_source)
+        self.assertIn("not (is_head or is_custodian)", reject_source)
         self.assertIn("fund_req.cancel_at = datetime.now()", reject_source)
         self.assertIn("fund_req.rejection_comment = rejection_comment", reject_source)
         self.assertNotIn("cancel_transferred_at", reject_source)
+
+    def test_only_custodian_can_record_withdrawal(self):
+        withdrawal_source = self.views_text[
+            self.views_text.index("def record_fund_request_withdrawal"):
+            self.views_text.index("def reject_fund_request")
+        ]
+        self.assertIn("_is_petty_cash_custodian(staff, setting)", withdrawal_source)
+        self.assertNotIn("is_head =", withdrawal_source)
+
+    def test_post_approval_buttons_match_withdrawal_button_height(self):
+        claim_template = (
+            ROOT / "app/templates/advance_payment/submit_petty_cash_claim.html"
+        ).read_text(encoding="utf-8-sig")
+        self.assertIn(
+            'class="d-flex flex-wrap justify-content-end align-items-end gap-2"',
+            claim_template,
+        )
+        self.assertIn(
+            'class="btn btn-outline-danger btn-sm fw-bold px-3 py-2"',
+            claim_template,
+        )
+
+    def test_withdrawal_details_are_collected_in_modal(self):
+        claim_template = (
+            ROOT / "app/templates/advance_payment/submit_petty_cash_claim.html"
+        ).read_text(encoding="utf-8-sig")
+        self.assertIn('data-bs-target="#fundRequestWithdrawalModal', claim_template)
+        self.assertIn('id="fundRequestWithdrawalModal{{', claim_template)
+        self.assertIn("advance_payment.record_fund_request_withdrawal", claim_template)
+        self.assertIn('name="request_date"', claim_template)
+        self.assertIn('name="withdrawal_proof_file"', claim_template)
 
     def test_migration_backfills_approved_at_from_created_at(self):
         migration = (

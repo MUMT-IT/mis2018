@@ -154,7 +154,7 @@ def get_department_info_from_api(dept_name):
         return {
             "head": PDF_BLANK,
             "head_position": PDF_BLANK,
-            "keeper": _pdf_text(controller_info.get("name")),
+            "custodian": _pdf_text(controller_info.get("name")),
             "position": _pdf_text(controller_info.get("position"))
         }
     
@@ -162,7 +162,7 @@ def get_department_info_from_api(dept_name):
     return {
         "head": PDF_BLANK,
         "head_position": PDF_BLANK,
-        "keeper": PDF_BLANK,
+        "custodian": PDF_BLANK,
         "position": PDF_BLANK
     }
 
@@ -445,9 +445,9 @@ def _get_leave_approver_signatures(ticket):
             continue
 
         personal_info = getattr(approver_account, "personal_info", None)
-        approver_name = getattr(personal_info, "fullname", None)
-        if not approver_name and personal_info is not None:
-            approver_name = " ".join(
+        signer_name = getattr(personal_info, "fullname", None)
+        if not signer_name and personal_info is not None:
+            signer_name = " ".join(
                 value for value in (
                     getattr(personal_info, "th_firstname", None),
                     getattr(personal_info, "th_lastname", None),
@@ -460,7 +460,7 @@ def _get_leave_approver_signatures(ticket):
             .first()
         )
         signatures.append((
-            _pdf_text(approver_name),
+            _pdf_text(signer_name),
             _pdf_text(getattr(position_record, "position", None)),
         ))
 
@@ -1653,43 +1653,34 @@ def generate_fund_request_pdf(fund_request):
     if request_setting is None and getattr(fund_request, "petty_cash_setting_id", None):
         request_setting = db.session.query(PettyCashSetting).get(fund_request.petty_cash_setting_id)
     custodian_user = _get_user_by_id(getattr(request_setting, "custodian_id", None))
-    keeper_name = _pdf_text(
+    custodian_name = _pdf_text(
         getattr(custodian_user, "name", None)
         or getattr(custodian_user, "fullname", None)
-        or dept_info.get("keeper")
+        or dept_info.get("custodian")
     )
-    keeper_pos = _pdf_text(
+    custodian_position = _pdf_text(
         getattr(custodian_user, "position", None)
         or dept_info.get("position")
     )
 
     approved_at = getattr(fund_request, "approved_at", None)
-    approved_by_user = _get_user_by_id(getattr(fund_request, "approved_by_id", None))
-    if approved_by_user is not None:
-        approver_name = _pdf_text(
-            getattr(approved_by_user, "name", None)
-            or getattr(approved_by_user, "fullname", None)
-        )
-        approver_position = _pdf_text(getattr(approved_by_user, "position", None))
-    elif approved_at:
-        # Compatibility for records approved before approved_by_id existed.
-        approver_name = _pdf_text(head_name)
-        approver_position = _pdf_text(head_position)
-    else:
-        # A pending document must not imply that a particular person approved it.
-        approver_name = PDF_BLANK
-        approver_position = PDF_BLANK
 
     creator_id = getattr(fund_request, "creator_id", None)
     requester_id = getattr(fund_request, "requester_id", None)
     custodian_id = getattr(request_setting, "custodian_id", None)
     confirmed_by_id = getattr(fund_request, "confirmed_by_id", None)
+    delegated_requester_confirmation = bool(
+        getattr(fund_request, "confirmed_at", None)
+        and creator_id != requester_id
+        and confirmed_by_id == custodian_id
+        and getattr(fund_request, "approved_by_id", None) == custodian_id
+    )
     requester_signed_at = (
         getattr(fund_request, "created_at", None)
         if creator_id == requester_id
         else (
             getattr(fund_request, "confirmed_at", None)
-            if confirmed_by_id == requester_id
+            if confirmed_by_id == requester_id or delegated_requester_confirmation
             else None
         )
     )
@@ -1712,7 +1703,11 @@ def generate_fund_request_pdf(fund_request):
     requester_signature_date = signature_date(requester_signed_at)
     custodian_signature_date = signature_date(custodian_signed_at)
     approver_signature_date = signature_date(approved_at)
-    
+    signature_placeholder = "......................................................."
+    requester_signature_line = requester if requester_signed_at else signature_placeholder
+    custodian_signature_line = custodian_name if custodian_signed_at else signature_placeholder
+    head_signature_line = head_name if approved_at else signature_placeholder
+
     amount_source = fund_request.amount
     if amount_source is None and borrowing_ticket:
         amount_source = borrowing_ticket.required_budget
@@ -1838,9 +1833,9 @@ def generate_fund_request_pdf(fund_request):
 
     sig_box_data_1 = [
         [
-            Paragraph(f"ลงชื่อผู้ขอยืม<br/><br/>.......................................................<br/>( {requester} )<br/>ตำแหน่ง {requester_pos}<br/>วันที่ {requester_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>.......................................................<br/>( {keeper_name} )<br/>ตำแหน่ง {keeper_pos}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>.......................................................<br/>( {approver_name} )<br/>ตำแหน่ง {approver_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
+            Paragraph(f"ลงชื่อผู้ขอยืม<br/><br/>{requester_signature_line}<br/>( {requester} )<br/>ตำแหน่ง {requester_pos}<br/>วันที่ {requester_signature_date}", styles['ThaiCenter']),
+            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>{custodian_signature_line}<br/>( {custodian_name} )<br/>ตำแหน่ง {custodian_position}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
+            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>{head_signature_line}<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
         ]
     ]
     t_sig1 = Table(sig_box_data_1, colWidths=[165, 165, 165])
@@ -1975,8 +1970,8 @@ def generate_fund_request_pdf(fund_request):
 
     sig_box_data_2 = [
         [
-            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>.......................................................<br/>( {keeper_name} )<br/>ตำแหน่ง {keeper_pos}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
-            Paragraph(f"ลงชื่อผู้อนุมัติ/ผู้รับมอบอำนาจ<br/><br/>.......................................................<br/>( {approver_name} )<br/>ตำแหน่ง {approver_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
+            Paragraph(f"ลงชื่อผู้เก็บรักษาเงินสดย่อย<br/><br/>{custodian_signature_line}<br/>( {custodian_name} )<br/>ตำแหน่ง {custodian_position}<br/>วันที่ {custodian_signature_date}", styles['ThaiCenter']),
+            Paragraph(f"ลงชื่อผู้อนุมัติ<br/><br/>{head_signature_line}<br/>( {head_name} )<br/>ตำแหน่ง {head_position}<br/>วันที่ {approver_signature_date}", styles['ThaiCenter'])
         ]
     ]
     t_sig2 = Table(sig_box_data_2, colWidths=[220, 220])
@@ -2095,13 +2090,13 @@ def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
     ]))
     department = str(setting.department_name or PDF_BLANK)
     info = get_department_info_from_api(setting.department_name)
-    keeper_name = str(info.get("keeper") or PDF_BLANK)
-    keeper_pos = str(info.get("position") or PDF_BLANK)
+    custodian_name = str(info.get("custodian") or PDF_BLANK)
+    custodian_position = str(info.get("position") or PDF_BLANK)
     head_name, head_position = _get_head_signature(staff_account_id=getattr(setting, "custodian_id", None))
     signature_style = ParagraphStyle("LedgerSignature", parent=center, fontSize=11, leading=14)
     dotted_line = ".......................................................<br/>"
     signatures = Table([[
-        Paragraph(dotted_line + f"({keeper_name})<br/>ตำแหน่ง {keeper_pos} - ผู้เก็บรักษาเงินสดย่อย{department}", signature_style),
+        Paragraph(dotted_line + f"({custodian_name})<br/>ตำแหน่ง {custodian_position} - ผู้เก็บรักษาเงินสดย่อย{department}", signature_style),
         Paragraph(dotted_line + f"({head_name})<br/>ตำแหน่ง {head_position}", signature_style),
         Paragraph(dotted_line + "(&nbsp;" + "&nbsp;" * 55 + ")<br/>ตำแหน่ง นักวิชาการเงินและบัญชี", signature_style),
     ]], colWidths=[doc.width * 0.38, doc.width * 0.30, doc.width * 0.32])
