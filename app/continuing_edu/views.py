@@ -653,6 +653,7 @@ def register():
             full_name_th=full_name_th or None,
             full_name_en=full_name_en or None,
             phone_no=(request.form.get('phone_no') or None),
+            mt_license_no=(request.form.get('mt_license_no') or '').strip() or None,
             member_type_id=mt_id,
             age_range_id=ag_id,
             gender_id=g_id,
