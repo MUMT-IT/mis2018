@@ -9851,9 +9851,12 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
 
         if is_draft:
             flash("บันทึกฉบับร่างเรียบร้อยแล้ว", "success")
-        else:
-            flash("ส่งใบเบิกเงินสดย่อยเรียบร้อยแล้ว", "success")
+            return submit_petty_cash_claim(
+                _render_after_post=True,
+                _forced_fund_request_id=fund_request_id,
+            )
 
+        flash("ส่งใบเบิกเงินสดย่อยเรียบร้อยแล้ว", "success")
         return petty_cash_claim_detail(claim_detail.id)
 
     claim_query = db.session.query(PettyCashClaimDetail).filter_by(

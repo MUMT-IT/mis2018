@@ -370,6 +370,15 @@
       </div>
       <div class="mb-4 border rounded-3 p-3 bg-white">
       <h3 class="h5 fw-bold text-dark mb-3">รายการส่งฝ่ายการเงิน</h3>
+      {% set claim_form_items = claim_detail.items if claim_detail else (selected_fund_request.items if selected_fund_request else []) %}
+      {% set claim_form_items_from_fund_request = not claim_detail and selected_fund_request and selected_fund_request.items %}
+      {% set claim_form_amount = claim_detail.total_amount if claim_detail and claim_detail.total_amount is not none else (claim_form_items|sum(attribute='amount')) %}
+      {% if claim_form_items_from_fund_request %}
+        <p class="small text-muted mb-3">
+          <i class="bi bi-info-circle me-1"></i>
+          นำรายการจากคำขอเบิกมาแสดงเป็นค่าเริ่มต้น สามารถแก้ไขหรือลบรายการที่ไม่ใช้ได้
+        </p>
+      {% endif %}
       <div class="d-flex justify-content-end mb-3">
         <div class="text-end text-secondary">
           <span class="fw-bold">ยอดที่ขอไป: {{ '%.2f'|format(total_request_amount) }}</span>
@@ -391,14 +400,15 @@
             </tr>
           </thead>
           <tbody id="claimBody">
-            {% if claim_detail and claim_detail.items %}
-              {% for item in claim_detail.items %}
+            {% if claim_form_items %}
+              {% for item in claim_form_items %}
                 {% set row_index = loop.index0 %}
+                {% set item_proof_files = item.proof_files if not claim_form_items_from_fund_request else [] %}
                 <tr>
                   <td class="text-center fw-bold row-index">{{ loop.index }}</td>
                   <td>
                     <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker"
-                          value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}" placeholder="dd/mm/yyyy" required>
+                          value="{{ item.receipt_date.strftime('%Y-%m-%d') if not claim_form_items_from_fund_request and item.receipt_date else '' }}" placeholder="dd/mm/yyyy" required>
                     <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
                   </td>
                   <td>
@@ -419,8 +429,8 @@
                           value="{{ '%.2f'|format(item.amount) if item.amount else '' }}" placeholder="0.00" oninput="calculateTotal()" required>
                   </td>
                   <td>
-                    <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item.proof_files %}required{% endif %}>
-                    {% for proof_file in item.proof_files %}
+                    <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item_proof_files %}required{% endif %}>
+                    {% for proof_file in item_proof_files %}
                       <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
                       <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
                       <small class="text-success d-block mt-1">
@@ -436,7 +446,7 @@
                 </tr>
               {% endfor %}
 
-            {% else %}
+            {% elif not claim_detail %}
               <tr>
                 <td class="text-center fw-bold row-index">1</td>
                 <td>
@@ -611,7 +621,7 @@
           <div class="border-top border-3 border-dark my-2" style="border-top-style: dashed !important;"></div>
           <div class="d-flex justify-content-between align-items-center gap-4 text-dark fs-4">
             <span class="fw-bold">ยอดครั้งนี้</span>
-            <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="grandTotalDisplay" value="0.00" readonly aria-label="ยอดครั้งนี้">
+            <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="grandTotalDisplay" value="{{ '{:,.2f}'.format(claim_form_amount or 0) }}" readonly aria-label="ยอดครั้งนี้">
           </div>
           <div class="d-flex justify-content-between align-items-baseline gap-4 text-dark fs-4">
             <span class="fw-bold">ยอดคงค้าง</span>
@@ -1580,15 +1590,10 @@ function addRow() {
 }
 
 function removeRow(btn) {
-  const tbody = document.getElementById('claimBody');
-  if (tbody.querySelectorAll('tr').length > 1) {
-    btn.closest('tr').remove();
-    updateIndices();
-    calculateTotal();
-    triggerAutoSave();
-  } else {
-    alert("ต้องมีรายการอย่างน้อย 1 รายการ");
-  }
+  btn.closest('tr').remove();
+  updateIndices();
+  calculateTotal();
+  triggerAutoSave();
 }
 
 function updateIndices() {
