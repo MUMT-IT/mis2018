@@ -6734,20 +6734,22 @@ def _get_interest_tracker_data():
     current_year_be = today.year + 543
     previous_year_be = current_year_be - 1
 
-    # งวดที่ถึงกำหนดแล้ว: รอบเดือนมิถุนายนและธันวาคม
-    due_period_keys = []
-    if today.month <= 6:
-        due_period_keys.append(f"12/{previous_year_be}")
+    # Only show rounds that have been reached.  From January through May the
+    # latest available round is December of the previous year; June is added
+    # when June begins, and December is added when December begins.
+    interest_period_keys = []
+    if today.month < 6:
+        interest_period_keys.append(f"12/{previous_year_be}")
     else:
-        due_period_keys.append(f"06/{current_year_be}")
+        interest_period_keys.append(f"06/{current_year_be}")
         if today.month >= 12:
-            due_period_keys.append(f"12/{current_year_be}")
+            interest_period_keys.append(f"12/{current_year_be}")
 
     period_labels = {
         period_key: _format_interest_period_label(period_key)
-        for period_key in due_period_keys
+        for period_key in interest_period_keys
     }
-    current_interest_period = period_labels[due_period_keys[-1]]
+    current_interest_period = period_labels[interest_period_keys[-1]]
 
     active_settings = db.session.query(PettyCashSetting).filter(
         PettyCashSetting.valid == True,
@@ -6760,12 +6762,10 @@ def _get_interest_tracker_data():
         FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
         FundRequest.status == "เบิกเงินแล้ว",
     ).all()
-    submitted_periods_by_org = {}
     submitted_requests_by_org = {}
     for request in approved_interest_requests:
         if getattr(request, "org_id", None):
             period_key = _normalize_interest_period_value(request.period_year)
-            submitted_periods_by_org.setdefault(request.org_id, set()).add(period_key)
             submitted_requests_by_org.setdefault(request.org_id, {}).setdefault(
                 period_key, request
             )
@@ -6787,49 +6787,39 @@ def _get_interest_tracker_data():
 
     pending_interest_departments = []
     for setting in active_settings:
-        submitted_periods = submitted_periods_by_org.get(setting.org_id, set())
-        pending_periods = [
-            period_labels[period_key]
-            for period_key in due_period_keys
-            if period_key not in submitted_periods
-        ]
         custodian = (
             setting.custodian_name
             or (setting.custodian_user.name if getattr(setting, "custodian_user", None) else None)
             or "-"
         )
-        pending_interest_departments.append({
-            "department_name": setting.department_name,
-            "custodian_name": custodian,
-            "is_submitted": not pending_periods,
-            "pending_periods": pending_periods,
-            "withdrawal_proof_reference": next(
-                (
-                    submitted_requests_by_org.get(setting.org_id, {})
-                    .get(period_key)
-                    .withdrawal_proof_reference
-                    for period_key in reversed(due_period_keys)
-                    if submitted_requests_by_org.get(setting.org_id, {}).get(period_key)
-                    and submitted_requests_by_org[setting.org_id][period_key].withdrawal_proof_reference
-                ),
-                None,
-            ),
-            "withdrawal_proof_filename": next(
-                (
-                    submitted_requests_by_org.get(setting.org_id, {})
-                    .get(period_key)
-                    .withdrawal_proof_filename
-                    for period_key in reversed(due_period_keys)
-                    if submitted_requests_by_org.get(setting.org_id, {}).get(period_key)
-                    and submitted_requests_by_org[setting.org_id][period_key].withdrawal_proof_reference
-                ),
-                None,
-            ),
-        })
+        requests_for_org = submitted_requests_by_org.get(setting.org_id, {})
 
-    pending_interest_count = sum(
-        1 for item in pending_interest_departments if not item["is_submitted"]
-    )
+        for period_key in interest_period_keys:
+            submitted_request = requests_for_org.get(period_key)
+            is_submitted = submitted_request is not None
+            pending_interest_departments.append({
+                "org_id": setting.org_id,
+                "department_name": setting.department_name,
+                "custodian_name": custodian,
+                "is_submitted": is_submitted,
+                "status_label": "ส่งแล้วเรียบร้อย" if is_submitted else "มีดอกเบี้ยค้างส่ง",
+                "period_key": period_key,
+                "period_label": period_labels[period_key],
+                "withdrawal_proof_reference": (
+                    submitted_request.withdrawal_proof_reference
+                    if submitted_request else None
+                ),
+                "withdrawal_proof_filename": (
+                    submitted_request.withdrawal_proof_filename
+                    if submitted_request else None
+                ),
+            })
+
+    pending_interest_count = len({
+        item["org_id"]
+        for item in pending_interest_departments
+        if not item["is_submitted"]
+    })
     return pending_interest_departments, pending_interest_count, current_interest_period
 
 

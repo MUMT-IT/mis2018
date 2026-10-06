@@ -5,63 +5,114 @@
 {% block content %}
 <header class="mb-4 pb-2 border-bottom d-flex justify-content-between align-items-end gap-3">
   <div>
-    <p class="text-uppercase fw-bold text-primary small mb-1 pt-3" style="letter-spacing: 0.1em; font-size: 0.75rem;">
-      <i class="bi bi-bank me-1"></i> ติดตามเงินสดย่อย
-    </p>
-    <h1 class="fw-bold display-6 mb-2">ติดตามการนำส่งดอกเบี้ยธนาคาร</h1>
+    <h2 class="fw-bold display-6 mt-2">ติดตามการนำส่งดอกเบี้ยธนาคารของบัญชีเงินสดย่อย</h2>
   </div>
   <a href="{{ url_for('advance_payment.petty_cash_claim_history') }}" class="btn btn-light fw-bold px-4 py-2 mb-2" style="border-radius: 10px;">
     <i class="bi bi-arrow-left me-1"></i> กลับไปประวัติรายการ
   </a>
 </header>
 
+<!-- ตัวกรองข้อมูล -->
+<section class="px-3 mb-2 w-75 align-self-end">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label fw-semibold text-secondary small mb-1" for="departmentFilter">หน่วยงาน</label>
+      <select id="departmentFilter" class="form-select form-select-sm style-select" data-filter-column="department" onchange="filterInterestTable()">
+        <option value="all">ทุกหน่วยงาน</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label fw-semibold text-secondary small mb-1" for="statusFilter">สถานะนำส่งดอกเบี้ย</label>
+      <select id="statusFilter" class="form-select form-select-sm style-select" data-filter-column="status" onchange="filterInterestTable()">
+        <option value="all">แสดงสถานะทั้งหมด</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label fw-semibold text-secondary small mb-1" for="periodFilter">รอบเดือน</label>
+      <select id="periodFilter" class="form-select form-select-sm style-select" data-filter-column="period" onchange="filterInterestTable()">
+        <option value="all">ทุกรอบเดือน</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button id="clearInterestFilters" type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="clearInterestFilters()" disabled>
+        <i class="bi bi-arrow-counterclockwise me-1"></i> ล้างตัวกรอง
+      </button>
+    </div>
+  </div>
+</section>
+
 <section class="mb-5">
-  <div class="card-body px-4 pb-4 pt-2">
-    <div class="card border-0 rounded-4 shadow-sm bg-light overflow-hidden">
+  <div class="card-body p-3">
+    <div class="card border-1 rounded-top shadow-none bg-white">
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="bg-white text-muted small text-uppercase" style="border-bottom: 2px solid #edf2f7;">
+          <table id="interestTrackerTable" class="table table-hover align-middle mb-0">
+            <thead class="table-light text-dark small text-uppercase" style="border-bottom: 2px solid #d1d5db;">
               <tr>
-                <th class="ps-4 py-3 fw-bold">หน่วยงาน</th>
-                <th class="py-3 fw-bold">ผู้รักษาเงินสดย่อย</th>
-                <th class="py-3 fw-bold">สถานะนำส่งดอกเบี้ย</th>
-                <th class="pe-4 py-3 fw-bold text-end">รอบที่ค้างชำระ</th>
+                <th class="ps-4 py-2" data-sort-header data-sort-column="department" aria-sort="none">
+                  <button type="button" class="interest-sort-button" onclick="sortInterestTable('department')">
+                    หน่วยงาน <i class="bi bi-arrow-down-up" data-sort-icon="department"></i>
+                  </button>
+                </th>
+                <th class="py-2" data-sort-header data-sort-column="custodian" aria-sort="none">
+                  <button type="button" class="interest-sort-button" onclick="sortInterestTable('custodian')">
+                    ผู้รักษาเงินสดย่อย <i class="bi bi-arrow-down-up" data-sort-icon="custodian"></i>
+                  </button>
+                </th>
+                <th class="py-2" data-sort-header data-sort-column="status" aria-sort="none">
+                  <button type="button" class="interest-sort-button" onclick="sortInterestTable('status')">
+                    สถานะนำส่งดอกเบี้ย <i class="bi bi-arrow-down-up" data-sort-icon="status"></i>
+                  </button>
+                </th>
+                <th class="pe-4 py-2" data-sort-header data-sort-column="period" aria-sort="none">
+                  <button type="button" class="interest-sort-button" onclick="sortInterestTable('period')">
+                    รอบเดือน <i class="bi bi-arrow-down-up" data-sort-icon="period"></i>
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white">
               {% if pending_interest_departments %}
                 {% for item in pending_interest_departments %}
-                <tr class="{% if not item.is_submitted %}table-danger-subtle bg-opacity-10{% endif %}">
-                  <td class="ps-4 py-3 fw-semibold text-dark">{{ item.department_name }}</td>
-                  <td class="py-3 text-muted">{{ item.custodian_name or '-' }}</td>
-                  <td class="py-3">
+                <tr data-filter-row
+                    data-department="{{ item.department_name }}"
+                    data-custodian="{{ item.custodian_name or '-' }}"
+                    data-status="{{ item.status_label }}"
+                    data-period="{{ item.period_label }}"
+                    data-period-key="{{ item.period_key }}"
+                    class="{% if not item.is_submitted %}table-danger-subtle bg-opacity-10{% endif %}">
+                  <td class="ps-4 py-2 fw-semibold text-dark">{{ item.department_name }}</td>
+                  <td class="py-2 text-muted">{{ item.custodian_name or '-' }}</td>
+                  <td class="py-2">
                     {% if item.is_submitted %}
                       {% if item.withdrawal_proof_reference %}
-                        <a href="{{ item.withdrawal_proof_reference|advance_payment_file_url }}" target="_blank" rel="noopener" class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle text-decoration-none">
+                        <a href="{{ item.withdrawal_proof_reference|advance_payment_file_url }}" target="_blank" rel="noopener" class="badge bg-success-subtle text-success px-2 py-1 rounded-pill fw-semibold border border-success-subtle text-decoration-none">
                           <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
                           <i class="bi bi-paperclip ms-1" title="{{ item.withdrawal_proof_filename or 'ดูหลักฐานการเบิก' }}"></i>
                         </a>
                       {% else %}
-                        <span class="badge bg-success-subtle text-success px-2.5 py-1.5 rounded-pill fw-semibold border border-success-subtle">
+                        <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill fw-semibold border border-success-subtle">
                           <i class="bi bi-check-circle-fill me-1"></i> ส่งแล้วเรียบร้อย
                         </span>
                       {% endif %}
                     {% else %}
-                      <span class="badge bg-danger-subtle text-danger px-2.5 py-1.5 rounded-pill fw-semibold border border-danger-subtle">
+                      <span class="badge bg-danger-subtle text-danger px-2 py-1 rounded-pill fw-semibold border border-danger-subtle">
                         <i class="bi bi-x-circle-fill me-1"></i> มีดอกเบี้ยค้างส่ง
                       </span>
                     {% endif %}
                   </td>
-                  <td class="pe-4 py-3 text-end {% if not item.is_submitted %}fw-bold text-danger{% else %}text-muted{% endif %} small">
-                    {{ item.pending_periods|join(', ') if not item.is_submitted else '-' }}
+                  <td class="pe-4 py-2 fw-bold {% if not item.is_submitted %}text-danger{% else %}text-dark{% endif %}">
+                    {{ item.period_label }}
                   </td>
                 </tr>
                 {% endfor %}
+                <tr id="filteredEmptyRow" class="d-none">
+                  <td colspan="4" class="text-center text-muted py-4">ไม่พบรายการที่ตรงกับตัวกรอง</td>
+                </tr>
               {% else %}
                 <tr>
                   <td colspan="4" class="text-center text-muted py-4">
-                    ไม่มีรายการค้างส่งดอกเบี้ยธนาคาร
+                    ยังไม่มีรอบนำส่งดอกเบี้ยธนาคารที่ถึงกำหนด
                   </td>
                 </tr>
               {% endif %}
@@ -72,4 +123,135 @@
     </div>
   </div>
 </section>
+
+<script>
+  const interestSortState = {
+    column: null,
+    direction: "asc"
+  };
+
+  function sortInterestTable(column) {
+    const table = document.getElementById("interestTrackerTable");
+    if (!table) {
+      return;
+    }
+
+    interestSortState.direction = interestSortState.column === column && interestSortState.direction === "asc"
+      ? "desc"
+      : "asc";
+    interestSortState.column = column;
+
+    const body = table.querySelector("tbody");
+    const emptyRow = document.getElementById("filteredEmptyRow");
+    const rows = Array.from(body.querySelectorAll("tr[data-filter-row]"));
+    const directionMultiplier = interestSortState.direction === "asc" ? 1 : -1;
+
+    rows.sort(function (leftRow, rightRow) {
+      if (column === "period") {
+        const leftParts = (leftRow.dataset.periodKey || "0/0").split("/");
+        const rightParts = (rightRow.dataset.periodKey || "0/0").split("/");
+        const leftValue = Number(leftParts[1]) * 100 + Number(leftParts[0]);
+        const rightValue = Number(rightParts[1]) * 100 + Number(rightParts[0]);
+        return (leftValue - rightValue) * directionMultiplier;
+      }
+
+      const leftValue = leftRow.dataset[column] || "";
+      const rightValue = rightRow.dataset[column] || "";
+      return leftValue.localeCompare(rightValue, "th", {
+        numeric: true,
+        sensitivity: "base"
+      }) * directionMultiplier;
+    });
+
+    rows.forEach(function (row) {
+      body.insertBefore(row, emptyRow || null);
+    });
+
+    table.querySelectorAll("th[data-sort-header]").forEach(function (header) {
+      const isActive = header.dataset.sortColumn === column;
+      const icon = header.querySelector("[data-sort-icon]");
+      header.setAttribute(
+        "aria-sort",
+        isActive ? (interestSortState.direction === "asc" ? "ascending" : "descending") : "none"
+      );
+
+      if (icon) {
+        icon.className = isActive
+          ? `bi ${interestSortState.direction === "asc" ? "bi-arrow-up" : "bi-arrow-down"}`
+          : "bi bi-arrow-down-up";
+      }
+    });
+  }
+
+  function filterInterestTable() {
+    const table = document.getElementById("interestTrackerTable");
+    if (!table) {
+      return;
+    }
+
+    const department = document.getElementById("departmentFilter").value;
+    const status = document.getElementById("statusFilter").value;
+    const period = document.getElementById("periodFilter").value;
+    const rows = Array.from(table.querySelectorAll("tbody tr[data-filter-row]"));
+    const emptyRow = document.getElementById("filteredEmptyRow");
+    const clearButton = document.getElementById("clearInterestFilters");
+    let visibleCount = 0;
+
+    rows.forEach(function (row) {
+      const matchesDepartment = department === "all" || row.dataset.department === department;
+      const matchesStatus = status === "all" || row.dataset.status === status;
+      const matchesPeriod = period === "all" || row.dataset.period === period;
+      const isVisible = matchesDepartment && matchesStatus && matchesPeriod;
+
+      row.style.display = isVisible ? "" : "none";
+      if (isVisible) {
+        visibleCount += 1;
+      }
+    });
+
+    if (emptyRow) {
+      emptyRow.classList.toggle("d-none", visibleCount !== 0);
+    }
+
+    if (clearButton) {
+      clearButton.disabled = department === "all" && status === "all" && period === "all";
+    }
+  }
+
+  function clearInterestFilters() {
+    document.getElementById("departmentFilter").value = "all";
+    document.getElementById("statusFilter").value = "all";
+    document.getElementById("periodFilter").value = "all";
+    filterInterestTable();
+    document.getElementById("departmentFilter").focus();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const table = document.getElementById("interestTrackerTable");
+    if (!table) {
+      return;
+    }
+
+    const rows = Array.from(table.querySelectorAll("tbody tr[data-filter-row]"));
+    const filters = Array.from(document.querySelectorAll("select[data-filter-column]"));
+
+    filters.forEach(function (filter) {
+      const column = filter.dataset.filterColumn;
+      const values = Array.from(new Set(rows.map(function (row) {
+        return row.dataset[column] || "";
+      }).filter(Boolean))).sort(function (left, right) {
+        return left.localeCompare(right, "th");
+      });
+
+      values.forEach(function (value) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        filter.appendChild(option);
+      });
+    });
+
+    filterInterestTable();
+  });
+</script>
 {% endblock %}

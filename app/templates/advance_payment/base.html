@@ -238,6 +238,26 @@
       body, button, input, select, textarea {
         font-size: 1rem; 
       }
+      .interest-sort-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .interest-sort-button:hover,
+      .interest-sort-button:focus-visible {
+        color: var(--bs-primary);
+      }
+      .interest-sort-button i {
+        font-size: 0.75rem;
+        opacity: 0.7;
+      }
       .datepicker {
         z-index: 1080 !important;
       }
