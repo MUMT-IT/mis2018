@@ -31,6 +31,7 @@
         .binding-card select { min-width: 0; }
         .linked-table td, .linked-table th { vertical-align: middle; }
         .linked-source { color: #6e7f9a; font-size: .82rem; }
+        .linked-erp { background: #e8f0ff; border: 1px solid #a9c3f7; border-radius: 999px; color: #174f9b; display: inline-block; font-size: .79rem; font-weight: 800; letter-spacing: .02em; margin-top: .35rem; padding: .16rem .5rem; }
         .empty-state { background: #f7f9fc; border: 1px dashed #cfd9e8; border-radius: 14px; color: #6e7f9a; padding: 1.1rem; text-align: center; }
         .help-note { color: #73829b; font-size: .83rem; margin-bottom: 1rem; }
         @media screen and (max-width: 768px) {
@@ -87,19 +88,34 @@
                             </div>
                         </div>
 
-                        <h2 class="section-heading"><i class="fas fa-link"></i>ครุภัณฑ์ที่ผูกกับระบบตรวจเช็คแล้ว</h2>
+                        <h2 class="section-heading"><i class="fas fa-clipboard-check"></i>เพิ่มระบบตรวจเช็คโดยไม่มีครุภัณฑ์</h2>
+                        <p class="help-note">ใช้สำหรับระบบหรือกลุ่มตรวจเช็คที่ยังไม่มีเลขครุภัณฑ์ เช่น สายสัญญาณภาพ ปลั๊กไฟ หรือจอรับภาพ</p>
+                        <form class="room-search mb-4" method="post" action="{{ url_for('maintenance.bind_maintenance_room_system_without_equipment') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="room_id" value="{{ room.id }}">
+                            <label for="system-check-group">เลือกกลุ่มตรวจเช็ค</label>
+                            <div class="field has-addons mt-2 mb-0">
+                                <div class="control is-expanded"><div class="select is-fullwidth"><select id="system-check-group" name="check_group_id" required><option value="">เลือกระบบ / กลุ่มตรวจเช็ค</option>{% for group in check_groups %}<option value="{{ group.id }}">{{ group.system.name }} / {{ group.name }}</option>{% endfor %}</select></div></div>
+                                <div class="control"><button class="button is-success" type="submit"><span class="icon"><i class="fas fa-plus"></i></span><span>เพิ่มระบบตรวจ</span></button></div>
+                            </div>
+                        </form>
+
+                        <h2 class="section-heading"><i class="fas fa-link"></i>ระบบและครุภัณฑ์ที่ผูกกับการตรวจเช็คแล้ว</h2>
                         {% if linked_equipment %}
                             <div class="table-container">
                                 <table class="table is-fullwidth is-hoverable linked-table">
-                                    <thead><tr><th>ครุภัณฑ์</th><th>ระบบ / กลุ่มตรวจเช็ค</th><th class="has-text-centered">จัดการ</th></tr></thead>
+                                    <thead><tr><th>ครุภัณฑ์ / การตั้งค่าระบบ</th><th>ระบบ / กลุ่มตรวจเช็ค</th><th class="has-text-centered">จัดการ</th></tr></thead>
                                     <tbody>
                                         {% for linked in linked_equipment %}
-                                            {% set asset = linked.procurement_detail or linked.room_equipment %}
                                             <tr>
                                                 <td>
-                                                    <strong>{{ linked.display_name_override or (asset.name if linked.procurement_detail else asset.equipment_name) }}</strong>
-                                                    {% if linked.procurement_detail and asset.erp_code %}<div class="linked-source">ERP: {{ asset.erp_code }}</div>{% endif %}
-                                                    {% if linked.room_equipment %}<div class="linked-source">อุปกรณ์ที่เพิ่มในระบบ{% if asset.serial_number %} | Serial: {{ asset.serial_number }}{% endif %}</div>{% endif %}
+                                                    {% if linked.procurement_detail %}
+                                                        <strong>{{ linked.display_name_override or linked.procurement_detail.name }}</strong>
+                                                        {% if linked.procurement_detail.erp_code %}<span class="linked-erp">ERP: {{ linked.procurement_detail.erp_code }}</span>{% endif %}
+                                                    {% else %}
+                                                        <strong>ตั้งค่าระบบโดยไม่มีครุภัณฑ์</strong>
+                                                        <div class="linked-source">สามารถผูกครุภัณฑ์ ERP เข้ากลุ่มนี้ภายหลังได้</div>
+                                                    {% endif %}
                                                 </td>
                                                 <td><span class="tag is-link is-light">{{ linked.system.name }}</span> <span class="tag is-info is-light">{{ linked.check_group.name }}</span></td>
                                                 <td class="has-text-centered">
@@ -114,7 +130,7 @@
                                 </table>
                             </div>
                         {% else %}
-                            <div class="empty-state">ยังไม่มีครุภัณฑ์ที่ผูกกับระบบตรวจเช็คสำหรับห้องนี้</div>
+                            <div class="empty-state">ยังไม่มีระบบหรือครุภัณฑ์ที่ผูกกับการตรวจเช็คสำหรับห้องนี้</div>
                         {% endif %}
 
                         <h2 class="section-heading"><i class="fas fa-building"></i>ครุภัณฑ์จากระบบพัสดุในห้องนี้</h2>
