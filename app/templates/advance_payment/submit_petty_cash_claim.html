@@ -553,7 +553,7 @@
             <input type="text" name="circular_items_description" class="form-control circular-return-input" placeholder="รายละเอียดรายการ...">
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+            <label class="form-label fw-bold">จำนวนเงิน</label>
             <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" placeholder="0.00">
           </div>
         </div>
@@ -587,7 +587,7 @@
             <input name="items_description" class="form-control parcel-return-input" placeholder="รายละเอียดรายการ..." required>
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+            <label class="form-label fw-bold">จำนวนเงิน</label>
             <input type="text" name="parcel_amount" id="parcel_amount" class="form-control parcel-amount-input parcel-return-input" required placeholder="0.00">
           </div>
         </div>
@@ -960,7 +960,7 @@ function togglePettyCashClaimForm() {
                     <input type="text" name="items_description" class="form-control" value="{{ pr.items_description }}" required>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+                    <label class="form-label fw-bold">จำนวนเงิน</label>
                     <input type="text" name="amount" class="form-control" value="{{ '{:,.2f}'.format(pr.amount_spent) if pr.amount_spent else '' }}" placeholder="0.00" required>
                   </div>
                 </div>
