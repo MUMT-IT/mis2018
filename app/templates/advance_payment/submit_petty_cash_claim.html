@@ -807,11 +807,24 @@ function togglePettyCashClaimForm() {
       </table>
     </div>
   {% endif %}
-  {% if parcel_return_history %}
-  <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
+  {% set parcel_history_groups = namespace(standard=[], circular=[]) %}
+  {% for pr in parcel_return_history %}
+    {% if pr.type is not none %}
+      {% set _ = parcel_history_groups.circular.append(pr) %}
+    {% else %}
+      {% set _ = parcel_history_groups.standard.append(pr) %}
+    {% endif %}
+  {% endfor %}
+  {% set parcel_history_sections = [
+    {'rows': parcel_history_groups.standard, 'title': 'รายการส่งฝ่ายพัสดุ', 'heading_class': 'text-success', 'icon': 'bi-box-seam', 'thead_class': 'table-success'},
+    {'rows': parcel_history_groups.circular, 'title': 'รายการส่งการเงิน ว-119 / ว-5763', 'heading_class': 'text-primary', 'icon': 'bi-file-earmark-text', 'thead_class': 'table-primary'}
+  ] %}
+  {% for parcel_section in parcel_history_sections %}
+  {% if parcel_section.rows %}
+  <h5 class="fw-bold {{ parcel_section.heading_class }} mb-2"><i class="bi {{ parcel_section.icon }} me-2"></i>{{ parcel_section.title }}</h5>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
-        <thead class="table-success text-dark">
+        <thead class="{{ parcel_section.thead_class }} text-dark">
           <tr>
             <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
             <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
@@ -822,7 +835,7 @@ function togglePettyCashClaimForm() {
           </tr>
         </thead>
         <tbody>
-          {% for pr in parcel_return_history %}
+          {% for pr in parcel_section.rows %}
           <tr class="align-top">
             <td>{{ pr.sent_date|thai_date }}</td>
             <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
@@ -907,6 +920,9 @@ function togglePettyCashClaimForm() {
         </tbody>
       </table>
     </div>
+  {% endif %}
+  {% endfor %}
+  {% if parcel_return_history %}
     {% for pr in parcel_return_history %}
       {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
       {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}

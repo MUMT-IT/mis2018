@@ -392,12 +392,25 @@
         </table>
       </div>
     {% endif %}
-    {% if borrowing_ticket.parcel_returns %}
+    {% set parcel_groups = namespace(standard=[], circular=[]) %}
+    {% for pr in borrowing_ticket.parcel_returns %}
+      {% if pr.type is not none %}
+        {% set _ = parcel_groups.circular.append(pr) %}
+      {% else %}
+        {% set _ = parcel_groups.standard.append(pr) %}
+      {% endif %}
+    {% endfor %}
+    {% set parcel_sections = [
+      {'rows': parcel_groups.standard, 'title': 'รายการส่งฝ่ายพัสดุ', 'heading_class': 'text-success', 'icon': 'bi-box-seam', 'thead_class': 'table-success'},
+      {'rows': parcel_groups.circular, 'title': 'รายการส่งการเงิน ว-119 / ว-5763', 'heading_class': 'text-primary', 'icon': 'bi-file-earmark-text', 'thead_class': 'table-primary'}
+    ] %}
+    {% for parcel_section in parcel_sections %}
+    {% if parcel_section.rows %}
     <div class="my-4"></div>
-    <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
+    <h5 class="fw-bold {{ parcel_section.heading_class }} mb-2"><i class="bi {{ parcel_section.icon }} me-2"></i>{{ parcel_section.title }}</h5>
       <div class="table-responsive mb-4">
         <table class="table table-hover align-middle mb-0">
-          <thead class="table-success text-dark">
+          <thead class="{{ parcel_section.thead_class }} text-dark">
             <tr>
               <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
               <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
@@ -408,7 +421,7 @@
             </tr>
           </thead>
           <tbody>
-            {% for pr in borrowing_ticket.parcel_returns %}
+            {% for pr in parcel_section.rows %}
             <tr class="align-top">
               <td>{{ pr.sent_date|thai_date }}</td>
               <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
@@ -485,6 +498,9 @@
           </tbody>
         </table>
       </div>
+    {% endif %}
+    {% endfor %}
+    {% if borrowing_ticket.parcel_returns %}
       {% for pr in borrowing_ticket.parcel_returns %}
         {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
           <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
