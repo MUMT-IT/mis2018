@@ -35,14 +35,18 @@
         <p class="text-muted small mb-1"><strong>ผู้ยืม</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrower_name }}</p>
       </div>
-      <div class="col-6 col-md-4">
-        <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(borrowing_ticket.required_budget or 0) }}</p>
-      </div>
+      {% if not borrowing_ticket.approved_at %}
+        <div class="col-6 col-md-4">
+          <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(borrowing_ticket.required_budget or 0) }}</p>
+        </div>
+      {% endif %}
       <div class="col-12 col-md-4">
         <p class="text-muted small mb-1"><strong>ระยะเวลาโครงการ</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_ticket_start_date|thai_date }} ถึง {{ borrowing_ticket.borrowing_ticket_end_date|thai_date }}</p>
       </div>
+    </div>
+    <div class="row g-3 text-start mb-3">
       <div class="col-6 col-md-4">
         <p class="text-muted small mb-1"><strong>เลขที่บัญชี</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.account_number }}</p>
@@ -59,6 +63,18 @@
       </div>
       {% endif %}
     </div>
+    {% if borrowing_ticket.status|lower != "ปฏิเสธ" %}
+      <div class="row g-3 text-start mb-3">
+        <div class="col-12 col-md-4">
+          <p class="text-muted small mb-1"><strong>เลขที่อนุมัติยืมเงิน</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_ref_no or '-' }}</p>
+        </div>
+        <div class="col-12 col-md-4">
+          <p class="text-muted small mb-1"><strong>วันที่หนังสือได้รับการอนุมัติ</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_date|thai_date if borrowing_ticket.borrowing_approval_date else '-' }}</p>
+        </div>
+      </div>
+    {% endif %}
     <div class="my-4"></div>
     <div class="row g-2 text-start mb-3">
       <div class="col-6 col-md-4">
@@ -74,7 +90,6 @@
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.creator_name }}</p>
       </div>
     </div>
-
     </div>
 
       <div class="col-12 col-lg-2">

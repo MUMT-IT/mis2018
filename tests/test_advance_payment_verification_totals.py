@@ -49,6 +49,28 @@ class VerificationTotalsTests(unittest.TestCase):
         self.assertEqual(render_args["group_summary"].id, "approved_return_totals")
         self.assertEqual(render_args["return_form_summary"].id, "return_form_summary")
 
+    def test_summary_splits_approved_pending_and_unsubmitted_amounts(self):
+        assignments = {
+            target.slice.value: value
+            for node in ast.walk(self.verification_view)
+            if isinstance(node, ast.Assign)
+            for target in node.targets
+            if isinstance(target, ast.Subscript)
+            and isinstance(target.value, ast.Name)
+            and target.value.id == "summary"
+            and isinstance(target.slice, ast.Constant)
+            for value in [node.value]
+        }
+
+        self.assertIn("pending_amount", assignments)
+        self.assertIn("unsubmitted_amount", assignments)
+
+        pending_expression = ast.unparse(assignments["pending_amount"])
+        unsubmitted_expression = ast.unparse(assignments["unsubmitted_amount"])
+        self.assertIn("submitted_ticket_total - approved_ticket_total", pending_expression)
+        self.assertIn("summary['budget']", unsubmitted_expression)
+        self.assertIn("submitted_ticket_total", unsubmitted_expression)
+
 
 if __name__ == "__main__":
     unittest.main()

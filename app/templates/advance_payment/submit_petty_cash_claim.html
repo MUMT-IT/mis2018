@@ -83,7 +83,7 @@
       </div>
     </div>
   </div>
-  {% if fund_request_total_info is defined %}
+  {% if fund_request_total_info is defined and verification_fund_request and verification_fund_request.approved_at %}
   <hr class="my-4">
   <div class="row row-cols-2 row-cols-md-4 g-3 text-start">
     <div class="col">
@@ -112,20 +112,21 @@
     </div>
   </div>
   {% endif %}
-  {% if verification_fund_request and (can_confirm_fund_request or can_approve_fund_request or can_reject_fund_request or can_record_fund_request_withdrawal or can_cancel_fund_request) %}
+  {% if verification_fund_request %}
   <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top gap-2">
     <div class="text-start flex-grow-1">
       {% if verification_fund_request.personal_note %}
         <span class="fw-bold">หมายเหตุส่วนตัว:</span>
-        <span>{{ verification_fund_request.personal_note }}</span>
+        <span>{{ verification_fund_request.personal_note}}</span>
       {% endif %}
-      {% if verification_fund_request.rejection_comment %}
+      {% if not verification_fund_request.approved_at and verification_fund_request.rejection_comment %}
         <div class="text-danger mt-2">
           <span class="fw-bold">เหตุผล:</span>
           <span>{{ verification_fund_request.rejection_comment }}</span>
         </div>
       {% endif %}
     </div>
+    {% if can_confirm_fund_request or can_approve_fund_request or can_reject_fund_request or can_record_fund_request_withdrawal or can_cancel_fund_request %}
     <div class="d-flex flex-wrap justify-content-end align-items-end gap-2">
       {% if can_reject_fund_request %}
       <button type="button"
@@ -192,6 +193,7 @@
       </button>
       {% endif %}
     </div>
+    {% endif %}
   </div>
   <template id="cancelFundRequestExtraFields">
     <div class="mt-3">
