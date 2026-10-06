@@ -1908,7 +1908,7 @@ def generate_fund_request_pdf(fund_request):
         box_interest = chk_box
         box_june = chk_box
         box_dec = chk_box
-        p_period_yr = date_thai.split()[-1] if date_thai.strip() else PDF_BLANK
+        p_period_yr = date_thai.split()[-1] if date_thai.strip() else today.year + 543 # current year if none
         p_dept_2 = dept_name
         p_acc_2 = ".................."
         p_amt_str_2 = ".................."
@@ -1935,9 +1935,9 @@ def generate_fund_request_pdf(fund_request):
         box_june = chk_box_checked if period_value.startswith("06/") or "มิถุนายน" in period_label else chk_box
         box_dec = chk_box_checked if period_value.startswith("12/") or "ธันวาคม" in period_label else chk_box
 
-        # สกัดเฉพาะเลขปี พ.ศ. ออกมาจากสตริง (เช่น "2567") หากไม่มีจะเว้นว่าง
+        # สกัดเฉพาะเลขปี พ.ศ. ออกมาจากสตริง (เช่น "2567")
         year_match = re.search(r'\d{4}', period_label or period_value)
-        p_period_yr = year_match.group(0) if year_match else PDF_BLANK
+        p_period_yr = year_match.group(0) if year_match else today.year + 543 # current year if none
 
         p_dept_2 = dept_name
         p_acc_2 = acc_num
