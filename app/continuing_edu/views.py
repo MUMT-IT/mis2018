@@ -1386,9 +1386,10 @@ def account_update_profile():
         flash(texts.get('login_required', 'Please login to continue.'), 'danger')
         return redirect(url_for('continuing_edu.login', lang=lang))
     # Basic editable fields (legacy keys)
-    for field in ['email','full_name_en','full_name_th','phone_no','country','title_name_en','title_name_th']:
+    for field in ['email','full_name_en','full_name_th','phone_no','country','title_name_en','title_name_th',
+                  'mt_license_no']:
         if field in request.form:
-            setattr(user, field, request.form.get(field))
+            setattr(user, field, request.form.get(field).strip() or None)
     db.session.add(user)
     db.session.commit()
     flash(texts.get('profile_updated', 'Profile updated.'), 'success')

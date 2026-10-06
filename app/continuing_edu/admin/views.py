@@ -1441,6 +1441,7 @@ def members_create():
         full_name_en = request.form.get('full_name_en') or None
         full_name_th = request.form.get('full_name_th') or None
         phone_no = request.form.get('phone_no') or None
+        mt_license_no = request.form.get('mt_license_no', '').strip() or None
         address = request.form.get('address') or None
         is_verified = request.form.get('is_verified') == 'on'
         received_news = request.form.get('received_news') == 'on'
@@ -1468,6 +1469,7 @@ def members_create():
                 full_name_en=full_name_en,
                 full_name_th=full_name_th,
                 phone_no=phone_no,
+                medical_technologist_license_no=medical_technologist_license_no,
                 address=address,
                 is_verified=is_verified,
                 received_news=received_news,
@@ -1502,6 +1504,7 @@ def members_edit(member_id):
         full_name_en = request.form.get('full_name_en') or None
         full_name_th = request.form.get('full_name_th') or None
         phone_no = request.form.get('phone_no') or None
+        medical_technologist_license_no = request.form.get('medical_technologist_license_no', '').strip() or None
         address = request.form.get('address') or None
         is_verified = request.form.get('is_verified') == 'on'
         received_news = request.form.get('received_news') == 'on'
@@ -1526,6 +1529,7 @@ def members_edit(member_id):
             member.full_name_en = full_name_en
             member.full_name_th = full_name_th
             member.phone_no = phone_no
+            member.medical_technologist_license_no = medical_technologist_license_no
             member.address = address
             member.is_verified = is_verified
             member.received_news = received_news

@@ -42,6 +42,11 @@
         <label class="label">Phone</label>
         <input class="input" type="text" name="phone_no" value="{{ member.phone_no if member else '' }}">
       </div>
+      <div class="column is-4">
+        <label class="label">Medical Technologist License No. (ท.น.)</label>
+        <input class="input" type="text" name="mt_license_no"
+          value="{{ member.mt_license_no if member else '' }}">
+      </div>
       <div class="column is-8">
         <label class="label">Address</label>
         <input class="input" type="text" name="address" value="{{ member.address if member else '' }}">
