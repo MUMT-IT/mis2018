@@ -278,7 +278,7 @@
       <!-- ข้อมูลประกอบการส่งเบิก -->
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
         <h3 class="h5 mb-0" id="claimSectionHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start"
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start"
                   type="button"
                   data-bs-toggle="collapse"
                   data-bs-target="#claimSectionCollapse"
@@ -292,23 +292,23 @@
         <div id="claimSectionCollapse" class="collapse show" aria-labelledby="claimSectionHeading">
         <div class="pt-2">
         <section class="mt-3" aria-labelledby="referenceInfoHeading">
-        <h5 class="fw-bold text-dark mb-3" id="referenceInfoHeading"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h5>
+        <h4 class="h6 fw-semibold text-dark mb-2" id="referenceInfoHeading"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h4>
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" name="has_reference_info" id="hasReferenceInfo" value="true">
-          <label class="form-check-label text-muted" for="hasReferenceInfo">ไม่มีหนังสือขออนุมัติในหลักการ</label>
+          <label class="form-check-label text-muted small" for="hasReferenceInfo">ไม่มีหนังสือขออนุมัติในหลักการ</label>
         </div>
         <div class="row g-3" id="referenceInfoFields">
           <div class="col-md-3">
-            <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ เช่น อว.78.04/1</label>
-            <input class="form-control reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
+            <label class="form-label small fw-semibold">เลขที่อนุมัติในหลักการ เช่น อว.78.04/1</label>
+            <input class="form-control form-control-sm reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
-            <input type="text" class="form-control reference-info-input app-date-picker" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}" placeholder="dd/mm/yyyy">
+            <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ</label>
+            <input type="text" class="form-control form-control-sm reference-info-input app-date-picker" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}" placeholder="dd/mm/yyyy">
           </div>
           <div class="col-md-3">
-            <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง</label>
-            <input type="file" class="form-control reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
+            <label class="form-label small fw-semibold">ไฟล์เอกสารอ้างอิง</label>
+            <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
           </div>
           <div class="col-md-4 d-flex flex-column-reverse">
             <div class="reference-filenames-container"></div>
@@ -324,8 +324,8 @@
         </section>
 
       <!-- 2. ส่วนแนบเอกสารประกาศประกอบ -->
-      <section class="mt-4" aria-labelledby="announcementHeading">
-        <h5 class="fw-bold text-dark mb-3" id="announcementHeading"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h5>
+      <section class="mt-3" aria-labelledby="announcementHeading">
+        <h4 class="h6 fw-semibold text-dark mb-2" id="announcementHeading"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h4>
         <div id="document-inputs-container">
           {% if claim_detail and claim_detail.documents %}
             {% for doc in claim_detail.documents %}
@@ -380,8 +380,8 @@
           <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบด้วย *</small>
         </div>
       </section>
-      <section class="mt-4" aria-labelledby="financeItemsHeading">
-      <h3 class="h5 fw-bold text-dark mb-3" id="financeItemsHeading"><i class="bi bi-receipt me-2 text-primary"></i>รายการส่งฝ่ายการเงิน</h3>
+      <section class="mt-3" aria-labelledby="financeItemsHeading">
+      <h4 class="h6 fw-semibold text-dark mb-2" id="financeItemsHeading"><i class="bi bi-receipt me-2 text-primary"></i>รายการส่งฝ่ายการเงิน</h4>
       {% set claim_form_items = claim_detail.items if claim_detail else (selected_fund_request.items if selected_fund_request else []) %}
       {% set claim_form_items_from_fund_request = not claim_detail and selected_fund_request and selected_fund_request.items %}
       <div class="table-responsive">
@@ -501,7 +501,7 @@
       {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
       <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
         <h3 class="h5 mb-0" id="claimCircularHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start collapsed"
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
                   type="button" data-bs-toggle="collapse" data-bs-target="#claimCircularCollapse"
                   aria-expanded="false" aria-controls="claimCircularCollapse">
             <i class="bi bi-file-earmark-text me-2 text-primary"></i>
@@ -566,7 +566,7 @@
 
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
         <h3 class="h5 mb-0" id="claimParcelHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start collapsed"
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
                   type="button" data-bs-toggle="collapse" data-bs-target="#claimParcelCollapse"
                   aria-expanded="false" aria-controls="claimParcelCollapse">
             <i class="bi bi-box-seam me-2 text-primary"></i>
@@ -608,7 +608,7 @@
       {% endif %}
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
         <h3 class="h5 mb-0" id="claimCashReturnHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start{% if not cash_return_item %} collapsed{% endif %}"
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not cash_return_item %} collapsed{% endif %}"
                   type="button" data-bs-toggle="collapse" data-bs-target="#claimCashReturnCollapse"
                   aria-expanded="{{ 'true' if cash_return_item else 'false' }}" aria-controls="claimCashReturnCollapse">
             <i class="bi bi-cash-coin me-2 text-primary"></i>

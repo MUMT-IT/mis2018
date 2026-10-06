@@ -47,7 +47,7 @@
         <div class="accordion" id="returnAccordion_{{ borrowing_ticket.id }}">
         <div class="card p-3 mb-4 border rounded-4 shadow-sm bg-white">
           <h3 class="h5 mb-0" id="returnSectionHeading_{{ borrowing_ticket.id }}">
-            <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start"
+            <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start"
                     type="button" data-bs-toggle="collapse" data-bs-target="#returnSectionCollapse_{{ borrowing_ticket.id }}"
                     aria-expanded="true" aria-controls="returnSectionCollapse_{{ borrowing_ticket.id }}">
               <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
@@ -58,7 +58,7 @@
           <div id="returnSectionCollapse_{{ borrowing_ticket.id }}" class="collapse show" aria-labelledby="returnSectionHeading_{{ borrowing_ticket.id }}">
           <div class="pt-3">
           <section aria-labelledby="returnAnnouncementHeading_{{ borrowing_ticket.id }}">
-          <h4 class="h6 fw-bold text-dark mb-3" id="returnAnnouncementHeading_{{ borrowing_ticket.id }}"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h4>
+          <h4 class="h6 fw-semibold text-dark mb-2" id="returnAnnouncementHeading_{{ borrowing_ticket.id }}"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h4>
 
           <div id="document-inputs-container-{{ borrowing_ticket.id }}">
             {% if borrowing_ticket.draft_announcements and borrowing_ticket.draft_announcements|length > 0 %}
@@ -116,7 +116,7 @@
           </section>
 
           <section class="mt-3" aria-labelledby="returnFinanceItemsHeading_{{ borrowing_ticket.id }}">
-          <h3 class="h5 fw-bold text-dark mb-3" id="returnFinanceItemsHeading_{{ borrowing_ticket.id }}"><i class="bi bi-receipt me-2 text-primary"></i>รายการส่งฝ่ายการเงิน</h3>
+          <h4 class="h6 fw-semibold text-dark mb-2" id="returnFinanceItemsHeading_{{ borrowing_ticket.id }}"><i class="bi bi-receipt me-2 text-primary"></i>รายการส่งฝ่ายการเงิน</h4>
           <div class="table-responsive">
             <table class="table table-bordered align-middle mb-0" id="receiptTable_{{ borrowing_ticket.id }}">
               <thead class="table-light small fw-bold">
@@ -188,7 +188,7 @@
 
         <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
           <h3 class="h5 mb-0" id="returnCircularHeading_{{ borrowing_ticket.id }}">
-            <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start collapsed"
+            <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
                     type="button" data-bs-toggle="collapse" data-bs-target="#returnCircularCollapse_{{ borrowing_ticket.id }}"
                     aria-expanded="false" aria-controls="returnCircularCollapse_{{ borrowing_ticket.id }}">
               <i class="bi bi-file-earmark-text me-2 text-primary"></i>
@@ -255,7 +255,7 @@
 
         <div class="card p-3 mb-4 border rounded-4 shadow-sm">
           <h3 class="h5 mb-0" id="returnParcelHeading_{{ borrowing_ticket.id }}">
-            <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start collapsed"
+            <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
                     type="button" data-bs-toggle="collapse" data-bs-target="#returnParcelCollapse_{{ borrowing_ticket.id }}"
                     aria-expanded="false" aria-controls="returnParcelCollapse_{{ borrowing_ticket.id }}">
               <i class="bi bi-box-seam me-2 text-primary"></i>
@@ -286,7 +286,7 @@
         {% set cash_return_item = borrowing_ticket.cash_draft_item %}
         <div class="card p-3 mb-4 border rounded-4 shadow-sm">
           <h3 class="h5 mb-0" id="returnCashHeading_{{ borrowing_ticket.id }}">
-            <button class="btn btn-link text-dark text-decoration-none fw-bold p-0 d-flex align-items-center w-100 text-start{% if not cash_return_item %} collapsed{% endif %}"
+            <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not cash_return_item %} collapsed{% endif %}"
                     type="button" data-bs-toggle="collapse" data-bs-target="#returnCashCollapse_{{ borrowing_ticket.id }}"
                     aria-expanded="{{ 'true' if cash_return_item else 'false' }}" aria-controls="returnCashCollapse_{{ borrowing_ticket.id }}">
               <i class="bi bi-cash-coin me-2 text-primary"></i>
