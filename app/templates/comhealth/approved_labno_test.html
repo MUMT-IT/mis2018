@@ -19,6 +19,15 @@
             flex-wrap: wrap;
             gap: .75rem;
         }
+        .online-result-button {
+            box-shadow: 0 5px 14px rgba(39, 103, 214, 0.28);
+            font-size: 1rem;
+            font-weight: 700;
+            min-height: 3rem;
+            padding-left: 1.1rem;
+            padding-right: 1.1rem;
+        }
+        .online-result-button .icon { font-size: 1.1rem; }
         .lab-test-panel {
             background: rgba(255, 255, 255, 0.96);
             border: 1px solid var(--theme-border);
@@ -191,11 +200,11 @@
                 </div>
                 <div class="lab-test-header-actions">
                     <a id="online-result-button"
-                       class="button is-link is-light"
+                       class="button is-link is-medium online-result-button"
                        target="_blank"
                        rel="noopener noreferrer">
                         <span class="icon"><i class="fas fa-file-medical-alt"></i></span>
-                        <span>ดูผล online</span>
+                        <span>ดูผล online และส่ง Email</span>
                     </a>
                     <button id="back-to-customer-list" class="button is-light" type="button">
                         <span class="icon"><i class="fas fa-arrow-left"></i></span>
