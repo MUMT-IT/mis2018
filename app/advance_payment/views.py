@@ -2578,7 +2578,7 @@ def mark_return_bounced(return_id):
     return_detail.rejection_comment = _append_rejection_comment(
         return_detail.rejection_comment,
         rejection_comment,
-        "ผู้ตีกลับ",
+        "ผู้บันทึกข้อมูล",
         user_name,
     )
     return_detail.reject_approved_at = datetime.now()
@@ -2587,6 +2587,7 @@ def mark_return_bounced(return_id):
     if borrowing_ticket:
         borrowing_ticket.reject_approved_at = datetime.now()
         borrowing_ticket.status = RETURN_DETAIL_BOUNCED_STATUS
+        borrowing_ticket.closed_date = None
 
     db.session.commit()
     flash("เปลี่ยนสถานะเป็น 'ฎีกาถูกตีกลับจากกองคลัง' เรียบร้อยแล้ว", "success")
@@ -3281,6 +3282,7 @@ def _recalculate_borrowing_ticket_status(ticket_id):
 
     if _ticket_has_bounced_return(ticket_id):
         borrowing_ticket.status = RETURN_DETAIL_BOUNCED_STATUS
+        borrowing_ticket.closed_date = None
         db.session.commit()
         _send_notification_email(borrowing_ticket)
         return borrowing_ticket.status
