@@ -660,10 +660,10 @@ def test_get_all_ot_records_table_pays_full_for_per_period_staff(ot_views):
     assert row["checkouts"] == "2024-01-02T16:40:00+07:00"
     assert row["late_minutes"] == 0
     assert row["early_minutes"] == 0
-    assert row["work_minutes"] == 480
+    assert row["work_minutes"] == 440
     assert row["late_checkin_display"] is None
     assert row["early_checkout_display"] is None
-    assert row["work_minutes_display"] == "480m"
+    assert row["work_minutes_display"] == "440m"
     assert row["payment"] == 150.0
 
 
@@ -1198,6 +1198,8 @@ def test_get_all_ot_records_table_does_not_use_previous_day_pair_for_daytime_shi
     assert row["checkins"] == "2026-08-05T13:34:00+07:00"
     assert row["checkouts"] == "2026-08-05T18:49:00+07:00"
     assert row["payment"] == 750.0
+    assert row["work_minutes"] == 0
+    assert row["work_minutes_display"] == "0m"
 
 
 def test_manual_ot_checkin_stores_creator_id(ot_views, monkeypatch):
@@ -1384,3 +1386,84 @@ def test_staff_queries_use_bangkok_wall_time(ot_views, monkeypatch, start, end):
         assert [query_range.lower, query_range.upper] == expected
     assert ranges[0].upper_inc
     assert not ranges[1].upper_inc
+
+
+@pytest.mark.parametrize(
+    'checkin_time, checkout_time, expected_minutes',
+    [
+        ((5, 30), (6, 1), 31),
+        ((5, 0), (9, 0), 180),
+        ((6, 0), (8, 0), 120),
+        ((8, 45), (9, 0), 0),
+    ],
+)
+def test_work_minutes_uses_attendance_overlap(
+    ot_views, checkin_time, checkout_time, expected_minutes
+):
+    shift_start = _bangkok_dt(2026, 10, 1, 5, 30)
+    shift_end = _bangkok_dt(2026, 10, 1, 8, 30)
+    record = _make_record(
+        staff_id=166, fullname='Staff', sap_id='59669',
+        shift_start=shift_start, shift_end=shift_end, rate=400, per_day=True,
+    )
+    # Reproduce the legacy model's incorrect four-hour shift duration.
+    record.total_shift_minutes = 240
+    pair = SimpleNamespace(
+        start=_bangkok_dt(2026, 10, 1, *checkin_time),
+        end=_bangkok_dt(2026, 10, 1, *checkout_time),
+    )
+    with Flask('test').test_request_context('/app/api'):
+        attendance = ot_views._compute_work_minutes(record, shift_start, shift_end, pair)
+    assert attendance['total_work_minutes'] == expected_minutes
+    assert attendance['total_pay'] == 400
+
+
+def test_per_period_work_minutes_uses_actual_attendance(ot_views):
+    shift_start = _bangkok_dt(2026, 10, 6, 5, 30)
+    shift_end = _bangkok_dt(2026, 10, 6, 8, 30)
+    record = _make_record(
+        staff_id=1, fullname='Staff', sap_id='34630',
+        shift_start=shift_start, shift_end=shift_end, rate=750, per_period=True,
+    )
+    record.total_shift_minutes = 240
+    pair = SimpleNamespace(
+        start=_bangkok_dt(2026, 10, 6, 6, 32),
+        end=_bangkok_dt(2026, 10, 6, 7, 9),
+    )
+    with Flask('test').test_request_context('/app/api'):
+        attendance = ot_views._compute_work_minutes(record, shift_start, shift_end, pair)
+    assert attendance['total_work_minutes'] == 37
+    assert attendance['total_pay'] == 750
+
+
+@pytest.mark.parametrize('checkin_time, checkout_time, expected_minutes, expected_pay', [
+    ((5, 30), (6, 1), 31, 51.67),
+    ((6, 32), (7, 9), 37, 0.0),
+])
+def test_hourly_table_displays_actual_minutes_independently_of_payment(
+    ot_views, checkin_time, checkout_time, expected_minutes, expected_pay
+):
+    record = _make_record(
+        staff_id=166, fullname='Hourly Staff', sap_id='59669',
+        shift_start=datetime(2026, 10, 6, 5, 30),
+        shift_end=datetime(2026, 10, 6, 8, 30), rate=100,
+    )
+    record.total_shift_minutes = 240
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery([
+            _make_login(166, 501, _bangkok_dt(2026, 10, 6, *checkin_time),
+                        _bangkok_dt(2026, 10, 6, *checkout_time)),
+        ]), start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery([SimpleNamespace(datetime=record.shift.datetime, records=[record])]),
+        datetime=DummyField(), timeslot=DummyField(),
+    )
+    with Flask('test').test_request_context(
+        '/app/api?start=2026-10-06T00:00:00%2B07:00&end=2026-10-06T23:59:59%2B07:00'
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+    row = response.get_json()['data'][0]
+    assert row['work_minutes'] == expected_minutes
+    assert row['work_minutes_display'] == f'{expected_minutes}m'
+    assert row['payment'] == expected_pay
