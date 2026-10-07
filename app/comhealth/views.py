@@ -12,6 +12,7 @@ import time
 import zipfile
 from functools import lru_cache
 from collections import OrderedDict, defaultdict
+from datetime import datetime
 from io import BytesIO
 from urllib.parse import urljoin
 
@@ -46,7 +47,7 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
-from app.main import mail
+from app.main import mail, db
 from app.roles import admin_permission, approve_lab_permission, comhealth_admin_permission
 from .concern_engine import build_health_risk_report
 from .health_risk_copy import get_health_risk_copy
@@ -779,10 +780,71 @@ def services_by_service_prefix_customer_api():
         '/Services/by-service-prefix-customer',
         params={'serviceNoPrefix': service_no_prefix, 'custId': cust_id},
     )
+    if not response.ok:
+        return (
+            response.content,
+            response.status_code,
+            {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+        )
+
+    try:
+        payload = response.json()
+    except ValueError:
+        return (
+            response.content,
+            response.status_code,
+            {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+        )
+
+    if isinstance(payload, list):
+        rows = payload
+        rows_key = None
+    elif isinstance(payload, dict):
+        rows_key = next((key for key in ('data', 'items', 'results', 'services')
+                         if isinstance(payload.get(key), list)), None)
+        rows = payload.get(rows_key, []) if rows_key else []
+    else:
+        rows = []
+        rows_key = None
+
+    service_numbers = {
+        str(row.get('serviceNo') or row.get('serviceno') or row.get('service_no') or '')
+        for row in rows if isinstance(row, dict)
+    }
+    service_numbers.discard('')
+    latest_notifications = {}
+    if service_numbers:
+        notifications = ComHealthResultEmailNotification.query.filter(
+            ComHealthResultEmailNotification.service_no.in_(service_numbers),
+            ComHealthResultEmailNotification.delivery_status == 'sent',
+        ).order_by(
+            ComHealthResultEmailNotification.service_no,
+            ComHealthResultEmailNotification.sent_at.desc(),
+            ComHealthResultEmailNotification.id.desc(),
+        ).all()
+        for notification in notifications:
+            latest_notifications.setdefault(notification.service_no, notification)
+
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        service_no = str(row.get('serviceNo') or row.get('serviceno') or row.get('service_no') or '')
+        notification = latest_notifications.get(service_no)
+        row['lastEmailStatus'] = notification.approval_status if notification else None
+        row['lastEmailSentBy'] = notification.sent_by_fullname if notification else None
+        row['lastEmailSentAt'] = notification.sent_at.isoformat() if notification and notification.sent_at else None
+
+    if isinstance(payload, list):
+        enriched_payload = rows
+    elif rows_key:
+        payload[rows_key] = rows
+        enriched_payload = payload
+    else:
+        enriched_payload = payload
     return (
-        response.content,
+        json.dumps(enriched_payload, ensure_ascii=False, default=str),
         response.status_code,
-        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+        {'Content-Type': 'application/json'},
     )
 
 
@@ -916,7 +978,7 @@ def save_xray_approval_api():
     return _save_service_section_approval('/XRays/approval')
 
 
-def _send_health_result_email(customer_email, service_no, service_date, customer_age=''):
+def _send_health_result_email(customer_email, service_no, service_date, customer_age='', approved_status='complete'):
     customer_email = str(customer_email or '').strip().lower()
     service_no = str(service_no or '').strip()
     service_date = str(service_date or '').strip()
@@ -940,20 +1002,40 @@ def _send_health_result_email(customer_email, service_no, service_date, customer
             token=token,
             _external=True,
         )
-        title = 'ผลตรวจสุขภาพออนไลน์พร้อมดูแล้ว / Online health results available'
+        is_complete = str(approved_status or '').strip().lower() == 'complete'
+        title = (
+            'ผลตรวจสุขภาพออนไลน์พร้อมดูแล้ว / Online health results available'
+            if is_complete else
+            'ผลตรวจสุขภาพออนไลน์อนุมัติบางส่วน / Partial online health results available'
+        )
         html_message = render_template(
-            'comhealth/emails/online_result_available.html',
+            (
+                'comhealth/emails/online_result_available.html'
+                if is_complete else
+                'comhealth/emails/online_result_partially_approved.html'
+            ),
             subject=title,
             result_url=result_url,
         )
+        availability_message_th = (
+            'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว'
+            if is_complete else
+            'ผลการตรวจสุขภาพออนไลน์ของท่านได้รับการอนุมัติแล้วบางส่วน '
+            'ท่านสามารถเข้าดูผลตรวจที่พร้อมแสดงได้'
+        )
+        availability_message_en = (
+            'Your online health examination results are available at the link below:'
+            if is_complete else
+            'Some of your online health examination results are now available at the link below:'
+        )
         message = (
             'เรียน ท่านผู้รับการตรวจสุขภาพ\n\n'
-            'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณาคลิกลิงก์ด้านล่าง:\n'
+            f'{availability_message_th} กรุณาคลิกลิงก์ด้านล่าง:\n'
             f'{result_url}\n\n'
             'ลิงก์แจ้งเตือนนี้สามารถใช้งานได้ภายใน 7 วันนับจากเวลาที่ส่งอีเมลนี้\n'
             'ระบบจะขอให้ท่านยืนยันอีเมลก่อนเข้าดูผลตรวจ กรุณาอย่าส่งต่ออีเมลนี้ให้ผู้อื่น\n\n'
             'Dear customer,\n\n'
-            'Your online health examination results are available at the link below:\n'
+            f'{availability_message_en}\n'
             f'{result_url}\n\n'
             'This notification link is valid for 7 days from the time this email is sent.\n'
             'You will be asked to verify your email before viewing the report. Please do not share this email.\n\n'
@@ -989,17 +1071,169 @@ def _send_health_result_email(customer_email, service_no, service_date, customer
         }
 
 
+def _service_approved_status(service_no, customer_email):
+    """Return the current Service approval state, preferring the Service record."""
+    try:
+        employee_response = _online_results_api_request(
+            'GET',
+            f'/Employees/email/{customer_email}',
+        )
+        employee = employee_response.json() if employee_response.ok else {}
+    except Exception:
+        employee = {}
+
+    customer_id = next((
+        employee.get(key) for key in ('custId', 'custID', 'customerId', 'customerID')
+        if employee.get(key) not in (None, '')
+    ), None) if isinstance(employee, dict) else None
+    service_prefix = str(service_no)[:8]
+
+    if customer_id and len(service_prefix) == 8:
+        try:
+            response = _online_results_api_request(
+                'GET',
+                '/Services/by-service-prefix-customer',
+                params={'serviceNoPrefix': service_prefix, 'custId': customer_id},
+            )
+            payload = response.json() if response.ok else {}
+            rows = payload if isinstance(payload, list) else (
+                payload.get('data') or payload.get('items') or []
+            )
+            for row in rows:
+                row_service_no = str(
+                    row.get('serviceNo') or row.get('serviceno') or row.get('service_no') or ''
+                )
+                if row_service_no == str(service_no):
+                    status = str(
+                        row.get('approvedStatus') or row.get('approved_status') or ''
+                    ).strip().lower()
+                    return 'complete' if status == 'complete' else 'some'
+        except Exception:
+            current_app.logger.exception(
+                'Unable to read Service approval status for serviceNo=%s', service_no
+            )
+
+    approval_values = []
+    for path in (
+            f'/Labs/service/test-details/{service_no}',
+            f'/PhysicalExams/{service_no}',
+            f'/XRays/{service_no}'):
+        try:
+            response = _online_results_api_request('GET', path)
+            if not response.ok:
+                continue
+            payload = response.json()
+        except Exception:
+            continue
+
+        def collect_approval_values(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if key.lower() == 'isapproved' and isinstance(item, bool):
+                        approval_values.append(item)
+                    else:
+                        collect_approval_values(item)
+            elif isinstance(value, list):
+                for item in value:
+                    collect_approval_values(item)
+
+        collect_approval_values(payload)
+
+    if approval_values:
+        return 'complete' if all(approval_values) else 'some'
+    return None
+
+
+def _record_health_result_email_notification(
+        service_no, customer_email, approved_status, notification):
+    """Persist the result of a manual email send without affecting delivery."""
+    is_complete = approved_status == 'complete'
+    record = ComHealthResultEmailNotification(
+        service_no=service_no,
+        recipient_email=customer_email,
+        approval_status=approved_status,
+        email_type='complete_result' if is_complete else 'partial_result',
+        template_name=(
+            'comhealth/emails/online_result_available.html'
+            if is_complete else
+            'comhealth/emails/online_result_partially_approved.html'
+        ),
+        delivery_status='sent' if notification.get('sent') else 'failed',
+        sent_at=datetime.now(bangkok) if notification.get('sent') else None,
+        sent_by_staff_id=current_user.id,
+        sent_by_fullname=current_user.fullname,
+        error_message=notification.get('error'),
+    )
+    db.session.add(record)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            'Unable to record health result email notification for serviceNo=%s',
+            service_no,
+        )
+
+
 @comhealth.route('/api/health-result-notification', methods=['POST'])
 @login_required
+@approve_lab_permission.require(http_exception=403)
 def send_health_result_notification_api():
     payload = request.get_json(silent=True) or {}
+    customer_email = str(payload.get('customerEmail') or '').strip().lower()
+    service_no = str(payload.get('serviceNo') or '').strip()
+    service_date = str(payload.get('serviceDate') or '').strip()
+    customer_age = str(payload.get('customerAge') or '').strip()
+    approved_status = _service_approved_status(service_no, customer_email)
+    if approved_status is None:
+        return {
+            'error': 'Unable to determine the current approval status. Email was not sent.'
+        }, 409
     notification = _send_health_result_email(
-        payload.get('customerEmail'),
-        payload.get('serviceNo'),
-        payload.get('serviceDate'),
-        payload.get('customerAge'),
+        customer_email,
+        service_no,
+        service_date,
+        customer_age,
+        approved_status=approved_status,
     )
-    return {'emailNotification': notification}
+    _record_health_result_email_notification(
+        service_no, customer_email, approved_status, notification,
+    )
+    return {'emailNotification': notification, 'approvedStatus': approved_status}
+
+
+@comhealth.route('/api/health-result-email', methods=['POST'])
+@login_required
+@approve_lab_permission.require(http_exception=403)
+def send_health_result_email_api():
+    payload = request.get_json(silent=True) or {}
+    customer_email = str(payload.get('customerEmail') or '').strip().lower()
+    service_no = str(payload.get('serviceNo') or '').strip()
+    service_date = str(payload.get('serviceDate') or '').strip()
+    customer_age = str(payload.get('customerAge') or '').strip()
+    if not customer_email or not service_no.isdigit() or not service_date:
+        return {'error': 'Missing customer email, service number, or service date.'}, 400
+
+    approved_status = _service_approved_status(service_no, customer_email)
+    if approved_status is None:
+        return {
+            'error': 'Unable to determine the current approval status. Email was not sent.'
+        }, 409
+
+    notification = _send_health_result_email(
+        customer_email,
+        service_no,
+        service_date,
+        customer_age,
+        approved_status=approved_status,
+    )
+    _record_health_result_email_notification(
+        service_no, customer_email, approved_status, notification,
+    )
+    return {
+        'emailNotification': notification,
+        'approvedStatus': approved_status,
+    }, (200 if notification.get('sent') else 502)
 
 
 @comhealth.route('/api/lab-approvals', methods=['POST'])
@@ -1017,11 +1251,6 @@ def save_lab_approvals_api():
         'email': current_user.email,
         'fullname': current_user.fullname,
     }
-    customer_email = str(payload.get('customerEmail') or '').strip().lower()
-    service_no = str(payload.get('serviceNo') or '').strip()
-    service_date = str(payload.get('serviceDate') or '').strip()
-    customer_age = str(payload.get('customerAge') or '').strip()
-    send_notification = payload.get('sendNotification', True) is not False
     approval_payload = dict(payload)
     for notification_field in (
             'customerEmail', 'serviceDate', 'customerAge', 'sendNotification'):
@@ -1032,20 +1261,11 @@ def save_lab_approvals_api():
         json=approval_payload,
     )
 
-    email_notification = {'sent': False}
-    if response.ok and send_notification:
-        email_notification = _send_health_result_email(
-            customer_email,
-            service_no,
-            service_date,
-            customer_age,
-        )
-    elif response.ok:
-        email_notification = {
-            'sent': False,
-            'disabled': True,
-            'message': 'Email notification is temporarily disabled.',
-        }
+    email_notification = {
+        'sent': False,
+        'disabled': True,
+        'message': 'Email is sent manually from the online result page.',
+    }
 
     try:
         api_response = response.json()

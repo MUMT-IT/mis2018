@@ -471,6 +471,41 @@
             display: none;
         }
 
+        body.has-result-email-footer { padding-bottom: 5.75rem; }
+
+        .result-email-footer {
+            align-items: center;
+            background: #ffffff;
+            border-top: 1px solid #cbd5e1;
+            bottom: 0;
+            box-sizing: border-box;
+            box-shadow: 0 -8px 24px rgba(15, 23, 42, .10);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            left: 0;
+            margin: 0;
+            max-width: none;
+            padding: 1rem 1.5rem;
+            position: fixed;
+            right: 0;
+            z-index: 20;
+        }
+
+        .result-email-footer-copy {
+            align-items: center;
+            display: flex;
+            gap: .75rem;
+        }
+
+        .result-email-footer-copy p { color: #64748b; font-size: .8rem; margin: .1rem 0 0; }
+
+        @media (max-width: 768px) {
+            body.has-result-email-footer { padding-bottom: 10.5rem; }
+            .result-email-footer { align-items: stretch; flex-direction: column; padding: .9rem 1rem; }
+            .result-email-footer .button { width: 100%; }
+        }
+
         .result-section-menu {
             max-width: 960px;
             margin: 0 auto 1rem;
@@ -792,7 +827,7 @@
         }
     </style>
 </head>
-<body>
+<body{% if comhealth_approve_lab_visible %} class="has-result-email-footer"{% endif %}>
     <!-- Loading Overlay -->
     <div id="loader-overlay">
         <div class="loader-dots">
@@ -1678,12 +1713,79 @@
         </main>
 
     </div>
+    {% if comhealth_approve_lab_visible %}
+        <footer class="result-email-footer no-print" aria-label="ส่งอีเมลผลตรวจสุขภาพ">
+            <div class="result-email-footer-copy">
+                <span class="icon is-medium has-text-grey"><i class="fa-solid fa-envelope-circle-check fa-lg"></i></span>
+                <div>
+                    <strong>{{ 'Send health-result email' if is_english else 'ส่งผลตรวจสุขภาพทาง Email' }}</strong>
+                    <p>{{ 'Review the result before sending the online-result link.' if is_english else 'ตรวจสอบผลก่อนส่งลิงก์ผลตรวจให้ผู้รับบริการ' }}</p>
+                </div>
+            </div>
+            <button id="send-result-email" class="button is-primary" type="button">
+                <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
+                <span>{{ 'Send Email' if is_english else 'ส่ง Email' }}</span>
+            </button>
+        </footer>
+    {% endif %}
     <div class="is-hidden" aria-hidden="true">
         <span id="lab_previous_date1">-</span>
         <span id="lab_previous_date2">-</span>
     </div>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const sendResultEmailUrl = {{ url_for('comhealth.send_health_result_email_api') | tojson }};
+    const resultEmailCsrfToken = {{ csrf_token() | tojson }};
+    const sendResultEmailButton = document.getElementById("send-result-email");
+    if (sendResultEmailButton) {
+        sendResultEmailButton.addEventListener("click", async function () {
+            const message = {{ ('Confirm sending the online health-result link to the registered email address?' if is_english else 'ยืนยันส่งลิงก์ผลตรวจสุขภาพออนไลน์ไปยังอีเมลที่ลงทะเบียนไว้หรือไม่?') | tojson }};
+            if (!window.confirm(message)) return;
+
+            sendResultEmailButton.disabled = true;
+            sendResultEmailButton.classList.add("is-loading");
+            try {
+                const response = await fetch(sendResultEmailUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": resultEmailCsrfToken
+                    },
+                    body: JSON.stringify({
+                        serviceNo: {{ service_no | tojson }},
+                        customerEmail: {{ employee_email | tojson }},
+                        serviceDate: {{ servicedate_iso | tojson }},
+                        customerAge: {{ age | tojson }}
+                    })
+                });
+                const payload = await response.json().catch(function () { return {}; });
+                if (!response.ok || !payload.emailNotification || !payload.emailNotification.sent) {
+                    throw new Error(payload.error || (payload.emailNotification && payload.emailNotification.error) || "Unable to send email.");
+                }
+                const statusLabel = payload.approvedStatus === "complete"
+                    ? {{ ('complete approval' if is_english else 'ผลอนุมัติครบถ้วน') | tojson }}
+                    : {{ ('partial approval' if is_english else 'ผลอนุมัติบางส่วน') | tojson }};
+                const successMessage = {{ ('Email sent successfully' if is_english else 'ส่ง Email สำเร็จ') | tojson }}
+                    + ` (${statusLabel})`;
+                if (window.showToastAlert) {
+                    showToastAlert("success", successMessage);
+                } else {
+                    window.alert(successMessage);
+                }
+            } catch (error) {
+                const errorMessage = {{ ('Unable to send email: ' if is_english else 'ไม่สามารถส่ง Email ได้: ') | tojson }} + error.message;
+                if (window.showToastAlert) {
+                    showToastAlert("error", errorMessage);
+                } else {
+                    window.alert(errorMessage);
+                }
+            } finally {
+                sendResultEmailButton.disabled = false;
+                sendResultEmailButton.classList.remove("is-loading");
+            }
+        });
+    }
+
     const labInterpretationUrl = {{ url_for('comhealth.employee_lab_interpretation', serviceNo=service_no, age=age_for_api, gender=employee.sex, lang=current_lang) | tojson }};
     let interpretationsRequested = false;
     document.querySelectorAll(".interpretation-box").forEach(function (box) {

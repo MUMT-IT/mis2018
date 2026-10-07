@@ -764,7 +764,7 @@
                     customerEmail: customerEmail,
                     serviceDate: serviceDate,
                     customerAge: customerAge,
-                    sendNotification: true,
+                    sendNotification: false,
                     section: 'lab',
                     approvedStatus: approvedStatus,
                     staffAccount: staffAccount,
@@ -817,21 +817,14 @@
                             isApproved: approveAllXray.checked
                         }, 'X-ray');
                     }
-                    const notificationResponseBody = await postApproval(
+                    await postApproval(
                         labApprovalsApiUrl,
                         labPayload,
                         changedItems.length ? 'Lab' : 'สถานะการอนุมัติ'
                     );
 
                     if (window.showToastAlert) {
-                        const notification = notificationResponseBody
-                            && notificationResponseBody.emailNotification;
-                        const emailMessage = notification && notification.disabled
-                            ? ' (ปิดการส่งอีเมลชั่วคราว)'
-                            : (notification && notification.sent
-                                ? ` และส่งลิงก์ผลตรวจไปที่ ${notification.recipient} แล้ว`
-                                : ' แต่ยังไม่ได้ส่งอีเมล กรุณาตรวจสอบอีเมลผู้รับการตรวจสุขภาพ');
-                        showToastAlert('success', `บันทึกการอนุมัติ ${changeLabels.join(', ')} สำเร็จ${emailMessage}`);
+                        showToastAlert('success', `บันทึกการอนุมัติ ${changeLabels.join(', ')} สำเร็จ`);
                     }
                     await Promise.all([loadPhysicalExams(), loadTestDetails(), loadXrays()]);
                 } catch (error) {

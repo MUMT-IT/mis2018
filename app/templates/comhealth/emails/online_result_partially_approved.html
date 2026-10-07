@@ -1,0 +1,3 @@
+{% set subject = subject|default('ผลตรวจสุขภาพออนไลน์อนุมัติบางส่วน / Partial online health results available', true) %}
+{% set email_state = 'partial' %}
+{% include 'comhealth/emails/online_result_available.html' %}
