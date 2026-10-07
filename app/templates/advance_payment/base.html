@@ -676,12 +676,14 @@
                   <i class="bi bi-clock-history me-2"></i> รายการเงินสดย่อย
                 </a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('advance_payment.petty_cash_ledger') }}">
-                  <i class="bi bi-journal-bookmark-fill me-2"></i>
-                  <span>สมุดคุมบัญชีเงินสดย่อย</span>
-                </a>
-              </li>
+              {% if advance_payment_is_custodian %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('advance_payment.petty_cash_ledger') }}">
+                    <i class="bi bi-journal-bookmark-fill me-2"></i>
+                    <span>สมุดคุมบัญชีเงินสดย่อย</span>
+                  </a>
+                </li>
+              {% endif %}
             {% endif %}
             {% if petty_cash_settings|length > 1 %}
               <li class="nav-section-title">เลือกบัญชีเงินสดย่อย</li>
@@ -777,7 +779,7 @@
                 <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
                   {% if session.get('advance_payment_system') == 'finance' %}
                     ฝ่ายการเงิน
-                  {% elif advance_payment_role == 'secretary' %}
+                  {% elif advance_payment_is_custodian %}
                     ผู้ดูแลเงินสดย่อย
                   {% else %}
                     ผู้ใช้งานทั่วไป

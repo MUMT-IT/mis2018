@@ -1,11 +1,11 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}ประวัติใบยืมและใบเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
+{% block title %}ประวัติใบยืมและใบเบิกเงินสดย่อย | ระบบเงินสดย่อย{% endblock %}
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom d-flex align-items-center justify-content-between">
   <div>
-    <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
+    <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ระบบเงินสดย่อย</p>
     <h1 class="fw-bold display-6 mb-2">หน่วยงาน: {{ setting.department_name if setting else '-' }}</h1>
     <p class="text-muted mb-0">เลขที่บัญชี: {{ setting.account_number if setting else '-' }}</p>
   </div>
@@ -126,7 +126,7 @@
               <td class="text-end fw-bold text-dark">{{ "{:,.2f}".format(request.amount) }}</td>
               <td class="text-center">
                 {% if request.form_type == 'petty_cash' %}
-                  {% if request.status == 'กำลังดำเนินการ' and is_secretary %}
+                  {% if request.status == 'กำลังดำเนินการ' and is_custodian %}
                     <div class="d-inline-flex flex-column align-items-center gap-1">
                       <span class="badge bg-warning text-dark fw-bold px-3 py-2">กำลังดำเนินการ</span>
                       {% if request.has_rejected_followup %}
@@ -302,7 +302,7 @@
                   
                 <td class="text-center">
                   <div class="d-flex gap-1 justify-content-center align-items-center flex-wrap">
-                  {% if not claim.claim_number %}
+                  {% if not claim.claim_number and (is_custodian or claim.user_id == advance_payment_user.id) %}
                     <button type="button"
                             class="btn btn-sm btn-outline-secondary"
                             data-popup-trigger="true"

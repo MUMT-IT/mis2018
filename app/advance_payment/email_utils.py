@@ -64,28 +64,27 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         days_remaining = ctx.get("days_remaining", "")
 
         if is_overdue:
-            subject = "[แจ้งกำหนดส่งเอกสารส่งใช้เงินยืม] สัญญาเงินยืมเงินทดรองจ่าย"
-            body = f"""เนื่องจากขณะนี้ระบบพบว่าสัญญาเงินยืมเงินทดรองจ่ายของท่านถึงวันครบกำหนดแล้ว
-ขอความอนุเคราะห์ตรวจสอบและดำเนินการส่งเอกสารส่งใช้เงินยืม
+            subject = f"แจ้งติดตามการส่งใช้เงินยืมทดรองจ่าย บย. {number}"
+            body = f"""สัญญาเงินยืมเงินทดรองจ่ายของท่านถึงวันครบกำหนดส่งใช้แล้ว กรุณาดำเนินการส่งเอกสารส่งใช้เงินยืม เพื่อป้องกันการหักเงินเดือนหรือเงินอื่นใดที่ได้รับจากมหาวิทยาลัยมหิดล
 
 รายละเอียดสัญญา:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - เลขที่สัญญา บย.{number}
-- จำนวนเงิน {remaining_amount}
+- ยอดคงค้าง {remaining_amount} บาท
 - ระยะเวลาโครงการ {start_date} - {end_date}
 - วันครบกำหนดส่งคืน {due_date}
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
         elif is_upcoming:
-            subject = f"[แจ้งกำหนดส่งเอกสารส่งใช้เงินยืม(เหลือเวลา {days_remaining} วัน)] สัญญาเงินยืมเงินทดรองจ่าย"
-            body = f"""เนื่องจากสัญญาเงินยืมเงินทดรองจ่ายของท่านใกล้ถึงกำหนดแล้ว
-ขอความอนุเคราะห์ตรวจสอบและดำเนินการส่งเอกสารส่งใช้เงินยืม
+            subject = f"แจ้งติดตามการส่งใช้เงินยืมทดรองจ่าย บย. {number}"
+            body = f"""สัญญาเงินยืมเงินทดรองจ่ายของท่านใกล้ถึงกำหนดส่งใช้แล้ว
+กรุณาดำเนินการส่งเอกสารส่งใช้เงินยืมภายในกำหนด 15 วัน
 
 รายละเอียดสัญญา:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - เลขที่สัญญา บย.{number}
-- จำนวนเงิน {remaining_amount}
+- ยอดคงค้าง {remaining_amount} บาท
 - ระยะเวลาโครงการ {start_date} - {end_date}
 - วันครบกำหนดส่งคืน {due_date}
   (เหลือเวลา {days_remaining} วันก่อนครบกำหนด)
@@ -94,12 +93,12 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 คณะเทคนิคการแพทย์"""
         elif status == "กำลังส่งคำขอ":
             subject = "แจ้งสถานะสัญญาเงินยืมทดรองจ่าย [กำลังส่งคำขอ]"
-            body = f"""คำขอสัญญาเงินยืมเพื่อ {ticket_name} ถูกบันทึกคำขอเรียบร้อยแล้ว
+            body = f"""คำขอสัญญาเงินยืมทดรองจ่าย เพื่อ {ticket_name} ถูกบันทึกคำขอเรียบร้อยแล้ว
 
 รายละเอียดสัญญา:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - ระยะเวลาโครงการ {start_date} - {end_date}
-- จำนวนเงิน {budget_request}
+- จำนวนเงิน {budget_request} บาท
 
 **กรุณาดำเนินการส่งหนังสือขออนุมัติยืมเงินและสัญญาการยืมเงินผ่านระบบ e-office ต่อไป
 
@@ -107,13 +106,13 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 คณะเทคนิคการแพทย์"""
         elif status == "อนุมัติจ่ายเงิน":
             subject = "แจ้งสถานะสัญญาเงินยืมทดรองจ่าย [อนุมัติจ่ายเงิน]"
-            body = f"""คำขอสัญญาเงินยืมเพื่อ {ticket_name} ได้รับการอนุมัติเรียบร้อยแล้ว
+            body = f"""คำขอสัญญาเงินยืมทดรองจ่าย เพื่อ {ticket_name} ได้รับการอนุมัติเรียบร้อยแล้ว
 
 รายละเอียดสัญญา:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - เลขที่สัญญา บย.{number}
 - วันที่ได้รับเงินยืม {approved_at}
-- จำนวนเงิน {budget_request}
+- จำนวนเงิน {budget_request} บาท
 - วันครบกำหนดส่งคืน {due_date}
 
 **กรุณาดำเนินงานและส่งเอกสารส่งใช้เงินยืมภายในกำหนด
@@ -121,13 +120,12 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
         elif status == "เคลียร์ยอดแล้ว":
-            subject = "แจ้งสถานะสัญญาเงินยืมทดรองจ่าย [เคลียร์ยอดแล้ว]"
-            body = f"""สัญญาเงินยืมเพื่อ {ticket_name} ได้รับการเคลียร์ยอดครบถ้วนแล้ว
+            subject = f"แจ้งสถานะสัญญาเงินยืมทดรองจ่าย บย. {number} [เคลียร์ยอดแล้ว]"
+            body = f"""สัญญาเงินยืมทดรองจ่าย เลขที่ บย.{number} ได้รับการเคลียร์ยอดครบแล้ว
 
 รายละเอียดสัญญา:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - เลขที่สัญญา บย.{number}
-- สถานะปัจจุบัน เคลียร์ยอดแล้ว
 - วันที่เคลียร์ยอด {closed_date}
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
@@ -139,9 +137,9 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 เนื่องจาก {rejection_reason}
 
 รายละเอียดสัญญา:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - ระยะเวลาโครงการ {start_date} - {end_date}
-- จำนวนเงิน {budget_request}
+- จำนวนเงิน {budget_request} บาท
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
@@ -156,15 +154,15 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         status = getattr(target_object, "status", "")
         rejection_reason = getattr(target_object, "rejection_comment", None) or "-"
         status_label = {"รอตรวจสอบ": "รอการตรวจสอบ", "ผ่านการตรวจสอบ": "ผ่านการตรวจสอบ", "ปฏิเสธ": "ปฏิเสธหลักฐาน"}.get(status, status)
-        subject = f"แจ้งสถานะเอกสารส่งใช้เงินยืมของสัญญาเงินยืมเงินทดรองจ่าย [{status_label}]"
+        subject = f"แจ้งสถานะเอกสารส่งใช้เงินยืมทดรองจ่ายบย. {number} [{status_label}]"
         if status == "รอตรวจสอบ":
             body = f"""หลักฐานเอกสารส่งใช้เงินยืมบย.{number} ถูกบันทึกเรียบร้อยแล้ว
 
 รายละเอียดเอกสารส่งใช้เงินยืม:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - จำนวนเงินในเอกสารชุดนี้ {amount} บาท
 
-กรุณารอการตรวจสอบจากฝ่ายการเงิน
+กรุณารอการตรวจสอบจากหน่วยการเงินฯ
 
 ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย
 คณะเทคนิคการแพทย์"""
@@ -173,7 +171,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 ได้รับการตรวจสอบหลักฐานว่าถูกต้องเรียบร้อยแล้ว
 
 รายละเอียดเอกสารส่งใช้เงินยืม:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - จำนวนเงินในเอกสารชุดนี้ {amount} บาท
 - ยอดคงค้างปัจจุบัน {_amount(ctx.get("remaining_amount", 0))}
 
@@ -187,7 +185,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
 เนื่องจาก {rejection_reason}
 
 รายละเอียดเอกสารส่งใช้เงินยืม:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - จำนวนเงินในเอกสารชุดนี้ {amount} บาท
 
 กรุณาดำเนินการแก้ไขข้อมูลและทำการบันทึกข้อมูลใหม่อีกครั้ง
@@ -205,18 +203,18 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         claim_amount = _amount(sum((Decimal(str(getattr(item, "amount", 0) or 0)) for item in items), Decimal("0")))
         transferred_at = thai_date(getattr(target_object, "transferred_at", None))
         status_label = status
-        subject = f"แจ้งสถานะรายการขออนุมัติเบิกเงินสดย่อย [{status_label}]"
+        subject = f"แจ้งสถานะรายการขออนุมัติเบิกค่าใช้จ่ายเงินสดย่อย เลขที่ {ticket_number} [{status_label}]"
         if status == "รอตรวจสอบ":
-            intro = f" รายการขออนุมัติเบิกเงินสดย่อยของใบเบิกเลขที่ {ticket_number} อยู่ระหว่างรอการตรวจสอบ"
+            intro = f" รายการขออนุมัติเบิกค่าใช้จ่าย เงินสดย่อย ใบเบิกเลขที่ {ticket_number} อยู่ระหว่างรอการตรวจสอบ"
             tail = "\n\nกรุณารอการตรวจสอบจากฝ่ายการเงิน"
         elif status == "ผ่านการตรวจสอบ":
-            intro = f" รายการขออนุมัติเบิกเงินสดย่อยของใบเบิกเลขที่ {ticket_number} ผ่านการตรวจสอบเรียบร้อยแล้ว"
+            intro = f" รายการขออนุมัติเบิกค่าใช้จ่าย เงินสดย่อย ใบเบิกเลขที่ {ticket_number} ผ่านการตรวจสอบเรียบร้อยแล้ว"
             tail = "\n\n**กรุณาดำเนินการส่งหนังสือขออนุมัติเบิกจ่ายผ่านระบบ e-office ต่อไป"
         elif status == "ปฏิเสธ":
-            intro = f" รายการขออนุมัติเบิกเงินสดย่อยของใบเบิกเลขที่ {ticket_number} ถูกปฏิเสธ\n\nเนื่องจาก {getattr(target_object, 'rejection_comment', None) or '-'}"
+            intro = f" รายการขออนุมัติเบิกค่าใช้จ่าย เงินสดย่อย ใบเบิกเลขที่ {ticket_number} ถูกปฏิเสธ\n\nเนื่องจาก {getattr(target_object, 'rejection_comment', None) or '-'}"
             tail = "\n\nกรุณาดำเนินการแก้ไขข้อมูลและทำการบันทึกข้อมูลใหม่อีกครั้ง"
         elif status == "โอนเงินสดย่อยสำเร็จ":
-            intro = f"รายการขออนุมัติเบิกเงินสดย่อยของใบเบิกเลขที่ {ticket_number} ได้รับการโอนเงินสดย่อยสำเร็จแล้ว\n\n- ชื่อผู้ยืม {requester_name}\n- จำนวนเงิน {claim_amount} บาท\n- วันที่โอนเงินสำเร็จ {transferred_at}"
+            intro = f"รายการขออนุมัติเบิกค่าใช้จ่าย เงินสดย่อย ใบเบิกเลขที่ {ticket_number} ได้รับการโอนเงินสดย่อยสำเร็จแล้ว\n\n- ผู้ยืม {requester_name}\n- จำนวนเงิน {claim_amount} บาท\n- วันที่โอนเงินสำเร็จ {transferred_at}"
             tail = ""
         else:
             intro = " ขอแจ้งอัปเดตสถานะรายการขออนุมัติเบิกเงินสดย่อย\n\n- สถานะปัจจุบัน " + status
@@ -224,7 +222,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         body = f"""{intro}
 
 รายละเอียดอนุมัติเบิกเงินสดย่อย
-- ชื่อผู้ยืม {requester_name}
+- ผู้ยืม {requester_name}
 - จำนวนเงินในเอกสารชุดนี้ {claim_amount} บาท{tail}
 
 {footer}"""
@@ -251,7 +249,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         body = f"""{intro}
 
 รายละเอียดรายการ:
-- ชื่อผู้ยืม {borrower_name}
+- ผู้ยืม {borrower_name}
 - รายการ {items_description}
 - จำนวนเงิน {amount} บาท{transfer_line}
 
