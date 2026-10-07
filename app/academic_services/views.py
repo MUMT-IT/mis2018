@@ -1319,7 +1319,7 @@ def account():
 def customer_account():
     menu = request.args.get('menu')
     account = ServiceCustomerAccount.query.get(current_user.id)
-    old_is_document_verified = account.customer_info.is_document_verified
+    old_is_document_verified = account.customer_info.is_document_verified if account.customer_info else None
     if current_user.customer_info:
         customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
         form = ServiceCustomerInfoForm(obj=customer)
