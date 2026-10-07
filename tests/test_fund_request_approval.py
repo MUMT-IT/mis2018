@@ -22,6 +22,7 @@ class FundRequestApprovalTests(unittest.TestCase):
         wanted_helpers = {
             "_staff_accounts_match",
             "_fund_request_signature_state",
+            "_fund_request_can_be_edited_by_creator",
             "_fund_request_expected_confirmer_id",
             "_fund_request_is_fully_approved",
             "_sync_fund_request_approval_status",
@@ -192,6 +193,61 @@ class FundRequestApprovalTests(unittest.TestCase):
             self.workflow._fund_request_expected_confirmer_id(fund_request)
         )
 
+    def test_creator_can_edit_until_another_person_acts(self):
+        creator = SimpleNamespace(id=10)
+        created_at = datetime(2026, 10, 5, 9, 0)
+        fund_request = SimpleNamespace(
+            creator_id=10,
+            is_legacy_import=False,
+            status="รอการอนุมัติ",
+            confirmed_at=created_at,
+            confirmed_by_id=10,
+            approved_at=created_at,
+            approved_by_id=10,
+        )
+
+        self.assertTrue(
+            self.workflow._fund_request_can_be_edited_by_creator(
+                creator,
+                fund_request,
+            )
+        )
+
+        fund_request.confirmed_by_id = 20
+        self.assertFalse(
+            self.workflow._fund_request_can_be_edited_by_creator(
+                creator,
+                fund_request,
+            )
+        )
+
+        fund_request.confirmed_by_id = 10
+        fund_request.approved_by_id = 20
+        self.assertFalse(
+            self.workflow._fund_request_can_be_edited_by_creator(
+                creator,
+                fund_request,
+            )
+        )
+
+    def test_approved_fund_request_cannot_be_edited(self):
+        fund_request = SimpleNamespace(
+            creator_id=10,
+            is_legacy_import=False,
+            status="อนุมัติแล้ว",
+            confirmed_at=None,
+            confirmed_by_id=None,
+            approved_at=datetime(2026, 10, 5, 9, 0),
+            approved_by_id=10,
+        )
+
+        self.assertFalse(
+            self.workflow._fund_request_can_be_edited_by_creator(
+                SimpleNamespace(id=10),
+                fund_request,
+            )
+        )
+
     def test_custodian_delegated_approval_satisfies_head_requester_role(self):
         acted_at = datetime(2026, 10, 6, 9, 0)
         fund_request = SimpleNamespace(
@@ -294,6 +350,26 @@ class FundRequestApprovalTests(unittest.TestCase):
         self.assertIn("_render_after_post=True", create_source)
         self.assertIn("_forced_fund_request_id=new_request.id", create_source)
         self.assertIn('submitBtn.innerText = "กำลังบันทึก..."', form_template)
+
+    def test_fund_request_edit_reuses_creation_form_and_prefills_items(self):
+        create_source = self.views_text[
+            self.views_text.index("def staff_fund_request"):
+            self.views_text.index("def confirm_fund_request")
+        ]
+        form_template = (
+            ROOT / "app/templates/advance_payment/staff_fund_request.html"
+        ).read_text(encoding="utf-8-sig")
+        claim_template = (
+            ROOT / "app/templates/advance_payment/submit_petty_cash_claim.html"
+        ).read_text(encoding="utf-8-sig")
+
+        self.assertIn('request.values.get("edit_request_id", type=int)', create_source)
+        self.assertIn("_fund_request_can_be_edited_by_creator", create_source)
+        self.assertIn("new_request = editing_request", create_source)
+        self.assertIn("for existing_item in list(new_request.items)", create_source)
+        self.assertIn('name="edit_request_id"', form_template)
+        self.assertIn("editing_request.items", form_template)
+        self.assertIn("edit_request_id=verification_fund_request.id", claim_template)
 
     def test_approval_and_rejection_controls_only_exist_on_claim_page(self):
         claim_template = (

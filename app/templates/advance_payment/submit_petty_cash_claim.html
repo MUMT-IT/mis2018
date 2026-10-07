@@ -126,8 +126,14 @@
         </div>
       {% endif %}
     </div>
-    {% if can_confirm_fund_request or can_approve_fund_request or can_reject_fund_request or can_record_fund_request_withdrawal or can_cancel_fund_request %}
+    {% if can_edit_fund_request or can_confirm_fund_request or can_approve_fund_request or can_reject_fund_request or can_record_fund_request_withdrawal or can_cancel_fund_request %}
     <div class="d-flex flex-wrap justify-content-end align-items-end gap-2">
+      {% if can_edit_fund_request %}
+      <a href="{{ url_for('advance_payment.staff_fund_request', edit_request_id=verification_fund_request.id) }}"
+         class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2">
+        <i class="bi bi-pencil-square me-1"></i>แก้ไขใบเบิก
+      </a>
+      {% endif %}
       {% if can_reject_fund_request %}
       <button type="button"
               class="btn btn-danger btn-sm fw-bold px-3 py-2"

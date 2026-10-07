@@ -765,6 +765,33 @@ def _fund_request_signature_state(fund_request):
     }
 
 
+def _fund_request_can_be_edited_by_creator(user, fund_request):
+    """Allow edits only before another person has acted on the request."""
+    user_id = getattr(user, "id", None)
+    creator_id = getattr(fund_request, "creator_id", None)
+    if (
+        not user_id
+        or creator_id != user_id
+        or getattr(fund_request, "is_legacy_import", False)
+        or (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ"
+    ):
+        return False
+
+    for timestamp_attr, actor_attr in (
+        ("confirmed_at", "confirmed_by_id"),
+        ("approved_at", "approved_by_id"),
+    ):
+        acted_at = getattr(fund_request, timestamp_attr, None)
+        actor_id = getattr(fund_request, actor_attr, None)
+        if actor_id not in {None, creator_id}:
+            return False
+        # A timestamp without an actor cannot be proven to belong to the creator.
+        if acted_at and actor_id != creator_id:
+            return False
+
+    return True
+
+
 def _fund_request_expected_confirmer_id(fund_request):
     signatures = _fund_request_signature_state(fund_request)
     if not signatures["requester_signed"]:
@@ -1783,18 +1810,24 @@ def _calculate_petty_cash_balance_summary(setting, *, user_id=None):
     }
 
 
-def _get_approved_borrowing_tickets_for_setting(setting):
+def _get_approved_borrowing_tickets_for_setting(setting, *, exclude_fund_request_id=None):
     if not setting or not getattr(setting, "account_number", None):
         return []
+
+    used_by_another_request = db.session.query(FundRequest.id).filter(
+        FundRequest.borrowing_ticket_id == BorrowingTicket.id,
+    )
+    if exclude_fund_request_id is not None:
+        used_by_another_request = used_by_another_request.filter(
+            FundRequest.id != exclude_fund_request_id,
+        )
 
     return (
         db.session.query(BorrowingTicket)
         .filter(
             BorrowingTicket.account_number == setting.account_number,
             BorrowingTicket.approved_at.isnot(None),
-            ~db.session.query(FundRequest.id).filter(
-                FundRequest.borrowing_ticket_id == BorrowingTicket.id,
-            ).exists(),
+            ~used_by_another_request.exists(),
         )
         .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.created_at.asc())
         .all()
@@ -7904,9 +7937,30 @@ def staff_fund_request():
     if not user:
         abort(404)
 
+    edit_request_id = request.values.get("edit_request_id", type=int)
+    editing_request = None
+    if edit_request_id is not None:
+        editing_request = db.session.query(FundRequest).get(edit_request_id)
+        if not editing_request:
+            abort(404)
+        if not _fund_request_can_be_edited_by_creator(user, editing_request):
+            abort(403)
+
     user_display_name = getattr(user, "name", None) or getattr(user, "fullname", None) or getattr(user, "email", None) or "ไม่พบข้อมูลชื่อ"
     user_display_position = getattr(user, "position", None) or "ไม่พบข้อมูลตำแหน่ง"
-    setting = _resolve_petty_cash_setting(user)
+    setting = (
+        _resolve_petty_cash_setting_for_fund_request(user, editing_request)
+        if editing_request
+        else _resolve_petty_cash_setting(user)
+    )
+
+    def form_url(form_type, *, borrowing_ticket_id=None):
+        kwargs = {"form_type": form_type}
+        if editing_request:
+            kwargs["edit_request_id"] = editing_request.id
+        if borrowing_ticket_id:
+            kwargs["borrowing_ticket_id"] = borrowing_ticket_id
+        return url_for("advance_payment.staff_fund_request", **kwargs)
 
     # A fund request must always be backed by an active petty-cash setting
     # for the current fiscal year. The UI disables the button when there is
@@ -7919,15 +7973,15 @@ def staff_fund_request():
     ):
         return _validation_redirect_response(
             "ไม่พบการตั้งค่าเงินสดย่อยของหน่วยงานหรือปีงบประมาณปัจจุบัน",
-            url_for(
-                "advance_payment.staff_fund_request",
-                form_type=request.values.get("form_type", FUND_REQUEST_FORM_PETTY_CASH),
-            )
+            form_url(request.values.get("form_type", FUND_REQUEST_FORM_PETTY_CASH)),
         )
 
     is_custodian = _is_petty_cash_custodian(user, setting)
     _attach_petty_cash_setting_people(setting)
-    approved_borrowing_tickets = _get_approved_borrowing_tickets_for_setting(setting)
+    approved_borrowing_tickets = _get_approved_borrowing_tickets_for_setting(
+        setting,
+        exclude_fund_request_id=getattr(editing_request, "id", None),
+    )
     if not is_custodian:
         approved_borrowing_tickets = [
             ticket
@@ -7959,13 +8013,22 @@ def staff_fund_request():
     custodian_display_position = getattr(custodian_user, "position", None) or "ไม่พบข้อมูลตำแหน่ง"
     for ticket in approved_borrowing_tickets:
         _attach_borrowing_ticket_people(ticket)
-    form = FundRequestForm(request.form)
+    form = FundRequestForm(request.form, obj=editing_request)
 
-    selected_form_type = request.args.get("form_type", form.form_type.data or FUND_REQUEST_FORM_PETTY_CASH)
+    selected_form_type = (
+        editing_request.form_type
+        if editing_request
+        else request.args.get("form_type", form.form_type.data or FUND_REQUEST_FORM_PETTY_CASH)
+    )
     if selected_form_type == FUND_REQUEST_FORM_INTEREST and not is_custodian:
         selected_form_type = FUND_REQUEST_FORM_PETTY_CASH
     if request.method == "GET":
-        if selected_form_type == FUND_REQUEST_FORM_INTEREST or (
+        if editing_request:
+            form.requester_name.data = _fund_request_requester_name(editing_request, "")
+            form.requester_position.data = _fund_request_requester_position(editing_request, "")
+            form.department.data = _fund_request_department_name(editing_request, "")
+            form.account_number.data = _fund_request_account_number(editing_request, "")
+        elif selected_form_type == FUND_REQUEST_FORM_INTEREST or (
             selected_form_type == FUND_REQUEST_FORM_PETTY_CASH and is_custodian
         ):
             form.requester_name.data = custodian_display_name
@@ -7974,15 +8037,16 @@ def staff_fund_request():
             form.requester_name.data = user_display_name
             form.requester_position.data = user_display_position
         # Use the petty-cash setting's organization for employee lookup and display.
-        if setting_org:
+        if not editing_request and setting_org:
             form.department.data = setting_org.name
-        elif setting:
+        elif not editing_request and setting:
             form.department.data = setting.department_name
 
-        if setting:
+        if not editing_request and setting:
             form.account_number.data = setting.account_number
 
-        form.period_year.data = str(datetime.now().year)
+        if not editing_request:
+            form.period_year.data = str(datetime.now().year)
 
     if (
         request.method == "POST"
@@ -7991,7 +8055,7 @@ def staff_fund_request():
     ):
         return _validation_redirect_response(
             "แบบฟอร์มขออนุมัติเบิกดอกเบี้ยสร้างได้เฉพาะผู้ดูแลเงินสดย่อยเท่านั้น",
-            url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_PETTY_CASH),
+            form_url(FUND_REQUEST_FORM_PETTY_CASH),
         )
 
     if request.method == "POST" and form.validate():
@@ -7999,6 +8063,11 @@ def staff_fund_request():
             req_dept = (setting.department_name if setting else None) or _get_staff_department_name(user) or "ไม่ระบุหน่วยงาน"
             req_acc = setting.account_number if setting else ""
             form_type = form.form_type.data
+            if editing_request and form_type != editing_request.form_type:
+                return _validation_redirect_response(
+                    "ไม่สามารถเปลี่ยนประเภทแบบฟอร์มขณะแก้ไขรายการได้",
+                    form_url(editing_request.form_type),
+                )
             selected_borrowing_ticket = None
             requester_id = user.id
             available_budget = float(dept_summary.get("remaining_budget", 0.0) or 0.0)
@@ -8008,7 +8077,7 @@ def staff_fund_request():
                 if not requester_id:
                     return _validation_redirect_response(
                         "ไม่พบผู้ดูแลเงินสดย่อยสำหรับแบบฟอร์มขออนุมัติเบิกดอกเบี้ย",
-                        url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_INTEREST),
+                        form_url(FUND_REQUEST_FORM_INTEREST),
                     )
                 req_name = custodian_display_name
                 req_pos = custodian_display_position
@@ -8017,7 +8086,7 @@ def staff_fund_request():
                 if not borrowing_ticket_id:
                     return _validation_redirect_response(
                         "กรุณาเลือกใบยืมเงินที่ต้องการเบิกผ่านบัญชีเงินสดย่อย",
-                        url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_BORROWING_TICKET),
+                        form_url(FUND_REQUEST_FORM_BORROWING_TICKET),
                     )
 
                 selected_borrowing_ticket = next(
@@ -8027,7 +8096,7 @@ def staff_fund_request():
                 if not selected_borrowing_ticket:
                     return _validation_redirect_response(
                         "ไม่พบใบยืมเงินที่สามารถใช้งานได้สำหรับหน่วยงานนี้ หรือใบยืมเงินถูกใช้สร้างใบเบิกแล้ว",
-                        url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_BORROWING_TICKET),
+                        form_url(FUND_REQUEST_FORM_BORROWING_TICKET),
                     )
 
                 borrower_user = getattr(selected_borrowing_ticket, "borrower_user", None)
@@ -8035,7 +8104,7 @@ def staff_fund_request():
                 if not requester_id:
                     return _validation_redirect_response(
                         "ไม่พบผู้ยืมในใบยืมเงินที่เลือก",
-                        url_for("advance_payment.staff_fund_request", form_type=FUND_REQUEST_FORM_BORROWING_TICKET),
+                        form_url(FUND_REQUEST_FORM_BORROWING_TICKET),
                     )
                 req_name = selected_borrowing_ticket.borrower_name or getattr(borrower_user, "name", "") or user_display_name
                 req_pos = getattr(borrower_user, "position", "") or user_display_position or "ไม่พบข้อมูลตำแหน่ง"
@@ -8062,7 +8131,7 @@ def staff_fund_request():
                     if not selected_requester:
                         return _validation_redirect_response(
                             "กรุณาเลือกผู้ขอเบิกจากรายชื่อบุคลากรในหน่วยงาน",
-                            url_for("advance_payment.staff_fund_request", form_type=form_type),
+                            form_url(form_type),
                         )
                     requester_id = selected_requester_id
                     req_name = selected_requester.get("name", "")
@@ -8075,14 +8144,14 @@ def staff_fund_request():
             if not is_custodian and requester_id != user.id:
                 return _validation_redirect_response(
                     "ผู้ใช้ทั่วไปสามารถสร้างใบเบิกในนามของตนเองเท่านั้น",
-                    url_for("advance_payment.staff_fund_request", form_type=form_type),
+                    form_url(form_type),
                 )
 
             custodian_id = getattr(setting, "custodian_id", None)
             if user.id not in {requester_id, custodian_id}:
                 return _validation_redirect_response(
                     "ผู้สร้างรายการต้องเป็นผู้ขอเบิกหรือผู้ดูแลเงินสดย่อยเท่านั้น",
-                    url_for("advance_payment.staff_fund_request", form_type=form_type),
+                    form_url(form_type),
                 )
 
             requested_amount = float(form.amount.data or 0.0)
@@ -8094,49 +8163,74 @@ def staff_fund_request():
                     f"ยอดขอเบิก {requested_amount:,.2f} บาท เกินยอดคงเหลือ "
                     f"{available_budget:,.2f} บาท กรุณาปรับจำนวนเงินก่อนส่งแบบฟอร์ม"
                 )
-                redirect_kwargs = {"form_type": form_type}
-                if selected_borrowing_ticket:
-                    redirect_kwargs["borrowing_ticket_id"] = selected_borrowing_ticket.id
                 return _validation_redirect_response(
                     error_message,
-                    url_for("advance_payment.staff_fund_request", **redirect_kwargs),
+                    form_url(
+                        form_type,
+                        borrowing_ticket_id=(
+                            selected_borrowing_ticket.id
+                            if selected_borrowing_ticket
+                            else None
+                        ),
+                    ),
                 )
 
-            # ออกเลขที่ใบเบิกทันที แต่เริ่มกระบวนการที่สถานะรอการอนุมัติ
+            is_editing = editing_request is not None
             created_at = datetime.now()
-            new_request = FundRequest(
-                requester_id=requester_id,
-                creator_id=user.id,
-                org_id=getattr(staff_org, "id", None),
-                petty_cash_setting_id=getattr(setting, "id", None),
-                form_type=form_type,
-                ticket_number=None,  # ระบบจะออกเลขที่ให้ทันทีหลังสร้างรายการ
-                request_date=None,
-                amount=form.amount.data,
-                purpose=form.purpose.data if form_type == FUND_REQUEST_FORM_PETTY_CASH else ("ขออนุมัติเบิกดอกเบี้ย" if form_type == FUND_REQUEST_FORM_INTEREST else ""),
-                personal_note=(form.personal_note.data or "").strip() or None,
-                period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == FUND_REQUEST_FORM_INTEREST else "",
-                borrowing_ticket_id=selected_borrowing_ticket.id if selected_borrowing_ticket else None,
-                created_at=created_at,
-                status="รอการอนุมัติ",
-            )
+            if is_editing:
+                new_request = editing_request
+                new_request.requester_id = requester_id
+                new_request.amount = form.amount.data
+                new_request.purpose = (
+                    form.purpose.data
+                    if form_type == FUND_REQUEST_FORM_PETTY_CASH
+                    else (
+                        "ขออนุมัติเบิกดอกเบี้ย"
+                        if form_type == FUND_REQUEST_FORM_INTEREST
+                        else ""
+                    )
+                )
+                new_request.personal_note = (form.personal_note.data or "").strip() or None
+                new_request.borrowing_ticket_id = (
+                    selected_borrowing_ticket.id if selected_borrowing_ticket else None
+                )
+                for existing_item in list(new_request.items):
+                    db.session.delete(existing_item)
+            else:
+                # ออกเลขที่ใบเบิกทันที แต่เริ่มกระบวนการที่สถานะรอการอนุมัติ
+                new_request = FundRequest(
+                    requester_id=requester_id,
+                    creator_id=user.id,
+                    org_id=getattr(staff_org, "id", None),
+                    petty_cash_setting_id=getattr(setting, "id", None),
+                    form_type=form_type,
+                    ticket_number=None,  # ระบบจะออกเลขที่ให้ทันทีหลังสร้างรายการ
+                    request_date=None,
+                    amount=form.amount.data,
+                    purpose=form.purpose.data if form_type == FUND_REQUEST_FORM_PETTY_CASH else ("ขออนุมัติเบิกดอกเบี้ย" if form_type == FUND_REQUEST_FORM_INTEREST else ""),
+                    personal_note=(form.personal_note.data or "").strip() or None,
+                    period_year=_normalize_interest_period_value(request.form.get("period_year")) if form_type == FUND_REQUEST_FORM_INTEREST else "",
+                    borrowing_ticket_id=selected_borrowing_ticket.id if selected_borrowing_ticket else None,
+                    created_at=created_at,
+                    status="รอการอนุมัติ",
+                )
 
-            # Creating the request signs every requester/custodian role held by
-            # the creator. When the same account holds both roles there is no
-            # separate counterparty confirmation to wait for.
-            if requester_id == user.id and custodian_id == user.id:
-                new_request.confirmed_at = created_at
-                new_request.confirmed_by_id = user.id
+                # Creating the request signs every requester/custodian role held by
+                # the creator. When the same account holds both roles there is no
+                # separate counterparty confirmation to wait for.
+                if requester_id == user.id and custodian_id == user.id:
+                    new_request.confirmed_at = created_at
+                    new_request.confirmed_by_id = user.id
 
-            db.session.add(new_request)
-            db.session.flush()
+                db.session.add(new_request)
+                db.session.flush()
 
-            # A creator who is also the organization head signs the approval
-            # role at creation. The request remains pending until any other
-            # required requester/custodian signature is present.
-            if _is_fund_request_org_head(user, new_request):
-                new_request.approved_at = created_at
-                new_request.approved_by_id = user.id
+                # A creator who is also the organization head signs the approval
+                # role at creation. The request remains pending until any other
+                # required requester/custodian signature is present.
+                if _is_fund_request_org_head(user, new_request):
+                    new_request.approved_at = created_at
+                    new_request.approved_by_id = user.id
 
             if form_type == FUND_REQUEST_FORM_PETTY_CASH:
                 descriptions = request.form.getlist("item_description[]")
@@ -8183,14 +8277,21 @@ def staff_fund_request():
                 new_request.period_year = period_year_val
 
             _sync_fund_request_approval_status(new_request)
-            _assign_fund_request_ticket_number(
-                new_request,
-                reference_date=created_at.date(),
-            )
+            if not is_editing:
+                _assign_fund_request_ticket_number(
+                    new_request,
+                    reference_date=created_at.date(),
+                )
             db.session.commit()
-            _notify_next_fund_request_actor(new_request)
+            if not is_editing:
+                _notify_next_fund_request_actor(new_request)
 
-            flash("สร้างใบเบิกเรียบร้อยแล้ว", "success")
+            flash(
+                "แก้ไขใบเบิกเรียบร้อยแล้ว"
+                if is_editing
+                else "สร้างใบเบิกเรียบร้อยแล้ว",
+                "success",
+            )
             if form_type != FUND_REQUEST_FORM_PETTY_CASH:
                 return staff_fund_request_history()
             return submit_petty_cash_claim(
@@ -8213,15 +8314,21 @@ def staff_fund_request():
         )
         return _validation_error_response(form_errors or "กรุณาตรวจสอบข้อมูลในฟอร์ม")
 
-    selected_borrowing_ticket_id = request.args.get("borrowing_ticket_id", type=int)
+    selected_borrowing_ticket_id = (
+        getattr(editing_request, "borrowing_ticket_id", None)
+        if editing_request
+        else request.args.get("borrowing_ticket_id", type=int)
+    )
     return render_template(
         "staff_fund_request.html",
         form=form,
+        editing_request=editing_request,
         setting=setting,
         approved_borrowing_tickets=approved_borrowing_tickets,
         department_employees=department_employees,
         current_year_be=convert_to_fiscal_year(datetime.now().date()) + 543,
         selected_form_type=selected_form_type,
+        selected_requester_id=getattr(editing_request, "requester_id", None),
         selected_borrowing_ticket_id=selected_borrowing_ticket_id,
         is_custodian=is_custodian,
         current_user_display_name=user_display_name,
@@ -8528,6 +8635,10 @@ def staff_fund_request_history():
     fund_requests = fund_requests_query.order_by(FundRequest.id.desc()).all()
     for fund_request in fund_requests:
         fund_request.display_requester_name = _fund_request_requester_name(fund_request, "-")
+        fund_request.can_edit = _fund_request_can_be_edited_by_creator(
+            user,
+            fund_request,
+        )
 
     history_items_query = _exclude_legacy_fund_request_claims(
         db.session.query(PettyCashClaimDetail).filter(
@@ -10051,6 +10162,13 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         and current_is_custodian
         and _fund_request_is_fully_approved(verification_fund_request)
     )
+    can_edit_fund_request = bool(
+        verification_fund_request
+        and _fund_request_can_be_edited_by_creator(
+            current_user,
+            verification_fund_request,
+        )
+    )
     can_cancel_fund_request = False
     if (
         verification_fund_request
@@ -10141,6 +10259,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         can_confirm_fund_request=can_confirm_fund_request,
         can_reject_fund_request=can_reject_fund_request,
         can_record_fund_request_withdrawal=can_record_fund_request_withdrawal,
+        can_edit_fund_request=can_edit_fund_request,
         current_is_custodian=current_is_custodian,
         current_is_head=current_is_head,
         fund_request_signature_state=(

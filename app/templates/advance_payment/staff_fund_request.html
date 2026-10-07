@@ -1,14 +1,18 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}สร้างใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย | ระบบเงินสดย่อย{% endblock %}
+{% block title %}{{ 'แก้ไข' if editing_request is defined and editing_request else 'สร้าง' }}ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย | ระบบเงินสดย่อย{% endblock %}
 
 {% block content %}
+  {% set is_editing = editing_request is defined and editing_request %}
   <header class="mb-4 pb-2 border-bottom">
     <a href="{{ url_for('advance_payment.staff_fund_request_history') }}" title="กลับไปยังรายการเงินสดย่อย">
       <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
     </a>
     <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ระบบเงินสดย่อย</p>
-    <h1 class="fw-bold display-6 mb-2">สร้างใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย</h1>
+    <h1 class="fw-bold display-6 mb-2">{{ 'แก้ไข' if is_editing else 'สร้าง' }}ใบยืมเงินสดย่อย/ใบเบิกเงินสดย่อย</h1>
+    {% if is_editing %}
+      <p class="text-muted mb-0">เลขที่ใบเบิก {{ editing_request.ticket_number or '-' }} — แก้ไขได้จนกว่าจะมีบุคคลอื่นยืนยันหรืออนุมัติรายการ</p>
+    {% endif %}
   </header>
 
   {% if not setting %}
@@ -22,26 +26,29 @@
     <div class="col-lg-10">
       <div class="card shadow-sm border rounded-4 bg-white">
         <div class="card-body p-4">
-          <form method="post" action="{{ url_for('advance_payment.staff_fund_request') }}" id="fundRequestForm" enctype="multipart/form-data">
+          <form method="post" action="{{ url_for('advance_payment.staff_fund_request') }}" id="fundRequestForm" enctype="multipart/form-data" data-edit-mode="{{ 'true' if is_editing else 'false' }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if is_editing %}
+              <input type="hidden" name="edit_request_id" value="{{ editing_request.id }}">
+            {% endif %}
             
             <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-ruled me-2 text-primary"></i>เลือกประเภทและข้อมูลแบบฟอร์ม</h5>
             <div class="mb-3">
               <label class="form-label fw-bold mb-2">ประเภทแบบฟอร์ม <span class="text-danger">*</span></label>
               <div class="d-flex gap-4 p-2 border rounded-3 bg-light">
                 <div class="form-check form-check-inline m-0 ms-2 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_petty_cash" value="petty_cash" {% if selected_form_type not in ['interest', 'borrowing'] %}checked{% endif %}>
+                  <input class="form-check-input" type="radio" name="form_type" id="form_type_petty_cash" value="petty_cash" {% if selected_form_type not in ['interest', 'borrowing'] %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
                   <label class="form-check-label fw-bold text-primary" for="form_type_petty_cash">ขออนุมัติเบิกเงินสดย่อย</label>
                 </div>
                 <div class="form-check form-check-inline m-0 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_interest" value="interest" {% if selected_form_type == 'interest' %}checked{% endif %}{% if not is_custodian %} disabled{% endif %}>
+                  <input class="form-check-input" type="radio" name="form_type" id="form_type_interest" value="interest" {% if selected_form_type == 'interest' %}checked{% endif %}{% if not is_custodian or is_editing %} disabled{% endif %}>
                   <label class="form-check-label fw-bold text-primary" for="form_type_interest">ขออนุมัติเบิกดอกเบี้ย</label>
                   {% if not is_custodian %}
                     <span class="badge bg-secondary ms-1">เฉพาะผู้ดูแลเงินสดย่อย</span>
                   {% endif %}
                 </div>
                 <div class="form-check form-check-inline m-0 py-1">
-                  <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}>
+                  <input class="form-check-input" type="radio" name="form_type" id="form_type_borrowing" value="borrowing" {% if selected_form_type == 'borrowing' %}checked{% endif %}{% if is_editing %} disabled{% endif %}>
                   <label class="form-check-label fw-bold text-primary" for="form_type_borrowing">เบิกเงินยืมผ่านบัญชีเงินสดย่อย</label>
                 </div>
               </div>
@@ -56,10 +63,10 @@
                       <select name="requester_id" id="requester_input" class="form-select bg-white" required onchange="onBorrowerChange()">
                         <option value="">พิมพ์เพื่อค้นหา หรือเลือกพนักงาน...</option>
                         {% if selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id and not (department_employees | selectattr('id', 'equalto', setting.custodian_id) | list) %}
-                          <option value="{{ setting.custodian_id }}" data-position="{{ custodian_display_position }}" selected>{{ custodian_display_name }}</option>
+                          <option value="{{ setting.custodian_id }}" data-position="{{ custodian_display_position }}"{% if selected_requester_id == setting.custodian_id or (not is_editing and selected_form_type in ['interest', 'petty_cash']) %} selected{% endif %}>{{ custodian_display_name }}</option>
                         {% endif %}
                         {% for emp in department_employees %}
-                        <option value="{{ emp.id }}" {% if (selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id == emp.id) or (selected_form_type not in ['interest', 'borrowing'] and form.requester_name.data == emp.name) %}selected{% endif %}>{{ emp.name }}</option>
+                        <option value="{{ emp.id }}" data-position="{{ emp.position or '' }}" {% if (is_editing and selected_requester_id == emp.id) or (not is_editing and selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id == emp.id) or (not is_editing and selected_form_type not in ['interest', 'borrowing'] and form.requester_name.data == emp.name) %}selected{% endif %}>{{ emp.name }}</option>
                         {% endfor %}
                       </select>
                       {% if not department_employees and not (selected_form_type in ['interest', 'petty_cash'] and setting and setting.custodian_id) %}
@@ -109,13 +116,13 @@
                   <label class="form-label fw-bold mb-2">งวดวันที่ <span class="text-danger">*</span></label>
                   <div class="d-flex flex-wrap gap-3">
                     <div class="form-check">
-                      <input class="form-check-input" type="radio" name="period_year_radio" id="period_june" value="06/{{ current_year_be }}" checked>
+                      <input class="form-check-input" type="radio" name="period_year_radio" id="period_june" value="06/{{ current_year_be }}" {% if not is_editing or ((form.period_year.data or '')|string)[:2] == '06' %}checked{% endif %}>
                       <label class="form-check-label fw-semibold" for="period_june">
                         มิถุนายน พ.ศ. {{ current_year_be }}
                       </label>
                     </div>
                     <div class="form-check">
-                      <input class="form-check-input" type="radio" name="period_year_radio" id="period_december" value="12/{{ current_year_be }}">
+                      <input class="form-check-input" type="radio" name="period_year_radio" id="period_december" value="12/{{ current_year_be }}" {% if is_editing and ((form.period_year.data or '')|string)[:2] == '12' %}checked{% endif %}>
                       <label class="form-check-label fw-semibold" for="period_december">
                         ธันวาคม พ.ศ. {{ current_year_be }}
                       </label>
@@ -193,10 +200,12 @@
                     </tr>
                   </thead>
                   <tbody id="receiptBody">
+                    {% set request_items = editing_request.items if is_editing and editing_request.items else [none] %}
+                    {% for request_item in request_items %}
                     <tr>
-                      <td class="text-center row-index fw-bold">1</td>
+                      <td class="text-center row-index fw-bold">{{ loop.index }}</td>
                       <td>
-                        <select name="item_category[]" class="form-select form-select-sm" required>
+                        <select name="item_category[]" class="form-select form-select-sm" data-current-category="{{ request_item.category_type if request_item else '' }}" required>
                           <option value="">เลือกหมวดหมู่</option>
                           <option value="1">ค่าตอบแทน (เช่น ค่าตอบแทนผู้สอน/วิทยากร, เบี้ยประชุม, ค่าทำงานนอกเวลา)</option>
                           <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
@@ -206,10 +215,10 @@
                         </select>
                       </td>
                       <td>
-                        <textarea name="item_description[]" class="form-control form-control-sm" rows="1" style="resize: vertical;" required placeholder="ระบุรายละเอียดรายการ..."></textarea>
+                        <textarea name="item_description[]" class="form-control form-control-sm" rows="1" style="resize: vertical;" required placeholder="ระบุรายละเอียดรายการ...">{{ request_item.description if request_item else '' }}</textarea>
                       </td>
                       <td>
-                        <input type="text" name="item_amount[]" class="form-control form-control-sm text-end fw-bold item-amount-input" required placeholder="0.00" oninput="handleAmountInput(this)">
+                        <input type="text" name="item_amount[]" class="form-control form-control-sm text-end fw-bold item-amount-input" required placeholder="0.00" value="{{ '%.2f'|format(request_item.amount or 0) if request_item else '' }}" oninput="handleAmountInput(this)">
                       </td>
                       <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeReceiptRow(this)">
@@ -217,6 +226,7 @@
                         </button>
                       </td>
                     </tr>
+                    {% endfor %}
                   </tbody>
                 </table>
               </div>
@@ -248,6 +258,7 @@
                        class="form-control fw-bold text-primary text-end"
                        placeholder="0.00"
                        required
+                       value="{{ '%.2f'|format(form.amount.data or 0) if form.amount.data is not none else '' }}"
                        style="border-radius: 12px; font-size: 1.1rem;"
                        oninput="handleUserTotalInput(this)"
                        data-available-budget="{{ '%.2f'|format(available_budget if available_budget else '') }}">
@@ -281,7 +292,7 @@
               <!-- ปุ่มบันทึก -->
               <div class="col-md-auto text-end">
                 <button type="submit" class="btn btn-success btn-lg fw-bold mt-2 px-4" style="border-radius: 12px;" id="fundRequestSubmitBtn">
-                  <i class="bi bi-file-earmark-check me-2"></i> บันทึก
+                  <i class="bi bi-file-earmark-check me-2"></i> {{ 'บันทึกการแก้ไข' if is_editing else 'บันทึก' }}
                 </button>
               </div>
             </div>
@@ -520,6 +531,9 @@
       const userTotalInput = document.getElementById("user_total_amount");
       const manualAmountSection = document.getElementById("manualAmountSection");
       const receiptAddButton = receiptContainer.querySelector('button[onclick="addReceiptRow()"]');
+      receiptContainer.querySelectorAll('select[name="item_category[]"][data-current-category]').forEach(select => {
+        if (select.dataset.currentCategory) select.value = select.dataset.currentCategory;
+      });
 
       function getBorrowingTicketOption() {
         if (!borrowingTicketSelect) return null;
@@ -710,12 +724,12 @@
           delete mainForm.dataset.popupConfirmed;
         } else if (pettyCashRadio.checked) {
           window.openAppPopup({
-            title: "ยืนยันการส่งแบบฟอร์ม",
+            title: mainForm.dataset.editMode === "true" ? "ยืนยันการบันทึกการแก้ไข" : "ยืนยันการส่งแบบฟอร์ม",
             message: "เงินสดย่อยจ่ายได้ครั้งละไม่เกินสองหมื่นบาทต่อใบเสร็จ",
             targetFormId: mainForm.id,
             requireAcknowledgement: true,
             acknowledgementLabel: "ข้าพเจ้าได้อ่านและรับทราบเงื่อนไขข้างต้นแล้ว",
-            confirmText: "ตกลงและส่งแบบฟอร์ม",
+            confirmText: mainForm.dataset.editMode === "true" ? "บันทึกการแก้ไข" : "ตกลงและส่งแบบฟอร์ม",
             confirmClass: "btn-success",
           });
           return;
@@ -767,8 +781,12 @@
         mainForm.submit();
       });
       
-      calculateTotalSpent();
-      toggleFormFields(); 
+      toggleFormFields();
+      if (!interestRadio.checked) {
+        calculateTotalSpent();
+      } else if (userTotalInput) {
+        formatInputNumberOnBlur(userTotalInput);
+      }
     });
 
     function addReceiptRow() {
