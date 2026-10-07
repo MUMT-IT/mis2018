@@ -157,6 +157,10 @@ def assign(subject_type, subject_id):
 @login_required
 def unassign(assignment_id):
     assignment = DynamicFormAssignment.query.get_or_404(assignment_id)
+    from app.eduqa.models import EduQAEvaluationBundleItem
+    if EduQAEvaluationBundleItem.query.filter_by(assignment_id=assignment.id).first():
+        flash('แบบประเมินนี้ใช้ในชุดแบบประเมิน จึงยังไม่สามารถถอดออกได้', 'warning')
+        return redirect(request.referrer or url_for('dynamic_forms.index'))
     db.session.delete(assignment)
     db.session.commit()
     flash('Evaluation form detached.', 'success')

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% include 'eduqa/QA/nav.html' %}
+{% block page_content %}
+<section class="section"><div class="container">
+<h1 class="title">{{ bundle.name }}</h1>
+<p class="subtitle">{{ bundle.course.en_code }} · ประเมินหลายทักษะในครั้งเดียว</p>
+{% include 'messages.html' %}
+<div class="box">{% for assignment, evidence in sections %}<p>{{ evidence.skill.name }} — {{ assignment.version.form.name }} · v{{ assignment.version.version }}</p>{% endfor %}</div>
+<div class="field">
+    <label class="label" for="student-search">ค้นหานักศึกษา</label>
+    <div class="control has-icons-left">
+        <input class="input" type="search" id="student-search" placeholder="ค้นหาด้วยชื่อหรือรหัสนักศึกษา" aria-controls="bundle-students">
+        <span class="icon is-left"><i class="fas fa-search" aria-hidden="true"></i></span>
+    </div>
+</div>
+<table id="bundle-students" class="table is-fullwidth"><thead><tr><th>นักศึกษา</th><th></th><th>ประเมินล่าสุด</th></tr></thead><tbody>
+{% for student in students %}<tr data-student-row><td data-student-search>{{ student.student_id }} — {{ student.th_name }}</td>
+<td><a class="button is-info is-small" href="{{ url_for('eduqa.fill_evaluation_bundle', bundle_id=bundle.id, student_id=student.id) }}">{% if latest.get(student.id) %}ประเมินอีกครั้ง{% else %}ประเมิน{% endif %}</a>
+</td>
+<td><div>{% if latest.get(student.id) %}{{ latest[student.id].created_at|localdatetime }}{% else %}ยังไม่ได้ประเมิน{% endif %}</div>
+<div class="buttons mt-2">{% for assignment, evidence in sections %}<a class="button is-light is-small" href="{{ url_for('eduqa.view_student_skill_evidence_results', revision_id=bundle.course.revision_id, skill_id=evidence.skill_id, clo_id=evidence.clo_id, evidence_id=evidence.id, student_id=student.id, bundle_id=bundle.id) }}">ผล {{ evidence.skill.code }}</a>{% endfor %}</div></td></tr>
+{% else %}<tr><td colspan="3">ยังไม่มีนักศึกษาลงทะเบียนรายวิชานี้</td></tr>{% endfor %}
+<tr id="student-search-empty" hidden><td colspan="3" role="status">ไม่พบนักศึกษาที่ตรงกับการค้นหา</td></tr>
+</tbody></table>
+{% set evidence = sections[0][1] %}<a class="button is-light" href="{{ url_for('eduqa.manage_student_outcome_skill_evidence', revision_id=bundle.course.revision_id, skill_id=evidence.skill_id, clo_id=evidence.clo_id) }}">ย้อนกลับ</a>
+</div></section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    const studentSearch = document.getElementById('student-search');
+    const studentRows = Array.from(document.querySelectorAll('#bundle-students [data-student-row]'));
+    const studentSearchEmpty = document.getElementById('student-search-empty');
+    studentSearch.addEventListener('input', function () {
+        const query = this.value.trim().toLocaleLowerCase();
+        let matches = 0;
+        studentRows.forEach(function (row) {
+            const text = row.querySelector('[data-student-search]').textContent.toLocaleLowerCase();
+            row.hidden = !text.includes(query);
+            if (!row.hidden) matches += 1;
+        });
+        studentSearchEmpty.hidden = studentRows.length === 0 || matches > 0;
+    });
+</script>
+{% endblock %}
