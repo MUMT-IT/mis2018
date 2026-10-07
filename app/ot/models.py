@@ -305,6 +305,8 @@ class OtRecord(db.Model):
                 return self.compensation.per_period
             elif self.compensation.per_hour:
                 return (mins/60.0) * self.compensation.per_hour
+            elif self.compensation.per_day:
+                return self.compensation.per_day
         return 0
 
     def count_rate(self):

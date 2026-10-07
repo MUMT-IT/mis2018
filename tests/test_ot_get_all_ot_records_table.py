@@ -172,6 +172,7 @@ def _make_record(
     shift_end,
     rate=100.0,
     per_period=False,
+    per_day=False,
     time_slot="OT-A",
     position="Technician",
 ):
@@ -180,7 +181,9 @@ def _make_record(
 
     staff = SimpleNamespace(fullname=fullname, personal_info=SimpleNamespace(sap_id=sap_id))
     compensation = SimpleNamespace(
-        per_period=per_period,
+        per_period=rate if per_period else None,
+        per_hour=rate if not per_period and not per_day else None,
+        per_day=rate if per_day else None,
         time_slot=time_slot,
         rate=rate,
         ot_job_role=SimpleNamespace(role=position),
@@ -194,7 +197,9 @@ def _make_record(
     record.compensation = compensation
     record.shift = shift
     record.total_shift_minutes = int((shift_end - shift_start).total_seconds() // 60)
-    record.calculate_total_pay = lambda work_minutes: round(work_minutes * rate / 60.0, 2)
+    record.calculate_total_pay = lambda work_minutes: (
+        rate if per_period or per_day else round(work_minutes * rate / 60.0, 2)
+    )
     return record
 
 
@@ -659,7 +664,50 @@ def test_get_all_ot_records_table_pays_full_for_per_period_staff(ot_views):
     assert row["late_checkin_display"] is None
     assert row["early_checkout_display"] is None
     assert row["work_minutes_display"] == "480m"
-    assert row["payment"] == _expected_pay(480, 150.0)
+    assert row["payment"] == 150.0
+
+
+def test_get_all_ot_records_table_pays_full_daily_rate_when_late_and_early(ot_views):
+    shift_record = _make_record(
+        staff_id=405,
+        fullname="Per Day Staff",
+        sap_id="SAP-405",
+        shift_start=datetime(2024, 1, 2, 9, 0),
+        shift_end=datetime(2024, 1, 2, 17, 0),
+        rate=800.0,
+        per_day=True,
+    )
+    shifts = [
+        SimpleNamespace(
+            datetime=SimpleNamespace(lower=shift_record.shift.datetime.lower, upper=shift_record.shift.datetime.upper),
+            records=[shift_record],
+        )
+    ]
+    logins = [
+        _make_login(405, 23, _bangkok_dt(2024, 1, 2, 9, 46), _bangkok_dt(2024, 1, 2, 16, 30)),
+    ]
+
+    ot_views.StaffWorkLogin = SimpleNamespace(
+        query=FakeLoginQuery(logins),
+        start_datetime=DummyField(),
+    )
+    ot_views.OtShift = SimpleNamespace(
+        query=FakeShiftQuery(shifts),
+        datetime=DummyField(),
+        timeslot=DummyField(),
+    )
+
+    app = Flask("test")
+    with app.test_request_context(
+        "/app/api?start=2024-01-02T00:00:00%2B07:00&end=2024-01-02T23:59:59%2B07:00"
+    ):
+        response = _call_unwrapped_view(ot_views.get_all_ot_records_table)(announcement_id=7)
+
+    row = response.get_json()["data"][0]
+    assert row["late_minutes"] == 46
+    assert row["early_minutes"] == 30
+    assert row["work_minutes"] == 404
+    assert row["payment"] == 800.0
 
 
 def test_get_all_ot_records_table_does_not_pay_open_per_period_shift(ot_views):
@@ -1149,7 +1197,7 @@ def test_get_all_ot_records_table_does_not_use_previous_day_pair_for_daytime_shi
     row = response.get_json()["data"][0]
     assert row["checkins"] == "2026-08-05T13:34:00+07:00"
     assert row["checkouts"] == "2026-08-05T18:49:00+07:00"
-    assert row["payment"] == _expected_pay(180, 750.0)
+    assert row["payment"] == 750.0
 
 
 def test_manual_ot_checkin_stores_creator_id(ot_views, monkeypatch):

@@ -2702,7 +2702,10 @@ def get_all_ot_records_table(announcement_id=None, staff_id=None):
                     checkout_early_minutes = attendance['checkout_early_minutes']
                     total_work_minutes = attendance['total_work_minutes']
                     total_pay = attendance['total_pay']
-                    is_late_cutoff = checkin_late_minutes > MAX_LATE_MINUTES
+                    is_late_cutoff = bool(
+                        record.compensation.per_hour
+                        and checkin_late_minutes > MAX_LATE_MINUTES
+                    )
 
                     if total_work_minutes is None:
                         rec.update({
