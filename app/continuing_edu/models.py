@@ -213,6 +213,7 @@ class CEMember(db.Model):
     province = db.Column(db.String(255))
     zip_code = db.Column(db.String(100))
     phone_no = db.Column(db.String(100))
+    mt_license_no = db.Column(db.String(100), nullable=True)
 
     policy_accepted = db.Column(db.Boolean)
     terms_condition_accepted = db.Column(db.Boolean)
