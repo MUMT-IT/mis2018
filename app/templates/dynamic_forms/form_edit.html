@@ -3,6 +3,7 @@
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
 <section class="section"><div class="container">
+    {% include 'messages.html' %}
     <div class="level">
         <div class="level-left">
             <div>
@@ -38,6 +39,10 @@
         <button class="button is-success" type="submit">{{ 'บันทึก field' if editing_field is defined and editing_field else 'เพิ่ม field' if version else 'บันทึก form' if dynamic_form else 'สร้าง form' }}</button>
         {% if editing_field is defined and editing_field %}<a class="button is-light" href="{{ url_for('dynamic_forms.edit_version', version_id=version.id) }}">ยกเลิก</a>{% endif %}
     </form>
-    {% if version %}<div class="box"><h2 class="title is-5">Fields</h2>{% if version.fields %}<table class="table is-fullwidth"><thead><tr><th>Order</th><th>Label</th><th>Type</th><th>Weight</th><th>Required</th><th></th></tr></thead><tbody>{% for field in version.fields %}<tr{% if editing_field is defined and editing_field and editing_field.id == field.id %} class="has-background-warning-light"{% endif %}><td>{{ field.display_order }}</td><td>{{ field.label }}<br><small>{{ field.key }}</small></td><td>{{ field.field_type }}</td><td>{% if field.config and field.config.get('scorable') %}{{ field.config.get('weight') }} (raw max {{ field.config.get('max_score') }}){% else %}-{% endif %}</td><td>{{ 'Yes' if field.required else 'No' }}</td><td><a class="button is-small is-info is-light" href="{{ url_for('dynamic_forms.edit_field', field_id=field.id) }}"><span class="icon"><i class="fas fa-edit"></i></span><span>Edit</span></a></td></tr>{% endfor %}</tbody></table>{% else %}<p class="has-text-grey">ยังไม่มี fields</p>{% endif %}</div>{% endif %}
+    {% if version %}<div class="box"><h2 class="title is-5">Fields</h2>{% if version.fields %}<table class="table is-fullwidth"><thead><tr><th>Order</th><th>Label</th><th>Type</th><th>Weight</th><th>Required</th><th></th></tr></thead><tbody>{% for field in version.fields %}<tr{% if editing_field is defined and editing_field and editing_field.id == field.id %} class="has-background-warning-light"{% endif %}><td>{{ field.display_order }}</td><td>{{ field.label }}<br><small>{{ field.key }}</small></td><td>{{ field.field_type }}</td><td>{% if field.config and field.config.get('scorable') %}{{ field.config.get('weight') }} (raw max {{ field.config.get('max_score') }}){% else %}-{% endif %}</td><td>{{ 'Yes' if field.required else 'No' }}</td><td><a class="button is-small is-info is-light" href="{{ url_for('dynamic_forms.edit_field', field_id=field.id) }}"><span class="icon"><i class="fas fa-edit"></i></span><span>Edit</span></a>
+        <form method="post" action="{{ url_for('dynamic_forms.delete_field', field_id=field.id) }}" style="display: inline-block" onsubmit="return confirm('ยืนยันการลบ field นี้? การลบไม่สามารถย้อนกลับได้');">
+            {{ delete_form.hidden_tag() }}
+            <button type="submit" class="button is-small is-danger is-light ml-1">ลบ</button>
+        </form></td></tr>{% endfor %}</tbody></table>{% else %}<p class="has-text-grey">ยังไม่มี fields</p>{% endif %}</div>{% endif %}
 </div></section>
 {% endblock %}
