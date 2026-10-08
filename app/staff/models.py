@@ -238,18 +238,20 @@ class StaffPersonalInfo(db.Model):
 
     @property
     def fullname(self):
-        try:
-            academic_position = self.academic_positions[0]
-        except IndexError:
-            if self.academic_staff:
+        is_lecturer = (self.job_position is not None and
+                       self.job_position.th_title == u'อาจารย์')
+        if self.academic_staff and is_lecturer:
+            try:
+                academic_position = self.academic_positions[0]
+            except IndexError:
                 th_position = u'อ.'
                 en_position = u'Lect.'
             else:
-                th_position = None
-                en_position = None
+                th_position = academic_position.position.shortname_th
+                en_position = academic_position.position.shortname_en
         else:
-            th_position = academic_position.position.shortname_th
-            en_position = academic_position.position.shortname_en
+            th_position = None
+            en_position = None
 
         if self.th_firstname or self.th_lastname:
             if th_position:

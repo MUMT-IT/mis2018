@@ -105,6 +105,10 @@
                                                   </div>
                                         </div>
                                         <div class="info-row">
+                                                  <div class="info-label">เลขที่ ท.น.:</div>
+                                                  <div class="info-value">{{ registration.member.mt_license_no or '-' }}</div>
+                                        </div>
+                                        <div class="info-row">
                                                   <div class="info-label">Organization:</div>
                                                   <div class="info-value">{{ registration.member.organization.name if
                                                             registration.member.organization else '-' }}</div>

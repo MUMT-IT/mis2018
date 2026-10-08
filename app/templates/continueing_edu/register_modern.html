@@ -945,6 +945,17 @@
                                 placeholder="{{ texts.get('phone_placeholder', '0812345678') }}">
                         </div>
                     </div>
+
+                    <div class="field">
+                        <label class="modern-label">
+                            <i class="fas fa-id-badge field-icon"></i>
+                            {{ 'เลขที่ใบอนุญาตประกอบวิชาชีพเทคนิคการแพทย์ (ท.น.) (ถ้ามี)' if current_lang == 'th' else 'Medical Technologist License No.(optional)' }}
+                        </label>
+                        <div class="control">
+                            <input class="input modern-input" type="text" name="mt_license_no"
+                                value="{{ form_values.get('mt_license_no', '') }}">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Organization Section -->
