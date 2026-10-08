@@ -303,13 +303,23 @@
       <input type="hidden" name="edit_claim_id" value="{{ claim_detail.id }}">
       <div class="alert alert-warning py-2">
         <i class="bi bi-pencil-square me-1"></i>
-        กำลังแก้ไขใบเบิกเดิม #{{ claim_detail.id }} เมื่อบันทึกแล้วต้องยืนยันการแก้ไขอีกครั้ง
+        กำลังแก้ไขใบเบิก {{ claim_detail.id }} หลังบันทึกแล้วกรุณายืนยันการแก้ไขอีกครั้ง
       </div>
       {% endif %}
       <input type="hidden"
        name="fund_request_id"
        id="fund_request_id"
        value="{{ selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else '') }}">
+
+      {% if not cash_mng_finance_open %}
+      <div class="alert alert-warning d-flex align-items-start" role="alert">
+        <i class="bi bi-lock-fill me-2 mt-1"></i>
+        <div>
+          <strong>ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</strong>
+          <div class="small">ยังสามารถส่งได้เฉพาะรายการเงินเหลือส่งใช้เงินยืมเท่านั้น</div>
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Auto Save Status Indicator -->
       <!-- <div class="d-flex justify-content-end align-items-center mb-3">
@@ -322,18 +332,27 @@
       <!-- ข้อมูลประกอบการส่งเบิก -->
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
         <h3 class="h5 mb-0" id="claimSectionHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#claimSectionCollapse"
-                  aria-expanded="true"
-                  aria-controls="claimSectionCollapse">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not cash_mng_finance_open %} disabled{% endif %}"
+                   type="button"
+                   {% if cash_mng_finance_open %}
+                   data-bs-toggle="collapse"
+                   data-bs-target="#claimSectionCollapse"
+                   {% else %}
+                   disabled
+                   aria-disabled="true"
+                   {% endif %}
+                   aria-expanded="{{ 'true' if cash_mng_finance_open else 'false' }}"
+                   aria-controls="claimSectionCollapse">
             <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
             รายการส่งเบิกเงินสดย่อย
+            {% if not cash_mng_finance_open %}
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</span>
+            {% endif %}
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
         </h3>
-        <div id="claimSectionCollapse" class="collapse show" aria-labelledby="claimSectionHeading">
+        <div id="claimSectionCollapse" class="collapse{% if cash_mng_finance_open %} show{% endif %}" aria-labelledby="claimSectionHeading">
+        <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
         <div class="pt-2">
         <section class="mt-3" aria-labelledby="referenceInfoHeading">
         <h4 class="h6 fw-semibold text-dark mb-2" id="referenceInfoHeading"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h4>
@@ -540,6 +559,7 @@
       </div>
       </section>
       </div>
+      </fieldset>
       </div>
       </div>
 
@@ -548,15 +568,19 @@
       {% if not claim_edit_mode|default(false) %}
       <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
         <h3 class="h5 mb-0" id="claimCircularHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
-                  type="button" data-bs-toggle="collapse" data-bs-target="#claimCircularCollapse"
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed{% if not cash_mng_finance_open %} disabled{% endif %}"
+                  type="button"{% if cash_mng_finance_open %} data-bs-toggle="collapse" data-bs-target="#claimCircularCollapse"{% else %} disabled aria-disabled="true"{% endif %}
                   aria-expanded="false" aria-controls="claimCircularCollapse">
             <i class="bi bi-file-earmark-text me-2 text-primary"></i>
             รายการส่งการเงิน ว-119 / ว-5763
+            {% if not cash_mng_finance_open %}
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</span>
+            {% endif %}
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
         </h3>
         <div id="claimCircularCollapse" class="collapse" aria-labelledby="claimCircularHeading">
+        <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
         <div class="pt-3">
         {% if parcel_return_fund_request_id %}
         <div class="d-flex align-items-start gap-2 mb-2">
@@ -608,20 +632,25 @@
         <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกยอดการคืน ว-119 / ว-5763 ได้</div>
         {% endif %}
         </div>
+        </fieldset>
         </div>
       </div>
 
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
         <h3 class="h5 mb-0" id="claimParcelHeading">
-          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
-                  type="button" data-bs-toggle="collapse" data-bs-target="#claimParcelCollapse"
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed{% if not cash_mng_finance_open %} disabled{% endif %}"
+                  type="button"{% if cash_mng_finance_open %} data-bs-toggle="collapse" data-bs-target="#claimParcelCollapse"{% else %} disabled aria-disabled="true"{% endif %}
                   aria-expanded="false" aria-controls="claimParcelCollapse">
             <i class="bi bi-box-seam me-2 text-primary"></i>
             รายการที่ส่งไปฝ่ายพัสดุ
+            {% if not cash_mng_finance_open %}
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</span>
+            {% endif %}
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
         </h3>
         <div id="claimParcelCollapse" class="collapse" aria-labelledby="claimParcelHeading">
+        <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
         <div class="pt-3">
         {% if parcel_return_fund_request_id %}
         <div class="row g-3">
@@ -642,6 +671,7 @@
         <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกการส่งคืนพัสดุได้</div>
         {% endif %}
         </div>
+        </fieldset>
         </div>
       </div>
       {% endif %}
@@ -732,13 +762,13 @@
       {% endif %}
 
       <div class="d-flex gap-2 justify-content-end">
-        {% if not claim_edit_mode|default(false) %}
+        {% if not claim_edit_mode|default(false) and cash_mng_finance_open %}
         <button type="submit" name="action" value="draft" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 8px;">
           บันทึกฉบับร่าง
         </button>
         {% endif %}
-        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if is_over_request %}disabled aria-disabled="true"{% endif %}>
-          <i class="bi bi-send me-1"></i> {% if claim_edit_mode|default(false) %}บันทึกการแก้ไข{% else %}ยืนยันส่งเบิกเงิน{% endif %}
+        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if is_over_request or (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) %}disabled aria-disabled="true"{% endif %}>
+          <i class="bi bi-send me-1"></i> {% if claim_edit_mode|default(false) %}บันทึกการแก้ไข{% elif not cash_mng_finance_open %}ยืนยันส่งคืนเงิน{% else %}ยืนยันส่งเบิกเงิน{% endif %}
         </button>
       </div>
     </form>
@@ -1088,6 +1118,36 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
 
+      const financeOpen = {{ 'true' if cash_mng_finance_open else 'false' }};
+      if (!financeOpen) {
+        const cashInputs = claimForm.querySelectorAll('.cash-return-input');
+        const hasCashReturnData = Array.from(cashInputs).some(input =>
+          input.type === 'file' ? input.files.length > 0 : input.value.trim()
+        );
+        const hasExistingCashProof = Boolean(
+          claimForm.querySelector('input[name="cash_return_existing_proof"]')
+        );
+        const cashReturnComplete = Array.from(cashInputs).every(input =>
+          input.type === 'file'
+            ? input.files.length > 0 || hasExistingCashProof
+            : Boolean(input.value.trim())
+        );
+        if (!hasCashReturnData || !cashReturnComplete) {
+          event.preventDefault();
+          window.openAppPopup({
+            title: "ไม่สามารถส่งรายการได้",
+            message: "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง กรุณากรอกข้อมูลเงินเหลือส่งใช้เงินยืมให้ครบถ้วน",
+            confirmText: "ตกลง",
+            confirmClass: "btn-warning",
+            alertOnly: true,
+          });
+          return;
+        }
+        const cashAmountInput = claimForm.querySelector('.cash-return-amount-input');
+        if (cashAmountInput) cashAmountInput.value = cashAmountInput.value.replace(/,/g, '');
+        return;
+      }
+
       const parcelInputs = claimForm.querySelectorAll('.parcel-return-input');
       const hasParcelData = Array.from(parcelInputs).some(input => input.value.trim());
       const circularInputs = claimForm.querySelectorAll('.circular-return-input');
@@ -1271,6 +1331,7 @@ document.addEventListener("DOMContentLoaded", function() {
 // ฟังก์ชันสั่งการ Auto Save เมื่อหยุดพิมพ์/แก้ไข 2 วินาที (Debounce)
 function triggerAutoSave() {
   if ({{ 'true' if claim_edit_mode|default(false) else 'false' }}) return;
+  if (!{{ 'true' if cash_mng_finance_open else 'false' }}) return;
   const statusEl = document.getElementById('autoSaveStatus');
   if (statusEl) {
     statusEl.className = "badge bg-warning text-dark px-3 py-2 border";
@@ -1460,15 +1521,19 @@ function calculateTotal() {
 
 function updateSubmitAndReturnButtons(isOverRequest) {
   const finalSubmitBtn = document.getElementById('claimSubmitFinalBtn');
+  const financeSubmissionBlocked = {{ 'true' if (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) else 'false' }};
 
   [finalSubmitBtn].forEach(btn => {
     if (!btn) {
       return;
     }
 
-    btn.disabled = isOverRequest;
-    btn.setAttribute('aria-disabled', isOverRequest ? 'true' : 'false');
-    btn.title = isOverRequest ? 'ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้' : '';
+    const shouldDisable = isOverRequest || financeSubmissionBlocked;
+    btn.disabled = shouldDisable;
+    btn.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
+    btn.title = isOverRequest
+      ? 'ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้'
+      : (financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง' : '');
   });
 }
 

@@ -689,6 +689,21 @@ class PettyCashSetting(FinanceEditMixin, db.Model):
                 return account.account_number
         return None
 
+
+class CashManagementFinanceState(FinanceEditMixin, db.Model):
+    """Singleton switch controlling external petty-cash claim submissions."""
+
+    __tablename__ = "cash_mng_finance_states"
+
+    id = Column(Integer, primary_key=True, default=1)
+    is_open = Column(Boolean, nullable=False, default=True, server_default=text("true"))
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
 class PettyCashFiscalYearCarryover(FinanceEditMixin, db.Model):
     """ข้อมูลยกยอดเงินสดย่อยที่กรอกโดยฝ่ายการเงิน."""
 

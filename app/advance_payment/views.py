@@ -35,7 +35,7 @@ from werkzeug.utils import secure_filename
 
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, CashManagementFinanceState, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
 from .email_utils import (
     generate_finance_notification_email_content,
     generate_notification_email_content,
@@ -300,6 +300,12 @@ def _get_fiscal_year_date_range(value):
 
 def _current_petty_cash_fiscal_year():
     return convert_to_fiscal_year(datetime.now().date())
+
+
+def _is_cash_mng_finance_open():
+    """Default to open until the singleton state row is first created."""
+    state = db.session.query(CashManagementFinanceState).filter_by(id=1).first()
+    return state is None or bool(state.is_open)
 
 
 def _petty_cash_budget_zero():
@@ -8226,7 +8232,32 @@ def petty_cash_settings(_render_after_post=False):
         setting_custodian_ids=setting_custodian_ids,
         history_summary=history_summary,
         current_fiscal_year=current_fiscal_year,
+        cash_mng_finance_open=_is_cash_mng_finance_open(),
     )
+
+
+@bp.route("/finance/petty-cash-settings/finance-state", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def toggle_cash_mng_finance_state():
+    action = (request.form.get("action") or "").strip().lower()
+    if action not in {"open", "close"}:
+        return _validation_error_response("คำสั่งเปิด/ปิดคลังไม่ถูกต้อง")
+
+    state = db.session.query(CashManagementFinanceState).filter_by(id=1).first()
+    if state is None:
+        state = CashManagementFinanceState(id=1)
+        db.session.add(state)
+
+    state.is_open = action == "open"
+    state.updated_at = datetime.now(ZoneInfo("Asia/Bangkok"))
+    db.session.commit()
+    flash(
+        "เปิดคลังเงินสดย่อยเรียบร้อยแล้ว"
+        if state.is_open
+        else "ปิดคลังเงินสดย่อยเรียบร้อยแล้ว",
+        "success",
+    )
+    return redirect(url_for("advance_payment.petty_cash_settings"))
 
 
 def _carryover_amount(value):
@@ -9982,6 +10013,12 @@ def autosave_petty_cash_claim_draft():
         return _validation_error_response(
             "รายการเดียวกันต้องเป็นเงินโอนคืนประเภท 6 ทั้งชุด หรือเป็นค่าใช้จ่ายที่ไม่ใช่ประเภท 6 ทั้งชุด"
         )
+    if not _is_cash_mng_finance_open() and any(
+        category_type != 6 for category_type in item_category_types
+    ):
+        return _validation_error_response(
+            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+        )
 
     normalized_fund_request_id = (
         int(fund_request_id)
@@ -10122,6 +10159,7 @@ def autosave_petty_cash_claim_draft():
 @module_system_required({PETTY_CASH_SYSTEM, FINANCE_SYSTEM})
 def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=None):
     user_id = _current_user_id()
+    cash_mng_finance_open = _is_cash_mng_finance_open()
     current_role = _current_module_role() or getattr(current_user, "role", None)
     if _selected_system() not in {PETTY_CASH_SYSTEM, FINANCE_SYSTEM}:
         abort(403)
@@ -10564,6 +10602,20 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             for key, file_storage in request.files.items()
             if key.startswith("proof_files_") or key == "reference_files[]"
         )
+        if not cash_mng_finance_open and (
+            has_claim_data or has_parcel_data or has_circular_data
+        ):
+            return _validation_error_response(
+                "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+            )
+        if (
+            not cash_mng_finance_open
+            and edit_claim_detail is not None
+            and not _claim_has_only_category_six(edit_claim_detail)
+        ):
+            return _validation_error_response(
+                "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+            )
         if edit_claim_detail is not None:
             edit_is_cash_return = _claim_has_only_category_six(edit_claim_detail)
             if has_parcel_data or has_circular_data:
@@ -11244,12 +11296,18 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_status=verification_status,
         fund_request_status_steps=FUND_REQUEST_STATUS_STEPS,
         circular_return_reference_document=_get_circular_return_reference_document(),
+        cash_mng_finance_open=cash_mng_finance_open,
     )
 
 
 @bp.route("/staff/petty-cash/parcel-returns/<int:parcel_return_id>/edit", methods=["POST"], endpoint="staff_parcel_return_edit")
 @module_system_required(PETTY_CASH_SYSTEM)
 def staff_parcel_return_edit(parcel_return_id):
+    if not _is_cash_mng_finance_open():
+        return _validation_error_response(
+            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+        )
+
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
     if not parcel_return:
         abort(404)
@@ -11515,14 +11573,39 @@ def confirm_petty_claim_edit(claim_id):
     if (claim.status or "").strip().lower() != "รอยืนยันการแก้ไข":
         return _validation_error_response("รายการนี้ไม่มีการแก้ไขที่รอการยืนยัน")
 
-    claim.status = "รอตรวจสอบ"
-    claim.approved_at = None
-    claim.settled_at = None
+    is_cash_return_only = _claim_has_only_category_six(claim)
+    if not _is_cash_mng_finance_open() and not is_cash_return_only:
+        return _validation_error_response(
+            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+        )
+
+    if is_cash_return_only:
+        claim.status = "โอนคืนเงินสดย่อย"
+        claim.approved_at = datetime.now()
+        claim.settled_at = datetime.now(ZoneInfo("Asia/Bangkok"))
+        claim.transferred_at = next(
+            (
+                item.receipt_date
+                for item in reversed(claim.items)
+                if item.receipt_date
+            ),
+            None,
+        )
+    else:
+        claim.status = "รอตรวจสอบ"
+        claim.approved_at = None
+        claim.settled_at = None
     db.session.commit()
     if claim.fund_request_id:
         _recalculate_fund_request_submission_status(claim.fund_request_id)
-    _send_notification_email(claim, object_type="petty_claim")
-    flash("ยืนยันการแก้ไขเรียบร้อยแล้ว และส่งรายการกลับไปรอตรวจสอบ", "success")
+    if not is_cash_return_only:
+        _send_notification_email(claim, object_type="petty_claim")
+    flash(
+        "ยืนยันการแก้ไขรายการโอนคืนเงินสดย่อยเรียบร้อยแล้ว"
+        if is_cash_return_only
+        else "ยืนยันการแก้ไขเรียบร้อยแล้ว และส่งรายการกลับไปรอตรวจสอบ",
+        "success",
+    )
     return petty_cash_claim_detail(claim.id)
 
 @bp.route("/staff/petty-cash-ledger", methods=["GET"])
