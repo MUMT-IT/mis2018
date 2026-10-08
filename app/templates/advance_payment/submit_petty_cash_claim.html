@@ -117,7 +117,7 @@
     <div class="text-start flex-grow-1">
       {% if verification_fund_request.personal_note %}
         <span class="fw-bold">หมายเหตุส่วนตัว:</span>
-        <span>{{ verification_fund_request.personal_note}}</span>
+        <span>{{ verification_fund_request.personal_note or '-' }}</span>
       {% endif %}
       {% if not verification_fund_request.approved_at and verification_fund_request.rejection_comment %}
         <div class="text-danger mt-2">
@@ -275,13 +275,13 @@
 </section>
 
 {% endif %}
-{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and (not verification_fund_request or fund_request_status == 'เบิกเงินแล้ว') %}
+{% set can_submit_claim = claim_edit_mode|default(false) or ((can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and (not verification_fund_request or fund_request_status == 'เบิกเงินแล้ว')) %}
 {% set total_request_amount = fund_request_total_info.request_amount if fund_request_total_info is defined else 0 %}
 {% set total_claimed_amount = fund_request_total_info.claim_total if fund_request_total_info is defined else 0 %}
 {% set total_parcel_amount = fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 %}
 {% set is_over_request = (total_claimed_amount + total_parcel_amount) > total_request_amount if total_request_amount else false %}
 {% if can_submit_claim %}
-{% set can_toggle_claim_form = (fund_request_status or '')|lower == 'เบิกเงินแล้ว' %}
+{% set can_toggle_claim_form = not claim_edit_mode|default(false) and (fund_request_status or '')|lower == 'เบิกเงินแล้ว' %}
 {% if can_toggle_claim_form %}
 <div class="d-flex justify-content-end mb-3">
   <button type="button"
@@ -299,6 +299,13 @@
   <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
     <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm" novalidate data-ajax-validation="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if claim_edit_mode|default(false) %}
+      <input type="hidden" name="edit_claim_id" value="{{ claim_detail.id }}">
+      <div class="alert alert-warning py-2">
+        <i class="bi bi-pencil-square me-1"></i>
+        กำลังแก้ไขใบเบิกเดิม #{{ claim_detail.id }} เมื่อบันทึกแล้วต้องยืนยันการแก้ไขอีกครั้ง
+      </div>
+      {% endif %}
       <input type="hidden"
        name="fund_request_id"
        id="fund_request_id"
@@ -437,6 +444,7 @@
           <tbody id="claimBody">
             {% if claim_form_items %}
               {% for item in claim_form_items %}
+                {% if item.category_type|string != '6' %}
                 {% set row_index = loop.index0 %}
                 {% set item_proof_files = item.proof_files if not claim_form_items_from_fund_request else [] %}
                 <tr>
@@ -479,6 +487,7 @@
                     </button>
                   </td>
                 </tr>
+                {% endif %}
               {% endfor %}
 
             {% elif not claim_detail %}
@@ -536,6 +545,7 @@
 
 
       {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
+      {% if not claim_edit_mode|default(false) %}
       <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
         <h3 class="h5 mb-0" id="claimCircularHeading">
           <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed"
@@ -634,15 +644,18 @@
         </div>
         </div>
       </div>
+      {% endif %}
 
-      {% set cash_return_item = none %}
+      {% set cash_return_ns = namespace(item=none) %}
       {% if claim_detail and claim_detail.items %}
         {% for item in claim_detail.items %}
-          {% if item.category_type|string == '6' and cash_return_item is none %}
-            {% set cash_return_item = item %}
+          {% if item.category_type|string == '6' and cash_return_ns.item is none %}
+            {% set cash_return_ns.item = item %}
           {% endif %}
         {% endfor %}
       {% endif %}
+      {% set cash_return_item = cash_return_ns.item %}
+      {% if not claim_edit_mode|default(false) or cash_return_item %}
       <div class="card p-3 mb-4 border rounded-4 shadow-sm">
         <h3 class="h5 mb-0" id="claimCashReturnHeading">
           <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not cash_return_item %} collapsed{% endif %}"
@@ -681,8 +694,10 @@
         </div>
         </div>
       </div>
+      {% endif %}
       </div>
 
+      {% set claim_form_amount = claim_detail.total_amount if claim_detail and claim_detail.total_amount is not none else 0 %}
       <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
         <div class="d-flex flex-column gap-2 ms-lg-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
           <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
@@ -696,7 +711,7 @@
           <div class="border-top border-3 border-dark my-2" style="border-top-style: dashed !important;"></div>
           <div class="d-flex justify-content-between align-items-center gap-4 text-dark fs-4">
             <span class="fw-bold">ยอดครั้งนี้</span>
-            <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="grandTotalDisplay" value="0.00" readonly aria-label="ยอดครั้งนี้">
+            <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="grandTotalDisplay" value="{{ '{:,.2f}'.format(claim_form_amount or 0) }}" readonly aria-label="ยอดครั้งนี้">
           </div>
           <div class="d-flex justify-content-between align-items-baseline gap-4 text-dark fs-4">
             <span class="fw-bold">ยอดคงค้าง</span>
@@ -717,11 +732,13 @@
       {% endif %}
 
       <div class="d-flex gap-2 justify-content-end">
+        {% if not claim_edit_mode|default(false) %}
         <button type="submit" name="action" value="draft" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 8px;">
           บันทึกฉบับร่าง
         </button>
+        {% endif %}
         <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if is_over_request %}disabled aria-disabled="true"{% endif %}>
-          <i class="bi bi-send me-1"></i> ยืนยันส่งเบิกเงิน
+          <i class="bi bi-send me-1"></i> {% if claim_edit_mode|default(false) %}บันทึกการแก้ไข{% else %}ยืนยันส่งเบิกเงิน{% endif %}
         </button>
       </div>
     </form>
@@ -1253,6 +1270,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // ฟังก์ชันสั่งการ Auto Save เมื่อหยุดพิมพ์/แก้ไข 2 วินาที (Debounce)
 function triggerAutoSave() {
+  if ({{ 'true' if claim_edit_mode|default(false) else 'false' }}) return;
   const statusEl = document.getElementById('autoSaveStatus');
   if (statusEl) {
     statusEl.className = "badge bg-warning text-dark px-3 py-2 border";

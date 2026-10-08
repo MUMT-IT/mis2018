@@ -385,11 +385,6 @@
                         <a href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id) }}" class="btn btn-sm btn-outline-primary" style="border-radius:6px;">
                           ตรวจสอบสัญญา
                         </a>
-                        {% if borrowing_ticket.can_edit %}
-                          <a href="{{ url_for('advance_payment.coordinator_dashboard', edit_ticket_id=borrowing_ticket.id) }}#create-ticket-pane" class="btn btn-sm btn-outline-secondary" style="border-radius:6px;">
-                            แก้ไข
-                          </a>
-                        {% endif %}
                       </div>
                     </td>
                   </tr>
