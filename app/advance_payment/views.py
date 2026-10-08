@@ -35,7 +35,7 @@ from werkzeug.utils import secure_filename
 
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
-from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, PettyCashSetting, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
+from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
 from .email_utils import generate_notification_email_content, latest_rejection_comment
 from . import advance_payment as bp, thai_date
 from app.main import mail
@@ -2869,6 +2869,146 @@ def _money_decimal(value):
     return Decimal(str(value or 0)).quantize(Decimal("0.01"))
 
 
+def _advance_payment_dashboard_amounts():
+    """Calculate the five finance revolving-fund dashboard amounts."""
+    active_ticket_rows = (
+        _finance_revolving_borrowing_ticket_query()
+        .with_entities(BorrowingTicket.id, BorrowingTicket.required_budget)
+        .all()
+    )
+    active_ticket_ids = [ticket_id for ticket_id, _ in active_ticket_rows]
+    total_lent = sum(
+        (_money_decimal(required_budget) for _, required_budget in active_ticket_rows),
+        Decimal("0.00"),
+    )
+
+    zero_amounts = {
+        "total_lent_amount": total_lent,
+        "total_reimbursement_request_amount": Decimal("0.00"),
+        "total_closing_document_amount": Decimal("0.00"),
+        "total_received_amount": Decimal("0.00"),
+        "total_cash_return_amount": Decimal("0.00"),
+    }
+    if not active_ticket_ids:
+        return zero_amounts
+
+    linked_return_ids = db.session.query(
+        return_borrowing_ticket_association.c.return_id
+    ).filter(
+        return_borrowing_ticket_association.c.ticket_id.in_(active_ticket_ids)
+    )
+    return_in_scope = or_(
+        ReturnDetail.ticket_id.in_(active_ticket_ids),
+        ReturnDetail.id.in_(linked_return_ids),
+    )
+    eligible_return_ids = db.session.query(ReturnDetail.id).filter(
+        return_in_scope,
+        ReturnDetail.approved_at.isnot(None),
+    )
+
+    linked_parcel_return_ids = db.session.query(
+        parcel_borrowing_ticket_association.c.parcel_return_id
+    ).filter(
+        parcel_borrowing_ticket_association.c.ticket_id.in_(active_ticket_ids)
+    )
+    parcel_return_in_scope = or_(
+        ParcelReturnDetail.ticket_id.in_(active_ticket_ids),
+        ParcelReturnDetail.id.in_(linked_parcel_return_ids),
+    )
+    eligible_parcel_return_ids = db.session.query(ParcelReturnDetail.id).filter(
+        parcel_return_in_scope,
+        ParcelReturnDetail.ticket_id.isnot(None),
+        ParcelReturnDetail.approved_at.isnot(None),
+    )
+
+    active_return_closing_ids = (
+        db.session.query(ClosingDocumentLink.ticket_return_id)
+        .join(
+            ClosingDocument,
+            ClosingDocument.id == ClosingDocumentLink.document_id,
+        )
+        .filter(
+            ClosingDocumentLink.ticket_return_id.in_(eligible_return_ids),
+            ClosingDocumentLink.is_active.is_(True),
+            ClosingDocument.is_active.is_(True),
+        )
+    )
+    active_parcel_closing_ids = (
+        db.session.query(ClosingDocumentLink.parcel_return_id)
+        .join(
+            ClosingDocument,
+            ClosingDocument.id == ClosingDocumentLink.document_id,
+        )
+        .filter(
+            ClosingDocumentLink.parcel_return_id.in_(eligible_parcel_return_ids),
+            ClosingDocumentLink.is_active.is_(True),
+            ClosingDocument.is_active.is_(True),
+        )
+    )
+    settled_return_closing_ids = db.session.query(ReturnDetail.id).filter(
+        ReturnDetail.id.in_(active_return_closing_ids),
+        ReturnDetail.settled_at.isnot(None),
+    )
+    settled_parcel_closing_ids = db.session.query(ParcelReturnDetail.id).filter(
+        ParcelReturnDetail.id.in_(active_parcel_closing_ids),
+        ParcelReturnDetail.settled_at.isnot(None),
+    )
+
+    def sum_return_items(return_ids, is_cash):
+        return _money_decimal(
+            db.session.query(func.sum(ReturnReceiptItem.amount))
+            .filter(
+                ReturnReceiptItem.return_detail_id.in_(return_ids),
+                ReturnReceiptItem.is_cash.is_(is_cash),
+            )
+            .scalar()
+        )
+
+    def sum_parcel_returns(parcel_return_ids):
+        return _money_decimal(
+            db.session.query(func.sum(ParcelReturnDetail.amount_spent))
+            .filter(ParcelReturnDetail.id.in_(parcel_return_ids))
+            .scalar()
+        )
+
+    requested_return_amount = sum_return_items(eligible_return_ids, False)
+    requested_parcel_amount = sum_parcel_returns(eligible_parcel_return_ids)
+    closing_return_amount = sum_return_items(active_return_closing_ids, False)
+    closing_parcel_amount = sum_parcel_returns(active_parcel_closing_ids)
+    received_return_amount = sum_return_items(settled_return_closing_ids, False)
+    received_parcel_amount = sum_parcel_returns(settled_parcel_closing_ids)
+
+    settled_cash_return_ids = db.session.query(ReturnDetail.id).filter(
+        return_in_scope,
+        ReturnDetail.approved_at.isnot(None),
+        ReturnDetail.settled_at.isnot(None),
+    )
+
+    return {
+        "total_lent_amount": total_lent,
+        "total_reimbursement_request_amount": (
+            requested_return_amount + requested_parcel_amount
+        ),
+        "total_closing_document_amount": (
+            closing_return_amount + closing_parcel_amount
+        ),
+        "total_received_amount": (
+            received_return_amount + received_parcel_amount
+        ),
+        "total_cash_return_amount": sum_return_items(
+            settled_cash_return_ids,
+            True,
+        ),
+    }
+
+
+def _advance_payment_dashboard_payload():
+    return {
+        key: format(_money_decimal(value), ".2f")
+        for key, value in _advance_payment_dashboard_amounts().items()
+    }
+
+
 def _allocate_settled_records_to_tickets(ticket_budgets, settled_records):
     """FIFO-allocate each settled source record once across its linked tickets."""
     normalized_budgets = {
@@ -4444,6 +4584,23 @@ def finance_dashboard():
         parcel_returns=parcel_returns,
         petty_cash_claims=petty_cash_claims,
     )
+
+
+@bp.route("/finance/advance-payment-dashboard", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def advance_payment_dashboard():
+    return render_template(
+        "advance_payment_dashboard.html",
+        dashboard_title="Dashboard เงินยืมทดรองจ่าย",
+        amounts=_advance_payment_dashboard_payload(),
+    )
+
+
+@bp.route("/finance/advance-payment-dashboard/data", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def advance_payment_dashboard_data():
+    return jsonify(_advance_payment_dashboard_payload())
+
 
 @bp.route("/finance/documents/<file_id>/download", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
