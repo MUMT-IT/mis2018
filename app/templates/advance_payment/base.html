@@ -753,6 +753,11 @@
                 </a>
               </li>
               <li class="nav-item">
+                <a href="{{ url_for('advance_payment.petty_cash_dashboard') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.petty_cash_dashboard' %}active{% endif %}">
+                  <i class="bi bi-speedometer2 me-2"></i> Dashboard เงินสดย่อย
+                </a>
+              </li>
+              <li class="nav-item">
                 <a href="{{ url_for('advance_payment.petty_cash_settings') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.petty_cash_settings' %}active{% endif %}">
                   <i class="bi bi-gear-fill me-2"></i> การจัดการงบประมาณเงินสดย่อย
                 </a>

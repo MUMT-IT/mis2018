@@ -165,6 +165,8 @@ COORDINATOR_ROLE = "cash_management_coordinator"
 ADVANCE_PAYMENT_SYSTEM = "advance_payment"
 PETTY_CASH_SYSTEM = "petty_cash"
 FINANCE_SYSTEM = "finance"
+ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET = Decimal("8000000.00")
+PETTY_CASH_DASHBOARD_INITIAL_BUDGET = Decimal("4000000.00")
 AVAILABLE_SYSTEMS = (FINANCE_SYSTEM, PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM)
 PETTY_CASH_SETTING_SESSION_KEY = "advance_payment_petty_cash_setting_id"
 FUND_REQUEST_FORM_PETTY_CASH = "petty_cash"
@@ -2918,11 +2920,15 @@ def _advance_payment_dashboard_amounts():
     )
 
     zero_amounts = {
+        "initial_budget_amount": ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET,
         "total_lent_amount": total_lent,
         "total_reimbursement_request_amount": Decimal("0.00"),
         "total_closing_document_amount": Decimal("0.00"),
         "total_received_amount": Decimal("0.00"),
         "total_cash_return_amount": Decimal("0.00"),
+        "remaining_budget_amount": (
+            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET - total_lent
+        ),
     }
     if not active_ticket_ids:
         return zero_amounts
@@ -3019,7 +3025,14 @@ def _advance_payment_dashboard_amounts():
         ReturnDetail.settled_at.isnot(None),
     )
 
+    total_received_amount = received_return_amount + received_parcel_amount
+    total_cash_return_amount = sum_return_items(
+        settled_cash_return_ids,
+        True,
+    )
+
     return {
+        "initial_budget_amount": ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET,
         "total_lent_amount": total_lent,
         "total_reimbursement_request_amount": (
             requested_return_amount + requested_parcel_amount
@@ -3027,12 +3040,13 @@ def _advance_payment_dashboard_amounts():
         "total_closing_document_amount": (
             closing_return_amount + closing_parcel_amount
         ),
-        "total_received_amount": (
-            received_return_amount + received_parcel_amount
-        ),
-        "total_cash_return_amount": sum_return_items(
-            settled_cash_return_ids,
-            True,
+        "total_received_amount": total_received_amount,
+        "total_cash_return_amount": total_cash_return_amount,
+        "remaining_budget_amount": (
+            ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET
+            - total_lent
+            + total_received_amount
+            + total_cash_return_amount
         ),
     }
 
@@ -3041,6 +3055,103 @@ def _advance_payment_dashboard_payload():
     return {
         key: format(_money_decimal(value), ".2f")
         for key, value in _advance_payment_dashboard_amounts().items()
+    }
+
+
+def _petty_cash_dashboard_amounts():
+    """Calculate the petty-cash revolving-fund dashboard amounts."""
+    ordinary_claim_ids = db.session.query(PettyCashClaimItem.claim_id).filter(
+        PettyCashClaimItem.category_type != 6
+    )
+    transferred_claim_ids = db.session.query(PettyCashClaimDetail.id).filter(
+        PettyCashClaimDetail.id.in_(ordinary_claim_ids),
+        PettyCashClaimDetail.transferred_at.isnot(None),
+    )
+    transferred_parcel_return_ids = db.session.query(ParcelReturnDetail.id).filter(
+        ParcelReturnDetail.fund_request_id.isnot(None),
+        ParcelReturnDetail.transferred_at.isnot(None),
+    )
+
+    active_claim_closing_ids = (
+        db.session.query(ClosingDocumentLink.claim_id)
+        .join(
+            ClosingDocument,
+            ClosingDocument.id == ClosingDocumentLink.document_id,
+        )
+        .filter(
+            ClosingDocumentLink.claim_id.in_(transferred_claim_ids),
+            ClosingDocumentLink.is_active.is_(True),
+            ClosingDocument.is_active.is_(True),
+        )
+    )
+    active_parcel_closing_ids = (
+        db.session.query(ClosingDocumentLink.parcel_return_id)
+        .join(
+            ClosingDocument,
+            ClosingDocument.id == ClosingDocumentLink.document_id,
+        )
+        .filter(
+            ClosingDocumentLink.parcel_return_id.in_(
+                transferred_parcel_return_ids
+            ),
+            ClosingDocumentLink.is_active.is_(True),
+            ClosingDocument.is_active.is_(True),
+        )
+    )
+
+    settled_claim_closing_ids = db.session.query(PettyCashClaimDetail.id).filter(
+        PettyCashClaimDetail.id.in_(active_claim_closing_ids),
+        PettyCashClaimDetail.settled_at.isnot(None),
+    )
+    settled_parcel_closing_ids = db.session.query(ParcelReturnDetail.id).filter(
+        ParcelReturnDetail.id.in_(active_parcel_closing_ids),
+        ParcelReturnDetail.settled_at.isnot(None),
+    )
+
+    def sum_claims(claim_ids):
+        return _money_decimal(
+            db.session.query(func.sum(PettyCashClaimDetail.total_amount))
+            .filter(PettyCashClaimDetail.id.in_(claim_ids))
+            .scalar()
+        )
+
+    def sum_parcel_returns(parcel_return_ids):
+        return _money_decimal(
+            db.session.query(func.sum(ParcelReturnDetail.amount_spent))
+            .filter(ParcelReturnDetail.id.in_(parcel_return_ids))
+            .scalar()
+        )
+
+    total_transferred_amount = (
+        sum_claims(transferred_claim_ids)
+        + sum_parcel_returns(transferred_parcel_return_ids)
+    )
+    total_closing_document_amount = (
+        sum_claims(active_claim_closing_ids)
+        + sum_parcel_returns(active_parcel_closing_ids)
+    )
+    total_received_from_closing_amount = (
+        sum_claims(settled_claim_closing_ids)
+        + sum_parcel_returns(settled_parcel_closing_ids)
+    )
+
+    return {
+        "initial_budget_amount": PETTY_CASH_DASHBOARD_INITIAL_BUDGET,
+        "total_transferred_amount": total_transferred_amount,
+        "total_closing_document_amount": total_closing_document_amount,
+        "total_received_from_closing_amount": total_received_from_closing_amount,
+        "remaining_budget_amount": (
+            PETTY_CASH_DASHBOARD_INITIAL_BUDGET
+            - total_transferred_amount
+            + total_received_from_closing_amount
+        ),
+    }
+
+
+def _petty_cash_dashboard_payload():
+    return {
+        key: format(_money_decimal(value), ".2f")
+        for key, value in _petty_cash_dashboard_amounts().items()
     }
 
 
@@ -4635,6 +4746,12 @@ def advance_payment_dashboard():
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def advance_payment_dashboard_data():
     return jsonify(_advance_payment_dashboard_payload())
+
+
+@bp.route("/finance/petty-cash-dashboard", methods=["GET"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def petty_cash_dashboard():
+    return jsonify(_petty_cash_dashboard_payload())
 
 
 @bp.route("/finance/documents/<file_id>/download", methods=["GET"])

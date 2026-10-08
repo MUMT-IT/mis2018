@@ -9,6 +9,34 @@
     <p class="text-muted mb-0">สรุปการหมุนเวียนเงินงบประมาณของรายการที่ยังไม่จบกระบวนการฝ่ายการเงิน</p>
   </header>
 
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100 border-secondary-subtle bg-light">
+        <div class="card-body">
+          <div class="text-muted mb-2">งบประมาณตั้งต้น</div>
+          <div class="d-flex align-items-baseline gap-2">
+            <strong class="display-6">{{ "{:,.2f}".format(amounts.initial_budget_amount|float) }}</strong>
+            <span class="text-muted">บาท</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card h-100 border-primary bg-primary-subtle">
+        <div class="card-body">
+          <div class="text-primary-emphasis mb-2">ยอดงบประมาณคงเหลือ</div>
+          <div class="d-flex align-items-baseline gap-2">
+            <strong class="display-6 text-primary-emphasis">{{ "{:,.2f}".format(amounts.remaining_budget_amount|float) }}</strong>
+            <span class="text-primary-emphasis">บาท</span>
+          </div>
+          <div class="small text-primary-emphasis mt-2">งบตั้งต้น − ยอดที่ให้ยืม + ยอดได้เงินแล้ว + ยอดคืนเงิน</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="h5 fw-bold mb-3">รายละเอียดการหมุนเวียน</h2>
+
   {% set dashboard_items = [
     ('ยอดที่ให้ยืมทั้งหมด', 'total_lent_amount'),
     ('ยอดขอเบิกทั้งหมด', 'total_reimbursement_request_amount'),
