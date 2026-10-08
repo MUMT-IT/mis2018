@@ -6,7 +6,7 @@ from app.main import db
 from . import dynamic_forms_bp as dynamic_forms
 from .forms import (DynamicFormCreateForm, DynamicFormDeleteForm, DynamicFormFieldForm,
                     DynamicFormPassingScoreForm, create_assignment_form)
-from .models import DynamicForm, DynamicFormVersion, DynamicFormField, DynamicFormOption, DynamicFormAssignment
+from .models import DynamicForm, DynamicFormVersion, DynamicFormField, DynamicFormOption, DynamicFormAssignment, DynamicFormAnswer
 
 
 def _populate_dynamic_field(field, form):
@@ -120,7 +120,8 @@ def edit_version(version_id):
         return redirect(url_for('dynamic_forms.edit_version', version_id=version.id))
     return render_template('dynamic_forms/form_edit.html', form=form,
                            dynamic_form=version.form, version=version,
-                           passing_form=passing_form)
+                           passing_form=passing_form,
+                           delete_form=DynamicFormDeleteForm())
 
 
 @dynamic_forms.route('/versions/<int:version_id>/passing-score', methods=['POST'])
@@ -162,7 +163,30 @@ def edit_field(field_id):
                            dynamic_form=field.version.form,
                            version=field.version, editing_field=field,
                            passing_form=DynamicFormPassingScoreForm(
-                               obj=field.version))
+                               obj=field.version),
+                           delete_form=DynamicFormDeleteForm())
+
+
+@dynamic_forms.route('/fields/<int:field_id>/delete', methods=['POST'])
+@login_required
+def delete_field(field_id):
+    field = DynamicFormField.query.get_or_404(field_id)
+    version_id = field.version_id
+    form = DynamicFormDeleteForm()
+    if not form.validate_on_submit():
+        flash('Invalid removal request. Please try again.', 'danger')
+    elif DynamicFormAnswer.query.filter_by(field_id=field.id).first() is not None:
+        flash('ไม่สามารถลบ field ที่มีคำตอบแล้วได้', 'warning')
+    else:
+        db.session.delete(field)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash('ไม่สามารถลบ field ที่มีข้อมูลอ้างอิงอยู่ได้', 'warning')
+        else:
+            flash('Field removed.', 'success')
+    return redirect(url_for('dynamic_forms.edit_version', version_id=version_id))
 
 
 @dynamic_forms.route('/assign/<subject_type>/<int:subject_id>', methods=['POST'])
