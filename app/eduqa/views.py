@@ -3661,21 +3661,26 @@ def _evaluation_bundle_sections(bundle):
     return sections
 
 
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/bundles/<int:bundle_id>/edit', methods=['GET', 'POST'], endpoint='edit_evaluation_bundle')
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/bundles/add', methods=['GET', 'POST'])
 @login_required
-def create_evaluation_bundle(revision_id, skill_id, clo_id):
+def create_evaluation_bundle(revision_id, skill_id, clo_id, bundle_id=None):
     revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
     skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
     clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
     if clo not in skill.clos or clo.course.revision_id != revision.id:
         abort(404)
+    bundle = (EduQAEvaluationBundle.query.filter_by(
+        id=bundle_id, course_id=clo.course_id).first_or_404()
+        if bundle_id is not None else None)
     evidence = EduQASkillEvidence.query.join(EduQACourseLearningOutcome).filter(
         EduQACourseLearningOutcome.course_id == clo.course_id).all()
     evidence_by_id = {e.id: e for e in evidence
                       if e.skill.revision_id == revision.id and e.clo in e.skill.clos}
     assignments = DynamicFormAssignment.query.filter_by(subject_type='eduqa_skill_evidence').filter(
         DynamicFormAssignment.subject_id.in_(list(evidence_by_id))).all()
-    selected = set(request.form.getlist('assignments'))
+    selected = (set(request.form.getlist('assignments')) if request.method == 'POST'
+                else {str(item.assignment_id) for item in bundle.items} if bundle else set())
     if request.method == 'POST':
         chosen = [a for a in assignments if str(a.id) in selected]
         name = request.form.get('name', '').strip()
@@ -3683,18 +3688,28 @@ def create_evaluation_bundle(revision_id, skill_id, clo_id):
         valid = (name and len(name) <= 255 and len(chosen) == len(selected)
                  and len(chosen) >= 2
                  and len({e.skill_id for e in chosen_evidence}) == len(chosen)
-                 and any(e.skill_id == skill.id and e.clo_id == clo.id for e in chosen_evidence))
+                 and (bundle is not None or any(e.skill_id == skill.id and e.clo_id == clo.id for e in chosen_evidence)))
         if not valid:
             flash('กรุณาระบุชื่อและเลือกแบบประเมินอย่างน้อย 2 ทักษะ โดยมีทักษะปัจจุบันและเลือกหนึ่งแบบต่อทักษะ', 'warning')
         else:
-            bundle = EduQAEvaluationBundle(name=name, course_id=clo.course_id, created_by_id=current_user.id)
-            bundle.items = [EduQAEvaluationBundleItem(assignment=a) for a in chosen]
+            if bundle is None:
+                bundle = EduQAEvaluationBundle(name=name, course_id=clo.course_id, created_by_id=current_user.id)
+            bundle.name = name
+            # Retain existing items to avoid duplicate assignment constraints.
+            for item in list(bundle.items):
+                if str(item.assignment_id) not in selected:
+                    bundle.items.remove(item)
+            existing_ids = {item.assignment_id for item in bundle.items}
+            for assignment in chosen:
+                if assignment.id not in existing_ids:
+                    bundle.items.append(EduQAEvaluationBundleItem(assignment=assignment))
             db.session.add(bundle)
             db.session.commit()
+            flash('บันทึกชุดแบบประเมินเรียบร้อย', 'success')
             return redirect(url_for('eduqa.evaluation_bundle_students', bundle_id=bundle.id))
     return render_template('eduqa/QA/staff/evaluation_bundle_create.html', revision=revision,
                            skill=skill, clo=clo, assignments=assignments,
-                           evidence_by_id=evidence_by_id, selected=selected)
+                           evidence_by_id=evidence_by_id, selected=selected, bundle=bundle)
 
 
 @edu.route('/qa/student-outcome-monitoring/bundles/<int:bundle_id>/students')

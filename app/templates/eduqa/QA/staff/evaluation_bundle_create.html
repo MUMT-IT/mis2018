@@ -2,19 +2,20 @@
 {% include 'eduqa/QA/nav.html' %}
 {% block page_content %}
 <section class="section"><div class="container">
-<h1 class="title">สร้างชุดแบบประเมิน</h1>
+<h1 class="title">{{ 'แก้ไขชุดแบบประเมิน' if bundle else 'สร้างชุดแบบประเมิน' }}</h1>
 <p class="subtitle">{{ clo.course.en_code }} · {{ skill.name }}</p>
 {% include 'messages.html' %}
+{% if bundle %}<p class="notification is-info is-light">การแก้ไขมีผลต่อการประเมินครั้งถัดไป ผลการประเมินเดิมจะยังคงอยู่</p>{% endif %}
 <form method="post" class="box">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="field"><label class="label" for="bundle-name">ชื่อชุดแบบประเมิน</label>
-<input class="input" id="bundle-name" name="name" maxlength="255" required value="{{ request.form.get('name', '') }}"></div>
-<p class="help mb-4">เลือกอย่างน้อย 2 ทักษะจากรายวิชาเดียวกัน โดยเลือกหนึ่งแบบประเมินต่อทักษะ และรวมทักษะปัจจุบัน</p>
+<input class="input" id="bundle-name" name="name" maxlength="255" required value="{{ request.form.get('name', bundle.name if bundle else '') }}"></div>
+<p class="help mb-4">เลือกอย่างน้อย 2 ทักษะจากรายวิชาเดียวกัน โดยเลือกหนึ่งแบบประเมินต่อทักษะ {% if not bundle %}และรวมทักษะปัจจุบัน{% endif %}</p>
 {% for assignment in assignments %}{% set evidence = evidence_by_id[assignment.subject_id] %}
 <div class="field"><label class="checkbox"><input type="checkbox" name="assignments" value="{{ assignment.id }}" {% if assignment.id|string in selected %}checked{% endif %}>
 {{ evidence.skill.code }} · {{ evidence.skill.name }} — CLO{{ evidence.clo.number }} · {{ evidence.title }} — {{ assignment.version.form.name }} · v{{ assignment.version.version }}</label></div>
 {% else %}<p>กรุณาผูกแบบประเมินกับหลักฐานของแต่ละทักษะก่อนสร้างชุดแบบประเมิน</p>{% endfor %}
-<button class="button is-success" type="submit" {% if assignments|length < 2 %}disabled{% endif %}>สร้างชุดแบบประเมิน</button>
+<button class="button is-success" type="submit" {% if assignments|length < 2 %}disabled{% endif %}>{{ 'บันทึกการแก้ไข' if bundle else 'สร้างชุดแบบประเมิน' }}</button>
 <a class="button is-light" href="{{ url_for('eduqa.manage_student_outcome_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id) }}">ย้อนกลับ</a>
 </form></div></section>
 {% endblock %}
