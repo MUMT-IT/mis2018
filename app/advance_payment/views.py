@@ -187,6 +187,12 @@ FUND_REQUEST_STATUS_STEPS = ["รอการอนุมัติ", "อนุ�
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
 CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
 PARCEL_RETURN_CONFIRMED_STATUS = "ยืนยันการตรวจสอบ"
+FINANCE_PENDING_NOTIFICATION_STATUSES = {
+    "ticket": {"กำลังส่งคำขอ", "รอตรวจสอบ"},
+    "return": {"รอตรวจสอบ"},
+    "parcel_return": {"กำลังส่งคำขอ", "รอตรวจสอบ"},
+    "petty_claim": {"รอตรวจสอบ"},
+}
 
 
 def _closed_fund_request_status(fund_request):
@@ -2398,8 +2404,29 @@ def _deliver_advance_payment_email(email_data):
 
 
 def _finance_pending_review_context(target_object, object_type, email_ctx):
-    if (getattr(target_object, "status", None) or "").strip() != "รอตรวจสอบ":
+    if not _should_notify_finance_on_status_change(target_object, object_type):
         return None
+    if object_type == "ticket":
+        number = getattr(target_object, "number", None)
+        aip_reference = getattr(target_object, "aip_ref_no", None)
+        reference = (
+            f"บย.{number}"
+            if number
+            else f"เลขอ้างอิง {aip_reference}" if aip_reference else "-"
+        )
+        return {
+            "document_type": "สัญญาเงินยืม",
+            "reference": reference,
+            "person_name": email_ctx.get("borrower_name") or "-",
+            "amount": getattr(target_object, "required_budget", 0),
+            "created_at": getattr(target_object, "created_at", None),
+            "action_url": url_for(
+                "advance_payment.verification_view",
+                ticket_id=target_object.id,
+                _external=True,
+            ),
+        }
+
 
     if object_type == "return":
         ticket = email_ctx.get("ticket")
@@ -2467,6 +2494,15 @@ def _finance_pending_review_context(target_object, object_type, email_ctx):
         }
 
     return None
+def _should_notify_finance_on_status_change(target_object, object_type):
+    """Notify only when a workflow event enters finance's pending queue."""
+    status = (getattr(target_object, "status", None) or "").strip()
+    return status in FINANCE_PENDING_NOTIFICATION_STATUSES.get(
+        object_type,
+        set(),
+    )
+
+
 
 
 def _send_finance_pending_review_email(target_object, object_type, email_ctx):
@@ -2663,7 +2699,7 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
     )
     recipient_email_sent = _deliver_advance_payment_email(email_data)
 
-    if object_type in {"return", "petty_claim", "parcel_return"}:
+    if object_type in {"ticket", "return", "petty_claim", "parcel_return"}:
         _send_finance_pending_review_email(
             target_object,
             object_type,
