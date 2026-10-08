@@ -1380,6 +1380,41 @@ def _parcel_return_is_cash_transfer(parcel_return):
     return bool(getattr(parcel_return, "fund_request_id", None))
 
 
+def _closing_document_category_totals(
+    return_details,
+    parcel_return_details,
+    petty_cash_claims,
+):
+    """Split a closing document's total between petty cash and cash advances."""
+    petty_cash_total = sum(
+        (claim.total_amount or Decimal("0") for claim in petty_cash_claims),
+        Decimal("0"),
+    )
+    petty_cash_total += sum(
+        (
+            parcel.amount_spent or Decimal("0")
+            for parcel in parcel_return_details
+            if parcel.fund_request_id is not None
+        ),
+        Decimal("0"),
+    )
+
+    loan_total = sum(
+        (return_detail.closing_amount or Decimal("0") for return_detail in return_details),
+        Decimal("0"),
+    )
+    loan_total += sum(
+        (
+            parcel.amount_spent or Decimal("0")
+            for parcel in parcel_return_details
+            if parcel.ticket_id is not None
+        ),
+        Decimal("0"),
+    )
+
+    return petty_cash_total, loan_total
+
+
 def _parcel_return_uses_confirmation_status(parcel_return):
     """Return whether this is a typed ว-119/ว-5763 parcel return."""
     return getattr(parcel_return, "type", None) in PARCEL_RETURN_TYPE_LABELS
@@ -7907,6 +7942,11 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             for pr in doc_parcel_returns:
                 _attach_parcel_return_context(pr)
 
+            petty_cash_total, loan_total = _closing_document_category_totals(
+                doc_returns,
+                doc_parcel_returns,
+                doc_petty_cash,
+            )
             searched_closing_results.append({
                 "doc": searched_doc,
                 "returns": doc_returns,
@@ -7915,11 +7955,8 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
                 "historical_return_ids": {link.ticket_return_id for link in searched_doc.links if not link.is_active},
                 "historical_parcel_ids": {link.parcel_return_id for link in searched_doc.links if not link.is_active},
                 "historical_claim_ids": {link.claim_id for link in searched_doc.links if not link.is_active},
-                "petty_cash_total": sum(petty.total_amount or 0 for petty in doc_petty_cash),
-                "loan_total": (
-                    sum(ret.closing_amount for ret in doc_returns)
-                    + sum(pr.amount_spent or 0 for pr in doc_parcel_returns)
-                ),
+                "petty_cash_total": petty_cash_total,
+                "loan_total": loan_total,
             })
 
     if request.method == "POST" and not _render_after_post:
