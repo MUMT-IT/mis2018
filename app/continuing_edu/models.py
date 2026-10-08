@@ -259,10 +259,6 @@ class CEMember(db.Model):
         if not (self.occupation_id or self.occupation):
             return False
 
-        # At least one address
-        if not self.addresses or len(self.addresses) == 0:
-            return False
-
         return True
 
 
