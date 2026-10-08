@@ -39,10 +39,14 @@
                     </p>
                 </div></div>
                 <div class="level-right">
-                    <div class="buttons">
-                        <a class="button is-small is-info is-light" href="{{ url_for('eduqa.edit_student_skill_evidence_submission', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, student_id=student.id, submission_id=submission.id) }}">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <a class="button is-small is-info is-light mb-0" href="{{ url_for('eduqa.edit_student_skill_evidence_submission', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, student_id=student.id, submission_id=submission.id) }}">
                             <span class="icon"><i class="fas fa-edit"></i></span><span>แก้ไข</span>
                         </a>
+                        <form method="post" style="display: flex; align-items: center; margin: 0;" action="{{ url_for('eduqa.delete_student_skill_evidence_submission', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, student_id=student.id, submission_id=submission.id, bundle_id=(request.args.get('bundle_id')|int or none)) }}" onsubmit="return confirm('ยืนยันการลบผลการประเมินนี้? การลบไม่สามารถย้อนกลับได้ และจะยกเลิกการรับรองหลักฐานนี้');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="button is-small is-danger is-light mb-0"><span class="icon"><i class="fas fa-trash" aria-hidden="true"></i></span><span>ลบ</span></button>
+                        </form>
                     </div>
                 </div>
             </div>
