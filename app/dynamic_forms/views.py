@@ -1,9 +1,10 @@
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
+from sqlalchemy.exc import IntegrityError
 
 from app.main import db
 from . import dynamic_forms_bp as dynamic_forms
-from .forms import (DynamicFormCreateForm, DynamicFormFieldForm,
+from .forms import (DynamicFormCreateForm, DynamicFormDeleteForm, DynamicFormFieldForm,
                     DynamicFormPassingScoreForm, create_assignment_form)
 from .models import DynamicForm, DynamicFormVersion, DynamicFormField, DynamicFormOption, DynamicFormAssignment
 
@@ -33,7 +34,33 @@ def _populate_dynamic_field(field, form):
 @login_required
 def index():
     forms = DynamicForm.query.order_by(DynamicForm.name.asc()).all()
-    return render_template('dynamic_forms/index.html', forms=forms)
+    return render_template('dynamic_forms/index.html', forms=forms,
+                           delete_form=DynamicFormDeleteForm())
+
+
+@dynamic_forms.route('/<int:form_id>/delete', methods=['POST'])
+@login_required
+def delete(form_id):
+    form = DynamicFormDeleteForm()
+    if not form.validate_on_submit():
+        flash('Invalid removal request. Please try again.', 'danger')
+        return redirect(url_for('dynamic_forms.index'))
+    dynamic_form = DynamicForm.query.get_or_404(form_id)
+    assignment_count = sum(len(version.assignments) for version in dynamic_form.versions)
+    submission_count = sum(len(version.submissions) for version in dynamic_form.versions)
+    if assignment_count or submission_count:
+        flash('ไม่สามารถลบแบบฟอร์มนี้ได้: มีการผูกใช้งาน {} รายการ และคำตอบ {} รายการ กรุณาเปลี่ยนสถานะเป็น Archived'.format(
+            assignment_count, submission_count), 'warning')
+        return redirect(url_for('dynamic_forms.index'))
+    db.session.delete(dynamic_form)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash('ไม่สามารถลบแบบฟอร์มที่มีข้อมูลอ้างอิงอยู่ได้', 'warning')
+    else:
+        flash('Form removed.', 'success')
+    return redirect(url_for('dynamic_forms.index'))
 
 
 @dynamic_forms.route('/new', methods=['GET', 'POST'])

@@ -6,6 +6,10 @@ from wtforms_alchemy import QuerySelectField
 from .models import DynamicFormVersion
 
 
+class DynamicFormDeleteForm(FlaskForm):
+    pass
+
+
 class DynamicFormCreateForm(FlaskForm):
     name = StringField('Form name', description='ตั้งชื่อแบบฟอร์มให้ชัดเจน เพื่อให้อาจารย์และผู้ใช้งานเข้าใจได้ทันที', render_kw={'placeholder': 'เช่น แบบประเมินโครงงานปลายภาค'}, validators=[InputRequired()])
     description = TextAreaField('Description', description='อธิบายวัตถุประสงค์ของแบบฟอร์มและช่วงเวลาหรือกรณีที่ควรใช้งาน', render_kw={'placeholder': 'เช่น ใช้ประเมินทักษะการนำเสนอและการแก้ปัญหาจากโครงงาน'}, validators=[Optional()])
