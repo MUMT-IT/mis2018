@@ -4,12 +4,23 @@ import re
 
 
 REJECTION_HISTORY_MARKER = re.compile(r"(?m)^ครั้งที่\s+\d+\s*:")
+FINANCE_NOTIFICATION_EMAIL = "ploy.j0912@gmail.com"
 
 
 def thai_date(value):
     if value is None:
         return ""
     if isinstance(value, (date, datetime)):
+        return value.strftime(f"%d/%m/{value.year + 543}")
+    return value
+
+
+def thai_datetime(value):
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime(f"%d/%m/{value.year + 543} %H:%M น.")
+    if isinstance(value, date):
         return value.strftime(f"%d/%m/{value.year + 543}")
     return value
 
@@ -43,6 +54,79 @@ def latest_rejection_comment(value):
     if not matches:
         return text
     return text[matches[-1].start():].strip()
+
+
+def generate_finance_notification_email_content(
+    target_object,
+    notification_type,
+    extra_ctx=None,
+):
+    """Build the finance-only pending-review and deadline notifications."""
+    ctx = extra_ctx or {}
+    recipient_emails = (FINANCE_NOTIFICATION_EMAIL,)
+    footer = "ระบบจัดการเงินยืมทดรองจ่ายและเงินสดย่อย\nคณะเทคนิคการแพทย์"
+    action_url = str(ctx.get("action_url") or "").strip()
+    action_section = f"\n\n{action_url}" if action_url else ""
+
+    if notification_type == "pending_review":
+        document_type = str(ctx.get("document_type") or "รายการ").strip()
+        reference = str(ctx.get("reference") or "").strip()
+        document_label = " ".join(
+            value for value in (document_type, reference) if value
+        )
+        person_name = str(ctx.get("person_name") or "-").strip()
+        amount = _amount(ctx.get("amount", 0))
+        created_at = thai_datetime(ctx.get("created_at")) or "-"
+
+        subject = f"มีรายการใหม่รอตรวจสอบ: {document_label}"
+        body = f"""เรียน ฝ่ายการเงิน
+
+มีรายการใหม่ส่งเข้ามาเพื่อรอการตรวจสอบในระบบ
+
+รายละเอียดรายการ
+- ประเภทเอกสาร: {document_label}
+- ผู้ยืม/ผู้ขอเบิก: {person_name}
+- จำนวนเงิน: {amount} บาท
+- วันที่สร้างรายการ: {created_at}
+- สถานะปัจจุบัน: รอตรวจสอบ{action_section}
+
+{footer}"""
+    elif notification_type in {"upcoming", "overdue"}:
+        number = _ticket_number(target_object)
+        borrower_name = str(ctx.get("borrower_name") or "-").strip()
+        due_date = thai_date(getattr(target_object, "due_date", None)) or "-"
+        remaining_amount = _amount(ctx.get("remaining_amount", 0))
+
+        if notification_type == "upcoming":
+            subject = f"สัญญาเงินยืม บย.{number} ใกล้ครบกำหนด"
+            intro = """สัญญาเงินยืมทดรองจ่ายต่อไปนี้ใกล้ถึงกำหนดส่งใช้
+กรุณาตรวจสอบและติดตามผู้ยืมเพื่อดำเนินการส่งใช้เงินยืมภายในกำหนด"""
+        else:
+            subject = f"สัญญาเงินยืม บย.{number} เกินกำหนด"
+            intro = """สัญญาเงินยืมทดรองจ่ายต่อไปนี้เกินกำหนดส่งใช้แล้ว
+กรุณาตรวจสอบและติดตามผู้ยืมเพื่อดำเนินการส่งใช้เงินยืมโดยเร็ว"""
+
+        body = f"""เรียน ฝ่ายการเงิน
+
+{intro}
+
+รายละเอียดสัญญา
+- เลขที่สัญญา: บย.{number}
+- ผู้ยืม: {borrower_name}
+- วันครบกำหนดส่งใช้: {due_date}
+- ยอดคงค้างปัจจุบัน: {remaining_amount} บาท{action_section}
+
+{footer}"""
+    else:
+        raise ValueError(
+            f"ไม่รองรับ finance notification_type: {notification_type}"
+        )
+
+    return {
+        "to_emails": recipient_emails,
+        "subject": subject,
+        "body": body,
+    }
 
 
 def generate_notification_email_content(target_object, object_type="ticket", extra_ctx=None):

@@ -36,7 +36,11 @@ from werkzeug.utils import secure_filename
 from .borrowing_ticket_eligibility import calculate_borrowing_ticket_eligibility
 from .forms import BorrowingTicketForm, FundRequestForm, BankAccountInfoForm
 from .models import db, BankAccountInfo, BorrowingTicket, CashAdvanceAccountManager, Document, ParcelReturnDetail, PettyCashClaimDetail, PettyCashClaimItem, PettyCashClaimProofFile, ReturnDetail, ReturnReceiptItem, ReturnProofFile, StaffAccount, ClosingDocument, ClosingDocumentLink, PettyCashSetting, PettyCashFiscalYearCarryover, FundRequest, FundRequestItem, document_petty_claim_association, document_return_association, return_borrowing_ticket_association, parcel_borrowing_ticket_association
-from .email_utils import generate_notification_email_content, latest_rejection_comment
+from .email_utils import (
+    generate_finance_notification_email_content,
+    generate_notification_email_content,
+    latest_rejection_comment,
+)
 from . import advance_payment as bp, thai_date
 from app.main import mail
 from app.models import CostCenter, IOCode, Org, ProductCode
@@ -1984,23 +1988,30 @@ def recheck_overdue_and_upcoming_statuses():
             if ticket.last_notified_type != "overdue":
                 notification_type = "overdue"
 
-        elif days_remaining == 15:
-            current_type = str(days_remaining)
-            if ticket.last_notified_type != current_type:
-                notification_type = current_type
+        elif 0 <= days_remaining <= 15:
+            if ticket.last_notified_type not in {"upcoming", "15"}:
+                notification_type = "upcoming"
 
         if notification_type:
-            is_overdue = (notification_type == "overdue")
+            is_overdue = notification_type == "overdue"
             is_upcoming = not is_overdue
 
-            _send_notification_email(ticket, extra_ctx={
+            notification_ctx = {
                 "is_overdue": is_overdue,
                 "is_upcoming": is_upcoming,
                 "days_remaining": days_remaining
-            })
-
-            ticket.last_notified_type = notification_type
-            ticket.last_notified_date = today
+            }
+            finance_email_sent = _send_finance_ticket_deadline_email(
+                ticket,
+                notification_type=("overdue" if is_overdue else "upcoming"),
+            )
+            if finance_email_sent:
+                # Keep the existing borrower/creator reminder as a best-effort
+                # companion message. Finance delivery controls the one-time
+                # marker for this notification.
+                _send_notification_email(ticket, extra_ctx=notification_ctx)
+                ticket.last_notified_type = notification_type
+                ticket.last_notified_date = today
 
     try:
         db.session.commit()
@@ -2335,11 +2346,172 @@ def _download_cash_mng_document(file_id):
     return redirect(_docs_query_download_url(source_document.drive_file_id))
 
 
-def _send_notification_email(target_object, object_type="ticket", extra_ctx=None):
-    email_enabled = os.environ.get("ADVANCE_PAYMENT_EMAIL_ENABLED", "true").lower() in {
+def _advance_payment_email_enabled():
+    return os.environ.get("ADVANCE_PAYMENT_EMAIL_ENABLED", "false").lower() in {
         "1", "true", "yes", "on"
     }
 
+
+def _deliver_advance_payment_email(email_data):
+    def _log_email_content():
+        current_app.logger.warning(
+            f"ผู้รับ: {', '.join(email_data['to_emails']) or 'ไม่พบอีเมลผู้รับ'}\n"
+            f"หัวข้ออีเมล: {email_data['subject']}\n"
+            f"เนื้อหาอีเมล:\n{email_data['body']}"
+        )
+
+    if not _advance_payment_email_enabled():
+        _log_email_content()
+        return False
+
+    try:
+        recipients = email_data["to_emails"]
+        current_app.logger.info(
+            f"ส่งข้อความไปยัง: {', '.join(recipients) or 'ไม่พบอีเมลผู้รับ'}"
+        )
+        current_app.logger.info(f"หัวข้ออีเมล: {email_data['subject']}")
+        current_app.logger.info(f"เนื้อหากล่องข้อความ:\n{email_data['body']}")
+
+        if not recipients:
+            _log_email_content()
+            current_app.logger.warning(
+                "ยกเลิกการส่งอีเมลแจ้งเตือน เนื่องจากไม่พบอีเมลผู้รับ"
+            )
+            return False
+
+        message = Message(
+            subject=email_data["subject"],
+            body=email_data["body"],
+            recipients=list(recipients),
+        )
+        mail.send(message)
+        current_app.logger.info(
+            "ส่งอีเมลแจ้งเตือนสำเร็จไปยัง: %s", ", ".join(recipients)
+        )
+        return True
+    except Exception as error:
+        current_app.logger.exception(
+            "ไม่สามารถจัดส่งอีเมลแจ้งเตือนได้เนื่องจาก: %s", error
+        )
+        _log_email_content()
+        return False
+
+
+def _finance_pending_review_context(target_object, object_type, email_ctx):
+    if (getattr(target_object, "status", None) or "").strip() != "รอตรวจสอบ":
+        return None
+
+    if object_type == "return":
+        ticket = email_ctx.get("ticket")
+        number = getattr(ticket, "number", None) or "-"
+        return {
+            "document_type": "เอกสารส่งใช้เงินยืมทดรองจ่าย",
+            "reference": f"บย.{number}",
+            "person_name": email_ctx.get("borrower_name") or "-",
+            "amount": getattr(target_object, "amount_spent", 0),
+            "created_at": getattr(target_object, "created_at", None),
+            "action_url": url_for(
+                "advance_payment.view_return_proof_detail",
+                return_id=target_object.id,
+                _external=True,
+            ),
+        }
+
+    if object_type == "petty_claim":
+        fund_request = email_ctx.get("fund_request")
+        ticket_number = getattr(fund_request, "ticket_number", None) or "-"
+        return {
+            "document_type": "รายการขออนุมัติเบิกค่าใช้จ่ายเงินสดย่อย",
+            "reference": f"เลขที่ {ticket_number}",
+            "person_name": email_ctx.get("requester_name") or "-",
+            "amount": getattr(target_object, "total_amount", 0),
+            "created_at": getattr(target_object, "created_at", None),
+            "action_url": url_for(
+                "advance_payment.petty_cash_claim_detail",
+                claim_id=target_object.id,
+                _external=True,
+            ),
+        }
+
+    if object_type == "parcel_return":
+        ticket = email_ctx.get("ticket")
+        fund_request = email_ctx.get("fund_request")
+        type_label = PARCEL_RETURN_TYPE_LABELS.get(
+            getattr(target_object, "type", None)
+        )
+        document_type = (
+            f"รายการส่ง {type_label}" if type_label else "รายการส่งคืนพัสดุ"
+        )
+        if ticket:
+            reference = f"บย.{getattr(ticket, 'number', None) or '-'}"
+            action_url = url_for(
+                "advance_payment.verification_view",
+                ticket_id=ticket.id,
+                _external=True,
+            )
+        else:
+            reference = (
+                f"ใบเบิกเลขที่ {getattr(fund_request, 'ticket_number', None) or '-'}"
+            )
+            action_url = url_for(
+                "advance_payment.petty_cash_claim_history",
+                _external=True,
+            )
+        return {
+            "document_type": document_type,
+            "reference": reference,
+            "person_name": email_ctx.get("borrower_name") or "-",
+            "amount": getattr(target_object, "amount_spent", 0),
+            "created_at": getattr(target_object, "created_at", None),
+            "action_url": action_url,
+        }
+
+    return None
+
+
+def _send_finance_pending_review_email(target_object, object_type, email_ctx):
+    finance_ctx = _finance_pending_review_context(
+        target_object,
+        object_type,
+        email_ctx,
+    )
+    if finance_ctx is None:
+        return False
+    email_data = generate_finance_notification_email_content(
+        target_object,
+        notification_type="pending_review",
+        extra_ctx=finance_ctx,
+    )
+    return _deliver_advance_payment_email(email_data)
+
+
+def _send_finance_ticket_deadline_email(ticket, notification_type):
+    borrower = db.session.query(StaffAccount).filter_by(
+        email=ticket.borrower_email
+    ).first()
+    totals = _calculate_ticket_return_totals(ticket.id)
+    email_data = generate_finance_notification_email_content(
+        ticket,
+        notification_type=notification_type,
+        extra_ctx={
+            "borrower_name": (
+                ticket.borrower_name
+                or (borrower.name if borrower else None)
+                or ticket.borrower_email
+                or "-"
+            ),
+            "remaining_amount": totals["remaining_amount"],
+            "action_url": url_for(
+                "advance_payment.verification_view",
+                ticket_id=ticket.id,
+                _external=True,
+            ),
+        },
+    )
+    return _deliver_advance_payment_email(email_data)
+
+
+def _send_notification_email(target_object, object_type="ticket", extra_ctx=None):
     if extra_ctx is None:
         extra_ctx = {}
 
@@ -2484,50 +2656,21 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
             ]
             extra_ctx["borrower_name"] = _fund_request_requester_name(fund_request, "ผู้ขอเบิก")
 
-    email_data = generate_notification_email_content(target_object, object_type=object_type, extra_ctx=extra_ctx)
+    email_data = generate_notification_email_content(
+        target_object,
+        object_type=object_type,
+        extra_ctx=extra_ctx,
+    )
+    recipient_email_sent = _deliver_advance_payment_email(email_data)
 
-    def _log_email_content():
-        current_app.logger.warning(
-            f"ผู้รับ: {', '.join(email_data['to_emails']) or 'ไม่พบอีเมลผู้รับ'}\n"
-            f"หัวข้ออีเมล: {email_data['subject']}\n"
-            f"เนื้อหาอีเมล:\n{email_data['body']}"
+    if object_type in {"return", "petty_claim", "parcel_return"}:
+        _send_finance_pending_review_email(
+            target_object,
+            object_type,
+            extra_ctx,
         )
 
-    if not email_enabled:
-        _log_email_content()
-        return False
-
-    try:
-        recipients = email_data["to_emails"]
-        current_app.logger.info(
-            f"ส่งข้อความไปยัง: {', '.join(recipients) or 'ไม่พบอีเมลผู้รับ'}"
-        )
-        current_app.logger.info(f"หัวข้ออีเมล: {email_data['subject']}")
-        current_app.logger.info(f"เนื้อหากล่องข้อความ:\n{email_data['body']}")
-
-        if not recipients:
-            _log_email_content()
-            current_app.logger.warning(
-                "ยกเลิกการส่งอีเมลแจ้งเตือน เนื่องจากไม่พบอีเมลผู้รับ"
-            )
-            return False
-
-        message = Message(
-            subject=email_data["subject"],
-            body=email_data["body"],
-            recipients=list(recipients),
-        )
-        mail.send(message)
-        current_app.logger.info(
-            "ส่งอีเมลแจ้งเตือนสำเร็จไปยัง: %s", ", ".join(recipients)
-        )
-        return True
-    except Exception as e:
-        current_app.logger.exception(
-            "ไม่สามารถจัดส่งอีเมลแจ้งเตือนได้เนื่องจาก: %s", e
-        )
-        _log_email_content()
-        return False
+    return recipient_email_sent
 
 
 def _notify_next_fund_request_actor(fund_request):
@@ -4346,7 +4489,9 @@ def coordinator_dashboard():
         ticket.summary_days_remaining = None
         ticket.can_edit = bool(
             ticket.approved_at is None
-            and ticket.status != "กำลังดำเนินการ"
+        and
+            ticket.rejection_comment is None
+        and ticket.status != "กำลังดำเนินการ"
             and current_user.id in {ticket.creator_id, ticket.borrower_id}
         )
 
@@ -4751,7 +4896,11 @@ def advance_payment_dashboard_data():
 @bp.route("/finance/petty-cash-dashboard", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def petty_cash_dashboard():
-    return jsonify(_petty_cash_dashboard_payload())
+    return render_template(
+        "petty_cash_dashboard.html",
+        dashboard_title="Dashboard เงินสดย่อย",
+        amounts=_petty_cash_dashboard_payload(),
+    )
 
 
 @bp.route("/finance/documents/<file_id>/download", methods=["GET"])
@@ -8030,7 +8179,6 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
             doc_returns = [link.ticket_return for link in searched_doc.links if link.ticket_return is not None]
             doc_parcel_returns = [link.parcel_return for link in searched_doc.links if link.parcel_return is not None]
             doc_petty_cash = [link.claim for link in searched_doc.links if link.claim is not None]
-
 
             for petty in doc_petty_cash:
                 related_claim = _attach_petty_cash_claim_context(petty)
