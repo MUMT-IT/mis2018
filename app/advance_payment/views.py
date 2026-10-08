@@ -4391,15 +4391,6 @@ def export_ticket_pdf(ticket_id):
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def finance_dashboard():
     borrowing_tickets = db.session.query(BorrowingTicket).order_by(BorrowingTicket.id.desc()).all()
-    finance_revolving_tickets = (
-        _finance_revolving_borrowing_ticket_query()
-        .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.id.asc())
-        .all()
-    )
-    finance_revolving_budget = sum(
-        (_money_decimal(ticket.required_budget) for ticket in finance_revolving_tickets),
-        Decimal("0.00"),
-    )
     return_details = (
         db.session.query(ReturnDetail)
         .filter(ReturnDetail.status != "ฉบับร่าง")
@@ -4425,39 +4416,8 @@ def finance_dashboard():
         if not _claim_has_only_category_six(claim)
     ]
 
-    proofed_return_count = db.session.query(ReturnDetail).filter(ReturnDetail.status == "ผ่านการตรวจสอบ").count()
-    proofed_parcel_count = db.session.query(ParcelReturnDetail).filter(
-        ParcelReturnDetail.status.in_(["ได้รับเอกสารแล้ว", PARCEL_RETURN_CONFIRMED_STATUS])
-    ).count()
-    proofed_claims = (
-        db.session.query(PettyCashClaimDetail)
-        .filter(PettyCashClaimDetail.status == "ผ่านการตรวจสอบ")
-        .all()
-    )
-    proofed_claim_count = sum(
-        1 for claim in proofed_claims if not _claim_has_only_category_six(claim)
-    )
-    proofed_count = proofed_return_count + proofed_parcel_count + proofed_claim_count
-
     for parcel in parcel_returns:
         _attach_parcel_return_context(parcel)
-
-    return_details_by_ticket = {}
-    for item in return_details:
-        return_details_by_ticket.setdefault(item.ticket_id, []).append(item)
-
-    for return_item in return_details:
-        borrowing_ticket = return_item.borrowing_ticket
-        borrower_user = _get_user_by_id(getattr(borrowing_ticket, "borrower_id", None))
-        return_item.borrower_name = (
-            (borrowing_ticket.borrower_name or getattr(borrower_user, "name", ""))
-            if borrowing_ticket else "-"
-        )
-        return_item.ticket_number = (
-            borrowing_ticket.number
-            if borrowing_ticket and borrowing_ticket.number is not None
-            else (borrowing_ticket.aip_ref_no if borrowing_ticket and borrowing_ticket.aip_ref_no else "-")
-        )
 
     for claim in petty_cash_claims:
         _attach_petty_cash_claim_context(claim)
@@ -4476,118 +4436,13 @@ def finance_dashboard():
             or f"PC-{claim.id}"
         )
 
-    close_ticket_ready = {
-        ticket.id: ticket.status == "เคลียร์ยอดแล้ว" and bool(return_details_by_ticket.get(ticket.id)) and all(item.status == "เอกสารตั้งฎีกา" for item in return_details_by_ticket.get(ticket.id, []))
-        for ticket in borrowing_tickets
-    }
-
-    today_date = datetime.now().date()
-    shadow_sum_debt = 0.0
-
-    # ตัวแปรนับจำนวนสัญญาใกล้ครบกำหนด / เลยกำหนดส่ง
-    near_due_count = 0
-    overdue_count = 0
-
-    # ==========================================
-    # 1. ย้าย Logic คำนวณรอบดอกเบี้ยมาไว้นอกลูป
-    # ==========================================
-    current_year_be = today_date.year + 543 # ปี พ.ศ. (ex. 2569)
-    if today_date.month <= 11:
-        current_interest_period_key = f"06/{current_year_be}"
-    else:
-        current_interest_period_key = f"12/{current_year_be}"
-    current_interest_period = _format_interest_period_label(current_interest_period_key)
-
-    # ==========================================
-    # 2. ลูปคำนวณตั๋วยืมคงเหลือ และนับจำนวนสัญญา
-    # ==========================================
-    for ticket in borrowing_tickets:
-        raw_status = (ticket.status or "").strip()
-        ticket.calculated_days_remaining = None
-        ticket.calculated_overdue_days = None
-
-        if ticket.due_date:
-            if today_date > ticket.due_date:
-                ticket.calculated_overdue_days = (today_date - ticket.due_date).days
-                # ถ้ายังไม่ปิดสัญญา และเลยกำหนด ให้เพิ่มนับจำนวน
-                if raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "กำลังดำเนินการ", "รออนุมัติสัญญา", "รอตรวจสอบ"]:
-                    overdue_count += 1
-            else:
-                ticket.calculated_days_remaining = (ticket.due_date - today_date).days
-                # ถ้าเหลือวันน้อยกว่าหรือเท่ากับ 15 วัน และยังไม่ปิดสัญญา
-                if 0 <= ticket.calculated_days_remaining <= 15 and raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "กำลังดำเนินการ", "รอตรวจสอบ"]:
-                    near_due_count += 1
-
-        totals = _calculate_ticket_return_totals(ticket.id)
-        ticket_remaining = totals["remaining_amount"]
-
-        if raw_status not in ["เอกสารตั้งฎีกา", "เคลียร์ยอดแล้ว", "ปฏิเสธ", "กำลังส่งคำขอ", "กำลังดำเนินการ", "รอตรวจสอบ"]:
-            shadow_sum_debt += float(ticket_remaining if ticket_remaining > 0 else 0.0)
-
-    # ==========================================
-    # 3. ดึง PettyCashSetting ที่ active/valid
-    # ==========================================
-    active_settings = db.session.query(PettyCashSetting).filter(
-        PettyCashSetting.valid == True,
-        PettyCashSetting.fiscal_year == _current_petty_cash_fiscal_year(),
-    ).all()
-    for setting in active_settings:
-        _attach_petty_cash_setting_people(setting)
-
-    # ==========================================
-    # 4. ดึง FundRequest (ฟอร์ม 31) มาตรวจสอบ
-    # ==========================================
-    approved_interest_requests = db.session.query(FundRequest).filter(
-        FundRequest.form_type == FUND_REQUEST_FORM_INTEREST,
-        FundRequest.status == "เบิกเงินแล้ว",
-    ).all()
-
-    matched_requests = []
-    for fr in approved_interest_requests:
-        if _normalize_interest_period_value(fr.period_year) == current_interest_period_key:
-            matched_requests.append(fr)
-
-    submitted_org_ids = {fr.org_id for fr in matched_requests if getattr(fr, "org_id", None)}
-
-    pending_interest_departments = []
-    for setting in active_settings:
-        is_submitted = setting.org_id in submitted_org_ids
-        custodian = setting.custodian_name or (setting.custodian_user.name if getattr(setting, "custodian_user", None) else None) or '-'
-
-        dept_info = {
-            "id": setting.id,
-            "department_name": setting.department_name,
-            "account_number": setting.account_number or '-',
-            "custodian_name": custodian,
-            "is_submitted": is_submitted,
-            "is_pending": not is_submitted,
-            "pending_period": current_interest_period,
-            "status_label": "ส่งแล้ว" if is_submitted else "ค้างส่ง"
-        }
-        pending_interest_departments.append(dept_info)
-
-    pending_interest_count = sum(1 for d in pending_interest_departments if d["is_pending"])
-
     return render_template(
         "finance_dashboard.html",
         dashboard_title="รายการรอตรวจสอบ",
-        dashboard_role="Finance",
         borrowing_tickets=borrowing_tickets,
-        finance_revolving_tickets=finance_revolving_tickets,
-        finance_revolving_budget=finance_revolving_budget,
         return_details=return_details,
         parcel_returns=parcel_returns,
-        petty_cash_claims=petty_cash_claims,  # <--- ส่งเพิ่ม
-        return_details_by_ticket=return_details_by_ticket,
-        close_ticket_ready=close_ticket_ready,
-        today=today_date,
-        proofed_count=proofed_count,
-        shadow_sum_debt=shadow_sum_debt,
-        near_due_count=near_due_count,        # <--- ส่งเพิ่ม
-        overdue_count=overdue_count,          # <--- ส่งเพิ่ม
-        current_interest_period=current_interest_period,
-        pending_interest_departments=pending_interest_departments,
-        pending_interest_count=pending_interest_count
+        petty_cash_claims=petty_cash_claims,
     )
 
 @bp.route("/finance/documents/<file_id>/download", methods=["GET"])
