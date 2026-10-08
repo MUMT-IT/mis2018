@@ -1454,6 +1454,12 @@ def _claim_has_only_category_six(claim):
     return bool(items) and all(int(item.category_type or 0) == 6 for item in items)
 
 
+def _petty_cash_category_groups_are_mixed(category_types):
+    """Return true when category 6 and ordinary categories share one claim."""
+    groups = {int(category_type or 0) == 6 for category_type in category_types}
+    return len(groups) > 1
+
+
 def _get_finance_visible_claim(claim_id):
     """Load a claim that finance is allowed to process."""
     claim = db.session.query(PettyCashClaimDetail).get(claim_id)
@@ -1827,10 +1833,19 @@ def _get_approved_borrowing_tickets_for_setting(setting, *, exclude_fund_request
         .filter(
             BorrowingTicket.account_number == setting.account_number,
             BorrowingTicket.approved_at.isnot(None),
+            BorrowingTicket.settled_at.is_(None),
             ~used_by_another_request.exists(),
         )
         .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.created_at.asc())
         .all()
+    )
+
+
+def _finance_revolving_borrowing_ticket_query():
+    """Financially active contracts; closed_date remains borrower-side only."""
+    return db.session.query(BorrowingTicket).filter(
+        BorrowingTicket.approved_at.isnot(None),
+        BorrowingTicket.settled_at.is_(None),
     )
 
 
@@ -2551,9 +2566,16 @@ def mark_return_received(return_id):
         return _validation_error_response("ต้องล้างลูกหนี้ผ่านฎีกาที่ปิดบัญชีแล้วก่อน")
 
     return_detail.status = "ล้างลูกหนี้เงินยืม"
+    return_detail.settled_at = closing_document.settled_at
+    for ticket_id in _return_ticket_ids(return_detail):
+        _recalculate_borrowing_ticket_status(
+            ticket_id,
+            commit=False,
+            notify=False,
+            recalculate_settlement=False,
+        )
+    _recalculate_borrowing_ticket_settlement(_return_ticket_ids(return_detail))
     db.session.commit()
-
-    _recalculate_borrowing_ticket_status(return_detail.ticket_id)
 
 
     flash("เปลี่ยนสถานะเป็น 'ได้รับเงินแล้ว' และสิ้นสุดกระบวนการเรียบร้อย")
@@ -2583,15 +2605,49 @@ def mark_return_bounced(return_id):
     )
     return_detail.reject_approved_at = datetime.now()
     return_detail.status = RETURN_DETAIL_BOUNCED_STATUS
+    return_detail.settled_at = None
     borrowing_ticket = db.session.query(BorrowingTicket).get(return_detail.ticket_id)
     if borrowing_ticket:
         borrowing_ticket.reject_approved_at = datetime.now()
         borrowing_ticket.status = RETURN_DETAIL_BOUNCED_STATUS
         borrowing_ticket.closed_date = None
 
+    for ticket_id in _return_ticket_ids(return_detail):
+        _recalculate_borrowing_ticket_status(
+            ticket_id,
+            commit=False,
+            notify=False,
+            recalculate_settlement=False,
+        )
+    _recalculate_borrowing_ticket_settlement(_return_ticket_ids(return_detail))
     db.session.commit()
     flash("เปลี่ยนสถานะเป็น 'ฎีกาถูกตีกลับจากกองคลัง' เรียบร้อยแล้ว", "success")
     return view_return_proof_detail(return_id)
+
+def _closing_record_has_settled_status(record):
+    expected_status = (
+        "เสร็จสิ้นกระบวนการ"
+        if isinstance(record, PettyCashClaimDetail)
+        else "ล้างลูกหนี้เงินยืม"
+    )
+    return record.status == expected_status and record.settled_at is not None
+
+
+def _sync_closing_document_settled_at(closing_document, event_time):
+    active_records = [
+        link.record for link in closing_document.links if link.is_active
+    ]
+    all_active_records_settled = bool(active_records) and all(
+        _closing_record_has_settled_status(record) for record in active_records
+    )
+    if all_active_records_settled:
+        closing_document.settled_at = closing_document.settled_at or event_time
+        for record in active_records:
+            record.settled_at = closing_document.settled_at
+    else:
+        closing_document.settled_at = None
+    return all_active_records_settled
+
 
 @bp.route("/finance/closing-documents/<int:closing_doc_id>/cancel", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
@@ -2638,30 +2694,39 @@ def cancel_closing_doc(closing_doc_id):
         return _validation_error_response("กรุณาเลือกรายการที่ต้องการยกเลิก")
 
     doc_number = closing_doc.document_number
+    event_time = datetime.now(ZoneInfo("Asia/Bangkok"))
     updated_tickets = set()
     updated_fund_request_ids = set()
     for link in selected_links:
         record = link.record
         link.is_active = False
+        record.settled_at = None
         if link.ticket_return_id is not None:
             record.status = "ผ่านการตรวจสอบ"
-            updated_tickets.add(record.ticket_id)
+            updated_tickets.update(_return_ticket_ids(record))
         elif link.parcel_return_id is not None:
             record.status = _parcel_return_status_after_closing_cancel(record)
-            updated_tickets.add(record.ticket_id)
+            updated_tickets.update(_parcel_return_ticket_ids(record))
             if record.fund_request_id:
                 updated_fund_request_ids.add(record.fund_request_id)
         else:
             record.status = CASH_TRANSFER_STATUS
     if not any(link.is_active for link in closing_doc.links):
         closing_doc.is_active = False
+    _sync_closing_document_settled_at(closing_doc, event_time)
 
     for fund_request_id in updated_fund_request_ids:
         _recalculate_fund_request_submission_status(fund_request_id)
 
     # คำนวณสถานะตั๋วเงินยืมใหม่สำหรับทุกสัญญาที่เกี่ยวข้อง
     for ticket_id in updated_tickets:
-        _recalculate_borrowing_ticket_status(ticket_id)
+        _recalculate_borrowing_ticket_status(
+            ticket_id,
+            commit=False,
+            notify=False,
+            recalculate_settlement=False,
+        )
+    _recalculate_borrowing_ticket_settlement(updated_tickets)
 
     db.session.commit()
     action_scope = "รายการที่เลือกในฎีกา" if has_selection and closing_doc.is_active else "ฎีกา"
@@ -2726,35 +2791,43 @@ def bulk_receive_closing_doc(closing_doc_id):
             "ไม่มีรายการเอกสารส่งใช้เงินยืม พัสดุ หรือเงินสดย่อยที่ต้องล้างลูกหนี้ในฎีกานี้เพิ่มเติม"
         )
 
+    settlement_time = datetime.now(ZoneInfo("Asia/Bangkok"))
     updated_tickets = set()
     for ret in returns_in_doc:
         ret.status = "ล้างลูกหนี้เงินยืม"
-        updated_tickets.add(ret.ticket_id)
+        ret.settled_at = settlement_time
+        updated_tickets.update(_return_ticket_ids(ret))
 
     for pr in parcel_in_doc:
         pr.status = "ล้างลูกหนี้เงินยืม"
-        updated_tickets.add(pr.ticket_id)
+        pr.settled_at = settlement_time
+        updated_tickets.update(_parcel_return_ticket_ids(pr))
 
     for petty in petty_in_doc:
         petty.status = "เสร็จสิ้นกระบวนการ"
+        petty.settled_at = settlement_time
 
     for pr in parcel_in_doc:
         if pr.fund_request_id:
             _recalculate_fund_request_submission_status(pr.fund_request_id)
 
+    _sync_closing_document_settled_at(closing_doc, settlement_time)
     for ticket_id in updated_tickets:
-        _recalculate_borrowing_ticket_status(ticket_id)
-
-    active_records = [link.record for link in closing_doc.links if link.is_active]
-    all_active_records_settled = bool(active_records) and all(
-        record.status == ("เสร็จสิ้นกระบวนการ" if isinstance(record, PettyCashClaimDetail)
-                          else "ล้างลูกหนี้เงินยืม")
-        for record in active_records
-    )
-    closing_doc.settled_at = datetime.now(ZoneInfo("Asia/Bangkok")) if all_active_records_settled else None
+        _recalculate_borrowing_ticket_status(
+            ticket_id,
+            commit=False,
+            notify=False,
+            recalculate_settlement=False,
+        )
+    settlement_result = _recalculate_borrowing_ticket_settlement(updated_tickets)
     db.session.commit()
     scope = "รายการที่เลือก" if has_selection else "รายการทั้งหมด"
     flash(f"เปลี่ยน{scope}ในฎีกา {closing_doc.document_number} เป็น 'ล้างลูกหนี้เงินยืม' เรียบร้อยแล้ว", "success")
+    if settlement_result["anomalies"]:
+        flash(
+            "พบยอดเงินที่ได้รับคืนสูงกว่ายอดตามสัญญา ระบบจึงไม่ปิด settlement ของสัญญาที่ผิดปกติโดยอัตโนมัติ",
+            "warning",
+        )
     return closing_management(
         _render_after_post=True,
         _forced_search_closing_number=closing_doc.document_number,
@@ -2773,6 +2846,206 @@ def _return_ticket_ids(return_detail):
             ).all()
         )
     return {ticket_id for ticket_id in ids if ticket_id}
+
+
+def _parcel_return_ticket_ids(parcel_return):
+    """Return all borrowing-ticket ids linked to a parcel return."""
+    ids = {parcel_return.ticket_id} if parcel_return.ticket_id else set()
+    if parcel_return.id:
+        ids.update(
+            ticket_id
+            for (ticket_id,) in db.session.query(
+                parcel_borrowing_ticket_association.c.ticket_id
+            ).filter(
+                parcel_borrowing_ticket_association.c.parcel_return_id
+                == parcel_return.id
+            ).all()
+        )
+    return {ticket_id for ticket_id in ids if ticket_id}
+
+
+def _money_decimal(value):
+    """Normalize monetary values to satang precision."""
+    return Decimal(str(value or 0)).quantize(Decimal("0.01"))
+
+
+def _allocate_settled_records_to_tickets(ticket_budgets, settled_records):
+    """FIFO-allocate each settled source record once across its linked tickets."""
+    normalized_budgets = {
+        int(ticket_id): _money_decimal(budget)
+        for ticket_id, budget in ticket_budgets.items()
+    }
+    remaining = dict(normalized_budgets)
+    allocated = {
+        ticket_id: Decimal("0.00") for ticket_id in normalized_budgets
+    }
+    latest_settled_at = {ticket_id: None for ticket_id in normalized_budgets}
+    anomalies = []
+
+    for record in settled_records:
+        amount = _money_decimal(record.get("amount"))
+        linked_ticket_ids = [
+            ticket_id
+            for ticket_id in normalized_budgets
+            if ticket_id in set(record.get("ticket_ids") or ())
+        ]
+        if amount < 0:
+            anomalies.append({
+                "record_key": record.get("record_key"),
+                "ticket_ids": linked_ticket_ids,
+                "excess_amount": abs(amount),
+                "reason": "negative_amount",
+            })
+            continue
+
+        unallocated = amount
+        for ticket_id in linked_ticket_ids:
+            if unallocated <= 0:
+                break
+            portion = min(unallocated, max(remaining[ticket_id], Decimal("0.00")))
+            if portion <= 0:
+                continue
+            allocated[ticket_id] += portion
+            remaining[ticket_id] -= portion
+            latest_settled_at[ticket_id] = record.get("settled_at")
+            unallocated -= portion
+
+        if unallocated > 0:
+            anomalies.append({
+                "record_key": record.get("record_key"),
+                "ticket_ids": linked_ticket_ids,
+                "excess_amount": unallocated,
+                "reason": "over_budget",
+            })
+
+    return {
+        "allocated_by_ticket": allocated,
+        "remaining_by_ticket": remaining,
+        "latest_settled_at_by_ticket": latest_settled_at,
+        "anomalies": anomalies,
+    }
+
+
+def _settlement_datetime_sort_key(value):
+    if value is None:
+        return datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=ZoneInfo("Asia/Bangkok"))
+    return value.astimezone(ZoneInfo("UTC"))
+
+
+def _recalculate_borrowing_ticket_settlement(ticket_ids):
+    """Synchronize BorrowingTicket.settled_at from money actually returned."""
+    requested_ids = {int(ticket_id) for ticket_id in ticket_ids if ticket_id}
+    if not requested_ids:
+        return {
+            "allocated_by_ticket": {},
+            "remaining_by_ticket": {},
+            "latest_settled_at_by_ticket": {},
+            "anomalies": [],
+        }
+
+    grouped_ids = set()
+    for ticket_id in requested_ids:
+        grouped_ids.update(_ticket_group_ids(ticket_id))
+
+    tickets = (
+        db.session.query(BorrowingTicket)
+        .filter(BorrowingTicket.id.in_(grouped_ids))
+        .all()
+    )
+    tickets = sorted(
+        tickets,
+        key=lambda ticket: (
+            ticket.approved_at is None,
+            ticket.approved_at or datetime.max,
+            ticket.id,
+        ),
+    )
+    ticket_budgets = {
+        ticket.id: _money_decimal(ticket.required_budget) for ticket in tickets
+    }
+
+    return_rows = db.session.query(ReturnDetail).filter(
+        ReturnDetail.settled_at.isnot(None),
+        or_(
+            ReturnDetail.ticket_id.in_(grouped_ids),
+            ReturnDetail.id.in_(
+                db.session.query(
+                    return_borrowing_ticket_association.c.return_id
+                ).filter(
+                    return_borrowing_ticket_association.c.ticket_id.in_(grouped_ids)
+                )
+            ),
+        ),
+    ).all()
+    parcel_rows = db.session.query(ParcelReturnDetail).filter(
+        ParcelReturnDetail.settled_at.isnot(None),
+        or_(
+            ParcelReturnDetail.ticket_id.in_(grouped_ids),
+            ParcelReturnDetail.id.in_(
+                db.session.query(
+                    parcel_borrowing_ticket_association.c.parcel_return_id
+                ).filter(
+                    parcel_borrowing_ticket_association.c.ticket_id.in_(grouped_ids)
+                )
+            ),
+        ),
+    ).all()
+
+    settled_records = [
+        {
+            "record_key": ("return", record.id),
+            "amount": record.amount_spent,
+            "ticket_ids": _return_ticket_ids(record),
+            "settled_at": record.settled_at,
+        }
+        for record in return_rows
+    ]
+    settled_records.extend(
+        {
+            "record_key": ("parcel", record.id),
+            "amount": record.amount_spent,
+            "ticket_ids": _parcel_return_ticket_ids(record),
+            "settled_at": record.settled_at,
+        }
+        for record in parcel_rows
+    )
+    settled_records.sort(
+        key=lambda record: (
+            _settlement_datetime_sort_key(record["settled_at"]),
+            record["record_key"],
+        )
+    )
+
+    result = _allocate_settled_records_to_tickets(
+        ticket_budgets,
+        settled_records,
+    )
+    anomalous_ticket_ids = {
+        ticket_id
+        for anomaly in result["anomalies"]
+        for ticket_id in anomaly["ticket_ids"]
+    }
+    for ticket in tickets:
+        budget = ticket_budgets[ticket.id]
+        allocated = result["allocated_by_ticket"][ticket.id]
+        if (
+            ticket.id not in anomalous_ticket_ids
+            and ticket.approved_at is not None
+            and budget > 0
+            and allocated == budget
+        ):
+            ticket.settled_at = result["latest_settled_at_by_ticket"][ticket.id]
+        else:
+            ticket.settled_at = None
+
+    if result["anomalies"]:
+        current_app.logger.warning(
+            "Borrowing-ticket settlement anomaly; automatic settlement withheld: %s",
+            result["anomalies"],
+        )
+    return result
 
 
 def _ticket_group_ids(ticket_id):
@@ -3234,6 +3507,11 @@ def _return_detail_has_over_limit_item(return_detail):
     )
 
 
+def _return_detail_is_cash(return_detail):
+    items = list(getattr(return_detail, "receipt_items", None) or [])
+    return bool(items) and all(bool(item.is_cash) for item in items)
+
+
 def _redirect_with_limit_popup(location, message):
     """Return limit errors to the current page without a redirect."""
     return _validation_error_response(message)
@@ -3273,7 +3551,13 @@ def _ticket_has_bounced_return(ticket_id):
         ReturnDetail.status == RETURN_DETAIL_BOUNCED_STATUS,
     ).first() is not None
 
-def _recalculate_borrowing_ticket_status(ticket_id):
+def _recalculate_borrowing_ticket_status(
+    ticket_id,
+    *,
+    commit=True,
+    notify=True,
+    recalculate_settlement=True,
+):
     borrowing_ticket = (
         db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     )
@@ -3283,8 +3567,12 @@ def _recalculate_borrowing_ticket_status(ticket_id):
     if _ticket_has_bounced_return(ticket_id):
         borrowing_ticket.status = RETURN_DETAIL_BOUNCED_STATUS
         borrowing_ticket.closed_date = None
-        db.session.commit()
-        _send_notification_email(borrowing_ticket)
+        if recalculate_settlement:
+            _recalculate_borrowing_ticket_settlement({ticket_id})
+        if commit:
+            db.session.commit()
+        if notify:
+            _send_notification_email(borrowing_ticket)
         return borrowing_ticket.status
 
     old_status = borrowing_ticket.status
@@ -3310,9 +3598,13 @@ def _recalculate_borrowing_ticket_status(ticket_id):
             new_status = old_status
 
     borrowing_ticket.status = new_status
-    db.session.commit()
+    if recalculate_settlement:
+        _recalculate_borrowing_ticket_settlement({ticket_id})
+    if commit:
+        db.session.commit()
 
-    _send_notification_email(borrowing_ticket)
+    if notify:
+        _send_notification_email(borrowing_ticket)
 
     return borrowing_ticket.status
 
@@ -4099,6 +4391,15 @@ def export_ticket_pdf(ticket_id):
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def finance_dashboard():
     borrowing_tickets = db.session.query(BorrowingTicket).order_by(BorrowingTicket.id.desc()).all()
+    finance_revolving_tickets = (
+        _finance_revolving_borrowing_ticket_query()
+        .order_by(BorrowingTicket.approved_at.asc(), BorrowingTicket.id.asc())
+        .all()
+    )
+    finance_revolving_budget = sum(
+        (_money_decimal(ticket.required_budget) for ticket in finance_revolving_tickets),
+        Decimal("0.00"),
+    )
     return_details = (
         db.session.query(ReturnDetail)
         .filter(ReturnDetail.status != "ฉบับร่าง")
@@ -4272,6 +4573,8 @@ def finance_dashboard():
         dashboard_title="รายการรอตรวจสอบ",
         dashboard_role="Finance",
         borrowing_tickets=borrowing_tickets,
+        finance_revolving_tickets=finance_revolving_tickets,
+        finance_revolving_budget=finance_revolving_budget,
         return_details=return_details,
         parcel_returns=parcel_returns,
         petty_cash_claims=petty_cash_claims,  # <--- ส่งเพิ่ม
@@ -5420,6 +5723,7 @@ def update_parcel_return(parcel_return_id):
     parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
     parcel_return.status = "รอตรวจสอบ"
     parcel_return.approved_at = None
+    parcel_return.settled_at = None
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
@@ -5452,6 +5756,7 @@ def mark_parcel_proofed(parcel_return_id):
 
     parcel_return.status = _parcel_return_status_after_review(parcel_return)
     parcel_return.approved_at = datetime.now()
+    parcel_return.settled_at = None
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
@@ -5577,6 +5882,7 @@ def reject_parcel_return(parcel_return_id):
 
     parcel_return.status = "ปฏิเสธ"
     parcel_return.approved_at = None
+    parcel_return.settled_at = None
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
     if parcel_return.fund_request_id:
@@ -6077,7 +6383,7 @@ def submit_return_details():
             store_name="-",
             description="เงินเหลือส่งใช้เงินยืม",
             amount=cash_return_amount or 0,
-            is_cash=False,
+            is_cash=True,
         )
         db.session.add(cash_item)
         db.session.flush()
@@ -6379,6 +6685,7 @@ def edit_receipt_item_inline(file_id):
     if is_claim:
         claim_detail.status = "รอยืนยันการแก้ไข"
         claim_detail.approved_at = None
+        claim_detail.settled_at = None
         claim_detail.total_amount = total_spent_for_claim
 
         db.session.commit()
@@ -6394,6 +6701,7 @@ def edit_receipt_item_inline(file_id):
     else:
         return_detail.status = "รอยืนยันการแก้ไข"
         return_detail.approved_at = None
+        return_detail.settled_at = None
         return_detail.amount_spent = total_spent_for_return
 
         db.session.commit()
@@ -6496,7 +6804,7 @@ def autosave_return_draft(ticket_id):
             receipt_date=r_date,
             store_name=(item.get("store_name") or "").strip(),
             description=(item.get("description") or "").strip(),
-            is_cash=item.get("is_cash") is True,
+            is_cash=False,
             amount=amt
         )
         db.session.add(receipt_obj)
@@ -6527,7 +6835,7 @@ def autosave_return_draft(ticket_id):
             store_name="-",
             description="เงินเหลือส่งใช้เงินยืม",
             amount=cash_amount,
-            is_cash=False,
+            is_cash=True,
         ))
     elif existing_cash_draft:
         for old_item in existing_cash_draft.receipt_items:
@@ -6563,8 +6871,14 @@ def mark_return_proofed(return_id):
             "กรุณายืนยันว่าได้ตรวจสอบเอกสารอนุมัติจากคณบดีแล้ว"
         )
 
+    approved_at = datetime.now()
     return_detail.status = "ผ่านการตรวจสอบ"
-    return_detail.approved_at = datetime.now()
+    return_detail.approved_at = approved_at
+    return_detail.settled_at = (
+        approved_at if _return_detail_is_cash(return_detail) else None
+    )
+
+
     db.session.commit()
 
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
@@ -6600,6 +6914,7 @@ def reject_return_detail(return_id):
 
     return_detail.status = "ปฏิเสธ"
     return_detail.approved_at = None
+    return_detail.settled_at = None
     db.session.commit()
 
     _recalculate_borrowing_ticket_status(return_detail.ticket_id)
@@ -7643,11 +7958,20 @@ def closing_management(_render_after_post=False, _forced_search_closing_number=N
         updated_ticket_ids = set()
         for record in selected_records:
             record.status = "เอกสารตั้งฎีกา"
+            record.settled_at = None
             record.closing_document = new_closing_doc
-            if not isinstance(record, PettyCashClaimDetail) and record.ticket_id:
-                updated_ticket_ids.add(record.ticket_id)
+            if isinstance(record, ReturnDetail):
+                updated_ticket_ids.update(_return_ticket_ids(record))
+            elif isinstance(record, ParcelReturnDetail):
+                updated_ticket_ids.update(_parcel_return_ticket_ids(record))
         for ticket_id in updated_ticket_ids:
-            _recalculate_borrowing_ticket_status(ticket_id)
+            _recalculate_borrowing_ticket_status(
+                ticket_id,
+                commit=False,
+                notify=False,
+                recalculate_settlement=False,
+            )
+        _recalculate_borrowing_ticket_settlement(updated_ticket_ids)
         db.session.commit()
         flash(f"บันทึกเอกสารตั้งฎีกาเลขที่ {document_number} ยอดรวม {total_amount:,.2f} บาท สำเร็จ")
         return closing_management(_render_after_post=True)
@@ -9118,6 +9442,22 @@ def autosave_petty_cash_claim_draft():
     reference_date_raw = (data.get("reference_date") or "").strip()
     note = (data.get("note") or "").strip() or None
 
+    item_category_types = []
+    for item in items:
+        category_type = str(item.get("category_type") or "1").strip()
+        item_category_types.append(
+            int(category_type) if category_type.isdigit() else 1
+        )
+    if (
+        cash_return.get("receipt_date")
+        and cash_return.get("amount") not in (None, "")
+    ):
+        item_category_types.append(6)
+    if _petty_cash_category_groups_are_mixed(item_category_types):
+        return _validation_error_response(
+            "รายการเดียวกันต้องเป็นเงินโอนคืนประเภท 6 ทั้งชุด หรือเป็นค่าใช้จ่ายที่ไม่ใช่ประเภท 6 ทั้งชุด"
+        )
+
     normalized_fund_request_id = (
         int(fund_request_id)
         if fund_request_id and str(fund_request_id).isdigit()
@@ -9764,6 +10104,20 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 }
             )
 
+        submitted_category_types = [
+            item["category_type"] for item in parsed_items
+        ]
+        if has_cash_return_data and cash_return_date is not None:
+            submitted_category_types.append(6)
+        if _petty_cash_category_groups_are_mixed(submitted_category_types):
+            return _validation_redirect_response(
+                "รายการเดียวกันต้องเป็นเงินโอนคืนประเภท 6 ทั้งชุด หรือเป็นค่าใช้จ่ายที่ไม่ใช่ประเภท 6 ทั้งชุด",
+                request.referrer or url_for(
+                    "advance_payment.submit_petty_cash_claim",
+                    fund_request_id=fund_request_id or None,
+                ),
+            )
+
         proof_file_error = _proof_file_validation_error(len(parsed_items), is_draft=is_draft)
         if proof_file_error:
             return _validation_redirect_response(
@@ -9863,8 +10217,15 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             if is_draft
             else ("โอนคืนเงินสดย่อย" if is_cash_return_only else "รอตรวจสอบ")
         )
+        claim_detail.approved_at = None
+        claim_detail.settled_at = None
+        claim_detail.transferred_at = None
+        submitted_at = datetime.now(ZoneInfo("Asia/Bangkok"))
         if is_cash_return_only:
+            # Category 6 is already money returned to the unit account.  It is
+            # settled by successful submission and never waits for finance review.
             claim_detail.approved_at = datetime.now()
+            claim_detail.settled_at = submitted_at
             claim_detail.transferred_at = next(
                 (
                     item.get("receipt_date")
@@ -9873,7 +10234,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 ),
                 None,
             )
-        claim_detail.created_at = datetime.now()
+        claim_detail.created_at = submitted_at.replace(tzinfo=None)
         db.session.flush()
 
         for i, item_data in enumerate(parsed_items):
@@ -10371,6 +10732,7 @@ def staff_parcel_return_edit(parcel_return_id):
     parcel_return.sent_date = datetime.strptime(sent_date_str, "%Y-%m-%d").date()
     parcel_return.status = "รอตรวจสอบ"
     parcel_return.approved_at = None
+    parcel_return.settled_at = None
     db.session.commit()
     _send_notification_email(parcel_return, object_type="parcel_return")
 
@@ -10487,6 +10849,7 @@ def mark_petty_claim_received(claim_id):
         return _validation_error_response("ต้องล้างลูกหนี้ผ่านฎีกาที่ปิดบัญชีแล้วก่อน")
         
     claim.status = "เสร็จสิ้นกระบวนการ"
+    claim.settled_at = closing_document.settled_at
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("เปลี่ยนสถานะเป็น 'ได้รับเงินแล้ว' สิ้นสุดกระบวนการเรียบร้อย", "success")
@@ -10513,6 +10876,7 @@ def reject_petty_claim(claim_id):
 
     claim.status = "ปฏิเสธ"
     claim.approved_at = None
+    claim.settled_at = None
     db.session.commit()
     _send_notification_email(claim, object_type="petty_claim")
     flash("ปฏิเสธรายการเบิกเงินสดย่อยเรียบร้อยแล้ว", "info")
@@ -10546,6 +10910,7 @@ def confirm_petty_claim_edit(claim_id):
 
     claim.status = "รอตรวจสอบ"
     claim.approved_at = None
+    claim.settled_at = None
     db.session.commit()
     if claim.fund_request_id:
         _recalculate_fund_request_submission_status(claim.fund_request_id)

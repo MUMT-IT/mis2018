@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, text
+from sqlalchemy import Boolean, CheckConstraint, Column, Index, Table, Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func, inspect, select, text
 from flask import g, has_request_context
 from sqlalchemy import event
 from sqlalchemy.orm import Session, declared_attr, object_session, relationship
@@ -137,6 +137,13 @@ def _stamp_finance_edits(session, flush_context, instances):
 
 class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_borrowing_tickets"
+    __table_args__ = (
+        Index(
+            "ix_cash_advance_borrowing_tickets_settled_approved",
+            "settled_at",
+            "approved_at",
+        ),
+    )
 
     id = Column(Integer, primary_key=True)
     number = Column(String, nullable=True)
@@ -156,6 +163,7 @@ class CashAdvanceBorrowingTicket(FinanceEditMixin, db.Model):
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
     closed_date = Column(DateTime, nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
     reject_approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(1000), nullable=True)
     finance_note = Column(String(2000), nullable=True)
@@ -368,6 +376,7 @@ class ReturnDetail(ClosingDocumentRecordMixin, db.Model):
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
     reject_approved_at = Column(DateTime, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
     note = Column(String(2000), nullable=True)
@@ -462,6 +471,62 @@ class ReturnReceiptItem(FinanceEditMixin, db.Model):
         return _query_related_list(self, ReturnProofFile, "return_receipt_item_id")
 
 
+def _validate_return_receipt_item_cash_type(existing_types, is_cash):
+    """Reject mixed cash and non-cash items within one ReturnDetail."""
+    expected_type = bool(is_cash)
+    if any(bool(existing_type) != expected_type for existing_type in existing_types):
+        raise ValueError(
+            "ReturnReceiptItem rows in one ReturnDetail must all have the same is_cash value"
+        )
+
+
+@event.listens_for(Session, "before_flush")
+def _enforce_return_receipt_item_cash_invariant(session, flush_context, instances):
+    tracked_items = {
+        item
+        for item in set(session.new).union(session.dirty).union(session.deleted)
+        if isinstance(item, ReturnReceiptItem)
+    }
+    if not tracked_items:
+        return
+
+    affected_detail_ids = {
+        item.return_detail_id
+        for item in tracked_items
+        if item.return_detail_id is not None
+    }
+    for item in tracked_items:
+        history = inspect(item).attrs.return_detail_id.history
+        affected_detail_ids.update(
+            detail_id for detail_id in history.deleted if detail_id is not None
+        )
+
+    tracked_item_ids = {
+        item.id for item in tracked_items if item.id is not None
+    }
+    for return_detail_id in affected_detail_ids:
+        statement = select(ReturnReceiptItem.is_cash).where(
+            ReturnReceiptItem.return_detail_id == return_detail_id
+        )
+        if tracked_item_ids:
+            statement = statement.where(
+                ReturnReceiptItem.id.notin_(tracked_item_ids)
+            )
+
+        item_types = [row[0] for row in session.execute(statement)]
+        item_types.extend(
+            item.is_cash
+            for item in tracked_items
+            if item not in session.deleted
+            and item.return_detail_id == return_detail_id
+        )
+        if item_types:
+            _validate_return_receipt_item_cash_type(
+                item_types[1:],
+                item_types[0],
+            )
+
+
 class ReturnProofFile(FinanceEditMixin, db.Model):
     __tablename__ = "cash_advance_return_proof_files"
 
@@ -510,6 +575,7 @@ class ParcelReturnDetail(ClosingDocumentRecordMixin, db.Model):
     status = Column(String(32), nullable=False, default="รอตรวจสอบ")
     created_at = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())
     approved_at = Column(DateTime, nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
     transferred_at = Column(Date, nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
 
@@ -922,6 +988,7 @@ class PettyCashClaimDetail(ClosingDocumentRecordMixin, db.Model):
     fund_request_id = Column(Integer, ForeignKey("petty_cash_fund_requests.id"), nullable=True)
     total_amount = Column(Numeric(12, 2, asdecimal=True), nullable=False, default=MONEY_DEFAULT)
     approved_at = Column(DateTime, nullable=True)
+    settled_at = Column(DateTime(timezone=True), nullable=True)
     rejection_comment = Column(String(4000), nullable=True)
     note = Column(String(2000), nullable=True)
     transferred_at = Column(Date, nullable=True)
@@ -986,6 +1053,63 @@ class PettyCashClaimItem(FinanceEditMixin, db.Model):
     @property
     def proof_files(self):
         return _query_related_list(self, PettyCashClaimProofFile, "claim_item_id")
+
+
+def _validate_petty_cash_claim_item_category_group(existing_categories, category_type):
+    """Reject mixing category 6 with ordinary items in one claim."""
+    is_cash_return = int(category_type or 0) == 6
+    if any((int(category or 0) == 6) != is_cash_return for category in existing_categories):
+        raise ValueError(
+            "PettyCashClaimItem rows in one PettyCashClaimDetail must be all "
+            "category 6 or all non-category 6"
+        )
+
+
+@event.listens_for(Session, "before_flush")
+def _enforce_petty_cash_claim_item_category_invariant(session, flush_context, instances):
+    tracked_items = {
+        item
+        for item in set(session.new).union(session.dirty).union(session.deleted)
+        if isinstance(item, PettyCashClaimItem)
+    }
+    if not tracked_items:
+        return
+
+    affected_claim_ids = {
+        item.claim_id
+        for item in tracked_items
+        if item.claim_id is not None
+    }
+    for item in tracked_items:
+        history = inspect(item).attrs.claim_id.history
+        affected_claim_ids.update(
+            claim_id for claim_id in history.deleted if claim_id is not None
+        )
+
+    tracked_item_ids = {
+        item.id for item in tracked_items if item.id is not None
+    }
+    for claim_id in affected_claim_ids:
+        statement = select(PettyCashClaimItem.category_type).where(
+            PettyCashClaimItem.claim_id == claim_id
+        )
+        if tracked_item_ids:
+            statement = statement.where(
+                PettyCashClaimItem.id.notin_(tracked_item_ids)
+            )
+
+        category_types = [row[0] for row in session.execute(statement)]
+        category_types.extend(
+            item.category_type
+            for item in tracked_items
+            if item not in session.deleted
+            and item.claim_id == claim_id
+        )
+        if category_types:
+            _validate_petty_cash_claim_item_category_group(
+                category_types[1:],
+                category_types[0],
+            )
 
 
 class PettyCashClaimProofFile(FinanceEditMixin, db.Model):
