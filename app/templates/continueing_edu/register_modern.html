@@ -1112,7 +1112,8 @@
                     </div>
                 </div>
 
-                <!-- Address Section -->
+                {% if false %}
+                <!-- Address Section (กรอกภายหลังเมื่อขอใบเสร็จ) -->
                 <div class="form-section">
                     <div class="section-title">
                         <i class="fas fa-map-marker-alt"></i>
@@ -1392,6 +1393,8 @@
                         <option value="อุบลราชธานี">อุบลราชธานี (Ubon Ratchathani)</option>
                     </datalist>
                 </div>
+
+                {% endif %}
 
                 <div class="divider" style="margin: 2.5rem 0;">
                     <span>{{ texts.get('terms_section', 'เงื่อนไขและข้อตกลง' if
@@ -2174,25 +2177,6 @@
                     } else {
                         fullNameTh.classList.remove('field-error');
                         fullNameEn.classList.remove('field-error');
-                    }
-                }
-
-                // Validate Address (at least 1 address required)
-                const addressEntries = document.querySelectorAll('.address-entry');
-                if (addressEntries.length === 0) {
-                    isValid = false;
-                    errorMessages.push('{{ texts.get("error_address_required", "กรุณากรอกที่อยู่อย่างน้อย 1 ที่อยู่" if current_lang == "th" else "Please add at least one address") }}');
-                } else {
-                    // Check if at least one address has some data
-                    let hasValidAddress = false;
-                    addressEntries.forEach(entry => {
-                        const inputs = entry.querySelectorAll('input[type="text"]');
-                        const hasData = Array.from(inputs).some(input => input.value.trim() !== '');
-                        if (hasData) hasValidAddress = true;
-                    });
-                    if (!hasValidAddress) {
-                        isValid = false;
-                        errorMessages.push('{{ texts.get("error_address_data_required", "กรุณากรอกข้อมูลที่อยู่อย่างน้อย 1 ที่อยู่" if current_lang == "th" else "Please fill in at least one address") }}');
                     }
                 }
 
