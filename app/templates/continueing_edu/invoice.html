@@ -301,6 +301,14 @@ and payment.invoice.invoice_no else ('INV%06d' % payment.id))) %}
     <div class="invoice-row invoice-seller-meta-grid">
       <div class="invoice-block">
         <div class="invoice-block__title">{{ 'ผู้ซื้อ (Bill To)' if TH else 'Bill To' }}</div>
+        {% if not member.address %}
+        <div class="notification is-warning is-light no-print" style="margin: 0.75rem 0;">
+          <strong>{{ 'กรุณากรอกที่อยู่ก่อนขอใบเสร็จ' if TH else 'Please add your address before requesting a receipt.' }}</strong>
+          <a class="button is-small is-warning ml-2" href="{{ url_for('continuing_edu.account_settings', lang=current_lang) }}">
+            {{ 'กรอกที่อยู่' if TH else 'Add address' }}
+          </a>
+        </div>
+        {% endif %}
         <div style="font-weight:800;">{{ member.full_name_th if TH and member.full_name_th else (member.full_name_en
           or member.full_name_th or member.username) }}</div>
         {% if member.address %}<div style="white-space: pre-line;">{{ member.address }}</div>{% endif %}
