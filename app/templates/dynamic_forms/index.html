@@ -3,6 +3,7 @@
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
 <section class="section"><div class="container">
+    {% include 'messages.html' %}
     <div class="level">
         <div class="level-left"><h1 class="title">Dynamic Forms</h1></div>
         <div class="level-right">
@@ -15,7 +16,10 @@
     </div>
     <div class="box">
         {% if forms %}<table class="table is-fullwidth"><thead><tr><th>Name</th><th>Status</th><th>Latest version</th><th></th></tr></thead><tbody>
-        {% for dynamic_form in forms %}<tr><td>{{ dynamic_form.name }}<br><small>{{ dynamic_form.description or '' }}</small></td><td>{{ dynamic_form.status }}</td><td>{{ dynamic_form.versions[-1].version if dynamic_form.versions else '-' }}</td><td><a class="button is-small is-light mr-1" href="{{ url_for('dynamic_forms.edit', form_id=dynamic_form.id) }}">แก้ไข</a>{% if dynamic_form.versions %}<a class="button is-small is-info" href="{{ url_for('dynamic_forms.edit_version', version_id=dynamic_form.versions[-1].id) }}">ออกแบบ</a>{% endif %}</td></tr>{% endfor %}
+        {% for dynamic_form in forms %}<tr><td>{{ dynamic_form.name }}<br><small>{{ dynamic_form.description or '' }}</small></td><td>{{ dynamic_form.status }}</td><td>{{ dynamic_form.versions[-1].version if dynamic_form.versions else '-' }}</td><td><a class="button is-small is-light mr-1" href="{{ url_for('dynamic_forms.edit', form_id=dynamic_form.id) }}">แก้ไข</a>{% if dynamic_form.versions %}<a class="button is-small is-info" href="{{ url_for('dynamic_forms.edit_version', version_id=dynamic_form.versions[-1].id) }}">ออกแบบ</a>{% endif %}<form method="post" action="{{ url_for('dynamic_forms.delete', form_id=dynamic_form.id) }}" style="display: inline-block" onsubmit="return confirm('ยืนยันการลบแบบฟอร์มนี้? การลบไม่สามารถย้อนกลับได้');">
+            {{ delete_form.hidden_tag() }}
+            <button type="submit" class="button is-small is-danger is-light ml-1">ลบ</button>
+        </form></td></tr>{% endfor %}
         </tbody></table>{% else %}<p class="has-text-grey">ยังไม่มี Dynamic Form</p>{% endif %}
     </div>
 </div></section>
