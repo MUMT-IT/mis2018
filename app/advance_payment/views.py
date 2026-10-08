@@ -4862,6 +4862,11 @@ def tickets_view():
     # Query ข้อมูลตั๋วเงินยืมทั้งหมด
     query = db.session.query(BorrowingTicket).order_by(BorrowingTicket.id.desc())
     all_tickets = query.all()
+    unsettled_tickets = [
+        ticket
+        for ticket in all_tickets
+        if ticket.approved_at is not None and ticket.settled_at is None
+    ]
 
     ticket_ids = [ticket.id for ticket in all_tickets]
     rejected_followup_ticket_ids = set()
@@ -4913,7 +4918,10 @@ def tickets_view():
 
     near_due_count = 0
     overdue_count = 0
-    shadow_sum_debt = 0.0
+    shadow_sum_debt = sum(
+        (float(ticket.required_budget or 0.0) for ticket in unsettled_tickets),
+        0.0,
+    )
 
     for ticket in all_tickets:
         borrower_user = getattr(ticket, "borrower_user", None)
@@ -4935,9 +4943,6 @@ def tickets_view():
                 if 0 <= days_remaining <= 15 and raw_status not in ticket_summary_excluded_statuses:
                     near_due_count += 1
 
-        if raw_status not in ticket_summary_excluded_statuses:
-            shadow_sum_debt += float(ticket.required_budget or 0.0)
-
     # กรองข้อมูลตาม filter ที่ส่งมาจาก Dashboard
     if filter_type == "near_due":
         tickets = [
@@ -4954,10 +4959,7 @@ def tickets_view():
             and today_date > t.due_date
         ]
     elif filter_type == "pending_debt":
-        tickets = [
-            t for t in all_tickets
-            if t.status not in ticket_summary_excluded_statuses
-        ]
+        tickets = unsettled_tickets
     else:
         tickets = all_tickets
 
