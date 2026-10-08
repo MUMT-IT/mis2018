@@ -18,6 +18,7 @@
             {% set value = values if field.field_type == 'multiselect' else ((values[0] == 'true') if field.field_type == 'boolean' and values else request.form.get(key)) %}
             <div class="field">
                 <label class="label" id="assignment-{{ assignment.id }}-field-{{ field.id }}-label" {% if field.field_type != 'select' %}for="assignment-{{ assignment.id }}-field-{{ field.id }}"{% endif %}>{{ field.label }}{% if field.required %} <span class="has-text-danger">*</span>{% endif %}</label>
+                {% if field.help_text %}<p class="help mb-2" style="border: 1px solid var(--theme-border); border-radius: 6px; padding: 0.5rem 0.75rem; font-style: italic;"><span class="icon"><i class="fas fa-info-circle" aria-hidden="true"></i></span> {{ field.help_text }}</p>{% endif %}
                 {% if field.field_type == 'textarea' %}
                 <div class="control"><textarea class="textarea" id="assignment-{{ assignment.id }}-field-{{ field.id }}" name="{{ key }}" {% if field.required %}required{% endif %}>{{ value or '' }}</textarea></div>
                 {% elif field.field_type == 'select' %}
@@ -33,8 +34,6 @@
                 {% else %}
                 <div class="control"><input class="input" id="assignment-{{ assignment.id }}-field-{{ field.id }}" type="{{ 'number' if field.field_type in ['number', 'rating'] else field.field_type }}" name="{{ key }}" value="{{ value if value is not none else '' }}" {% if field.field_type in ['number', 'rating'] and field.config and field.config.get('scorable') %}min="0" max="{{ field.config.get('max_score') }}" step="any"{% elif field.field_type == 'rating' %}min="1" max="5"{% endif %} {% if field.required %}required{% endif %}></div>
                 {% endif %}
-                {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
-                {% if field.config and field.config.get('scorable') %}<p class="help has-text-info">คะแนนดิบสูงสุด {{ field.config.get('max_score') }} · ตัวคูณน้ำหนัก {{ field.config.get('weight') }}</p>{% endif %}
             </div>
             {% endfor %}
 
