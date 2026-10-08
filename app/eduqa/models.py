@@ -302,6 +302,8 @@ class EduQASkillEvidence(db.Model):
 
 class EduQAStudentSkillEvidence(db.Model):
     __tablename__ = 'eduqa_student_skill_evidence'
+    __table_args__ = (db.UniqueConstraint(
+        'student_id', 'evidence_id', name='uq_student_skill_evidence_student_evidence'),)
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     evidence_id = db.Column(db.ForeignKey('eduqa_skill_evidence.id'), nullable=False)
     student_id = db.Column(db.ForeignKey('eduqa_students.id'), nullable=False)

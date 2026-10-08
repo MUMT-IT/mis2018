@@ -72,6 +72,7 @@ def test_bundle_save_is_atomic(fail_commit, invalid):
         def __eq__(self, _other):
             return True
     env = dict(request=request, bundle_answers=bundle_answers,
+        get_or_create_student_evidence=lambda *_: NS(id=99),
         EduQAEvaluationBundle=NS(query=Query()), _evaluation_bundle_sections=lambda _: sections(),
         EduQAStudent=NS(query=Query(), id=Column()), EduQAEnrollment=NS(course_id=Column()),
         EduQAStudentSkillEvidence=type('Evidence', (), {'query': Query(), '__new__': staticmethod(lambda cls, **kw: model(**kw))}),

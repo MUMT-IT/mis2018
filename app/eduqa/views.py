@@ -33,6 +33,7 @@ from app.dynamic_forms.models import (DynamicForm, DynamicFormAssignment,
                                       DynamicFormVersion, DynamicFormSubmission,
                                       DynamicFormAnswer)
 from app.dynamic_forms.scoring import score_is_in_range
+from app.eduqa.student_evidence import get_or_create_student_evidence
 
 from pytz import timezone
 
@@ -655,13 +656,9 @@ def add_student_skill_evidence(revision_id, skill_id, clo_id, evidence_id):
         if request.method == 'GET':
             form.student.data = selected_student
     if form.validate_on_submit():
-        student_evidence = EduQAStudentSkillEvidence(
-            evidence=evidence,
-            student=form.student.data,
-            url=form.url.data,
-            created_by=current_user,
-        )
-        db.session.add(student_evidence)
+        student_evidence = get_or_create_student_evidence(
+            evidence, form.student.data, current_user)
+        student_evidence.url = form.url.data
         db.session.commit()
         flash(u'บันทึกหลักฐานของนักศึกษาเรียบร้อย', 'success')
         return redirect(url_for('eduqa.manage_student_outcome_skill_evidence',
@@ -758,11 +755,8 @@ def fill_student_skill_evidence_form(revision_id, skill_id, clo_id, evidence_id,
     student_evidence = EduQAStudentSkillEvidence.query.filter_by(
         evidence_id=evidence.id, student_id=student.id).first()
     if student_evidence is None and request.method == 'POST':
-        student_evidence = EduQAStudentSkillEvidence(
-            evidence=evidence, student=student, created_by=current_user,
-            created_at=db.func.now())
-        db.session.add(student_evidence)
-        db.session.flush()
+        student_evidence = get_or_create_student_evidence(
+            evidence, student, current_user)
 
     if request.method == 'POST':
         missing = [field.label for field in assignment.version.fields
@@ -3746,13 +3740,8 @@ def fill_evaluation_bundle(bundle_id, student_id):
                                                    created_by_id=current_user.id)
                 db.session.add(evaluation)
                 for assignment, evidence, fields in answers:
-                    student_evidence = EduQAStudentSkillEvidence.query.filter_by(
-                        evidence_id=evidence.id, student_id=student.id).first()
-                    if student_evidence is None:
-                        student_evidence = EduQAStudentSkillEvidence(evidence=evidence, student=student,
-                                                                    created_by=current_user)
-                        db.session.add(student_evidence)
-                        db.session.flush()
+                    student_evidence = get_or_create_student_evidence(
+                        evidence, student, current_user)
                     submission = DynamicFormSubmission(version=assignment.version,
                         respondent_type='staff_account', respondent_id=current_user.id,
                         subject_type='eduqa_student_skill_evidence', subject_id=student_evidence.id,
