@@ -3,68 +3,44 @@
 {% block title %}{{ dashboard_title }} | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-  <header class="mb-4">
-    <h1 class="h3 fw-bold mb-1">{{ dashboard_title }}</h1>
-    <p class="text-muted mb-0">สรุปการหมุนเวียนเงินงบประมาณของรายการที่ยังไม่จบกระบวนการฝ่ายการเงิน</p>
-  </header>
+<section class="advance-fund-dashboard" aria-labelledby="advanceFundDashboardTitle">
+  <h1 id="advanceFundDashboardTitle" class="visually-hidden">{{ dashboard_title }}</h1>
 
-  <div class="row g-3 mb-4">
-    <div class="col-12 col-lg-6">
-      <div class="card h-100 border-secondary-subtle bg-light">
-        <div class="card-body">
-          <div class="text-muted mb-2">งบประมาณตั้งต้น</div>
-          <div class="d-flex align-items-baseline gap-2">
-            <strong class="display-6">{{ "{:,.2f}".format(amounts.initial_budget_amount|float) }}</strong>
-            <span class="text-muted">บาท</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-6">
-      <div class="card h-100 border-primary bg-primary-subtle">
-        <div class="card-body">
-          <div class="text-primary-emphasis mb-2">ยอดงบประมาณคงเหลือ</div>
-          <div class="d-flex align-items-baseline gap-2">
-            <strong class="display-6 text-primary-emphasis">{{ "{:,.2f}".format(amounts.remaining_budget_amount|float) }}</strong>
-            <span class="text-primary-emphasis">บาท</span>
-          </div>
-          <div class="small text-primary-emphasis mt-2">งบตั้งต้น − ยอดที่ให้ยืม + ยอดได้เงินแล้ว + ยอดคืนเงิน</div>
-        </div>
-      </div>
-    </div>
+  <div class="advance-fund-grid">
+    <article class="advance-fund-card advance-fund-card--initial">
+      <div class="advance-fund-card-label">งบประมาณตั้งต้น</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.initial_budget_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--lent">
+      <div class="advance-fund-card-label">ให้ยืมทั้งหมด</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_lent_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--requested">
+      <div class="advance-fund-card-label">ใบเสร็จที่จะเบิก</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_reimbursement_request_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--cash">
+      <div class="advance-fund-card-label">เงินสดที่คืน</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_cash_return_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--remaining">
+      <div class="advance-fund-card-label">ยอดงบประมาณคงเหลือ</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.remaining_budget_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--closing">
+      <div class="advance-fund-card-label">ตั้งฎีกาไปแล้ว</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_closing_document_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--received">
+      <div class="advance-fund-card-label">เงินคืนจากฎีกา</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_received_amount|float) }} บาท</div>
+    </article>
   </div>
-
-  <h2 class="h5 fw-bold mb-3">รายละเอียดการหมุนเวียน</h2>
-
-  {% set dashboard_items = [
-    ('ยอดที่ให้ยืมทั้งหมด', 'total_lent_amount'),
-    ('ยอดขอเบิกทั้งหมด', 'total_reimbursement_request_amount'),
-    ('ยอดตั้งฎีกาแล้ว', 'total_closing_document_amount'),
-    ('ยอดได้เงินแล้ว', 'total_received_amount'),
-    ('ยอดคืนเงินเหลือ/เงินโอนคืน', 'total_cash_return_amount')
-  ] %}
-
-  <div class="row g-3">
-    {% for label, key in dashboard_items %}
-    <div class="col-12 col-md-6 col-xl-4">
-      <div class="card h-100 border-0 shadow-sm">
-        <div class="card-body">
-          <div class="text-muted mb-2">{{ loop.index }}. {{ label }}</div>
-          <div class="d-flex align-items-baseline gap-2">
-            <strong class="fs-3">{{ "{:,.2f}".format(amounts[key]|float) }}</strong>
-            <span class="text-muted">บาท</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <div class="mt-4">
-    <a class="btn btn-outline-secondary" href="{{ url_for('advance_payment.finance_dashboard') }}">
-      กลับหน้าฝ่ายการเงิน
-    </a>
-  </div>
-</div>
+</section>
 {% endblock %}

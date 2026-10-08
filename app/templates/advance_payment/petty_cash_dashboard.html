@@ -1,0 +1,36 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}{{ dashboard_title }} | ระบบเงินสดย่อย{% endblock %}
+
+{% block content %}
+<section class="petty-fund-dashboard" aria-labelledby="pettyFundDashboardTitle">
+  <h1 id="pettyFundDashboardTitle" class="visually-hidden">{{ dashboard_title }}</h1>
+
+  <div class="petty-fund-grid">
+    <article class="petty-fund-card petty-fund-card--initial">
+      <div class="petty-fund-card-label">งบประมาณตั้งต้น</div>
+      <div class="petty-fund-card-amount">{{ "{:,.2f}".format(amounts.initial_budget_amount|float) }} บาท</div>
+    </article>
+
+    <article class="petty-fund-card petty-fund-card--transferred">
+      <div class="petty-fund-card-label">โอนเงินสำเร็จ</div>
+      <div class="petty-fund-card-amount">{{ "{:,.2f}".format(amounts.total_transferred_amount|float) }} บาท</div>
+    </article>
+
+    <article class="petty-fund-card petty-fund-card--closing">
+      <div class="petty-fund-card-label">ตั้งฎีกาไปแล้ว</div>
+      <div class="petty-fund-card-amount">{{ "{:,.2f}".format(amounts.total_closing_document_amount|float) }} บาท</div>
+    </article>
+
+    <article class="petty-fund-card petty-fund-card--remaining">
+      <div class="petty-fund-card-label">ยอดงบประมาณคงเหลือ</div>
+      <div class="petty-fund-card-amount">{{ "{:,.2f}".format(amounts.remaining_budget_amount|float) }} บาท</div>
+    </article>
+
+    <article class="petty-fund-card petty-fund-card--received">
+      <div class="petty-fund-card-label">เงินคืนจากฎีกา</div>
+      <div class="petty-fund-card-amount">{{ "{:,.2f}".format(amounts.total_received_from_closing_amount|float) }} บาท</div>
+    </article>
+  </div>
+</section>
+{% endblock %}
