@@ -939,6 +939,55 @@ def view_student_skill_evidence_results(revision_id, skill_id, clo_id, evidence_
                            evaluator_names=evaluator_names, back_url=back_url)
 
 
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/submissions/<int:submission_id>/delete',
+           methods=['POST'])
+@login_required
+def delete_student_skill_evidence_submission(revision_id, skill_id, clo_id,
+                                             evidence_id, student_id, submission_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    evidence = EduQASkillEvidence.query.filter_by(
+        id=evidence_id, skill_id=skill.id, clo_id=clo.id).first_or_404()
+    student = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAStudent.id == student_id,
+        EduQAEnrollment.course_id == clo.course.id).first_or_404()
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    student_evidence = EduQAStudentSkillEvidence.query.filter_by(
+        evidence_id=evidence.id, student_id=student.id).first_or_404()
+    submission = DynamicFormSubmission.query.filter_by(
+        id=submission_id, subject_type='eduqa_student_skill_evidence',
+        subject_id=student_evidence.id).first_or_404()
+    session_results = EduQAEvaluationSessionResult.query.filter_by(
+        submission_id=submission.id).all()
+    session_ids = {result.session_id for result in session_results}
+    try:
+        for result in session_results:
+            db.session.delete(result)
+        # Remove references before deleting the submission and its answers.
+        db.session.flush()
+        db.session.delete(submission)
+        student_evidence.endorsed = False
+        student_evidence.endorsed_by = None
+        student_evidence.endorsed_at = None
+        db.session.flush()
+        for session_id in session_ids:
+            if not EduQAEvaluationSessionResult.query.filter_by(session_id=session_id).first():
+                evaluation = EduQAEvaluationSession.query.get(session_id)
+                if evaluation:
+                    db.session.delete(evaluation)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    flash('ลบผลการประเมินเรียบร้อย กรุณาตรวจสอบผลที่เหลือก่อนรับรองอีกครั้ง', 'success')
+    return redirect(url_for('eduqa.view_student_skill_evidence_results',
+                            revision_id=revision.id, skill_id=skill.id, clo_id=clo.id,
+                            evidence_id=evidence.id, student_id=student.id,
+                            bundle_id=request.args.get('bundle_id', type=int)))
+
+
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/endorse',
            methods=['POST'])
 @login_required
