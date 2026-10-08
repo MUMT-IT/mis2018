@@ -17,11 +17,15 @@
             {% set values = request.form.getlist(key) %}
             {% set value = values if field.field_type == 'multiselect' else ((values[0] == 'true') if field.field_type == 'boolean' and values else request.form.get(key)) %}
             <div class="field">
-                <label class="label" for="assignment-{{ assignment.id }}-field-{{ field.id }}">{{ field.label }}{% if field.required %} <span class="has-text-danger">*</span>{% endif %}</label>
+                <label class="label" id="assignment-{{ assignment.id }}-field-{{ field.id }}-label" {% if field.field_type != 'select' %}for="assignment-{{ assignment.id }}-field-{{ field.id }}"{% endif %}>{{ field.label }}{% if field.required %} <span class="has-text-danger">*</span>{% endif %}</label>
                 {% if field.field_type == 'textarea' %}
                 <div class="control"><textarea class="textarea" id="assignment-{{ assignment.id }}-field-{{ field.id }}" name="{{ key }}" {% if field.required %}required{% endif %}>{{ value or '' }}</textarea></div>
                 {% elif field.field_type == 'select' %}
-                <div class="control"><div class="select is-fullwidth"><select id="assignment-{{ assignment.id }}-field-{{ field.id }}" name="{{ key }}" {% if field.required %}required{% endif %}><option value="">เลือกคำตอบ</option>{% for option in field.options %}<option value="{{ option.value }}" {% if value == option.value %}selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
+                <div class="control" role="radiogroup" aria-labelledby="assignment-{{ assignment.id }}-field-{{ field.id }}-label">
+                    {% for option in field.options %}
+                    <div class="mb-2"><label class="radio"><input type="radio" id="assignment-{{ assignment.id }}-field-{{ field.id }}-option-{{ loop.index }}" name="{{ key }}" value="{{ option.value }}" {% if value == option.value %}checked{% endif %} {% if field.required %}required{% endif %}> {{ option.label }}</label></div>
+                    {% endfor %}
+                </div>
                 {% elif field.field_type == 'multiselect' %}
                 <div class="control">{% for option in field.options %}<label class="checkbox mr-4"><input type="checkbox" name="{{ key }}" value="{{ option.value }}" {% if value and option.value in value %}checked{% endif %}> {{ option.label }}</label>{% endfor %}</div>
                 {% elif field.field_type == 'boolean' %}
