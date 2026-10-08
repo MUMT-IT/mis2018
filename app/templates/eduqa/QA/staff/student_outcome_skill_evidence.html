@@ -19,6 +19,9 @@
                 </div>
             </div>
             <div class="level-right">
+                <a class="button is-primary is-light mr-2" href="{{ url_for('eduqa.create_evaluation_bundle', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id) }}">
+                    <span class="icon"><i class="fas fa-layer-group"></i></span><span>สร้างชุดแบบประเมิน</span>
+                </a>
                 <a class="button is-info is-light mr-2"
                    href="{{ url_for('dynamic_forms.index', return_url=request.path) }}">
                     <span class="icon"><i class="fas fa-cog"></i></span>
@@ -37,6 +40,23 @@
             </div>
         </div>
         {% include 'messages.html' %}
+        <div class="box">
+            <h2 class="title is-5">ชุดแบบประเมินของรายวิชานี้</h2>
+            <p class="help mb-3">เปิดชุดแบบประเมินเพื่อเลือกนักศึกษาและประเมินหลายทักษะในครั้งเดียว</p>
+            {% for bundle in bundles %}
+            <div class="level mb-3">
+                <div class="level-left"><strong>{{ bundle.name }}</strong></div>
+                <div class="level-right">
+                    <a class="button is-link is-light" href="{{ url_for('eduqa.evaluation_bundle_students', bundle_id=bundle.id) }}">
+                        <span class="icon"><i class="fas fa-clipboard-list"></i></span>
+                        <span>เปิดชุดแบบประเมิน</span>
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <p class="has-text-grey">ยังไม่มีชุดแบบประเมินสำหรับรายวิชานี้ ใช้ปุ่ม “สร้างชุดแบบประเมิน” ด้านบนเพื่อเริ่มต้น</p>
+            {% endfor %}
+        </div>
 
         <div class="notification is-info is-light">
             <p class="heading">หลักฐานทั้งหมด</p>

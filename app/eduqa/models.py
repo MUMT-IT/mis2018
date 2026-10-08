@@ -5,6 +5,7 @@ from wtforms.fields import RadioField
 
 from app.main import db
 from app.staff.models import StaffAccount
+from app.dynamic_forms.models import DynamicFormAssignment, DynamicFormSubmission
 from pytz import timezone
 
 bangkok = timezone('Asia/Bangkok')
@@ -818,3 +819,41 @@ class EduQAInstructorEvaluationResult(db.Model):
 
     def __str__(self):
         return self.choice
+
+
+class EduQAEvaluationBundle(db.Model):
+    __tablename__ = 'eduqa_evaluation_bundles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    course_id = db.Column(db.ForeignKey('eduqa_courses.id'), nullable=False)
+    created_by_id = db.Column(db.ForeignKey('staff_account.id'), nullable=False)
+    course = db.relationship('EduQACourse')
+    items = db.relationship('EduQAEvaluationBundleItem', backref='bundle',
+                            cascade='all, delete-orphan', order_by='EduQAEvaluationBundleItem.id')
+
+
+class EduQAEvaluationBundleItem(db.Model):
+    __tablename__ = 'eduqa_evaluation_bundle_items'
+    id = db.Column(db.Integer, primary_key=True)
+    bundle_id = db.Column(db.ForeignKey('eduqa_evaluation_bundles.id'), nullable=False)
+    assignment_id = db.Column(db.ForeignKey('dynamic_form_assignments.id'), nullable=False)
+    assignment = db.relationship(DynamicFormAssignment)
+    __table_args__ = (db.UniqueConstraint('bundle_id', 'assignment_id'),)
+
+
+class EduQAEvaluationSession(db.Model):
+    __tablename__ = 'eduqa_evaluation_sessions'
+    id = db.Column(db.Integer, primary_key=True)
+    bundle_id = db.Column(db.ForeignKey('eduqa_evaluation_bundles.id'), nullable=False)
+    student_id = db.Column(db.ForeignKey('eduqa_students.id'), nullable=False)
+    created_by_id = db.Column(db.ForeignKey('staff_account.id'), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), nullable=False)
+    results = db.relationship('EduQAEvaluationSessionResult', cascade='all, delete-orphan')
+
+
+class EduQAEvaluationSessionResult(db.Model):
+    __tablename__ = 'eduqa_evaluation_session_results'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.ForeignKey('eduqa_evaluation_sessions.id'), nullable=False)
+    submission_id = db.Column(db.ForeignKey('dynamic_form_submissions.id'), nullable=False)
+    submission = db.relationship(DynamicFormSubmission)

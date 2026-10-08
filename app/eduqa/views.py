@@ -9,7 +9,7 @@ import json
 
 import arrow
 from psycopg2.extras import DateTimeRange
-from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response, send_file
+from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response, send_file, abort
 from flask_login import current_user, login_required
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
@@ -919,11 +919,24 @@ def view_student_skill_evidence_results(revision_id, skill_id, clo_id, evidence_
                 )
                 for evaluator in evaluators
             }
+    related_bundles = EduQAEvaluationBundle.query.filter_by(course_id=clo.course_id).order_by(
+        EduQAEvaluationBundle.id.desc()).all()
+    related_bundles = [bundle for bundle in related_bundles if any(
+        item.assignment.subject_type == 'eduqa_skill_evidence'
+        and item.assignment.subject_id == evidence.id for item in bundle.items)]
+    requested_bundle_id = request.args.get('bundle_id', type=int)
+    return_bundle = next((bundle for bundle in related_bundles
+                          if bundle.id == requested_bundle_id), None)
+    if return_bundle is None and related_bundles:
+        return_bundle = related_bundles[0]
+    back_url = (url_for('eduqa.evaluation_bundle_students', bundle_id=return_bundle.id)
+                if return_bundle else url_for('eduqa.manage_student_outcome_skill_evidence',
+                    revision_id=revision.id, skill_id=skill.id, clo_id=clo.id))
     return render_template('eduqa/QA/staff/student_outcome_skill_evidence_results.html',
                            revision=revision, skill=skill, clo=clo, evidence=evidence,
                            student=student, student_evidence=student_evidence,
                            submissions=submissions,
-                           evaluator_names=evaluator_names)
+                           evaluator_names=evaluator_names, back_url=back_url)
 
 
 @edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/evidence/<int:evidence_id>/students/<int:student_id>/endorse',
@@ -979,9 +992,11 @@ def manage_student_outcome_skill_evidence(revision_id, skill_id, clo_id):
     available_form_versions = DynamicFormVersion.query.join(DynamicForm).filter(
         DynamicForm.status != 'Archived').order_by(
         DynamicForm.name.asc(), DynamicFormVersion.version.desc()).all()
+    bundles = EduQAEvaluationBundle.query.filter_by(course_id=clo.course_id).order_by(
+        EduQAEvaluationBundle.id.desc()).all()
     return render_template('eduqa/QA/staff/student_outcome_skill_evidence.html',
                            revision=revision, skill=skill, clo=clo, evidence=evidence,
-                           assignments_by_evidence=assignments_by_evidence,
+                           assignments_by_evidence=assignments_by_evidence, bundles=bundles,
                            assignment_form=assignment_form,
                            available_form_versions=available_form_versions)
 
@@ -3572,3 +3587,119 @@ def withdraw_enrollment(course_id, student_id):
     else:
         resp = make_response()
         return resp, 400
+
+
+# Bundles group existing evidence assignments; submissions retain their skill links.
+from app.eduqa.models import (EduQAEvaluationBundle, EduQAEvaluationBundleItem,
+                             EduQAEvaluationSession, EduQAEvaluationSessionResult)
+from app.eduqa.evaluation_bundles import bundle_answers
+
+
+def _evaluation_bundle_sections(bundle):
+    sections = []
+    for item in bundle.items:
+        assignment = item.assignment
+        if assignment.subject_type != 'eduqa_skill_evidence':
+            abort(404)
+        evidence = EduQASkillEvidence.query.get_or_404(assignment.subject_id)
+        if (evidence.clo.course_id != bundle.course_id
+                or evidence.skill.revision_id != bundle.course.revision_id
+                or evidence.clo not in evidence.skill.clos):
+            abort(404)
+        sections.append((assignment, evidence))
+    if len(sections) < 2:
+        abort(404)
+    return sections
+
+
+@edu.route('/qa/student-outcome-monitoring/revisions/<int:revision_id>/skills/<int:skill_id>/clos/<int:clo_id>/bundles/add', methods=['GET', 'POST'])
+@login_required
+def create_evaluation_bundle(revision_id, skill_id, clo_id):
+    revision = EduQACurriculumnRevision.query.get_or_404(revision_id)
+    skill = EduQASkill.query.filter_by(id=skill_id, revision_id=revision.id).first_or_404()
+    clo = EduQACourseLearningOutcome.query.get_or_404(clo_id)
+    if clo not in skill.clos or clo.course.revision_id != revision.id:
+        abort(404)
+    evidence = EduQASkillEvidence.query.join(EduQACourseLearningOutcome).filter(
+        EduQACourseLearningOutcome.course_id == clo.course_id).all()
+    evidence_by_id = {e.id: e for e in evidence
+                      if e.skill.revision_id == revision.id and e.clo in e.skill.clos}
+    assignments = DynamicFormAssignment.query.filter_by(subject_type='eduqa_skill_evidence').filter(
+        DynamicFormAssignment.subject_id.in_(list(evidence_by_id))).all()
+    selected = set(request.form.getlist('assignments'))
+    if request.method == 'POST':
+        chosen = [a for a in assignments if str(a.id) in selected]
+        name = request.form.get('name', '').strip()
+        chosen_evidence = [evidence_by_id[a.subject_id] for a in chosen]
+        valid = (name and len(name) <= 255 and len(chosen) == len(selected)
+                 and len(chosen) >= 2
+                 and len({e.skill_id for e in chosen_evidence}) == len(chosen)
+                 and any(e.skill_id == skill.id and e.clo_id == clo.id for e in chosen_evidence))
+        if not valid:
+            flash('กรุณาระบุชื่อและเลือกแบบประเมินอย่างน้อย 2 ทักษะ โดยมีทักษะปัจจุบันและเลือกหนึ่งแบบต่อทักษะ', 'warning')
+        else:
+            bundle = EduQAEvaluationBundle(name=name, course_id=clo.course_id, created_by_id=current_user.id)
+            bundle.items = [EduQAEvaluationBundleItem(assignment=a) for a in chosen]
+            db.session.add(bundle)
+            db.session.commit()
+            return redirect(url_for('eduqa.evaluation_bundle_students', bundle_id=bundle.id))
+    return render_template('eduqa/QA/staff/evaluation_bundle_create.html', revision=revision,
+                           skill=skill, clo=clo, assignments=assignments,
+                           evidence_by_id=evidence_by_id, selected=selected)
+
+
+@edu.route('/qa/student-outcome-monitoring/bundles/<int:bundle_id>/students')
+@login_required
+def evaluation_bundle_students(bundle_id):
+    bundle = EduQAEvaluationBundle.query.get_or_404(bundle_id)
+    sections = _evaluation_bundle_sections(bundle)
+    students = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAEnrollment.course_id == bundle.course_id).distinct().order_by(EduQAStudent.student_id).all()
+    sessions = EduQAEvaluationSession.query.filter_by(bundle_id=bundle.id).order_by(
+        EduQAEvaluationSession.created_at.desc(), EduQAEvaluationSession.id.desc()).all()
+    latest = {}
+    for evaluation in sessions:
+        latest.setdefault(evaluation.student_id, evaluation)
+    return render_template('eduqa/QA/staff/evaluation_bundle_students.html',
+                           bundle=bundle, sections=sections, students=students, latest=latest)
+
+
+@edu.route('/qa/student-outcome-monitoring/bundles/<int:bundle_id>/students/<int:student_id>', methods=['GET', 'POST'])
+@login_required
+def fill_evaluation_bundle(bundle_id, student_id):
+    bundle = EduQAEvaluationBundle.query.get_or_404(bundle_id)
+    sections = _evaluation_bundle_sections(bundle)
+    student = EduQAStudent.query.join(EduQAEnrollment).filter(
+        EduQAStudent.id == student_id, EduQAEnrollment.course_id == bundle.course_id).first_or_404()
+    if request.method == 'POST':
+        answers, errors = bundle_answers(sections, request.form)
+        if errors:
+            for error in errors:
+                flash(error, 'warning')
+        else:
+            try:
+                evaluation = EduQAEvaluationSession(bundle_id=bundle.id, student_id=student.id,
+                                                   created_by_id=current_user.id)
+                db.session.add(evaluation)
+                for assignment, evidence, fields in answers:
+                    student_evidence = EduQAStudentSkillEvidence.query.filter_by(
+                        evidence_id=evidence.id, student_id=student.id).first()
+                    if student_evidence is None:
+                        student_evidence = EduQAStudentSkillEvidence(evidence=evidence, student=student,
+                                                                    created_by=current_user)
+                        db.session.add(student_evidence)
+                        db.session.flush()
+                    submission = DynamicFormSubmission(version=assignment.version,
+                        respondent_type='staff_account', respondent_id=current_user.id,
+                        subject_type='eduqa_student_skill_evidence', subject_id=student_evidence.id,
+                        status='Submitted', submitted_at=db.func.now())
+                    submission.answers = [DynamicFormAnswer(field=field, value=value) for field, value in fields]
+                    evaluation.results.append(EduQAEvaluationSessionResult(submission=submission))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                raise
+            flash('บันทึกผลประเมินทุกทักษะเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.evaluation_bundle_students', bundle_id=bundle.id))
+    return render_template('eduqa/QA/staff/evaluation_bundle_fill.html',
+                           bundle=bundle, sections=sections, student=student)

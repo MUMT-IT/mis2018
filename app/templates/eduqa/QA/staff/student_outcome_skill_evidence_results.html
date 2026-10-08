@@ -10,7 +10,7 @@
                 <p class="subtitle">ผลการประเมินของ {{ student.student_id }} — {{ student.th_name }}</p>
             </div></div>
             <div class="level-right">
-                <a class="button is-light" href="{{ url_for('eduqa.manage_student_outcome_skill_evidence', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id) }}">
+                <a class="button is-light" href="{{ back_url }}">
                     <span class="icon"><i class="fas fa-arrow-left"></i></span><span>ย้อนกลับ</span>
                 </a>
             </div>
@@ -35,12 +35,11 @@
                     <p class="is-size-7 has-text-grey">
                         เวอร์ชัน {{ submission.version.version }}
                         · ผู้ประเมิน: {{ evaluator_names.get(submission.respondent_id, 'ไม่พบข้อมูลผู้ประเมิน') if submission.respondent_type == 'staff_account' else submission.respondent_type ~ ' #' ~ submission.respondent_id }}
-                        · วันที่และเวลา: {{ submission.submitted_at|localdatetime if submission.submitted_at else 'ไม่ระบุ' }}
+                        · วันที่และเวลา: <span class="tag is-success is-light">{{ submission.submitted_at|localdatetime if submission.submitted_at else 'ไม่ระบุ' }}</span>
                     </p>
                 </div></div>
                 <div class="level-right">
                     <div class="buttons">
-                        <span class="tag is-success is-light"><span class="icon"><i class="fas fa-check-circle"></i></span><span>บันทึกแล้ว</span></span>
                         <a class="button is-small is-info is-light" href="{{ url_for('eduqa.edit_student_skill_evidence_submission', revision_id=revision.id, skill_id=skill.id, clo_id=clo.id, evidence_id=evidence.id, student_id=student.id, submission_id=submission.id) }}">
                             <span class="icon"><i class="fas fa-edit"></i></span><span>แก้ไข</span>
                         </a>

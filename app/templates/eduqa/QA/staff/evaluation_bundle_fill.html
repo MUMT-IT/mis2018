@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% include 'eduqa/QA/nav.html' %}
+{% block page_content %}
+<section class="section"><div class="container">
+<h1 class="title">{{ bundle.name }}</h1>
+<p class="subtitle">{{ student.student_id }} — {{ student.th_name }}</p>
+{% include 'messages.html' %}
+<form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% for assignment, evidence in sections %}
+<section class="box">
+<h2 class="title is-5">{{ evidence.skill.code }} · {{ evidence.skill.name }}</h2>
+<p class="subtitle is-6">{{ evidence.title }} — {{ assignment.version.form.name }} · v{{ assignment.version.version }}</p>
+{% if assignment.version.form.description %}<p class="mb-4">{{ assignment.version.form.description }}</p>{% endif %}
+            {% for field in assignment.version.fields %}
+            {% set key = 'assignment_' ~ assignment.id ~ '_field_' ~ field.id %}
+            {% set values = request.form.getlist(key) %}
+            {% set value = values if field.field_type == 'multiselect' else ((values[0] == 'true') if field.field_type == 'boolean' and values else request.form.get(key)) %}
+            <div class="field">
+                <label class="label" for="assignment-{{ assignment.id }}-field-{{ field.id }}">{{ field.label }}{% if field.required %} <span class="has-text-danger">*</span>{% endif %}</label>
+                {% if field.field_type == 'textarea' %}
+                <div class="control"><textarea class="textarea" id="assignment-{{ assignment.id }}-field-{{ field.id }}" name="{{ key }}" {% if field.required %}required{% endif %}>{{ value or '' }}</textarea></div>
+                {% elif field.field_type == 'select' %}
+                <div class="control"><div class="select is-fullwidth"><select id="assignment-{{ assignment.id }}-field-{{ field.id }}" name="{{ key }}" {% if field.required %}required{% endif %}><option value="">เลือกคำตอบ</option>{% for option in field.options %}<option value="{{ option.value }}" {% if value == option.value %}selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
+                {% elif field.field_type == 'multiselect' %}
+                <div class="control">{% for option in field.options %}<label class="checkbox mr-4"><input type="checkbox" name="{{ key }}" value="{{ option.value }}" {% if value and option.value in value %}checked{% endif %}> {{ option.label }}</label>{% endfor %}</div>
+                {% elif field.field_type == 'boolean' %}
+                <div class="control"><label class="radio mr-4"><input type="radio" name="{{ key }}" value="true" {% if value is sameas true %}checked{% endif %} {% if field.required %}required{% endif %}> ใช่</label><label class="radio"><input type="radio" name="{{ key }}" value="false" {% if value is sameas false %}checked{% endif %}> ไม่ใช่</label></div>
+                {% else %}
+                <div class="control"><input class="input" id="assignment-{{ assignment.id }}-field-{{ field.id }}" type="{{ 'number' if field.field_type in ['number', 'rating'] else field.field_type }}" name="{{ key }}" value="{{ value if value is not none else '' }}" {% if field.field_type in ['number', 'rating'] and field.config and field.config.get('scorable') %}min="0" max="{{ field.config.get('max_score') }}" step="any"{% elif field.field_type == 'rating' %}min="1" max="5"{% endif %} {% if field.required %}required{% endif %}></div>
+                {% endif %}
+                {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                {% if field.config and field.config.get('scorable') %}<p class="help has-text-info">คะแนนดิบสูงสุด {{ field.config.get('max_score') }} · ตัวคูณน้ำหนัก {{ field.config.get('weight') }}</p>{% endif %}
+            </div>
+            {% endfor %}
+
+</section>{% endfor %}
+<button class="button is-success" type="submit">บันทึกผลประเมินทุกทักษะ</button>
+<a class="button is-light" href="{{ url_for('eduqa.evaluation_bundle_students', bundle_id=bundle.id) }}">ย้อนกลับ</a>
+</form></div></section>
+{% endblock %}
