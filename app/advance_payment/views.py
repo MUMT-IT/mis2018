@@ -10781,6 +10781,15 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
                 existing_draft_query = existing_draft_query.filter(
                     PettyCashClaimDetail.fund_request_id == fund_request_id
                 )
+            if not cash_mng_finance_open:
+                existing_draft_query = existing_draft_query.filter(
+                    PettyCashClaimDetail.items.any(
+                        PettyCashClaimItem.category_type == 6
+                    ),
+                    ~PettyCashClaimDetail.items.any(
+                        PettyCashClaimItem.category_type != 6
+                    )
+                )
             existing_draft = existing_draft_query.first()
 
         if not is_draft and fund_request_id:
@@ -11079,6 +11088,15 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             )
         if selected_fund_request:
             claim_query = claim_query.filter(PettyCashClaimDetail.fund_request_id == selected_fund_request.id)
+        if not cash_mng_finance_open:
+            claim_query = claim_query.filter(
+                PettyCashClaimDetail.items.any(
+                    PettyCashClaimItem.category_type == 6
+                ),
+                ~PettyCashClaimDetail.items.any(
+                    PettyCashClaimItem.category_type != 6
+                )
+            )
         claim_detail = claim_query.first()
     _attach_petty_cash_claim_context(claim_detail)
 

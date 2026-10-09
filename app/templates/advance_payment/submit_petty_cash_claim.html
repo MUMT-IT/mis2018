@@ -303,7 +303,7 @@
       <input type="hidden" name="edit_claim_id" value="{{ claim_detail.id }}">
       <div class="alert alert-warning py-2">
         <i class="bi bi-pencil-square me-1"></i>
-        กำลังแก้ไขใบเบิก {{ claim_detail.id }} หลังบันทึกแล้วกรุณายืนยันการแก้ไขอีกครั้ง
+        กำลังแก้ไขข้อมูลใบเบิก หลังบันทึกแล้วกรุณายืนยันการแก้ไขอีกครั้ง
       </div>
       {% endif %}
       <input type="hidden"
@@ -316,7 +316,7 @@
         <i class="bi bi-lock-fill me-2 mt-1"></i>
         <div>
           <strong>ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</strong>
-          <div class="small">ยังสามารถส่งได้เฉพาะรายการเงินเหลือส่งใช้เงินยืมเท่านั้น</div>
+          <div class="small">ยังสามารถส่งได้เฉพาะรายการเงินโอนคืนบัญชีเงินสดย่อยเท่านั้น</div>
         </div>
       </div>
       {% endif %}
@@ -353,6 +353,7 @@
         </h3>
         <div id="claimSectionCollapse" class="collapse{% if cash_mng_finance_open %} show{% endif %}" aria-labelledby="claimSectionHeading">
         <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
+        {% if cash_mng_finance_open %}
         <div class="pt-2">
         <section class="mt-3" aria-labelledby="referenceInfoHeading">
         <h4 class="h6 fw-semibold text-dark mb-2" id="referenceInfoHeading"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h4>
@@ -559,6 +560,7 @@
       </div>
       </section>
       </div>
+      {% endif %}
       </fieldset>
       </div>
       </div>
@@ -692,7 +694,7 @@
                   type="button" data-bs-toggle="collapse" data-bs-target="#claimCashReturnCollapse"
                   aria-expanded="{{ 'true' if cash_return_item else 'false' }}" aria-controls="claimCashReturnCollapse">
             <i class="bi bi-cash-coin me-2 text-primary"></i>
-            เงินเหลือส่งใช้เงินยืม
+            เงินโอนคืนบัญชีเงินสดย่อย
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
         </h3>
@@ -1136,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', function() {
           event.preventDefault();
           window.openAppPopup({
             title: "ไม่สามารถส่งรายการได้",
-            message: "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง กรุณากรอกข้อมูลเงินเหลือส่งใช้เงินยืมให้ครบถ้วน",
+            message: "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง",
             confirmText: "ตกลง",
             confirmClass: "btn-warning",
             alertOnly: true,
