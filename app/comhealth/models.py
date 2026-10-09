@@ -500,13 +500,26 @@ class ComHealthReceiptID(db.Model):
         return u'{:06}'.format(self.count + 1)
 
     @classmethod
-    def get_number(cls, code, db, date = arrow.now('Asia/Bangkok').date()):
+    def get_number(cls, code, db, date=None):
+        if date is None:
+            date = arrow.now('Asia/Bangkok').date()
         fiscal_year = convert_to_fiscal_year(date)
+        # Serialize allocation, including the first receipt of a fiscal year.
+        db.session.execute(text('SELECT pg_advisory_xact_lock(hashtext(:key))'),
+                           {'key': 'comhealth_receipt:{}:{}'.format(code, fiscal_year)})
         number = cls.query.filter_by(code=code, buddhist_year=fiscal_year + 543).first()
         if not number:
             number = cls(buddhist_year=fiscal_year+543, code=code, count=0)
             db.session.add(number)
-            db.session.commit()
+            db.session.flush()
+        # Older issuance incremented count before reading number (count + 1).
+        # Keep existing receipt numbers and advance past the highest issued one.
+        prefix = '{}{}'.format(code, str(fiscal_year + 543)[-2:])
+        latest = ComHealthReceipt.query.filter(
+            ComHealthReceipt.code.op('~')('^' + prefix + '[0-9]{6}$')
+        ).order_by(ComHealthReceipt.code.desc()).first()
+        if latest:
+            number.count = max(number.count, int(latest.code[len(prefix):]))
         return number
 
     @property
@@ -759,3 +772,32 @@ class ComHealthEducationVideo(db.Model):
 
     def set_keywords_from_csv(self, value):
         self.keywords_list = value
+
+
+class ComHealthResultEmailNotification(db.Model):
+    """Audit trail for health-result emails manually sent by approval staff."""
+
+    __tablename__ = 'comhealth_result_email_notifications'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    service_no = db.Column(db.String(32), nullable=False, index=True)
+    recipient_email = db.Column(db.String(255), nullable=False)
+    approval_status = db.Column(db.String(16), nullable=False)
+    email_type = db.Column(db.String(32), nullable=False)
+    template_name = db.Column(db.String(255), nullable=False)
+    delivery_status = db.Column(db.String(16), nullable=False, index=True)
+    sent_at = db.Column(db.DateTime(timezone=True), index=True)
+    sent_by_staff_id = db.Column(db.Integer)
+    sent_by_fullname = db.Column(db.String(255))
+    error_message = db.Column(db.Text)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        db.Index(
+            'ix_comhealth_result_email_notifications_service_delivery_sent',
+            'service_no', 'delivery_status', 'sent_at',
+        ),
+    )
+
+    def __repr__(self):
+        return f'<ComHealthResultEmailNotification {self.service_no!r}>'

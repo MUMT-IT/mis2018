@@ -12,6 +12,7 @@ import time
 import zipfile
 from functools import lru_cache
 from collections import OrderedDict, defaultdict
+from datetime import datetime
 from io import BytesIO
 from urllib.parse import urljoin
 
@@ -46,8 +47,8 @@ from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 
-from app.main import mail
-from app.roles import admin_permission, approve_lab_permission
+from app.main import mail, db
+from app.roles import admin_permission, approve_lab_permission, comhealth_admin_permission
 from .concern_engine import build_health_risk_report
 from .health_risk_copy import get_health_risk_copy
 from .health_risk_summary import build_health_risk_summary
@@ -218,8 +219,176 @@ def _require_online_results_access():
 def _inject_comhealth_admin_flags():
     return {
         'comhealth_admin_tools_visible': current_user.is_authenticated and admin_permission.can(),
+        'comhealth_admin_menu_visible': current_user.is_authenticated and comhealth_admin_permission.can(),
         'comhealth_approve_lab_visible': current_user.is_authenticated and approve_lab_permission.can(),
     }
+
+
+@comhealth.route('/admin')
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def admin_menu():
+    return render_template('comhealth/admin/comhealth_admin_menu.html')
+
+
+@comhealth.route('/admin/customers')
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def edit_del_comhealth_customer():
+    organizations = ComHealthOrg.query.order_by(ComHealthOrg.name, ComHealthOrg.id).all()
+    return render_template('comhealth/admin/edit_del_comhealth_customer.html', locations=[{
+        'id': org.id, 'location': org.name or '',
+        'url': url_for('comhealth.admin_customers', org_id=org.id),
+    } for org in organizations])
+
+
+@comhealth.route('/admin/organizations/<int:org_id>/customers', methods=['GET', 'POST'])
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def admin_customers(org_id):
+    ComHealthOrg.query.get_or_404(org_id)
+    members = ComHealthCustomer.org_id == org_id
+    never_checked_in = ~ComHealthCustomer.records.any(ComHealthRecord.checkin_datetime.isnot(None))
+    if request.method == 'GET':
+        customers = ComHealthCustomer.query.filter(members, never_checked_in).order_by(ComHealthCustomer.id).all()
+        return jsonify([{'id': c.id, 'hn': c.hn, 'title': c.title or '',
+                         'firstname': c.firstname or '', 'lastname': c.lastname or ''} for c in customers])
+
+    data = request.get_json(silent=True) or {}
+    action = data.get('action')
+    ids = data.get('ids')
+    if action not in ('edit', 'delete') or not isinstance(ids, list) or not ids or any(type(i) is not int for i in ids):
+        return jsonify({'message': 'คำขอไม่ถูกต้อง'}), 400
+    ids = sorted(set(ids))
+    if action == 'delete' and len(ids) > 20:
+        return jsonify({'message': 'ลบได้ครั้งละไม่เกิน 20 คนต่อคำขอ กรุณาลบผ่านหน้าจัดการผู้รับบริการ'}), 400
+    if action == 'edit' and len(ids) != 1:
+        return jsonify({'message': 'กรุณาเลือกผู้รับบริการหนึ่งคน'}), 400
+    try:
+        customers = ComHealthCustomer.query.filter(members, ComHealthCustomer.id.in_(ids)).order_by(
+            ComHealthCustomer.id).with_for_update().all()
+        if len(customers) != len(ids):
+            db.session.rollback()
+            return jsonify({'message': 'ข้อมูลผู้รับบริการเปลี่ยนแปลง กรุณาเลือก Location ใหม่'}), 409
+        # Check every visit, including visits at other locations, while holding row locks.
+        records = ComHealthRecord.query.filter(ComHealthRecord.customer_id.in_(ids)).order_by(
+            ComHealthRecord.id).with_for_update().all()
+        if any(record.checkin_datetime is not None for record in records):
+            db.session.rollback()
+            return jsonify({'message': 'ไม่สามารถดำเนินการได้ มีผู้รับบริการที่มีประวัติ Checked In กรุณาเลือก Location ใหม่'}), 409
+        if action == 'edit':
+            values = {}
+            for field, limit in [('title', 32), ('firstname', 255), ('lastname', 255)]:
+                value = data.get(field, '')
+                if not isinstance(value, str) or len(value.strip()) > limit or (field != 'title' and not value.strip()):
+                    db.session.rollback()
+                    return jsonify({'message': 'กรุณาระบุชื่อและนามสกุล และตรวจสอบความยาวข้อมูล'}), 400
+                values[field] = value.strip()
+            for field, value in values.items():
+                setattr(customers[0], field, value)
+            db.session.commit()
+            return jsonify(dict(values, id=customers[0].id, message='บันทึกข้อมูลเรียบร้อยแล้ว'))
+        for customer in customers:
+            db.session.delete(customer)
+        db.session.commit()
+        return jsonify({'ids': ids, 'message': 'ลบผู้รับบริการ {} คนเรียบร้อยแล้ว'.format(len(ids))})
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Unable to manage ComHealth customers for organization %s', org_id)
+        return jsonify({'message': 'ไม่สามารถดำเนินการได้ กรุณาลองใหม่อีกครั้ง'}), 500
+
+
+@comhealth.route('/admin/schedules')
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def edit_comhealth_schedule():
+    counts = db.session.query(
+        ComHealthRecord.service_id,
+        func.count(ComHealthRecord.id).label('registered')
+    ).group_by(ComHealthRecord.service_id).subquery()
+    rows = db.session.query(
+        ComHealthService,
+        func.coalesce(counts.c.registered, 0)
+    ).outerjoin(counts, counts.c.service_id == ComHealthService.id).filter(
+        ~ComHealthService.records.any(ComHealthRecord.checkin_datetime.isnot(None))
+    ).order_by(
+        ComHealthService.date.desc().nullslast(), ComHealthService.id.desc()
+    ).all()
+    services = [{
+        'id': service.id,
+        'date': service.date.isoformat() if service.date else None,
+        'location': service.location,
+        'registered': registered,
+        'edit_url': url_for('comhealth.update_comhealth_schedule', service_id=service.id),
+        'location_url': url_for('comhealth.update_comhealth_schedule_location', service_id=service.id),
+        'delete_url': url_for('comhealth.delete_comhealth_schedule', service_id=service.id),
+    } for service, registered in rows]
+    return render_template('comhealth/admin/edit_del_comhealth_schedule.html', services=services)
+
+
+@comhealth.route('/admin/schedules/<int:service_id>/date', methods=['POST'])
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def update_comhealth_schedule(service_id):
+    service = ComHealthService.query.filter_by(id=service_id).with_for_update().first_or_404()
+    value = request.form.get('date', '')
+    try:
+        if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', value):
+            raise ValueError
+        new_date = dt_module.date.fromisoformat(value)
+    except ValueError:
+        db.session.rollback()
+        return jsonify({'message': 'กรุณาระบุวันที่ให้ถูกต้อง'}), 400
+    records = ComHealthRecord.query.filter_by(service_id=service.id).with_for_update().all()
+    if any(record.checkin_datetime is not None for record in records):
+        db.session.rollback()
+        return jsonify({
+            'message': 'ไม่สามารถแก้ไขวันออกตรวจได้ เนื่องจากมีผู้รับบริการ Checked In แล้ว',
+            'checked_in': True,
+        }), 409
+    service.date = new_date
+    db.session.commit()
+    return jsonify({'id': service.id, 'date': new_date.isoformat()})
+
+
+@comhealth.route('/admin/schedules/<int:service_id>/location', methods=['POST'])
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def update_comhealth_schedule_location(service_id):
+    location = request.form.get('location', '').strip()
+    if not location or len(location) > 255:
+        return jsonify({'message': 'กรุณาระบุชื่อ Location ไม่เกิน 255 ตัวอักษร'}), 400
+    service = ComHealthService.query.filter_by(id=service_id).with_for_update().first_or_404()
+    records = ComHealthRecord.query.filter_by(service_id=service.id).with_for_update().all()
+    if any(record.checkin_datetime is not None for record in records):
+        db.session.rollback()
+        return jsonify({'message': 'ไม่สามารถแก้ไข Location ได้ เนื่องจากมีผู้รับบริการ Checked In แล้ว',
+                        'checked_in': True}), 409
+    service.location = location
+    db.session.commit()
+    return jsonify({'id': service.id, 'location': service.location})
+
+
+@comhealth.route('/admin/schedules/<int:service_id>/delete', methods=['POST'])
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def delete_comhealth_schedule(service_id):
+    service = ComHealthService.query.filter_by(id=service_id).with_for_update().first_or_404()
+    try:
+        records = ComHealthRecord.query.filter_by(service_id=service.id).with_for_update().all()
+        if any(record.checkin_datetime is not None for record in records):
+            db.session.rollback()
+            return jsonify({
+                'message': 'ไม่สามารถลบวันออกตรวจได้ เนื่องจากมีผู้รับบริการ Checked In แล้ว',
+                'checked_in': True,
+            }), 409
+        db.session.delete(service)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Unable to delete ComHealth schedule %s', service_id)
+        return jsonify({'message': 'ไม่สามารถลบวันออกตรวจได้ กรุณาลองใหม่อีกครั้ง'}), 500
+    return jsonify({'id': service_id, 'message': 'ลบวันออกตรวจเรียบร้อยแล้ว'})
 
 
 def _health_education_video_lookup(youtube_video_id):
@@ -611,10 +780,71 @@ def services_by_service_prefix_customer_api():
         '/Services/by-service-prefix-customer',
         params={'serviceNoPrefix': service_no_prefix, 'custId': cust_id},
     )
+    if not response.ok:
+        return (
+            response.content,
+            response.status_code,
+            {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+        )
+
+    try:
+        payload = response.json()
+    except ValueError:
+        return (
+            response.content,
+            response.status_code,
+            {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+        )
+
+    if isinstance(payload, list):
+        rows = payload
+        rows_key = None
+    elif isinstance(payload, dict):
+        rows_key = next((key for key in ('data', 'items', 'results', 'services')
+                         if isinstance(payload.get(key), list)), None)
+        rows = payload.get(rows_key, []) if rows_key else []
+    else:
+        rows = []
+        rows_key = None
+
+    service_numbers = {
+        str(row.get('serviceNo') or row.get('serviceno') or row.get('service_no') or '')
+        for row in rows if isinstance(row, dict)
+    }
+    service_numbers.discard('')
+    latest_notifications = {}
+    if service_numbers:
+        notifications = ComHealthResultEmailNotification.query.filter(
+            ComHealthResultEmailNotification.service_no.in_(service_numbers),
+            ComHealthResultEmailNotification.delivery_status == 'sent',
+        ).order_by(
+            ComHealthResultEmailNotification.service_no,
+            ComHealthResultEmailNotification.sent_at.desc(),
+            ComHealthResultEmailNotification.id.desc(),
+        ).all()
+        for notification in notifications:
+            latest_notifications.setdefault(notification.service_no, notification)
+
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        service_no = str(row.get('serviceNo') or row.get('serviceno') or row.get('service_no') or '')
+        notification = latest_notifications.get(service_no)
+        row['lastEmailStatus'] = notification.approval_status if notification else None
+        row['lastEmailSentBy'] = notification.sent_by_fullname if notification else None
+        row['lastEmailSentAt'] = notification.sent_at.isoformat() if notification and notification.sent_at else None
+
+    if isinstance(payload, list):
+        enriched_payload = rows
+    elif rows_key:
+        payload[rows_key] = rows
+        enriched_payload = payload
+    else:
+        enriched_payload = payload
     return (
-        response.content,
+        json.dumps(enriched_payload, ensure_ascii=False, default=str),
         response.status_code,
-        {'Content-Type': response.headers.get('Content-Type', 'application/json')},
+        {'Content-Type': 'application/json'},
     )
 
 
@@ -719,6 +949,11 @@ def _save_service_section_approval(api_path):
         'isApproved': is_approved,
         'approvedBy': str(current_user.fullname or '')[:50],
     }
+    if 'approvedStatus' in payload:
+        approved_status = payload.get('approvedStatus')
+        if approved_status not in (None, 'some', 'complete'):
+            return {'error': 'approvedStatus must be null, some, or complete'}, 400
+        approval_payload['approvedStatus'] = approved_status
     response = _online_results_api_request(
         'POST',
         f'{api_path}/{service_no}',
@@ -743,7 +978,7 @@ def save_xray_approval_api():
     return _save_service_section_approval('/XRays/approval')
 
 
-def _send_health_result_email(customer_email, service_no, service_date, customer_age=''):
+def _send_health_result_email(customer_email, service_no, service_date, customer_age='', approved_status='complete'):
     customer_email = str(customer_email or '').strip().lower()
     service_no = str(service_no or '').strip()
     service_date = str(service_date or '').strip()
@@ -767,20 +1002,40 @@ def _send_health_result_email(customer_email, service_no, service_date, customer
             token=token,
             _external=True,
         )
-        title = 'ผลตรวจสุขภาพออนไลน์พร้อมดูแล้ว / Online health results available'
+        is_complete = str(approved_status or '').strip().lower() == 'complete'
+        title = (
+            'ผลตรวจสุขภาพออนไลน์พร้อมดูแล้ว / Online health results available'
+            if is_complete else
+            'ผลตรวจสุขภาพออนไลน์อนุมัติบางส่วน / Partial online health results available'
+        )
         html_message = render_template(
-            'comhealth/emails/online_result_available.html',
+            (
+                'comhealth/emails/online_result_available.html'
+                if is_complete else
+                'comhealth/emails/online_result_partially_approved.html'
+            ),
             subject=title,
             result_url=result_url,
         )
+        availability_message_th = (
+            'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว'
+            if is_complete else
+            'ผลการตรวจสุขภาพออนไลน์ของท่านได้รับการอนุมัติแล้วบางส่วน '
+            'ท่านสามารถเข้าดูผลตรวจที่พร้อมแสดงได้'
+        )
+        availability_message_en = (
+            'Your online health examination results are available at the link below:'
+            if is_complete else
+            'Some of your online health examination results are now available at the link below:'
+        )
         message = (
             'เรียน ท่านผู้รับการตรวจสุขภาพ\n\n'
-            'ผลตรวจสุขภาพออนไลน์ของท่านพร้อมเข้าดูแล้ว กรุณาคลิกลิงก์ด้านล่าง:\n'
+            f'{availability_message_th} กรุณาคลิกลิงก์ด้านล่าง:\n'
             f'{result_url}\n\n'
             'ลิงก์แจ้งเตือนนี้สามารถใช้งานได้ภายใน 7 วันนับจากเวลาที่ส่งอีเมลนี้\n'
             'ระบบจะขอให้ท่านยืนยันอีเมลก่อนเข้าดูผลตรวจ กรุณาอย่าส่งต่ออีเมลนี้ให้ผู้อื่น\n\n'
             'Dear customer,\n\n'
-            'Your online health examination results are available at the link below:\n'
+            f'{availability_message_en}\n'
             f'{result_url}\n\n'
             'This notification link is valid for 7 days from the time this email is sent.\n'
             'You will be asked to verify your email before viewing the report. Please do not share this email.\n\n'
@@ -816,17 +1071,169 @@ def _send_health_result_email(customer_email, service_no, service_date, customer
         }
 
 
+def _service_approved_status(service_no, customer_email):
+    """Return the current Service approval state, preferring the Service record."""
+    try:
+        employee_response = _online_results_api_request(
+            'GET',
+            f'/Employees/email/{customer_email}',
+        )
+        employee = employee_response.json() if employee_response.ok else {}
+    except Exception:
+        employee = {}
+
+    customer_id = next((
+        employee.get(key) for key in ('custId', 'custID', 'customerId', 'customerID')
+        if employee.get(key) not in (None, '')
+    ), None) if isinstance(employee, dict) else None
+    service_prefix = str(service_no)[:8]
+
+    if customer_id and len(service_prefix) == 8:
+        try:
+            response = _online_results_api_request(
+                'GET',
+                '/Services/by-service-prefix-customer',
+                params={'serviceNoPrefix': service_prefix, 'custId': customer_id},
+            )
+            payload = response.json() if response.ok else {}
+            rows = payload if isinstance(payload, list) else (
+                payload.get('data') or payload.get('items') or []
+            )
+            for row in rows:
+                row_service_no = str(
+                    row.get('serviceNo') or row.get('serviceno') or row.get('service_no') or ''
+                )
+                if row_service_no == str(service_no):
+                    status = str(
+                        row.get('approvedStatus') or row.get('approved_status') or ''
+                    ).strip().lower()
+                    return 'complete' if status == 'complete' else 'some'
+        except Exception:
+            current_app.logger.exception(
+                'Unable to read Service approval status for serviceNo=%s', service_no
+            )
+
+    approval_values = []
+    for path in (
+            f'/Labs/service/test-details/{service_no}',
+            f'/PhysicalExams/{service_no}',
+            f'/XRays/{service_no}'):
+        try:
+            response = _online_results_api_request('GET', path)
+            if not response.ok:
+                continue
+            payload = response.json()
+        except Exception:
+            continue
+
+        def collect_approval_values(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if key.lower() == 'isapproved' and isinstance(item, bool):
+                        approval_values.append(item)
+                    else:
+                        collect_approval_values(item)
+            elif isinstance(value, list):
+                for item in value:
+                    collect_approval_values(item)
+
+        collect_approval_values(payload)
+
+    if approval_values:
+        return 'complete' if all(approval_values) else 'some'
+    return None
+
+
+def _record_health_result_email_notification(
+        service_no, customer_email, approved_status, notification):
+    """Persist the result of a manual email send without affecting delivery."""
+    is_complete = approved_status == 'complete'
+    record = ComHealthResultEmailNotification(
+        service_no=service_no,
+        recipient_email=customer_email,
+        approval_status=approved_status,
+        email_type='complete_result' if is_complete else 'partial_result',
+        template_name=(
+            'comhealth/emails/online_result_available.html'
+            if is_complete else
+            'comhealth/emails/online_result_partially_approved.html'
+        ),
+        delivery_status='sent' if notification.get('sent') else 'failed',
+        sent_at=datetime.now(bangkok) if notification.get('sent') else None,
+        sent_by_staff_id=current_user.id,
+        sent_by_fullname=current_user.fullname,
+        error_message=notification.get('error'),
+    )
+    db.session.add(record)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            'Unable to record health result email notification for serviceNo=%s',
+            service_no,
+        )
+
+
 @comhealth.route('/api/health-result-notification', methods=['POST'])
 @login_required
+@approve_lab_permission.require(http_exception=403)
 def send_health_result_notification_api():
     payload = request.get_json(silent=True) or {}
+    customer_email = str(payload.get('customerEmail') or '').strip().lower()
+    service_no = str(payload.get('serviceNo') or '').strip()
+    service_date = str(payload.get('serviceDate') or '').strip()
+    customer_age = str(payload.get('customerAge') or '').strip()
+    approved_status = _service_approved_status(service_no, customer_email)
+    if approved_status is None:
+        return {
+            'error': 'Unable to determine the current approval status. Email was not sent.'
+        }, 409
     notification = _send_health_result_email(
-        payload.get('customerEmail'),
-        payload.get('serviceNo'),
-        payload.get('serviceDate'),
-        payload.get('customerAge'),
+        customer_email,
+        service_no,
+        service_date,
+        customer_age,
+        approved_status=approved_status,
     )
-    return {'emailNotification': notification}
+    _record_health_result_email_notification(
+        service_no, customer_email, approved_status, notification,
+    )
+    return {'emailNotification': notification, 'approvedStatus': approved_status}
+
+
+@comhealth.route('/api/health-result-email', methods=['POST'])
+@login_required
+@approve_lab_permission.require(http_exception=403)
+def send_health_result_email_api():
+    payload = request.get_json(silent=True) or {}
+    customer_email = str(payload.get('customerEmail') or '').strip().lower()
+    service_no = str(payload.get('serviceNo') or '').strip()
+    service_date = str(payload.get('serviceDate') or '').strip()
+    customer_age = str(payload.get('customerAge') or '').strip()
+    if not customer_email or not service_no.isdigit() or not service_date:
+        return {'error': 'Missing customer email, service number, or service date.'}, 400
+
+    approved_status = _service_approved_status(service_no, customer_email)
+    if approved_status is None:
+        return {
+            'error': 'Unable to determine the current approval status. Email was not sent.'
+        }, 409
+
+    notification = _send_health_result_email(
+        customer_email,
+        service_no,
+        service_date,
+        customer_age,
+        approved_status=approved_status,
+    )
+    _record_health_result_email_notification(
+        service_no, customer_email, approved_status, notification,
+    )
+    return {
+        'emailNotification': notification,
+        'approvedStatus': approved_status,
+    }, (200 if notification.get('sent') else 502)
 
 
 @comhealth.route('/api/lab-approvals', methods=['POST'])
@@ -834,20 +1241,19 @@ def send_health_result_notification_api():
 def save_lab_approvals_api():
     payload = request.get_json(silent=True) or {}
     items = payload.get('items')
-    if not isinstance(items, list) or not items:
-        return {'error': 'items must be a non-empty array'}, 400
+    if not isinstance(items, list):
+        return {'error': 'items must be an array'}, 400
+    if not items and 'approvedStatus' not in payload:
+        return {'error': 'items must not be empty when approvedStatus is omitted'}, 400
 
     payload['staffAccount'] = {
         'id': current_user.id,
         'email': current_user.email,
         'fullname': current_user.fullname,
     }
-    customer_email = str(payload.get('customerEmail') or '').strip().lower()
-    service_no = str(payload.get('serviceNo') or '').strip()
-    service_date = str(payload.get('serviceDate') or '').strip()
-    customer_age = str(payload.get('customerAge') or '').strip()
     approval_payload = dict(payload)
-    for notification_field in ('customerEmail', 'serviceDate', 'customerAge'):
+    for notification_field in (
+            'customerEmail', 'serviceDate', 'customerAge', 'sendNotification'):
         approval_payload.pop(notification_field, None)
     response = _online_results_api_request(
         'POST',
@@ -855,14 +1261,11 @@ def save_lab_approvals_api():
         json=approval_payload,
     )
 
-    email_notification = {'sent': False}
-    if response.ok:
-        email_notification = _send_health_result_email(
-            customer_email,
-            service_no,
-            service_date,
-            customer_age,
-        )
+    email_notification = {
+        'sent': False,
+        'disabled': True,
+        'message': 'Email is sent manually from the online result page.',
+    }
 
     try:
         api_response = response.json()
@@ -3606,17 +4009,72 @@ def export_csv(service_id):
 @comhealth.route('/organizations/add', methods=['GET', 'POST'])
 @login_required
 def add_org():
-    name = request.form.get('name', '')
-    if name:
-        org_ = ComHealthOrg.query.filter_by(name=name).first()
-        if org_:
-            return 'Organization exists!'
-        else:
-            new_org = ComHealthOrg(name=name)
-            db.session.add(new_org)
-            db.session.commit()
-            return redirect(url_for('comhealth.list_orgs'))
-    return 'No name found.'
+    name, error = _validate_org_name(request.form.get('name', ''))
+    if error:
+        flash(error, 'danger')
+    else:
+        db.session.add(ComHealthOrg(name=name))
+        db.session.commit()
+        flash('เพิ่มหน่วยงานเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('comhealth.list_orgs'))
+
+
+def _validate_org_name(value, exclude_id=None):
+    name = ' '.join(value.split())
+    if not name:
+        return name, 'กรุณาระบุชื่อหน่วยงาน'
+    if len(name) > 255:
+        return name, 'ชื่อหน่วยงานต้องไม่เกิน 255 ตัวอักษร'
+    orgs = ComHealthOrg.query.with_entities(ComHealthOrg.id, ComHealthOrg.name).all()
+    if any(org.id != exclude_id and ' '.join((org.name or '').split()).casefold() == name.casefold()
+           for org in orgs):
+        return name, 'ชื่อหน่วยงานนี้มีอยู่แล้ว กรุณาใช้ชื่ออื่น'
+    return name, None
+
+
+@comhealth.route('/organizations/<int:orgid>/edit', methods=['POST'])
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def edit_org(orgid):
+    org = ComHealthOrg.query.get_or_404(orgid)
+    name, error = _validate_org_name(request.form.get('name', ''), exclude_id=org.id)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        if error:
+            return jsonify({'message': error}), 400
+        org.name = name
+        db.session.commit()
+        return jsonify({'id': org.id, 'name': org.name})
+    if error:
+        flash(error, 'danger')
+    else:
+        org.name = name
+        db.session.commit()
+        flash('แก้ไขชื่อหน่วยงานเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('comhealth.list_orgs'))
+
+
+@comhealth.route('/organizations/<int:orgid>/delete', methods=['POST'])
+@login_required
+@comhealth_admin_permission.require(http_exception=403)
+def delete_org(orgid):
+    org = ComHealthOrg.query.filter_by(id=orgid).with_for_update().first_or_404()
+    try:
+        # Lock customers and records so a concurrent check-in cannot be lost.
+        customers = ComHealthCustomer.query.filter_by(org_id=org.id).with_for_update().all()
+        customer_ids = [customer.id for customer in customers]
+        records = ComHealthRecord.query.filter(
+            ComHealthRecord.customer_id.in_(customer_ids)
+        ).with_for_update().all() if customer_ids else []
+        if any(record.checkin_datetime is not None for record in records):
+            db.session.rollback()
+            return jsonify({'message': 'ไม่สามารถลบหน่วยงานได้ เนื่องจากมีข้อมูล Checked In แล้ว'}), 409
+        db.session.delete(org)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Unable to delete ComHealth organization %s', orgid)
+        return jsonify({'message': 'ไม่สามารถลบหน่วยงานได้ กรุณาลองใหม่อีกครั้ง'}), 500
+    return jsonify({'id': orgid, 'message': 'ลบหน่วยงานเรียบร้อยแล้ว'})
 
 
 @comhealth.route('/organizations/<int:orgid>/employees', methods=['GET', 'POST'])
@@ -4033,8 +4491,6 @@ def create_receipt(record_id):
                                ref_profile_test_ids=ref_profile_test_ids,
                                )
     if request.method == 'POST':
-        receipt_code = ComHealthReceiptID.get_number('MTH', db)
-        receipt_code.count += 1
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(record_id)
         print_profile = request.form.get('print_profile', '')
@@ -4056,7 +4512,6 @@ def create_receipt(record_id):
 
         # TODO: new receipt only includes unpaid tests
         receipt = ComHealthReceipt(
-            code=receipt_code.number,
             created_datetime=arrow.now('Asia/Bangkok').datetime,
             record=record,
             print_profile_note=(True if print_profile == 'consolidated' else False),
@@ -4069,8 +4524,6 @@ def create_receipt(record_id):
             receipt.issued_for = issued_for
         receipt.print_profile_note = True if print_profile else False
         receipt.print_profile_how = print_profile
-
-        receipt_code.updated_datetime = arrow.now('Asia/Bangkok').datetime
 
         all_tests = record.get_all_tests()
         for test_item in record.ordered_tests:
@@ -4091,6 +4544,12 @@ def create_receipt(record_id):
                                        visible=visible)
             db.session.add(invoice)
         if receipt.invoices:
+            issued_at = arrow.now('Asia/Bangkok')
+            receipt_code = ComHealthReceiptID.get_number('MTH', db, date=issued_at.date())
+            receipt.code = receipt_code.number
+            receipt_code.count += 1
+            receipt_code.updated_datetime = issued_at.datetime
+            receipt.created_datetime = issued_at.datetime
             record.finance_contact = None
             db.session.add(record)
             db.session.add(receipt)
