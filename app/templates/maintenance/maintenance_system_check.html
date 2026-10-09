@@ -16,6 +16,7 @@
         .system-info-value { color: #1c3158; font-size: 1rem; font-weight: 800; }
         .system-check-list { display: grid; gap: 1rem; }
         .system-card { border: 1px solid rgba(18,39,84,.12); border-radius: 20px; overflow: hidden; }
+        .system-card.is-prefilled { box-shadow: 0 0 0 3px rgba(48,104,212,.16), 0 12px 26px rgba(18,39,84,.1); }
         .system-card:nth-child(3n+1) { border-top: 5px solid #415fd0; }
         .system-card:nth-child(3n+2) { border-top: 5px solid #cb7922; }
         .system-card:nth-child(3n) { border-top: 5px solid #15846b; }
@@ -62,11 +63,19 @@
                         {% endfor %}
                     {% endwith %}
                     <div class="system-info-card"><span class="system-info-label">ห้อง</span><span class="system-info-value">{{ room.number }} {{ room.location }}</span></div>
+                    {% if prefill_system_id %}
+                        <div class="notification is-info is-light">
+                            <span class="icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                            กำลังแสดงผลตรวจล่าสุดของทุกระบบในห้อง เพื่อใช้แก้ไขและบันทึกผลตรวจครั้งใหม่
+                        </div>
+                    {% endif %}
                     <form class="system-check-list" method="post">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {% for system in systems %}
                             {% set latest = latest_submissions.get(system.id) %}
-                            <article class="system-card">
+                            {% set prefilled_submission = prefill_submissions.get(system.id) %}
+                            {% set prefilled_checked_item_ids = prefilled_checked_item_ids_by_system.get(system.id, ()) %}
+                            <article class="system-card {% if prefill_system_id == system.id %}is-prefilled{% endif %}">
                                 <header class="system-card-head">
                                     <span class="system-icon"><i class="fa-solid fa-clipboard-check"></i></span>
                                     <div>
@@ -84,10 +93,10 @@
                                             <p class="check-group-title">{{ group.name }}</p>
                                             {% for equipment_link in equipment_by_group.get(group.id, []) %}
                                                 {% set equipment = equipment_link.procurement_detail %}
-                                                <p class="equipment-line">ERP Code: {{ equipment.erp_code or '-' }} | {{ equipment.name }} <a href="{{ url_for('comp_tracker.new_record', topic_id=4, erp_code=equipment.erp_code) }}" target="_blank" rel="noopener" class="button is-danger is-light equipment-repair-btn" data-system-id="{{ system.id }}" data-repair-note="ERP Code: {{ equipment.erp_code or '-' }} | {{ equipment.name }} (ส่งซ่อม)" onclick="setRepairRemark(this)"><span class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></span><span>ส่งซ่อม</span></a>{% if equipment.procurement_no %}<a href="{{ url_for('procurement.view_procurement_for_mumt', procurement_no=equipment.procurement_no) }}" target="_blank" rel="noopener" class="button is-info is-light equipment-repair-btn"><span class="icon"><i class="fa-solid fa-circle-info"></i></span><span>Detail</span></a>{% endif %}</p>
+                                                <p class="equipment-line">ERP Code: {{ equipment.erp_code or '-' }} | {{ equipment.name }} <a href="{{ url_for('comp_tracker.new_record', topic_id=4, erp_code=equipment.erp_code, number=room.number, location=room.location, channel_receive='Website ของคณะเทคนิคการแพทย์') }}" target="_blank" rel="noopener" class="button is-danger is-light equipment-repair-btn" data-system-id="{{ system.id }}" data-repair-note="ERP Code: {{ equipment.erp_code or '-' }} | {{ equipment.name }} (ส่งซ่อม)" onclick="setRepairRemark(this)"><span class="icon"><i class="fa-solid fa-screwdriver-wrench"></i></span><span>ส่งซ่อม</span></a>{% if equipment.procurement_no %}<a href="{{ url_for('procurement.view_procurement_for_mumt', procurement_no=equipment.procurement_no) }}" target="_blank" rel="noopener" class="button is-info is-light equipment-repair-btn"><span class="icon"><i class="fa-solid fa-circle-info"></i></span><span>Detail</span></a>{% endif %}</p>
                                             {% endfor %}
                                             {% for item in items_by_group.get(group.id, []) %}
-                                                <label class="check-option"><input type="checkbox" name="checked_item_ids" value="{{ item.id }}"><span>{{ item.label }} {% if item.is_required %}<span class="required-mark">* บังคับตรวจ</span>{% endif %}</span></label>
+                                                <label class="check-option"><input type="checkbox" name="checked_item_ids" value="{{ item.id }}" {% if prefilled_submission and item.id in prefilled_checked_item_ids %}checked{% endif %}><span>{{ item.label }} {% if item.is_required %}<span class="required-mark">* บังคับตรวจ</span>{% endif %}</span></label>
                                             {% else %}
                                                 <p class="has-text-grey is-size-7">ยังไม่มีข้อความ checklist ในกลุ่มนี้</p>
                                             {% endfor %}
@@ -96,7 +105,7 @@
                                         <div class="empty-state">ยังไม่มีการตั้งค่ากลุ่มตรวจเช็คสำหรับระบบนี้</div>
                                     {% endfor %}
                                 </div>
-                                <footer class="system-card-foot"><label class="unavailable-toggle"><input type="checkbox" name="unavailable_system_ids" value="{{ system.id }}"> ไม่พร้อมใช้งาน</label><div class="field"><div class="control"><input id="remark-{{ system.id }}" class="input" name="remark-{{ system.id }}" placeholder="หมายเหตุ{{ system.name }} (ถ้ามี)"></div></div></footer>
+                                <footer class="system-card-foot"><label class="unavailable-toggle"><input type="checkbox" name="unavailable_system_ids" value="{{ system.id }}" {% if prefilled_submission and prefilled_submission.status == 'unavailable' %}checked{% endif %}> ไม่พร้อมใช้งาน</label><div class="field"><div class="control"><input id="remark-{{ system.id }}" class="input" name="remark-{{ system.id }}" value="{{ prefilled_submission.remark if prefilled_submission and prefilled_submission.remark else '' }}" placeholder="หมายเหตุ{{ system.name }} (ถ้ามี)"></div></div></footer>
                             </article>
                         {% else %}
                             <div class="empty-state">ห้องนี้ยังไม่มีครุภัณฑ์ที่ผูกกับระบบตรวจเช็ค</div>
@@ -113,9 +122,20 @@
     {{ super() }}
     <script>
         function setRepairRemark(button) {
-            const remarkInput = document.getElementById(`remark-${button.dataset.systemId}`);
+            const systemId = button.dataset.systemId;
+            const remarkInput = document.getElementById(`remark-${systemId}`);
+            const unavailableInput = document.querySelector(
+                `input[name="unavailable_system_ids"][value="${systemId}"]`
+            );
+            if (unavailableInput) {
+                unavailableInput.checked = true;
+            }
             if (remarkInput) {
-                remarkInput.value = button.dataset.repairNote;
+                const repairNote = button.dataset.repairNote;
+                const currentRemark = remarkInput.value.trim();
+                if (!currentRemark.includes(repairNote)) {
+                    remarkInput.value = currentRemark ? `${currentRemark}\n${repairNote}` : repairNote;
+                }
                 remarkInput.focus();
             }
         }

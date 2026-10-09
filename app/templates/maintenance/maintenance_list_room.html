@@ -11,6 +11,37 @@
         .maintenance-title { color: #15284d; font-size: 1.6rem; font-weight: 800; line-height: 1.2; margin: 0; }
         .maintenance-subtitle, .maintenance-updated { color: #71809a; font-size: .9rem; margin: .35rem 0 0; }
         .maintenance-updated { text-align: right; white-space: nowrap; }
+        .maintenance-summary { display: grid; gap: .8rem; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 1rem 1.5rem 0; }
+        .maintenance-summary-card { align-items: center; background: #fff; border: 1px solid #dfe6f2; border-radius: 15px; display: flex; gap: .8rem; padding: .85rem 1rem; }
+        .maintenance-summary-icon { align-items: center; border-radius: 12px; display: inline-flex; flex: 0 0 auto; height: 40px; justify-content: center; width: 40px; }
+        .maintenance-summary-card.unavailable .maintenance-summary-icon { background: #fff0f3; color: #bd314b; }
+        .maintenance-summary-card.repair .maintenance-summary-icon { background: #fff0f3; color: #bd314b; }
+        .maintenance-summary-card.overdue .maintenance-summary-icon { background: #fff7e8; color: #b96900; }
+        .maintenance-summary-card.unavailable { align-items: flex-start; }
+        .maintenance-summary-card.repair, .maintenance-summary-card.overdue { align-items: flex-start; }
+        .maintenance-summary-content { min-width: 0; width: 100%; }
+        .maintenance-summary-label { color: #71809a; font-size: .8rem; font-weight: 700; }
+        .maintenance-summary-value { color: #183b67; font-size: 1.3rem; font-weight: 800; line-height: 1.15; margin-top: .15rem; }
+        .repair-equipment-list { border-top: 1px solid #f0c8d0; margin-top: .65rem; }
+        .repair-equipment-item { align-items: center; border-bottom: 1px solid #f8e0e5; display: flex; gap: .45rem; padding: .42rem 0; }
+        .repair-equipment-erp { background: #fff0f3; border-radius: 999px; color: #b5233c; flex: 0 0 auto; font-size: .72rem; font-weight: 800; padding: .13rem .38rem; }
+        .repair-equipment-name { color: #445a7b; font-size: .78rem; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .repair-equipment-view { color: #b5233c; flex: 0 0 auto; margin-left: auto; text-decoration: none; }
+        .repair-equipment-pagination { align-items: center; display: flex; font-size: .76rem; gap: .4rem; justify-content: flex-end; margin-top: .55rem; }
+        .repair-equipment-pagination a { color: #b5233c; font-weight: 800; text-decoration: none; }
+        .unavailable-system-list { border-top: 1px solid #f0c8d0; margin-top: .65rem; }
+        .unavailable-system-item { align-items: center; border-bottom: 1px solid #f8e0e5; display: flex; gap: .45rem; padding: .42rem 0; }
+        .unavailable-room-name { color: #b5233c; flex: 0 0 auto; font-size: .76rem; font-weight: 800; }
+        .unavailable-system-name { color: #445a7b; font-size: .78rem; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .unavailable-system-view { color: #b5233c; flex: 0 0 auto; margin-left: auto; text-decoration: none; }
+        .unavailable-system-pagination { align-items: center; display: flex; font-size: .76rem; gap: .4rem; justify-content: flex-end; margin-top: .55rem; }
+        .unavailable-system-pagination a { color: #b5233c; font-weight: 800; text-decoration: none; }
+        .overdue-system-list { border-top: 1px solid #f2d9ad; margin-top: .65rem; }
+        .overdue-system-item { align-items: center; border-bottom: 1px solid #fbecd3; display: flex; gap: .45rem; padding: .42rem 0; }
+        .overdue-room-name { color: #b96900; flex: 0 0 auto; font-size: .76rem; font-weight: 800; }
+        .overdue-system-name { color: #445a7b; font-size: .78rem; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .overdue-system-pagination { align-items: center; display: flex; font-size: .76rem; gap: .4rem; justify-content: flex-end; margin-top: .55rem; }
+        .overdue-system-pagination a { color: #b96900; font-weight: 800; text-decoration: none; }
         .maintenance-filter { align-items: center; display: flex; flex-wrap: wrap; gap: .75rem; padding: 1rem 1.5rem; }
         .maintenance-filter .input, .maintenance-filter .button { border-radius: 14px; }
         .maintenance-table-wrap { overflow-x: auto; }
@@ -24,6 +55,8 @@
         .maintenance-system-label { align-items: center; display: inline-flex; gap: .4rem; justify-content: center; }
         .maintenance-system-label .icon { color: #3d73c9; }
         .maintenance-status { align-items: center; border: 2px solid; border-radius: 15px; display: inline-flex; flex-direction: column; gap: .18rem; justify-content: center; min-height: 56px; min-width: 116px; padding: .45rem .7rem; }
+        a.maintenance-status { text-decoration: none; transition: box-shadow .16s ease, transform .16s ease; }
+        a.maintenance-status:hover { box-shadow: 0 7px 14px rgba(18,39,84,.13); color: inherit; transform: translateY(-2px); }
         .maintenance-status.is-checked { background: #eefcf4; border-color: #11c27c; color: #0f8d5a; }
         .maintenance-status.is-minor { background: #fff7e8; border-color: #f0a22e; color: #b96900; }
         .maintenance-status.is-unavailable { background: #fff0f3; border-color: #e45a72; color: #b5233c; }
@@ -31,20 +64,23 @@
         .maintenance-status.is-neutral { background: #f6f8fb; border-color: rgba(18,39,84,.16); color: #607086; }
         .maintenance-status-date { font-size: .94rem; font-weight: 800; line-height: 1.1; }
         .maintenance-status-note { font-size: .77rem; line-height: 1.1; }
+        .maintenance-status-days { font-size: .7rem; line-height: 1.1; opacity: .82; }
+        .maintenance-status-days.is-overdue { color: #b96900; font-weight: 800; opacity: 1; }
         .maintenance-setup-btn { align-items: center; background: linear-gradient(180deg,#f1f7ff,#e5efff); border: 1px solid rgba(47,101,192,.18); border-radius: 14px; color: #255ea8; display: inline-flex; font-weight: 800; gap: .35rem; padding: .55rem .75rem; text-decoration: none; }
         .maintenance-setup-btn:hover { background: #daeaff; color: #173f78; }
-        @media screen and (max-width: 768px) { .maintenance-head { flex-direction: column; } .maintenance-updated { text-align: left; white-space: normal; } }
+        @media screen and (max-width: 768px) { .maintenance-head { flex-direction: column; } .maintenance-updated { text-align: left; white-space: normal; } .maintenance-summary { grid-template-columns: 1fr; } }
     </style>
 {% endblock %}
 
 {% block page_content %}
 {% include "maintenance/nav.html" %}
-{% macro render_system_status(status) %}
+{% macro render_system_status(status, room_id, system_id) %}
     {% if status %}
-        <div class="maintenance-status {% if status.status == 'unavailable' %}is-unavailable{% elif status.is_overdue or status.status == 'minor_issue' %}is-minor{% else %}is-checked{% endif %}">
+        <a class="maintenance-status {% if status.status == 'unavailable' %}is-unavailable{% elif status.is_overdue or status.status == 'minor_issue' %}is-minor{% else %}is-checked{% endif %}" href="{{ url_for('maintenance.maintenance_system_check', room_id=room_id, prefill_system_id=system_id) }}" title="เปิดผลตรวจล่าสุดเพื่อแก้ไขข้อมูล">
             <span class="maintenance-status-date">{{ status.checked_at }}</span>
             <span class="maintenance-status-note">{% if status.status == 'unavailable' %}ไม่พร้อมใช้งาน{% elif status.is_overdue %}ผ่านไปแล้ว {{ status.days_since }} วัน{% elif status.status == 'minor_issue' %}พบปัญหาเล็กน้อย{% else %}ปกติ{% endif %}</span>
-        </div>
+            <span class="maintenance-status-days {% if status.is_overdue %}is-overdue{% endif %}">ตรวจมาแล้ว {{ status.days_since }} วัน</span>
+        </a>
     {% else %}
         <div class="maintenance-status is-neutral"><span class="maintenance-status-date">-</span><span class="maintenance-status-note">ยังไม่ตรวจ</span></div>
     {% endif %}
@@ -59,6 +95,71 @@
                 </div>
                 <div class="maintenance-updated">แสดงหน้า {{ pagination.page }} จาก {{ pagination.pages }} | ทั้งหมด {{ pagination.total }} ห้อง</div>
             </header>
+            <div class="maintenance-summary">
+                <div class="maintenance-summary-card unavailable">
+                    <span class="maintenance-summary-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    <div class="maintenance-summary-content">
+                        <div class="maintenance-summary-label">ห้องไม่พร้อมใช้งาน</div>
+                        <div class="maintenance-summary-value">{{ unavailable_room_count }} ห้อง</div>
+                        {% if unavailable_room_items %}
+                            <div class="unavailable-system-list">
+                                {% for item in unavailable_room_items %}
+                                    <div class="unavailable-system-item"><span class="unavailable-room-name">{{ item.room.number }} {{ item.room.location }}</span><span class="unavailable-system-name" title="{{ item.system_names }}">{{ item.system_names }}</span><a class="unavailable-system-view" href="{{ url_for('maintenance.maintenance_system_check', room_id=item.room.id, prefill_system_id=item.systems[0].id) }}" target="_blank" rel="noopener" title="ดูรายละเอียดการตรวจเช็ค"><i class="fa-solid fa-magnifying-glass"></i></a></div>
+                                {% endfor %}
+                            </div>
+                            {% if unavailable_pages > 1 %}
+                                <div class="unavailable-system-pagination">
+                                    {% if unavailable_page > 1 %}<a href="{{ url_for('maintenance.maintenance_list_room', q=q, page=pagination.page, unavailable_page=unavailable_page - 1, overdue_page=overdue_page, repair_page=repairing_equipment_pagination.page if repairing_equipment_pagination else 1) }}">ก่อนหน้า</a>{% endif %}
+                                    <span>หน้า {{ unavailable_page }}/{{ unavailable_pages }}</span>
+                                    {% if unavailable_page < unavailable_pages %}<a href="{{ url_for('maintenance.maintenance_list_room', q=q, page=pagination.page, unavailable_page=unavailable_page + 1, overdue_page=overdue_page, repair_page=repairing_equipment_pagination.page if repairing_equipment_pagination else 1) }}">ถัดไป</a>{% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="maintenance-summary-card repair">
+                    <span class="maintenance-summary-icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                    <div class="maintenance-summary-content">
+                        <div class="maintenance-summary-label">ครุภัณฑ์ที่ส่งซ่อม</div>
+                        <div class="maintenance-summary-value">{{ repairing_equipment_count }} รายการ</div>
+                        {% if repairing_equipment_pagination and repairing_equipment_pagination.items %}
+                            <div class="repair-equipment-list">
+                                {% for equipment in repairing_equipment_pagination.items %}
+                                    <div class="repair-equipment-item"><span class="repair-equipment-erp">ERP: {{ equipment.erp_code or '-' }}</span><span class="repair-equipment-name" title="{{ equipment.name }}">{{ equipment.name }}</span>{% if repairing_equipment_record_ids.get(equipment.id) %}<a class="repair-equipment-view" href="{{ url_for('comp_tracker.view_record_complaint', record_id=repairing_equipment_record_ids.get(equipment.id)) }}" target="_blank" rel="noopener" title="ดูรายละเอียดการส่งซ่อม"><i class="fa-solid fa-magnifying-glass"></i></a>{% endif %}</div>
+                                {% endfor %}
+                            </div>
+                            {% if repairing_equipment_pagination.pages > 1 %}
+                                <div class="repair-equipment-pagination">
+                                    {% if repairing_equipment_pagination.has_prev %}<a href="{{ url_for('maintenance.maintenance_list_room', q=q, page=pagination.page, unavailable_page=unavailable_page, overdue_page=overdue_page, repair_page=repairing_equipment_pagination.prev_num) }}">ก่อนหน้า</a>{% endif %}
+                                    <span>หน้า {{ repairing_equipment_pagination.page }}/{{ repairing_equipment_pagination.pages }}</span>
+                                    {% if repairing_equipment_pagination.has_next %}<a href="{{ url_for('maintenance.maintenance_list_room', q=q, page=pagination.page, unavailable_page=unavailable_page, overdue_page=overdue_page, repair_page=repairing_equipment_pagination.next_num) }}">ถัดไป</a>{% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="maintenance-summary-card overdue">
+                    <span class="maintenance-summary-icon"><i class="fa-solid fa-clock"></i></span>
+                    <div class="maintenance-summary-content">
+                        <div class="maintenance-summary-label">ห้องที่เกิน 30 วัน</div>
+                        <div class="maintenance-summary-value">{{ overdue_room_count }} ห้อง</div>
+                        {% if overdue_room_items %}
+                            <div class="overdue-system-list">
+                                {% for item in overdue_room_items %}
+                                    <div class="overdue-system-item"><span class="overdue-room-name">{{ item.room.number }} {{ item.room.location }}</span><span class="overdue-system-name" title="{{ item.system_names }}">{{ item.system_names }}</span></div>
+                                {% endfor %}
+                            </div>
+                            {% if overdue_pages > 1 %}
+                                <div class="overdue-system-pagination">
+                                    {% if overdue_page > 1 %}<a href="{{ url_for('maintenance.maintenance_list_room', q=q, page=pagination.page, unavailable_page=unavailable_page, overdue_page=overdue_page - 1, repair_page=repairing_equipment_pagination.page if repairing_equipment_pagination else 1) }}">ก่อนหน้า</a>{% endif %}
+                                    <span>หน้า {{ overdue_page }}/{{ overdue_pages }}</span>
+                                    {% if overdue_page < overdue_pages %}<a href="{{ url_for('maintenance.maintenance_list_room', q=q, page=pagination.page, unavailable_page=unavailable_page, overdue_page=overdue_page + 1, repair_page=repairing_equipment_pagination.page if repairing_equipment_pagination else 1) }}">ถัดไป</a>{% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
             <form class="maintenance-filter" method="get" action="{{ url_for('maintenance.maintenance_list_room') }}">
                 <div class="field has-addons mb-0">
@@ -83,7 +184,7 @@
                         {% for room in pagination.items %}
                             <tr>
                                 <td class="maintenance-room">{{ room.number }} {{ room.location }}</td>
-                                {% for system in systems %}<td>{{ render_system_status(system_statuses.get(room.id, {}).get(system.id)) }}</td>{% endfor %}
+                                {% for system in systems %}<td>{{ render_system_status(system_statuses.get(room.id, {}).get(system.id), room.id, system.id) }}</td>{% endfor %}
                                 <td><a class="maintenance-setup-btn" href="{{ url_for('maintenance.maintenance_system_check', room_id=room.id) }}"><span class="icon"><i class="fa-solid fa-clipboard-check"></i></span><span>ตรวจเช็ค</span></a></td>
                                 <td><a class="maintenance-setup-btn" href="{{ url_for('maintenance.maintenance_system_check_history', room_id=room.id) }}"><span class="icon"><i class="fa-solid fa-clock-rotate-left"></i></span><span>ประวัติ</span></a></td>
                                 <td><a class="maintenance-setup-btn" href="{{ url_for('maintenance.edit_maintenance_room_system_item', room_id=room.id) }}"><span class="icon"><i class="fa-solid fa-link"></i></span><span>จัดการผูก</span></a></td>
@@ -97,9 +198,9 @@
 
             {% if pagination.pages > 1 %}
                 <div class="p-4"><nav class="pagination is-centered" role="navigation" aria-label="pagination">
-                    <a class="pagination-previous" {% if pagination.has_prev %}href="{{ url_for('maintenance.maintenance_list_room', page=pagination.prev_num, q=q) }}"{% else %}disabled{% endif %}>Previous</a>
-                    <a class="pagination-next" {% if pagination.has_next %}href="{{ url_for('maintenance.maintenance_list_room', page=pagination.next_num, q=q) }}"{% else %}disabled{% endif %}>Next page</a>
-                    <ul class="pagination-list">{% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}{% if page_num %}<li><a class="pagination-link {% if page_num == pagination.page %}is-current{% endif %}" href="{{ url_for('maintenance.maintenance_list_room', page=page_num, q=q) }}">{{ page_num }}</a></li>{% else %}<li><span class="pagination-ellipsis">&hellip;</span></li>{% endif %}{% endfor %}</ul>
+                    <a class="pagination-previous" {% if pagination.has_prev %}href="{{ url_for('maintenance.maintenance_list_room', page=pagination.prev_num, q=q, unavailable_page=unavailable_page, overdue_page=overdue_page, repair_page=repairing_equipment_pagination.page if repairing_equipment_pagination else 1) }}"{% else %}disabled{% endif %}>Previous</a>
+                    <a class="pagination-next" {% if pagination.has_next %}href="{{ url_for('maintenance.maintenance_list_room', page=pagination.next_num, q=q, unavailable_page=unavailable_page, overdue_page=overdue_page, repair_page=repairing_equipment_pagination.page if repairing_equipment_pagination else 1) }}"{% else %}disabled{% endif %}>Next page</a>
+                    <ul class="pagination-list">{% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}{% if page_num %}<li><a class="pagination-link {% if page_num == pagination.page %}is-current{% endif %}" href="{{ url_for('maintenance.maintenance_list_room', page=page_num, q=q, unavailable_page=unavailable_page, overdue_page=overdue_page, repair_page=repairing_equipment_pagination.page if repairing_equipment_pagination else 1) }}">{{ page_num }}</a></li>{% else %}<li><span class="pagination-ellipsis">&hellip;</span></li>{% endif %}{% endfor %}</ul>
                 </nav></div>
             {% endif %}
         </div>

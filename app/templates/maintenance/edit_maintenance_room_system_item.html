@@ -29,7 +29,23 @@
         .binding-card-meta { color: #73829b; font-size: .8rem; margin-top: .2rem; }
         .binding-card-body { border-top: 1px solid #e4eaf4; display: grid; gap: .75rem; grid-template-columns: minmax(0,1fr) auto; padding: .8rem 1rem; }
         .binding-card select { min-width: 0; }
-        .linked-table td, .linked-table th { vertical-align: middle; }
+        .binding-card-body > .button { align-self: end; }
+        .linked-system-grid { display: grid; gap: .85rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .linked-system-card { --tone: #3f5bd0; --tone-soft: #eef2ff; --tone-border: #cbd6ff; background: linear-gradient(135deg,var(--tone-soft),#fff 58%); border: 1px solid var(--tone-border); border-left: 5px solid var(--tone); border-radius: 15px; min-width: 0; overflow: hidden; }
+        .linked-system-card.tone-2 { --tone: #087f68; --tone-soft: #edf9f5; --tone-border: #bfe7db; }
+        .linked-system-card.tone-3 { --tone: #b56b0d; --tone-soft: #fff8e9; --tone-border: #f0d8a8; }
+        .linked-system-card.tone-4 { --tone: #9a4073; --tone-soft: #fff0f7; --tone-border: #efc9dc; }
+        .linked-system-card-head { align-items: flex-start; display: flex; gap: .7rem; padding: .9rem 1rem .65rem; }
+        .linked-system-icon { align-items: center; background: var(--tone); border-radius: 10px; color: #fff; display: inline-flex; flex: 0 0 auto; height: 35px; justify-content: center; width: 35px; }
+        .linked-system-name { color: #17355f; font-size: .92rem; font-weight: 800; line-height: 1.35; }
+        .linked-group-tag { background: #fff; border: 1px solid var(--tone-border); border-radius: 999px; color: var(--tone); display: inline-block; font-size: .76rem; font-weight: 800; margin-top: .35rem; padding: .14rem .48rem; }
+        .linked-system-card-body { border-top: 1px solid var(--tone-border); }
+        .linked-equipment-entry { padding: .8rem 1rem .9rem; }
+        .linked-equipment-entry + .linked-equipment-entry { border-top: 1px dashed var(--tone-border); }
+        .linked-equipment-entry-head { align-items: flex-start; display: flex; gap: .6rem; justify-content: space-between; }
+        .linked-equipment-entry .linked-group-tag { margin-top: 0; }
+        .linked-item-name { color: #263f66; font-size: .9rem; font-weight: 800; line-height: 1.45; }
+        .linked-system-card-actions { display: flex; justify-content: flex-end; margin-top: .7rem; }
         .linked-source { color: #6e7f9a; font-size: .82rem; }
         .linked-erp { background: #e8f0ff; border: 1px solid #a9c3f7; border-radius: 999px; color: #174f9b; display: inline-block; font-size: .79rem; font-weight: 800; letter-spacing: .02em; margin-top: .35rem; padding: .16rem .5rem; }
         .empty-state { background: #f7f9fc; border: 1px dashed #cfd9e8; border-radius: 14px; color: #6e7f9a; padding: 1.1rem; text-align: center; }
@@ -38,6 +54,7 @@
             .room-bind-body { padding: 1rem; }
             .binding-card-body { grid-template-columns: 1fr; }
             .binding-card-body .button { width: 100%; }
+            .linked-system-grid { grid-template-columns: 1fr; }
             .room-result { align-items: start; flex-direction: column; gap: .45rem; }
         }
     </style>
@@ -53,6 +70,14 @@
                     <p>ค้นหาห้อง เลือกห้อง แล้วผูกครุภัณฑ์จริงเข้ากับระบบและกลุ่มตรวจเช็ค</p>
                 </header>
                 <div class="room-bind-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% for category, message in messages %}
+                            <div class="notification {% if category == 'success' %}is-success{% elif category == 'danger' %}is-danger{% else %}is-warning{% endif %}">
+                                <button class="delete" type="button" aria-label="ปิดข้อความ" onclick="this.parentElement.remove()"></button>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endwith %}
                     <form class="room-search" method="get">
                         <label for="room-search-text">ค้นหาหมายเลขห้องหรือสถานที่</label>
                         <div class="field has-addons mt-2 mb-0">
@@ -102,32 +127,41 @@
 
                         <h2 class="section-heading"><i class="fas fa-link"></i>ระบบและครุภัณฑ์ที่ผูกกับการตรวจเช็คแล้ว</h2>
                         {% if linked_equipment %}
-                            <div class="table-container">
-                                <table class="table is-fullwidth is-hoverable linked-table">
-                                    <thead><tr><th>ครุภัณฑ์ / การตั้งค่าระบบ</th><th>ระบบ / กลุ่มตรวจเช็ค</th><th class="has-text-centered">จัดการ</th></tr></thead>
-                                    <tbody>
-                                        {% for linked in linked_equipment %}
-                                            <tr>
-                                                <td>
+                            <div class="linked-system-grid">
+                                {% for system_links in linked_equipment|groupby('system_id') %}
+                                    {% set system = system_links.list[0].system %}
+                                    <article class="linked-system-card tone-{{ (system.id % 4) + 1 }}">
+                                        <div class="linked-system-card-head">
+                                            <span class="linked-system-icon"><i class="fas fa-layer-group"></i></span>
+                                            <div>
+                                                <div class="linked-system-name">{{ system.name }}</div>
+                                                <div class="linked-source">{{ system_links.list|length }} รายการที่ผูกกับระบบตรวจเช็ค</div>
+                                            </div>
+                                        </div>
+                                        <div class="linked-system-card-body">
+                                            {% for linked in system_links.list %}
+                                                <div class="linked-equipment-entry">
+                                                    <div class="linked-equipment-entry-head">
+                                                        <span class="linked-group-tag">{{ linked.check_group.name }}</span>
+                                                    </div>
                                                     {% if linked.procurement_detail %}
-                                                        <strong>{{ linked.display_name_override or linked.procurement_detail.name }}</strong>
+                                                        <div class="linked-item-name mt-2">{{ linked.display_name_override or linked.procurement_detail.name }}</div>
                                                         {% if linked.procurement_detail.erp_code %}<span class="linked-erp">ERP: {{ linked.procurement_detail.erp_code }}</span>{% endif %}
                                                     {% else %}
-                                                        <strong>ตั้งค่าระบบโดยไม่มีครุภัณฑ์</strong>
+                                                        <div class="linked-item-name mt-2">ตั้งค่าระบบโดยไม่มีครุภัณฑ์</div>
                                                         <div class="linked-source">สามารถผูกครุภัณฑ์ ERP เข้ากลุ่มนี้ภายหลังได้</div>
                                                     {% endif %}
-                                                </td>
-                                                <td><span class="tag is-link is-light">{{ linked.system.name }}</span> <span class="tag is-info is-light">{{ linked.check_group.name }}</span></td>
-                                                <td class="has-text-centered">
-                                                    <form method="post" action="{{ url_for('maintenance.delete_maintenance_room_system_equipment_link', link_id=linked.id) }}" onsubmit="return confirm('ยืนยันยกเลิกการผูกครุภัณฑ์รายการนี้หรือไม่');">
-                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                                        <button class="button is-small is-danger is-light" type="submit"><span class="icon"><i class="fas fa-unlink"></i></span><span>ยกเลิกผูก</span></button>
-                                                    </form>
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                                                    <div class="linked-system-card-actions">
+                                                        <form method="post" action="{{ url_for('maintenance.delete_maintenance_room_system_equipment_link', link_id=linked.id) }}" onsubmit="return confirm('ยืนยันยกเลิกการผูกครุภัณฑ์รายการนี้หรือไม่');">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <button class="button is-small is-danger is-light" type="submit"><span class="icon"><i class="fas fa-unlink"></i></span><span>ยกเลิกผูก</span></button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </article>
+                                {% endfor %}
                             </div>
                         {% else %}
                             <div class="empty-state">ยังไม่มีระบบหรือครุภัณฑ์ที่ผูกกับการตรวจเช็คสำหรับห้องนี้</div>

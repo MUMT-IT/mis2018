@@ -2,6 +2,7 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func, or_
 import arrow
+import math
 
 from app.main import db
 from app.maintenance.models import (
@@ -15,6 +16,7 @@ from app.maintenance.models import (
 )
 from app.procurement.models import ProcurementCategory, ProcurementDetail, ProcurementRecord
 from app.room_scheduler.models import RoomResource
+from app.complaint_tracker.models import ComplaintRecord, ComplaintStatus, ComplaintTopic
 from app.maintenance import maintenancebp
 
 ADVERTISING_EQUIPMENT_CATEGORY = 'ครุภัณฑ์โฆษณาและเผยแพร่'
@@ -49,13 +51,17 @@ def _get_latest_room_system_check_statuses(room_ids):
 @maintenancebp.route('/list-room')
 def maintenance_list_room():
     page = request.args.get('page', 1, type=int)
+    repair_page = max(request.args.get('repair_page', 1, type=int), 1)
+    unavailable_page = max(request.args.get('unavailable_page', 1, type=int), 1)
+    overdue_page = max(request.args.get('overdue_page', 1, type=int), 1)
     q = request.args.get('q', '', type=str).strip()
     per_page = 10
 
-    query = RoomResource.query.join(
+    summary_query = RoomResource.query.join(
         MaintenanceRoomSystemEquipment,
         MaintenanceRoomSystemEquipment.room_id == RoomResource.id
     ).distinct()
+    query = summary_query
     if q:
         parts = q.split(None, 1)
         if len(parts) == 2:
@@ -70,6 +76,114 @@ def maintenance_list_room():
                 RoomResource.location.ilike(f'%{q}%')
             ))
 
+    matching_rooms = summary_query.order_by(
+        RoomResource.number.asc(),
+        RoomResource.location.asc()
+    ).all()
+    room_ids = [room.id for room in matching_rooms]
+    systems = MaintenanceRoomSystem.query.filter_by(is_active=True).order_by(
+        MaintenanceRoomSystem.sort_order.asc(),
+        MaintenanceRoomSystem.name.asc()
+    ).all()
+    active_system_ids = {system.id for system in systems}
+    all_system_statuses = _get_latest_room_system_check_statuses(room_ids)
+    unavailable_room_count = sum(
+        any(
+            system_id in active_system_ids and status['status'] == 'unavailable'
+            for system_id, status in room_statuses.items()
+        )
+        for room_statuses in all_system_statuses.values()
+    )
+    unavailable_room_rows = []
+    overdue_room_rows = []
+    for room in matching_rooms:
+        unavailable_systems = []
+        overdue_systems = []
+        for system in systems:
+            status = all_system_statuses.get(room.id, {}).get(system.id)
+            if status and status['status'] == 'unavailable':
+                unavailable_systems.append(system)
+            if status and status['is_overdue']:
+                overdue_systems.append(system)
+        if unavailable_systems:
+            unavailable_room_rows.append({
+                'room': room,
+                'systems': unavailable_systems,
+                'system_names': ', '.join(system.name for system in unavailable_systems)
+            })
+        if overdue_systems:
+            overdue_room_rows.append({
+                'room': room,
+                'system_names': ', '.join(system.name for system in overdue_systems)
+            })
+
+    overdue_room_count = len(overdue_room_rows)
+    unavailable_per_page = 5
+    unavailable_pages = math.ceil(len(unavailable_room_rows) / unavailable_per_page)
+    unavailable_page = min(unavailable_page, unavailable_pages) if unavailable_pages else 1
+    unavailable_start = (unavailable_page - 1) * unavailable_per_page
+    unavailable_room_items = unavailable_room_rows[
+        unavailable_start:unavailable_start + unavailable_per_page
+    ]
+    overdue_per_page = 5
+    overdue_pages = math.ceil(len(overdue_room_rows) / overdue_per_page)
+    overdue_page = min(overdue_page, overdue_pages) if overdue_pages else 1
+    overdue_start = (overdue_page - 1) * overdue_per_page
+    overdue_room_items = overdue_room_rows[
+        overdue_start:overdue_start + overdue_per_page
+    ]
+
+    repairing_equipment_count = 0
+    repairing_equipment_pagination = None
+    repairing_equipment_record_ids = {}
+    if room_ids:
+        linked_procurement_detail_ids = db.session.query(
+            MaintenanceRoomSystemEquipment.procurement_detail_id
+        ).filter(
+            MaintenanceRoomSystemEquipment.room_id.in_(room_ids),
+            MaintenanceRoomSystemEquipment.is_active.is_(True),
+            MaintenanceRoomSystemEquipment.procurement_detail_id.isnot(None)
+        )
+        repairing_equipment_query = db.session.query(
+            ProcurementDetail
+        ).select_from(ComplaintRecord).join(
+            ComplaintRecord.procurements
+        ).join(
+            ComplaintRecord.topic
+        ).outerjoin(
+            ComplaintRecord.status
+        ).filter(
+            ComplaintTopic.code == 'runied',
+            ComplaintRecord.closed_at.is_(None),
+            or_(
+                ComplaintStatus.code.is_(None),
+                ComplaintStatus.code.notin_(['completed', 'cancelled'])
+            ),
+            ProcurementDetail.id.in_(linked_procurement_detail_ids)
+        )
+        repairing_equipment_count = repairing_equipment_query.with_entities(
+            func.count(func.distinct(ProcurementDetail.id))
+        ).scalar() or 0
+        repairing_equipment_pagination = repairing_equipment_query.distinct().order_by(
+            ProcurementDetail.erp_code.asc(),
+            ProcurementDetail.name.asc()
+        ).paginate(page=repair_page, per_page=5, error_out=False)
+        repairing_equipment_ids = [
+            equipment.id for equipment in repairing_equipment_pagination.items
+        ]
+        if repairing_equipment_ids:
+            repairing_equipment_records = repairing_equipment_query.with_entities(
+                ProcurementDetail.id,
+                ComplaintRecord.id
+            ).filter(
+                ProcurementDetail.id.in_(repairing_equipment_ids)
+            ).order_by(
+                ComplaintRecord.created_at.desc(),
+                ComplaintRecord.id.desc()
+            ).all()
+            for equipment_id, record_id in repairing_equipment_records:
+                repairing_equipment_record_ids.setdefault(equipment_id, record_id)
+
     pagination = query.order_by(
         RoomResource.number.asc(),
         RoomResource.location.asc()
@@ -77,16 +191,23 @@ def maintenance_list_room():
     system_statuses = _get_latest_room_system_check_statuses(
         [room.id for room in pagination.items]
     )
-    systems = MaintenanceRoomSystem.query.filter_by(is_active=True).order_by(
-        MaintenanceRoomSystem.sort_order.asc(),
-        MaintenanceRoomSystem.name.asc()
-    ).all()
     return render_template(
         'maintenance/maintenance_list_room.html',
         pagination=pagination,
         q=q,
         systems=systems,
-        system_statuses=system_statuses
+        system_statuses=system_statuses,
+        unavailable_room_count=unavailable_room_count,
+        overdue_room_count=overdue_room_count,
+        unavailable_room_items=unavailable_room_items,
+        unavailable_page=unavailable_page,
+        unavailable_pages=unavailable_pages,
+        overdue_room_items=overdue_room_items,
+        overdue_page=overdue_page,
+        overdue_pages=overdue_pages,
+        repairing_equipment_count=repairing_equipment_count,
+        repairing_equipment_pagination=repairing_equipment_pagination,
+        repairing_equipment_record_ids=repairing_equipment_record_ids
     )
 
 
@@ -94,6 +215,7 @@ def maintenance_list_room():
 @login_required
 def maintenance_system_check():
     room_id = request.args.get('room_id', type=int)
+    prefill_system_id = request.args.get('prefill_system_id', type=int)
     room = RoomResource.query.get_or_404(room_id)
 
     linked_system_ids = db.session.query(
@@ -213,6 +335,18 @@ def maintenance_system_check():
     for submission in submission_rows:
         latest_submissions.setdefault(submission.system_id, submission)
 
+    # A status card can reopen its system with the newest result prefilled.
+    # Saving still creates a new inspection record so the previous history remains intact.
+    if prefill_system_id not in allowed_system_ids:
+        prefill_system_id = None
+    prefill_submissions = latest_submissions if prefill_system_id else {}
+    prefilled_checked_item_ids_by_system = {}
+    for system_id, submission in prefill_submissions.items():
+        prefilled_checked_item_ids_by_system[system_id] = {
+            result.check_item_id
+            for result in submission.check_results.filter_by(is_checked=True).all()
+        }
+
     return render_template(
         'maintenance/maintenance_system_check.html',
         room=room,
@@ -220,7 +354,10 @@ def maintenance_system_check():
         groups_by_system=groups_by_system,
         items_by_group=items_by_group,
         equipment_by_group=equipment_by_group,
-        latest_submissions=latest_submissions
+        latest_submissions=latest_submissions,
+        prefill_system_id=prefill_system_id,
+        prefill_submissions=prefill_submissions,
+        prefilled_checked_item_ids_by_system=prefilled_checked_item_ids_by_system
     )
 
 
@@ -424,6 +561,13 @@ def edit_maintenance_room_system_item():
         ).group_by(ProcurementRecord.item_id).subquery()
 
         if selected_category_id:
+            linked_procurement_detail_ids = db.session.query(
+                MaintenanceRoomSystemEquipment.procurement_detail_id
+            ).filter(
+                MaintenanceRoomSystemEquipment.room_id == room.id,
+                MaintenanceRoomSystemEquipment.is_active.is_(True),
+                MaintenanceRoomSystemEquipment.procurement_detail_id.isnot(None)
+            )
             procurement_assets = ProcurementDetail.query.join(
                 latest_record_sq,
                 ProcurementDetail.id == latest_record_sq.c.item_id
@@ -435,7 +579,8 @@ def edit_maintenance_room_system_item():
                 ProcurementCategory.id == ProcurementDetail.category_id
             ).filter(
                 ProcurementRecord.location_id == room.id,
-                ProcurementDetail.category_id == selected_category_id
+                ProcurementDetail.category_id == selected_category_id,
+                ~ProcurementDetail.id.in_(linked_procurement_detail_ids)
             ).order_by(ProcurementDetail.name.asc()).all()
 
         linked_equipment = MaintenanceRoomSystemEquipment.query.join(
