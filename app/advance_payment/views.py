@@ -1278,6 +1278,7 @@ def _can_edit_borrowing_ticket(user_id, borrowing_ticket):
             borrowing_ticket.borrower_id,
         }
         and borrowing_ticket.approved_at is None
+        and borrowing_ticket.rejection_comment is None
         and borrowing_ticket.status != "กำลังดำเนินการ"
     )
 
