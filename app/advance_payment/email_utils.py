@@ -19,7 +19,9 @@ def thai_datetime(value):
     if value is None:
         return ""
     if isinstance(value, datetime):
-        return value.strftime(f"%d/%m/{value.year + 543} %H:%M น.")
+        # Keep non-ASCII text outside strftime. On Windows, strftime may use
+        # the active system locale encoding and fail on the Thai suffix.
+        return value.strftime(f"%d/%m/{value.year + 543} %H:%M") + " น."
     if isinstance(value, date):
         return value.strftime(f"%d/%m/{value.year + 543}")
     return value
