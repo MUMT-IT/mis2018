@@ -25,30 +25,30 @@
             กำลังแก้ไขรายการเดิม #{{ return_edit_detail.id }} เมื่อบันทึกแล้วต้องยืนยันการแก้ไขอีกครั้ง
           </div>
         {% endif %}
-<!--        {% if return_linkable_tickets is defined and return_linkable_tickets %}-->
-<!--          <div class="mb-4 border rounded-3 p-3 bg-white">-->
-<!--&lt;!&ndash;            <h4 class="h6 fw-bold text-dark mb-2">เชื่อมโยงใบยืมเงินที่ต้องการตรวจรวม</h4>&ndash;&gt;-->
-<!--&lt;!&ndash;            <small class="text-muted d-block mb-2">เลือกได้มากกว่า 1 ใบ เฉพาะใบยืมเงินของบุคลากรในหน่วยงานเดียวกัน</small>&ndash;&gt;-->
-<!--            <div class="row g-2">-->
-<!--              {% for linked_ticket in return_linkable_tickets %}-->
-<!--                <div class="col-md-6">-->
-<!--                  <label class="form-check border rounded-2 p-2 ps-5 h-100">-->
-<!--                    <input class="form-check-input return-linked-ticket-input" type="checkbox"-->
-<!--                           name="ticket_ids[]" value="{{ linked_ticket.id }}"-->
-<!--                           data-budget="{{ linked_ticket.required_budget or 0 }}"-->
-<!--                           {% if borrowing_ticket.verification_ticket_ids is defined and linked_ticket.id in borrowing_ticket.verification_ticket_ids %}checked{% endif %}-->
-<!--                           onchange="calculateTotalSpent({{ borrowing_ticket.id }})">-->
-<!--                    <span class="form-check-label">-->
-<!--                      <span class="fw-bold">{{ linked_ticket.number or ('#' ~ linked_ticket.id) }}</span>-->
-<!--                      <small class="d-block text-muted">{{ linked_ticket.borrowing_ticket_purpose }}</small>-->
-<!--                      <small class="d-block">วงเงิน {{ "{:,.2f}".format(linked_ticket.required_budget or 0) }} บาท</small>-->
-<!--                    </span>-->
-<!--                  </label>-->
-<!--                </div>-->
-<!--              {% endfor %}-->
-<!--            </div>-->
-<!--          </div>-->
-<!--        {% endif %}-->
+        {% if return_linkable_tickets is defined and return_linkable_tickets %}
+          <div class="mb-4 border rounded-3 p-3 bg-white">
+            <h4 class="h6 fw-bold text-dark mb-2">เชื่อมโยงใบยืมเงินที่ต้องการตรวจรวม</h4>
+            <small class="text-muted d-block mb-2">เลือกเพิ่มได้อีก 1 ใบ รวมไม่เกิน 2 บย. และต้องเป็นใบยืมเงินของบุคลากรในหน่วยงานเดียวกัน</small>
+            <div class="row g-2">
+              {% for linked_ticket in return_linkable_tickets %}
+                <div class="col-md-6">
+                  <label class="form-check border rounded-2 p-2 ps-5 h-100">
+                    <input class="form-check-input return-linked-ticket-input" type="checkbox"
+                           name="ticket_ids[]" value="{{ linked_ticket.id }}"
+                           data-budget="{{ linked_ticket.required_budget or 0 }}"
+                           {% if borrowing_ticket.verification_ticket_ids is defined and linked_ticket.id in borrowing_ticket.verification_ticket_ids %}checked{% endif %}
+                           onchange="limitReturnLinkedTickets(this, {{ borrowing_ticket.id }})">
+                    <span class="form-check-label">
+                      <span class="fw-bold">{{ linked_ticket.number or ('#' ~ linked_ticket.id) }}</span>
+                      <small class="d-block text-muted">{{ linked_ticket.borrowing_ticket_purpose }}</small>
+                      <small class="d-block">วงเงิน {{ "{:,.2f}".format(linked_ticket.required_budget or 0) }} บาท</small>
+                    </span>
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
         <input type="hidden" name="action" id="action_{{ borrowing_ticket.id }}" value="submit">
 
         <div class="accordion" id="returnAccordion_{{ borrowing_ticket.id }}">
@@ -485,6 +485,38 @@
       if (resolvedTicketId) {
         calculateTotalSpent(resolvedTicketId);
       }
+    }
+
+    function showReturnTicketLimitMessage() {
+      const options = {
+        title: "เลือกสัญญาเงินยืมเกินจำนวน",
+        message: "สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ",
+        confirmText: "ตกลง",
+        confirmClass: "btn-primary",
+        alertOnly: true,
+      };
+      if (typeof window.openAppPopup === 'function') {
+        window.openAppPopup(options);
+      } else {
+        window.alert(options.message);
+      }
+    }
+
+    function limitReturnLinkedTickets(changedInput, ticketId) {
+      const form = document.getElementById(`returnForm_${ticketId}`);
+      if (!form) return;
+      const inputs = Array.from(form.querySelectorAll('.return-linked-ticket-input'));
+      let selected = inputs.filter(input => input.checked);
+      if (selected.length > 1 && changedInput) {
+        changedInput.checked = false;
+        showReturnTicketLimitMessage();
+        selected = inputs.filter(input => input.checked);
+      }
+      const reachedLimit = selected.length >= 1;
+      inputs.forEach(input => {
+        input.disabled = reachedLimit && !input.checked;
+      });
+      calculateTotalSpent(ticketId);
     }
 
     function submitFormWithAction(ticketId, type) {
@@ -924,6 +956,11 @@
             if (other !== this) other.checked = false;
           });
         });
+      });
+
+      document.querySelectorAll("form[id^='returnForm_']").forEach(form => {
+        const ticketId = form.id.replace('returnForm_', '');
+        limitReturnLinkedTickets(null, ticketId);
       });
 
       bindReceiptAgeWarnings(document);

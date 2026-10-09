@@ -176,6 +176,7 @@ PETTY_CASH_SETTING_SESSION_KEY = "advance_payment_petty_cash_setting_id"
 FUND_REQUEST_FORM_PETTY_CASH = "petty_cash"
 FUND_REQUEST_FORM_INTEREST = "interest"
 FUND_REQUEST_FORM_BORROWING_TICKET = "borrowing"
+MAX_RETURN_LINKED_TICKETS = 2
 FUND_REQUEST_NUMBERED_STATUSES = {
     "รอการอนุมัติ",
     "อนุมัติแล้ว",
@@ -6433,6 +6434,8 @@ def submit_return_details():
             selected_ticket_ids.add(int(raw_id))
         except (TypeError, ValueError):
             return _validation_error_response("พบเอกสารสัญญาเงินยืมที่ไม่ถูกต้อง")
+    if len(selected_ticket_ids) > MAX_RETURN_LINKED_TICKETS:
+        return _validation_error_response("สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ")
 
     borrowing_ticket = db.session.query(BorrowingTicket).filter_by(id=ticket_id).first()
     if borrowing_ticket is None:
@@ -6456,6 +6459,8 @@ def submit_return_details():
                 )
             abort(403)
         selected_ticket_ids.update(_return_ticket_ids(edit_return_detail))
+        if len(selected_ticket_ids) > MAX_RETURN_LINKED_TICKETS:
+            return _validation_error_response("สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ")
 
     selected_tickets = db.session.query(BorrowingTicket).filter(
         BorrowingTicket.id.in_(selected_ticket_ids)
