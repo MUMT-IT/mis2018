@@ -99,6 +99,7 @@
     function selectSingleReturnTicket(ticketId) {
       document.querySelectorAll('#multiReturnSelectionPanel .return-ticket-selector').forEach(input => {
         input.checked = false;
+        input.disabled = false;
       });
       document.querySelectorAll('.return-ticket-purpose').forEach(heading => {
         heading.textContent = heading.dataset.defaultPurpose || '';
@@ -120,8 +121,41 @@
         alert('กรุณาเลือกสัญญาเงินยืมอย่างน้อย 1 ใบ');
         return;
       }
+      if (selected.length > 2) {
+        showMultiReturnTicketLimitMessage();
+        return;
+      }
       document.getElementById('multiReturnSelectionPanel')?.classList.add('d-none');
       syncSelectedReturnTickets();
+    }
+
+    function showMultiReturnTicketLimitMessage() {
+      const message = 'สามารถเลือกสัญญาเงินยืมได้ไม่เกิน 2 บย. ต่อรายการ';
+      if (typeof window.openAppPopup === 'function') {
+        window.openAppPopup({
+          title: 'เลือกสัญญาเงินยืมเกินจำนวน',
+          message: message,
+          confirmText: 'ตกลง',
+          confirmClass: 'btn-primary',
+          alertOnly: true,
+        });
+      } else {
+        window.alert(message);
+      }
+    }
+
+    function limitMultiReturnTickets(changedInput) {
+      const inputs = Array.from(document.querySelectorAll('#multiReturnSelectionPanel .return-ticket-selector'));
+      let selected = inputs.filter(input => input.checked);
+      if (selected.length > 2) {
+        changedInput.checked = false;
+        showMultiReturnTicketLimitMessage();
+        selected = inputs.filter(input => input.checked);
+      }
+      const reachedLimit = selected.length >= 2;
+      inputs.forEach(input => {
+        input.disabled = reachedLimit && !input.checked;
+      });
     }
 
     function syncSelectedReturnTickets() {
@@ -322,13 +356,14 @@
               </option>
             {% endfor %}
           </select>
-<!--          <div class="mt-2">-->
-<!--            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="toggleMultiReturnSelection()">-->
-<!--              <i class="bi bi-check2-square me-1"></i> ส่งใช้เงินยืมหลาย บย.-->
-<!--            </button>-->
-<!--          </div>-->
+          <div class="mt-2">
+            <button type="button" class="btn btn-outline-primary btn-sm fw-bold" onclick="toggleMultiReturnSelection()">
+              <i class="bi bi-check2-square me-1"></i> ส่งใช้เงินยืมหลาย บย.
+            </button>
+          </div>
           <div id="multiReturnSelectionPanel" class="border rounded-3 p-3 mt-3 d-none">
             <div class="fw-bold text-dark mb-2">เลือกสัญญาที่ต้องการส่งใช้พร้อมกัน</div>
+            <small class="text-muted d-block mb-2">เลือกได้ไม่เกิน 2 บย. ต่อรายการ</small>
             <div class="list-group mb-3">
               {% for ticket in actionable_tickets %}
                 <label class="list-group-item list-group-item-action d-flex align-items-start gap-2">
@@ -337,7 +372,8 @@
                          data-budget="{{ ticket.required_budget or 0 }}"
                          data-existing-total="{{ return_form_totals_by_ticket.get(ticket.id, {}).get('submitted_total', ticket.submitted_return_total or 0) }}"
                          data-purpose="{{ ticket.borrowing_ticket_purpose }}"
-                         data-approved="{{ ticket.approved_at.isoformat() if ticket.approved_at else '' }}">
+                         data-approved="{{ ticket.approved_at.isoformat() if ticket.approved_at else '' }}"
+                         onchange="limitMultiReturnTickets(this)">
                   <span>
                     <span class="d-block fw-bold">เลขที่สัญญา: {{ ticket.number or ticket.id }}</span>
                     <small class="d-block text-muted">ผู้ยืม: {{ ticket.borrower_name or ticket.borrower_email or '-' }} - {{ ticket.borrowing_ticket_purpose }}</small>
