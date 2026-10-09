@@ -315,7 +315,7 @@
       <div class="alert alert-warning d-flex align-items-start" role="alert">
         <i class="bi bi-lock-fill me-2 mt-1"></i>
         <div>
-          <strong>ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</strong>
+          <strong>ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</strong>
           <div class="small">ยังสามารถส่งได้เฉพาะรายการเงินโอนคืนบัญชีเงินสดย่อยเท่านั้น</div>
         </div>
       </div>
@@ -346,7 +346,7 @@
             <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
             รายการส่งเบิกเงินสดย่อย
             {% if not cash_mng_finance_open %}
-            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</span>
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</span>
             {% endif %}
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
@@ -576,7 +576,7 @@
             <i class="bi bi-file-earmark-text me-2 text-primary"></i>
             รายการส่งการเงิน ว-119 / ว-5763
             {% if not cash_mng_finance_open %}
-            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</span>
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</span>
             {% endif %}
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
@@ -646,7 +646,7 @@
             <i class="bi bi-box-seam me-2 text-primary"></i>
             รายการที่ส่งไปฝ่ายพัสดุ
             {% if not cash_mng_finance_open %}
-            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง</span>
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</span>
             {% endif %}
             <i class="bi bi-chevron-down ms-auto text-muted"></i>
           </button>
@@ -1138,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', function() {
           event.preventDefault();
           window.openAppPopup({
             title: "ไม่สามารถส่งรายการได้",
-            message: "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง",
+            message: "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ",
             confirmText: "ตกลง",
             confirmClass: "btn-warning",
             alertOnly: true,
@@ -1535,7 +1535,7 @@ function updateSubmitAndReturnButtons(isOverRequest) {
     btn.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
     btn.title = isOverRequest
       ? 'ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้'
-      : (financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง' : '');
+      : (financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ' : '');
   });
 }
 

@@ -18,7 +18,7 @@
       <span class="fw-bold">
         สถานะ:
         <span class="badge {{ 'bg-success' if cash_mng_finance_open else 'bg-danger' }}">
-          {{ 'เปิดคลัง' if cash_mng_finance_open else 'ปิดคลัง' }}
+          {{ 'เปิดปีงบประมาณ' if cash_mng_finance_open else 'ปิดปีงบประมาณ' }}
         </span>
       </span>
       <button type="submit"
@@ -26,7 +26,7 @@
               value="{{ 'close' if cash_mng_finance_open else 'open' }}"
               class="btn {{ 'btn-outline-danger' if cash_mng_finance_open else 'btn-outline-success' }} fw-bold">
         <i class="bi {{ 'bi-lock-fill' if cash_mng_finance_open else 'bi-unlock-fill' }} me-1"></i>
-        {{ 'ปิดคลัง' if cash_mng_finance_open else 'เปิดคลัง' }}
+        {{ 'ปิดปีงบประมาณ' if cash_mng_finance_open else 'เปิดปีงบประมาณ' }}
       </button>
     </form>
     <a href="{{ url_for('advance_payment.petty_cash_fiscal_year_carryover') }}" class="btn btn-outline-primary fw-bold">

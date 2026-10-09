@@ -872,17 +872,28 @@ def _sync_fund_request_approval_status(fund_request):
     return fund_request.status
 
 
-def _serialize_org_department(org):
+def _serialize_org_department(org, *, include_child_orgs=False):
     if not org:
         return None
 
+    included_orgs = {}
+    pending_orgs = [org]
+    while pending_orgs:
+        current_org = pending_orgs.pop()
+        current_org_id = getattr(current_org, "id", None)
+        if current_org_id is None or current_org_id in included_orgs:
+            continue
+        included_orgs[current_org_id] = current_org
+        if include_child_orgs:
+            pending_orgs.extend(getattr(current_org, "children", None) or [])
+
     staff_members = []
-    org_id = getattr(org, "id", None)
     for staff in _get_staff_accounts_from_directory():
         if not staff:
             continue
         personal_info = getattr(staff, "personal_info", None)
-        if getattr(personal_info, "org_id", None) != org_id:
+        staff_org = included_orgs.get(getattr(personal_info, "org_id", None))
+        if staff_org is None:
             continue
         staff_members.append(
             {
@@ -890,7 +901,7 @@ def _serialize_org_department(org):
                 "name": getattr(staff, "name", None) or getattr(staff, "fullname", None) or getattr(staff, "email", ""),
                 "position": getattr(staff, "position", "") or "ไม่พบข้อมูลตำแหน่ง",
                 "email": getattr(staff, "email", ""),
-                "department": getattr(org, "name", "") or "",
+                "department": getattr(staff_org, "name", "") or "",
             }
         )
 
@@ -1719,9 +1730,19 @@ def _resolve_petty_cash_setting(user, fiscal_year=None):
             return setting
 
     if org:
-        setting = query.filter_by(org_id=org.id).first()
-        if setting:
-            return setting
+        current_org = org
+        visited_org_ids = set()
+        while current_org:
+            current_org_id = getattr(current_org, "id", None)
+            if current_org_id is None or current_org_id in visited_org_ids:
+                break
+            visited_org_ids.add(current_org_id)
+
+            setting = query.filter_by(org_id=current_org_id).first()
+            if setting:
+                return setting
+
+            current_org = getattr(current_org, "parent", None)
 
     department_name = (getattr(user, "department", "") or "").strip()
     if department_name:
@@ -8242,7 +8263,7 @@ def petty_cash_settings(_render_after_post=False):
 def toggle_cash_mng_finance_state():
     action = (request.form.get("action") or "").strip().lower()
     if action not in {"open", "close"}:
-        return _validation_error_response("คำสั่งเปิด/ปิดคลังไม่ถูกต้อง")
+        return _validation_error_response("คำสั่งเปิด/ปิดปีงบประมาณไม่ถูกต้อง")
 
     state = db.session.query(CashManagementFinanceState).filter_by(id=1).first()
     if state is None:
@@ -8253,9 +8274,9 @@ def toggle_cash_mng_finance_state():
     state.updated_at = datetime.now(ZoneInfo("Asia/Bangkok"))
     db.session.commit()
     flash(
-        "เปิดคลังเงินสดย่อยเรียบร้อยแล้ว"
+        "เปิดปีงบประมาณเงินสดย่อยเรียบร้อยแล้ว"
         if state.is_open
-        else "ปิดคลังเงินสดย่อยเรียบร้อยแล้ว",
+        else "ปิดปีงบประมาณเงินสดย่อยเรียบร้อยแล้ว",
         "success",
     )
     return redirect(url_for("advance_payment.petty_cash_settings"))
@@ -8876,13 +8897,17 @@ def staff_fund_request():
         user_id=user.id if not (setting and setting.id) else None,
     )
     # Borrower choices must follow the organization configured for the petty-cash
-    # setting, not the custodian's own profile organization.
+    # setting, including every child organization, not the custodian's own profile
+    # organization.
     setting_org = getattr(setting, "org", None) if setting else None
     if setting_org is None and setting:
         setting_org = _resolve_org_by_department_name(getattr(setting, "department_name", None))
     staff_org = setting_org
     department_employees = (
-        _serialize_org_department(setting_org).get("staff_members", [])
+        _serialize_org_department(
+            setting_org,
+            include_child_orgs=True,
+        ).get("staff_members", [])
         if setting_org and is_custodian
         else []
     )
@@ -10018,7 +10043,7 @@ def autosave_petty_cash_claim_draft():
         category_type != 6 for category_type in item_category_types
     ):
         return _validation_error_response(
-            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ"
         )
 
     normalized_fund_request_id = (
@@ -10607,7 +10632,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             has_claim_data or has_parcel_data or has_circular_data
         ):
             return _validation_error_response(
-                "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+                "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ"
             )
         if (
             not cash_mng_finance_open
@@ -10615,7 +10640,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
             and not _claim_has_only_category_six(edit_claim_detail)
         ):
             return _validation_error_response(
-                "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+                "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ"
             )
         if edit_claim_detail is not None:
             edit_is_cash_return = _claim_has_only_category_six(edit_claim_detail)
@@ -11324,7 +11349,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
 def staff_parcel_return_edit(parcel_return_id):
     if not _is_cash_mng_finance_open():
         return _validation_error_response(
-            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ"
         )
 
     parcel_return = db.session.query(ParcelReturnDetail).get(parcel_return_id)
@@ -11595,7 +11620,7 @@ def confirm_petty_claim_edit(claim_id):
     is_cash_return_only = _claim_has_only_category_six(claim)
     if not _is_cash_mng_finance_open() and not is_cash_return_only:
         return _validation_error_response(
-            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดคลัง"
+            "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ"
         )
 
     if is_cash_return_only:
