@@ -6,6 +6,22 @@
   <header class="mb-4 pb-3 border-bottom">
     <p class="text-uppercase fw-bold text-primary small tracking-wide mb-1" style="letter-spacing: 0.12em;">พื้นที่สำหรับฝ่ายการเงิน</p>
     <h1 class="fw-bold display-6 mb-2">{{ dashboard_title }}</h1>
+    <form method="post" action="{{ url_for('advance_payment.toggle_cash_mng_finance_state') }}" class="d-flex align-items-center gap-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <span class="fw-bold">
+        สถานะ:
+        <span class="badge {{ 'bg-success' if cash_mng_finance_open else 'bg-danger' }}">
+          {{ 'เปิดปีงบประมาณ' if cash_mng_finance_open else 'ปิดปีงบประมาณ' }}
+        </span>
+      </span>
+      <button type="submit"
+              name="action"
+              value="{{ 'close' if cash_mng_finance_open else 'open' }}"
+              class="btn {{ 'btn-outline-danger' if cash_mng_finance_open else 'btn-outline-success' }} fw-bold">
+        <i class="bi {{ 'bi-lock-fill' if cash_mng_finance_open else 'bi-unlock-fill' }} me-1"></i>
+        {{ 'ปิดปีงบประมาณ' if cash_mng_finance_open else 'เปิดปีงบประมาณ' }}
+      </button>
+    </form>
   </header>
 
   <!-- Section กรองและค้นหาข้อมูลแบบ Row -->

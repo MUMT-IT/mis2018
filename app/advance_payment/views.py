@@ -98,6 +98,7 @@ def render_template(template_name, *args, **kwargs):
         "selected_petty_cash_setting_id",
         session.get(PETTY_CASH_SETTING_SESSION_KEY),
     )
+    kwargs.setdefault("cash_mng_finance_open", _is_cash_mng_finance_open())
     return _render_template(template_name, *args, **kwargs)
 
 
@@ -1054,13 +1055,21 @@ def _ensure_module_role(staff, requested_role):
 
 
 def _selected_system():
-    return session.get("advance_payment_system")
+    selected_system = session.get("advance_payment_system")
+    if (
+        selected_system == ADVANCE_PAYMENT_SYSTEM
+        and not _is_cash_mng_finance_open()
+    ):
+        return None
+    return selected_system
 
 
 def _can_use_module_system(staff, system):
     if staff is None or getattr(staff, "is_authenticated", True) is False:
         return False
-    if staff is not None and system in {PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM}:
+    if staff is not None and system == ADVANCE_PAYMENT_SYSTEM:
+        return _is_cash_mng_finance_open()
+    if staff is not None and system == PETTY_CASH_SYSTEM:
         return True
     available_roles = set(_available_module_roles(staff))
     if system == FINANCE_SYSTEM:
