@@ -44,7 +44,9 @@
         .approved-lab-table tbody tr[data-detail-url] { cursor: pointer; }
         .approved-lab-table tbody tr[data-detail-url]:hover { background: var(--theme-navy-soft); }
         .approved-status-some,
-        .approved-status-complete {
+        .approved-status-complete,
+        .approval-status-some,
+        .approval-status-complete {
             border-radius: 999px;
             display: inline-block;
             font-size: 0.82rem;
@@ -61,6 +63,16 @@
             background: #edf9f1;
             border: 1px solid var(--theme-green);
             color: var(--theme-green);
+        }
+        .approval-status-some {
+            background: #fff4e5;
+            border: 1px solid #dc8a19;
+            color: #9a4f00;
+        }
+        .approval-status-complete {
+            background: #eaf1ff;
+            border: 1px solid #3b6fc4;
+            color: #1f4f9b;
         }
         .approved-lab-pagination {
             align-items: center;
@@ -219,9 +231,20 @@
                 return `${day}/${month}/${date.getFullYear()}`;
             }
 
+            function formatDateTime(value) {
+                const matched = String(value).match(
+                    /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+                );
+                if (matched) {
+                    return `${matched[3]}/${matched[2]}/${matched[1]} ${matched[4]}:${matched[5]}:${matched[6] || '00'}`;
+                }
+                return formatDate(value);
+            }
+
             function displayValue(value, column) {
                 if (value === null || value === undefined || value === '') return '-';
                 const columnName = String(column || '').toLowerCase();
+                if (columnName === 'lastemailsentat') return formatDateTime(value);
                 if (columnName.includes('date') || columnName.includes('time')) {
                     return formatDate(value);
                 }
@@ -262,10 +285,20 @@
                 const approvedStatus = String(value || '').trim().toLowerCase();
                 if (tagName === 'td' && column === 'approvedStatus' && approvedStatus === 'some') {
                     const badge = document.createElement('span');
+                    badge.textContent = 'Approved บางส่วน';
+                    badge.classList.add('approval-status-some');
+                    cell.appendChild(badge);
+                } else if (tagName === 'td' && column === 'approvedStatus' && approvedStatus === 'complete') {
+                    const badge = document.createElement('span');
+                    badge.textContent = 'Approved ครบถ้วน';
+                    badge.classList.add('approval-status-complete');
+                    cell.appendChild(badge);
+                } else if (tagName === 'td' && column === 'lastEmailStatus' && approvedStatus === 'some') {
+                    const badge = document.createElement('span');
                     badge.textContent = 'ส่งผลบางส่วน';
                     badge.classList.add('approved-status-some');
                     cell.appendChild(badge);
-                } else if (tagName === 'td' && column === 'approvedStatus' && approvedStatus === 'complete') {
+                } else if (tagName === 'td' && column === 'lastEmailStatus' && approvedStatus === 'complete') {
                     const badge = document.createElement('span');
                     badge.textContent = 'ส่งผลครบถ้วน';
                     badge.classList.add('approved-status-complete');
@@ -285,14 +318,22 @@
                 }, new Set())).filter(function (column) {
                     return !['custId', 'serviceDate'].includes(column);
                 });
-                const statusColumns = ['approvedStatus', 'lastApprovedTime'];
+                const statusColumns = [
+                    'approvedStatus', 'lastApprovedTime',
+                    'lastEmailStatus', 'lastEmailSentBy', 'lastEmailSentAt'
+                ];
                 statusColumns.forEach(function (column) {
                     const existingIndex = columns.indexOf(column);
                     if (existingIndex !== -1) columns.splice(existingIndex, 1);
                 });
                 columns.push('resultLink');
                 columns.push(...statusColumns);
-                const headerLabels = { resultLink: 'ผล online' };
+                const headerLabels = {
+                    resultLink: 'ผล online',
+                    lastEmailStatus: 'สถานะส่ง Email ล่าสุด',
+                    lastEmailSentBy: 'ชื่อคนส่ง Email',
+                    lastEmailSentAt: 'วันเวลาส่ง Email ล่าสุด'
+                };
                 columns.forEach(function (column) {
                     appendCell(tableHead, 'th', headerLabels[column] || column);
                 });

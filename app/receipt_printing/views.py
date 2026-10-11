@@ -375,13 +375,20 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         items.append(item_record)
         total += item.price
 
-    n = len(items)
-    for i in range(22 - n):
-        items.append([
-            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
-        ])
+    # Wrapped descriptions consume the space previously occupied by blank rows.
+    # Measure with the same column widths and default cell padding as the final table.
+    item_column_widths = [50, 450, 75]
+    table_width = sum(item_column_widths)
+    _, content_height = Table(items, colWidths=item_column_widths).wrap(table_width, doc.height)
+    _, header_height = Table(items[:1], colWidths=item_column_widths).wrap(table_width, doc.height)
+    blank_line = Paragraph('<font size=12>&nbsp;</font>', style=style_sheet['ThaiStyleNumber'])
+    _, blank_row_height = Table([[blank_line, '', '']], colWidths=item_column_widths).wrap(
+        table_width, doc.height)
+    filler_height = max(0, 21 * blank_row_height - (content_height - header_height))
+    row_heights = [None] * len(items)
+    if filler_height:
+        items.append(['', '', ''])
+        row_heights.append(filler_height)
     total_thai = bahttext(total)
     total_text = "รวมเงินตัวอักษร/ Baht Text : {} รวมเงินทั้งสิ้น/ Total".format(total_thai)
     items.append([
@@ -389,7 +396,8 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
-    item_table = Table(items, colWidths=[50, 450, 75])
+    row_heights.append(None)
+    item_table = Table(items, colWidths=item_column_widths, rowHeights=row_heights, repeatRows=1)
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
@@ -467,7 +475,7 @@ def generate_receipt_pdf(receipt, sign=False, cancel=False):
     data.append(KeepTogether(customer))
     data.append(KeepTogether(Spacer(1, 12)))
     data.append(KeepTogether(Spacer(1, 6)))
-    data.append(KeepTogether(item_table))
+    data.append(item_table)
     data.append(KeepTogether(Spacer(1, 6)))
     data.append(KeepTogether(total_table))
     # data.append(KeepTogether(Spacer(1, 12)))

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<style>
+    .comhealth-admin-menu { min-height: 80vh; background: linear-gradient(145deg, #eef3fa 0%, #f8fafc 65%, #f0f7f6 100%); }
+    .comhealth-admin-menu .admin-container { max-width: 1060px; }
+    .comhealth-admin-menu .admin-back { display: inline-flex; align-items: center; gap: 8px; color: #52647d; margin-bottom: 28px; }
+    .comhealth-admin-menu .admin-hero { display: flex; align-items: center; gap: 22px; margin-bottom: 36px; }
+    .comhealth-admin-menu .admin-emblem { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 72px; height: 72px; border-radius: 22px; background: #19365d; color: white; font-size: 28px; box-shadow: 0 8px 20px rgba(25,54,93,.14); }
+    .comhealth-admin-menu .admin-eyebrow { color: #5b7190; font-size: .75rem; font-weight: 700; letter-spacing: .12em; margin-bottom: 8px; }
+    .comhealth-admin-menu h1 { color: #19365d; font-size: 2rem; font-weight: 700; line-height: 1.25; margin-bottom: 10px; }
+    .comhealth-admin-menu .admin-description { color: #61718a; line-height: 1.7; }
+    .comhealth-admin-menu .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .comhealth-admin-menu .admin-card { display: flex; flex-direction: column; padding: 30px; border: 1px solid #dfe7f0; border-radius: 20px; background: #fff; box-shadow: 0 6px 24px rgba(25,54,93,.04); color: #19365d; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+    .comhealth-admin-menu .admin-card:hover { transform: translateY(-4px); border-color: #9bb8df; box-shadow: 0 14px 30px rgba(25,54,93,.10); }
+    .comhealth-admin-menu a:focus-visible { outline: 3px solid #3273dc; outline-offset: 5px; }
+    .comhealth-admin-menu .card-icon { display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 16px; background: #edf4ff; color: #2862b4; font-size: 24px; margin-bottom: 24px; }
+    .comhealth-admin-menu .customer-card .card-icon { background: #eaf6f3; color: #247665; }
+    .comhealth-admin-menu .admin-card h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; }
+    .comhealth-admin-menu .card-description { color: #61718a; line-height: 1.8; margin-bottom: 24px; flex: 1; }
+    .comhealth-admin-menu .card-footer-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid #edf1f6; padding-top: 20px; color: #2862b4; font-weight: 600; }
+    .comhealth-admin-menu .customer-card .card-footer-link { color: #247665; }
+    .comhealth-admin-menu .admin-note { display: flex; align-items: flex-start; gap: 10px; color: #61718a; font-size: .9rem; line-height: 1.8; margin-top: 26px; }
+    .comhealth-admin-menu .admin-note i { margin-top: 6px; }
+    @media (max-width: 768px) {
+        .comhealth-admin-menu .admin-grid { grid-template-columns: 1fr; gap: 18px; }
+        .comhealth-admin-menu .admin-hero { align-items: flex-start; gap: 16px; }
+        .comhealth-admin-menu .admin-emblem { width: 52px; height: 52px; border-radius: 16px; font-size: 22px; }
+        .comhealth-admin-menu h1 { font-size: 1.6rem; }
+        .comhealth-admin-menu .admin-card { padding: 24px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .comhealth-admin-menu .admin-card { transition: none; }
+        .comhealth-admin-menu .admin-card:hover { transform: none; }
+    }
+</style>
+<section class="section comhealth-admin-menu">
+    <div class="container admin-container">
+        <a href="/comhealth" class="admin-back"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>กลับหน้าหลัก Community Health</span></a>
+        <header class="admin-hero">
+            <span class="admin-emblem"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+            <div>
+                <p class="admin-eyebrow">COMMUNITY HEALTH · ADMIN</p>
+                <h1>จัดการข้อมูลบริการสุขภาพ</h1>
+                <p class="admin-description">เลือกงานที่ต้องการจัดการ สำหรับผู้ดูแลระบบ Community Health</p>
+            </div>
+        </header>
+        <div class="admin-grid">
+            <a href="{{ url_for('comhealth.edit_comhealth_schedule') }}" class="admin-card">
+                <span class="card-icon"><i class="fas fa-calendar-alt" aria-hidden="true"></i></span>
+                <h2>ปรับแก้วันออกตรวจ</h2>
+                <p class="card-description">ค้นหาสถานที่ แก้ไขวันที่ และลบวันออกตรวจที่ยังไม่มีผู้รับบริการ Checked In</p>
+                <span class="card-footer-link"><span>จัดการวันออกตรวจ</span><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+            </a>
+            <a href="{{ url_for('comhealth.edit_del_comhealth_customer') }}" class="admin-card customer-card">
+                <span class="card-icon"><i class="fas fa-user-edit" aria-hidden="true"></i></span>
+                <h2>แก้ไข / ลบผู้รับบริการ</h2>
+                <p class="card-description">ค้นหาหน่วยงาน แก้ไขชื่อ และลบข้อมูลผู้รับบริการที่ไม่มีประวัติ Checked In ในการตรวจครั้งใด</p>
+                <span class="card-footer-link"><span>จัดการผู้รับบริการ</span><i class="fas fa-arrow-right" aria-hidden="true"></i></span>
+            </a>
+        </div>
+        <p class="admin-note"><i class="fas fa-shield-alt" aria-hidden="true"></i><span>ระบบตรวจสอบข้อมูล Checked In อีกครั้งก่อนบันทึกหรือลบ เพื่อป้องกันการเปลี่ยนแปลงข้อมูลที่มีประวัติเข้ารับบริการแล้ว</span></p>
+    </div>
+</section>
+{% endblock %}

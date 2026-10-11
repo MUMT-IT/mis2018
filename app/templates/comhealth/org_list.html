@@ -7,6 +7,7 @@
                 <div class="column has-text-centered">
                     {% include "messages.html" %}
                     <h1 class="title">รายชื่อหน่วยงาน</h1>
+                    <p v-if="saveMessage" class="notification" :class="saveError ? 'is-danger' : 'is-success'" role="status"><% saveMessage %></p>
                 </div>
             </div>
             <div class="columns">
@@ -22,7 +23,7 @@
                         <div class="field has-addons">
                             <p class="control">
                                 <input class="input is-medium is-rounded"
-                                       name="name" type="text" placeholder="Organization name" />
+                                       name="name" type="text" placeholder="Organization name" required maxlength="255" />
                             </p>
                             <p class="control">
                                 <button class="button is-medium is-rounded is-info" href="">
@@ -43,8 +44,28 @@
                             <b-table-column field="id" label="ID" numeric>
                                 <% props.row.id %>
                             </b-table-column>
-                            <b-table-column field="name" label="Name" sortable centered>
+                            <b-table-column field="name" label="Name" sortable :custom-sort="sortByName" centered>
+                                {% if comhealth_admin_menu_visible %}
+                                <form v-if="editingOrgId === props.row.id" :action="'/comhealth/organizations/' + props.row.id + '/edit'" method="post" @submit.prevent="saveOrg($event, props.row)">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="field">
+                                        <input class="input" name="name" v-model="editingOrgName" aria-label="ชื่อหน่วยงาน" required maxlength="255">
+                                    </div>
+                                    <div class="buttons is-centered">
+                                        <button type="submit" class="button is-small is-success" :class="{'is-loading': saving}" :disabled="saving">บันทึก</button>
+                                        <button type="button" class="button is-small" :disabled="saving" @click="editingOrgId = null">ยกเลิก</button>
+                                    </div>
+                                </form>
+                                <span v-else>
+                                    <% props.row.name %>
+                                    <button type="button" class="button is-small is-info is-light" :disabled="saving" @click="editingOrgId = props.row.id; editingOrgName = props.row.name">
+                                        <span class="icon"><i class="fas fa-edit" aria-hidden="true"></i></span>
+                                        <span>แก้ไขชื่อ</span>
+                                    </button>
+                                </span>
+                                {% else %}
                                 <% props.row.name %>
+                                {% endif %}
                             </b-table-column>
                             <b-table-column field="" label="Detail">
                                 <a class="button is-rounded is-light" v-bind:href="'/comhealth/organizations/'+props.row.id+'/employees'">
@@ -66,6 +87,16 @@
                                     <span>Register Customers to Service</span>
                                 </a>
                             </b-table-column>
+                            {% if comhealth_admin_menu_visible %}
+                                <b-table-column field="" label="ลบ" centered>
+                                    <button type="button" class="button is-rounded is-danger is-light" :disabled="saving" @click="deleteOrg(props.row)">
+                                        <span class="icon">
+                                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                        </span>
+                                        <span>ลบ</span>
+                                    </button>
+                                </b-table-column>
+                            {% endif %}
                         </template>
                     </b-table>
                 </div>
@@ -81,8 +112,75 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    services: {{ orgs|tojson|safe }},
+                    services: {{ orgs|tojson|safe }}.map(function (org) {
+                        return Object.assign({}, org, {tableName: org.name});
+                    }),
                     query: '',
+                    editingOrgId: null,
+                    editingOrgName: '',
+                    saving: false,
+                    saveMessage: '',
+                    saveError: false,
+                }
+            },
+            watch: {
+                query: function () {
+                    this.services.forEach(function (org) { org.tableName = org.name; });
+                }
+            },
+            methods: {
+                deleteOrg: async function (org) {
+                    if (this.saving) return;
+                    if (!window.confirm('ยืนยันลบหน่วยงาน “' + org.name + '” พร้อมผู้รับบริการและข้อมูลที่ผูกกับหน่วยงานนี้? หากมีข้อมูล Checked In ระบบจะไม่อนุญาตให้ลบ')) return;
+                    this.saving = true;
+                    this.saveMessage = '';
+                    this.saveError = false;
+                    try {
+                        const form = new FormData();
+                        form.append('csrf_token', {{ csrf_token()|tojson }});
+                        const response = await fetch('/comhealth/organizations/' + org.id + '/delete', {
+                            method: 'POST',
+                            headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'},
+                            body: form
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.message || 'ไม่สามารถลบหน่วยงานได้');
+                        this.services = this.services.filter(function (item) { return item.id !== org.id; });
+                        if (this.editingOrgId === org.id) this.editingOrgId = null;
+                        this.saveMessage = result.message;
+                    } catch (error) {
+                        this.saveError = true;
+                        this.saveMessage = error instanceof SyntaxError ? 'ไม่สามารถลบได้ กรุณาตรวจสอบการเข้าสู่ระบบแล้วลองอีกครั้ง' : error.message;
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+                sortByName: function (a, b, ascending) {
+                    return String(a.tableName || '').localeCompare(String(b.tableName || '')) * (ascending ? 1 : -1);
+                },
+                saveOrg: async function (event, org) {
+                    if (this.saving) return;
+                    this.saving = true;
+                    this.saveMessage = '';
+                    this.saveError = false;
+                    try {
+                        const response = await fetch(event.target.action, {
+                            method: 'POST',
+                            headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'},
+                            body: new FormData(event.target)
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.message || 'ไม่สามารถบันทึกชื่อหน่วยงานได้');
+                        // Keep the current filter and sort position until the search changes.
+                        org.name = result.name;
+                        this.editingOrgId = null;
+                        this.saveMessage = 'แก้ไขชื่อหน่วยงานเป็น “' + result.name + '” เรียบร้อยแล้ว';
+                    } catch (error) {
+                        this.saveError = true;
+                        this.saveMessage = error instanceof SyntaxError ? 'ไม่สามารถบันทึกได้ กรุณาตรวจสอบการเข้าสู่ระบบแล้วลองอีกครั้ง' : error.message;
+                    } finally {
+                        this.saving = false;
+                    }
                 }
             },
             computed: {
@@ -90,7 +188,7 @@
                     var self = this;
                     return self.services.filter(function (item) {
                         if (self.query !== "") {
-                            var match = item.name
+                            var match = item.tableName
                                 .toString()
                                 .toLowerCase()
                                 .indexOf(self.query.toLowerCase()) >= 0;

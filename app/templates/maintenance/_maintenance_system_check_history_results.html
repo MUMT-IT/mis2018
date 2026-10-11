@@ -1,0 +1,31 @@
+{% if equipment_snapshots %}
+    <div class="p-4 pb-2">
+        <p class="has-text-weight-bold has-text-grey-dark mb-2"><i class="fa-solid fa-boxes-stacked mr-1"></i>ครุภัณฑ์ ณ วันที่ตรวจ</p>
+        <div class="tags">
+            {% for equipment in equipment_snapshots %}
+                <span class="tag is-link is-light is-medium">{{ equipment.check_group.name }}: ERP {{ equipment.erp_code_snapshot or '-' }} | {{ equipment.item_name_snapshot }}</span>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+<table class="table is-fullwidth mb-0">
+    <thead>
+        <tr><th>รายการตรวจเช็ค</th><th class="has-text-centered">ผลการตรวจ</th></tr>
+    </thead>
+    <tbody>
+        {% for result in results %}
+            <tr>
+                <td>{{ result.check_item.label }}</td>
+                <td class="has-text-centered">
+                    {% if result.is_checked %}
+                        <span class="has-text-success has-text-weight-bold"><i class="fa-solid fa-check"></i> ตรวจแล้ว</span>
+                    {% else %}
+                        <span class="has-text-warning-dark has-text-weight-bold"><i class="fa-solid fa-minus"></i> ไม่ได้ตรวจ</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr><td colspan="2" class="has-text-centered has-text-grey">ไม่มีรายการ checklist ในการบันทึกนี้</td></tr>
+        {% endfor %}
+    </tbody>
+</table>

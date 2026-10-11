@@ -14,6 +14,20 @@
             justify-content: space-between;
             margin-bottom: 1.5rem;
         }
+        .lab-test-header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .75rem;
+        }
+        .online-result-button {
+            box-shadow: 0 5px 14px rgba(39, 103, 214, 0.28);
+            font-size: 1rem;
+            font-weight: 700;
+            min-height: 3rem;
+            padding-left: 1.1rem;
+            padding-right: 1.1rem;
+        }
+        .online-result-button .icon { font-size: 1.1rem; }
         .lab-test-panel {
             background: rgba(255, 255, 255, 0.96);
             border: 1px solid var(--theme-border);
@@ -117,10 +131,24 @@
         .lab-test-table tbody tr.department-color-1:hover { background: #fff0b8; }
         .lab-test-table td.result-cell { background: #ffffff; }
         .lab-test-table td.test-result-current { font-weight: 700; }
+        .lab-results-table .test-result-column {
+            max-width: 18rem;
+            min-width: 10rem;
+            width: 14rem;
+        }
+        .lab-results-table td.test-result-column {
+            overflow-wrap: anywhere;
+            vertical-align: middle;
+            white-space: normal;
+            word-break: break-word;
+        }
         .lab-test-table td.numeric-test-result {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-variant-numeric: tabular-nums;
+            overflow-wrap: normal;
             text-align: right;
+            white-space: nowrap;
+            word-break: normal;
         }
         .lab-results-table { font-size: 0.85rem; }
         .lab-results-table th { font-size: 0.8rem; }
@@ -154,6 +182,8 @@
         }
         @media (max-width: 768px) {
             .lab-test-header { align-items: flex-start; flex-direction: column; }
+            .lab-test-header-actions { width: 100%; }
+            .lab-test-header-actions .button { flex: 1; }
             .approval-action-inner { align-items: stretch; flex-direction: column; }
             .approval-actions .button { flex: 1; }
         }
@@ -168,10 +198,19 @@
                     <h1 class="title is-3 mb-2">รายละเอียด Test ผล Lab</h1>
                     <p class="subtitle is-6">รายการ Test ของ Service No {{ service_no or '-' }}</p>
                 </div>
-                <button class="button is-light" type="button" onclick="history.back()">
-                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                    <span>รายชื่อผู้รับบริการ</span>
-                </button>
+                <div class="lab-test-header-actions">
+                    <a id="online-result-button"
+                       class="button is-link is-medium online-result-button"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        <span class="icon"><i class="fas fa-file-medical-alt"></i></span>
+                        <span>ดูผล online และส่ง Email</span>
+                    </a>
+                    <button id="back-to-customer-list" class="button is-light" type="button">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>รายชื่อผู้รับบริการ</span>
+                    </button>
+                </div>
             </div>
 
             <label class="approve-every-section">
@@ -298,7 +337,14 @@
             const labApprovalsApiUrl = {{ url_for('comhealth.save_lab_approvals_api') | tojson }};
             const physicalApprovalApiUrl = {{ url_for('comhealth.save_physical_exam_approval_api') | tojson }};
             const xrayApprovalApiUrl = {{ url_for('comhealth.save_xray_approval_api') | tojson }};
-            const healthResultNotificationApiUrl = {{ url_for('comhealth.send_health_result_notification_api') | tojson }};
+            const approvedLabnoUrl = {{ url_for('comhealth.approved_labno') | tojson }};
+            const resultUrlTemplate = {{ url_for(
+                'comhealth.customer_result',
+                serviceNo=999999999,
+                email='EMAIL_PLACEHOLDER',
+                servicedate='DATE_PLACEHOLDER',
+                age='AGE_PLACEHOLDER'
+            ) | tojson }};
             const serviceNo = {{ service_no | default('', true) | tojson }};
             const customerEmail = {{ customer_email | default('', true) | tojson }};
             const serviceDate = {{ service_date | default('', true) | tojson }};
@@ -325,12 +371,41 @@
             const approvalChangeCount = document.getElementById('approval-change-count');
             const cancelApprovalChanges = document.getElementById('cancel-approval-changes');
             const saveApprovalButton = document.getElementById('save-approval');
+            const onlineResultButton = document.getElementById('online-result-button');
+            const backToCustomerListButton = document.getElementById('back-to-customer-list');
             let labRows = [];
             let originalLabApprovalStates = [];
             let physicalRows = [];
             let xrayRows = [];
             let originalPhysicalApprovalState = false;
             let originalXrayApprovalState = false;
+
+            if (serviceNo && customerEmail && serviceDate) {
+                onlineResultButton.href = resultUrlTemplate
+                    .replace('999999999', encodeURIComponent(serviceNo))
+                    .replace('EMAIL_PLACEHOLDER', encodeURIComponent(customerEmail))
+                    .replace('DATE_PLACEHOLDER', encodeURIComponent(serviceDate))
+                    .replace('AGE_PLACEHOLDER', encodeURIComponent(customerAge || '-'));
+            } else {
+                onlineResultButton.classList.add('is-static');
+                onlineResultButton.setAttribute('aria-disabled', 'true');
+                onlineResultButton.removeAttribute('href');
+                onlineResultButton.title = 'ข้อมูล Email หรือวันที่ตรวจไม่ครบถ้วน';
+            }
+
+            backToCustomerListButton.addEventListener('click', function () {
+                if (document.referrer) {
+                    const previousUrl = new URL(document.referrer, window.location.origin);
+                    const customerListUrl = new URL(approvedLabnoUrl, window.location.origin);
+                    if (previousUrl.origin === window.location.origin
+                            && previousUrl.pathname === customerListUrl.pathname) {
+                        previousUrl.searchParams.set('_refresh', Date.now().toString());
+                        window.location.assign(previousUrl.toString());
+                        return;
+                    }
+                }
+                window.history.back();
+            });
             const physicalStates = {
                 loading: document.getElementById('physical-loading-state'),
                 error: document.getElementById('physical-error-state'),
@@ -463,6 +538,9 @@
 
             function appendCell(row, tagName, value, column, maxFractionLength, rowIndex) {
                 const cell = document.createElement(tagName);
+                if (['testResult', 'previousResult1', 'previousResult2'].includes(column)) {
+                    cell.classList.add('test-result-column');
+                }
                 if (tagName === 'td' && column === 'isApproved') {
                     const checkboxLabel = document.createElement('label');
                     checkboxLabel.classList.add('approval-item-checkbox');
@@ -624,6 +702,17 @@
                     || (checkedCount > 0 && checkedCount < sectionStates.length);
             }
 
+            function currentApprovedStatus() {
+                if (approveEverySection.checked) return 'complete';
+                const anyLabApproved = labRows.some(function (item) {
+                    return isApprovedValue(item.isApproved);
+                });
+                const anySectionApproved = anyLabApproved
+                    || (physicalRows.length > 0 && approveAllPhysical.checked)
+                    || (xrayRows.length > 0 && approveAllXray.checked);
+                return anySectionApproved ? 'some' : null;
+            }
+
             tableBody.addEventListener('change', function (event) {
                 if (!event.target.matches('input[type="checkbox"][data-row-index]')) return;
                 const rowIndex = Number(event.target.dataset.rowIndex);
@@ -678,13 +767,15 @@
                     && approveAllXray.checked !== originalXrayApprovalState;
                 const changedSectionCount = Number(physicalChanged) + Number(xrayChanged);
                 if (!changedItems.length && !changedSectionCount) return;
+                const approvedStatus = currentApprovedStatus();
                 const labPayload = {
                     serviceNo: serviceNo,
                     customerEmail: customerEmail,
                     serviceDate: serviceDate,
                     customerAge: customerAge,
+                    sendNotification: false,
                     section: 'lab',
-                    approvedStatus: approveEverySection.checked ? 'complete' : 'some',
+                    approvedStatus: approvedStatus,
                     staffAccount: staffAccount,
                     items: changedItems
                 };
@@ -735,33 +826,14 @@
                             isApproved: approveAllXray.checked
                         }, 'X-ray');
                     }
-                    let notificationResponseBody = null;
-                    if (changedItems.length) {
-                        notificationResponseBody = await postApproval(
-                            labApprovalsApiUrl,
-                            labPayload,
-                            'Lab'
-                        );
-                    } else {
-                        notificationResponseBody = await postApproval(
-                            healthResultNotificationApiUrl,
-                            {
-                                serviceNo: serviceNo,
-                                customerEmail: customerEmail,
-                                serviceDate: serviceDate,
-                                customerAge: customerAge
-                            },
-                            'Email'
-                        );
-                    }
+                    await postApproval(
+                        labApprovalsApiUrl,
+                        labPayload,
+                        changedItems.length ? 'Lab' : 'สถานะการอนุมัติ'
+                    );
 
                     if (window.showToastAlert) {
-                        const notification = notificationResponseBody
-                            && notificationResponseBody.emailNotification;
-                        const emailMessage = notification && notification.sent
-                            ? ` และส่งลิงก์ผลตรวจไปที่ ${notification.recipient} แล้ว`
-                            : ' แต่ยังไม่ได้ส่งอีเมล กรุณาตรวจสอบอีเมลผู้รับการตรวจสุขภาพ';
-                        showToastAlert('success', `บันทึกการอนุมัติ ${changeLabels.join(', ')} สำเร็จ${emailMessage}`);
+                        showToastAlert('success', `บันทึกการอนุมัติ ${changeLabels.join(', ')} สำเร็จ`);
                     }
                     await Promise.all([loadPhysicalExams(), loadTestDetails(), loadXrays()]);
                 } catch (error) {
