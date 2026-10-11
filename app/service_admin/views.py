@@ -2577,6 +2577,7 @@ def view_customer(customer_id):
 @service_admin.route('/customer/edit/<int:customer_id>', methods=['GET', 'POST'])
 def create_customer(customer_id=None):
     tab = request.args.get('tab')
+    menu = request.args.get('menu')
     user_type = session.get('user_type')
     customer = None
     if customer_id:
@@ -2716,10 +2717,13 @@ def create_customer(customer_id=None):
                 send_mail([account.email + '@mahidol.ac.th' for account in central_admin_accounts], title, message)
             else:
                 print('message', message)
-        if current_user.is_authenticated and user_type and user_type == 'staff':
-            return redirect(url_for('service_admin.customer_index', tab=tab))
+        if menu:
+            return redirect(url_for('service_admin.request_index', menu=menu))
         else:
-            return redirect(url_for('service_admin.closing_page'))
+            if current_user.is_authenticated and user_type and user_type == 'staff':
+                return redirect(url_for('service_admin.customer_index', tab=tab))
+            else:
+                return redirect(url_for('service_admin.closing_page'))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
@@ -5977,7 +5981,9 @@ def create_customer_detail(request_id):
     service_request = ServiceRequest.query.get(request_id)
     customer_id = service_request.customer.customer_info_id
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
-    customer = ServiceCustomerInfo.query.get(service_request.customer.customer_info_id)
+    customer = ServiceCustomerInfo.query.get(service_request.customer.customer_info_id) if service_request.customer.customer_info_id else None
+    if not customer:
+        return redirect(url_for('service_admin.create_customer', customer_id=service_request.customer_id))
     cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
     if not cus_contact:
         form = ServiceCustomerContactForm()
