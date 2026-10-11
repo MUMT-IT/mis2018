@@ -2605,6 +2605,9 @@ def create_customer(customer_id=None):
                     continue
                 customer.attachments.remove(attachment)
 
+        preserved_attachments = list(customer.attachments)
+        new_additional_attachments = []
+
         document_errors = []
         required_attachments = _required_document_attachments(customer)
         document_uploads = []
@@ -2662,10 +2665,17 @@ def create_customer(customer_id=None):
                         Body=file_data,
                         ContentType=mime_type
                     )
-                    item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
-                    item.file.data = file_name
-                    item.category.data = 'เอกสารเพิ่มเติม'
+                    attachment = ServiceCustomerAttachment()
+                    new_additional_attachments.append(attachment)
+                    attachment.file_name = file_name.rsplit('.', 1)[0]
+                    attachment.file = file_name
+                    attachment.category = 'เอกสารเพิ่มเติม'
+                    attachment.note = item.note.data
+
         form.populate_obj(customer)
+        customer.attachments = preserved_attachments + new_additional_attachments
+        for attachment in new_additional_attachments:
+            attachment.customer = customer
 
         for document, attachment, file_name in uploaded_required_documents:
             if attachment is None:
