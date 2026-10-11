@@ -226,6 +226,7 @@
                                                         accept=".pdf,.png,.jpg,.jpeg,.gif,.txt",
                                                         required=(not item_form.file.data)
                                                     ) }}
+                                                    {{ item_form.attachment_id(type="hidden") }}
                                                     <span class="file-cta">
                                                         <span class="file-icon"><i class="fas fa-upload"></i></span>
                                                         <span class="file-label">เลือกไฟล์…</span>
