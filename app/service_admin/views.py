@@ -2582,12 +2582,15 @@ def create_customer(customer_id=None):
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
-        form = ServiceCustomerInfoForm(obj=customer)
-        form.attachments.entries = [
-            entry for entry in form.attachments
-            if getattr(getattr(entry, 'category', None), 'data', None)
-            not in CUSTOMER_DOCUMENT_CATEGORIES
-        ]
+        if request.method == 'POST':
+            form = ServiceCustomerInfoForm()
+        else:
+            form = ServiceCustomerInfoForm(obj=customer)
+            form.attachments.entries = [
+                entry for entry in form.attachments
+                if getattr(getattr(entry, 'category', None), 'data', None)
+                   not in CUSTOMER_DOCUMENT_CATEGORIES
+            ]
     else:
         account = None
         form = ServiceCustomerInfoForm()
