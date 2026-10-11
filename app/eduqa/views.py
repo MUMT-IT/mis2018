@@ -3718,8 +3718,21 @@ def evaluation_bundle_students(bundle_id):
     latest = {}
     for evaluation in sessions:
         latest.setdefault(evaluation.student_id, evaluation)
+    evaluator_ids = {evaluation.created_by_id for evaluation in latest.values()}
+    evaluator_names = {}
+    if evaluator_ids:
+        evaluators = StaffAccount.query.options(
+            joinedload(StaffAccount.personal_info)
+        ).filter(StaffAccount.id.in_(evaluator_ids)).all()
+        evaluator_names = {
+            evaluator.id: (evaluator.personal_info.fullname
+                           if evaluator.personal_info
+                           else (evaluator.email or 'Staff #{}'.format(evaluator.id)))
+            for evaluator in evaluators
+        }
     return render_template('eduqa/QA/staff/evaluation_bundle_students.html',
-                           bundle=bundle, sections=sections, students=students, latest=latest)
+                           bundle=bundle, sections=sections, students=students, latest=latest,
+                           evaluator_names=evaluator_names)
 
 
 @edu.route('/qa/student-outcome-monitoring/bundles/<int:bundle_id>/students/<int:student_id>', methods=['GET', 'POST'])
