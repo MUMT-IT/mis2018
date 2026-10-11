@@ -361,10 +361,11 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
             continue
 
         head_name = " ".join(
-            value for value in (
+            str(value).strip() for value in (
+                getattr(head_personal_info, "th_title", None),
                 getattr(head_personal_info, "th_firstname", None),
                 getattr(head_personal_info, "th_lastname", None),
-            ) if value
+            ) if value and str(value).strip()
         )
         return _pdf_text(head_name), _pdf_text(head_position_record.position)
 
@@ -411,10 +412,11 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
         return _pdf_text(None), _pdf_text(None)
 
     head_name = " ".join(
-        value for value in (
+        str(value).strip() for value in (
+            getattr(head_personal_info, "th_title", None),
             getattr(head_personal_info, "th_firstname", None),
             getattr(head_personal_info, "th_lastname", None),
-        ) if value
+        ) if value and str(value).strip()
     )
     # The position is organization-specific and must come from
     # staff_head_positions, never from the staff member's generic position.
