@@ -2103,23 +2103,41 @@ def recheck_overdue_and_upcoming_statuses():
                 notification_type = "upcoming"
 
         if notification_type:
+            return_summary = _calculate_ticket_deadline_notification_summary(ticket)
+            if not _should_send_ticket_deadline_notification(return_summary):
+                current_app.logger.info(
+                    "ยกเลิกการส่งอีเมลติดตาม ticket id=%s "
+                    "เนื่องจากยอดคืนและยอดรอตรวจสอบครอบคลุมวงเงินแล้ว",
+                    ticket.id,
+                )
+                continue
+
             is_overdue = notification_type == "overdue"
             is_upcoming = not is_overdue
 
             notification_ctx = {
                 "is_overdue": is_overdue,
                 "is_upcoming": is_upcoming,
-                "days_remaining": days_remaining
+                "days_remaining": days_remaining,
+                "return_summary": return_summary,
             }
             finance_email_sent = _send_finance_ticket_deadline_email(
                 ticket,
                 notification_type=("overdue" if is_overdue else "upcoming"),
+                return_summary=return_summary,
             )
-            if finance_email_sent:
-                # Keep the existing borrower/creator reminder as a best-effort
-                # companion message. Finance delivery controls the one-time
-                # marker for this notification.
-                _send_notification_email(ticket, extra_ctx=notification_ctx)
+            borrower_email_sent = _send_notification_email(
+                ticket,
+                extra_ctx=notification_ctx,
+            )
+            if (
+                not _advance_payment_email_enabled()
+                or finance_email_sent
+                or borrower_email_sent
+            ):
+                # In local log-only mode, both messages have been rendered and
+                # logged, so mark this notification as handled as well. Without
+                # this, every request logs the same reminder again.
                 ticket.last_notified_type = notification_type
                 ticket.last_notified_date = today
 
@@ -2625,11 +2643,20 @@ def _send_finance_pending_review_email(target_object, object_type, email_ctx):
     return _deliver_advance_payment_email(email_data)
 
 
-def _send_finance_ticket_deadline_email(ticket, notification_type):
+def _send_finance_ticket_deadline_email(
+    ticket,
+    notification_type,
+    return_summary=None,
+):
     borrower = db.session.query(StaffAccount).filter_by(
         email=ticket.borrower_email
     ).first()
-    totals = _calculate_ticket_return_totals(ticket.id)
+    return_summary = (
+        return_summary
+        or _calculate_ticket_deadline_notification_summary(ticket)
+    )
+    if not _should_send_ticket_deadline_notification(return_summary):
+        return False
     email_data = generate_finance_notification_email_content(
         ticket,
         notification_type=notification_type,
@@ -2640,7 +2667,7 @@ def _send_finance_ticket_deadline_email(ticket, notification_type):
                 or ticket.borrower_email
                 or "-"
             ),
-            "remaining_amount": totals["remaining_amount"],
+            "remaining_amount": return_summary["unsubmitted_amount"],
             "action_url": url_for(
                 "advance_payment.verification_view",
                 ticket_id=ticket.id,
@@ -2654,16 +2681,6 @@ def _send_finance_ticket_deadline_email(ticket, notification_type):
 def _send_notification_email(target_object, object_type="ticket", extra_ctx=None):
     if extra_ctx is None:
         extra_ctx = {}
-
-    if (
-        object_type == "ticket"
-        and extra_ctx.get("is_upcoming")
-        and extra_ctx.get("days_remaining") != 15
-    ):
-        current_app.logger.info(
-            "ยกเลิกการส่งอีเมลแจ้งเตือนล่วงหน้า เหลือวันไม่ใช่ 15 วัน"
-        )
-        return False
 
     status = getattr(target_object, "status", None)
     skip_status_email = {
@@ -2702,8 +2719,17 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
             or "ผู้รับบริการ"
         )
 
-        totals = _calculate_ticket_return_totals(target_object.id)
-        extra_ctx["remaining_amount"] = totals["remaining_amount"]
+        if extra_ctx.get("is_overdue") or extra_ctx.get("is_upcoming"):
+            return_summary = (
+                extra_ctx.get("return_summary")
+                or _calculate_ticket_deadline_notification_summary(target_object)
+            )
+            if not _should_send_ticket_deadline_notification(return_summary):
+                return False
+            extra_ctx["remaining_amount"] = return_summary["unsubmitted_amount"]
+        else:
+            totals = _calculate_ticket_return_totals(target_object.id)
+            extra_ctx["remaining_amount"] = totals["remaining_amount"]
         extra_ctx["is_overdue"] = target_object.due_date < datetime.now().date() if target_object.due_date else False
 
     elif object_type == "return":
@@ -3954,6 +3980,40 @@ def _calculate_ticket_submission_totals_with_parcel(
         "budget": budget,
         "remaining_amount": budget - combined_total,
     }
+
+
+def _with_pending_return_amounts(summary, submitted_ticket_total):
+    """Add the same pending/unsubmitted split used by the verification page."""
+    summary = dict(summary)
+    approved_ticket_total = float(summary.get("cumulative_total") or 0)
+    submitted_ticket_total = float(submitted_ticket_total or 0)
+    summary["pending_amount"] = max(
+        submitted_ticket_total - approved_ticket_total,
+        0.0,
+    )
+    summary["unsubmitted_amount"] = max(
+        float(summary.get("budget") or 0) - submitted_ticket_total,
+        0.0,
+    )
+    return summary
+
+
+def _calculate_ticket_deadline_notification_summary(ticket):
+    approved_summary = _calculate_ticket_return_totals(ticket.id)
+    submitted_summary = _calculate_ticket_submission_totals_with_parcel(ticket.id)
+    return _with_pending_return_amounts(
+        approved_summary,
+        submitted_summary["cumulative_total"],
+    )
+
+
+def _should_send_ticket_deadline_notification(summary):
+    """Send reminders only while approved plus pending returns are incomplete."""
+    returned_or_pending = (
+        _money_decimal(summary.get("cumulative_total"))
+        + _money_decimal(summary.get("pending_amount"))
+    )
+    return returned_or_pending < _money_decimal(summary.get("budget"))
 
 
 def _calculate_fund_request_totals(fund_request_id, *, exclude_claim_id=None, exclude_parcel_return_id=None):
