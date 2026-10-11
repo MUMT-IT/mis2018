@@ -2645,7 +2645,7 @@ def create_customer(customer_id=None):
             uploaded_required_documents.append((document, attachment, file_name))
         if form.attachments:
             for item in form.attachments:
-                file = request.files.get(f'file_{item.id}')
+                file = item.file_upload.data
                 if file and allowed_file(file.filename):
                     mime_type = file.mimetype
                     file_name = file.filename
