@@ -159,13 +159,13 @@
         </button>
       </form>
       {% endif %}
-      {% if can_approve_fund_request %}
+      {% if can_approve_fund_request and current_is_head %}
       <form method="post" action="{{ url_for('advance_payment.approve_fund_request', request_id=verification_fund_request.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="source" value="claim">
         <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-2">
           <i class="bi bi-check-circle me-1"></i>
-          {% if current_is_custodian and not current_is_head %}อนุมัติแทนหัวหน้าหน่วยงาน{% else %}อนุมัติใบยืม/ใบเบิก{% endif %}
+          อนุมัติใบยืม/ใบเบิก
         </button>
       </form>
       {% endif %}

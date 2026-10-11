@@ -751,32 +751,19 @@ def _is_fund_request_org_head(user, fund_request):
     return _staff_accounts_match(user, _fund_request_org_head(fund_request))
 
 
-def _fund_request_requester_is_org_head(fund_request):
-    requester = getattr(fund_request, "requester", None)
-    if requester is None:
-        requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
-    return _is_fund_request_org_head(requester, fund_request)
-
-
 def _fund_request_signature_state(fund_request):
     """Return signature timestamps for the requester and custodian roles."""
     creator_id = getattr(fund_request, "creator_id", None)
     requester_id = getattr(fund_request, "requester_id", None)
     custodian_id = _fund_request_custodian_id(fund_request)
     confirmed_by_id = getattr(fund_request, "confirmed_by_id", None)
-    delegated_requester_confirmation = bool(
-        getattr(fund_request, "confirmed_at", None)
-        and confirmed_by_id == custodian_id
-        and getattr(fund_request, "approved_by_id", None) == custodian_id
-        and _fund_request_requester_is_org_head(fund_request)
-    )
 
     requester_signed_at = (
         getattr(fund_request, "created_at", None)
         if creator_id == requester_id
         else (
             getattr(fund_request, "confirmed_at", None)
-            if confirmed_by_id == requester_id or delegated_requester_confirmation
+            if confirmed_by_id == requester_id
             else None
         )
     )
@@ -843,29 +830,7 @@ def _fund_request_is_fully_approved(fund_request):
     )
 
 
-def _apply_delegated_head_requester_confirmation(fund_request):
-    """Fill the one missing confirmation when a custodian approved for a head requester."""
-    if getattr(fund_request, "confirmed_at", None):
-        return False
-
-    custodian_id = _fund_request_custodian_id(fund_request)
-    approved_by_id = getattr(fund_request, "approved_by_id", None)
-    approved_at = getattr(fund_request, "approved_at", None)
-    if not (
-        approved_at
-        and custodian_id
-        and approved_by_id == custodian_id
-        and _fund_request_requester_is_org_head(fund_request)
-    ):
-        return False
-
-    fund_request.confirmed_at = approved_at
-    fund_request.confirmed_by_id = approved_by_id
-    return True
-
-
 def _sync_fund_request_approval_status(fund_request):
-    _apply_delegated_head_requester_confirmation(fund_request)
     if (
         (getattr(fund_request, "status", None) or "").strip() == "รอการอนุมัติ"
         and _fund_request_is_fully_approved(fund_request)
@@ -9329,7 +9294,6 @@ def confirm_fund_request(request_id):
         abort(404)
 
     staff = current_user
-    setting = _resolve_petty_cash_setting_for_fund_request(staff, fund_req)
     if not staff.is_authenticated:
         abort(403)
 
@@ -9347,22 +9311,11 @@ def confirm_fund_request(request_id):
     fund_req.confirmed_at = acted_at
     fund_req.confirmed_by_id = staff.id
 
-    is_head = _is_fund_request_org_head(staff, fund_req)
-    approve_on_behalf = (
-        request.form.get("approve_on_behalf") == "1"
-        and _is_petty_cash_custodian(staff, setting)
-    )
-    if not fund_req.approved_at and (is_head or approve_on_behalf):
-        fund_req.approved_at = acted_at
-        fund_req.approved_by_id = staff.id
-
     _sync_fund_request_approval_status(fund_req)
     db.session.commit()
     _notify_next_fund_request_actor(fund_req)
     flash(
-        "ยืนยันและอนุมัติใบยืม/ใบเบิกเรียบร้อยแล้ว"
-        if fund_req.status == "อนุมัติแล้ว"
-        else "ยืนยันใบยืม/ใบเบิกเรียบร้อยแล้ว",
+        "ยืนยันใบยืม/ใบเบิกเรียบร้อยแล้ว",
         "success",
     )
     return redirect(
@@ -9378,10 +9331,16 @@ def approve_fund_request(request_id):
         abort(404)
 
     staff = current_user
-    setting = _resolve_petty_cash_setting_for_fund_request(staff, fund_req)
     is_head = _is_fund_request_org_head(staff, fund_req)
-    is_custodian = _is_petty_cash_custodian(staff, setting)
-    if not staff.is_authenticated or not (is_head or is_custodian):
+    if not staff.is_authenticated or not is_head:
+        abort(403)
+
+    # A head may approve only after requester/custodian confirmation is
+    # complete. If the head also holds the one outstanding role, the same
+    # explicit approval action confirms that role without requiring a second
+    # click.
+    expected_confirmer_id = _fund_request_expected_confirmer_id(fund_req)
+    if expected_confirmer_id not in {None, getattr(staff, "id", None)}:
         abort(403)
 
     if (fund_req.status or "").strip() != "รอการอนุมัติ":
@@ -9393,14 +9352,9 @@ def approve_fund_request(request_id):
         fund_req.approved_at = acted_at
         fund_req.approved_by_id = staff.id
 
-        # If the approving user is also the outstanding requester/custodian,
-        # the same explicit action satisfies both roles.
-        expected_confirmer_id = _fund_request_expected_confirmer_id(fund_req)
-        delegated_head_requester = bool(
-            is_custodian
-            and _fund_request_requester_is_org_head(fund_req)
-        )
-        if expected_confirmer_id == staff.id or delegated_head_requester:
+        # When the head is also the outstanding requester/custodian, this
+        # single action records both identities as the same real actor.
+        if expected_confirmer_id == staff.id:
             fund_req.confirmed_at = acted_at
             fund_req.confirmed_by_id = staff.id
 
@@ -11270,20 +11224,16 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         verification_fund_request
         and fund_request_status == "รอการอนุมัติ"
         and expected_confirmer_id == getattr(current_user, "id", None)
-        # A head normally uses the approval action, which also confirms their
-        # requester/custodian role.  If a custodian already approved under a
-        # delegated mandate, the head must still be able to confirm that
-        # outstanding role without replacing the recorded approver.
-        and (
-            not current_is_head
-            or getattr(verification_fund_request, "approved_at", None)
-        )
+        # A head uses the approval action to satisfy an outstanding
+        # requester/custodian confirmation in the same click.
+        and not current_is_head
     )
     can_approve_fund_request = bool(
         verification_fund_request
         and fund_request_status == "รอการอนุมัติ"
         and not getattr(verification_fund_request, "approved_at", None)
-        and (current_is_head or current_is_custodian)
+        and current_is_head
+        and expected_confirmer_id in {None, getattr(current_user, "id", None)}
     )
     can_reject_fund_request = bool(
         verification_fund_request

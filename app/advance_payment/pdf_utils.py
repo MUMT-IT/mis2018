@@ -261,6 +261,21 @@ def _get_user_by_id(user_id):
     return db.session.query(StaffAccount).get(user_id)
 
 
+def _thai_signature_name(staff):
+    """Return a Thai signature name without the personal title."""
+    personal_info = getattr(staff, "personal_info", None)
+    if personal_info is None:
+        return None
+    name_parts = (
+        getattr(personal_info, "th_firstname", None),
+        getattr(personal_info, "th_lastname", None),
+    )
+    signature_name = " ".join(
+        str(value).strip() for value in name_parts if value and str(value).strip()
+    )
+    return signature_name or None
+
+
 def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_account_id=None):
     """Resolve the organization head and position for PDF signatures.
 
@@ -1663,36 +1678,47 @@ def generate_fund_request_pdf(fund_request):
         or dept_info.get("position")
     )
 
-    approved_at = getattr(fund_request, "approved_at", None)
-
     creator_id = getattr(fund_request, "creator_id", None)
     requester_id = getattr(fund_request, "requester_id", None)
     custodian_id = getattr(request_setting, "custodian_id", None)
     confirmed_by_id = getattr(fund_request, "confirmed_by_id", None)
-    delegated_requester_confirmation = bool(
-        getattr(fund_request, "confirmed_at", None)
-        and creator_id != requester_id
-        and confirmed_by_id == custodian_id
-        and getattr(fund_request, "approved_by_id", None) == custodian_id
+    approved_by_id = getattr(fund_request, "approved_by_id", None)
+    created_at = getattr(fund_request, "created_at", None)
+    confirmed_at = getattr(fund_request, "confirmed_at", None)
+    approved_at = getattr(fund_request, "approved_at", None)
+
+    creator_user = (
+        getattr(fund_request, "creator", None)
+        or _get_user_by_id(creator_id)
     )
-    requester_signed_at = (
-        getattr(fund_request, "created_at", None)
-        if creator_id == requester_id
-        else (
-            getattr(fund_request, "confirmed_at", None)
-            if confirmed_by_id == requester_id or delegated_requester_confirmation
-            else None
-        )
+    confirmed_user = (
+        getattr(fund_request, "confirmed_by", None)
+        or _get_user_by_id(confirmed_by_id)
     )
-    custodian_signed_at = (
-        getattr(fund_request, "created_at", None)
-        if creator_id == custodian_id
-        else (
-            getattr(fund_request, "confirmed_at", None)
-            if confirmed_by_id == custodian_id
-            else None
-        )
+    approved_user = (
+        getattr(fund_request, "approved_by", None)
+        or _get_user_by_id(approved_by_id)
     )
+
+    requester_signature_user = None
+    requester_signed_at = None
+    if creator_id == requester_id and created_at:
+        requester_signature_user = creator_user
+        requester_signed_at = created_at
+    elif confirmed_by_id == requester_id and confirmed_at:
+        requester_signature_user = confirmed_user
+        requester_signed_at = confirmed_at
+
+    custodian_signature_user = None
+    custodian_signed_at = None
+    if creator_id == custodian_id and created_at:
+        custodian_signature_user = creator_user
+        custodian_signed_at = created_at
+    elif confirmed_by_id == custodian_id and confirmed_at:
+        custodian_signature_user = confirmed_user
+        custodian_signed_at = confirmed_at
+
+    approver_signature_user = approved_user if approved_by_id and approved_at else None
 
     def signature_date(value):
         if not value:
@@ -1702,11 +1728,19 @@ def generate_fund_request_pdf(fund_request):
 
     requester_signature_date = signature_date(requester_signed_at)
     custodian_signature_date = signature_date(custodian_signed_at)
-    approver_signature_date = signature_date(approved_at)
+    approver_signature_date = signature_date(
+        approved_at if approver_signature_user is not None else None
+    )
     signature_placeholder = "......................................................."
-    requester_signature_line = requester if requester_signed_at else signature_placeholder
-    custodian_signature_line = custodian_name if custodian_signed_at else signature_placeholder
-    head_signature_line = head_name if approved_at else signature_placeholder
+    requester_signature_line = (
+        _thai_signature_name(requester_signature_user) or signature_placeholder
+    )
+    custodian_signature_line = (
+        _thai_signature_name(custodian_signature_user) or signature_placeholder
+    )
+    head_signature_line = (
+        _thai_signature_name(approver_signature_user) or signature_placeholder
+    )
 
     amount_source = fund_request.amount
     if amount_source is None and borrowing_ticket:
