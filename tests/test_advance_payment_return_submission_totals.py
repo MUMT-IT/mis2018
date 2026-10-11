@@ -49,6 +49,28 @@ class ReturnSubmissionTotalsTests(unittest.TestCase):
         self.assertEqual(captured["ticket_ids"], {32, 33})
         self.assertEqual(totals["remaining_amount"], 2000)
 
+    def test_edit_excludes_the_existing_return_from_the_limit(self):
+        captured = {}
+
+        def calculate_group_totals(ticket_ids, *, exclude_return_id=None):
+            captured["ticket_ids"] = set(ticket_ids)
+            captured["exclude_return_id"] = exclude_return_id
+            return {"cumulative_total": 4000, "budget": 11000}
+
+        context = {
+            "_ticket_group_ids": lambda ticket_id: {32, 33},
+            "_calculate_return_form_group_totals": calculate_group_totals,
+        }
+        exec(self.helper_code, context)
+
+        context["_calculate_return_submission_totals"](
+            {33},
+            exclude_return_id=71,
+        )
+
+        self.assertEqual(captured["ticket_ids"], {32, 33})
+        self.assertEqual(captured["exclude_return_id"], 71)
+
 
 if __name__ == "__main__":
     unittest.main()

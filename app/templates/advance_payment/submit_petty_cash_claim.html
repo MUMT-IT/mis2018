@@ -3,10 +3,6 @@
 {% block title %}แบบฟอร์มส่งเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
 
 {% block content %}
-<style>
-  .document-input-row .announcement-input { background-color: #fff !important; color: #212529 !important; border-color: #6c757d !important; }
-  .document-input-row .announcement-input::placeholder { color: #495057; opacity: 1; }
-</style>
 <header class="mb-4 pb-2 border-bottom">
   <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
   <h1 class="fw-bold display-6 mb-2">ใบส่งเบิกเงินสดย่อย</h1>
@@ -17,8 +13,8 @@
     <div class="col-12 col-lg-10">
       <div class="d-flex flex-column flex-md-row align-items-md-start justify-content-between gap-3 mb-4">
         <div>
-          <span class="text-uppercase text-primary fw-bold small">วัตถุประสงค์</span>
-          <h2 class="h3 fw-bold mb-0 py-2">{{ verification_purpose }}</h2>
+          <span class="text-uppercase text-primary fw-bold small">เลขที่ใบเบิก</span>
+          <h2 class="h3 fw-bold mb-0 py-2">{{ verification_ticket_number }}</h2>
         </div>
         <div class="d-flex flex-column align-items-md-end gap-2 flex-wrap">
           <div class="text-md-end">
@@ -32,8 +28,8 @@
       </div>
 
       <div class="col-12 col-md-4 mb-3">
-        <p class="text-muted small mb-1"><strong>เลขที่ใบเบิก</strong></p>
-        <h5 class="mb-0 text-dark fw-semibold">{{ verification_ticket_number }}</h5>
+        <p class="text-muted small mb-1"><strong>วัตถุประสงค์</strong></p>
+        <h5 class="mb-0 text-dark fw-semibold">{{ verification_purpose }}</h5>
       </div>
 
       <div class="row g-3 text-start mb-3">
@@ -46,7 +42,7 @@
           <p class="mb-0 text-dark fw-semibold">{{ '{:,.2f}'.format(verification_amount or 0) }} บาท</p>
         </div>
         <div class="col-6 col-md-4">
-          <p class="text-muted small mb-1"><strong>วันที่ขอเบิก</strong></p>
+          <p class="text-muted small mb-1"><strong>วันที่เบิกเงิน</strong></p>
           <p class="mb-0 text-dark fw-semibold">{{ verification_request_date|thai_date if verification_request_date else '-' }}</p>
         </div>
         <div class="col-12 col-md-4">
@@ -87,20 +83,106 @@
       </div>
     </div>
   </div>
-  {% if verification_fund_request and can_cancel_fund_request %}
+  {% if fund_request_total_info is defined and verification_fund_request and verification_fund_request.approved_at %}
+  <hr class="my-4">
+  <div class="row row-cols-2 row-cols-md-4 g-3 text-start">
+    <div class="col">
+      <p class="text-muted small mb-1"><strong>ยอดที่ขอไป</strong></p>
+      <p class="mb-0 text-dark fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.request_amount or 0) }}</p>
+    </div>
+    <div class="col">
+      <p class="text-muted small mb-1"><strong>ยอดส่งเบิกแล้ว</strong></p>
+      <p class="mb-0 text-success fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.approved_total or 0) }}</p>
+    </div>
+    <div class="col">
+      <p class="text-muted small mb-1"><strong>ยอดรอตรวจสอบ</strong></p>
+      {% if (fund_request_total_info.pending_total or 0) > 0 %}
+        <h4 class="mb-0 text-warning fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.pending_total or 0) }}</h4>
+      {% else %}
+        <p class="mb-0 text-dark fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.pending_total or 0) }}</p>
+      {% endif %}
+    </div>
+    <div class="col">
+      <p class="text-muted small mb-1"><strong>ยอดคงค้าง</strong></p>
+      {% if (fund_request_total_info.unsubmitted_amount or 0) > 0 %}
+        <h4 class="mb-0 text-danger fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.unsubmitted_amount or 0) }}</h4>
+      {% else %}
+        <p class="mb-0 text-dark fw-semibold">{{ '{:,.2f}'.format(fund_request_total_info.unsubmitted_amount or 0) }}</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% if verification_fund_request %}
   <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top gap-2">
     <div class="text-start flex-grow-1">
       {% if verification_fund_request.personal_note %}
         <span class="fw-bold">หมายเหตุส่วนตัว:</span>
-        <span>{{ verification_fund_request.personal_note }}</span>
+        <span>{{ verification_fund_request.personal_note or '-' }}</span>
+      {% endif %}
+      {% if not verification_fund_request.approved_at and verification_fund_request.rejection_comment %}
+        <div class="text-danger mt-2">
+          <span class="fw-bold">เหตุผล:</span>
+          <span>{{ verification_fund_request.rejection_comment }}</span>
+        </div>
       {% endif %}
     </div>
-    <div class="d-flex justify-content-end gap-2">
+    {% if can_edit_fund_request or can_confirm_fund_request or can_approve_fund_request or can_reject_fund_request or can_record_fund_request_withdrawal or can_cancel_fund_request %}
+    <div class="d-flex flex-wrap justify-content-end align-items-end gap-2">
+      {% if can_edit_fund_request %}
+      <a href="{{ url_for('advance_payment.staff_fund_request', edit_request_id=verification_fund_request.id) }}"
+         class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2">
+        <i class="bi bi-pencil-square me-1"></i>แก้ไขใบเบิก
+      </a>
+      {% endif %}
+      {% if can_reject_fund_request %}
+      <button type="button"
+              class="btn btn-danger btn-sm fw-bold px-3 py-2"
+              data-popup-trigger="true"
+              data-popup-title="ปฏิเสธใบยืม/ใบเบิก"
+              data-popup-message="กรุณาระบุเหตุผลที่ปฏิเสธใบยืม/ใบเบิก"
+              data-popup-action="{{ url_for('advance_payment.reject_fund_request', request_id=verification_fund_request.id) }}"
+              data-popup-confirm-text="ยืนยันการปฏิเสธ"
+              data-popup-confirm-class="btn-danger"
+              data-popup-input-type="textarea"
+              data-popup-input-name="rejection_comment"
+              data-popup-input-placeholder="ระบุเหตุผลที่ปฏิเสธ..."
+              data-popup-input-required="true"
+              data-popup-input-rows="3">
+        ปฏิเสธ
+      </button>
+      {% endif %}
+      {% if can_confirm_fund_request %}
+      <form method="post" action="{{ url_for('advance_payment.confirm_fund_request', request_id=verification_fund_request.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-primary btn-sm fw-bold px-3 py-2">
+          <i class="bi bi-person-check me-1"></i>ยืนยันข้อมูล
+        </button>
+      </form>
+      {% endif %}
+      {% if can_approve_fund_request and current_is_head %}
+      <form method="post" action="{{ url_for('advance_payment.approve_fund_request', request_id=verification_fund_request.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="source" value="claim">
+        <button type="submit" class="btn btn-success btn-sm fw-bold px-3 py-2">
+          <i class="bi bi-check-circle me-1"></i>
+          อนุมัติใบยืม/ใบเบิก
+        </button>
+      </form>
+      {% endif %}
+      {% if can_record_fund_request_withdrawal %}
+      <button type="button"
+              class="btn btn-success btn-sm fw-bold px-3 py-2"
+              data-bs-toggle="modal"
+              data-bs-target="#fundRequestWithdrawalModal{{ verification_fund_request.id }}">
+        <i class="bi bi-cash-coin me-1"></i>บันทึกวันที่เบิกเงิน
+      </button>
+      {% endif %}
+      {% if can_cancel_fund_request %}
       <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
         <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
       </a>
       <button type="button"
-              class="btn btn-outline-danger btn-sm fw-bold px-3 py-1.5"
+              class="btn btn-outline-danger btn-sm fw-bold px-3 py-2"
               data-popup-trigger="true"
               data-popup-title="สาเหตุของการยกเลิกใบเบิก"
               data-popup-message="กรุณาระบุเหตุผลสำหรับการยกเลิกใบเบิก"
@@ -115,7 +197,9 @@
               data-popup-extra-fields-template-id="cancelFundRequestExtraFields">
         ยกเลิกใบเบิก
       </button>
+      {% endif %}
     </div>
+    {% endif %}
   </div>
   <template id="cancelFundRequestExtraFields">
     <div class="mt-3">
@@ -123,17 +207,81 @@
       <input type="text" class="form-control app-date-picker" id="cancelTransferredAt" name="transferred_at" placeholder="dd/mm/yyyy" required>
     </div>
   </template>
+
+  {% if can_record_fund_request_withdrawal %}
+  <div class="modal fade text-start"
+       id="fundRequestWithdrawalModal{{ verification_fund_request.id }}"
+       tabindex="-1"
+       aria-labelledby="fundRequestWithdrawalModalLabel{{ verification_fund_request.id }}"
+       aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form method="post"
+              action="{{ url_for('advance_payment.record_fund_request_withdrawal', request_id=verification_fund_request.id) }}"
+              enctype="multipart/form-data"
+              data-ajax-validation="true">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold text-dark"
+                id="fundRequestWithdrawalModalLabel{{ verification_fund_request.id }}">
+              <i class="bi bi-calendar-check text-success me-2"></i>บันทึกวันที่เบิกเงิน
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted mb-3">
+              ยอดเงินที่อนุมัติ:
+              <strong class="text-success">{{ "{:,.2f}".format(verification_amount or 0) }} บาท</strong>
+            </p>
+            <div class="mb-3">
+              <label class="form-label fw-bold text-dark small"
+                     for="fundRequestWithdrawalDate{{ verification_fund_request.id }}">
+                วันที่เบิกเงิน <span class="text-danger">*</span>
+              </label>
+              <input type="text"
+                     name="request_date"
+                     id="fundRequestWithdrawalDate{{ verification_fund_request.id }}"
+                     class="form-control app-date-picker"
+                     placeholder="dd/mm/yyyy"
+                     required>
+            </div>
+            {% if verification_fund_request.form_type == 'interest' %}
+            <div class="mb-3">
+              <label class="form-label fw-bold text-dark small"
+                     for="fundRequestWithdrawalProof{{ verification_fund_request.id }}">
+                หลักฐานการเบิก <span class="text-danger">*</span>
+              </label>
+              <input type="file"
+                     name="withdrawal_proof_file"
+                     id="fundRequestWithdrawalProof{{ verification_fund_request.id }}"
+                     class="form-control"
+                     accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                     required>
+            </div>
+            {% endif %}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="submit" class="btn btn-success fw-bold">
+              <i class="bi bi-cash-coin me-1"></i>ยืนยันบันทึกวันที่เบิกเงิน
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
   {% endif %}
 </section>
 
 {% endif %}
-{% set can_submit_claim = (can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and fund_request_status not in ['ส่งเบิกครบแล้ว', 'เคลียร์ยอดสำเร็จ'] %}
+{% set can_submit_claim = claim_edit_mode|default(false) or ((can_submit_claim if can_submit_claim is defined else session.get('advance_payment_system') == 'petty_cash') and (not verification_fund_request or fund_request_status == 'เบิกเงินแล้ว')) %}
 {% set total_request_amount = fund_request_total_info.request_amount if fund_request_total_info is defined else 0 %}
 {% set total_claimed_amount = fund_request_total_info.claim_total if fund_request_total_info is defined else 0 %}
 {% set total_parcel_amount = fund_request_total_info.parcel_total if fund_request_total_info is defined else 0 %}
 {% set is_over_request = (total_claimed_amount + total_parcel_amount) > total_request_amount if total_request_amount else false %}
 {% if can_submit_claim %}
-{% set can_toggle_claim_form = (fund_request_status or '')|lower == 'อนุมัติแล้ว' %}
+{% set can_toggle_claim_form = not claim_edit_mode|default(false) and (fund_request_status or '')|lower == 'เบิกเงินแล้ว' %}
 {% if can_toggle_claim_form %}
 <div class="d-flex justify-content-end mb-3">
   <button type="button"
@@ -148,13 +296,30 @@
 </div>
 {% endif %}
 <div id="pettyCashClaimFormPanel"{% if can_toggle_claim_form %} class="d-none"{% endif %}>
-<div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
+  <div class="card p-4 bg-light mb-4 border rounded-4 shadow-sm">
     <form method="post" action="{{ url_for('advance_payment.submit_petty_cash_claim') }}" enctype="multipart/form-data" id="claimForm" novalidate data-ajax-validation="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if claim_edit_mode|default(false) %}
+      <input type="hidden" name="edit_claim_id" value="{{ claim_detail.id }}">
+      <div class="alert alert-warning py-2">
+        <i class="bi bi-pencil-square me-1"></i>
+        กำลังแก้ไขข้อมูลใบเบิก หลังบันทึกแล้วกรุณายืนยันการแก้ไขอีกครั้ง
+      </div>
+      {% endif %}
       <input type="hidden"
        name="fund_request_id"
        id="fund_request_id"
        value="{{ selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else '') }}">
+
+      {% if not cash_mng_finance_open %}
+      <div class="alert alert-warning d-flex align-items-start" role="alert">
+        <i class="bi bi-lock-fill me-2 mt-1"></i>
+        <div>
+          <strong>ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</strong>
+          <div class="small">ยังสามารถส่งได้เฉพาะรายการเงินโอนคืนบัญชีเงินสดย่อยเท่านั้น</div>
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Auto Save Status Indicator -->
       <!-- <div class="d-flex justify-content-end align-items-center mb-3">
@@ -163,27 +328,53 @@
         </span>
       </div> -->
 
-      <!-- ข้อมูลหนังสืออนุมัติในหลักการ -->
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h5>
+      <div class="accordion" id="claimReturnAccordion">
+      <!-- ข้อมูลประกอบการส่งเบิก -->
+      <div class="card p-3 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 mb-0" id="claimSectionHeading">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not cash_mng_finance_open %} disabled{% endif %}"
+                   type="button"
+                   {% if cash_mng_finance_open %}
+                   data-bs-toggle="collapse"
+                   data-bs-target="#claimSectionCollapse"
+                   {% else %}
+                   disabled
+                   aria-disabled="true"
+                   {% endif %}
+                   aria-expanded="{{ 'true' if cash_mng_finance_open else 'false' }}"
+                   aria-controls="claimSectionCollapse">
+            <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
+            รายการส่งเบิกเงินสดย่อย
+            {% if not cash_mng_finance_open %}
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</span>
+            {% endif %}
+            <i class="bi bi-chevron-down ms-auto text-muted"></i>
+          </button>
+        </h3>
+        <div id="claimSectionCollapse" class="collapse{% if cash_mng_finance_open %} show{% endif %}" aria-labelledby="claimSectionHeading">
+        <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
+        {% if cash_mng_finance_open %}
+        <div class="pt-2">
+        <section class="mt-3" aria-labelledby="referenceInfoHeading">
+        <h4 class="h6 fw-semibold text-dark mb-2" id="referenceInfoHeading"><i class="bi bi-file-earmark-check me-2 text-primary"></i>ข้อมูลหนังสืออนุมัติในหลักการ</h4>
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" name="has_reference_info" id="hasReferenceInfo" value="true">
-          <label class="form-check-label text-muted" for="hasReferenceInfo">ไม่มีหนังสือขออนุมัติในหลักการ</label>
+          <label class="form-check-label text-muted small" for="hasReferenceInfo">ไม่มีหนังสือขออนุมัติในหลักการ</label>
         </div>
         <div class="row g-3" id="referenceInfoFields">
-          <div class="col-md-4">
-            <label class="form-label fw-bold">เลขที่อนุมัติในหลักการ เช่น อว.78.04/1</label>
-            <input class="form-control reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">เลขที่อนุมัติในหลักการ เช่น อว.78.04/1</label>
+            <input class="form-control form-control-sm reference-info-input" name="reference_number" value="{{ (claim_detail.reference_number or '') if claim_detail else '' }}">
           </div>
           <div class="col-md-2">
-            <label class="form-label fw-bold">วันที่หนังสือได้รับการอนุมัติ</label>
-            <input type="text" class="form-control reference-info-input app-date-picker" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}" placeholder="dd/mm/yyyy">
+            <label class="form-label small fw-semibold">วันที่หนังสือได้รับการอนุมัติ</label>
+            <input type="text" class="form-control form-control-sm reference-info-input app-date-picker" name="reference_date" value="{{ claim_detail.reference_date.strftime('%Y-%m-%d') if claim_detail and claim_detail.reference_date else '' }}" placeholder="dd/mm/yyyy">
           </div>
           <div class="col-md-3">
-            <label class="form-label fw-bold">ไฟล์เอกสารอ้างอิง</label>
-            <input type="file" class="form-control reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
+            <label class="form-label small fw-semibold">ไฟล์เอกสารอ้างอิง</label>
+            <input type="file" class="form-control form-control-sm reference-info-input" name="reference_files[]" accept="image/*,.pdf" multiple>
           </div>
-          <div class="col-md-5 mt-5">
+          <div class="col-md-4 d-flex flex-column-reverse">
             <div class="reference-filenames-container"></div>
             {% for reference_file in (claim_detail.reference_files if claim_detail else []) %}
               <input type="hidden" name="existing_reference_files[]" value="{{ reference_file.proof_reference }}">
@@ -194,11 +385,11 @@
             {% endfor %}
           </div>
         </div>
-      </div>
+        </section>
 
       <!-- 2. ส่วนแนบเอกสารประกาศประกอบ -->
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h5>
+      <section class="mt-3" aria-labelledby="announcementHeading">
+        <h4 class="h6 fw-semibold text-dark mb-2" id="announcementHeading"><i class="bi bi-file-earmark-text me-2 text-primary"></i>แนบเอกสารประกาศประกอบ (ถ้ามี)</h4>
         <div id="document-inputs-container">
           {% if claim_detail and claim_detail.documents %}
             {% for doc in claim_detail.documents %}
@@ -252,16 +443,11 @@
         <div class="col-md-12 mt-2">
           <small class="text-danger">* หากเป็นการเบิกจากมติในที่ประชุมคณะกรรมการฯ ให้แนบเอกสารประกาศประกอบด้วย *</small>
         </div>
-      </div>
-      <div class="mb-4 border rounded-3 p-3 bg-white">
-      <h3 class="h5 fw-bold text-dark mb-3">รายการส่งฝ่ายการเงิน</h3>
-      <div class="d-flex justify-content-end mb-3">
-        <div class="text-end text-secondary">
-          <span class="fw-bold">ยอดที่ขอไป: {{ '%.2f'|format(total_request_amount) }}</span>
-          <span class="fw-bold ms-3">ยอดที่เบิกไปแล้ว: {{ '%.2f'|format(total_claimed_amount + total_parcel_amount) }}</span>
-          <span class="fw-bold ms-3">ยอดคงเหลือ: {{ '%.2f'|format(total_request_amount - total_claimed_amount - total_parcel_amount) }}</span>
-        </div>
-      </div>
+      </section>
+      <section class="mt-3" aria-labelledby="financeItemsHeading">
+      <h4 class="h6 fw-semibold text-dark mb-2" id="financeItemsHeading"><i class="bi bi-receipt me-2 text-primary"></i>รายการส่งฝ่ายการเงิน</h4>
+      {% set claim_form_items = claim_detail.items if claim_detail else (selected_fund_request.items if selected_fund_request else []) %}
+      {% set claim_form_items_from_fund_request = not claim_detail and selected_fund_request and selected_fund_request.items %}
       <div class="table-responsive">
         <table class="table table-bordered align-middle" id="claimTable">
           <thead class="table-light small fw-bold">
@@ -276,14 +462,16 @@
             </tr>
           </thead>
           <tbody id="claimBody">
-            {% if claim_detail and claim_detail.items %}
-              {% for item in claim_detail.items %}
+            {% if claim_form_items %}
+              {% for item in claim_form_items %}
+                {% if item.category_type|string != '6' %}
                 {% set row_index = loop.index0 %}
+                {% set item_proof_files = item.proof_files if not claim_form_items_from_fund_request else [] %}
                 <tr>
                   <td class="text-center fw-bold row-index">{{ loop.index }}</td>
                   <td>
                     <input type="text" name="receipt_date[]" class="form-control form-control-sm receipt-date-input app-date-picker"
-                          value="{{ item.receipt_date.strftime('%Y-%m-%d') if item.receipt_date else '' }}" placeholder="dd/mm/yyyy" required>
+                          value="{{ item.receipt_date.strftime('%Y-%m-%d') if not claim_form_items_from_fund_request and item.receipt_date else '' }}" placeholder="dd/mm/yyyy" required>
                     <small class="text-warning d-none receipt-age-warning mt-1 d-block small"></small>
                   </td>
                   <td>
@@ -292,6 +480,7 @@
                       <option value="2" {% if item.category_type|string == '2' %}selected{% endif %}>ค่าใช้สอย (เช่น ค่าซ่อมแซม, ค่าเช่า, ค่าจ้างเหมา)</option>
                       <option value="3" {% if item.category_type|string == '3' %}selected{% endif %}>ค่าวัสดุ (เช่น เครื่องเขียน, วัสดุสำนักงาน, อุปกรณ์)</option>
                       <option value="4" {% if item.category_type|string == '4' %}selected{% endif %}>ค่าสาธารณูปโภค (เช่น ค่าที่พัก, ค่าเดินทาง, ค่าค่าน้ำ-ไฟ)</option>
+                      <option value="5" {% if item.category_type|string == '5' %}selected{% endif %}>อื่น ๆ (เช่น สัญญาเงินยืม บย.01/2569)</option>
                     </select>
                     </td>
                   <td>
@@ -303,8 +492,8 @@
                           value="{{ '%.2f'|format(item.amount) if item.amount else '' }}" placeholder="0.00" oninput="calculateTotal()" required>
                   </td>
                   <td>
-                    <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item.proof_files %}required{% endif %}>
-                    {% for proof_file in item.proof_files %}
+                    <input type="file" name="proof_files_{{ row_index }}[]" class="form-control form-control-sm" accept="image/*,.pdf" {% if row_index == 0 and not item_proof_files %}required{% endif %}>
+                    {% for proof_file in item_proof_files %}
                       <input type="hidden" name="existing_proof_files_{{ row_index }}[]" value="{{ proof_file.proof_reference }}">
                       <input type="hidden" name="existing_proof_filenames_{{ row_index }}[]" value="{{ proof_file.filename }}">
                       <small class="text-success d-block mt-1">
@@ -318,9 +507,10 @@
                     </button>
                   </td>
                 </tr>
+                {% endif %}
               {% endfor %}
 
-            {% else %}
+            {% elif not claim_detail %}
               <tr>
                 <td class="text-center fw-bold row-index">1</td>
                 <td>
@@ -334,6 +524,7 @@
                     <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
                     <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
                     <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
+                    <option value="5">อื่น ๆ (เช่น สัญญาเงินยืม บย.01/2569)</option>
                   </select>
                 </td>
                 <td>
@@ -367,18 +558,37 @@
           </button>
         </div>
       </div>
+      </section>
+      </div>
+      {% endif %}
+      </fieldset>
+      </div>
       </div>
 
 
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm circular-return-section">
-        {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
+      {% set parcel_return_fund_request_id = selected_fund_request.id if selected_fund_request else (claim_detail.fund_request_id if claim_detail and claim_detail.fund_request_id else none) %}
+      {% if not claim_edit_mode|default(false) %}
+      <div class="card p-3 mb-4 border rounded-4 shadow-sm circular-return-section">
+        <h3 class="h5 mb-0" id="claimCircularHeading">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed{% if not cash_mng_finance_open %} disabled{% endif %}"
+                  type="button"{% if cash_mng_finance_open %} data-bs-toggle="collapse" data-bs-target="#claimCircularCollapse"{% else %} disabled aria-disabled="true"{% endif %}
+                  aria-expanded="false" aria-controls="claimCircularCollapse">
+            <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+            รายการส่งการเงิน ว-119 / ว-5763
+            {% if not cash_mng_finance_open %}
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</span>
+            {% endif %}
+            <i class="bi bi-chevron-down ms-auto text-muted"></i>
+          </button>
+        </h3>
+        <div id="claimCircularCollapse" class="collapse" aria-labelledby="claimCircularHeading">
+        <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
+        <div class="pt-3">
         {% if parcel_return_fund_request_id %}
-        <h3 class="h5 fw-bold text-dark mb-3">รายการส่งการเงิน ว-119 / ว-5763</h3>
         <div class="d-flex align-items-start gap-2 mb-2">
           <span class="text-danger text-sm-left flex-grow-1">คณบดี/รองคณบดี อนุมัติภายใน 5 วันทำการนับถัดจากวันที่ลงในใบเสร็จ (วงเงินไม่เกิน 10,000 บาทต่อใบเสร็จ และอยู่ในหมวดที่ได้รับการยกเว้น)</span>
           {% include 'advance_payment/partials/circular_return_reference_tooltip.html' %}
         </div>
-        {% if parcel_return_fund_request_id %}
         <div class="d-flex flex-wrap gap-4 py-2 mb-2">
         <div class="form-check">
           <input
@@ -416,17 +626,35 @@
             <input type="text" name="circular_items_description" class="form-control circular-return-input" placeholder="รายละเอียดรายการ...">
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+            <label class="form-label fw-bold">จำนวนเงิน</label>
             <input type="text" name="circular_amount" id="circular_amount" class="form-control circular-amount-input circular-return-input" placeholder="0.00">
           </div>
         </div>
         {% else %}
         <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกยอดการคืน ว-119 / ว-5763 ได้</div>
         {% endif %}
+        </div>
+        </fieldset>
+        </div>
       </div>
 
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">รายการที่ส่งไปฝ่ายพัสดุ</h3>
+      <div class="card p-3 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 mb-0" id="claimParcelHeading">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start collapsed{% if not cash_mng_finance_open %} disabled{% endif %}"
+                  type="button"{% if cash_mng_finance_open %} data-bs-toggle="collapse" data-bs-target="#claimParcelCollapse"{% else %} disabled aria-disabled="true"{% endif %}
+                  aria-expanded="false" aria-controls="claimParcelCollapse">
+            <i class="bi bi-box-seam me-2 text-primary"></i>
+            รายการที่ส่งไปฝ่ายพัสดุ
+            {% if not cash_mng_finance_open %}
+            <span class="small text-danger ms-auto me-2">ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</span>
+            {% endif %}
+            <i class="bi bi-chevron-down ms-auto text-muted"></i>
+          </button>
+        </h3>
+        <div id="claimParcelCollapse" class="collapse" aria-labelledby="claimParcelHeading">
+        <fieldset class="border-0 p-0 m-0 w-100"{% if not cash_mng_finance_open %} disabled{% endif %}>
+        <div class="pt-3">
+        {% if parcel_return_fund_request_id %}
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการส่งไปฝ่ายพัสดุ</label>
@@ -437,25 +665,41 @@
             <input name="items_description" class="form-control parcel-return-input" placeholder="รายละเอียดรายการ..." required>
           </div>
           <div class="col-md-4">
-            <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+            <label class="form-label fw-bold">จำนวนเงิน</label>
             <input type="text" name="parcel_amount" id="parcel_amount" class="form-control parcel-amount-input parcel-return-input" required placeholder="0.00">
           </div>
         </div>
         {% else %}
         <div class="alert alert-warning mb-0">กรุณาเลือกคำขอเบิกเงินก่อนจึงจะสามารถบันทึกการส่งคืนพัสดุได้</div>
         {% endif %}
+        </div>
+        </fieldset>
+        </div>
       </div>
+      {% endif %}
 
-      {% set cash_return_item = none %}
+      {% set cash_return_ns = namespace(item=none) %}
       {% if claim_detail and claim_detail.items %}
         {% for item in claim_detail.items %}
-          {% if item.category_type|string == '6' and cash_return_item is none %}
-            {% set cash_return_item = item %}
+          {% if item.category_type|string == '6' and cash_return_ns.item is none %}
+            {% set cash_return_ns.item = item %}
           {% endif %}
         {% endfor %}
       {% endif %}
-      <div class="card p-4 mb-4 border rounded-4 shadow-sm">
-        <h3 class="h5 fw-bold text-dark mb-3">โอนคืนบัญชีเงินสดย่อย</h3>
+      {% set cash_return_item = cash_return_ns.item %}
+      {% if not claim_edit_mode|default(false) or cash_return_item %}
+      <div class="card p-3 mb-4 border rounded-4 shadow-sm">
+        <h3 class="h5 mb-0" id="claimCashReturnHeading">
+          <button class="btn btn-link text-dark text-decoration-none fw-bold fs-5 p-0 d-flex align-items-center w-100 text-start{% if not cash_return_item %} collapsed{% endif %}"
+                  type="button" data-bs-toggle="collapse" data-bs-target="#claimCashReturnCollapse"
+                  aria-expanded="{{ 'true' if cash_return_item else 'false' }}" aria-controls="claimCashReturnCollapse">
+            <i class="bi bi-cash-coin me-2 text-primary"></i>
+            เงินโอนคืนบัญชีเงินสดย่อย
+            <i class="bi bi-chevron-down ms-auto text-muted"></i>
+          </button>
+        </h3>
+        <div id="claimCashReturnCollapse" class="collapse{% if cash_return_item %} show{% endif %}" aria-labelledby="claimCashReturnHeading">
+        <div class="pt-3">
         <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label fw-bold">วันที่ทำการโอน</label>
@@ -479,8 +723,13 @@
             {% endif %}
           </div>
         </div>
+        </div>
+        </div>
+      </div>
+      {% endif %}
       </div>
 
+      {% set claim_form_amount = claim_detail.total_amount if claim_detail and claim_detail.total_amount is not none else 0 %}
       <div class="d-flex align-items-center justify-content-between flex-wrap mt-3 p-3 bg-light gap-3">
         <div class="d-flex flex-column gap-2 ms-lg-auto" style="width: 100%; max-width: 370px; zoom: 0.572;">
           <div class="d-flex justify-content-between align-items-baseline gap-4 text-secondary fs-5">
@@ -494,7 +743,7 @@
           <div class="border-top border-3 border-dark my-2" style="border-top-style: dashed !important;"></div>
           <div class="d-flex justify-content-between align-items-center gap-4 text-dark fs-4">
             <span class="fw-bold">ยอดครั้งนี้</span>
-            <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="grandTotalDisplay" value="0.00" readonly aria-label="ยอดครั้งนี้">
+            <input type="text" class="form-control form-control-lg fw-bold text-end bg-info-subtle border-info rounded-3 py-1" id="grandTotalDisplay" value="{{ '{:,.2f}'.format(claim_form_amount or 0) }}" readonly aria-label="ยอดครั้งนี้">
           </div>
           <div class="d-flex justify-content-between align-items-baseline gap-4 text-dark fs-4">
             <span class="fw-bold">ยอดคงค้าง</span>
@@ -515,16 +764,17 @@
       {% endif %}
 
       <div class="d-flex gap-2 justify-content-end">
+        {% if not claim_edit_mode|default(false) and cash_mng_finance_open %}
         <button type="submit" name="action" value="draft" class="btn btn-outline-secondary px-4 fw-bold" style="border-radius: 8px;">
           บันทึกฉบับร่าง
         </button>
-        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if is_over_request %}disabled aria-disabled="true"{% endif %}>
-          <i class="bi bi-send me-1"></i> ยืนยันส่งเบิกเงิน
+        {% endif %}
+        <button type="submit" name="action" value="submit" class="btn btn-primary px-4 fw-bold" style="border-radius: 8px;" id="claimSubmitFinalBtn" {% if is_over_request or (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) %}disabled aria-disabled="true"{% endif %}>
+          <i class="bi bi-send me-1"></i> {% if claim_edit_mode|default(false) %}บันทึกการแก้ไข{% elif not cash_mng_finance_open %}ยืนยันส่งคืนเงิน{% else %}ยืนยันส่งเบิกเงิน{% endif %}
         </button>
       </div>
-
-</form>
-</div>
+    </form>
+  </div>
 </div>
 <script>
 function togglePettyCashClaimForm() {
@@ -612,11 +862,24 @@ function togglePettyCashClaimForm() {
       </table>
     </div>
   {% endif %}
-  {% if parcel_return_history %}
-  <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
+  {% set parcel_history_groups = namespace(standard=[], circular=[]) %}
+  {% for pr in parcel_return_history %}
+    {% if pr.type is not none %}
+      {% set _ = parcel_history_groups.circular.append(pr) %}
+    {% else %}
+      {% set _ = parcel_history_groups.standard.append(pr) %}
+    {% endif %}
+  {% endfor %}
+  {% set parcel_history_sections = [
+    {'rows': parcel_history_groups.standard, 'title': 'รายการส่งฝ่ายพัสดุ', 'heading_class': 'text-success', 'icon': 'bi-box-seam', 'thead_class': 'table-success'},
+    {'rows': parcel_history_groups.circular, 'title': 'รายการส่งการเงิน ว-119 / ว-5763', 'heading_class': 'text-primary', 'icon': 'bi-file-earmark-text', 'thead_class': 'table-primary'}
+  ] %}
+  {% for parcel_section in parcel_history_sections %}
+  {% if parcel_section.rows %}
+  <h5 class="fw-bold {{ parcel_section.heading_class }} mb-2"><i class="bi {{ parcel_section.icon }} me-2"></i>{{ parcel_section.title }}</h5>
     <div class="table-responsive mb-4">
       <table class="table table-hover align-middle mb-0">
-        <thead class="table-success text-dark">
+        <thead class="{{ parcel_section.thead_class }} text-dark">
           <tr>
             <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
             <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
@@ -627,7 +890,7 @@ function togglePettyCashClaimForm() {
           </tr>
         </thead>
         <tbody>
-          {% for pr in parcel_return_history %}
+          {% for pr in parcel_section.rows %}
           <tr class="align-top">
             <td>{{ pr.sent_date|thai_date }}</td>
             <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
@@ -635,7 +898,7 @@ function togglePettyCashClaimForm() {
             <td>
               {{ status_badge(pr.status) }}
               {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
-                <div class="small text-danger mt-1 text-start">{{ pr.rejection_comment }}</div>
+                <div class="small text-danger mt-1 text-start" style="white-space: pre-line;">{{ pr.rejection_comment|latest_rejection_comment }}</div>
               {% endif %}
             </td>
             <td class="text-center">
@@ -649,6 +912,7 @@ function togglePettyCashClaimForm() {
               {% endif %}
             </td>
             <td class="text-center">
+              {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
               <div class="d-flex flex-wrap gap-2 justify-content-center">
                 {% if advance_payment_role == 'finance' and pr.status == 'รอตรวจสอบ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_proofed', parcel_return_id=pr.id) }}" id="parcelProofedForm{{ pr.id }}" data-ajax-validation="true">
@@ -659,14 +923,14 @@ function togglePettyCashClaimForm() {
                       style="max-width: 150px;"
                       data-popup-trigger="true"
                       data-popup-title="ยืนยันการตรวจสอบเอกสารพัสดุ"
-                      data-popup-message="คุณต้องการเปลี่ยนสถานะรายการส่งคืนพัสดุนี้เป็น 'ยืนยันเอกสารแล้ว' ใช่หรือไม่?"
+                      data-popup-message="คุณต้องการเปลี่ยนสถานะรายการนี้เป็น '{% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}' ใช่หรือไม่?"
                       data-popup-confirm-text="ยืนยันการตรวจสอบ"
                       data-popup-confirm-class="btn-primary"
                       data-popup-target-form-id="parcelProofedForm{{ pr.id }}">
-                      ยืนยันเอกสารแล้ว
+                      {% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}
                     </button>
                   </form>
-                {% elif advance_payment_role == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status == 'พัสดุกำลังดำเนินการ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -684,7 +948,7 @@ function togglePettyCashClaimForm() {
                   </form>
                 {% endif %}
 
-                {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+                {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}
                   <button type="button"
                           class="btn btn-success btn-sm fw-bold px-3 py-2"
                           data-bs-toggle="modal"
@@ -711,8 +975,12 @@ function togglePettyCashClaimForm() {
         </tbody>
       </table>
     </div>
+  {% endif %}
+  {% endfor %}
+  {% if parcel_return_history %}
     {% for pr in parcel_return_history %}
-      {% if advance_payment_role == 'finance' and pr.status == 'ได้รับเอกสารแล้ว' and pr.fund_request_id %}
+      {% set parcel_transfer_ready = pr.status == ('ยืนยันการตรวจสอบ' if pr.type_label else 'ได้รับเอกสารแล้ว') %}
+      {% if advance_payment_role == 'finance' and parcel_transfer_ready and pr.fund_request_id %}
         <div class="modal fade text-start" id="parcelTransferModal{{ pr.id }}" tabindex="-1" aria-labelledby="parcelTransferModalLabel{{ pr.id }}" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -794,7 +1062,7 @@ function togglePettyCashClaimForm() {
                     <input type="text" name="items_description" class="form-control" value="{{ pr.items_description }}" required>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label fw-bold">จำนวนเงินที่คืน</label>
+                    <label class="form-label fw-bold">จำนวนเงิน</label>
                     <input type="text" name="amount" class="form-control" value="{{ '{:,.2f}'.format(pr.amount_spent) if pr.amount_spent else '' }}" placeholder="0.00" required>
                   </div>
                 </div>
@@ -849,6 +1117,36 @@ document.addEventListener('DOMContentLoaded', function() {
         claimForm.querySelectorAll('.claim-amount, .parcel-amount-input, .circular-amount-input, .cash-return-amount-input').forEach(input => {
           input.value = input.value.replace(/,/g, '');
         });
+        return;
+      }
+
+      const financeOpen = {{ 'true' if cash_mng_finance_open else 'false' }};
+      if (!financeOpen) {
+        const cashInputs = claimForm.querySelectorAll('.cash-return-input');
+        const hasCashReturnData = Array.from(cashInputs).some(input =>
+          input.type === 'file' ? input.files.length > 0 : input.value.trim()
+        );
+        const hasExistingCashProof = Boolean(
+          claimForm.querySelector('input[name="cash_return_existing_proof"]')
+        );
+        const cashReturnComplete = Array.from(cashInputs).every(input =>
+          input.type === 'file'
+            ? input.files.length > 0 || hasExistingCashProof
+            : Boolean(input.value.trim())
+        );
+        if (!hasCashReturnData || !cashReturnComplete) {
+          event.preventDefault();
+          window.openAppPopup({
+            title: "ไม่สามารถส่งรายการได้",
+            message: "ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ",
+            confirmText: "ตกลง",
+            confirmClass: "btn-warning",
+            alertOnly: true,
+          });
+          return;
+        }
+        const cashAmountInput = claimForm.querySelector('.cash-return-amount-input');
+        if (cashAmountInput) cashAmountInput.value = cashAmountInput.value.replace(/,/g, '');
         return;
       }
 
@@ -951,6 +1249,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (!isValid) {
         event.preventDefault();
+        const firstInvalidField = claimForm.querySelector('.is-invalid, :invalid');
+        const collapsedSection = firstInvalidField?.closest('.collapse');
+        if (collapsedSection && !collapsedSection.classList.contains('show')) {
+          if (window.bootstrap?.Collapse) {
+            window.bootstrap.Collapse.getOrCreateInstance(collapsedSection, { toggle: false }).show();
+          } else {
+            collapsedSection.classList.add('show');
+          }
+        }
         window.openAppPopup({
           title: "กรุณาตรวจสอบข้อมูล",
           message: "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วนก่อนทำการส่งข้อมูล",
@@ -1025,6 +1332,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // ฟังก์ชันสั่งการ Auto Save เมื่อหยุดพิมพ์/แก้ไข 2 วินาที (Debounce)
 function triggerAutoSave() {
+  if ({{ 'true' if claim_edit_mode|default(false) else 'false' }}) return;
+  if (!{{ 'true' if cash_mng_finance_open else 'false' }}) return;
   const statusEl = document.getElementById('autoSaveStatus');
   if (statusEl) {
     statusEl.className = "badge bg-warning text-dark px-3 py-2 border";
@@ -1214,15 +1523,19 @@ function calculateTotal() {
 
 function updateSubmitAndReturnButtons(isOverRequest) {
   const finalSubmitBtn = document.getElementById('claimSubmitFinalBtn');
+  const financeSubmissionBlocked = {{ 'true' if (not cash_mng_finance_open and claim_edit_mode|default(false) and not cash_return_item) else 'false' }};
 
   [finalSubmitBtn].forEach(btn => {
     if (!btn) {
       return;
     }
 
-    btn.disabled = isOverRequest;
-    btn.setAttribute('aria-disabled', isOverRequest ? 'true' : 'false');
-    btn.title = isOverRequest ? 'ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้' : '';
+    const shouldDisable = isOverRequest || financeSubmissionBlocked;
+    btn.disabled = shouldDisable;
+    btn.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
+    btn.title = isOverRequest
+      ? 'ยอดรวมเกินยอดที่ขอเบิก จึงไม่สามารถส่งรายการนี้ได้'
+      : (financeSubmissionBlocked ? 'ไม่สามารถส่งรายการได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ' : '');
   });
 }
 
@@ -1436,6 +1749,7 @@ function addRow() {
         <option value="2">ค่าใช้สอย (เช่น ค่าเดินทาง, ค่าจัดกิจกรรม/โครงการ, ค่าเลี้ยงรับรอง)</option>
         <option value="3">ค่าวัสดุ (เช่น วัสดุสำนักงาน, วัสดุงานครัว/จัดประชุม, วัสดุสิ้นเปลือง)</option>
         <option value="4">ค่าสาธารณูปโภค (เช่น ค่าไฟฟ้า, ค่าน้ำประปา, ค่าโทรศัพท์, ค่าอินเทอร์เน็ต, ค่าไปรษณีย์)</option>
+        <option value="5">อื่น ๆ (เช่น สัญญาเงินยืม บย.01/2569)</option>
       </select>
     </td>
     <td><input type="text" name="description[]" class="form-control form-control-sm" placeholder="ระบุรายการ..." required></td>
@@ -1460,15 +1774,10 @@ function addRow() {
 }
 
 function removeRow(btn) {
-  const tbody = document.getElementById('claimBody');
-  if (tbody.querySelectorAll('tr').length > 1) {
-    btn.closest('tr').remove();
-    updateIndices();
-    calculateTotal();
-    triggerAutoSave();
-  } else {
-    alert("ต้องมีรายการอย่างน้อย 1 รายการ");
-  }
+  btn.closest('tr').remove();
+  updateIndices();
+  calculateTotal();
+  triggerAutoSave();
 }
 
 function updateIndices() {

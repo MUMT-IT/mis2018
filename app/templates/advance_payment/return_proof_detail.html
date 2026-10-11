@@ -46,11 +46,8 @@
     
         {% if return_detail.rejection_comment %}
         <div class="col-12 mt-3">
-            <h6 class="fw-bold text-danger">ประวัติบันทึกข้อเสนอแนะการปฏิเสธ:</h6>
-            {% set rejection_history = return_detail.rejection_comment.split('ครั้งที่ ')|reject('equalto', '')|list|reverse %}
-            {% for comment in rejection_history %}
-              <p style="white-space: pre-line;" class="mb-2 p-2 {% if loop.first and return_detail.status|lower in ['ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}rounded border text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small{% endif %}">ครั้งที่ {{ comment }}</p>
-            {% endfor %}
+            <h6 class="fw-bold text-danger">ข้อเสนอแนะการปฏิเสธล่าสุด:</h6>
+            <p style="white-space: pre-line;" class="mb-2 p-2 {% if return_detail.status|lower in ['ปฏิเสธ', 'ฎีกาถูกตีกลับจากกองคลัง'] %}rounded border text-dark bg-danger-subtle border-danger-subtle{% else %}text-muted small{% endif %}">{{ return_detail.rejection_comment|latest_rejection_comment }}</p>
         </div>
         {% endif %}
       </div>
@@ -60,6 +57,14 @@
           <button type="button" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" data-bs-toggle="modal" data-bs-target="#pdfReferenceModal">
             <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดเอกสารขออนุมัติเบิกจ่าย
           </button>
+      </div>
+    {% endif %}
+    {% if can_edit_return_detail %}
+      <div class="d-flex gap-2 justify-content-md-end mt-3">
+        <a class="btn btn-outline-warning btn-sm fw-bold px-3 py-2"
+           href="{{ url_for('advance_payment.verification_view', ticket_id=borrowing_ticket.id, edit_return_id=return_detail.id) }}#return_block_ticket_{{ borrowing_ticket.id }}">
+          <i class="bi bi-pencil-square me-1"></i>แก้ไขทั้งฟอร์ม
+        </a>
       </div>
     {% endif %}
     {% if advance_payment_role != 'finance' and return_detail.status|lower == 'รอยืนยันการแก้ไข' %}
@@ -233,7 +238,7 @@
                 </td>
                 
                 <td>
-                  {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ', 'รอยืนยันการแก้ไข', 'ฎีกาถูกตีกลับจากกองคลัง'] %}
+                  {% if can_edit_return_detail %}
                     <button type="button" class="btn btn-sm btn-outline-warning px-2 py-1" style="border-radius: 6px;" data-bs-toggle="modal" data-bs-target="#editModalInRow{{ file.id or file.receipt_item.id }}">
                         <i class="bi bi-pencil-square"></i> แก้ไข
                     </button>
@@ -241,7 +246,7 @@
                 </td>
                 </tr>
 
-                {% if session.get('advance_payment_system') == 'advance_payment' and return_detail.status|lower in ['รอตรวจสอบ', 'ปฏิเสธ', 'รอยืนยันการแก้ไข', 'ฎีกาถูกตีกลับจากกองคลัง'] %}
+                {% if can_edit_return_detail %}
                 <div class="modal fade text-start" id="editModalInRow{{ file.id or file.receipt_item.id }}" tabindex="-1" aria-labelledby="editRowLabel{{ file.id or file.receipt_item.id }}" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius: 14px;">

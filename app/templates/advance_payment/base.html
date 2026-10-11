@@ -5,20 +5,25 @@
     {% set status_colors = {
       'ปฏิเสธ': 'danger',
       'ยกเลิก': 'danger',
+      'ยกเลิกใบเบิก': 'danger',
+      'ใบเบิกถูกปฏิเสธ': 'danger',
       'รอตรวจสอบ': 'warning',
       'เอกสารตั้งฎีกา': 'info',
       'รอยืนยันการแก้ไข': 'warning',
       'กำลังตรวจสอบ': 'warning',
       'ฉบับร่าง': 'secondary',
+      'รอการอนุมัติ': 'warning',
       'ผ่านการตรวจสอบ': 'success',
-      'ล้างลูกหนี้เงินยืม': 'success',
+      'ล้างลูกหนี้เงินยืม': 'secondary',
       'ฎีกาถูกตีกลับจากกองคลัง': 'danger',
       'กำลังส่งคำขอ': 'warning',
+      'กำลังดำเนินการ': 'info',
       'อนุมัติจ่ายเงิน': 'primary',
       'มียอดคงค้าง': 'info',
       'เคลียร์ยอดแล้ว': 'success',
       'พัสดุกำลังดำเนินการ': 'info',
       'ได้รับเอกสารแล้ว': 'success',
+      'ยืนยันการตรวจสอบ': 'success',
       'ถูกปฏิเสธ': 'danger',
       'อนุมัติแล้ว': 'primary',
       'เบิกเงินแล้ว': 'success',
@@ -232,6 +237,26 @@
       }
       body, button, input, select, textarea {
         font-size: 1rem; 
+      }
+      .interest-sort-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .interest-sort-button:hover,
+      .interest-sort-button:focus-visible {
+        color: var(--bs-primary);
+      }
+      .interest-sort-button i {
+        font-size: 0.75rem;
+        opacity: 0.7;
       }
       .datepicker {
         z-index: 1080 !important;
@@ -576,6 +601,209 @@
       #tab-claim-history.active {
         border-bottom-color: #198754 !important;
       }
+
+      /* Cash-advance account manager settings */
+      .account-manager-table th {
+        white-space: nowrap;
+      }
+      .account-manager-settings-wrapper,
+      #accountManagerSettingsForm,
+      #accountManagerSettingsForm .table-responsive,
+      .account-manager-table {
+        width: 100%;
+        min-width: 0;
+      }
+      .manager-summary {
+        min-height: 2.4rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        background: #fff;
+        padding: 0.35rem 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .manager-summary:not(.is-disabled):hover,
+      .manager-summary:not(.is-disabled):focus-visible {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+        outline: 0;
+      }
+      .manager-summary.is-disabled {
+        border-color: #dee2e6;
+        background: #e9ecef;
+        color: #6c757d;
+        cursor: not-allowed;
+      }
+      .manager-badge {
+        max-width: 15rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .staff-picker-list {
+        max-height: 24rem;
+        overflow-y: auto;
+      }
+      .staff-picker-item {
+        cursor: pointer;
+      }
+      .staff-picker-item:hover > * {
+        background: #f8fafc;
+      }
+      .staff-picker-item > td {
+        white-space: nowrap;
+      }
+      .staff-picker-item .form-check-input {
+        width: 1.15rem;
+        height: 1.15rem;
+      }
+      .document-input-row .announcement-input {
+        background-color: #fff !important;
+        color: #212529 !important;
+        border-color: #6c757d !important;
+      }
+      .document-input-row .announcement-input::placeholder {
+        color: #495057;
+        opacity: 1;
+      }
+
+      /* Revolving-fund dashboard cards */
+      .advance-fund-dashboard {
+        min-height: 370px;
+      }
+      .petty-fund-dashboard {
+        min-height: 240px;
+      }
+      .advance-fund-grid,
+      .petty-fund-grid {
+        display: grid;
+        gap: 48px 41px;
+        width: 100%;
+        margin: 0 auto;
+      }
+      .advance-fund-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-areas:
+          "initial lent requested cash remaining"
+          ". . closing . ."
+          ". . received . .";
+        max-width: 1320px;
+      }
+      .petty-fund-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-areas:
+          "initial transferred closing remaining"
+          ". . received .";
+        max-width: 1100px;
+      }
+      .advance-fund-card,
+      .petty-fund-card {
+        min-width: 0;
+        min-height: 94px;
+        padding: 14px 15px;
+        background: #f7f7f7;
+        border-radius: 24px;
+        box-shadow: 0 10px 8px rgba(15, 23, 42, 0.13);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .advance-fund-card-label,
+      .petty-fund-card-label {
+        margin-bottom: 8px;
+        color: #111111;
+        font-size: 0.9rem;
+        font-weight: 600;
+        line-height: 1.2;
+      }
+      .advance-fund-card-amount,
+      .petty-fund-card-amount {
+        color: #050505;
+        font-size: clamp(1.05rem, 1.75vw, 1.5rem);
+        font-weight: 700;
+        line-height: 1.15;
+        white-space: nowrap;
+      }
+      .advance-fund-card--initial,
+      .petty-fund-card--initial { grid-area: initial; }
+      .advance-fund-card--lent { grid-area: lent; }
+      .advance-fund-card--requested { grid-area: requested; }
+      .advance-fund-card--cash { grid-area: cash; }
+      .advance-fund-card--remaining,
+      .petty-fund-card--remaining { grid-area: remaining; }
+      .advance-fund-card--closing,
+      .petty-fund-card--closing { grid-area: closing; }
+      .advance-fund-card--received,
+      .petty-fund-card--received { grid-area: received; }
+      .petty-fund-card--transferred { grid-area: transferred; }
+
+      @media (max-width: 991.98px) {
+        .advance-fund-grid,
+        .petty-fund-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 29px;
+        }
+        .advance-fund-grid {
+          grid-template-areas:
+            "initial remaining"
+            "lent cash"
+            "requested requested"
+            "closing closing"
+            "received received";
+        }
+        .petty-fund-grid {
+          grid-template-areas:
+            "initial remaining"
+            "transferred closing"
+            "received received";
+        }
+        .advance-fund-card--requested,
+        .advance-fund-card--closing,
+        .advance-fund-card--received,
+        .petty-fund-card--received {
+          width: calc(50% - 14.5px);
+          justify-self: center;
+        }
+        .account-manager-table {
+          min-width: 940px;
+        }
+      }
+
+      @media (max-width: 575.98px) {
+        .advance-fund-grid,
+        .petty-fund-grid {
+          grid-template-columns: 1fr;
+          gap: 22px;
+        }
+        .advance-fund-grid {
+          grid-template-areas:
+            "initial"
+            "lent"
+            "requested"
+            "closing"
+            "received"
+            "cash"
+            "remaining";
+        }
+        .petty-fund-grid {
+          grid-template-areas:
+            "initial"
+            "transferred"
+            "closing"
+            "received"
+            "remaining";
+        }
+        .advance-fund-card--requested,
+        .advance-fund-card--closing,
+        .advance-fund-card--received,
+        .petty-fund-card--received {
+          width: 100%;
+        }
+        .advance-fund-card-amount,
+        .petty-fund-card-amount {
+          font-size: 1.4rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -645,11 +873,21 @@
                   <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งใช้เงินยืมเงินทดรองจ่าย
                 </a>
               </li>
+              <li class="nav-item">
+                <a href="{{ url_for('advance_payment.advance_payment_dashboard') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.advance_payment_dashboard' %}active{% endif %}">
+                  <i class="bi bi-speedometer2 me-2"></i> Dashboard เงินทดรองจ่าย
+                </a>
+              </li>
 
               <li class="nav-section-title">ระบบเงินสดย่อย</li>
               <li class="nav-item">
                 <a href="{{ url_for('advance_payment.petty_cash_claim_history') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.petty_cash_claim_history' %}active{% endif %}">
                   <i class="bi bi-clock-history me-2"></i> ประวัติเอกสารส่งเบิกเงินสดย่อย
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{{ url_for('advance_payment.petty_cash_dashboard') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.petty_cash_dashboard' %}active{% endif %}">
+                  <i class="bi bi-speedometer2 me-2"></i> Dashboard เงินสดย่อย
                 </a>
               </li>
               <li class="nav-item">
@@ -663,9 +901,15 @@
                   <i class="bi bi-file-earmark-plus-fill me-2"></i> จัดการตั้งฎีกา
                 </a>
               </li>
+              <li class="nav-section-title">ข้อมูลบัญชีธนาคาร</li>
               <li class="nav-item">
-                <a href="{{ url_for('advance_payment.finance_bank_account_registry') }}" class="nav-link {% if request.endpoint == 'advance_payment.finance_bank_account_registry' %}active{% endif %}">
-                  <i class="bi bi-bank me-2"></i> ข้อมูลบัญชีธนาคาร
+                <a href="{{ url_for('advance_payment.finance_bank_account_registry') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.finance_bank_account_registry' %}active{% endif %}">
+                  <i class="bi bi-bank me-2"></i> เพิ่มข้อมูลบัญชีธนาคาร
+                </a>
+              </li>
+              <li class="nav-item">
+                <a href="{{ url_for('advance_payment.cash_advance_account_manager_settings') }}" class="nav-link nav-subitem {% if request.endpoint == 'advance_payment.cash_advance_account_manager_settings' %}active{% endif %}">
+                  <i class="bi bi-people-fill me-2"></i> ตั้งค่าผู้จัดการบัญชีเงินยืม
                 </a>
               </li>
             {% endif %}
@@ -676,12 +920,14 @@
                   <i class="bi bi-clock-history me-2"></i> รายการเงินสดย่อย
                 </a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('advance_payment.petty_cash_ledger') }}">
-                  <i class="bi bi-journal-bookmark-fill me-2"></i>
-                  <span>สมุดคุมบัญชีเงินสดย่อย</span>
-                </a>
-              </li>
+              {% if advance_payment_is_custodian %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('advance_payment.petty_cash_ledger') }}">
+                    <i class="bi bi-journal-bookmark-fill me-2"></i>
+                    <span>สมุดคุมบัญชีเงินสดย่อย</span>
+                  </a>
+                </li>
+              {% endif %}
             {% endif %}
             {% if petty_cash_settings|length > 1 %}
               <li class="nav-section-title">เลือกบัญชีเงินสดย่อย</li>
@@ -777,7 +1023,9 @@
                 <span class="badge {% if session.get('advance_payment_system') == 'finance' %}bg-info text-dark{% elif session.get('advance_payment_system') == 'petty_cash' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} px-2 py-1 mt-0.5" style="font-size: 0.8rem;">
                   {% if session.get('advance_payment_system') == 'finance' %}
                     ฝ่ายการเงิน
-                  {% elif advance_payment_role == 'secretary' %}
+                  {% elif session.get('advance_payment_system') == 'advance_payment' and advance_payment_is_cash_advance_manager %}
+                    ผู้จัดการบัญชีเงินยืม
+                  {% elif advance_payment_is_custodian %}
                     ผู้ดูแลเงินสดย่อย
                   {% else %}
                     ผู้ใช้งานทั่วไป
@@ -1198,5 +1446,46 @@
       });
       {% endif %}
     </script>
-  </body>
+{% if not cash_mng_finance_open %}
+<style>
+  .cash-mng-finance-entry-disabled {
+    opacity: 0.55;
+    pointer-events: none;
+    cursor: not-allowed !important;
+  }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const disableControl = (control) => {
+    if (!control) return;
+    control.classList.add('cash-mng-finance-entry-disabled', 'disabled');
+    control.setAttribute('aria-disabled', 'true');
+    control.setAttribute('title', 'ไม่สามารถเข้าใช้งานระบบเงินยืมทดรองจ่ายได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ');
+    if ('disabled' in control) control.disabled = true;
+    if (control.tagName === 'A') control.removeAttribute('href');
+  };
+
+  document.querySelectorAll('[data-system="advance_payment"], [data-system-target="advance_payment"], button[value="advance_payment"], input[type="submit"][value="advance_payment"], option[value="advance_payment"]').forEach(disableControl);
+
+  document.querySelectorAll('input[value="advance_payment"]').forEach(input => {
+    input.closest('form')?.querySelectorAll('button, input[type="submit"], a').forEach(disableControl);
+  });
+
+  document.querySelectorAll('a, button').forEach(control => {
+    const label = [
+      control.textContent || '',
+      control.getAttribute('title') || '',
+      control.getAttribute('aria-label') || '',
+    ].join(' ').replace(/\s+/g, ' ').trim();
+    const href = control.getAttribute('href') || '';
+    const targetsAdvancePayment =
+      label.includes('ระบบเงินยืม') ||
+      label.includes('เงินยืมทดรองจ่าย') ||
+      /(?:[?&]system=|\/systems?\/|\/select-system\/|\/switch-system\/)advance_payment(?:[&#/?]|$)/i.test(href);
+    if (targetsAdvancePayment) disableControl(control);
+  });
+});
+</script>
+{% endif %}
+</body>
 </html>

@@ -23,7 +23,7 @@
         <div class="card border rounded-4 shadow-sm bg-white p-3 h-100">
           <div class="text-muted small fw-bold text-uppercase">กำหนดส่งเงินยืมที่ใกล้ที่สุด</div>
           <div class="mt-2">
-            {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status', 'equalto', 'เอกสารตั้งฎีกา') | rejectattr('status', 'equalto', 'เคลียร์ยอดแล้ว') | rejectattr('status', 'equalto', 'ปฏิเสธ') | rejectattr('status', 'equalto', 'กำลังส่งคำขอ') | list %}
+            {% set active_tickets = borrowing_ticket_history | selectattr('due_date', 'defined') | selectattr('due_date', 'ne', none) | rejectattr('status', 'equalto', 'เอกสารตั้งฎีกา') | rejectattr('status', 'equalto', 'เคลียร์ยอดแล้ว') | rejectattr('status', 'equalto', 'ปฏิเสธ') | rejectattr('status', 'equalto', 'กำลังส่งคำขอ') | rejectattr('status', 'equalto', 'กำลังดำเนินการ') | list %}
             {% if borrowing_ticket_history %}
               {% if active_tickets %}
                 {% set target_ticket = (active_tickets | sort(attribute='due_date')) | first %}
@@ -96,7 +96,7 @@
   </script>
 
   {% set actionable_tickets = borrowing_ticket_history | selectattr('status', 'defined') | filter_actionable_tickets | list %}
-  {% set auto_open_return_tab = selected_borrower_id is not none and actionable_tickets %}
+  {% set auto_open_return_tab = not editing_ticket and selected_borrower_id is not none and actionable_tickets %}
 
   <!-- Combined Form Section with Tab Switcher -->
   <section class="mb-5">
@@ -106,7 +106,7 @@
         <ul class="nav nav-tabs card-header-tabs m-0 border-bottom-0" id="borrowerActionTab" role="tablist">
           <li class="nav-item" role="presentation">
             <button class="nav-link {% if not auto_open_return_tab %}active{% endif %} fw-bold px-4 py-3" id="tab-advance" data-bs-toggle="tab" data-bs-target="#create-ticket-pane" type="button" role="tab" aria-controls="create-ticket-pane" aria-selected="{{ 'false' if auto_open_return_tab else 'true' }}">
-              <i class="bi bi-file-earmark-plus me-2"></i>สร้างสัญญาเงินยืมใหม่
+              <i class="bi bi-file-earmark-plus me-2"></i>{{ 'แก้ไขสัญญาเงินยืม' if editing_ticket else 'สร้างสัญญาเงินยืมใหม่' }}
             </button>
           </li>
           <li class="nav-item" role="presentation">
@@ -122,17 +122,25 @@
         
         <!-- Tab 1: Create Borrowing Ticket Section -->
         <div class="tab-pane fade {% if not auto_open_return_tab %}show active{% endif %}" id="create-ticket-pane" role="tabpanel" aria-labelledby="tab-advance" tabindex="0">
-          <form method="post" class="needs-validation" id="createBorrowingTicketForm" data-ajax-validation="true">
+          <form method="post" class="needs-validation" id="createBorrowingTicketForm" data-ajax-validation="true" data-edit-mode="{{ 'true' if editing_ticket else 'false' }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if editing_ticket %}
+              <input type="hidden" name="edit_ticket_id" value="{{ editing_ticket.id }}">
+              <div class="alert alert-info py-2" role="alert">
+                กำลังแก้ไขสัญญาเงินยืมของ {{ editing_ticket.borrower_name or editing_ticket.borrower_email or '-' }}
+              </div>
+            {% endif %}
               <!-- Dropdown เลือกผู้ยืมเงินจาก Department -->
               <div class="mb-3">
                 <label for="borrower_email" class="form-label fw-bold">เลือกผู้ยืมเงิน (บุคลากรของคณะ)</label>
                 <select id="borrower_email" name="borrower_email" class="form-select" onchange="checkBorrowerEligibility(this)" required>
-                  <option value="" data-eligible="true" selected>โปรดเลือกผู้ยืมเงิน</option>
+                  <option value="" data-eligible="true" {% if not borrowing_ticket_form.borrower_email.data %}selected{% endif %}>โปรดเลือกผู้ยืมเงิน</option>
                   {% for u in dept_users %}
                     <option value="{{ u.email }}" 
+                            data-org-id="{{ u.personal_info.org_id if u.personal_info else '' }}"
                             data-eligible="{{ 'true' if u.is_eligible else 'false' }}" 
-                            data-reason="{{ u.ineligible_reason or 'ไม่ผ่านเงื่อนไขการยืมเงินทดรองจ่าย' }}">
+                            data-reason="{{ u.ineligible_reason or 'ไม่ผ่านเงื่อนไขการยืมเงินทดรองจ่าย' }}"
+                            {% if borrowing_ticket_form.borrower_email.data|lower == u.email|lower %}selected{% endif %}>
                       {{ u.name }}{% if u.department %} ({{ u.department }}){% endif %} - {{ u.email }}
                     </option>
                   {% endfor %}
@@ -192,7 +200,7 @@
                         <option value="{{ selected_account_number }}" disabled selected>{{ selected_account_number }} - บัญชีที่ไม่สามารถเลือกได้</option>
                       {% endif %}
                       {% for account in bank_account_options %}
-                        <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}" {% if borrowing_ticket_form.account_number.data == account.value %}selected{% endif %}>{{ account.label }}</option>
+                        <option value="{{ account.value }}" data-bank-account-id="{{ account.id }}" data-org-id="{{ account.org_id or '' }}" {% if borrowing_ticket_form.account_number.data == account.value %}selected{% endif %}>{{ account.label }}</option>
                       {% endfor %}
                     </select>
                     <input type="hidden" name="bank_account_info_id" id="bank_account_info_id" value="">
@@ -219,7 +227,10 @@
                 </div>
                 <div class="text-end d-flex justify-content-end align-items-center gap-2">
                   <span class="text-danger fw-bold">กรุณาส่งคำขอก่อนถึงวันเริ่มต้นโครงการอย่างน้อย 7 วัน</span>
-                  <button class="btn btn-primary fw-bold" type="submit" id="submitBorrowingBtn" style="border-radius: 10px;">ส่งสัญญาเงินยืม</button>
+                  {% if editing_ticket %}
+                    <a class="btn btn-outline-secondary fw-bold" href="{{ url_for('advance_payment.coordinator_dashboard') }}" style="border-radius: 10px;">ยกเลิก</a>
+                  {% endif %}
+                  <button class="btn btn-primary fw-bold" type="submit" id="submitBorrowingBtn" style="border-radius: 10px;">{{ 'บันทึกการแก้ไข' if editing_ticket else 'ส่งสัญญาเงินยืม' }}</button>
                 </div>
               </fieldset>
           </form>
@@ -346,7 +357,7 @@
                       </div>
                     </td>
                     <td>
-                      {% if ticket_status not in ['กำลังส่งคำขอ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
+                      {% if ticket_status not in ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'ปฏิเสธ'] and borrowing_ticket.due_date %}
                         <div>{{ borrowing_ticket.due_date|thai_date }}</div>
                         
                         {# แสดงเตือนเฉพาะสัญญาที่ยังไม่ปิด/เคลียร์ยอด #}
@@ -463,7 +474,7 @@
                   </td>
                   <td><span class="text-dark fw-medium">{{ parcel_return.display_borrower_name or '-' }}</span></td>
                   <td class="text-center">{{ parcel_return_type_badge(parcel_return.type_label, 'px-2 py-1') }}</td>
-                  <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">พัสดุ: {{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
+                  <td class="text-start text-dark" style="min-width: 220px; max-width: 280px; white-space: normal;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ parcel_return.items_description or '-' }}{% if parcel_return.type_label %} ส่ง {{ parcel_return.type_label }}{% endif %}</div></td>
                   <td class="text-end fw-bold text-primary">{{ "{:,.2f}".format(parcel_return.amount_spent or 0) }}</td>
                   <td class="text-center small text-secondary">{{ parcel_return.sent_date|thai_date if parcel_return.sent_date else (parcel_return.created_at|thai_date if parcel_return.created_at else '-') }}</td>
                   <td class="text-center">
@@ -507,6 +518,7 @@
             <select id="filterStatus" class="form-select bg-light" onchange="filterTable()">
               <option value="">ทั้งหมด</option>
               <option value="กำลังส่งคำขอ">กำลังส่งคำขอ</option>
+              <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
               <option value="อนุมัติจ่ายเงิน">อนุมัติจ่ายเงิน</option>
               <option value="มียอดคงค้าง">มียอดคงค้าง</option>
               <option value="เคลียร์ยอดแล้ว">เคลียร์ยอดแล้ว</option>
@@ -517,6 +529,7 @@
               <option value="พัสดุกำลังดำเนินการ">พัสดุกำลังดำเนินการ</option>
               <option value="กำลังตรวจสอบ">กำลังตรวจสอบ</option>
               <option value="ได้รับเอกสารแล้ว">ได้รับเอกสารแล้ว</option>
+              <option value="ยืนยันการตรวจสอบ">ยืนยันการตรวจสอบ</option>
             </select>
           </div>
 
@@ -558,8 +571,44 @@
   </div>
 
   <script>
+    const restrictBankAccountsByOrg = {{ dashboard_restrict_bank_accounts_by_org|tojson }};
+    const bankAccountSelect = document.getElementById('account_number');
+    const managedBankAccountOptions = bankAccountSelect
+      ? Array.from(bankAccountSelect.options)
+          .filter(option => option.value && option.dataset.orgId)
+          .map(option => option.cloneNode(true))
+      : [];
+
+    function filterBankAccountsForBorrower(selectElem) {
+      if (!restrictBankAccountsByOrg || !bankAccountSelect) {
+        return;
+      }
+
+      const selectedBorrower = selectElem.options[selectElem.selectedIndex];
+      const selectedOrgId = selectedBorrower ? selectedBorrower.dataset.orgId : '';
+      const previousValue = bankAccountSelect.value;
+
+      while (bankAccountSelect.options.length > 1) {
+        bankAccountSelect.remove(1);
+      }
+      managedBankAccountOptions.forEach(option => {
+        if (selectedOrgId && option.dataset.orgId === selectedOrgId) {
+          bankAccountSelect.appendChild(option.cloneNode(true));
+        }
+      });
+
+      const canKeepPreviousValue = Array.from(bankAccountSelect.options)
+        .some(option => option.value === previousValue);
+      bankAccountSelect.value = canKeepPreviousValue ? previousValue : '';
+      syncBankAccountInfo(bankAccountSelect);
+      if (window.jQuery && $(bankAccountSelect).data('select2')) {
+        $(bankAccountSelect).trigger('change.select2');
+      }
+    }
+
     // ฟังก์ชันตรวจสอบคุณสมบัติของผู้ยืมเงินที่เลือกจาก Dropdown
     function checkBorrowerEligibility(selectElem) {
+      filterBankAccountsForBorrower(selectElem);
       const selectedOption = selectElem.options[selectElem.selectedIndex];
       if (!selectedOption || !selectedOption.value) {
         const fieldset = document.getElementById('borrowingFormFieldset');
@@ -628,7 +677,8 @@
                   return;
               }
 
-              const confirmMessage = [
+              const isEditMode = borrowingTicketForm.dataset.editMode === "true";
+              const confirmMessage = isEditMode ? "ยืนยันการบันทึกข้อมูลสัญญาเงินยืมที่แก้ไข" : [
                   "ตามประกาศ หลักเกณฑ์และวิธีการจ่ายเงินทดรองจ่าย พ.ศ 2551 ข้อ 3 และ ข้อ 6.2",
                   "",
                   "- การจัดซื้อจัดจ้าง วงเงินเกิน 3 หมื่นบาท (ยกเว้นขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯ) ที่ต้องออก PO  ต้องหักภาษี ณ ที่จ่าย และนำส่งภาษีที่หักด้วยทุกครั้งภายในวันที่ชำระเงิน เพื่อป้องกันเบี้ยปรับเพิ่มเติม",
@@ -660,12 +710,12 @@
                       return;
                   }
                   window.openAppPopup({
-                      title: "ยืนยันการส่งแบบฟอร์ม",
+                      title: isEditMode ? "ยืนยันการแก้ไข" : "ยืนยันการส่งแบบฟอร์ม",
                       message: confirmMessage,
                       targetFormId: borrowingTicketForm.id,
-                      requireAcknowledgement: true,
+                      requireAcknowledgement: !isEditMode,
                       acknowledgementLabel: "ข้าพเจ้าได้อ่านและรับทราบเงื่อนไขข้างต้นแล้ว",
-                      confirmText: "ตกลงและส่งแบบฟอร์ม",
+                      confirmText: isEditMode ? "บันทึกการแก้ไข" : "ตกลงและส่งแบบฟอร์ม",
                       confirmClass: "btn-success",
                   });
               } catch (error) {

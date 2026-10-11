@@ -3,6 +3,15 @@
 {% block title %}เลือกระบบ | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
+{% if not cash_mng_finance_open %}
+<div class="alert alert-warning d-flex align-items-start mb-4" role="alert">
+  <i class="bi bi-lock-fill me-2 mt-1"></i>
+  <div>
+    <strong>ระบบเงินยืมทดรองจ่ายปิดใช้งานชั่วคราว</strong>
+    <div class="small">ไม่สามารถเข้าใช้งานได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ</div>
+  </div>
+</div>
+{% endif %}
   <header class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
     <div>
       <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.12em;">ระบบเงินยืมทดรองจ่าย</p>

@@ -14,7 +14,15 @@
         </a>
     {% endif %}
     <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">สัญญาเงินยืม</p>
-    <h1 class="fw-bold display-6 mb-2">รายละเอียดสัญญาเงินยืม</h1>
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+      <h1 class="fw-bold display-6 mb-2">รายละเอียดสัญญาเงินยืม</h1>
+      {% if can_edit_borrowing_ticket %}
+        <a href="{{ url_for(borrowing_ticket_edit_endpoint, edit_ticket_id=borrowing_ticket.id) }}#{{ 'create-ticket-pane' if borrowing_ticket_edit_endpoint == 'advance_payment.coordinator_dashboard' else 'borrowing-ticket-form-section' }}"
+           class="btn btn-outline-warning btn-sm fw-bold px-3 py-2">
+          <i class="bi bi-pencil-square me-1"></i>แก้ไขสัญญาเงินยืม
+        </a>
+      {% endif %}
+    </div>
   </header>
 
   <section class="p-4 border rounded-4 bg-white shadow-sm mb-5">
@@ -22,45 +30,39 @@
       <div class="col-12 col-lg-10">
     <div class="d-flex align-items-start mb-4">
       <div>
-        <span class="text-uppercase text-primary fw-bold small">ชื่อโครงการ/วัตุถุประสงค์</span>
-        <h2 class="h3 fw-bold mb-0 py-2">{{ borrowing_ticket.borrowing_ticket_purpose }}</h2>
+        <span class="text-uppercase text-primary fw-bold small">เลขที่บย.</span>
+        <h2 class="h3 fw-bold mb-0 py-2">{{ borrowing_ticket.number if borrowing_ticket.number else 'รอการตั้งเลขบย.' }}</h2>
       </div>
     </div>
     <div class="col-6 col-md-4">
-        <h4 class="text-muted small mb-1"><strong>เลขที่บย.</strong></h4>
-        <h5 class="mb-0 text-dark fw-semibold">{{borrowing_ticket.number if borrowing_ticket.number else 'รอการตั้งเลขบย.' }}</h5>
+        <h5 class="text-muted small mb-1"><strong>ชื่อโครงการ/วัตุถุประสงค์</strong></h5>
+        <h6 class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_ticket_purpose }}</h6>
     </div></br>
-    <div class="row g-3 text-start mb-3">
-      <div class="col-12 col-md-4">
-        <p class="text-muted small mb-1"><strong>เลขที่อว.อนุมัติยืมเงิน</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_ref_no or '-' }}</p>
-      </div>
-      <div class="col-12 col-md-4">
-        <p class="text-muted small mb-1"><strong>วันที่อนุมัติ</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_date|thai_date if borrowing_ticket.borrowing_approval_date else '-' }}</p>
-      </div>
-    </div>
     <div class="row g-3 text-start mb-3">
       <div class="col-6 col-md-4">
         <p class="text-muted small mb-1"><strong>ผู้ยืม</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrower_name }}</p>
       </div>
-      <div class="col-6 col-md-4">
-        <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(borrowing_ticket.required_budget or 0) }}</p>
-      </div>
+      {% if not borrowing_ticket.approved_at %}
+        <div class="col-6 col-md-4">
+          <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(borrowing_ticket.required_budget or 0) }}</p>
+        </div>
+      {% endif %}
       <div class="col-12 col-md-4">
         <p class="text-muted small mb-1"><strong>ระยะเวลาโครงการ</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_ticket_start_date|thai_date }} ถึง {{ borrowing_ticket.borrowing_ticket_end_date|thai_date }}</p>
       </div>
+    </div>
+    <div class="row g-3 text-start mb-3">
       <div class="col-6 col-md-4">
         <p class="text-muted small mb-1"><strong>เลขที่บัญชี</strong></p>
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.account_number }}</p>
       </div>
       {% if borrowing_ticket.status|lower == "ปฏิเสธ" %}
-      <div class="col-12 col-md-4">
+      <div class="col-12 col-md-8">
         <p class="text-muted small mb-1"><strong>เหตุผลในการปฏิเสธ</strong></p>
-        <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.rejection_comment }}</p>
+        <p class="mb-0 text-danger fw-semibold" style="white-space: pre-line;">{{ borrowing_ticket.rejection_comment|latest_rejection_comment }}</p>
       </div>
       {% else %}
       <div class="col-12 col-md-4">
@@ -69,6 +71,18 @@
       </div>
       {% endif %}
     </div>
+    {% if borrowing_ticket.status|lower != "ปฏิเสธ" %}
+      <div class="row g-3 text-start mb-3">
+        <div class="col-12 col-md-4">
+          <p class="text-muted small mb-1"><strong>เลขที่อนุมัติยืมเงิน</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_ref_no or '-' }}</p>
+        </div>
+        <div class="col-12 col-md-4">
+          <p class="text-muted small mb-1"><strong>วันที่หนังสือได้รับการอนุมัติ</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.borrowing_approval_date|thai_date if borrowing_ticket.borrowing_approval_date else '-' }}</p>
+        </div>
+      </div>
+    {% endif %}
     <div class="my-4"></div>
     <div class="row g-2 text-start mb-3">
       <div class="col-6 col-md-4">
@@ -84,109 +98,13 @@
         <p class="mb-0 text-dark fw-semibold">{{ borrowing_ticket.creator_name }}</p>
       </div>
     </div>
-
-    {% if borrowing_ticket.status|lower not in ["กำลังส่งคำขอ", "ปฏิเสธ"]  %}
-      <hr class="my-4">
-      <div class="row g-3 text-start">
-        <div class="col-4">
-          <p class="text-muted small mb-1"><strong>ยอดคืนของสัญญานี้</strong></p>
-          {% if (summary.cumulative_total or 0) >= (summary.budget or 0) %}
-            <h4 class="mb-0 text-success fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</h4>
-          {% else %}
-            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</p>
-          {% endif %}
-        </div>
-        <div class="col-4">
-          <p class="text-muted small mb-1"><strong>ยอดคงค้างของสัญญานี้</strong></p>
-          {% if (summary.remaining_amount or 0) > 0 %}
-            <h4 class="mb-0 text-danger fw-semibold">{{ "{:,.2f}".format(summary.remaining_amount or 0) }}</h4>
-          {% else %}
-            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.remaining_amount or 0) }}</p>
-          {% endif %}
-        </div>
-        <div class="col-4">
-          <p class="text-muted small mb-1"><strong>วันครบกำหนด</strong></p>
-          <p class="mb-0 text-dark fw-semibold">
-            {% set targeted_due_date = notifications.due_date if (notifications and notifications.due_date) else borrowing_ticket.due_date %}
-            {% if targeted_due_date %}
-              {{ targeted_due_date|thai_date }}
-              
-              {% if borrowing_ticket.status|lower == 'เลยกำหนด' and borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and today > targeted_due_date %}
-                {% set diff = (today - targeted_due_date).days %}
-                <span class="text-danger fw-bold">({{ diff }} วัน)</span>
-              {% elif borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and borrowing_ticket.status|lower != 'เคลียร์ยอดแล้ว' and today <= targeted_due_date %}
-                {% set diff_remaining = (targeted_due_date - today).days %}
-                {% if diff_remaining <= 15 %}
-                  <span class="text-warning fw-bold">(เหลือ {{ diff_remaining }} วัน)</span>
-                {% endif %}
-              {% endif %}
-            {% else %}
-              -
-            {% endif %}
-          </p>
-        </div>
-      </div>
-    {% endif %}
-    {% if advance_payment_role == 'finance' %}
-      <div class="my-4"></div>
-      {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
-        <div class="d-flex gap-2">
-          <button
-            type="button"
-            class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
-            data-popup-trigger="true"
-            data-popup-title="ทำการใส่เลขที่สัญญา"
-            data-popup-message="โปรดระบุเลขที่สัญญา เลขที่อว.อนุมัติยืมเงิน วันที่อนุมัติ และวันที่อนุมัติจ่ายเงิน"
-            data-popup-action="{{ url_for('advance_payment.approve_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
-            data-popup-confirm-text="ยืนยันการสร้างสัญญา"
-            data-popup-input-type="text"
-            data-popup-input-name="number"
-            data-popup-input-placeholder="เลขที่บย. เช่น 12/2569"
-            data-popup-extra-fields-template-id="borrowingApprovalFields"
-            data-popup-input-required="true"
-            data-popup-input-rows="1">
-              อนุมัติสัญญา
-          </button>
-          <template id="borrowingApprovalFields">
-            <div class="mt-3">
-              <label for="borrowingApprovedAt" class="form-label">วันที่อนุมัติจ่ายเงิน</label>
-              <input id="borrowingApprovedAt" type="text" name="approved_at" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
-            </div>
-            <div class="mt-3">
-              <label for="borrowingApprovalRefNo" class="form-label">เลขที่อว.อนุมัติยืมเงิน</label>
-              <input id="borrowingApprovalRefNo" type="text" name="borrowing_approval_ref_no" class="form-control" placeholder="เลขที่อว.อนุมัติยืมเงิน" maxlength="255" required>
-            </div>
-            <div class="mt-3">
-              <label for="borrowingApprovalDate" class="form-label">วันที่อนุมัติ</label>
-              <input id="borrowingApprovalDate" type="text" name="borrowing_approval_date" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
-            </div>
-          </template>
-
-          <button
-            type="button"
-            class="btn btn-danger btn-sm fw-bold px-3 py-1.5"
-            data-popup-trigger="true"
-            data-popup-title="สาเหตุของการปฏิเสธสัญญา"
-            data-popup-message="กรุณาระบุเหตุผลเพื่อบันทึกไว้ในระบบ"
-            data-popup-action="{{ url_for('advance_payment.reject_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
-            data-popup-confirm-text="ยืนยันการปฏิเสธ"
-            data-popup-confirm-class="btn-danger"
-            data-popup-input-type="textarea"
-            data-popup-input-name="rejection_comment"
-            data-popup-input-placeholder="ระบุเหตุผลที่ปฏิเสธเอกสารสัญญา..."
-            data-popup-input-required="true"
-            data-popup-input-rows="2">
-              ปฏิเสธสัญญา
-          </button>
-        </div>
-      {% endif %}
-    {% endif %}
-      </div>
+    </div>
 
       <div class="col-12 col-lg-2">
         {% set current_status = (borrowing_ticket.status or '')|trim %}
         {% set status_step = {
           'กำลังส่งคำขอ': 'กำลังส่งคำขอ',
+          'กำลังดำเนินการ': 'กำลังดำเนินการ',
           'รอตรวจสอบ': 'อนุมัติจ่ายเงิน',
           'อนุมัติจ่ายเงิน': 'อนุมัติจ่ายเงิน',
           'ผ่านการตรวจสอบ': 'อนุมัติจ่ายเงิน',
@@ -199,7 +117,7 @@
         } %}
         {% set current_step = status_step.get(current_status, current_status) %}
         {% set status_class = status_badge_class(current_status) %}
-        {% set steps = ['กำลังส่งคำขอ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว'] %}
+        {% set steps = ['กำลังส่งคำขอ', 'กำลังดำเนินการ', 'อนุมัติจ่ายเงิน', 'มียอดคงค้าง', 'เคลียร์ยอดแล้ว'] %}
         {% if current_step == 'ฎีกาถูกตีกลับจากกองคลัง' %}
           {% set steps = steps + ['ฎีกาถูกตีกลับจากกองคลัง'] %}
         {% endif %}
@@ -221,7 +139,129 @@
         </div>
       </div>
     </div>
-    {% if borrowing_ticket.status|lower != "กำลังส่งคำขอ" and advance_payment_role == 'finance' %}
+    {% if borrowing_ticket.approved_at %}
+      <hr class="my-4">
+      <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 text-start">
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>ยอดเงินยืม</strong></p>
+          <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.budget or 0) }}</p>
+        </div>
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>ยอดคืนแล้ว</strong></p>
+          {% if (summary.cumulative_total or 0) >= (summary.budget or 0) %}
+            <h4 class="mb-0 text-success fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</h4>
+          {% else %}
+            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.cumulative_total or 0) }}</p>
+          {% endif %}
+        </div>
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>ยอดรอตรวจสอบ</strong></p>
+          {% if (summary.pending_amount or 0) > 0 %}
+            <h4 class="mb-0 text-warning fw-semibold">{{ "{:,.2f}".format(summary.pending_amount or 0) }}</h4>
+          {% else %}
+            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.pending_amount or 0) }}</p>
+          {% endif %}
+        </div>
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>ยอดคงค้าง</strong></p>
+          {% if (summary.unsubmitted_amount or 0) > 0 %}
+            <h4 class="mb-0 text-danger fw-semibold">{{ "{:,.2f}".format(summary.unsubmitted_amount or 0) }}</h4>
+          {% else %}
+            <p class="mb-0 text-dark fw-semibold">{{ "{:,.2f}".format(summary.unsubmitted_amount or 0) }}</p>
+          {% endif %}
+        </div>
+        <div class="col">
+          <p class="text-muted small mb-1"><strong>วันครบกำหนด</strong></p>
+          <p class="mb-0 text-dark fw-semibold">
+            {% set targeted_due_date = notifications.due_date if (notifications and notifications.due_date) else borrowing_ticket.due_date %}
+            {% if targeted_due_date %}
+              {{ targeted_due_date|thai_date }}
+
+              {% if borrowing_ticket.status|lower == 'เลยกำหนด' and borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and today > targeted_due_date %}
+                {% set diff = (today - targeted_due_date).days %}
+                <span class="text-danger fw-bold">({{ diff }} วัน)</span>
+              {% elif borrowing_ticket.status|lower != 'เอกสารตั้งฎีกา' and borrowing_ticket.status|lower != 'เคลียร์ยอดแล้ว' and today <= targeted_due_date %}
+                {% set diff_remaining = (targeted_due_date - today).days %}
+                {% if diff_remaining <= 15 %}
+                  <span class="text-warning fw-bold">(เหลือ {{ diff_remaining }} วัน)</span>
+                {% endif %}
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    {% endif %}
+    {% if advance_payment_role == 'finance' %}
+      <div class="my-4"></div>
+      {% if borrowing_ticket.status|lower in ["กำลังส่งคำขอ", "กำลังดำเนินการ"] %}
+        <div class="d-flex justify-content-end gap-2">
+          {% if borrowing_ticket.status|lower == "กำลังส่งคำขอ" %}
+            <button
+              type="button"
+              class="btn btn-info btn-sm fw-bold text-dark px-3 py-1.5"
+              data-popup-trigger="true"
+              data-popup-title="ยืนยันการเริ่มดำเนินการ"
+              data-popup-message="คุณต้องการเปลี่ยนสถานะสัญญาเงินยืมเป็น กำลังดำเนินการ ใช่หรือไม่?"
+              data-popup-action="{{ url_for('advance_payment.start_processing_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
+              data-popup-confirm-text="เริ่มดำเนินการ"
+              data-popup-confirm-class="btn-info">
+                เริ่มดำเนินการ
+            </button>
+          {% elif borrowing_ticket.status|lower == "กำลังดำเนินการ" %}
+            <button
+              type="button"
+              class="btn btn-primary btn-sm fw-bold px-3 py-1.5"
+              data-popup-trigger="true"
+              data-popup-title="ทำการใส่เลขที่สัญญา"
+              data-popup-message="โปรดระบุเลขที่สัญญา เลขที่อว.อนุมัติยืมเงิน วันที่อนุมัติ และวันที่อนุมัติจ่ายเงิน"
+              data-popup-action="{{ url_for('advance_payment.approve_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
+              data-popup-confirm-text="ยืนยันการสร้างสัญญา"
+              data-popup-input-type="text"
+              data-popup-input-name="number"
+              data-popup-input-placeholder="เลขที่บย. เช่น 12/2569"
+              data-popup-extra-fields-template-id="borrowingApprovalFields"
+              data-popup-input-required="true"
+              data-popup-input-rows="1">
+                อนุมัติสัญญา
+            </button>
+            <template id="borrowingApprovalFields">
+              <div class="mt-3">
+                <label for="borrowingApprovedAt" class="form-label">วันที่อนุมัติจ่ายเงิน</label>
+                <input id="borrowingApprovedAt" type="text" name="approved_at" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
+              </div>
+              <div class="mt-3">
+                <label for="borrowingApprovalRefNo" class="form-label">เลขที่อว.อนุมัติยืมเงิน</label>
+                <input id="borrowingApprovalRefNo" type="text" name="borrowing_approval_ref_no" class="form-control" placeholder="เลขที่อว.อนุมัติยืมเงิน" maxlength="255" required>
+              </div>
+              <div class="mt-3">
+                <label for="borrowingApprovalDate" class="form-label">วันที่อนุมัติ</label>
+                <input id="borrowingApprovalDate" type="text" name="borrowing_approval_date" class="form-control app-date-picker" placeholder="dd/mm/yyyy" required>
+              </div>
+            </template>
+            <button
+              type="button"
+              class="btn btn-danger btn-sm fw-bold px-3 py-1.5"
+              data-popup-trigger="true"
+              data-popup-title="สาเหตุของการปฏิเสธสัญญา"
+              data-popup-message="กรุณาระบุเหตุผลเพื่อบันทึกไว้ในระบบ"
+              data-popup-action="{{ url_for('advance_payment.reject_borrowing_ticket', ticket_id=borrowing_ticket.id) }}"
+              data-popup-confirm-text="ยืนยันการปฏิเสธ"
+              data-popup-confirm-class="btn-danger"
+              data-popup-input-type="textarea"
+              data-popup-input-name="rejection_comment"
+              data-popup-input-placeholder="ระบุเหตุผลที่ปฏิเสธเอกสารสัญญา..."
+              data-popup-input-required="true"
+              data-popup-input-rows="2">
+                ปฏิเสธสัญญา
+            </button>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endif %}
+    <div class="my-4"></div>
+    {% if borrowing_ticket.status|lower not in ["กำลังส่งคำขอ", "กำลังดำเนินการ"] and advance_payment_role == 'finance' %}
       <div class="d-flex justify-content-end w-100">
           <form method="post" action="{{ url_for('advance_payment.update_finance_note', ticket_id=borrowing_ticket.id) }}" class="col-12 col-md-8 d-flex align-items-center gap-2" data-ajax-validation="true">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -238,7 +278,7 @@
           <i class="bi bi-file-earmark-check me-1"></i> ยื่นส่งหลักฐานเอกสารส่งใช้เงินยืม
         </button>
       </div>
-    {% elif advance_payment_role != 'finance'  %}
+    {% elif advance_payment_role != 'finance' and borrowing_ticket.status|lower != 'ปฏิเสธ'  %}
       <div class="d-flex justify-content-end mt-3">
         <a href="{{ url_for('advance_payment.coordinator_ticket_pdf', ticket_id=borrowing_ticket.id) }}" class="btn btn-outline-danger" style="border-radius:6px;" target="_blank">
           <i class="bi bi-file-earmark-pdf-fill me-1"></i> ดาวน์โหลดสัญญายืมเงิน
@@ -287,7 +327,7 @@
   {% set return_is_borrower_page = false %}
   {% set return_panel_id = 'return_block_ticket_' ~ borrowing_ticket.id %}
   {% set return_panel_class = 'return-ticket-form-block' %}
-  {% set return_panel_hidden = true %}
+  {% set return_panel_hidden = not return_edit_detail %}
   {% set return_show_ticket_purpose = false %}
   {% include 'advance_payment/partials/return_ticket_form.html' %}
 {% endif %}
@@ -360,12 +400,25 @@
         </table>
       </div>
     {% endif %}
-    {% if borrowing_ticket.parcel_returns %}
+    {% set parcel_groups = namespace(standard=[], circular=[]) %}
+    {% for pr in borrowing_ticket.parcel_returns %}
+      {% if pr.type is not none %}
+        {% set _ = parcel_groups.circular.append(pr) %}
+      {% else %}
+        {% set _ = parcel_groups.standard.append(pr) %}
+      {% endif %}
+    {% endfor %}
+    {% set parcel_sections = [
+      {'rows': parcel_groups.standard, 'title': 'รายการส่งฝ่ายพัสดุ', 'heading_class': 'text-success', 'icon': 'bi-box-seam', 'thead_class': 'table-success'},
+      {'rows': parcel_groups.circular, 'title': 'รายการส่งการเงิน ว-119 / ว-5763', 'heading_class': 'text-primary', 'icon': 'bi-file-earmark-text', 'thead_class': 'table-primary'}
+    ] %}
+    {% for parcel_section in parcel_sections %}
+    {% if parcel_section.rows %}
     <div class="my-4"></div>
-    <h5 class="fw-bold text-success mb-2"><i class="bi bi-box-seam me-2"></i>รายการส่งฝ่ายพัสดุ</h5>
+    <h5 class="fw-bold {{ parcel_section.heading_class }} mb-2"><i class="bi {{ parcel_section.icon }} me-2"></i>{{ parcel_section.title }}</h5>
       <div class="table-responsive mb-4">
         <table class="table table-hover align-middle mb-0">
-          <thead class="table-success text-dark">
+          <thead class="{{ parcel_section.thead_class }} text-dark">
             <tr>
               <th scope="col" style="width: 15%;" class="small fw-bold">วันที่ส่ง</th>
               <th scope="col" style="width: 20%;" class="small fw-bold">รายละเอียดหลักฐาน</th>
@@ -376,7 +429,7 @@
             </tr>
           </thead>
           <tbody>
-            {% for pr in borrowing_ticket.parcel_returns %}
+            {% for pr in parcel_section.rows %}
             <tr class="align-top">
               <td>{{ pr.sent_date|thai_date }}</td>
               <td style="max-width: 280px;"><div style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; overflow: hidden; text-overflow: ellipsis;">{{ pr.items_description or '-' }}{% if pr.type_label %} ส่ง {{ pr.type_label }}{% endif %}</div></td>
@@ -384,7 +437,7 @@
               <td>
                 {{ status_badge(pr.status) }}
                 {% if pr.status|lower in ['ปฏิเสธ'] and pr.rejection_comment %}
-                  <div class="small text-danger mt-1 text-start">{{ pr.rejection_comment }}</div>
+                  <div class="small text-danger mt-1 text-start" style="white-space: pre-line;">{{ pr.rejection_comment|latest_rejection_comment }}</div>
                 {% endif %}
               </td>
               <td class="text-center">
@@ -408,14 +461,14 @@
                         style="max-width: 150px;"
                         data-popup-trigger="true"
                         data-popup-title="ยืนยันการตรวจสอบเอกสารพัสดุ"
-                        data-popup-message="คุณต้องการเปลี่ยนสถานะรายการส่งคืนพัสดุนี้เป็น 'ยืนยันเอกสารแล้ว' ใช่หรือไม่?"
+                        data-popup-message="คุณต้องการเปลี่ยนสถานะรายการนี้เป็น '{% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}' ใช่หรือไม่?"
                         data-popup-confirm-text="ยืนยันการตรวจสอบ"
                         data-popup-confirm-class="btn-primary"
                         data-popup-target-form-id="parcelProofedForm{{ pr.id }}">
-                        ยืนยันเอกสารแล้ว
+                        {% if pr.type_label %}ยืนยันการตรวจสอบ{% else %}ยืนยันเอกสารแล้ว{% endif %}
                       </button>
                     </form>
-                  {% elif advance_payment_role == 'finance' and pr.status == 'พัสดุกำลังดำเนินการ' %}
+                  {% elif advance_payment_role == 'finance' and not pr.type_label and pr.status == 'พัสดุกำลังดำเนินการ' %}
                   <form method="post" action="{{ url_for('advance_payment.mark_parcel_received', parcel_return_id=pr.id) }}" id="parcelReceivedForm{{ pr.id }}" data-ajax-validation="true">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button
@@ -439,7 +492,7 @@
                     </button>
                   {% endif %}
 
-                  {% if session.get('advance_payment_system') == 'advance_payment' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+                  {% if pr.can_edit %}
                     <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#parcelEditModal{{ pr.id }}" style="max-width: 150px;">
                       แก้ไข
                     </button>
@@ -453,6 +506,9 @@
           </tbody>
         </table>
       </div>
+    {% endif %}
+    {% endfor %}
+    {% if borrowing_ticket.parcel_returns %}
       {% for pr in borrowing_ticket.parcel_returns %}
         {% if advance_payment_role == 'finance' and pr.status in ['รอตรวจสอบ', 'พัสดุกำลังดำเนินการ'] %}
           <div class="modal fade text-start" id="parcelRejectModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
@@ -477,7 +533,7 @@
           </div>
         {% endif %}
 
-        {% if session.get('advance_payment_system') == 'advance_payment' and pr.status in ['รอตรวจสอบ', 'ปฏิเสธ'] %}
+        {% if pr.can_edit %}
           <div class="modal fade text-start" id="parcelEditModal{{ pr.id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
             <form method="post" action="{{ url_for('advance_payment.coordinator_parcel_return_edit', parcel_return_id=pr.id) }}" data-ajax-validation="true">

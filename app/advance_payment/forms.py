@@ -66,7 +66,7 @@ class FundRequestForm(Form):
     request_date = DateField(
         "วันที่เบิกเงิน",
         format="%Y-%m-%d",
-        validators=[DataRequired(message="กรุณาระบุวันที่เบิกเงิน")],
+        validators=[Optional()],
     )
     
     amount = DecimalField("จำนวนเงิน", validators=[DataRequired(), NumberRange(min=0.01)], places=2)

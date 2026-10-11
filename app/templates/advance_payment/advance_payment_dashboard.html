@@ -1,0 +1,49 @@
+{% extends "advance_payment/base.html" %}
+
+{% block title %}{{ dashboard_title }} | ระบบเงินยืมทดรองจ่าย{% endblock %}
+
+{% block content %}
+<header class="mb-4 pb-2 border-bottom">
+  <h3 class="fw-bold display-6 mb-2">แดชบอร์ดงบประมาณเงินทดรองจ่าย</h3>
+</header>
+<section class="advance-fund-dashboard" aria-labelledby="advanceFundDashboardTitle">
+  <h1 id="advanceFundDashboardTitle" class="visually-hidden">{{ dashboard_title }}</h1>
+
+  <div class="advance-fund-grid">
+    <article class="advance-fund-card advance-fund-card--initial">
+      <div class="advance-fund-card-label">งบประมาณตั้งต้น</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.initial_budget_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--lent">
+      <div class="advance-fund-card-label">ให้ยืมทั้งหมด</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_lent_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--requested">
+      <div class="advance-fund-card-label">ใบเสร็จที่จะเบิก</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_reimbursement_request_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--cash">
+      <div class="advance-fund-card-label">เงินสดที่คืน</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_cash_return_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--remaining">
+      <div class="advance-fund-card-label">ยอดงบประมาณคงเหลือ</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.remaining_budget_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--closing">
+      <div class="advance-fund-card-label">ตั้งฎีกาไปแล้ว</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_closing_document_amount|float) }} บาท</div>
+    </article>
+
+    <article class="advance-fund-card advance-fund-card--received">
+      <div class="advance-fund-card-label">เงินคืนจากฎีกา</div>
+      <div class="advance-fund-card-amount">{{ "{:,.2f}".format(amounts.total_received_amount|float) }} บาท</div>
+    </article>
+  </div>
+</section>
+{% endblock %}
