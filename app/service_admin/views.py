@@ -2582,10 +2582,9 @@ def create_customer(customer_id=None):
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
-        if request.method == 'POST':
-            form = ServiceCustomerInfoForm()
-        else:
-            form = ServiceCustomerInfoForm(obj=customer)
+
+        form = ServiceCustomerInfoForm(obj=customer)
+        if request.method == 'GET':
             form.attachments.entries = [
                 entry for entry in form.attachments
                 if getattr(getattr(entry, 'category', None), 'data', None)
@@ -2633,7 +2632,8 @@ def create_customer(customer_id=None):
                 'service_admin/create_customer.html', customer_id=customer_id,
                 form=form, account=account, tab=tab, user_type=user_type,
                 document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
-                required_document_attachments=_required_document_attachments(customer)
+                required_document_attachments=_required_document_attachments(customer),
+                generate_url=generate_url
             )
 
         uploaded_required_documents = []
@@ -2731,7 +2731,8 @@ def create_customer(customer_id=None):
         'service_admin/create_customer.html', customer_id=customer_id,
         form=form, account=account, tab=tab, user_type=user_type,
         document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
-        required_document_attachments=_required_document_attachments(customer) if customer else {}
+        required_document_attachments=_required_document_attachments(customer) if customer else {},
+        generate_url=generate_url
     )
 
 
