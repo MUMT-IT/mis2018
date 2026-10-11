@@ -2585,11 +2585,17 @@ def create_customer(customer_id=None):
 
         form = ServiceCustomerInfoForm(obj=customer)
         if request.method == 'GET':
+            additional_attachments = [
+                attachment for attachment in customer.attachments
+                if attachment.category not in CUSTOMER_DOCUMENT_CATEGORIES
+            ]
             form.attachments.entries = [
                 entry for entry in form.attachments
                 if getattr(getattr(entry, 'category', None), 'data', None)
                    not in CUSTOMER_DOCUMENT_CATEGORIES
             ]
+            for entry, attachment in zip(form.attachments, additional_attachments):
+                entry.attachment_id.data = str(attachment.id)
     else:
         account = None
         form = ServiceCustomerInfoForm()
@@ -2605,7 +2611,16 @@ def create_customer(customer_id=None):
                     continue
                 customer.attachments.remove(attachment)
 
-        preserved_attachments = list(customer.attachments)
+        submitted_attachment_ids = {
+            int(entry.attachment_id.data)
+            for entry in form.attachments
+            if entry.attachment_id.data and str(entry.attachment_id.data).isdigit()
+        }
+        preserved_attachments = [
+            attachment for attachment in customer.attachments
+            if attachment.category in CUSTOMER_DOCUMENT_CATEGORIES
+            or attachment.id in submitted_attachment_ids
+        ]
         new_additional_attachments = []
 
         document_errors = []
@@ -2775,6 +2790,7 @@ def add_attachment():
                     </div>
                 </div>
                 {}
+                {}
                 <div class="field">
                     <label class="label">{}</label>
                     <div class="control is-flex">
@@ -2798,6 +2814,7 @@ def add_attachment():
                                accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
                                required=True,
                            ),
+                           item_form.attachment_id(type='hidden'),
                            item_form.category(type='hidden', value='เอกสารเพิ่มเติม'),
                            item_form.note.label,
                            item_form.note(class_='input'),
