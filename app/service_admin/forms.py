@@ -42,7 +42,6 @@ class ServiceCustomerAttachmentForm(ModelForm):
     class Meta:
         model = ServiceCustomerAttachment
 
-    attachment_id = HiddenField()
     file_upload = FileField('File Upload')
 
 
