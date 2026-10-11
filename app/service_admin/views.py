@@ -2648,6 +2648,8 @@ def create_customer(customer_id=None):
             uploaded_required_documents.append((document, attachment, file_name))
         if form.attachments:
             for item in form.attachments:
+                if item.category.data in CUSTOMER_DOCUMENT_CATEGORIES:
+                    continue
                 file = item.file_upload.data
                 print('f', file)
                 if file and allowed_file(file.filename):
@@ -2762,6 +2764,7 @@ def add_attachment():
                         </label>
                     </div>
                 </div>
+                {}
                 <div class="field">
                     <label class="label">{}</label>
                     <div class="control is-flex">
@@ -2785,6 +2788,7 @@ def add_attachment():
                                accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
                                required=True,
                            ),
+                           item_form.category(type='hidden', value='เอกสารเพิ่มเติม'),
                            item_form.note.label,
                            item_form.note(class_='input'),
                            url_for('service_admin.remove_attachment', name=item_form.id)
