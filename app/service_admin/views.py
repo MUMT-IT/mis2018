@@ -2645,11 +2645,12 @@ def create_customer(customer_id=None):
             uploaded_required_documents.append((document, attachment, file_name))
         if form.attachments:
             for item in form.attachments:
-                uploaded_file = item.file_upload.data
-                if uploaded_file and uploaded_file.filename and allowed_file(uploaded_file.filename):
-                    mime_type = uploaded_file.mimetype
-                    file_name = uploaded_file.filename
-                    file_data = uploaded_file.stream.read()
+                file = item.file_upload.data
+                print('f', file)
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    file_name = file.filename
+                    file_data = file.stream.read()
                     response = s3.put_object(
                         Bucket=S3_BUCKET_NAME,
                         Key=file_name,
