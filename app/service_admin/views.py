@@ -2582,20 +2582,12 @@ def create_customer(customer_id=None):
     if customer_id:
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
-
         form = ServiceCustomerInfoForm(obj=customer)
-        if request.method == 'GET':
-            additional_attachments = [
-                attachment for attachment in customer.attachments
-                if attachment.category not in CUSTOMER_DOCUMENT_CATEGORIES
-            ]
-            form.attachments.entries = [
-                entry for entry in form.attachments
-                if getattr(getattr(entry, 'category', None), 'data', None)
-                   not in CUSTOMER_DOCUMENT_CATEGORIES
-            ]
-            for entry, attachment in zip(form.attachments, additional_attachments):
-                entry.attachment_id.data = str(attachment.id)
+        form.attachments.entries = [
+            entry for entry in form.attachments
+            if getattr(getattr(entry, 'category', None), 'data', None)
+            not in CUSTOMER_DOCUMENT_CATEGORIES
+        ]
     else:
         account = None
         form = ServiceCustomerInfoForm()
@@ -2610,18 +2602,6 @@ def create_customer(customer_id=None):
                 if attachment.category == 'เอกสารเพิ่มเติม':
                     continue
                 customer.attachments.remove(attachment)
-
-        submitted_attachment_ids = {
-            int(entry.attachment_id.data)
-            for entry in form.attachments
-            if entry.attachment_id.data and str(entry.attachment_id.data).isdigit()
-        }
-        preserved_attachments = [
-            attachment for attachment in customer.attachments
-            if attachment.category in CUSTOMER_DOCUMENT_CATEGORIES
-            or attachment.id in submitted_attachment_ids
-        ]
-        new_additional_attachments = []
 
         document_errors = []
         required_attachments = _required_document_attachments(customer)
@@ -2650,8 +2630,7 @@ def create_customer(customer_id=None):
                 'service_admin/create_customer.html', customer_id=customer_id,
                 form=form, account=account, tab=tab, user_type=user_type,
                 document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
-                required_document_attachments=_required_document_attachments(customer),
-                generate_url=generate_url
+                required_document_attachments=_required_document_attachments(customer)
             )
 
         uploaded_required_documents = []
@@ -2666,10 +2645,7 @@ def create_customer(customer_id=None):
             uploaded_required_documents.append((document, attachment, file_name))
         if form.attachments:
             for item in form.attachments:
-                if item.category.data in CUSTOMER_DOCUMENT_CATEGORIES:
-                    continue
-                file = item.file_upload.data
-                print('f', file)
+                file = request.files.get(f'file_{item.id}')
                 if file and allowed_file(file.filename):
                     mime_type = file.mimetype
                     file_name = file.filename
@@ -2680,17 +2656,10 @@ def create_customer(customer_id=None):
                         Body=file_data,
                         ContentType=mime_type
                     )
-                    attachment = ServiceCustomerAttachment()
-                    new_additional_attachments.append(attachment)
-                    attachment.file_name = file_name.rsplit('.', 1)[0]
-                    attachment.file = file_name
-                    attachment.category = 'เอกสารเพิ่มเติม'
-                    attachment.note = item.note.data
-
+                    item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
+                    item.file.data = file_name
+                    item.category.data = 'เอกสารเพิ่มเติม'
         form.populate_obj(customer)
-        customer.attachments = preserved_attachments + new_additional_attachments
-        for attachment in new_additional_attachments:
-            attachment.customer = customer
 
         for document, attachment, file_name in uploaded_required_documents:
             if attachment is None:
@@ -2758,14 +2727,13 @@ def create_customer(customer_id=None):
         'service_admin/create_customer.html', customer_id=customer_id,
         form=form, account=account, tab=tab, user_type=user_type,
         document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
-        required_document_attachments=_required_document_attachments(customer) if customer else {},
-        generate_url=generate_url
+        required_document_attachments=_required_document_attachments(customer) if customer else {}
     )
 
 
 @service_admin.route('/api/customer/account/file/add', methods=['POST'])
 def add_attachment():
-    form = ServiceCustomerInfoForm(request.form)
+    form = ServiceCustomerInfoForm()
     form.attachments.append_entry()
     item_form = form.attachments[-1]
     index = len(form.attachments)
@@ -2780,7 +2748,8 @@ def add_attachment():
                     </label>
                     <div class="file" style="margin-bottom: .5em">
                         <label class="file-label">
-                            {}
+                            <input class="file-input" type="file" name="file_{}" id="file_{}"
+                                required>
                             <span class="file-cta">
                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
                                 <span class="file-label">เลือกไฟล์…</span>
@@ -2789,8 +2758,6 @@ def add_attachment():
                         </label>
                     </div>
                 </div>
-                {}
-                {}
                 <div class="field">
                     <label class="label">{}</label>
                     <div class="control is-flex">
@@ -2809,13 +2776,8 @@ def add_attachment():
     resp = template.format(item_form.id,
                            index,
                            item_form.file.label,
-                           item_form.file_upload(
-                               class_='file-input',
-                               accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
-                               required=True,
-                           ),
-                           item_form.attachment_id(type='hidden'),
-                           item_form.category(type='hidden', value='เอกสารเพิ่มเติม'),
+                           item_form.id,
+                           item_form.id,
                            item_form.note.label,
                            item_form.note(class_='input'),
                            url_for('service_admin.remove_attachment', name=item_form.id)
