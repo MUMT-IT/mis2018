@@ -1351,8 +1351,13 @@ def customer_account():
             else:
                 print('message', message)
             flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
-        flash('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ', 'success')
-        return redirect(url_for('academic_services.lab_index', menu='new'))
+            return redirect(url_for('academic_services.customer_account', menu=menu))
+        if menu and menu == 'request':
+            flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('academic_services.request_index', menu=menu))
+        else:
+            flash('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ', 'success')
+            return redirect(url_for('academic_services.lab_index', menu='new'))
     if not current_user.customer_info:
         flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'warning')
     return render_template('academic_services/customer_account.html', menu=menu, form=form)
@@ -4429,7 +4434,9 @@ def create_customer_detail(request_id):
     code = request.args.get('code')
     service_request = get_customer_service_request_or_404(request_id)
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
-    customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+    customer = ServiceCustomerInfo.query.get(current_user.customer_info_id) if current_user.customer_info_id else None
+    if not customer:
+        return redirect(url_for('academic_services.customer_account', menu=menu))
     cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
     if not cus_contact:
         form = ServiceCustomerContactForm()
