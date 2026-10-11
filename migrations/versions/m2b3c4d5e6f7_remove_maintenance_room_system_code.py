@@ -1,7 +1,7 @@
 """remove maintenance room system code
 
 Revision ID: m2b3c4d5e6f7
-Revises: m1a2b3c4d5e6
+Revises: 20644005f614
 Create Date: 2026-10-02 00:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'm2b3c4d5e6f7'
-down_revision = 'm1a2b3c4d5e6'
+down_revision = '20644005f614'
 branch_labels = None
 depends_on = None
 

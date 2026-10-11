@@ -1,6 +1,6 @@
 """add maintenance room system tables
 
-Revision ID: m1a2b3c4d5e6
+Revision ID: 20644005f614
 Revises: 95198b79d094
 Create Date: 2026-10-02 00:00:00.000000
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'm1a2b3c4d5e6'
+revision = '20644005f614'
 down_revision = '95198b79d094'
 branch_labels = None
 depends_on = None
