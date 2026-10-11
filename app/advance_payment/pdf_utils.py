@@ -432,10 +432,37 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
 
 
 def _get_leave_approver_signatures(ticket):
-    """Return all active lower/middle leave approvers in display order."""
+    """Return active lower/middle approvers, or one active fallback approver."""
     borrower_id = getattr(ticket, "borrower_id", None)
     if not borrower_id:
         return []
+
+    def approver_signature(approver):
+        approver_account = getattr(approver, "account", None)
+        if approver_account is None:
+            approver_account = _get_user_by_id(getattr(approver, "approver_account_id", None))
+        if approver_account is None:
+            return None
+
+        personal_info = getattr(approver_account, "personal_info", None)
+        signer_name = getattr(personal_info, "fullname", None)
+        if not signer_name and personal_info is not None:
+            signer_name = " ".join(
+                value for value in (
+                    getattr(personal_info, "th_firstname", None),
+                    getattr(personal_info, "th_lastname", None),
+                ) if value
+            )
+
+        position_record = (
+            db.session.query(StaffHeadPosition)
+            .filter_by(staff_account_id=approver_account.id)
+            .first()
+        )
+        return (
+            _pdf_text(signer_name),
+            _pdf_text(getattr(position_record, "position", None)),
+        )
 
     signatures = []
     approver_filters = (
@@ -454,32 +481,24 @@ def _get_leave_approver_signatures(ticket):
         )
         if approver is None:
             continue
+        signature = approver_signature(approver)
+        if signature is not None:
+            signatures.append(signature)
 
-        approver_account = getattr(approver, "account", None)
-        if approver_account is None:
-            approver_account = _get_user_by_id(getattr(approver, "approver_account_id", None))
-        if approver_account is None:
-            continue
-
-        personal_info = getattr(approver_account, "personal_info", None)
-        signer_name = getattr(personal_info, "fullname", None)
-        if not signer_name and personal_info is not None:
-            signer_name = " ".join(
-                value for value in (
-                    getattr(personal_info, "th_firstname", None),
-                    getattr(personal_info, "th_lastname", None),
-                ) if value
+    if not signatures:
+        fallback_approver = (
+            db.session.query(StaffLeaveApprover)
+            .filter_by(
+                staff_account_id=borrower_id,
+                is_active=True,
             )
-
-        position_record = (
-            db.session.query(StaffHeadPosition)
-            .filter_by(staff_account_id=approver_account.id)
+            .order_by(StaffLeaveApprover.id.asc())
             .first()
         )
-        signatures.append((
-            _pdf_text(signer_name),
-            _pdf_text(getattr(position_record, "position", None)),
-        ))
+        if fallback_approver is not None:
+            fallback_signature = approver_signature(fallback_approver)
+            if fallback_signature is not None:
+                signatures.append(fallback_signature)
 
     return signatures
 
