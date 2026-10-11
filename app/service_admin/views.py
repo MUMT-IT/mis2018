@@ -2645,12 +2645,11 @@ def create_customer(customer_id=None):
             uploaded_required_documents.append((document, attachment, file_name))
         if form.attachments:
             for item in form.attachments:
-                file = request.files.get(f'file_{item.id}')
-                print('f', file)
-                if file and allowed_file(file.filename):
-                    mime_type = file.mimetype
-                    file_name = file.filename
-                    file_data = file.stream.read()
+                uploaded_file = item.file_upload.data
+                if uploaded_file and uploaded_file.filename and allowed_file(uploaded_file.filename):
+                    mime_type = uploaded_file.mimetype
+                    file_name = uploaded_file.filename
+                    file_data = uploaded_file.stream.read()
                     response = s3.put_object(
                         Bucket=S3_BUCKET_NAME,
                         Key=file_name,
@@ -2749,8 +2748,7 @@ def add_attachment():
                     </label>
                     <div class="file" style="margin-bottom: .5em">
                         <label class="file-label">
-                            <input class="file-input" type="file" name="file_{}" id="file_{}"
-                                required>
+                            {}
                             <span class="file-cta">
                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
                                 <span class="file-label">เลือกไฟล์…</span>
@@ -2777,8 +2775,11 @@ def add_attachment():
     resp = template.format(item_form.id,
                            index,
                            item_form.file.label,
-                           item_form.id,
-                           item_form.id,
+                           item_form.file_upload(
+                               class_='file-input',
+                               accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
+                               required=True,
+                           ),
                            item_form.note.label,
                            item_form.note(class_='input'),
                            url_for('service_admin.remove_attachment', name=item_form.id)
