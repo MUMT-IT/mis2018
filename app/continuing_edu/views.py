@@ -509,20 +509,6 @@ def register():
         if not occupation_choice:
             errors.append(texts.get('occupation_label', 'Please select or specify an occupation.'))
 
-        # Address validations
-        meaningful_addresses = []
-        for entry in address_entries:
-            has_content = bool(entry.get('line1'))
-            if has_content:
-                meaningful_addresses.append(entry)
-            if entry.get('type') == 'other' and has_content and not entry.get('type_other'):
-                errors.append(texts.get('address_type_other_prompt', 'Please specify address type for custom entries.'))
-            if entry.get('country_code') == 'OTHER' and has_content and not entry.get('country_other'):
-                errors.append(texts.get('address_country_other_prompt', 'Please specify country name.'))
-
-        if not meaningful_addresses:
-            errors.append(texts.get('address_required_message', 'Please provide at least one address.'))
-
         if username and CEMember.query.filter_by(username=username).first():
             errors.append(texts.get('register_error_exists', 'Username already exists.'))
         if email and CEMember.query.filter_by(email=email).first():

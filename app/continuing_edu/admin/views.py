@@ -2322,7 +2322,7 @@ def update_event_general(event_id):
         event.registration_open = request.form.get('registration_open') == '1'
         db.session.add(event)
         db.session.commit()
-        flash('Registration status updated.', 'success')
+        flash('ปรับสถานะการเปิดลงทะเบียนแล้ว กรุณาตั้งค่าระยะเวลาเปิด-ปิด การรับสมัครได้ที่ด้านล่าง', 'success')
         return redirect(url_for('continuing_edu_admin.edit_event', event_id=event.id, tab='general'))
 
     # Basic fields; extend as needed
