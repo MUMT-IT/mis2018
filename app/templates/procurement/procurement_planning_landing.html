@@ -42,6 +42,12 @@
             vertical-align: middle;
         }
 
+        .funding-budget-chart {
+            width: 100%;
+            height: 340px;
+            margin-bottom: 1rem;
+        }
+
         @media screen and (max-width: 768px) {
             .procurement-planning-shell {
                 padding-left: 1rem;
@@ -108,6 +114,12 @@
                         </div>
                         <div class="column is-half">
                             <h3 class="title is-5">วงเงินตามแหล่งงบประมาณ</h3>
+                            {% if total_amount > 0 %}
+                                <div id="funding-budget-chart" class="funding-budget-chart"
+                                     role="img" aria-label="สัดส่วนวงเงินตามแหล่งงบประมาณ ปีงบประมาณ {{ fiscal_year }} ดูรายละเอียดในตารางด้านล่าง"></div>
+                            {% elif funding_summary %}
+                                <p class="has-text-grey mb-4">ยังไม่มีวงเงินสำหรับแสดงกราฟในปีงบประมาณนี้</p>
+                            {% endif %}
                             <div class="table-container"><table class="table is-fullwidth is-hoverable dashboard-table">
                                 <thead><tr><th>แหล่งงบประมาณ</th><th class="has-text-centered">แผน</th><th class="has-text-right">วงเงิน (บาท)</th></tr></thead>
                                 <tbody>
@@ -124,4 +136,40 @@
             </section>
         </div>
     </main>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    {% if total_amount > 0 %}
+        <script src="https://www.gstatic.com/charts/loader.js"></script>
+        <script>
+            google.charts.load('current', { packages: ['corechart'], language: 'th' });
+            google.charts.setOnLoadCallback(function () {
+                const data = google.visualization.arrayToDataTable([
+                    ['แหล่งงบประมาณ', 'วงเงิน (บาท)'],
+                    {% for item in funding_summary %}
+                        [{{ item.label | tojson }}, {{ item.amount | float | tojson }}]{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ]);
+                new google.visualization.NumberFormat({ pattern: '#,##0.00 บาท' }).format(data, 1);
+                const chart = new google.visualization.PieChart(document.getElementById('funding-budget-chart'));
+                function drawChart() {
+                    chart.draw(data, {
+                        chartArea: { left: 15, top: 15, width: '90%', height: '75%' },
+                        legend: { position: 'bottom', textStyle: { fontSize: 12 } },
+                        pieSliceText: 'percentage',
+                        sliceVisibilityThreshold: 0,
+                        colors: ['#122754', '#3273dc', '#23a88c', '#f2b134', '#9656a6', '#e76f51'],
+                        fontName: 'sans-serif'
+                    });
+                }
+                drawChart();
+                let resizeTimer;
+                window.addEventListener('resize', function () {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(drawChart, 150);
+                });
+            });
+        </script>
+    {% endif %}
 {% endblock %}

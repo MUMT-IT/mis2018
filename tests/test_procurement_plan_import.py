@@ -11,7 +11,7 @@ PLAN_IMPORT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PLAN_IMPORT)
 
 
-def _workbook(path, rows):
+def _workbook(path, rows, header_row=2):
     workbook = openpyxl.Workbook()
     summary = workbook.active
     summary.title = 'งบลงทุน'
@@ -30,11 +30,54 @@ def _workbook(path, rows):
         'วันที่ตรวจรับงวด 2 (แผน)',
         'External order no.',
     ]
-    sheet.append([])
+    for index in range(header_row - 1):
+        sheet.append(['รายละเอียดงบประมาณ' if index == 0 else None])
     sheet.append(headers)
     for row in rows:
         sheet.append(row)
     workbook.save(path)
+
+
+@pytest.mark.parametrize('header_row', [1, 3, 5])
+def test_detects_header_after_title_and_blank_rows(tmp_path, header_row):
+    path = tmp_path / 'plans.xlsx'
+    _workbook(path, [
+        ['เงินแผ่นดิน (20101002)'],
+        ['รายการทดสอบ', '0150001 Test', 'C0401000',
+         'วิธีเฉพาะเจาะจง', 1000, '20101002'],
+    ], header_row=header_row)
+    # Section labels in the real workbook are outside the Long Text column.
+    workbook = openpyxl.load_workbook(path)
+    sheet = workbook[PLAN_IMPORT.DATA_SHEET]
+    sheet.cell(header_row + 1, 1).value = None
+    sheet.cell(header_row + 1, 12).value = 'เงินแผ่นดิน (20101002)'
+    workbook.save(path)
+
+    _, rows = PLAN_IMPORT.parse_procurement_plan_workbook(path, 2570)
+
+    assert len(rows) == 1
+    assert rows[0]['item'] == 'รายการทดสอบ'
+    assert rows[0]['row_number'] == header_row + 2
+
+
+def test_reports_excel_row_number_after_detected_header(tmp_path):
+    path = tmp_path / 'plans.xlsx'
+    _workbook(path, [['รายการทดสอบ', '0150001 Test', 'C0401000',
+                      'วิธีเฉพาะเจาะจง', 'ไม่ใช่ตัวเลข', '20101002']], header_row=3)
+
+    with pytest.raises(PLAN_IMPORT.ProcurementPlanImportError, match='แถวที่ 4'):
+        PLAN_IMPORT.parse_procurement_plan_workbook(path, 2570)
+
+
+def test_rejects_missing_required_column(tmp_path):
+    path = tmp_path / 'plans.xlsx'
+    _workbook(path, [], header_row=3)
+    workbook = openpyxl.load_workbook(path)
+    workbook[PLAN_IMPORT.DATA_SHEET].cell(3, 6).value = None
+    workbook.save(path)
+
+    with pytest.raises(PLAN_IMPORT.ProcurementPlanImportError, match='ไม่พบคอลัมน์ที่จำเป็น: Fund'):
+        PLAN_IMPORT.parse_procurement_plan_workbook(path, 2570)
 
 
 def test_parse_standard_workbook(tmp_path):
