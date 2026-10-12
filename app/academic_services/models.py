@@ -293,6 +293,18 @@ class ServiceCustomerContact(db.Model):
         }
 
 
+class ServiceCustomerRequiredDocument(db.Model):
+    __tablename__ = 'service_customer_required_attachments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
+    attachment = db.Column('attachment', db.String(), info={'label': 'ไฟล์'})
+    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
+    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('required_attachments', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return self.file_name
+
+
 class ServiceCustomerAttachment(db.Model):
     __tablename__ = 'service_customer_attachments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
