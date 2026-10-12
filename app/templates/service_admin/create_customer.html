@@ -257,6 +257,13 @@
                                             </div>
                                             {{ item_form.category(type="hidden", value="เอกสารเพิ่มเติม") }}
                                         </div>
+                                    {% else %}
+                                        <div style="display:none;">
+                                            {{ item_form.category(type="hidden") }}
+                                            {{ item_form.file(type="hidden") }}
+                                            {{ item_form.file_name(type="hidden") }}
+                                            {{ item_form.note(type="hidden") }}
+                                        </div>
                                     {% endif %}
                                 {% endfor %}
                             </div>
