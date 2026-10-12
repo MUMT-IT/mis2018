@@ -235,7 +235,7 @@ class ServiceCustomerInfo(db.Model):
             status = 'อนุมัติ'
         elif self.is_document_verified is False:
             status = 'ไม่อนุมัติ'
-        elif not self.is_document_verified and self.attachments:
+        elif not self.is_document_verified and self.required_attachments:
             status = 'รออนุมัติ'
         else:
             status = 'ยังไม่แนบเอกสาร'
@@ -247,7 +247,7 @@ class ServiceCustomerInfo(db.Model):
             color = 'is-success'
         elif self.is_document_verified is False:
             color = 'is-danger'
-        elif not self.is_document_verified and self.attachments:
+        elif not self.is_document_verified and self.required_attachments:
             color = 'is-warning'
         else:
             color = 'is-light'
@@ -297,6 +297,7 @@ class ServiceCustomerRequiredDocument(db.Model):
     __tablename__ = 'service_customer_required_attachments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
+    note = db.Column('note', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
     attachment = db.Column('attachment', db.String(), info={'label': 'ไฟล์'})
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('required_attachments', cascade='all, delete-orphan'))
