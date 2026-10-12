@@ -2584,11 +2584,6 @@ def create_customer(customer_id=None):
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
         form = ServiceCustomerInfoForm(obj=customer)
-        # form.attachments.entries = [
-        #     entry for entry in form.attachments
-        #     if getattr(getattr(entry, 'category', None), 'data', None)
-        #     not in CUSTOMER_DOCUMENT_CATEGORIES
-        # ]
     else:
         account = None
         form = ServiceCustomerInfoForm()
@@ -2649,9 +2644,7 @@ def create_customer(customer_id=None):
             if item.category.data == 'เอกสารเพิ่มเติม'
         ]
         for item in other_documents:
-            print('ca', item.category.data)
             file = item.file_upload.data
-            print('f', file)
             if file and allowed_file(file.filename):
                 mime_type = file.mimetype
                 file_name = file.filename
