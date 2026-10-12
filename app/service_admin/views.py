@@ -2584,11 +2584,11 @@ def create_customer(customer_id=None):
         customer = ServiceCustomerInfo.query.get(customer_id)
         account = ServiceCustomerAccount.query.filter_by(customer_info_id=customer_id).first()
         form = ServiceCustomerInfoForm(obj=customer)
-        form.attachments.entries = [
-            entry for entry in form.attachments
-            if getattr(getattr(entry, 'category', None), 'data', None)
-            not in CUSTOMER_DOCUMENT_CATEGORIES
-        ]
+        # form.attachments.entries = [
+        #     entry for entry in form.attachments
+        #     if getattr(getattr(entry, 'category', None), 'data', None)
+        #     not in CUSTOMER_DOCUMENT_CATEGORIES
+        # ]
     else:
         account = None
         form = ServiceCustomerInfoForm()
@@ -2644,22 +2644,27 @@ def create_customer(customer_id=None):
                 ContentType=uploaded_file.mimetype
             )
             uploaded_required_documents.append((document, attachment, file_name))
-        if form.attachments:
-            for item in form.attachments:
-                file = item.file_upload.data
-                if file and allowed_file(file.filename):
-                    mime_type = file.mimetype
-                    file_name = file.filename
-                    file_data = file.stream.read()
-                    response = s3.put_object(
-                        Bucket=S3_BUCKET_NAME,
-                        Key=file_name,
-                        Body=file_data,
-                        ContentType=mime_type
-                    )
-                    item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
-                    item.file.data = file_name
-                    item.category.data = 'เอกสารเพิ่มเติม'
+        other_documents = [
+            item for item in form.attachments.entries
+            if item.category.data == 'เอกสารเพิ่มเติม'
+        ]
+        for item in other_documents:
+            print('ca', item.category.data)
+            file = item.file_upload.data
+            print('f', file)
+            if file and allowed_file(file.filename):
+                mime_type = file.mimetype
+                file_name = file.filename
+                file_data = file.stream.read()
+                response = s3.put_object(
+                    Bucket=S3_BUCKET_NAME,
+                    Key=file_name,
+                    Body=file_data,
+                    ContentType=mime_type
+                )
+                item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
+                item.file.data = file_name
+                item.category.data = 'เอกสารเพิ่มเติม'
         form.populate_obj(customer)
 
         for document, attachment, file_name in uploaded_required_documents:
@@ -2752,8 +2757,7 @@ def add_attachment():
                     </label>
                     <div class="file" style="margin-bottom: .5em">
                         <label class="file-label">
-                            <input class="file-input" type="file" name="file_{}" id="file_{}"
-                                required>
+                            {}
                             <span class="file-cta">
                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
                                 <span class="file-label">เลือกไฟล์…</span>
@@ -2775,16 +2779,21 @@ def add_attachment():
                         </a>
                     </div>
                 </div>
+                {}
             </div>
         """
     resp = template.format(item_form.id,
                            index,
                            item_form.file.label,
-                           item_form.id,
-                           item_form.id,
+                           item_form.file_upload(
+                               class_='file-input',
+                               accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
+                               required=True,
+                           ),
                            item_form.note.label,
                            item_form.note(class_='input'),
-                           url_for('service_admin.remove_attachment', name=item_form.id)
+                           url_for('service_admin.remove_attachment', name=item_form.id),
+                           item_form.category(type="hidden", value="เอกสารเพิ่มเติม")
                            )
     resp = make_response(resp)
     return resp
