@@ -213,48 +213,51 @@
                         <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                             <div id="attachment-field" class="field">
                                 {% for item_form in form.attachments %}
-                                    <div id="{{ item_form.id }}" class="attachment-item">
-                                        <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
-                                        <div class="field">
-                                            <label class="label">
-                                                {{ item_form.file.label }}
-                                            </label>
-                                            <div class="file" style="margin-bottom: .5em">
-                                                <label class="file-label">
-                                                    {{ item_form.file_upload(
-                                                        class="file-input",
-                                                        accept=".pdf,.png,.jpg,.jpeg,.gif,.txt",
-                                                        required=(not item_form.file.data)
-                                                    ) }}
-                                                    <span class="file-cta">
-                                                        <span class="file-icon"><i class="fas fa-upload"></i></span>
-                                                        <span class="file-label">เลือกไฟล์…</span>
-                                                    </span>
-                                                    <span class="file-name">
-                                                        {% if item_form.file.data %}
-                                                            {{ item_form.file.data }}
-                                                        {% else %}
-                                                            กรุณาอัปโหลดไฟล์
-                                                        {% endif %}
-                                                    </span>
+                                    {% if item_form.category.data == 'เอกสารเพิ่มเติม' %}
+                                        <div id="{{ item_form.id }}" class="attachment-item">
+                                            <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                            <div class="field">
+                                                <label class="label">
+                                                    {{ item_form.file.label }}
                                                 </label>
+                                                <div class="file" style="margin-bottom: .5em">
+                                                    <label class="file-label">
+                                                        {{ item_form.file_upload(
+                                                            class="file-input",
+                                                            accept=".pdf,.png,.jpg,.jpeg,.gif,.txt",
+                                                            required=(not item_form.file.data)
+                                                        ) }}
+                                                        <span class="file-cta">
+                                                            <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                                            <span class="file-label">เลือกไฟล์…</span>
+                                                        </span>
+                                                        <span class="file-name">
+                                                            {% if item_form.file.data %}
+                                                                {{ item_form.file.data }}
+                                                            {% else %}
+                                                                กรุณาอัปโหลดไฟล์
+                                                            {% endif %}
+                                                        </span>
+                                                    </label>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="field">
-                                            <label class="label">{{ item_form.note.label }}</label>
-                                            <div class="control is-flex">
-                                                {{ item_form.note(class="input") }}
-                                                <a class="button is-danger is-outlined" style="margin-left: .5em"
-                                                   hx-delete="{{ url_for('service_admin.remove_attachment',
-                                                      name=item_form.name) }}"
-                                                   hx-target="closest .attachment-item"
-                                                   hx-swap="outerHTML"
-                                                >
-                                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                                </a>
+                                            <div class="field">
+                                                <label class="label">{{ item_form.note.label }}</label>
+                                                <div class="control is-flex">
+                                                    {{ item_form.note(class="input") }}
+                                                    <a class="button is-danger is-outlined" style="margin-left: .5em"
+                                                       hx-delete="{{ url_for('service_admin.remove_attachment',
+                                                          name=item_form.name) }}"
+                                                       hx-target="closest .attachment-item"
+                                                       hx-swap="outerHTML"
+                                                    >
+                                                        <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                    </a>
+                                                </div>
                                             </div>
+                                            {{ item_form.category(type="hidden", value="เอกสารเพิ่มเติม") }}
                                         </div>
-                                    </div>
+                                    {% endif %}
                                 {% endfor %}
                             </div>
                             <div class="field has-addons">
