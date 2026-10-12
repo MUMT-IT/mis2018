@@ -6,7 +6,7 @@
             {{ form.hidden_tag() }}
             <div class="field">
                 <label class="label">{{ form.compensation.label }}</label>
-                <div class="select">
+                <div class="select is-fullwidth">
                     <select name="{{ form.compensation.name }}" id="{{ form.compensation.id }}">
                         <option value="">เลือกหน้าที่และอัตรา</option>
                         {% for compensation in compensation_rates %}

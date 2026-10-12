@@ -53,7 +53,7 @@
                                         <div class="column is-3">
                                             <label class="label">{{ signatory.form.report_creator_staff.label }}</label>
                                             <div class="select is-fullwidth">
-                                                {{ signatory.form.report_creator_staff() }}
+                                                {{ signatory.form.report_creator_staff(class="employee-search") }}
                                             </div>
                                         </div>
                                         <div class="column is-2">
@@ -63,7 +63,7 @@
                                         <div class="column is-3">
                                             <label class="label">{{ signatory.form.signer_staff.label }}</label>
                                             <div class="select is-fullwidth">
-                                                {{ signatory.form.signer_staff() }}
+                                                {{ signatory.form.signer_staff(class="employee-search") }}
                                             </div>
                                         </div>
                                         <div class="column is-2">
@@ -150,9 +150,11 @@
 </section>
 {% endblock %}
 {% block scripts %}
+{% include "ot/partials/staff_options.html" %}
 {{ super() }}
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
+    $('select.employee-search').each(function() { loadOtStaffOptions($(this)); });
     // set up the daterangepicker so that it starts off empty
     // because not all documents have a deadline date.
     $('input[name="announce_at"]').daterangepicker({
@@ -250,6 +252,7 @@
             }
         });
         $('#signatories-container').append($template);
+        $template.find('select.employee-search').each(function() { loadOtStaffOptions($(this)); });
         reindexSignatories();
     });
 

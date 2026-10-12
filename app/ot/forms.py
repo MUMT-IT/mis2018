@@ -23,14 +23,14 @@ class OtAnnouncementSignatoryForm(FlaskForm):
         csrf = False
 
     report_creator_staff = QuerySelectField(u'ผู้จัดทำ',
-                                            query_factory=lambda: StaffAccount.get_active_accounts(),
+                                            query_factory=lambda: StaffAccount.query.all(),
                                             get_label='fullname',
                                             allow_blank=True,
                                             blank_text='กรุณาเลือกรายชื่อ',
                                             validators=[DataRequired()])
     report_creator_position = StringField(u'ตำแหน่งผู้จัดทำ', validators=[DataRequired()])
     signer_staff = QuerySelectField(u'ผู้ลงนาม',
-                                    query_factory=lambda: StaffAccount.get_active_accounts(),
+                                    query_factory=lambda: StaffAccount.query.all(),
                                     get_label='fullname',
                                     allow_blank=True,
                                     blank_text='กรุณาเลือกรายชื่อ',

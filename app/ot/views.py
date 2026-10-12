@@ -1034,7 +1034,7 @@ def show_ot_form_modal(_id=None):
     form = RecordForm()
     compensation_rates = get_compensation_rates_for_timeslot(timeslot)
     form.compensation.query = compensation_rates
-    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.get_active_accounts()]
+    form.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query.all()]
     if form.validate_on_submit():
         candidate_start = _bangkok_localize(shift.datetime.lower) if shift else _bangkok_localize(
             datetime.combine(start.date(), timeslot.start)
@@ -1113,7 +1113,7 @@ def get_compensation_rates(doc_id):
     entry_ = form.items.append_entry()
     entry_.compensation.choices = [(rate.id, rate) for rate in compensations]
     entry_.time_slots.choices = [(slot.id, slot) for slot in compensations[0].time_slots]
-    entry_.staff.choices = [(staff.id, staff.fullname) for staff in document.org.active_staff_accounts]
+    entry_.staff.choices = [(staff.id, staff.fullname) for staff in StaffAccount.query.all()]
     template = f'''
     <div class="field">
         <div class="select">
