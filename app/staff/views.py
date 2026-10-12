@@ -5824,6 +5824,7 @@ def get_staffid():
         academic_position = sid.academic_positions[0] if sid.academic_positions else None
         staff.append({
             'id': sid.id,
+            'account_id': sid.staff_account.id if sid.staff_account else None,
             'fullname': sid.fullname,
             'org': sid.org.name if sid.org else 'ไม่มีต้นสังกัด'
             , 'email': sid.staff_account.email if sid.staff_account else ''
