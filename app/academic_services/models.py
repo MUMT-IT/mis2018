@@ -293,7 +293,7 @@ class ServiceCustomerContact(db.Model):
         }
 
 
-class ServiceCustomerRequiredDocument(db.Model):
+class ServiceCustomerRequiredAttachment(db.Model):
     __tablename__ = 'service_customer_required_attachments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
@@ -306,7 +306,7 @@ class ServiceCustomerRequiredDocument(db.Model):
         return self.file_name
 
 
-class ServiceCustomerOtherDocument(db.Model):
+class ServiceCustomerOtherAttachment(db.Model):
     __tablename__ = 'service_customer_other_attachments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
@@ -314,30 +314,6 @@ class ServiceCustomerOtherDocument(db.Model):
     attachment = db.Column('attachment', db.String(), info={'label': 'ไฟล์'})
     customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
     customer = db.relationship(ServiceCustomerInfo, backref=db.backref('other_attachments', cascade='all, delete-orphan'))
-
-    def __str__(self):
-        return self.file_name
-
-
-class ServiceCustomerAttachment(db.Model):
-    __tablename__ = 'service_customer_attachments'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    file_name = db.Column('file_name', db.String(), info={'label': 'ชื่อไฟล์'})
-    note = db.Column('note', db.String(), info={'label': 'รายละเอียดเพิ่มเติม'})
-    category = db.Column('category', db.String())
-    file = db.Column('file', db.String(), info={'label': 'ไฟล์'})
-    customer_id = db.Column('customer_id', db.ForeignKey('service_customer_infos.id'))
-    customer = db.relationship(ServiceCustomerInfo, backref=db.backref('attachments', cascade='all, delete-orphan'))
-
-    @property
-    def category_tag(self):
-        if self.category:
-            if self.category == 'เอกสารจำเป็น':
-                return 'is-info is-light'
-            else:
-                return 'is-light'
-        else:
-            return 'is-light'
 
     def __str__(self):
         return self.file_name
