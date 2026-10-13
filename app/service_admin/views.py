@@ -2539,12 +2539,12 @@ def view_overdue_invoice(invoice_id):
 def customer_index():
     tab = request.args.get('tab')
     not_attached_query = ServiceCustomerInfo.query.filter(
-            ServiceCustomerInfo.is_document_verified==None,
-            ~ServiceCustomerInfo.attachments.any()
+            ServiceCustomerInfo.is_document_verified == None,
+            ~ServiceCustomerInfo.required_attachments.any()
         )
     pending_query = ServiceCustomerInfo.query.filter(
             ServiceCustomerInfo.is_document_verified == None,
-            ServiceCustomerInfo.attachments.any()
+            ServiceCustomerInfo.required_attachments.any()
         )
     rejected_query = ServiceCustomerInfo.query.filter_by(is_document_verified=False)
     approved_query = ServiceCustomerInfo.query.filter_by(is_document_verified=True)
@@ -2653,7 +2653,6 @@ def create_customer(customer_id=None):
                     )
                     item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
                     item.attachment.data = file_name
-                    item.category.data = 'เอกสารเพิ่มเติม'
         form.populate_obj(customer)
 
         for document, attachment, file_name in uploaded_required_documents:
@@ -2662,7 +2661,6 @@ def create_customer(customer_id=None):
                 required_attachments[document['key']] = attachment
             attachment.file_name = document['label']
             attachment.attachment = file_name
-            attachment.category = REQUIRED_DOCUMENT_CATEGORY
 
         for document, attachment in required_attachments.items():
             attachment.file_name = next(
@@ -2670,7 +2668,7 @@ def create_customer(customer_id=None):
             )
             attachment.category = REQUIRED_DOCUMENT_CATEGORY
             attachment.customer = customer
-            if attachment not in customer.attachments:
+            if attachment not in customer.required_attachments:
                 customer.required_attachments.append(attachment)
             db.session.add(attachment)
 
