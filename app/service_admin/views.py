@@ -78,9 +78,6 @@ CUSTOMER_DOCUMENT_DEFINITIONS = (
     {'key': 'grantor_id_card', 'label': 'บัตรประชาชนผู้มอบอำนาจ', 'private_only': True},
     {'key': 'attorney_id_card', 'label': 'บัตรประชาชนผู้รับมอบอำนาจ', 'private_only': True},
 )
-REQUIRED_DOCUMENT_CATEGORY = 'เอกสารจำเป็น'
-LEGACY_REQUIRED_DOCUMENT_CATEGORIES = {item['label'] for item in CUSTOMER_DOCUMENT_DEFINITIONS}
-CUSTOMER_DOCUMENT_CATEGORIES = {REQUIRED_DOCUMENT_CATEGORY} | LEGACY_REQUIRED_DOCUMENT_CATEGORIES
 
 
 def _customer_type_name(customer_type):
@@ -96,16 +93,9 @@ def _required_customer_documents(customer_type):
 
 def _required_document_attachments(customer):
     attachments = {}
-    for attachment in getattr(customer, 'attachments', []):
-        if attachment.category == REQUIRED_DOCUMENT_CATEGORY:
-            document = next(
+    for attachment in getattr(customer, 'required_attachments', []):
+        document = next(
                 (item for item in CUSTOMER_DOCUMENT_DEFINITIONS if item['label'] == attachment.file_name),
-                None
-            )
-        else:
-            document = next(
-                (item for item in CUSTOMER_DOCUMENT_DEFINITIONS
-                 if item['label'] == attachment.category),
                 None
             )
         if document:
@@ -2593,8 +2583,8 @@ def create_customer(customer_id=None):
 
         required_documents = _required_customer_documents(form.type.data)
         type_changed = customer_id is not None and customer.type_id != form.type.data.id
-        if type_changed and customer.required_documents:
-            customer.required_documents.clear()
+        if type_changed and customer.required_attachments:
+            customer.required_attachments.clear()
             # for required_attachment in list(customer.required_attachments):
             #     customer.required_attachments.remove(required_attachment)
 
@@ -2615,7 +2605,7 @@ def create_customer(customer_id=None):
                     continue
                 document_uploads.append((document, uploaded_file, attachment))
 
-            if not has_upload and (attachment is None or not attachment.file):
+            if not has_upload and (attachment is None or not attachment.attachment):
                 document_errors.append(f"กรุณาแนบ{document['label']}")
 
         if document_errors:
@@ -2666,7 +2656,6 @@ def create_customer(customer_id=None):
             attachment.file_name = next(
                 item['label'] for item in CUSTOMER_DOCUMENT_DEFINITIONS if item['key'] == document
             )
-            attachment.category = REQUIRED_DOCUMENT_CATEGORY
             attachment.customer = customer
             if attachment not in customer.required_attachments:
                 customer.required_attachments.append(attachment)
