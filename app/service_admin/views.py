@@ -2733,14 +2733,14 @@ def create_customer(customer_id=None):
     )
 
 
-@service_admin.route('/api/customer/account/file/add', methods=['POST'])
-def add_attachment():
+@service_admin.route('/api/customer/account/other-file/add', methods=['POST'])
+def add_other_attachment():
     form = ServiceCustomerInfoForm()
-    form.attachments.append_entry()
-    item_form = form.attachments[-1]
-    index = len(form.attachments)
+    form.other_attachments.append_entry()
+    item_form = form.other_attachments[-1]
+    index = len(form.other_attachments)
     template = """
-            <div id="{}" class="attachment-item">
+            <div id="{}" class="other-attachment-item">
                 <hr style="background-color: #F3F3F3">
                 <p><strong>รายการที่ {}</strong></p>
                 <div class="field">
@@ -2772,7 +2772,6 @@ def add_attachment():
                         </a>
                     </div>
                 </div>
-                {}
             </div>
         """
     resp = template.format(item_form.id,
@@ -2785,25 +2784,24 @@ def add_attachment():
                            ),
                            item_form.note.label,
                            item_form.note(class_='input'),
-                           url_for('service_admin.remove_attachment', name=item_form.id),
-                           item_form.category(type="hidden", value="เอกสารเพิ่มเติม")
+                           url_for('service_admin.remove_other_attachment', name=item_form.id),
                            )
     resp = make_response(resp)
     return resp
 
 
-@service_admin.route('/api/customer/account/file/remove', methods=['DELETE'])
-def remove_attachment():
+@service_admin.route('/api/customer/account/other-file/remove', methods=['DELETE'])
+def remove_other_attachment():
     field_name = request.args.get('name')
     form = ServiceCustomerInfoForm()
     temp_entries = []
-    for entry in form.attachments:
+    for entry in form.other_attachments:
         if entry.name != field_name:
             temp_entries.append(entry)
-    while len(form.attachments) > 0:
-        form.attachments.pop_entry()
+    while len(form.other_attachments) > 0:
+        form.other_attachments.pop_entry()
     for entry in temp_entries:
-        form.attachments.append_entry(entry)
+        form.other_attachments.append_entry(entry)
     return ""
 
 
