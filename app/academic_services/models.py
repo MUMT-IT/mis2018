@@ -259,7 +259,7 @@ class ServiceCustomerInfo(db.Model):
             color = '<i class="fas fa-check"></i>'
         elif self.is_document_verified is False:
             color = '<i class="fas fa-times"></i>'
-        elif not self.is_document_verified and self.attachments:
+        elif not self.is_document_verified and self.required_attachments:
             color = '<i class="fas fa-hourglass-half"></i>'
         else:
             color = '<i class="fas fa-inbox"></i>'
