@@ -38,9 +38,9 @@ class ServiceCustomerContactForm(ModelForm):
     email = EmailField('อีเมล', validators=[DataRequired()])
 
 
-class ServiceCustomerAttachmentForm(ModelForm):
+class ServiceCustomerOtherAttachmentForm(ModelForm):
     class Meta:
-        model = ServiceCustomerAttachment
+        model = ServiceCustomerOtherAttachment
 
     file_upload = FileField('File Upload')
 
@@ -57,7 +57,8 @@ class ServiceCustomerInfoForm(ModelForm):
     taxpayer_identification_no = StringField('เลขประจำตัวผู้เสียภาษีอากร', validators=[DataRequired()])
     phone_number = StringField('เบอร์โทรศัพท์', validators=[DataRequired()])
     customer_contacts = FieldList(FormField(ServiceCustomerContactForm, default=ServiceCustomerContact), min_entries=1)
-    attachments = FieldList(FormField(ServiceCustomerAttachmentForm, default=ServiceCustomerAttachment), min_entries=0)
+    other_attachments = FieldList(FormField(ServiceCustomerOtherAttachmentForm, default=ServiceCustomerOtherAttachment),
+                                   min_entries=0)
 
 
 def formatted_request_data():
