@@ -36,22 +36,10 @@
                         </div>
                     </div>
                     <div class="service-customer-verification">
-                        {% if customer.is_document_verified is none %}
-                            <span class="tag is-warning is-light is-rounded">
-                                <span class="icon"><i class="fas fa-clock"></i></span>
-                                <span>รอตรวจสอบเอกสาร</span>
-                            </span>
-                        {% elif customer.is_document_verified %}
-                            <span class="tag is-success is-light is-rounded">
-                                <span class="icon"><i class="fas fa-circle-check"></i></span>
-                                <span>อนุมัติแล้ว</span>
-                            </span>
-                        {% else %}
-                            <span class="tag is-danger is-light is-rounded">
-                                <span class="icon"><i class="fas fa-circle-xmark"></i></span>
-                                <span>ไม่อนุมัติ</span>
-                            </span>
-                        {% endif %}
+                        <span class="tag {{ customer.status_document_verified_color }} is-rounded">
+                            <span class="icon">{{ customer.status_document_verified_icon|safe }}</span>
+                            <span>{{ customer.status_document_verified }}</span>
+                        </span>
                     </div>
                 </div>
                 <div class="service-customer-info-grid">
@@ -160,50 +148,68 @@
                     {% endfor %}
                 </div>
             </div>
-
             <div class="service-customer-section-card">
                 <div class="service-customer-section-heading">
                     <div>
                         <p class="service-customer-section-eyebrow">DOCUMENTS</p>
                         <h2><i class="fas fa-paperclip"></i> เอกสารประกอบ</h2>
                     </div>
-                    <span class="service-customer-section-count">{{ customer.attachments|length }} ไฟล์</span>
+                    <span class="service-customer-section-count">
+                        {{ customer.required_attachments|length + customer.other_attachments|length }} ไฟล์
+                    </span>
                 </div>
-                {% if customer.attachments %}
+                {% if customer.required_attachments or customer.other_attachments %}
                     <div class="table-container">
                         <table class="table is-fullwidth is-hoverable service-customer-document-table">
                             <thead>
-                                <tr>
-                                    <th>ชื่อเอกสาร</th>
-                                    <th>ประเภทเอกสาร</th>
-                                    <th>รายละเอียด</th>
-                                    <th class="has-text-centered">ไฟล์</th>
-                                </tr>
+                                <th>ชื่อเอกสาร</th>
+                                <th>ประเภทเอกสาร</th>
+                                <th>รายละเอียด</th>
+                                <th class="has-text-centered">ไฟล์</th>
                             </thead>
                             <tbody>
-                            {% for attachment in customer.attachments %}
-                                <tr>
-                                    <td>{{ attachment.file_name or '-' }}</td>
-                                    <td>
-                                        {% if attachment.category %}
-                                            <span class="tag {{ attachment.category_tag }}">{{ attachment.category }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ attachment.note or '-' }}</td>
-                                    <td class="has-text-centered">
-                                        {% if attachment.file %}
-                                            <a class="button is-small is-link is-light is-rounded"
-                                               href="{{ url_for('service_admin.download_file', key=attachment.file,
-                                               download_filename=(attachment.file_name or 'เอกสาร') + '.pdf') }}">
-                                                <span class="icon"><i class="fas fa-download"></i></span>
-                                                <span>ดาวน์โหลด</span>
-                                            </a>
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
+                                {% for item in customer.required_attachments %}
+                                    <tr>
+                                        <td>{{ item.file_name or '-' }}</td>
+                                        <td>
+                                            <span class="tag is-info is-light">เอกสารจำเป็น</span>
+                                        </td>
+                                        <td>{{ item.note or '-' }}</td>
+                                        <td class="has-text-centered">
+                                            {% if item.attachment %}
+                                                <a class="button is-small is-link is-light is-rounded"
+                                                   href="{{ url_for('service_admin.download_file', key=item.attachment,
+                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                    <span>ดาวน์โหลด</span>
+                                                </a>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                {% for item in customer.other_attachments %}
+                                    <tr>
+                                        <td>{{ item.file_name or '-' }}</td>
+                                        <td>
+                                            <span class="tag is-light">เอกสารเพิ่มเติม</span>
+                                        </td>
+                                        <td>{{ item.note or '-' }}</td>
+                                        <td class="has-text-centered">
+                                            {% if item.attachment %}
+                                                <a class="button is-small is-link is-light is-rounded"
+                                                   href="{{ url_for('service_admin.download_file', key=item.attachment,
+                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                    <span>ดาวน์โหลด</span>
+                                                </a>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -211,32 +217,33 @@
                     <div class="service-customer-empty">ยังไม่มีเอกสารประกอบ</div>
                 {% endif %}
             </div>
-
-            {% if customer.is_document_verified is none %}
-                <div class="service-customer-review-card">
-                    <div>
-                        <strong>ตรวจสอบเอกสารผู้รับบริการ</strong>
-                        <p>กรุณาตรวจสอบข้อมูลและเอกสารก่อนเลือกผลการพิจารณา</p>
+            {% if central_admin_academic_service_permission.can() %}
+                {% if customer.is_document_verified is none and customer.required_attachments %}
+                    <div class="service-customer-review-card">
+                        <div>
+                            <strong>ตรวจสอบเอกสารผู้รับบริการ</strong>
+                            <p>กรุณาตรวจสอบข้อมูลและเอกสารก่อนเลือกผลการพิจารณา</p>
+                        </div>
+                        <div class="buttons mb-0">
+                            <a class="button is-success is-rounded"
+                               hx-post="{{ url_for('service_admin.approve_document_customer', tab=tab,
+                               customer_id=customer.id) }}"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                               hx-confirm="ท่านต้องการอนุมัติใช่หรือไม่">
+                                <span class="icon"><i class="fas fa-check"></i></span>
+                                <span>อนุมัติ</span>
+                            </a>
+                            <a class="button is-danger is-light is-rounded"
+                               hx-post="{{ url_for('service_admin.disapprove_document_customer', tab=tab,
+                               customer_id=customer.id) }}"
+                               hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
+                               hx-confirm="ท่านต้องการไม่อนุมัติใช่หรือไม่">
+                                <span class="icon"><i class="fas fa-xmark"></i></span>
+                                <span>ไม่อนุมัติ</span>
+                            </a>
+                        </div>
                     </div>
-                    <div class="buttons mb-0">
-                        <a class="button is-success is-rounded"
-                           hx-post="{{ url_for('service_admin.approve_document_customer', tab=tab,
-                           customer_id=customer.id) }}"
-                           hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                           hx-confirm="ท่านต้องการอนุมัติใช่หรือไม่">
-                            <span class="icon"><i class="fas fa-check"></i></span>
-                            <span>อนุมัติ</span>
-                        </a>
-                        <a class="button is-danger is-light is-rounded"
-                           hx-post="{{ url_for('service_admin.disapprove_document_customer', tab=tab,
-                           customer_id=customer.id) }}"
-                           hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'
-                           hx-confirm="ท่านต้องการไม่อนุมัติใช่หรือไม่">
-                            <span class="icon"><i class="fas fa-xmark"></i></span>
-                            <span>ไม่อนุมัติ</span>
-                        </a>
-                    </div>
-                </div>
+                {% endif %}
             {% endif %}
         </div>
     </section>
@@ -289,7 +296,7 @@
         .service-customer-contact-content i { color: #2f80c9; margin-right: .2rem; }
         .service-customer-document-table th { background: #f3f7fc; color: #425675; font-size: .8rem; }
         .service-customer-document-table td { color: #425675; vertical-align: middle; }
-        .service-customer-empty { color: #8292a9; padding: 1.75rem 1rem; text-align: center; }
+        .service-customer-empty { background: #f8fbff; border: 1px dashed #d7e0ee; border-radius: 10px; color: #8391a8; padding: 1rem; text-align: center; }
         .service-customer-empty-address { align-items: center; background: #fbfdff; border: 1px dashed #c9dff2; border-radius: 14px; display: flex; gap: .85rem; grid-column: 1 / -1; justify-content: center; min-height: 7rem; padding: 1.25rem; text-align: left; }
         .service-customer-empty-icon { align-items: center; background: #eef6ff; border-radius: 50%; color: #2f80c9; display: inline-flex; flex: 0 0 2.7rem; font-size: 1rem; height: 2.7rem; justify-content: center; }
         .service-customer-empty-address strong { color: #425675; display: block; font-size: .9rem; }

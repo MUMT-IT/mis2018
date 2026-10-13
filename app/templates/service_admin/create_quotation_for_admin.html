@@ -41,7 +41,12 @@
             padding: 0;
         }
 
-        .create-quotation-attachments .customer-request-attachments-title,
+        .create-quotation-attachments .service-customer-document-table th {
+            background: #f3f7fc;
+            color: #425675;
+            font-size: .8rem;
+        }
+
         .create-quotation-attachments .customer-request-attachments-title strong {
             color: #10243f !important;
             font-weight: 900;
@@ -172,26 +177,61 @@
                                     <span class="icon"><i class="fas fa-paperclip"></i></span>
                                     <strong>เอกสารประกอบ</strong>
                                 </p>
-                                {% if quotation.request.customer.customer_info.attachments %}
-                                    <div class="customer-request-attachments-list">
-                                        {% for attachment in quotation.request.customer.customer_info.attachments %}
-                                            <div class="customer-request-attachment-item">
-                                                <div class="customer-request-attachment-copy">
-                                                    <strong>{{ attachment.file_name or '-' }}</strong>
-                                                    <small>
-                                                        {{ attachment.category or 'เอกสารประกอบ' }}
-                                                        {% if attachment.note %} · {{ attachment.note }}{% endif %}
-                                                    </small>
-                                                </div>
-                                                {% if attachment.file %}
-                                                    <a class="button is-small is-link is-light is-rounded"
-                                                       href="{{ url_for('service_admin.download_file', key=attachment.file, download_filename=(attachment.file_name or 'เอกสาร') + '.pdf') }}">
-                                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                                        <span>ดาวน์โหลด</span>
-                                                    </a>
-                                                {% endif %}
-                                            </div>
-                                        {% endfor %}
+                                {% if quotation.request.customer.customer_info.required_attachments or
+                                        quotation.request.customer.customer_info.other_attachments %}
+                                    <div class="table-container">
+                                        <table class="table is-fullwidth is-hoverable service-customer-document-table">
+                                            <thead>
+                                                <th>ชื่อเอกสาร</th>
+                                                <th>ประเภทเอกสาร</th>
+                                                <th>รายละเอียด</th>
+                                                <th class="has-text-centered">ไฟล์</th>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in quotation.request.customer.customer_info.required_attachments %}
+                                                    <tr>
+                                                        <td>{{ item.file_name or '-' }}</td>
+                                                        <td>
+                                                            <span class="tag is-info is-light">เอกสารจำเป็น</span>
+                                                        </td>
+                                                        <td>{{ item.note or '-' }}</td>
+                                                        <td class="has-text-centered">
+                                                            {% if item.attachment %}
+                                                                <a class="button is-small is-link is-light is-rounded"
+                                                                   href="{{ url_for('service_admin.download_file', key=item.attachment,
+                                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                                    <span>ดาวน์โหลด</span>
+                                                                </a>
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                                {% for item in quotation.request.customer.customer_info.other_attachments %}
+                                                    <tr>
+                                                        <td>{{ item.file_name or '-' }}</td>
+                                                        <td>
+                                                            <span class="tag is-light">เอกสารเพิ่มเติม</span>
+                                                        </td>
+                                                        <td>{{ item.note or '-' }}</td>
+                                                        <td class="has-text-centered">
+                                                            {% if item.attachment %}
+                                                                <a class="button is-small is-link is-light is-rounded"
+                                                                   href="{{ url_for('service_admin.download_file', key=item.attachment,
+                                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                                    <span>ดาวน์โหลด</span>
+                                                                </a>
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 {% else %}
                                     <div class="customer-request-attachments-empty" role="status">
