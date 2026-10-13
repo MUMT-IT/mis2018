@@ -2560,7 +2560,8 @@ def customer_index():
 def view_customer(customer_id):
     tab = request.args.get('tab')
     customer = ServiceCustomerInfo.query.get(customer_id)
-    return render_template('service_admin/view_customer.html', customer=customer, tab=tab)
+    return render_template('service_admin/view_customer.html', customer=customer, tab=tab,
+                           central_admin_academic_service_permission=central_admin_academic_service_permission)
 
 
 @service_admin.route('/customer/add', methods=['GET', 'POST'])
