@@ -2593,11 +2593,10 @@ def create_customer(customer_id=None):
 
         required_documents = _required_customer_documents(form.type.data)
         type_changed = customer_id is not None and customer.type_id != form.type.data.id
-        if type_changed:
-            for attachment in list(customer.attachments):
-                if attachment.category == 'เอกสารเพิ่มเติม':
-                    continue
-                customer.attachments.remove(attachment)
+        if type_changed and customer.required_documents:
+            customer.required_documents.clear()
+            # for required_attachment in list(customer.required_attachments):
+            #     customer.required_attachments.remove(required_attachment)
 
         document_errors = []
         required_attachments = _required_document_attachments(customer)
@@ -2639,33 +2638,30 @@ def create_customer(customer_id=None):
                 ContentType=uploaded_file.mimetype
             )
             uploaded_required_documents.append((document, attachment, file_name))
-        other_documents = [
-            item for item in form.attachments.entries
-            if item.category.data == 'เอกสารเพิ่มเติม'
-        ]
-        for item in other_documents:
-            file = item.file_upload.data
-            if file and allowed_file(file.filename):
-                mime_type = file.mimetype
-                file_name = file.filename
-                file_data = file.stream.read()
-                response = s3.put_object(
-                    Bucket=S3_BUCKET_NAME,
-                    Key=file_name,
-                    Body=file_data,
-                    ContentType=mime_type
-                )
-                item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
-                item.file.data = file_name
-                item.category.data = 'เอกสารเพิ่มเติม'
+        if form.other_attachments:
+            for item in form.other_attachments:
+                file = item.file_upload.data
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    file_name = file.filename
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
+                    item.attachment.data = file_name
+                    item.category.data = 'เอกสารเพิ่มเติม'
         form.populate_obj(customer)
 
         for document, attachment, file_name in uploaded_required_documents:
             if attachment is None:
-                attachment = ServiceCustomerAttachment(customer=customer)
+                attachment = ServiceCustomerRequiredAttachment(customer=customer)
                 required_attachments[document['key']] = attachment
             attachment.file_name = document['label']
-            attachment.file = file_name
+            attachment.attachment = file_name
             attachment.category = REQUIRED_DOCUMENT_CATEGORY
 
         for document, attachment in required_attachments.items():
@@ -2675,7 +2671,7 @@ def create_customer(customer_id=None):
             attachment.category = REQUIRED_DOCUMENT_CATEGORY
             attachment.customer = customer
             if attachment not in customer.attachments:
-                customer.attachments.append(attachment)
+                customer.required_attachments.append(attachment)
             db.session.add(attachment)
 
         email = request.form.get('email')
@@ -2765,7 +2761,7 @@ def add_other_attachment():
                         {}
                         <a class="button is-danger is-outlined" style="margin-left: .5em"
                             hx-delete="{}"
-                            hx-target="closest .attachment-item"
+                            hx-target="closest .other-attachment-item"
                             hx-swap="outerHTML"
                         >
                             <span class="icon"><i class="fas fa-trash-alt"></i></span>
@@ -2776,7 +2772,7 @@ def add_other_attachment():
         """
     resp = template.format(item_form.id,
                            index,
-                           item_form.file.label,
+                           item_form.attachment.label,
                            item_form.file_upload(
                                class_='file-input',
                                accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
