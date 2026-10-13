@@ -174,7 +174,7 @@
                         </div>
                         <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
                             {% for document in document_definitions %}
-                                {% set attachment = required_document_attachments.get(document.key) %}
+                                {% set item = required_document_attachments.get(document.key) %}
                                 <div class="field required-document"
                                      data-private-only="{{ 'true' if document.private_only else 'false' }}">
                                     <label class="label">
@@ -186,15 +186,15 @@
                                             <input class="file-input required-document-input" type="file"
                                                    name="required_document_{{ document.key }}"
                                                    accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-                                                   data-required="{{ 'true' if not attachment or not attachment.file else 'false' }}"
+                                                   data-required="{{ 'true' if not item or not item.attachment else 'false' }}"
                                             >
                                             <span class="file-cta">
                                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
                                                 <span class="file-label">เลือกไฟล์…</span>
                                             </span>
                                             <span class="file-name">
-                                                {% if attachment and attachment.file %}
-                                                    {{ attachment.file }}
+                                                {% if item and item.attachment %}
+                                                    {{ item.attachment }}
                                                 {% else %}
                                                     กรุณาอัปโหลดไฟล์
                                                 {% endif %}
@@ -211,67 +211,57 @@
                             </b>
                         </div>
                         <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
-                            <div id="attachment-field" class="field">
-                                {% for item_form in form.attachments %}
-                                    {% if item_form.category.data == 'เอกสารเพิ่มเติม' %}
-                                        <div id="{{ item_form.id }}" class="attachment-item">
-                                            <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
-                                            <div class="field">
-                                                <label class="label">
-                                                    {{ item_form.file.label }}
+                            <div id="other-attachment-field" class="field">
+                                {% for item_form in form.other_attachments %}
+                                    <div id="{{ item_form.id }}" class="other-attachment-item">
+                                        <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                        <div class="field">
+                                            <label class="label">
+                                                {{ item_form.attachment.label }}
+                                            </label>
+                                            <div class="file" style="margin-bottom: .5em">
+                                                <label class="file-label">
+                                                    {{ item_form.file_upload(class="file-input",
+                                                        accept=".pdf,.png,.jpg,.jpeg,.gif,.txt",
+                                                        required=(not item_form.attachment.data)
+                                                        )
+                                                    }}
+                                                    <span class="file-cta">
+                                                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                                        <span class="file-label">เลือกไฟล์…</span>
+                                                    </span>
+                                                    <span class="file-name">
+                                                        {% if item_form.attachment.data %}
+                                                            {{ item_form.attachment.data }}
+                                                        {% else %}
+                                                            กรุณาอัปโหลดไฟล์
+                                                        {% endif %}
+                                                    </span>
                                                 </label>
-                                                <div class="file" style="margin-bottom: .5em">
-                                                    <label class="file-label">
-                                                        {{ item_form.file_upload(
-                                                            class="file-input",
-                                                            accept=".pdf,.png,.jpg,.jpeg,.gif,.txt",
-                                                            required=(not item_form.file.data)
-                                                        ) }}
-                                                        <span class="file-cta">
-                                                            <span class="file-icon"><i class="fas fa-upload"></i></span>
-                                                            <span class="file-label">เลือกไฟล์…</span>
-                                                        </span>
-                                                        <span class="file-name">
-                                                            {% if item_form.file.data %}
-                                                                {{ item_form.file.data }}
-                                                            {% else %}
-                                                                กรุณาอัปโหลดไฟล์
-                                                            {% endif %}
-                                                        </span>
-                                                    </label>
-                                                </div>
                                             </div>
-                                            <div class="field">
-                                                <label class="label">{{ item_form.note.label }}</label>
-                                                <div class="control is-flex">
-                                                    {{ item_form.note(class="input") }}
-                                                    <a class="button is-danger is-outlined" style="margin-left: .5em"
-                                                       hx-delete="{{ url_for('service_admin.remove_attachment',
-                                                          name=item_form.name) }}"
-                                                       hx-target="closest .attachment-item"
-                                                       hx-swap="outerHTML"
-                                                    >
-                                                        <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                                    </a>
-                                                </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label">{{ item_form.note.label }}</label>
+                                            <div class="control is-flex">
+                                                {{ item_form.note(class="input") }}
+                                                <a class="button is-danger is-outlined" style="margin-left: .5em"
+                                                   hx-delete="{{ url_for('service_admin.remove_other_attachment',
+                                                   name=item_form.name) }}"
+                                                   hx-target="closest .other-attachment-item"
+                                                   hx-swap="outerHTML"
+                                                >
+                                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                </a>
                                             </div>
-                                            {{ item_form.category(type="hidden", value="เอกสารเพิ่มเติม") }}
                                         </div>
-                                    {% else %}
-                                        <div style="display:none;">
-                                            {{ item_form.category(type="hidden") }}
-                                            {{ item_form.file(type="hidden") }}
-                                            {{ item_form.file_name(type="hidden") }}
-                                            {{ item_form.note(type="hidden") }}
-                                        </div>
-                                    {% endif %}
+                                    </div>
                                 {% endfor %}
                             </div>
                             <div class="field has-addons">
                                 <div class="control">
                                     <button type="button" class="button is-info is-small is-light is-rounded"
-                                            hx-post="{{ url_for('service_admin.add_attachment') }}"
-                                            hx-target="#attachment-field" hx-swap="beforeend">
+                                            hx-post="{{ url_for('service_admin.add_other_attachment') }}"
+                                            hx-target="#other-attachment-field" hx-swap="beforeend">
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
                                         </span>
@@ -321,7 +311,7 @@
     </script>
     <script>
         function renumberItems() {
-            const items = document.querySelectorAll('#attachment-field .attachment-item');
+            const items = document.querySelectorAll('#other-attachment-field .other-attachment-item');
             items.forEach(function (item, index) {
                 const label = item.querySelector('p strong');
                 if (label) {
