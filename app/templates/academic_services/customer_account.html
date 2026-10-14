@@ -12,7 +12,7 @@
                     {% include "messages.html" %}
                     <h1 class="title has-text-centered">ข้อมูลลูกค้า</h1>
                 </div>
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
                     <div class="column box">
                         <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
@@ -25,7 +25,7 @@
                                     <span class="has-text-danger">*</span>
                                 </label>
                                 <div class="select">
-                                    {{ form.type(onchange="updateLabel(); syncContactInfo()") }}
+                                    {{ form.type(onchange="updateLabel(); updateRequiredDocuments(); syncContactInfo()") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -137,6 +137,91 @@
                             {% endfor %}
                         </div>
                     </div>
+                    <div class="column box">
+                        <div class="field" style="margin-top: .5em; margin-left: 1em; margin-bottom: .5em">
+                            <b class="is-size-4">เอกสารประกอบ</b>
+                        </div>
+                        <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                            <b class="is-size-5">เอกสารที่จำเป็น</b>
+                            {% for document in document_definitions %}
+                                {% set item = required_document_attachments.get(document.key) %}
+                                <div class="field required-document mt-4"
+                                     data-private-only="{{ 'true' if document.private_only else 'false' }}">
+                                    <label class="label">
+                                        {{ document.label }}
+                                    </label>
+                                    <div class="file">
+                                        <label class="file-label">
+                                            <input class="file-input required-document-input" type="file"
+                                                   name="required_document_{{ document.key }}"
+                                                   accept=".pdf,.png,.jpg,.jpeg,.gif,.txt">
+                                            <span class="file-cta">
+                                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                                <span class="file-label">เลือกไฟล์…</span>
+                                            </span>
+                                            <span class="file-name">
+                                                {% if item and item.attachment %}
+                                                    {{ item.attachment }}
+                                                {% else %}
+                                                    กรุณาอัปโหลดไฟล์
+                                                {% endif %}
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <hr>
+                        <div class="field" style="margin-left: 1.5em; margin-right: 1.5em">
+                            <b class="is-size-5">เอกสารเพิ่มเติม</b>
+                            <div id="other-attachment-field" class="field">
+                                {% for item_form in form.other_attachments %}
+                                    <div id="{{ item_form.id }}" class="other-attachment-item">
+                                        <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
+                                        <div class="field">
+                                            <label class="label">{{ item_form.attachment.label }}</label>
+                                            <div class="file">
+                                                <label class="file-label">
+                                                    {{ item_form.file_upload(class="file-input",
+                                                        accept=".pdf,.png,.jpg,.jpeg,.gif,.txt",
+                                                        required=(not item_form.attachment.data)) }}
+                                                    <span class="file-cta">
+                                                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                                        <span class="file-label">เลือกไฟล์…</span>
+                                                    </span>
+                                                    <span class="file-name">
+                                                        {% if item_form.attachment.data %}
+                                                            {{ item_form.attachment.data }}
+                                                        {% else %}
+                                                            กรุณาอัปโหลดไฟล์
+                                                        {% endif %}
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label">{{ item_form.note.label }}</label>
+                                            <div class="control is-flex">
+                                                {{ item_form.note(class="input") }}
+                                                <a class="button is-danger is-outlined" style="margin-left: .5em"
+                                                   hx-delete="{{ url_for('academic_services.remove_other_attachment', name=item_form.name) }}"
+                                                   hx-target="closest .other-attachment-item"
+                                                   hx-swap="outerHTML">
+                                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" class="button is-info is-small is-light is-rounded"
+                                    hx-post="{{ url_for('academic_services.add_other_attachment') }}"
+                                    hx-target="#other-attachment-field" hx-swap="beforeend">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>เพิ่มเอกสาร</span>
+                            </button>
+                        </div>
+                    </div>
                     <input type="hidden" id="cus_email" value="{{ current_user.email }}" oninput="syncContactInfo()">
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
@@ -171,6 +256,45 @@
         document.addEventListener('DOMContentLoaded', function () {
             updateLabel();
         });
+    </script>
+    <script>
+        function updateRequiredDocuments() {
+            const typeSelect = document.querySelector('[name="type"]');
+            const selectedType = typeSelect?.options[typeSelect.selectedIndex]?.textContent.trim();
+            const isPrivateCompany = selectedType === 'บริษัทเอกชน';
+
+            document.querySelectorAll('.required-document').forEach(function (documentField) {
+                const isPrivateOnly = documentField.dataset.privateOnly === 'true';
+                const visible = isPrivateCompany === isPrivateOnly;
+                documentField.style.display = visible ? '' : 'none';
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', updateRequiredDocuments);
+    </script>
+    <script>
+        document.addEventListener('change', function (event) {
+            const input = event.target.closest('input[type="file"]');
+            if (!input) return;
+
+            const fileName = input.closest('.file-label')?.querySelector('.file-name');
+            if (fileName) {
+                fileName.textContent = input.files.length > 0
+                    ? input.files[0].name
+                    : 'กรุณาอัปโหลดไฟล์';
+            }
+        });
+
+        function renumberOtherAttachments() {
+            document.querySelectorAll('#other-attachment-field .other-attachment-item')
+                .forEach(function (item, index) {
+                    const label = item.querySelector('p strong');
+                    if (label) label.textContent = `รายการที่ ${index + 1}`;
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', renumberOtherAttachments);
+        document.body.addEventListener('htmx:afterRequest', renumberOtherAttachments);
     </script>
     <script>
         function syncContactInfo() {
