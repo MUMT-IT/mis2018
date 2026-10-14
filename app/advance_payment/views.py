@@ -627,25 +627,23 @@ def _fund_request_custodian_id(fund_request):
 
 
 def _fund_request_org_head(fund_request):
-    """Resolve the same head account used for the PDF approval signature."""
-    requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
-    requester_org = getattr(getattr(requester, "personal_info", None), "org", None)
-    requester_org_id = getattr(requester_org, "id", None)
+    """Resolve the approving head from the request's petty-cash setting org."""
+    setting = getattr(fund_request, "petty_cash_setting", None)
+    if setting is None and getattr(fund_request, "petty_cash_setting_id", None):
+        setting = db.session.query(PettyCashSetting).get(
+            fund_request.petty_cash_setting_id
+        )
 
-    org = getattr(fund_request, "org", None)
-    if org is None and getattr(fund_request, "org_id", None):
-        org = db.session.query(Org).get(fund_request.org_id)
+    org = getattr(setting, "org", None)
+    if org is None and getattr(setting, "org_id", None):
+        org = db.session.query(Org).get(setting.org_id)
     if org is None:
-        org = requester_org
+        return None
 
-    # Keep the lookup order aligned with _get_head_signature(): requester org
-    # first, followed by the organization stored on the fund request.
     candidate_org_ids = []
-    if requester_org_id is not None:
-        candidate_org_ids.append(requester_org_id)
-    request_org_id = getattr(org, "id", None)
-    if request_org_id is not None and request_org_id not in candidate_org_ids:
-        candidate_org_ids.append(request_org_id)
+    setting_org_id = getattr(org, "id", None)
+    if setting_org_id is not None:
+        candidate_org_ids.append(setting_org_id)
 
     for candidate_org_id in candidate_org_ids:
         candidate_org = (

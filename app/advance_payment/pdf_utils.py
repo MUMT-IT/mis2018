@@ -276,12 +276,19 @@ def _thai_signature_name(staff):
     return signature_name or None
 
 
-def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_account_id=None):
+def _get_head_signature(
+    *,
+    ticket=None,
+    fund_request=None,
+    claim=None,
+    setting=None,
+    staff_account_id=None,
+):
     """Resolve the organization head and position for PDF signatures.
 
-    ``StaffHeadPosition`` is organization-specific.  In particular, the same
-    staff member can be the head of two organizations, so the borrower's
-    organization must be used when selecting the record.
+    ``StaffHeadPosition`` is organization-specific. Fund requests and
+    petty-cash reports use their setting organization. Standalone claim/ticket
+    documents use their requesting staff member's organization.
     """
     if fund_request is None and claim is not None:
         fund_request = getattr(claim, "fund_request", None)
@@ -296,28 +303,31 @@ def _get_head_signature(*, ticket=None, fund_request=None, claim=None, staff_acc
     )
 
     borrower_account = _get_user_by_id(borrower_account_id)
-    borrower_org_id = getattr(
-        getattr(borrower_account, "personal_info", None), "org_id", None
+    borrower_org = getattr(
+        getattr(borrower_account, "personal_info", None), "org", None
     )
 
-    # Prefer the organization explicitly stored on the fund request. For
-    # standalone tickets/reports, derive it from the requesting staff member.
-    org = getattr(fund_request, "org", None)
-    if org is None and getattr(fund_request, "org_id", None):
-        org = db.session.query(Org).get(fund_request.org_id)
-    if org is None and borrower_account:
-        org = getattr(getattr(borrower_account, "personal_info", None), "org", None)
-    if org is None and borrower_account_id:
-        staff_account = _get_user_by_id(borrower_account_id)
-        org = getattr(getattr(staff_account, "personal_info", None), "org", None)
+    # Fund-request approval authority and its displayed head must both come
+    # from the petty-cash setting organization. Standalone ticket/report PDFs
+    # continue to derive their organization from the requesting staff member.
+    if setting is None and fund_request is not None:
+        setting = getattr(fund_request, "petty_cash_setting", None)
+        if setting is None and getattr(fund_request, "petty_cash_setting_id", None):
+            setting = db.session.query(PettyCashSetting).get(
+                fund_request.petty_cash_setting_id
+            )
 
-    # Re-check the borrower's org before resolving the head position.  This
-    # exact-org lookup is important when one head has records for two orgs.
+    org = getattr(setting, "org", None)
+    if org is None and getattr(setting, "org_id", None):
+        org = db.session.query(Org).get(setting.org_id)
+
+    if setting is None:
+        org = borrower_org
+
     candidate_org_ids = []
-    if borrower_org_id is not None:
-        candidate_org_ids.append(borrower_org_id)
-    if getattr(org, "id", None) is not None and org.id not in candidate_org_ids:
-        candidate_org_ids.append(org.id)
+    org_id = getattr(org, "id", None)
+    if org_id is not None:
+        candidate_org_ids.append(org_id)
 
     for candidate_org_id in candidate_org_ids:
         candidate_org = (
@@ -667,7 +677,7 @@ def generate_petty_cash_monthly_report_pdf(*, setting, month_start, remaining_bu
 
     department_name = setting.department_name or missing_department_notice()
     department = str(department_name)
-    head_name, head_position = _get_head_signature(staff_account_id=getattr(setting, "custodian_id", None))
+    head_name, head_position = _get_head_signature(setting=setting)
     telephone = str(telephone_number or PDF_BLANK)
     last_day = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
     month_label = get_thai_month_year(month_start).split(" ", 1)[1]
@@ -2147,7 +2157,7 @@ def generate_petty_cash_ledger_pdf(*, setting, month_start, ledger_items):
     info = get_department_info_from_api(setting.department_name)
     custodian_name = str(info.get("custodian") or PDF_BLANK)
     custodian_position = str(info.get("position") or PDF_BLANK)
-    head_name, head_position = _get_head_signature(staff_account_id=getattr(setting, "custodian_id", None))
+    head_name, head_position = _get_head_signature(setting=setting)
     signature_style = ParagraphStyle("LedgerSignature", parent=center, fontSize=11, leading=14)
     dotted_line = ".......................................................<br/>"
     signatures = Table([[
