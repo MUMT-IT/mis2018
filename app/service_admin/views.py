@@ -2586,8 +2586,6 @@ def create_customer(customer_id=None):
         type_changed = customer_id is not None and customer.type_id != form.type.data.id
         if type_changed and customer.required_attachments:
             customer.required_attachments.clear()
-            # for required_attachment in list(customer.required_attachments):
-            #     customer.required_attachments.remove(required_attachment)
 
         document_errors = []
         required_attachments = _required_document_attachments(customer)
