@@ -1353,9 +1353,6 @@ def customer_account():
                     continue
                 document_uploads.append((document, uploaded_file, attachment))
 
-            if not has_upload and (attachment is None or not attachment.attachment):
-                document_errors.append(f"กรุณาแนบ{document['label']}")
-
         if document_errors:
             for error in document_errors:
                 flash(error, 'danger')
