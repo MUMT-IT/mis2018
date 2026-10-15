@@ -149,12 +149,19 @@
                                      data-private-only="{{ 'true' if document.private_only else 'false' }}">
                                     <label class="label">
                                         {{ document.label }}
+                                         {% if account and not account.has_password and not item.attachment %}
+                                             <span class="has-text-danger">*</span>
+                                        {% endif %}
                                     </label>
                                     <div class="file">
                                         <label class="file-label">
                                             <input class="file-input required-document-input" type="file"
                                                    name="required_document_{{ document.key }}"
-                                                   accept=".pdf,.png,.jpg,.jpeg,.gif,.txt">
+                                                   accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
+                                                   {% if account and not account.has_password and not item.attachment %}
+                                                        required
+                                                   {% endif %}
+                                            >
                                             <span class="file-cta">
                                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
                                                 <span class="file-label">เลือกไฟล์…</span>
