@@ -184,6 +184,10 @@ class ServiceCustomerAccount(db.Model):
     def contact_phone_number(self):
         return self.customer_info.contact_phone_number
 
+    @property
+    def has_password(self):
+        return bool(self.__password_hash)
+
 
 class ServiceCustomerInfo(db.Model):
     __tablename__ = 'service_customer_infos'
