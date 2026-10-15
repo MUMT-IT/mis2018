@@ -34,7 +34,8 @@ from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatur
 from app.main import mail
 from flask_mail import Message
 from app.models import Holidays, Org
-from app.service_admin.views import get_central_admin_academic_service
+from app.service_admin.views import get_central_admin_academic_service, _required_customer_documents, \
+    _required_document_attachments, CUSTOMER_DOCUMENT_DEFINITIONS
 
 localtz = timezone('Asia/Bangkok')
 
@@ -1317,6 +1318,7 @@ def account():
 @academic_services.route('/customer/view', methods=['GET', 'POST'])
 @login_required
 def customer_account():
+    customer = None
     menu = request.args.get('menu')
     account = ServiceCustomerAccount.query.get(current_user.id)
     old_is_document_verified = account.customer_info.is_document_verified if account.customer_info else None
@@ -1328,7 +1330,80 @@ def customer_account():
     if form.validate_on_submit():
         if not current_user.customer_info:
             customer = ServiceCustomerInfo()
+
+        required_documents = _required_customer_documents(form.type.data)
+        type_changed = current_user.customer_info is not None and customer.type_id != form.type.data.id
+        if type_changed and customer.required_attachments:
+            customer.required_attachments.clear()
+
+        document_errors = []
+        required_attachments = _required_document_attachments(customer)
+        document_uploads = []
+        for document in required_documents:
+            field_name = f"required_document_{document['key']}"
+            uploaded_file = request.files.get(field_name)
+            has_upload = uploaded_file and uploaded_file.filename
+            attachment = required_attachments.get(document['key'])
+
+            if has_upload:
+                if not allowed_file(uploaded_file.filename):
+                    document_errors.append(
+                        f"ไฟล์{document['label']}ต้องเป็นไฟล์ประเภท {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+                    )
+                    continue
+                document_uploads.append((document, uploaded_file, attachment))
+
+        if document_errors:
+            for error in document_errors:
+                flash(error, 'danger')
+            return render_template('academic_services/customer_account.html', menu=menu, form=form,
+                                   document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                                   required_document_attachments=_required_document_attachments(
+                                       customer) if customer else {}
+                                   )
+
+        uploaded_required_documents = []
+        for document, uploaded_file, attachment in document_uploads:
+            file_name = uploaded_file.filename
+            s3.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=file_name,
+                Body=uploaded_file.stream.read(),
+                ContentType=uploaded_file.mimetype
+            )
+            uploaded_required_documents.append((document, attachment, file_name))
+        if form.other_attachments:
+            for item in form.other_attachments:
+                file = item.file_upload.data
+                if file and allowed_file(file.filename):
+                    mime_type = file.mimetype
+                    file_name = file.filename
+                    file_data = file.stream.read()
+                    response = s3.put_object(
+                        Bucket=S3_BUCKET_NAME,
+                        Key=file_name,
+                        Body=file_data,
+                        ContentType=mime_type
+                    )
+                    item.file_name.data = '{}'.format(file_name.rsplit('.', 1)[0])
+                    item.attachment.data = file_name
         form.populate_obj(customer)
+        for document, attachment, file_name in uploaded_required_documents:
+            if attachment is None:
+                attachment = ServiceCustomerRequiredAttachment(customer=customer)
+                required_attachments[document['key']] = attachment
+            attachment.file_name = document['label']
+            attachment.attachment = file_name
+
+        for document, attachment in required_attachments.items():
+            attachment.file_name = next(
+                item['label'] for item in CUSTOMER_DOCUMENT_DEFINITIONS if item['key'] == document
+            )
+            attachment.customer = customer
+            if attachment not in customer.required_attachments:
+                customer.required_attachments.append(attachment)
+            db.session.add(attachment)
+
         if not current_user.customer_info:
             account.customer_info = customer
             db.session.add(account)
@@ -1351,11 +1426,93 @@ def customer_account():
             else:
                 print('message', message)
             flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
-        flash('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ', 'success')
-        return redirect(url_for('academic_services.lab_index', menu='new'))
+            return redirect(url_for('academic_services.customer_account', menu=menu))
+        if menu and menu == 'request':
+            flash('บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('academic_services.request_index', menu=menu))
+        else:
+            flash('บันทึกข้อมูลเรียบร้อยแล้ว กรุณาเลือกแล็บ', 'success')
+            return redirect(url_for('academic_services.lab_index', menu='new'))
     if not current_user.customer_info:
         flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'warning')
-    return render_template('academic_services/customer_account.html', menu=menu, form=form)
+    return render_template('academic_services/customer_account.html', menu=menu, form=form,
+                           document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                           required_document_attachments=_required_document_attachments(customer) if customer else {}
+                           )
+
+
+@academic_services.route('/api/customer/account/other-file/add', methods=['POST'])
+@login_required
+def add_other_attachment():
+    form = ServiceCustomerInfoForm()
+    form.other_attachments.append_entry()
+    item_form = form.other_attachments[-1]
+    index = len(form.other_attachments)
+    template = """
+            <div id="{}" class="other-attachment-item">
+                <hr style="background-color: #F3F3F3">
+                <p><strong>รายการที่ {}</strong></p>
+                <div class="field">
+                    <label class="label">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="file" style="margin-bottom: .5em">
+                        <label class="file-label">
+                            {}
+                            <span class="file-cta">
+                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                <span class="file-label">เลือกไฟล์…</span>
+                            </span>
+                            <span class="file-name">กรุณาอัปโหลดไฟล์</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control is-flex">
+                        {}
+                        <a class="button is-danger is-outlined" style="margin-left: .5em"
+                            hx-delete="{}"
+                            hx-target="closest .other-attachment-item"
+                            hx-swap="outerHTML"
+                        >
+                            <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.attachment.label,
+                           item_form.file_upload(
+                               class_='file-input',
+                               accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
+                               required=True,
+                           ),
+                           item_form.note.label,
+                           item_form.note(class_='input'),
+                           url_for('academic_services.remove_other_attachment', name=item_form.id),
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@academic_services.route('/api/customer/account/other-file/remove', methods=['DELETE'])
+@login_required
+def remove_other_attachment():
+    field_name = request.args.get('name')
+    form = ServiceCustomerInfoForm()
+    temp_entries = []
+    for entry in form.other_attachments:
+        if entry.name != field_name:
+            temp_entries.append(entry)
+    while len(form.other_attachments) > 0:
+        form.other_attachments.pop_entry()
+    for entry in temp_entries:
+        form.other_attachments.append_entry(entry)
+    return ""
 
 
 @academic_services.route('/customer/add', methods=['GET', 'POST'])
@@ -4429,7 +4586,9 @@ def create_customer_detail(request_id):
     code = request.args.get('code')
     service_request = get_customer_service_request_or_404(request_id)
     selected_address_id = service_request.quotation_address_id if service_request.quotation_address_id else None
-    customer = ServiceCustomerInfo.query.get(current_user.customer_info_id)
+    customer = ServiceCustomerInfo.query.get(current_user.customer_info_id) if current_user.customer_info_id else None
+    if not customer:
+        return redirect(url_for('academic_services.customer_account', menu=menu))
     cus_contact = ServiceCustomerContact.query.filter_by(creator_id=customer.id).first()
     if not cus_contact:
         form = ServiceCustomerContactForm()

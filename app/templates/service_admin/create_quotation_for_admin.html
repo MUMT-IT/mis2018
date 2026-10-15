@@ -32,6 +32,63 @@
             overflow-wrap: break-word;
             word-break: break-word;
         }
+
+        .create-quotation-attachments .customer-request-attachments {
+            background: #fff;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        .create-quotation-attachments .service-customer-document-table th {
+            background: #f3f7fc;
+            color: #425675;
+            font-size: .8rem;
+        }
+
+        .create-quotation-attachments .customer-request-attachments-title strong {
+            color: #10243f !important;
+            font-weight: 900;
+            margin: 0 0 .85rem;
+        }
+
+        .create-quotation-attachments .customer-request-attachments-list { display: grid; gap: .55rem; }
+        .create-quotation-attachments .customer-request-attachment-item { align-items: center; border-top: 1px solid #edf1f7; display: flex; gap: 1rem; justify-content: space-between; padding-top: .65rem; }
+        .create-quotation-attachments .customer-request-attachment-copy { display: flex; flex-direction: column; min-width: 0; }
+        .create-quotation-attachments .customer-request-attachment-copy strong { color: #102f58; font-size: .9rem; overflow-wrap: anywhere; }
+        .create-quotation-attachments .customer-request-attachment-copy small { color: #557597; font-size: .78rem; margin-top: .12rem; overflow-wrap: anywhere; }
+
+        .create-quotation-attachments .customer-request-attachments-empty {
+            align-items: center;
+            background: #f5f9fe;
+            border: 1px dashed #9fc4e5;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: .45rem;
+            justify-content: center;
+            min-height: 5.5rem;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .create-quotation-attachments .customer-request-attachments-empty-icon {
+            align-items: center;
+            background: #e4f0fc;
+            border-radius: 50%;
+            color: #2f75ae;
+            display: inline-flex;
+            height: 2.25rem;
+            justify-content: center;
+            width: 2.25rem;
+        }
+
+        .create-quotation-attachments .customer-request-attachments-empty strong {
+            color: #233f62 !important;
+            font-size: .9rem;
+            font-weight: 800;
+        }
     </style>
 {% endblock %}
 {% block page_content %}
@@ -111,6 +168,79 @@
                                         {% endfor %}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="create-quotation-attachments">
+                            <div class="customer-request-attachments">
+                                <p class="subtitle is-6 mb-1 has-text-weight-semibold">
+                                    <span class="icon"><i class="fas fa-paperclip"></i></span>
+                                    <strong>เอกสารประกอบ</strong>
+                                </p>
+                                {% if quotation.request.customer.customer_info.required_attachments or
+                                        quotation.request.customer.customer_info.other_attachments %}
+                                    <div class="table-container">
+                                        <table class="table is-fullwidth is-hoverable service-customer-document-table">
+                                            <thead>
+                                                <th>ชื่อเอกสาร</th>
+                                                <th>ประเภทเอกสาร</th>
+                                                <th>รายละเอียด</th>
+                                                <th class="has-text-centered">ไฟล์</th>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in quotation.request.customer.customer_info.required_attachments %}
+                                                    <tr>
+                                                        <td>{{ item.file_name or '-' }}</td>
+                                                        <td>
+                                                            <span class="tag is-info is-light">เอกสารจำเป็น</span>
+                                                        </td>
+                                                        <td>{{ item.note or '-' }}</td>
+                                                        <td class="has-text-centered">
+                                                            {% if item.attachment %}
+                                                                <a class="button is-small is-link is-light is-rounded"
+                                                                   href="{{ url_for('service_admin.download_file', key=item.attachment,
+                                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                                    <span>ดาวน์โหลด</span>
+                                                                </a>
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                                {% for item in quotation.request.customer.customer_info.other_attachments %}
+                                                    <tr>
+                                                        <td>{{ item.file_name or '-' }}</td>
+                                                        <td>
+                                                            <span class="tag is-light">เอกสารเพิ่มเติม</span>
+                                                        </td>
+                                                        <td>{{ item.note or '-' }}</td>
+                                                        <td class="has-text-centered">
+                                                            {% if item.attachment %}
+                                                                <a class="button is-small is-link is-light is-rounded"
+                                                                   href="{{ url_for('service_admin.download_file', key=item.attachment,
+                                                                   download_filename=(item.file_name or 'เอกสาร') + '.pdf') }}">
+                                                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                                                    <span>ดาวน์โหลด</span>
+                                                                </a>
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="customer-request-attachments-empty" role="status">
+                                        <span class="customer-request-attachments-empty-icon" aria-hidden="true">
+                                            <i class="fas fa-file-alt"></i>
+                                        </span>
+                                        <strong>ยังไม่มีเอกสารประกอบ</strong>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         <hr>
