@@ -2730,6 +2730,7 @@ def add_other_attachment():
                         {}
                         <span class="has-text-danger">*</span>
                     </label>
+                    {}
                     <div class="file" style="margin-bottom: .5em">
                         <label class="file-label">
                             {}
@@ -2752,6 +2753,7 @@ def add_other_attachment():
     resp = template.format(item_form.id,
                            index,
                            item_form.attachment.label,
+                           item_form.attachment(type='hidden'),
                            item_form.file_upload(
                                class_='file-input',
                                accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
@@ -2771,7 +2773,7 @@ def remove_other_attachment():
     index = len(form.other_attachments)
     resp = ''
     for item_form in form.other_attachments:
-        template = """
+        template = u"""
             <div id="{}" class="other-attachment-item">
                 <hr style="background-color: #F3F3F3">
                 <p><strong>รายการที่ {}</strong></p>
@@ -2780,6 +2782,7 @@ def remove_other_attachment():
                         {}
                         <span class="has-text-danger">*</span>
                     </label>
+                    {}
                     <div class="file" style="margin-bottom: .5em">
                         <label class="file-label">
                             {}
@@ -2787,7 +2790,7 @@ def remove_other_attachment():
                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
                                 <span class="file-label">เลือกไฟล์…</span>
                             </span>
-                            <span class="file-name">กรุณาอัปโหลดไฟล์</span>
+                            <span class="file-name">{}</span>
                         </label>
                     </div>
                 </div>
@@ -2800,16 +2803,17 @@ def remove_other_attachment():
             </div>
         """
         resp += template.format(item_form.id,
-                                index,
-                                item_form.attachment.label,
-                                item_form.file_upload(
-                                   class_='file-input',
-                                   accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
-                                   required=True,
-                                ),
-                                item_form.note.label,
-                                item_form.note(class_='input'),
-                                )
+                           index,
+                           item_form.attachment.label,
+                           item_form.attachment(type='hidden'),
+                           item_form.file_upload(
+                               class_='file-input',
+                               accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
+                           ),
+                           item_form.attachment.data or 'กรุณาอัปโหลดไฟล์',
+                           item_form.note.label,
+                           item_form.note(class_='input'),
+                           )
     resp = make_response(resp)
     return resp
 
