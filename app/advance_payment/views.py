@@ -5287,7 +5287,7 @@ def cash_advance_account_manager_settings(_render_after_post=False):
     )
     staff_by_id = {staff.id: staff for staff in active_staff}
 
-    def _load_setting_rows():
+    def _load_account_rows():
         manager_links = (
             db.session.query(CashAdvanceAccountManager)
             .join(BankAccountInfo)
@@ -5300,107 +5300,92 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         )
         manager_ids_by_account = {}
         for link in manager_links:
-            if link.staff_account_id in staff_by_id:
+            staff = staff_by_id.get(link.staff_account_id)
+            account = account_by_id.get(link.bank_account_info_id)
+            staff_org_id = getattr(
+                getattr(staff, "personal_info", None), "org_id", None
+            )
+            if (
+                account is not None
+                and staff is not None
+                and staff_org_id == account.org_id
+            ):
                 manager_ids_by_account.setdefault(link.bank_account_info_id, []).append(
                     link.staff_account_id
                 )
 
         return [
             {
+                "id": account.id,
                 "org_id": account.org_id,
-                "bank_account_info_id": account.id,
-                "manager_ids": manager_ids_by_account[account.id],
+                "org_name": account.org.name if account.org else "ไม่ระบุหน่วยงาน",
+                "thai_name": account.thai_name,
+                "account_number": account.account_number,
+                "manager_ids": manager_ids_by_account.get(account.id, []),
+                "managers": [
+                    {
+                        "id": manager_id,
+                        "name": staff_by_id[manager_id].fullname,
+                        "position": staff_by_id[manager_id].position or "ไม่ระบุตำแหน่ง",
+                    }
+                    for manager_id in manager_ids_by_account.get(account.id, [])
+                ],
             }
             for account in cash_advance_accounts
-            if account.id in manager_ids_by_account
         ]
 
     if request.method == "POST" and not _render_after_post:
-        raw_org_ids = request.form.getlist("org_id[]")
-        raw_account_ids = request.form.getlist("bank_account_info_id[]")
-        raw_manager_lists = request.form.getlist("manager_ids[]")
-        row_count = max(len(raw_org_ids), len(raw_account_ids), len(raw_manager_lists))
-        submitted_manager_ids = {}
-        errors = []
+        raw_account_id = (request.form.get("bank_account_info_id") or "").strip()
+        if not raw_account_id.isdigit():
+            return _validation_error_response("ไม่พบบัญชีเงินยืมที่ต้องการตั้งค่า")
 
-        for index in range(row_count):
-            raw_org_id = raw_org_ids[index].strip() if index < len(raw_org_ids) else ""
-            raw_account_id = raw_account_ids[index].strip() if index < len(raw_account_ids) else ""
-            raw_manager_ids = raw_manager_lists[index].strip() if index < len(raw_manager_lists) else ""
+        account_id = int(raw_account_id)
+        account = account_by_id.get(account_id)
+        if account is None or account.closed_at is not None:
+            return _validation_error_response("ไม่พบบัญชีเงินยืมที่เปิดใช้งาน")
+        if account.org_id is None:
+            return _validation_error_response("บัญชีเงินยืมนี้ยังไม่ได้ระบุหน่วยงาน")
 
-            if not any((raw_org_id, raw_account_id, raw_manager_ids)):
-                continue
-            if not raw_org_id.isdigit() or not raw_account_id.isdigit():
-                errors.append(f"แถวที่ {index + 1} กรุณาเลือกหน่วยงานและบัญชีธนาคาร")
-                continue
+        raw_manager_ids = []
+        for raw_value in request.form.getlist("manager_ids[]"):
+            raw_manager_ids.extend(raw_value.split(","))
 
-            org_id = int(raw_org_id)
-            account_id = int(raw_account_id)
-            account = account_by_id.get(account_id)
-            if account is None or account.closed_at is not None:
-                errors.append(f"แถวที่ {index + 1} ไม่พบบัญชีเงินยืมที่เปิดใช้งาน")
+        manager_ids = []
+        for raw_manager_id in raw_manager_ids:
+            raw_manager_id = raw_manager_id.strip()
+            if not raw_manager_id:
                 continue
-            if account.org_id != org_id:
-                errors.append(f"แถวที่ {index + 1} บัญชีธนาคารไม่อยู่ในหน่วยงานที่เลือก")
-                continue
-            if account_id in submitted_manager_ids:
-                errors.append(f"แถวที่ {index + 1} มีบัญชีธนาคารซ้ำกับแถวก่อนหน้า")
-                continue
-
-            manager_ids = []
-            invalid_manager = False
-            for raw_manager_id in raw_manager_ids.split(","):
-                raw_manager_id = raw_manager_id.strip()
-                if not raw_manager_id:
-                    continue
-                if not raw_manager_id.isdigit():
-                    invalid_manager = True
-                    break
-                manager_id = int(raw_manager_id)
-                manager = staff_by_id.get(manager_id)
-                manager_org_id = getattr(getattr(manager, "personal_info", None), "org_id", None)
-                if manager is None or manager_org_id != org_id:
-                    invalid_manager = True
-                    break
-                if manager_id not in manager_ids:
-                    manager_ids.append(manager_id)
-
-            if invalid_manager:
-                errors.append(f"แถวที่ {index + 1} มีผู้จัดการบัญชีที่ไม่อยู่ในหน่วยงานที่เลือก")
-                continue
-            if not manager_ids:
-                errors.append(f"แถวที่ {index + 1} กรุณาเลือกผู้จัดการบัญชีอย่างน้อย 1 คน")
-                continue
-
-            submitted_manager_ids[account_id] = manager_ids
-
-        if errors:
-            return _validation_error_response("; ".join(errors))
+            if not raw_manager_id.isdigit():
+                return _validation_error_response("ข้อมูลผู้ดูแลบัญชีไม่ถูกต้อง")
+            manager_id = int(raw_manager_id)
+            manager = staff_by_id.get(manager_id)
+            manager_org_id = getattr(
+                getattr(manager, "personal_info", None), "org_id", None
+            )
+            if manager is None or manager_org_id != account.org_id:
+                return _validation_error_response(
+                    "ผู้ดูแลบัญชีต้องเป็นบุคลากรที่ยังใช้งานและอยู่ในหน่วยงานเดียวกับบัญชี"
+                )
+            if manager_id not in manager_ids:
+                manager_ids.append(manager_id)
 
         existing_links = (
             db.session.query(CashAdvanceAccountManager)
-            .join(BankAccountInfo)
-            .filter(
-                BankAccountInfo.record_type == "cash_advance",
-                BankAccountInfo.closed_at.is_(None),
-            )
+            .filter(CashAdvanceAccountManager.bank_account_info_id == account_id)
             .all()
         )
-        existing_by_pair = {
-            (link.bank_account_info_id, link.staff_account_id): link
-            for link in existing_links
+        existing_by_manager_id = {
+            link.staff_account_id: link for link in existing_links
         }
-        submitted_pairs = {
-            (account_id, manager_id)
-            for account_id, manager_ids in submitted_manager_ids.items()
-            for manager_id in manager_ids
-        }
+        submitted_manager_ids = set(manager_ids)
 
-        for pair, link in existing_by_pair.items():
-            if pair not in submitted_pairs:
+        # This is deliberately scoped to one bank account. Saving one row must
+        # never remove managers that belong to another cash-advance account.
+        for manager_id, link in existing_by_manager_id.items():
+            if manager_id not in submitted_manager_ids:
                 db.session.delete(link)
-        for account_id, manager_id in submitted_pairs:
-            if (account_id, manager_id) not in existing_by_pair:
+        for manager_id in manager_ids:
+            if manager_id not in existing_by_manager_id:
                 db.session.add(
                     CashAdvanceAccountManager(
                         bank_account_info_id=account_id,
@@ -5413,14 +5398,21 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         except IntegrityError:
             db.session.rollback()
             return _validation_error_response(
-                "ไม่สามารถบันทึกการตั้งค่าได้ เนื่องจากมีบัญชีหรือผู้จัดการบัญชีซ้ำกัน"
+                "ไม่สามารถบันทึกการตั้งค่าได้ เนื่องจากมีข้อมูลผู้ดูแลบัญชีซ้ำกัน"
             )
-        success_message = "บันทึกการตั้งค่าผู้จัดการบัญชีเงินยืมเรียบร้อยแล้ว"
+        success_message = (
+            "บันทึกข้อมูลผู้ดูแลบัญชีเงินยืมเรียบร้อยแล้ว"
+            if manager_ids
+            else "ยกเลิกผู้ดูแลบัญชีเงินยืมเรียบร้อยแล้ว"
+        )
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            account_row = next(
+                row for row in _load_account_rows() if row["id"] == account_id
+            )
             return jsonify(
                 ok=True,
                 message=success_message,
-                settings=_load_setting_rows(),
+                account=account_row,
             )
 
         flash(success_message, "success")
@@ -5428,31 +5420,7 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         # intentionally no redirect in this flow.
         return cash_advance_account_manager_settings(_render_after_post=True)
 
-    setting_rows = _load_setting_rows()
-    org_ids = {
-        account.org_id
-        for account in cash_advance_accounts
-        if account.org_id is not None and account.closed_at is None
-    }
-    org_options = (
-        db.session.query(Org)
-        .filter(Org.id.in_(org_ids))
-        .order_by(Org.name.asc())
-        .all()
-        if org_ids
-        else []
-    )
-    account_options = [
-        {
-            "id": account.id,
-            "org_id": account.org_id,
-            "thai_name": account.thai_name,
-            "account_number": account.account_number,
-            "label": f"{account.thai_name} • {account.account_number}",
-        }
-        for account in cash_advance_accounts
-        if account.org_id is not None and account.closed_at is None
-    ]
+    account_rows = _load_account_rows()
     staff_options = [
         {
             "id": staff.id,
@@ -5468,9 +5436,7 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         "cash_advance_account_manager_settings.html",
         dashboard_title="ตั้งค่าผู้จัดการบัญชีเงินยืม",
         dashboard_role="Finance",
-        setting_rows=setting_rows,
-        org_options=org_options,
-        account_options=account_options,
+        account_rows=account_rows,
         staff_options=staff_options,
     )
 

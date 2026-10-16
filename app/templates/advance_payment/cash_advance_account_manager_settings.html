@@ -1,6 +1,6 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}ตั้งค่าผู้จัดการบัญชีเงินยืม | ระบบเงินสดย่อยและเงินยืม{% endblock %}
+{% block title %}ตั้งค่าผู้ดูแลบัญชีเงินยืม | ระบบเงินสดย่อยและเงินยืม{% endblock %}
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom">
@@ -8,124 +8,95 @@
     <i class="bi bi-arrow-left fs-3 text-dark fw-bold"></i>
   </a>
   <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
-  <h1 class="fw-bold display-6 mb-2">ตั้งค่าผู้จัดการบัญชีเงินยืม</h1>
+  <h1 class="fw-bold display-6 mb-2">ผู้ดูแลบัญชีเงินยืม</h1>
 </header>
 
 <div class="account-manager-settings-wrapper mb-3">
-{% if not account_options %}
+{% if not account_rows %}
   <div class="alert alert-warning border-warning-subtle mb-0 w-100">
     <i class="bi bi-exclamation-triangle me-2"></i>
-    ยังไม่มีบัญชีประเภทเงินยืมที่เปิดใช้งาน กรุณาเพิ่มข้อมูลบัญชีธนาคารก่อนตั้งค่าผู้จัดการบัญชี
+    ยังไม่มีบัญชีประเภทเงินยืมที่เปิดใช้งาน กรุณาเพิ่มข้อมูลบัญชีธนาคารก่อนตั้งค่าผู้ดูแลบัญชี
     <a href="{{ url_for('advance_payment.finance_bank_account_registry') }}" class="alert-link ms-1">เพิ่มข้อมูลบัญชีธนาคาร</a>
   </div>
 {% else %}
-  <form method="post" action="{{ url_for('advance_payment.cash_advance_account_manager_settings') }}" id="accountManagerSettingsForm" class="w-100">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="table-responsive mb-3">
-      <table class="table table-hover align-middle border account-manager-table mb-0">
+  <div class="card border-0 shadow-sm w-100">
+    <div class="card-header bg-white border-bottom py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <h2 class="h5 fw-bold mb-1">บัญชีเงินยืมในระบบ</h2>
+        <span class="text-muted small">ทั้งหมด {{ account_rows|length }} บัญชี</span>
+      </div>
+      <a href="{{ url_for('advance_payment.finance_bank_account_registry') }}" class="btn btn-outline-primary btn-sm fw-semibold">
+        <i class="bi bi-bank me-1"></i>จัดการข้อมูลบัญชีธนาคาร
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle account-manager-table mb-0">
         <thead class="table-light small fw-bold">
           <tr>
-            <th style="width: 30%;">หน่วยงาน <span class="text-danger">*</span></th>
-            <th style="width: 35%;">บัญชีธนาคาร <span class="text-danger">*</span></th>
-            <th>ผู้จัดการบัญชี <span class="text-danger">*</span></th>
+            <th style="width: 24%;">หน่วยงาน</th>
+            <th style="width: 27%;">บัญชีเงินยืม</th>
+            <th>ผู้ดูแลบัญชี</th>
+            <th class="text-center" style="width: 12%;">สถานะ</th>
+            <th class="text-end" style="width: 13%;">จัดการ</th>
           </tr>
         </thead>
-        <tbody id="accountManagerSettingsBody">
-          {% for row in setting_rows %}
-            <tr class="account-manager-row">
-              <td>
-                <select name="org_id[]" class="form-select form-select-sm org-input">
-                  <option value="">เลือกหน่วยงาน</option>
-                  {% for org in org_options %}
-                    <option value="{{ org.id }}" {% if org.id == row.org_id %}selected{% endif %}>{{ org.name }}</option>
-                  {% endfor %}
-                </select>
-              </td>
-              <td>
-                <select name="bank_account_info_id[]" class="form-select form-select-sm account-input" data-selected-account-id="{{ row.bank_account_info_id }}">
-                  <option value="">เลือกบัญชีธนาคาร</option>
-                </select>
-              </td>
-              <td>
-                <input type="hidden" name="manager_ids[]" class="manager-ids-input" value="{{ row.manager_ids|join(',') }}">
-                <div class="d-flex align-items-start gap-2">
-                  <div class="manager-summary d-flex flex-wrap align-items-center gap-1 flex-grow-1" role="button" tabindex="0" aria-label="เลือกผู้จัดการบัญชี"></div>
-                  <button type="button" class="btn btn-outline-primary btn-sm fw-semibold select-managers-button text-nowrap">
-                    <i class="bi bi-person-check me-1"></i>เลือก/แก้ไข
-                  </button>
-                  <button type="button" class="btn btn-outline-danger btn-sm remove-setting-row" title="ลบรายการ" aria-label="ลบรายการ">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
+        <tbody id="accountManagerAccountList">
+          {% for account in account_rows %}
+          <tr id="account-manager-row-{{ account.id }}" data-account-id="{{ account.id }}">
+            <td><div class="fw-semibold text-dark">{{ account.org_name }}</div></td>
+            <td>
+              <div class="fw-semibold text-dark">{{ account.thai_name }}</div>
+              <div class="text-muted small">เลขบัญชี {{ account.account_number }}</div>
+            </td>
+            <td class="account-managers-cell">
+              <div class="d-flex flex-wrap gap-1 account-manager-badges">
+                {% for manager in account.managers %}
+                  <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle manager-badge" title="{{ manager.position }}">{{ manager.name }}</span>
+                {% else %}
+                  <span class="text-muted small account-no-manager">ยังไม่มีผู้ดูแลบัญชี</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td class="text-center account-status-cell">
+              {% if not account.org_id %}
+                <span class="badge bg-secondary-subtle text-secondary-emphasis border">รอระบุหน่วยงาน</span>
+              {% elif account.manager_ids %}
+                <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">ตั้งค่าผู้ดูแลบัญชีแล้ว</span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">ยังไม่มีผู้ดูแล</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <button type="button" class="btn btn-sm {% if not account.org_id %}btn-outline-secondary{% elif account.manager_ids %}btn-outline-primary{% else %}btn-primary{% endif %} fw-semibold manage-account-button" data-account-id="{{ account.id }}" {% if not account.org_id %}disabled title="กรุณาระบุหน่วยงานในข้อมูลบัญชีธนาคารก่อน"{% endif %}>
+                <i class="bi {% if not account.org_id %}bi-exclamation-circle{% elif account.manager_ids %}bi-pencil-square{% else %}bi-person-plus{% endif %} me-1"></i>
+                <span>{% if not account.org_id %}ระบุหน่วยงานก่อน{% elif account.manager_ids %}แก้ไขผู้ดูแล{% else %}เพิ่มผู้ดูแล{% endif %}</span>
+              </button>
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-
-    <div class="d-flex justify-content-end mb-4">
-      <button type="button" class="btn btn-outline-primary btn-sm fw-bold" id="addSettingRowButton">
-        <i class="bi bi-plus-circle me-1"></i>เพิ่มหน่วยงาน
-      </button>
-    </div>
-
-    <div class="d-flex justify-content-end gap-2 pt-2">
-      <a href="{{ url_for('advance_payment.finance_dashboard') }}" class="btn btn-light fw-bold">ยกเลิก</a>
-      <button type="submit" class="btn btn-primary px-4 fw-bold">
-        <i class="bi bi-save me-2"></i>บันทึกการตั้งค่า
-      </button>
-    </div>
-  </form>
+  </div>
 {% endif %}
 </div>
 
-<template id="accountManagerRowTemplate">
-  <tr class="account-manager-row">
-    <td>
-      <select name="org_id[]" class="form-select form-select-sm org-input">
-        <option value="">เลือกหน่วยงาน</option>
-        {% for org in org_options %}<option value="{{ org.id }}">{{ org.name }}</option>{% endfor %}
-      </select>
-    </td>
-    <td>
-      <select name="bank_account_info_id[]" class="form-select form-select-sm account-input">
-        <option value="">เลือกบัญชีธนาคาร</option>
-      </select>
-    </td>
-    <td>
-      <input type="hidden" name="manager_ids[]" class="manager-ids-input" value="">
-      <div class="d-flex align-items-start gap-2">
-        <div class="manager-summary d-flex flex-wrap align-items-center gap-1 flex-grow-1" role="button" tabindex="0" aria-label="เลือกผู้จัดการบัญชี"></div>
-        <button type="button" class="btn btn-outline-primary btn-sm fw-semibold select-managers-button text-nowrap">
-          <i class="bi bi-person-check me-1"></i>เลือก Staff
-        </button>
-        <button type="button" class="btn btn-outline-danger btn-sm remove-setting-row" title="ลบรายการ" aria-label="ลบรายการ">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-    </td>
-  </tr>
-</template>
-
 <div class="modal fade" id="staffPickerModal" tabindex="-1" aria-labelledby="staffPickerModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content border-0 shadow">
+    <form method="post" action="{{ url_for('advance_payment.cash_advance_account_manager_settings') }}" id="accountManagerForm" class="modal-content border-0 shadow">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="bank_account_info_id" id="managerAccountId" value="">
       <div class="modal-header">
         <div class="w-100 pe-3">
-          <h5 class="modal-title fw-bold" id="staffPickerModalLabel">เลือกผู้จัดการบัญชี</h5>
-          <div class="mt-3 p-3">
-            <h4 class="fs-5 fw-bold text-dark mb-2">
-              หน่วยงาน: <span id="staffPickerOrgLabel">-</span>
-            </h4>
-            <h5 class="fs-6 fw-semibold text-primary mb-0">
-              บัญชีธนาคาร: <span id="staffPickerAccountLabel">-</span>
-            </h5>
+          <h5 class="modal-title fw-bold" id="staffPickerModalLabel">เลือกผู้ดูแลบัญชี</h5>
+          <div class="mt-3 p-3 bg-light rounded-3">
+            <h4 class="fs-6 fw-bold text-dark mb-2">หน่วยงาน: <span id="staffPickerOrgLabel">-</span></h4>
+            <div class="fw-semibold text-primary mb-0">บัญชีเงินยืม: <span id="staffPickerAccountLabel">-</span></div>
           </div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
       </div>
-      <div class="modal-body p-3">
+      <div class="modal-body p-0">
         <div class="p-3 border-bottom bg-light">
           <div class="input-group">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
@@ -135,237 +106,55 @@
         <div class="px-3 py-2 border-bottom">
           <div class="form-check mb-0">
             <input class="form-check-input" type="checkbox" id="staffPickerSelectAll">
-            <label class="form-check-label fw-semibold" for="staffPickerSelectAll" id="staffPickerSelectAllLabel">
-              เลือก Staff ทั้งหมดในหน่วยงาน
-            </label>
+            <label class="form-check-label fw-semibold" for="staffPickerSelectAll" id="staffPickerSelectAllLabel">เลือก Staff ทั้งหมดในหน่วยงาน</label>
           </div>
         </div>
         <div class="table-responsive staff-picker-list" id="staffPickerTable">
-          <table class="table table-hover align-middle mb-0">
-            <tbody id="staffPickerList"></tbody>
-          </table>
+          <table class="table table-hover align-middle mb-0"><tbody id="staffPickerList"></tbody></table>
         </div>
         <div class="text-center text-muted py-5 d-none" id="staffPickerEmpty">
-          <i class="bi bi-person-x fs-2 d-block mb-2"></i>
-          ไม่พบ Staff ที่ตรงกับการค้นหา
+          <i class="bi bi-person-x fs-2 d-block mb-2"></i>ไม่พบ Staff ที่อยู่ในหน่วยงานนี้
         </div>
       </div>
       <div class="modal-footer d-flex justify-content-between">
         <span class="text-muted small">เลือกแล้ว <strong class="text-primary" id="staffPickerSelectedCount">0</strong> คน</span>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
-          <button type="button" class="btn btn-primary px-4 fw-bold" id="confirmStaffSelectionButton">ยืนยัน</button>
+          <button type="submit" class="btn btn-primary px-4 fw-bold" id="saveAccountManagersButton"><i class="bi bi-save me-1"></i>บันทึกบัญชีนี้</button>
         </div>
       </div>
-    </div>
+    </form>
   </div>
 </div>
 
 <script>
-  const accountOptions = {{ account_options|tojson }};
+  const accountRows = {{ account_rows|tojson }};
   const staffOptions = {{ staff_options|tojson }};
-  const staffById = new Map(staffOptions.map((staff) => [String(staff.id), staff]));
-  let activeManagerRow = null;
+  const accountsById = new Map(accountRows.map((account) => [String(account.id), account]));
+  let activeAccount = null;
   let workingManagerIds = new Set();
   let visibleStaffIds = [];
   let staffPickerModal = null;
 
-  function selectedManagerIds(row) {
-    const value = row.querySelector('.manager-ids-input')?.value || '';
-    return value.split(',').map((id) => id.trim()).filter(Boolean);
-  }
-
-  function renderManagerSummary(row) {
-    const summary = row.querySelector('.manager-summary');
-    const button = row.querySelector('.select-managers-button');
-    const hasAccount = Boolean(row.querySelector('.account-input').value);
-    const managerIds = selectedManagerIds(row);
-    summary.innerHTML = '';
-
-    summary.classList.toggle('is-disabled', !hasAccount);
-    summary.setAttribute('aria-disabled', hasAccount ? 'false' : 'true');
-    summary.tabIndex = hasAccount ? 0 : -1;
-    button.disabled = !hasAccount;
-
-    if (!hasAccount) {
-      summary.innerHTML = '<span class="text-muted small">เลือกผู้จัดการบัญชี</span>';
-      button.innerHTML = '<i class="bi bi-person-check me-1"></i>เลือก Staff';
-      return;
-    }
-
-    if (!managerIds.length) {
-      summary.innerHTML = '<span class="text-muted small">ยังไม่ได้เลือกผู้จัดการบัญชี</span>';
-      button.innerHTML = '<i class="bi bi-person-check me-1"></i>เลือก Staff';
-      return;
-    }
-
-    const previewIds = managerIds.slice(0, 3);
-    previewIds.forEach((managerId) => {
-      const staff = staffById.get(String(managerId));
-      if (!staff) return;
-      const badge = document.createElement('span');
-      badge.className = 'badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle manager-badge';
-      badge.textContent = staff.name;
-      badge.title = staff.name;
-      summary.appendChild(badge);
-    });
-
-    if (managerIds.length > previewIds.length) {
-      const more = document.createElement('span');
-      more.className = 'badge rounded-pill bg-secondary-subtle text-secondary-emphasis border';
-      more.textContent = `+อีก ${managerIds.length - previewIds.length} คน`;
-      summary.appendChild(more);
-    }
-    button.innerHTML = '<i class="bi bi-pencil-square me-1"></i>เลือก/แก้ไข';
-  }
-
-  function rebuildAccountOptions(row, selectedAccountId = '') {
-    const orgId = row.querySelector('.org-input').value;
-    const accountSelect = row.querySelector('.account-input');
-    const originalSelected = String(selectedAccountId || accountSelect.dataset.selectedAccountId || '');
-    accountSelect.innerHTML = '<option value="">เลือกบัญชีธนาคาร</option>';
-
-    accountOptions
-      .filter((account) => String(account.org_id) === String(orgId))
-      .forEach((account) => {
-        const option = new Option(account.label, account.id, false, String(account.id) === originalSelected);
-        accountSelect.add(option);
-      });
-
-    accountSelect.dataset.selectedAccountId = '';
-    accountSelect.disabled = !orgId;
-    $(accountSelect).trigger('change.select2');
-  }
-
-  function clearManagers(row) {
-    row.querySelector('.manager-ids-input').value = '';
-    renderManagerSummary(row);
-  }
-
-  function initializeSettingRow(row) {
-    const orgSelect = row.querySelector('.org-input');
-    const accountSelect = row.querySelector('.account-input');
-    const initialAccountId = accountSelect.dataset.selectedAccountId || '';
-    rebuildAccountOptions(row, initialAccountId);
-    renderManagerSummary(row);
-
-    if (!$(orgSelect).hasClass('select2-hidden-accessible')) {
-      $(orgSelect).select2({
-        theme: 'bootstrap-5',
-        placeholder: 'เลือกหน่วยงาน',
-        allowClear: true,
-        width: '100%'
-      });
-    }
-    if (!$(accountSelect).hasClass('select2-hidden-accessible')) {
-      $(accountSelect).select2({
-        theme: 'bootstrap-5',
-        placeholder: 'เลือกบัญชีธนาคาร',
-        allowClear: true,
-        width: '100%'
-      });
-    }
-
-    $(orgSelect).off('change.accountManagers').on('change.accountManagers', function () {
-      rebuildAccountOptions(row);
-      clearManagers(row);
-    });
-
-    $(accountSelect).off('change.accountManagers').on('change.accountManagers', function () {
-      renderManagerSummary(row);
-    });
-
-    row.querySelector('.select-managers-button').addEventListener('click', () => openStaffPicker(row));
-    const managerSummary = row.querySelector('.manager-summary');
-    managerSummary.addEventListener('click', () => {
-      if (accountSelect.value) openStaffPicker(row);
-    });
-    managerSummary.addEventListener('keydown', (event) => {
-      if (accountSelect.value && (event.key === 'Enter' || event.key === ' ')) {
-        event.preventDefault();
-        openStaffPicker(row);
-      }
-    });
-    row.querySelector('.remove-setting-row').addEventListener('click', () => {
-      const tbody = document.getElementById('accountManagerSettingsBody');
-      if (tbody.querySelectorAll('.account-manager-row').length === 1) {
-        $(orgSelect).val(null).trigger('change');
-        accountSelect.innerHTML = '<option value="">เลือกบัญชีธนาคาร</option>';
-        accountSelect.disabled = true;
-        clearManagers(row);
-        return;
-      }
-      $(orgSelect).select2('destroy');
-      $(accountSelect).select2('destroy');
-      row.remove();
-    });
-  }
-
-  function appendSettingRow(setting = null) {
-    const template = document.getElementById('accountManagerRowTemplate');
-    const tbody = document.getElementById('accountManagerSettingsBody');
-    if (!template || !tbody) return;
-    const fragment = template.content.cloneNode(true);
-    const row = fragment.querySelector('.account-manager-row');
-    if (setting) {
-      row.querySelector('.org-input').value = String(setting.org_id || '');
-      row.querySelector('.account-input').dataset.selectedAccountId = String(setting.bank_account_info_id || '');
-      row.querySelector('.manager-ids-input').value = (setting.manager_ids || []).join(',');
-    }
-    tbody.appendChild(fragment);
-    initializeSettingRow(row);
-    return row;
-  }
-
-  function addSettingRow() {
-    appendSettingRow();
-  }
-
-  function replaceSettingRows(settings) {
-    const tbody = document.getElementById('accountManagerSettingsBody');
-    if (!tbody) return;
-
-    tbody.querySelectorAll('.account-manager-row').forEach((row) => {
-      const orgSelect = row.querySelector('.org-input');
-      const accountSelect = row.querySelector('.account-input');
-      if ($(orgSelect).hasClass('select2-hidden-accessible')) $(orgSelect).select2('destroy');
-      if ($(accountSelect).hasClass('select2-hidden-accessible')) $(accountSelect).select2('destroy');
-    });
-    tbody.innerHTML = '';
-
-    (settings || []).forEach((setting) => appendSettingRow(setting));
-    if (!tbody.querySelector('.account-manager-row')) appendSettingRow();
-  }
-
-  function openStaffPicker(row) {
-    const orgSelect = row.querySelector('.org-input');
-    const accountSelect = row.querySelector('.account-input');
-    if (!orgSelect.value || !accountSelect.value) {
-      window.openAppPopup({
-        title: 'กรุณาเลือกข้อมูลก่อน',
-        message: 'กรุณาเลือกหน่วยงานและบัญชีธนาคารก่อนเลือกผู้จัดการบัญชี',
-        alertOnly: true,
-      });
-      return;
-    }
-
-    activeManagerRow = row;
-    workingManagerIds = new Set(selectedManagerIds(row));
-    document.getElementById('staffPickerOrgLabel').textContent = orgSelect.options[orgSelect.selectedIndex]?.textContent || '-';
-    document.getElementById('staffPickerAccountLabel').textContent = accountSelect.options[accountSelect.selectedIndex]?.textContent || '-';
+  function openStaffPicker(accountId) {
+    activeAccount = accountsById.get(String(accountId));
+    if (!activeAccount) return;
+    workingManagerIds = new Set((activeAccount.manager_ids || []).map(String));
+    document.getElementById('managerAccountId').value = String(activeAccount.id);
+    document.getElementById('staffPickerOrgLabel').textContent = activeAccount.org_name || '-';
+    document.getElementById('staffPickerAccountLabel').textContent = `${activeAccount.thai_name} • ${activeAccount.account_number}`;
     document.getElementById('staffPickerSearch').value = '';
     renderStaffPickerList();
     staffPickerModal.show();
   }
 
   function renderStaffPickerList() {
-    if (!activeManagerRow) return;
-    const orgId = activeManagerRow.querySelector('.org-input').value;
+    if (!activeAccount) return;
     const query = document.getElementById('staffPickerSearch').value.trim().toLocaleLowerCase('th');
     const list = document.getElementById('staffPickerList');
     const empty = document.getElementById('staffPickerEmpty');
     const matchingStaff = staffOptions.filter((staff) => {
-      if (String(staff.org_id) !== String(orgId)) return false;
+      if (String(staff.org_id) !== String(activeAccount.org_id)) return false;
       const haystack = `${staff.name} ${staff.position} ${staff.email}`.toLocaleLowerCase('th');
       return !query || haystack.includes(query);
     });
@@ -380,7 +169,7 @@
       checkbox.className = 'form-check-input';
       checkbox.value = String(staff.id);
       checkbox.id = `staff-picker-${staff.id}`;
-      checkbox.checked = workingManagerIds.has(String(staff.id));
+      checkbox.checked = workingManagerIds.has(checkbox.value);
       checkbox.addEventListener('change', () => {
         if (checkbox.checked) workingManagerIds.add(checkbox.value);
         else workingManagerIds.delete(checkbox.value);
@@ -391,15 +180,13 @@
       checkboxCell.className = 'text-center ps-3';
       checkboxCell.style.width = '52px';
       checkboxCell.appendChild(checkbox);
-
       const nameCell = document.createElement('td');
       nameCell.className = 'text-dark py-2';
       const name = document.createElement('label');
-      name.className = 'mb-0';
+      name.className = 'mb-0 fw-semibold';
       name.htmlFor = checkbox.id;
       name.textContent = staff.name;
       nameCell.appendChild(name);
-
       const positionCell = document.createElement('td');
       positionCell.className = 'text-muted small py-2 pe-3';
       positionCell.textContent = staff.position;
@@ -414,9 +201,7 @@
 
     document.getElementById('staffPickerTable').classList.toggle('d-none', matchingStaff.length === 0);
     empty.classList.toggle('d-none', matchingStaff.length !== 0);
-    document.getElementById('staffPickerSelectAllLabel').textContent = query
-      ? 'เลือกทั้งหมดจากผลการค้นหา'
-      : 'เลือก Staff ทั้งหมดในหน่วยงาน';
+    document.getElementById('staffPickerSelectAllLabel').textContent = query ? 'เลือกทั้งหมดจากผลการค้นหา' : 'เลือก Staff ทั้งหมดในหน่วยงาน';
     updateStaffPickerState();
   }
 
@@ -427,86 +212,96 @@
     selectAll.disabled = visibleStaffIds.length === 0;
     selectAll.checked = visibleStaffIds.length > 0 && checkedVisible === visibleStaffIds.length;
     selectAll.indeterminate = checkedVisible > 0 && checkedVisible < visibleStaffIds.length;
-
     document.querySelectorAll('#staffPickerList input[type="checkbox"]').forEach((checkbox) => {
       checkbox.checked = workingManagerIds.has(checkbox.value);
     });
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    staffPickerModal = new bootstrap.Modal(document.getElementById('staffPickerModal'));
-    const tbody = document.getElementById('accountManagerSettingsBody');
-    if (tbody) {
-      tbody.querySelectorAll('.account-manager-row').forEach(initializeSettingRow);
-      if (!tbody.querySelector('.account-manager-row')) addSettingRow();
+  function updateAccountRow(account) {
+    accountsById.set(String(account.id), account);
+    const row = document.getElementById(`account-manager-row-${account.id}`);
+    if (!row) return;
+
+    const badgeContainer = row.querySelector('.account-manager-badges');
+    badgeContainer.innerHTML = '';
+    if (account.managers.length) {
+      account.managers.forEach((manager) => {
+        const badge = document.createElement('span');
+        badge.className = 'badge rounded-pill bg-primary-subtle text-primary-emphasis border border-primary-subtle manager-badge';
+        badge.textContent = manager.name;
+        badge.title = manager.position;
+        badgeContainer.appendChild(badge);
+      });
+    } else {
+      const empty = document.createElement('span');
+      empty.className = 'text-muted small account-no-manager';
+      empty.textContent = 'ยังไม่มีผู้ดูแลบัญชี';
+      badgeContainer.appendChild(empty);
     }
 
-    document.getElementById('addSettingRowButton')?.addEventListener('click', addSettingRow);
-    document.getElementById('staffPickerSearch')?.addEventListener('input', renderStaffPickerList);
-    document.getElementById('staffPickerSelectAll')?.addEventListener('change', function () {
+    const statusCell = row.querySelector('.account-status-cell');
+    statusCell.innerHTML = '';
+    const status = document.createElement('span');
+    status.className = account.manager_ids.length
+      ? 'badge bg-success-subtle text-success-emphasis border border-success-subtle'
+      : 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+    status.textContent = account.manager_ids.length ? 'ตั้งค่าผู้ดูแลบัญชีแล้ว' : 'ยังไม่มีผู้ดูแล';
+    statusCell.appendChild(status);
+
+    const button = row.querySelector('.manage-account-button');
+    button.classList.toggle('btn-primary', !account.manager_ids.length);
+    button.classList.toggle('btn-outline-primary', account.manager_ids.length > 0);
+    button.querySelector('i').className = `bi ${account.manager_ids.length ? 'bi-pencil-square' : 'bi-person-plus'} me-1`;
+    button.querySelector('span').textContent = account.manager_ids.length ? 'แก้ไขผู้ดูแล' : 'เพิ่มผู้ดูแล';
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const modalElement = document.getElementById('staffPickerModal');
+    if (!modalElement) return;
+    staffPickerModal = new bootstrap.Modal(modalElement);
+    document.querySelectorAll('.manage-account-button').forEach((button) => {
+      button.addEventListener('click', () => openStaffPicker(button.dataset.accountId));
+    });
+    document.getElementById('staffPickerSearch').addEventListener('input', renderStaffPickerList);
+    document.getElementById('staffPickerSelectAll').addEventListener('change', function () {
       visibleStaffIds.forEach((id) => {
         if (this.checked) workingManagerIds.add(id);
         else workingManagerIds.delete(id);
       });
       updateStaffPickerState();
     });
-    document.getElementById('confirmStaffSelectionButton')?.addEventListener('click', function () {
-      if (!activeManagerRow) return;
-      activeManagerRow.querySelector('.manager-ids-input').value = [...workingManagerIds].join(',');
-      renderManagerSummary(activeManagerRow);
-      staffPickerModal.hide();
-    });
 
-    document.getElementById('accountManagerSettingsForm')?.addEventListener('submit', async function (event) {
+    document.getElementById('accountManagerForm').addEventListener('submit', async function (event) {
       event.preventDefault();
-      const rows = [...this.querySelectorAll('.account-manager-row')];
-      const completeRows = rows.filter((row) => {
-        return row.querySelector('.org-input').value
-          || row.querySelector('.account-input').value
-          || row.querySelector('.manager-ids-input').value;
-      });
-      const invalidRow = completeRows.find((row) => {
-        return !row.querySelector('.org-input').value
-          || !row.querySelector('.account-input').value
-          || !row.querySelector('.manager-ids-input').value;
-      });
-      const accountIds = completeRows.map((row) => row.querySelector('.account-input').value).filter(Boolean);
-      const hasDuplicateAccount = new Set(accountIds).size !== accountIds.length;
-
-      if (invalidRow || hasDuplicateAccount) {
-        window.openAppPopup({
-          title: 'กรุณาตรวจสอบข้อมูล',
-          message: invalidRow
-            ? 'กรุณาเลือกหน่วยงาน บัญชีธนาคาร และผู้จัดการบัญชีให้ครบทุกแถว'
-            : 'ไม่สามารถเลือกบัญชีธนาคารซ้ำกันได้',
-          alertOnly: true,
-        });
-        return;
+      if (!activeAccount) return;
+      if (!workingManagerIds.size && activeAccount.manager_ids.length) {
+        const confirmed = window.confirm('ต้องการยกเลิกผู้ดูแลทั้งหมดของบัญชีนี้ใช่หรือไม่');
+        if (!confirmed) return;
       }
 
-      const submitButton = this.querySelector('button[type="submit"]');
-      const originalButtonHtml = submitButton?.innerHTML || '';
-      if (submitButton) {
-        submitButton.disabled = true;
-        submitButton.innerHTML = 'กำลังบันทึก...';
-      }
+      const submitButton = document.getElementById('saveAccountManagersButton');
+      const originalButtonHtml = submitButton.innerHTML;
+      submitButton.disabled = true;
+      submitButton.innerHTML = 'กำลังบันทึก...';
+      const formData = new FormData(this);
+      workingManagerIds.forEach((managerId) => formData.append('manager_ids[]', managerId));
 
       try {
-        const response = await fetch(this.getAttribute('action') || window.location.href, {
+        const response = await fetch(this.action || window.location.href, {
           method: 'POST',
-          body: new FormData(this),
+          body: formData,
           headers: { 'X-Requested-With': 'XMLHttpRequest' },
           credentials: 'same-origin',
         });
         const payload = await response.json();
-        if (!response.ok || payload.ok === false) {
-          throw new Error(payload.message || 'ไม่สามารถบันทึกการตั้งค่าได้');
-        }
+        if (!response.ok || payload.ok === false) throw new Error(payload.message || 'ไม่สามารถบันทึกข้อมูลผู้ดูแลบัญชีได้');
 
-        replaceSettingRows(payload.settings);
+        updateAccountRow(payload.account);
+        activeAccount = payload.account;
+        staffPickerModal.hide();
         window.openAppPopup({
           title: 'บันทึกข้อมูลเรียบร้อยแล้ว',
-          message: payload.message || 'บันทึกการตั้งค่าผู้จัดการบัญชีเงินยืมเรียบร้อยแล้ว',
+          message: payload.message,
           confirmText: 'ตกลง',
           confirmClass: 'btn-success',
           alertOnly: true,
@@ -520,10 +315,8 @@
           alertOnly: true,
         });
       } finally {
-        if (submitButton) {
-          submitButton.disabled = false;
-          submitButton.innerHTML = originalButtonHtml;
-        }
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonHtml;
       }
     });
   });
