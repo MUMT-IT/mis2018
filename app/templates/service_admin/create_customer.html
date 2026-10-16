@@ -218,7 +218,9 @@
                                         <div class="field">
                                             <label class="label">
                                                 {{ item_form.attachment.label }}
+                                                <span class="has-text-danger">*</span>
                                             </label>
+                                            {{ item_form.attachment(type='hidden') }}
                                             <div class="file" style="margin-bottom: .5em">
                                                 <label class="file-label">
                                                     {{ item_form.file_upload(class="file-input",
@@ -242,8 +244,8 @@
                                         </div>
                                         <div class="field">
                                             <label class="label">{{ item_form.note.label }}</label>
-{#                                            <div class="control is-flex">#}
-{#                                                {{ item_form.note(class="input") }}#}
+                                            <div class="control is-flex">
+                                                {{ item_form.note(class="input") }}
 {#                                                <a class="button is-danger is-outlined" style="margin-left: .5em"#}
 {#                                                   hx-delete="{{ url_for('service_admin.remove_other_attachment',#}
 {#                                                   name=item_form.name) }}"#}
@@ -252,7 +254,7 @@
 {#                                                >#}
 {#                                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>#}
 {#                                                </a>#}
-{#                                            </div>#}
+                                            </div>
                                         </div>
                                     </div>
                                 {% endfor %}
@@ -271,7 +273,8 @@
                                 <div class="control">
                                     <button type="button" class="button is-danger is-small is-light is-rounded"
                                             hx-delete="{{ url_for('service_admin.remove_other_attachment') }}"
-                                            hx-target="#other-attachment-field" hx-swap="innerHTML">
+                                            hx-target="#other-attachment-field"
+                                            hx-swap="innerHTML">
                                         <span class="icon">
                                             <i class="fas fa-trash"></i>
                                         </span>
