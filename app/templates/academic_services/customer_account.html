@@ -149,7 +149,7 @@
                                      data-private-only="{{ 'true' if document.private_only else 'false' }}">
                                     <label class="label">
                                         {{ document.label }}
-                                         {% if account and not account.has_password and not item.attachment %}
+                                         {% if account and not account.has_password and (not item or not item.attachment) %}
                                              <span class="has-text-danger">*</span>
                                         {% endif %}
                                     </label>
@@ -158,9 +158,8 @@
                                             <input class="file-input required-document-input" type="file"
                                                    name="required_document_{{ document.key }}"
                                                    accept=".pdf,.png,.jpg,.jpeg,.gif,.txt"
-                                                   {% if account and not account.has_password and not item.attachment %}
-                                                        required
-                                                   {% endif %}
+                                                   data-required="{{ 'true' if account and not account.has_password and
+                                                   (not item or not item.attachment) else 'false' }}"
                                             >
                                             <span class="file-cta">
                                                 <span class="file-icon"><i class="fas fa-upload"></i></span>
@@ -186,7 +185,11 @@
                                     <div id="{{ item_form.id }}" class="other-attachment-item">
                                         <p class="mt-4 mb-2"><strong>รายการที่ {{ loop.index }}</strong></p>
                                         <div class="field">
-                                            <label class="label">{{ item_form.attachment.label }}</label>
+                                            <label class="label">
+                                                {{ item_form.attachment.label }}
+                                                <span class="has-text-danger">*</span>
+                                            </label>
+                                            {{ item_form.attachment(type='hidden') }}
                                             <div class="file">
                                                 <label class="file-label">
                                                     {{ item_form.file_upload(class="file-input",
@@ -210,24 +213,39 @@
                                             <label class="label">{{ item_form.note.label }}</label>
                                             <div class="control is-flex">
                                                 {{ item_form.note(class="input") }}
-                                                <a class="button is-danger is-outlined" style="margin-left: .5em"
-                                                   hx-delete="{{ url_for('academic_services.remove_other_attachment',
-                                                   name=item_form.name) }}"
-                                                   hx-target="closest .other-attachment-item"
-                                                   hx-swap="outerHTML">
-                                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                                                </a>
+{#                                                <a class="button is-danger is-outlined" style="margin-left: .5em"#}
+{#                                                   hx-delete="{{ url_for('academic_services.remove_other_attachment',#}
+{#                                                   name=item_form.name) }}"#}
+{#                                                   hx-target="closest .other-attachment-item"#}
+{#                                                   hx-swap="outerHTML">#}
+{#                                                    <span class="icon"><i class="fas fa-trash-alt"></i></span>#}
+{#                                                </a>#}
                                             </div>
                                         </div>
                                     </div>
                                 {% endfor %}
                             </div>
-                            <button type="button" class="button is-info is-small is-light is-rounded"
-                                    hx-post="{{ url_for('academic_services.add_other_attachment') }}"
-                                    hx-target="#other-attachment-field" hx-swap="beforeend">
-                                <span class="icon"><i class="fas fa-plus"></i></span>
-                                <span>เพิ่มเอกสาร</span>
-                            </button>
+                            <div class="field has-addons">
+                                <div class="control">
+                                    <button type="button" class="button is-info is-small is-light is-rounded"
+                                            hx-post="{{ url_for('academic_services.add_other_attachment') }}"
+                                            hx-target="#other-attachment-field" hx-swap="beforeend">
+                                        <span class="icon"><i class="fas fa-plus"></i></span>
+                                        <span>เพิ่ม</span>
+                                    </button>
+                                </div>
+                                <div class="control">
+                                    <button type="button" class="button is-danger is-small is-light is-rounded"
+                                            hx-delete="{{ url_for('service_admin.remove_other_attachment') }}"
+                                            hx-target="#other-attachment-field"
+                                            hx-swap="innerHTML">
+                                        <span class="icon">
+                                            <i class="fas fa-trash"></i>
+                                        </span>
+                                        <span>ลบ</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <input type="hidden" id="cus_email" value="{{ current_user.email }}" oninput="syncContactInfo()">
@@ -275,6 +293,12 @@
                 const isPrivateOnly = documentField.dataset.privateOnly === 'true';
                 const visible = isPrivateCompany === isPrivateOnly;
                 documentField.style.display = visible ? '' : 'none';
+
+                const input = documentField.querySelector('.required-document-input');
+                if (input) {
+                    input.required = visible && input.dataset.required === 'true';
+                    input.disabled = !visible;
+                }
             });
         }
 
