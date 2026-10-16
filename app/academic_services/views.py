@@ -1436,7 +1436,7 @@ def customer_account():
     if not current_user.customer_info:
         flash('กรุณากรอกข้อมูลลูกค้าและข้อมูลผู้ประสานงานให้ครบถ้วนก่อนดำเนินการต่อ', 'warning')
     return render_template('academic_services/customer_account.html', menu=menu, form=form,
-                           document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
+                           account=account, document_definitions=CUSTOMER_DOCUMENT_DEFINITIONS,
                            required_document_attachments=_required_document_attachments(customer) if customer else {}
                            )
 
