@@ -4,7 +4,7 @@ import re
 
 
 REJECTION_HISTORY_MARKER = re.compile(r"(?m)^ครั้งที่\s+\d+\s*:")
-FINANCE_NOTIFICATION_EMAIL = "ploy.j0912@gmail.com"
+FINANCE_NOTIFICATION_EMAIL = "exam.ple.com"
 
 
 def thai_date(value):
@@ -353,7 +353,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         action_messages = {
             "confirm": "กรุณาตรวจสอบและยืนยันข้อมูลใบเบิก",
             "approve": "กรุณาตรวจสอบและอนุมัติใบเบิก",
-            "withdrawal": "การอนุมัติครบถ้วนแล้ว กรุณาบันทึกวันที่เบิกเงิน",
+            "withdrawal": "ได้รับการอนุมัติเรียบร้อยแล้ว",
             "withdrawn": "บันทึกการเบิกเงินเรียบร้อยแล้ว",
         }
         action_message = action_messages.get(
