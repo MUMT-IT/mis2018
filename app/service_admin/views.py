@@ -2772,19 +2772,134 @@ def add_other_attachment():
     return resp
 
 
-@service_admin.route('/api/customer/account/other-file/remove', methods=['DELETE'])
-def remove_other_attachment():
-    field_name = request.args.get('name')
+@service_admin.route('/api/customer/account/other-file/add', methods=['POST'])
+def add_other_attachment():
     form = ServiceCustomerInfoForm()
-    temp_entries = []
-    for entry in form.other_attachments:
-        if entry.name != field_name:
-            temp_entries.append(entry)
-    while len(form.other_attachments) > 0:
-        form.other_attachments.pop_entry()
-    for entry in temp_entries:
-        form.other_attachments.append_entry(entry)
-    return ""
+    form.other_attachments.append_entry()
+    item_form = form.other_attachments[-1]
+    index = len(form.other_attachments)
+    template = """
+            <div id="{}" class="other-attachment-item">
+                <hr style="background-color: #F3F3F3">
+                <p><strong>รายการที่ {}</strong></p>
+                <div class="field">
+                    <label class="label">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="file" style="margin-bottom: .5em">
+                        <label class="file-label">
+                            {}
+                            <span class="file-cta">
+                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                <span class="file-label">เลือกไฟล์…</span>
+                            </span>
+                            <span class="file-name">กรุณาอัปโหลดไฟล์</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control is-flex">
+                        {}
+                        # <a class="button is-danger is-outlined" style="margin-left: .5em"
+                        #     hx-delete="{}"
+                        #     hx-target="closest .other-attachment-item"
+                        #     hx-swap="outerHTML"
+                        # >
+                        #     <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        # </a>
+                    </div>
+                </div>
+            </div>
+        """
+    resp = template.format(item_form.id,
+                           index,
+                           item_form.attachment.label,
+                           item_form.file_upload(
+                               class_='file-input',
+                               accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
+                               required=True,
+                           ),
+                           item_form.note.label,
+                           item_form.note(class_='input'),
+                           # url_for('service_admin.remove_other_attachment', name=item_form.id),
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@service_admin.route('/api/customer/account/other-file/remove', methods=['POST'])
+def remove_other_attachment():
+    form = ServiceCustomerInfoForm()
+    form.other_attachments.pop_entry()
+    index = len(form.other_attachments)
+    resp = ''
+    for item_form in form.other_attachments:
+        template = """
+            <div id="{}" class="other-attachment-item">
+                <hr style="background-color: #F3F3F3">
+                <p><strong>รายการที่ {}</strong></p>
+                <div class="field">
+                    <label class="label">
+                        {}
+                        <span class="has-text-danger">*</span>
+                    </label>
+                    <div class="file" style="margin-bottom: .5em">
+                        <label class="file-label">
+                            {}
+                            <span class="file-cta">
+                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                <span class="file-label">เลือกไฟล์…</span>
+                            </span>
+                            <span class="file-name">กรุณาอัปโหลดไฟล์</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control is-flex">
+                        {}
+                        # <a class="button is-danger is-outlined" style="margin-left: .5em"
+                        #     hx-delete="{}"
+                        #     hx-target="closest .other-attachment-item"
+                        #     hx-swap="outerHTML"
+                        # >
+                        #     <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                        # </a>
+                    </div>
+                </div>
+            </div>
+        """
+        resp += template.format(item_form.id,
+                                index,
+                                item_form.attachment.label,
+                                item_form.file_upload(
+                                   class_='file-input',
+                                   accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
+                                   required=True,
+                                ),
+                                item_form.note.label,
+                                item_form.note(class_='input'),
+                                # url_for('service_admin.remove_other_attachment', name=item_form.id)
+                                )
+    resp = make_response(resp)
+    return resp
+
+
+# @service_admin.route('/api/customer/account/other-file/remove', methods=['DELETE'])
+# def remove_other_attachment():
+#     field_name = request.args.get('name')
+#     form = ServiceCustomerInfoForm()
+#     temp_entries = []
+#     for entry in form.other_attachments:
+#         if entry.name != field_name:
+#             temp_entries.append(entry)
+#     while len(form.other_attachments) > 0:
+#         form.other_attachments.pop_entry()
+#     for entry in temp_entries:
+#         form.other_attachments.append_entry(entry)
+#     return ""
 
 
 @service_admin.route('/customer/approve/<int:customer_id>', methods=['POST'])
