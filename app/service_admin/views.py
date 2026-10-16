@@ -2809,6 +2809,7 @@ def remove_other_attachment():
                            item_form.file_upload(
                                class_='file-input',
                                accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
+                               required=not item_form.attachment.data,
                            ),
                            item_form.attachment.data or 'กรุณาอัปโหลดไฟล์',
                            item_form.note.label,
