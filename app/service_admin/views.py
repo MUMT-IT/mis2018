@@ -2768,55 +2768,7 @@ def add_other_attachment():
 
 @service_admin.route('/api/customer/account/other-file/remove', methods=['DELETE'])
 def remove_other_attachment():
-    form = ServiceCustomerInfoForm()
-    form.other_attachments.pop_entry()
-    index = len(form.other_attachments)
-    resp = ''
-    for item_form in form.other_attachments:
-        template = u"""
-            <div id="{}" class="other-attachment-item">
-                <hr style="background-color: #F3F3F3">
-                <p><strong>รายการที่ {}</strong></p>
-                <div class="field">
-                    <label class="label">
-                        {}
-                        <span class="has-text-danger">*</span>
-                    </label>
-                    {}
-                    <div class="file" style="margin-bottom: .5em">
-                        <label class="file-label">
-                            {}
-                            <span class="file-cta">
-                                <span class="file-icon"><i class="fas fa-upload"></i></span>
-                                <span class="file-label">เลือกไฟล์…</span>
-                            </span>
-                            <span class="file-name">{}</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="field">
-                    <label class="label">{}</label>
-                    <div class="control is-flex">
-                        {}
-                    </div>
-                </div>
-            </div>
-        """
-        resp += template.format(item_form.id,
-                           index,
-                           item_form.attachment.label,
-                           item_form.attachment(type='hidden'),
-                           item_form.file_upload(
-                               class_='file-input',
-                               accept='.pdf,.png,.jpg,.jpeg,.gif,.txt',
-                               required=not item_form.attachment.data,
-                           ),
-                           item_form.attachment.data or 'กรุณาอัปโหลดไฟล์',
-                           item_form.note.label,
-                           item_form.note(class_='input'),
-                           )
-    resp = make_response(resp)
-    return resp
+    return ""
 
 
 # @service_admin.route('/api/customer/account/other-file/remove', methods=['DELETE'])
