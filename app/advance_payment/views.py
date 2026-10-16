@@ -2850,6 +2850,46 @@ def _notify_next_fund_request_actor(fund_request):
         },
     )
 
+
+def _send_fund_request_approved_notification(fund_request):
+    """Notify the requester, custodian, and actual approver once approved."""
+    requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
+    custodian = _get_user_by_id(_fund_request_custodian_id(fund_request))
+    approver = _get_user_by_id(getattr(fund_request, "approved_by_id", None))
+
+    recipient_emails = [
+        getattr(actor, "email", None)
+        for actor in (requester, custodian, approver)
+        if actor is not None
+    ]
+    if not any(recipient_emails):
+        current_app.logger.warning(
+            "ไม่พบอีเมลผู้เกี่ยวข้องสำหรับแจ้งผลอนุมัติ fund request id=%s",
+            getattr(fund_request, "id", None),
+        )
+        return False
+
+    approver_name = (
+        getattr(approver, "name", None)
+        or getattr(approver, "fullname", None)
+        or getattr(approver, "email", None)
+        or "-"
+    )
+    return _send_notification_email(
+        fund_request,
+        object_type="fund_request",
+        extra_ctx={
+            "recipient_emails": recipient_emails,
+            "action": "approved",
+            "approver_name": approver_name,
+            "action_url": url_for(
+                "advance_payment.submit_petty_cash_claim",
+                fund_request_id=fund_request.id,
+                _external=True,
+            ),
+        },
+    )
+
 @bp.route("/finance/returns/<int:return_id>/checking", methods=["POST"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def mark_return_checking(return_id):
@@ -9379,6 +9419,8 @@ def staff_fund_request():
                 )
             db.session.commit()
             if not is_editing:
+                if getattr(new_request, "approved_at", None):
+                    _send_fund_request_approved_notification(new_request)
                 _notify_next_fund_request_actor(new_request)
 
             flash(
@@ -9508,6 +9550,7 @@ def approve_fund_request(request_id):
 
         _sync_fund_request_approval_status(fund_req)
         db.session.commit()
+        _send_fund_request_approved_notification(fund_req)
         _notify_next_fund_request_actor(fund_req)
         flash(
             "อนุมัติใบยืม/ใบเบิกเรียบร้อยแล้ว"

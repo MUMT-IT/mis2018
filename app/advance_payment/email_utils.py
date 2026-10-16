@@ -304,6 +304,52 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         ticket_number = getattr(target_object, "ticket_number", None) or "-"
         status = getattr(target_object, "status", "")
         action = ctx.get("action", "status")
+        action_url = ctx.get("action_url")
+        action_link = f"\n- เปิดรายการ {action_url}" if action_url else ""
+
+        if action == "approved":
+            approver_name = ctx.get("approver_name") or "-"
+            approved_at = thai_datetime(
+                getattr(target_object, "approved_at", None)
+            ) or "-"
+            approval_complete = status == "อนุมัติแล้ว"
+            intro = (
+                f"ใบเบิกเงินสดย่อยเลขที่ {ticket_number} "
+                "ได้รับการอนุมัติเรียบร้อยแล้ว"
+                if approval_complete
+                else (
+                    f"ใบเบิกเงินสดย่อยเลขที่ {ticket_number} "
+                    "ได้รับการบันทึกการอนุมัติแล้ว "
+                    "และกำลังรอผู้เกี่ยวข้องยืนยันข้อมูลให้ครบถ้วน"
+                ) # case creator == org.head
+            )
+            next_step = (
+                "\n\nผู้เก็บรักษาเงินสดย่อยสามารถดำเนินการเบิกเงิน"
+                "และบันทึกวันที่เบิกเงินในระบบต่อไป"
+                if approval_complete
+                else ""
+            )
+            subject = (
+                "แจ้งผลการอนุมัติใบเบิกเงินสดย่อย "
+                f"เลขที่ {ticket_number} [{status}]"
+            )
+            body = f"""{intro}
+
+รายละเอียดรายการ:
+- เลขที่ใบเบิก {ticket_number}
+- ผู้ขอเบิก {requester_name}
+- จำนวนเงิน {_amount(getattr(target_object, 'amount', 0))} บาท
+- ผู้อนุมัติ {approver_name}
+- วันที่อนุมัติ {approved_at}
+- สถานะ {status}{action_link}{next_step}
+
+{footer}"""
+            return {
+                "to_emails": recipient_emails,
+                "subject": subject,
+                "body": body,
+            }
+
         action_messages = {
             "confirm": "กรุณาตรวจสอบและยืนยันข้อมูลใบเบิก",
             "approve": "กรุณาตรวจสอบและอนุมัติใบเบิก",
@@ -314,8 +360,6 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
             action,
             f"สถานะปัจจุบัน: {status}",
         )
-        action_url = ctx.get("action_url")
-        action_link = f"\n- เปิดรายการ {action_url}" if action_url else ""
         subject = f"แจ้งดำเนินการใบเบิกเงินสดย่อย เลขที่ {ticket_number}"
         body = f"""{action_message}
 
