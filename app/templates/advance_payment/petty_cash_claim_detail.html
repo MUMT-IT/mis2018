@@ -31,13 +31,19 @@
           {% endif %}
         {% endfor %}
 
-        {% if advance_payment_role != 'finance' %}
         <!-- เลขที่ใบเบิก -->
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">เลขที่ใบเบิก</span>
-          <strong class="text-dark">{{ claim_detail.fund_request.ticket_number if claim_detail.fund_request and claim_detail.fund_request.ticket_number else '-' }}</strong>
+          <strong class="text-dark">
+            {% if claim_detail.fund_request_id and claim_detail.fund_request and claim_detail.fund_request.ticket_number %}
+              {{ claim_detail.fund_request.ticket_number }}
+            {% else %}
+              {{ claim_detail.claim_number or '-' }}
+            {% endif %}
+          </strong>
         </div>
 
+        {% if advance_payment_role != 'finance' %}
         <!-- ยอดที่อนุมัติ -->
         <div class="col-12 col-sm-6 col-lg-2">
           <span class="text-muted small d-block">ยอดที่อนุมัติ</span>

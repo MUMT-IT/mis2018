@@ -3,10 +3,114 @@
 {% block title %}ประวัติบันทึกเอกสารขอเบิกเงินสดย่อยทั้งหมด | ระบบเงินยืมทดรองจ่าย{% endblock %}
 
 {% block content %}
-<header class="mb-4 pb-2 border-bottom">
-  <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
-  <h1 class="fw-bold display-6 mb-2">ประวัติบันทึกเอกสารขอเบิกเงินสดย่อยทั้งหมด</h1>
+<header class="mb-4 pb-3 border-bottom d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3">
+  <div>
+    <p class="text-uppercase fw-bold text-muted small mb-1 pt-3" style="letter-spacing: 0.1em;">ฝ่ายการเงิน</p>
+    <h1 class="fw-bold display-6 mb-0">ประวัติบันทึกเอกสารขอเบิกเงินสดย่อยทั้งหมด</h1>
+  </div>
+  <button type="button"
+          class="btn btn-primary fw-bold px-4"
+          {% if legacy_claim_settings %}
+          data-bs-toggle="modal"
+          data-bs-target="#createLegacyClaimModal"
+          {% else %}
+          disabled
+          title="ไม่พบ Setting ที่ใช้งานได้ในปีงบประมาณปัจจุบัน"
+          {% endif %}>
+    <i class="bi bi-plus-circle me-1"></i> เพิ่มรายการย้อนหลัง
+  </button>
 </header>
+
+<div class="modal fade" id="createLegacyClaimModal" tabindex="-1" aria-labelledby="createLegacyClaimModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form method="post"
+            action="{{ url_for('advance_payment.create_legacy_petty_cash_claim') }}"
+            data-ajax-validation="true">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-bold" id="createLegacyClaimModalLabel">เพิ่มรายการย้อนหลัง</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-light border small mb-3">
+            บันทึกข้อมูลเอกสารส่งเบิกที่โอนเงินสำเร็จแล้วสำหรับข้อมูลเอกสารเบิกจากปีงบประมาณ {{ current_fiscal_year + 542 }}
+          </div>
+
+          <div class="mb-3">
+            <label for="legacyClaimSetting" class="form-label fw-bold">Setting <span class="text-danger">*</span></label>
+            <select id="legacyClaimSetting" name="petty_cash_setting_id" class="form-select" required>
+              <option value="">เลือกหน่วยงานเงินสดย่อย</option>
+              {% for setting in legacy_claim_settings %}
+                <option value="{{ setting.id }}">
+                  {{ setting.department_name or ('Setting #' ~ setting.id) }}
+                  {% if setting.account_number %} · {{ setting.account_number }}{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="legacyClaimNumber" class="form-label fw-bold">เลขที่ใบเบิก <span class="text-danger">*</span></label>
+            <input id="legacyClaimNumber"
+                   type="text"
+                   name="claim_number"
+                   class="form-control"
+                   maxlength="255"
+                   placeholder="กรอกเลขที่ใบเบิก"
+                   autocomplete="off"
+                   required>
+          </div>
+
+          <div class="mb-3">
+            <label for="legacyClaimCategory" class="form-label fw-bold">หมวดค่าใช้จ่าย <span class="text-danger">*</span></label>
+            <select id="legacyClaimCategory" name="category_type" class="form-select" required>
+              <option value="">เลือกหมวดค่าใช้จ่าย</option>
+              {% for category_id, category_label in legacy_claim_category_choices.items() %}
+                <option value="{{ category_id }}">{{ category_label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="legacyClaimAmount" class="form-label fw-bold">จำนวนเงิน <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <input id="legacyClaimAmount"
+                     type="number"
+                     name="amount"
+                     class="form-control text-end"
+                     min="0.01"
+                     max="9999999999.99"
+                     step="0.01"
+                     placeholder="0.00"
+                     required>
+              <span class="input-group-text">บาท</span>
+            </div>
+          </div>
+
+          <div>
+            <label for="legacyClaimTransferredAt" class="form-label fw-bold">วันที่โอนเงินสำเร็จ <span class="text-danger">*</span></label>
+            <input id="legacyClaimTransferredAt"
+                   type="date"
+                   name="transferred_at"
+                   class="form-control"
+                   min="{{ legacy_transfer_min }}"
+                   max="{{ legacy_transfer_max }}"
+                   required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary fw-bold">
+            <i class="bi bi-check-circle me-1"></i> บันทึกข้อมูล
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <section class="mb-4">
   <div class="row g-3">
@@ -202,7 +306,7 @@
               <td class="text-center">
                 {% if record.record_type == 'petty_cash' %}
                   <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2.5 py-1">
-                    <i class="bi bi-receipt-cutoff me-1"></i>ขอเบิกเงินสดย่อย
+                    <i class="bi bi-receipt-cutoff me-1"></i>{{ 'รายการย้อนหลัง' if record.is_direct_legacy else 'ขอเบิกเงินสดย่อย' }}
                   </span>
                 {% elif record.record_type == 'parcel_return' %}
                   {{ parcel_return_type_badge(record.type_label, 'px-2.5 py-1') }}
@@ -221,6 +325,9 @@
               <!-- 5. วันที่สร้างรายการ -->
               <td class="text-center small text-secondary">
                 {{ record.created_at|thai_date if record.created_at else '-' }}
+                {% if record.is_direct_legacy and record.transferred_at %}
+                  <span class="d-block">โอน: {{ record.transferred_at|thai_date }}</span>
+                {% endif %}
               </td>
 
               <!-- 6. แสดง Badge ตามสถานะ -->

@@ -189,6 +189,7 @@ FUND_REQUEST_STATUS_STEPS = ["รอการอนุมัติ", "อนุ�
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
 CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
 PARCEL_RETURN_CONFIRMED_STATUS = "ยืนยันการตรวจสอบ"
+DIRECT_LEGACY_CLAIM_NOTE = "รายการย้อนหลังที่ฝ่ายการเงินบันทึกโดยตรง"
 RETURN_DETAIL_EDITABLE_STATUSES = {
     "รอตรวจสอบ",
     "ปฏิเสธ",
@@ -532,7 +533,7 @@ def _fund_request_setting_filter(query, setting, *, include_legacy=True):
 
 
 def _exclude_legacy_fund_request_claims(query):
-    """Exclude claims attached to fund requests imported from a prior year."""
+    """Exclude prior-year claims that must not affect the current summary."""
     legacy_fund_request_ids = db.session.query(FundRequest.id).filter(
         FundRequest.is_legacy_import.is_(True),
     )
@@ -540,7 +541,12 @@ def _exclude_legacy_fund_request_claims(query):
         or_(
             PettyCashClaimDetail.fund_request_id.is_(None),
             PettyCashClaimDetail.fund_request_id.notin_(legacy_fund_request_ids),
-        )
+        ),
+        or_(
+            PettyCashClaimDetail.fund_request_id.isnot(None),
+            func.trim(func.coalesce(PettyCashClaimDetail.note, ""))
+            != DIRECT_LEGACY_CLAIM_NOTE,
+        ),
     )
 
 
@@ -7848,6 +7854,21 @@ def _get_interest_tracker_data():
 @bp.route("/finance/petty-cash-claim-records", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def petty_cash_claim_history():
+    current_fiscal_year = _current_petty_cash_fiscal_year()
+    today = datetime.now().date()
+    fiscal_year_start = date(current_fiscal_year - 1, 10, 1)
+    fiscal_year_end = date(current_fiscal_year, 9, 30)
+    legacy_claim_settings = (
+        db.session.query(PettyCashSetting)
+        .join(Org, Org.id == PettyCashSetting.org_id)
+        .filter(
+            PettyCashSetting.fiscal_year == current_fiscal_year,
+            PettyCashSetting.valid.is_(True),
+            PettyCashSetting.custodian_id.isnot(None),
+        )
+        .order_by(Org.name.asc(), PettyCashSetting.id.asc())
+        .all()
+    )
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
     # 1. ดึงข้อมูลรายการขอเบิกเงินสดย่อย (PettyCashClaimDetail)
     claim_details = (
@@ -7865,7 +7886,16 @@ def petty_cash_claim_history():
     for claim in claim_details:
         _attach_petty_cash_claim_context(claim)
         closing_doc = claim.closing_document
-        ticket_num = claim.fund_request.ticket_number if claim.fund_request and claim.fund_request.ticket_number else f"PC-{claim.id}"
+        is_direct_legacy = bool(
+            claim.fund_request_id is None
+            and (claim.note or "").strip() == DIRECT_LEGACY_CLAIM_NOTE
+        )
+        first_item = claim.items[0] if claim.items else None
+        ticket_num = (
+            claim.fund_request.ticket_number
+            if claim.fund_request and claim.fund_request.ticket_number
+            else (claim.claim_number or f"PC-{claim.id}")
+        )
         dept_name = (
             claim.setting.department_name
             if claim.setting
@@ -7893,6 +7923,12 @@ def petty_cash_claim_history():
             "total_amount": float(claim.total_amount),
             "status": claim.status,
             "created_at": claim.created_at,
+            "transferred_at": claim.transferred_at,
+            "is_direct_legacy": is_direct_legacy,
+            "category_label": (
+                CATEGORY_CHOICES.get(int(first_item.category_type or 0), "")
+                if first_item else ""
+            ),
             "closed_at": closing_doc.filing_date if closing_doc else None,
             "closing_document_id": claim.closing_document_id or "-",
             "closing_document_name": closing_doc.document_number if closing_doc else "-",
@@ -7983,7 +8019,135 @@ def petty_cash_claim_history():
         pending_interest_count=pending_interest_count,
         current_interest_period=current_interest_period,
         org_options=org_options,
+        legacy_claim_settings=legacy_claim_settings,
+        legacy_claim_category_choices={
+            category_id: label
+            for category_id, label in CATEGORY_CHOICES.items()
+            if category_id in {1, 2, 3, 4, 5}
+        },
+        current_fiscal_year=current_fiscal_year,
+        legacy_transfer_min=fiscal_year_start.isoformat(),
+        legacy_transfer_max=min(today, fiscal_year_end).isoformat(),
     )
+
+
+@bp.route("/finance/petty-cash-claim-records/legacy", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def create_legacy_petty_cash_claim():
+    """Create a transferred claim for an off-system legacy transaction."""
+    current_fiscal_year = _current_petty_cash_fiscal_year()
+    today = datetime.now().date()
+    fiscal_year_start = date(current_fiscal_year - 1, 10, 1)
+    fiscal_year_end = date(current_fiscal_year, 9, 30)
+
+    setting_id_raw = (request.form.get("petty_cash_setting_id") or "").strip()
+    claim_number = (request.form.get("claim_number") or "").strip()
+    category_raw = (request.form.get("category_type") or "").strip()
+    amount_raw = (request.form.get("amount") or "").strip().replace(",", "")
+    transferred_at_raw = (request.form.get("transferred_at") or "").strip()
+
+    if not setting_id_raw.isdigit():
+        return _validation_error_response("กรุณาเลือกหน่วยงานเงินสดย่อย")
+
+    if not claim_number:
+        return _validation_error_response("กรุณาระบุเลขที่ใบเบิก")
+    if len(claim_number) > 255:
+        return _validation_error_response("เลขที่ใบเบิกต้องไม่เกิน 255 ตัวอักษร")
+
+    setting = (
+        db.session.query(PettyCashSetting)
+        .filter(
+            PettyCashSetting.id == int(setting_id_raw),
+            PettyCashSetting.fiscal_year == current_fiscal_year,
+            PettyCashSetting.valid.is_(True),
+            PettyCashSetting.custodian_id.isnot(None),
+        )
+        .first()
+    )
+    if setting is None:
+        return _validation_error_response(
+            "ไม่พบ Setting ที่ใช้งานได้สำหรับปีงบประมาณปัจจุบัน"
+        )
+
+    duplicate_claim = (
+        db.session.query(PettyCashClaimDetail.id)
+        .filter(
+            PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+            func.lower(func.trim(PettyCashClaimDetail.claim_number))
+            == claim_number.lower(),
+        )
+        .first()
+    )
+    if duplicate_claim:
+        return _validation_error_response(
+            "เลขที่ใบเบิกนี้มีอยู่แล้วใน Setting ที่เลือก"
+        )
+
+    if not category_raw.isdigit() or int(category_raw) not in {1, 2, 3, 4, 5}:
+        return _validation_error_response("กรุณาเลือกหมวดค่าใช้จ่ายให้ถูกต้อง")
+    category_type = int(category_raw)
+
+    try:
+        amount = Decimal(amount_raw).quantize(Decimal("0.01"))
+    except Exception:
+        return _validation_error_response("กรุณาระบุจำนวนเงินให้ถูกต้อง")
+    if not amount.is_finite() or amount <= 0:
+        return _validation_error_response("จำนวนเงินต้องมากกว่า 0")
+    if amount > Decimal("9999999999.99"):
+        return _validation_error_response("จำนวนเงินเกินขอบเขตที่ระบบรองรับ")
+
+    transferred_at = _coerce_date(transferred_at_raw)
+    if transferred_at is None:
+        return _validation_error_response("กรุณาระบุวันที่โอนเงินสำเร็จให้ถูกต้อง")
+    if transferred_at < fiscal_year_start or transferred_at > fiscal_year_end:
+        return _validation_error_response(
+            "วันที่โอนเงินต้องอยู่ในปีงบประมาณปัจจุบันของ Setting ที่เลือก"
+        )
+    if transferred_at > today:
+        return _validation_error_response("วันที่โอนเงินสำเร็จต้องไม่เป็นวันที่ในอนาคต")
+
+    created_at = datetime.now()
+    try:
+        claim = PettyCashClaimDetail(
+            user_id=setting.custodian_id,
+            petty_cash_setting_id=setting.id,
+            fund_request_id=None,
+            claim_number=claim_number,
+            status=CASH_TRANSFER_STATUS,
+            total_amount=amount,
+            approved_at=created_at,
+            settled_at=None,
+            transferred_at=transferred_at,
+            created_at=created_at,
+            note=DIRECT_LEGACY_CLAIM_NOTE,
+            fiscal_year=setting.fiscal_year,
+        )
+        db.session.add(claim)
+        db.session.flush()
+        db.session.add(
+            PettyCashClaimItem(
+                claim_id=claim.id,
+                receipt_date=transferred_at,
+                description=CATEGORY_CHOICES[category_type],
+                amount=amount,
+                category_type=category_type,
+                created_at=created_at,
+            )
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Unable to create a direct legacy petty-cash claim")
+        return _validation_error_response(
+            "ไม่สามารถสร้างรายการย้อนหลังได้ กรุณาลองใหม่อีกครั้ง",
+            status_code=500,
+        )
+
+    flash(
+        f"สร้างรายการย้อนหลัง {claim.claim_number} จำนวน {amount:,.2f} บาทเรียบร้อยแล้ว",
+        "success",
+    )
+    return redirect(url_for("advance_payment.petty_cash_claim_history"))
 
 
 def _parcel_return_history_fallback(parcel_return):
@@ -12020,10 +12184,15 @@ def petty_cash_ledger():
         ) or None
 
         # เพิ่ม Row หลักสำหรับเงินที่ได้รับโอนคืนจากคณะ (หมวด 1-5)
+        claim_reference = (
+            claim.fund_request.ticket_number
+            if claim.fund_request and claim.fund_request.ticket_number
+            else (claim.claim_number or f"PC-{claim.id}")
+        )
         _append_ledger_row(
             receipt_date=claim_receipt_date,
             created_at=claim.created_at,
-            description="คณะคืนเงินสดย่อย (" + (claim.fund_request.ticket_number if claim.fund_request else "-") + ")",
+            description=f"คณะคืนเงินสดย่อย ({claim_reference})",
             doc_number=doc_no,
             bank_income=claim_total,
             cat_7=cat_7,
