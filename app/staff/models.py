@@ -135,8 +135,8 @@ class StaffAccount(db.Model):
         return self.personal_info.fullname
 
     @property
-    def fullname_with_full_academic_position(self):
-        return self.personal_info.fullname_with_full_academic_position
+    def fullname_with_full_position(self):
+        return self.personal_info.fullname_with_full_position
 
     @property
     def en_fullname(self):
@@ -271,7 +271,7 @@ class StaffPersonalInfo(db.Model):
                 return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
 
     @property
-    def fullname_with_full_academic_position(self):
+    def fullname_with_full_position(self):
         try:
             academic_position = self.academic_positions[0]
         except IndexError:
