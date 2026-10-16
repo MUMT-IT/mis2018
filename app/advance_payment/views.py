@@ -170,6 +170,9 @@ COORDINATOR_ROLE = "cash_management_coordinator"
 ADVANCE_PAYMENT_SYSTEM = "advance_payment"
 PETTY_CASH_SYSTEM = "petty_cash"
 FINANCE_SYSTEM = "finance"
+ADVANCE_PAYMENT_READ_ONLY_MESSAGE = (
+    "ไม่สามารถเพิ่ม แก้ไข หรือส่งข้อมูลได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ"
+)
 ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET = Decimal("8000000.00")
 PETTY_CASH_DASHBOARD_INITIAL_BUDGET = Decimal("4000000.00")
 AVAILABLE_SYSTEMS = (FINANCE_SYSTEM, PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM)
@@ -1024,21 +1027,13 @@ def _ensure_module_role(staff, requested_role):
 
 
 def _selected_system():
-    selected_system = session.get("advance_payment_system")
-    if (
-        selected_system == ADVANCE_PAYMENT_SYSTEM
-        and not _is_cash_mng_finance_open()
-    ):
-        return None
-    return selected_system
+    return session.get("advance_payment_system")
 
 
 def _can_use_module_system(staff, system):
     if staff is None or getattr(staff, "is_authenticated", True) is False:
         return False
-    if staff is not None and system == ADVANCE_PAYMENT_SYSTEM:
-        return _is_cash_mng_finance_open()
-    if staff is not None and system == PETTY_CASH_SYSTEM:
+    if staff is not None and system in {PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM}:
         return True
     available_roles = set(_available_module_roles(staff))
     if system == FINANCE_SYSTEM:
@@ -1113,6 +1108,15 @@ def module_system_required(systems):
                     _set_selected_system(selected_system)
             if selected_system not in allowed_systems:
                 abort(403)
+            if (
+                selected_system == ADVANCE_PAYMENT_SYSTEM
+                and request.method not in {"GET", "HEAD", "OPTIONS"}
+                and not _is_cash_mng_finance_open()
+            ):
+                return _validation_error_response(
+                    ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
+                    status_code=423,
+                )
             return view_func(*args, **kwargs)
 
         return flask_login_required(wrapped)
@@ -7036,6 +7040,14 @@ def filter_actionable_tickets(tickets):
 @bp.route("/proof-file/<int:file_id>/edit-inline", methods=["POST"])
 @flask_login_required
 def edit_receipt_item_inline(file_id):
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _is_cash_mng_finance_open()
+    ):
+        return _validation_error_response(
+            ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
+            status_code=423,
+        )
     source = (request.form.get("source") or "").strip().lower()
     proof_file = None
     receipt_item = None
@@ -7307,6 +7319,14 @@ def edit_receipt_item_inline(file_id):
 def confirm_return_edit(return_id):
     if _selected_system() == FINANCE_SYSTEM:
         abort(403)
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _is_cash_mng_finance_open()
+    ):
+        return _validation_error_response(
+            ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
+            status_code=423,
+        )
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
         abort(404)
@@ -8480,7 +8500,7 @@ def toggle_cash_mng_finance_state():
         else "ปิดปีงบประมาณเงินสดย่อยเรียบร้อยแล้ว",
         "success",
     )
-    return redirect(url_for("advance_payment.petty_cash_settings"))
+    return redirect(url_for("advance_payment.finance_dashboard"))
 
 
 def _carryover_amount(value):
@@ -11783,6 +11803,14 @@ def reject_petty_claim(claim_id):
 def confirm_petty_claim_edit(claim_id):
     if _selected_system() == FINANCE_SYSTEM:
         abort(403)
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _is_cash_mng_finance_open()
+    ):
+        return _validation_error_response(
+            ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
+            status_code=423,
+        )
     claim = db.session.query(PettyCashClaimDetail).get(claim_id)
     if not claim:
         abort(404)

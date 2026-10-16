@@ -1042,6 +1042,15 @@
       {% endif %}
 
       <main class="container-fluid p-4 p-md-5">
+        {% if not cash_mng_finance_open and session.get('advance_payment_system') == 'advance_payment' %}
+          <div class="alert alert-warning d-flex align-items-start mb-4" role="alert">
+            <i class="bi bi-eye-fill me-2 mt-1" aria-hidden="true"></i>
+            <div>
+              <strong>ระบบเงินทดรองจ่ายอยู่ในโหมดดูข้อมูลเท่านั้น</strong>
+              <div class="small">สามารถดูประวัติและรายละเอียดได้ แต่ไม่สามารถเพิ่ม แก้ไข หรือส่งข้อมูลได้ในช่วงปิดปีงบประมาณ</div>
+            </div>
+          </div>
+        {% endif %}
         {# Flash Messages Layout #}
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -1446,43 +1455,60 @@
       });
       {% endif %}
     </script>
-{% if not cash_mng_finance_open %}
+{% if not cash_mng_finance_open and session.get('advance_payment_system') == 'advance_payment' %}
 <style>
-  .cash-mng-finance-entry-disabled {
-    opacity: 0.55;
-    pointer-events: none;
-    cursor: not-allowed !important;
+  .cash-mng-finance-read-only-closed {
+    display: none !important;
   }
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const disableControl = (control) => {
-    if (!control) return;
-    control.classList.add('cash-mng-finance-entry-disabled', 'disabled');
-    control.setAttribute('aria-disabled', 'true');
-    control.setAttribute('title', 'ไม่สามารถเข้าใช้งานระบบเงินยืมทดรองจ่ายได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ');
-    if ('disabled' in control) control.disabled = true;
-    if (control.tagName === 'A') control.removeAttribute('href');
+  const closeControl = (control) => {
+    if (control) control.classList.add('cash-mng-finance-read-only-closed');
   };
 
-  document.querySelectorAll('[data-system="advance_payment"], [data-system-target="advance_payment"], button[value="advance_payment"], input[type="submit"][value="advance_payment"], option[value="advance_payment"]').forEach(disableControl);
+  const addClosedNotice = (form) => {
+    const isMainForm =
+      form.id === 'createBorrowingTicketForm' ||
+      /^returnForm_/.test(form.id || '') ||
+      form.querySelectorAll('input:not([type="hidden"]), select, textarea').length >= 4;
+    if (!isMainForm || form.previousElementSibling?.classList.contains('cash-mng-finance-closed-notice')) return;
 
-  document.querySelectorAll('input[value="advance_payment"]').forEach(input => {
-    input.closest('form')?.querySelectorAll('button, input[type="submit"], a').forEach(disableControl);
+    const notice = document.createElement('div');
+    notice.className = 'alert alert-warning cash-mng-finance-closed-notice mb-0';
+    notice.setAttribute('role', 'status');
+    notice.innerHTML = '<i class="bi bi-lock-fill me-2" aria-hidden="true"></i>ส่วนบันทึกข้อมูลปิดใช้งานในช่วงปิดปีงบประมาณ';
+    form.parentNode.insertBefore(notice, form);
+  };
+
+  document.querySelectorAll('form').forEach(form => {
+    const method = (form.getAttribute('method') || 'GET').toUpperCase();
+    const isSystemSwitch = Boolean(form.querySelector('[name="system"]'));
+    const isSharedPopup = form.id === 'appPopupModalForm';
+    if (method === 'GET' || isSystemSwitch || isSharedPopup) return;
+
+    if (form.id) {
+      document.querySelectorAll(`[data-popup-target-form-id="${CSS.escape(form.id)}"]`).forEach(closeControl);
+    }
+
+    const modal = form.closest('.modal');
+    if (modal) {
+      if (modal.id) {
+        document.querySelectorAll(`[data-bs-target="#${CSS.escape(modal.id)}"]`).forEach(closeControl);
+      }
+      closeControl(modal);
+      return;
+    }
+
+    addClosedNotice(form);
+    closeControl(form);
   });
 
-  document.querySelectorAll('a, button').forEach(control => {
-    const label = [
-      control.textContent || '',
-      control.getAttribute('title') || '',
-      control.getAttribute('aria-label') || '',
-    ].join(' ').replace(/\s+/g, ' ').trim();
-    const href = control.getAttribute('href') || '';
-    const targetsAdvancePayment =
-      label.includes('ระบบเงินยืม') ||
-      label.includes('เงินยืมทดรองจ่าย') ||
-      /(?:[?&]system=|\/systems?\/|\/select-system\/|\/switch-system\/)advance_payment(?:[&#/?]|$)/i.test(href);
-    if (targetsAdvancePayment) disableControl(control);
+  document.querySelectorAll('a[href]').forEach(link => {
+    const href = link.getAttribute('href') || '';
+    if (/(?:\/|^)(?:new|create|edit|delete|cancel|submit|confirm|approve|reject|withdraw|autosave)(?:[/?#-]|$)/i.test(href)) {
+      closeControl(link);
+    }
   });
 });
 </script>

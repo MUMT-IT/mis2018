@@ -17,7 +17,7 @@
           disabled
           title="ไม่พบ Setting ที่ใช้งานได้ในปีงบประมาณปัจจุบัน"
           {% endif %}>
-    <i class="bi bi-plus-circle me-1"></i> เพิ่มรายการย้อนหลัง
+    <i class="bi bi-plus-circle me-1"></i> รายการโอนเงินของรายการค้างจ่ายปีงบ {{ current_fiscal_year + 542 }}
   </button>
 </header>
 
@@ -30,7 +30,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-header">
           <div>
-            <h5 class="modal-title fw-bold" id="createLegacyClaimModalLabel">เพิ่มรายการย้อนหลัง</h5>
+            <h5 class="modal-title fw-bold" id="createLegacyClaimModalLabel">บันทึกรายการโอนเงินของรายการค้างจ่ายปีงบ {{ current_fiscal_year + 542 }}</h5>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="ปิด"></button>
         </div>
