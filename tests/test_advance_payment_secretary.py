@@ -20,6 +20,7 @@ class PettyCashOrganizationScopeTests(unittest.TestCase):
                 for node in source.body
                 if isinstance(node, ast.FunctionDef)
                 and node.name in {
+                    "_is_staff_org_head",
                     "_is_petty_cash_custodian",
                     "_can_access_petty_cash_setting",
                     "_can_manage_petty_cash_claim",
@@ -32,6 +33,7 @@ class PettyCashOrganizationScopeTests(unittest.TestCase):
             "_get_staff_org": lambda user: getattr(user, "org", None),
         }
         exec(compile(helpers, "views.py", "exec"), cls.context)
+        cls.is_org_head = staticmethod(cls.context["_is_staff_org_head"])
         cls.is_custodian = staticmethod(cls.context["_is_petty_cash_custodian"])
         cls.can_access = staticmethod(cls.context["_can_access_petty_cash_setting"])
         cls.can_manage_claim = staticmethod(cls.context["_can_manage_petty_cash_claim"])
@@ -64,6 +66,14 @@ class PettyCashOrganizationScopeTests(unittest.TestCase):
 
         self.assertTrue(self.is_custodian(self.user, self.setting))
         self.assertTrue(self.can_access(self.user, self.setting))
+
+    def test_organization_head_is_identified_by_email(self):
+        self.org.head = "head@example.com"
+        self.user.email = "head@example.com"
+        self.assertTrue(self.is_org_head(self.user))
+
+        self.user.email = "staff@example.com"
+        self.assertFalse(self.is_org_head(self.user))
 
     def test_custodian_status_does_not_depend_on_secretary_role(self):
         self.setting.custodian_id = self.user.id

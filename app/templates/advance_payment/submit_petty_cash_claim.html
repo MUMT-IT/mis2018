@@ -1,10 +1,9 @@
 {% extends "advance_payment/base.html" %}
 
-{% block title %}แบบฟอร์มส่งเบิกเงินสดย่อย | ผู้ดูแลบัญชี{% endblock %}
+{% block title %}แบบฟอร์มส่งเบิกเงินสดย่อย{% endblock %}
 
 {% block content %}
 <header class="mb-4 pb-2 border-bottom">
-  <p class="text-uppercase fw-bold text-primary small mb-1" style="letter-spacing: 0.1em;">ผู้ดูแลบัญชี</p>
   <h1 class="fw-bold display-6 mb-2">ใบส่งเบิกเงินสดย่อย</h1>
 </header>
 {% if verification_fund_request or claim_detail %}
@@ -115,6 +114,11 @@
   {% if verification_fund_request %}
   <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top gap-2">
     <div class="text-start flex-grow-1">
+      {% if fund_request_waiting_message %}
+        <div class="text-warning fw-semibold mb-2">
+          <i class="bi bi-hourglass-split me-1"></i>{{ fund_request_waiting_message }}
+        </div>
+      {% endif %}
       {% if verification_fund_request.personal_note %}
         <span class="fw-bold">หมายเหตุส่วนตัว:</span>
         <span>{{ verification_fund_request.personal_note or '-' }}</span>
@@ -178,9 +182,6 @@
       </button>
       {% endif %}
       {% if can_cancel_fund_request %}
-      <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
-        <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
-      </a>
       <button type="button"
               class="btn btn-outline-danger btn-sm fw-bold px-3 py-2"
               data-popup-trigger="true"
@@ -199,6 +200,11 @@
       </button>
       {% endif %}
     </div>
+    {% endif %}
+    {% if can_download_fund_request_pdf %}
+      <a href="{{ url_for('advance_payment.export_fund_request_pdf', request_id=verification_fund_request.id) }}" class="btn btn-outline-dark btn-sm fw-bold px-3 py-2" target="_blank" rel="noopener">
+        <i class="bi bi-file-earmark-pdf me-1"></i> ดาวน์โหลดใบยืม/ใบเบิก
+      </a>
     {% endif %}
   </div>
   <template id="cancelFundRequestExtraFields">
@@ -409,7 +415,7 @@
                   <a href="{{ doc.url or doc.view_url or doc.file_path or '#' }}" class="btn btn-sm btn-outline-primary download-btn {% if not doc.url and not doc.view_url and not doc.file_path %}d-none{% endif %}" target="_blank" rel="noopener">
                     <i class="bi bi-download me-1"></i> ดาวน์โหลด
                   </a>
-                  <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
+                  <button type="button" class="btn btn-sm btn-outline-danger border-1 remove-document-btn" onclick="removeDocumentRow(this)">
                     <i class="bi bi-x-circle-fill"></i> ลบ
                   </button>
                 </div>
@@ -431,6 +437,9 @@
                 <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
                   <i class="bi bi-download me-1"></i> ดาวน์โหลด
                 </a>
+                <button type="button" class="btn btn-sm btn-outline-danger border-1 remove-document-btn selection-dependent d-none" onclick="removeDocumentRow(this)">
+                  <i class="bi bi-x-circle-fill"></i> ลบ
+                </button>
               </div>
             </div>
           {% endif %}
@@ -1815,7 +1824,7 @@ function addDocumentRow() {
       <a href="#" class="btn btn-sm btn-outline-primary download-btn d-none" target="_blank" rel="noopener" download="announcement.pdf">
         <i class="bi bi-download me-1"></i> ดาวน์โหลด
       </a>
-      <button type="button" class="btn btn-sm btn-outline-danger border-1" onclick="removeDocumentRow(this)">
+      <button type="button" class="btn btn-sm btn-outline-danger border-1 remove-document-btn" onclick="removeDocumentRow(this)">
         <i class="bi bi-x-circle-fill"></i> ลบ
       </button>
     </div>
@@ -1842,6 +1851,8 @@ function removeDocumentRow(btn) {
     row.querySelector('.announcement-input').value = '';
     if (row.querySelector('.announcement-id-input')) row.querySelector('.announcement-id-input').value = '';
     row.querySelector('.download-btn').classList.add('d-none');
+    const removeBtn = row.querySelector('.remove-document-btn');
+    if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.add('d-none');
   }
   updateAddDocumentButton(container);
   triggerAutoSave();
@@ -1852,10 +1863,12 @@ async function showSuggestions(inputElem, resetSelection = true) {
   const row = inputElem.closest('.document-input-row');
   const suggestionsBox = row.querySelector('.suggestions-box');
   const downloadBtn = row.querySelector('.download-btn');
+  const removeBtn = row.querySelector('.remove-document-btn');
   const idInput = row.querySelector('.announcement-id-input');
 
   if (resetSelection) {
     downloadBtn.classList.add('d-none');
+    if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.add('d-none');
     if (idInput) idInput.value = '';
     updateAddDocumentButton(row.parentElement);
   }
@@ -1894,6 +1907,7 @@ function selectAnnouncement(itemElem, docId, docTitle, filePath) {
   const titleInput = row.querySelector('.announcement-input');
   const idInput = row.querySelector('.announcement-id-input');
   const downloadBtn = row.querySelector('.download-btn');
+  const removeBtn = row.querySelector('.remove-document-btn');
   const suggestionsBox = row.querySelector('.suggestions-box');
 
   titleInput.value = docTitle;
@@ -1902,8 +1916,10 @@ function selectAnnouncement(itemElem, docId, docTitle, filePath) {
   if (filePath) {
     downloadBtn.href = filePath;
     downloadBtn.classList.remove('d-none');
+    if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.remove('d-none');
   } else {
     downloadBtn.classList.add('d-none');
+    if (removeBtn.classList.contains('selection-dependent')) removeBtn.classList.add('d-none');
   }
 
   updateAddDocumentButton(row.parentElement);

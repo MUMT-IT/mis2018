@@ -170,6 +170,9 @@ COORDINATOR_ROLE = "cash_management_coordinator"
 ADVANCE_PAYMENT_SYSTEM = "advance_payment"
 PETTY_CASH_SYSTEM = "petty_cash"
 FINANCE_SYSTEM = "finance"
+ADVANCE_PAYMENT_READ_ONLY_MESSAGE = (
+    "ไม่สามารถเพิ่ม แก้ไข หรือส่งข้อมูลได้เนื่องจากอยู่ในช่วงปิดปีงบประมาณ"
+)
 ADVANCE_PAYMENT_DASHBOARD_INITIAL_BUDGET = Decimal("8000000.00")
 PETTY_CASH_DASHBOARD_INITIAL_BUDGET = Decimal("4000000.00")
 AVAILABLE_SYSTEMS = (FINANCE_SYSTEM, PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM)
@@ -189,6 +192,7 @@ FUND_REQUEST_STATUS_STEPS = ["รอการอนุมัติ", "อนุ�
 RETURN_DETAIL_BOUNCED_STATUS = "ฎีกาถูกตีกลับจากกองคลัง"
 CASH_TRANSFER_STATUS = "โอนเงินสดย่อยสำเร็จ"
 PARCEL_RETURN_CONFIRMED_STATUS = "ยืนยันการตรวจสอบ"
+DIRECT_LEGACY_CLAIM_NOTE = "รายการย้อนหลังที่ฝ่ายการเงินบันทึกโดยตรง"
 RETURN_DETAIL_EDITABLE_STATUSES = {
     "รอตรวจสอบ",
     "ปฏิเสธ",
@@ -402,6 +406,14 @@ def _get_staff_org(staff):
     return org
 
 
+def _is_staff_org_head(staff):
+    org = _get_staff_org(staff)
+    return bool(
+        org
+        and getattr(org, "head", None)
+        and getattr(org, "head", None) == getattr(staff, "email", None)
+    )
+
 def _get_staff_department_name(staff, default=None):
     org = _get_staff_org(staff)
     if org and getattr(org, "name", None):
@@ -532,7 +544,7 @@ def _fund_request_setting_filter(query, setting, *, include_legacy=True):
 
 
 def _exclude_legacy_fund_request_claims(query):
-    """Exclude claims attached to fund requests imported from a prior year."""
+    """Exclude prior-year claims that must not affect the current summary."""
     legacy_fund_request_ids = db.session.query(FundRequest.id).filter(
         FundRequest.is_legacy_import.is_(True),
     )
@@ -540,7 +552,12 @@ def _exclude_legacy_fund_request_claims(query):
         or_(
             PettyCashClaimDetail.fund_request_id.is_(None),
             PettyCashClaimDetail.fund_request_id.notin_(legacy_fund_request_ids),
-        )
+        ),
+        or_(
+            PettyCashClaimDetail.fund_request_id.isnot(None),
+            func.trim(func.coalesce(PettyCashClaimDetail.note, ""))
+            != DIRECT_LEGACY_CLAIM_NOTE,
+        ),
     )
 
 
@@ -782,16 +799,21 @@ def _fund_request_signature_state(fund_request):
     }
 
 
-def _fund_request_can_be_edited_by_creator(user, fund_request):
-    """Allow edits only before another person has acted on the request."""
+def _fund_request_can_be_edited(user, fund_request):
+    """Allow creator edits before another actor, or custodian edits pre-approval."""
     user_id = getattr(user, "id", None)
     creator_id = getattr(fund_request, "creator_id", None)
     if (
         not user_id
-        or creator_id != user_id
         or getattr(fund_request, "is_legacy_import", False)
         or (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ"
     ):
+        return False
+
+    if user_id == _fund_request_custodian_id(fund_request):
+        return getattr(fund_request, "approved_at", None) is None
+
+    if creator_id != user_id:
         return False
 
     for timestamp_attr, actor_attr in (
@@ -807,6 +829,28 @@ def _fund_request_can_be_edited_by_creator(user, fund_request):
             return False
 
     return True
+
+
+def _can_download_fund_request_pdf(user, fund_request):
+    """Allow the org head, custodian, creator, or requester to export PDF."""
+    user_id = getattr(user, "id", None)
+    if not user_id or fund_request is None:
+        return False
+
+    if user_id in {
+        getattr(fund_request, "creator_id", None),
+        getattr(fund_request, "requester_id", None),
+    }:
+        return True
+    if _is_fund_request_org_head(user, fund_request):
+        return True
+
+    setting = getattr(fund_request, "petty_cash_setting", None)
+    if setting is None and getattr(fund_request, "petty_cash_setting_id", None):
+        setting = db.session.query(PettyCashSetting).get(
+            fund_request.petty_cash_setting_id
+        )
+    return _is_petty_cash_custodian(user, setting)
 
 
 def _fund_request_expected_confirmer_id(fund_request):
@@ -1018,21 +1062,13 @@ def _ensure_module_role(staff, requested_role):
 
 
 def _selected_system():
-    selected_system = session.get("advance_payment_system")
-    if (
-        selected_system == ADVANCE_PAYMENT_SYSTEM
-        and not _is_cash_mng_finance_open()
-    ):
-        return None
-    return selected_system
+    return session.get("advance_payment_system")
 
 
 def _can_use_module_system(staff, system):
     if staff is None or getattr(staff, "is_authenticated", True) is False:
         return False
-    if staff is not None and system == ADVANCE_PAYMENT_SYSTEM:
-        return _is_cash_mng_finance_open()
-    if staff is not None and system == PETTY_CASH_SYSTEM:
+    if staff is not None and system in {PETTY_CASH_SYSTEM, ADVANCE_PAYMENT_SYSTEM}:
         return True
     available_roles = set(_available_module_roles(staff))
     if system == FINANCE_SYSTEM:
@@ -1107,6 +1143,15 @@ def module_system_required(systems):
                     _set_selected_system(selected_system)
             if selected_system not in allowed_systems:
                 abort(403)
+            if (
+                selected_system == ADVANCE_PAYMENT_SYSTEM
+                and request.method not in {"GET", "HEAD", "OPTIONS"}
+                and not _is_cash_mng_finance_open()
+            ):
+                return _validation_error_response(
+                    ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
+                    status_code=423,
+                )
             return view_func(*args, **kwargs)
 
         return flask_login_required(wrapped)
@@ -2438,7 +2483,10 @@ def _download_cash_mng_document(file_id):
 
 
 def _advance_payment_email_enabled():
-    return os.environ.get("ADVANCE_PAYMENT_EMAIL_ENABLED", "false").lower() in {
+    value = os.environ.get("ADVANCE_PAYMENT_EMAIL_ENABLED")
+    if value is None:
+        return True
+    return value.strip().lower() in {
         "1", "true", "yes", "on"
     }
 
@@ -2803,19 +2851,27 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
 
 
 def _notify_next_fund_request_actor(fund_request):
+    if (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ":
+        return False
+
     expected_confirmer_id = _fund_request_expected_confirmer_id(fund_request)
+    head = _fund_request_org_head(fund_request)
     if expected_confirmer_id:
         recipient = _get_user_by_id(expected_confirmer_id)
-        action = "confirm"
+        if (
+            _staff_accounts_match(recipient, head)
+            and not getattr(fund_request, "approved_at", None)
+        ):
+            action = "approve"
+        elif expected_confirmer_id == getattr(fund_request, "requester_id", None):
+            action = "confirm_requester"
+        elif expected_confirmer_id == _fund_request_custodian_id(fund_request):
+            action = "confirm_custodian"
+        else:
+            action = "confirm"
     elif not getattr(fund_request, "approved_at", None):
-        recipient = _fund_request_org_head(fund_request)
+        recipient = head
         action = "approve"
-    elif (
-        (getattr(fund_request, "status", None) or "").strip() == "อนุมัติแล้ว"
-        and not getattr(fund_request, "request_date", None)
-    ):
-        recipient = _get_user_by_id(_fund_request_custodian_id(fund_request))
-        action = "withdrawal"
     else:
         return False
 
@@ -2826,12 +2882,123 @@ def _notify_next_fund_request_actor(fund_request):
             getattr(fund_request, "id", None),
         )
         return False
+
+    setting = getattr(fund_request, "petty_cash_setting", None)
+    if setting is None and getattr(fund_request, "petty_cash_setting_id", None):
+        setting = db.session.query(PettyCashSetting).get(
+            fund_request.petty_cash_setting_id
+        )
+    bank_account = getattr(setting, "bank_account_info", None)
+    if bank_account is None and getattr(setting, "account_number", None):
+        bank_account = _get_bank_account_info(
+            account_number=setting.account_number,
+        )
+    bank_account_name = (
+        getattr(bank_account, "thai_name", None)
+        or getattr(setting, "department_name", None)
+        or "-"
+    )
     return _send_notification_email(
         fund_request,
         object_type="fund_request",
         extra_ctx={
             "recipient_emails": [recipient_email],
             "action": action,
+            "bank_account_name": bank_account_name,
+            "action_url": url_for(
+                "advance_payment.submit_petty_cash_claim",
+                fund_request_id=fund_request.id,
+                _external=True,
+            ),
+        },
+    )
+
+
+def _send_fund_request_approved_notification(fund_request):
+    """Notify the requester, custodian, and actual approver once approved."""
+    if (
+        (getattr(fund_request, "status", None) or "").strip() != "อนุมัติแล้ว"
+        or not _fund_request_is_fully_approved(fund_request)
+    ):
+        return False
+
+    requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
+    custodian = _get_user_by_id(_fund_request_custodian_id(fund_request))
+    approver = _get_user_by_id(getattr(fund_request, "approved_by_id", None))
+
+    recipient_emails = [
+        getattr(actor, "email", None)
+        for actor in (requester, custodian, approver)
+        if actor is not None
+    ]
+    if not any(recipient_emails):
+        current_app.logger.warning(
+            "ไม่พบอีเมลผู้เกี่ยวข้องสำหรับแจ้งผลอนุมัติ fund request id=%s",
+            getattr(fund_request, "id", None),
+        )
+        return False
+
+    approver_name = (
+        getattr(approver, "name", None)
+        or getattr(approver, "fullname", None)
+        or getattr(approver, "email", None)
+        or "-"
+    )
+    return _send_notification_email(
+        fund_request,
+        object_type="fund_request",
+        extra_ctx={
+            "recipient_emails": recipient_emails,
+            "action": "approved",
+            "approver_name": approver_name,
+            "action_url": url_for(
+                "advance_payment.submit_petty_cash_claim",
+                fund_request_id=fund_request.id,
+                _external=True,
+            ),
+        },
+    )
+
+
+def _send_fund_request_flow_notification(fund_request):
+    """Send exactly one notification for the request's current flow state."""
+    if (
+        (getattr(fund_request, "status", None) or "").strip() == "อนุมัติแล้ว"
+        and _fund_request_is_fully_approved(fund_request)
+    ):
+        return _send_fund_request_approved_notification(fund_request)
+    return _notify_next_fund_request_actor(fund_request)
+
+
+def _send_fund_request_edited_notification(fund_request, editor):
+    """Notify the creator and requester when someone else edits a request."""
+    creator = _get_user_by_id(getattr(fund_request, "creator_id", None))
+    requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
+    editor_email = (getattr(editor, "email", None) or "").strip().casefold()
+    recipient_emails = [
+        email
+        for email in (
+            getattr(creator, "email", None),
+            getattr(requester, "email", None),
+        )
+        if email and email.strip().casefold() != editor_email
+    ]
+    if not recipient_emails:
+        return False
+
+    editor_name = (
+        getattr(editor, "name", None)
+        or getattr(editor, "fullname", None)
+        or getattr(editor, "email", None)
+        or "ผู้เก็บรักษาเงินสดย่อย"
+    )
+    return _send_notification_email(
+        fund_request,
+        object_type="fund_request",
+        extra_ctx={
+            "recipient_emails": recipient_emails,
+            "action": "edited",
+            "editor_name": editor_name,
             "action_url": url_for(
                 "advance_payment.submit_petty_cash_claim",
                 fund_request_id=fund_request.id,
@@ -5277,7 +5444,7 @@ def cash_advance_account_manager_settings(_render_after_post=False):
     )
     staff_by_id = {staff.id: staff for staff in active_staff}
 
-    def _load_setting_rows():
+    def _load_account_rows():
         manager_links = (
             db.session.query(CashAdvanceAccountManager)
             .join(BankAccountInfo)
@@ -5290,107 +5457,92 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         )
         manager_ids_by_account = {}
         for link in manager_links:
-            if link.staff_account_id in staff_by_id:
+            staff = staff_by_id.get(link.staff_account_id)
+            account = account_by_id.get(link.bank_account_info_id)
+            staff_org_id = getattr(
+                getattr(staff, "personal_info", None), "org_id", None
+            )
+            if (
+                account is not None
+                and staff is not None
+                and staff_org_id == account.org_id
+            ):
                 manager_ids_by_account.setdefault(link.bank_account_info_id, []).append(
                     link.staff_account_id
                 )
 
         return [
             {
+                "id": account.id,
                 "org_id": account.org_id,
-                "bank_account_info_id": account.id,
-                "manager_ids": manager_ids_by_account[account.id],
+                "org_name": account.org.name if account.org else "ไม่ระบุหน่วยงาน",
+                "thai_name": account.thai_name,
+                "account_number": account.account_number,
+                "manager_ids": manager_ids_by_account.get(account.id, []),
+                "managers": [
+                    {
+                        "id": manager_id,
+                        "name": staff_by_id[manager_id].fullname,
+                        "position": staff_by_id[manager_id].position or "ไม่ระบุตำแหน่ง",
+                    }
+                    for manager_id in manager_ids_by_account.get(account.id, [])
+                ],
             }
             for account in cash_advance_accounts
-            if account.id in manager_ids_by_account
         ]
 
     if request.method == "POST" and not _render_after_post:
-        raw_org_ids = request.form.getlist("org_id[]")
-        raw_account_ids = request.form.getlist("bank_account_info_id[]")
-        raw_manager_lists = request.form.getlist("manager_ids[]")
-        row_count = max(len(raw_org_ids), len(raw_account_ids), len(raw_manager_lists))
-        submitted_manager_ids = {}
-        errors = []
+        raw_account_id = (request.form.get("bank_account_info_id") or "").strip()
+        if not raw_account_id.isdigit():
+            return _validation_error_response("ไม่พบบัญชีเงินยืมที่ต้องการตั้งค่า")
 
-        for index in range(row_count):
-            raw_org_id = raw_org_ids[index].strip() if index < len(raw_org_ids) else ""
-            raw_account_id = raw_account_ids[index].strip() if index < len(raw_account_ids) else ""
-            raw_manager_ids = raw_manager_lists[index].strip() if index < len(raw_manager_lists) else ""
+        account_id = int(raw_account_id)
+        account = account_by_id.get(account_id)
+        if account is None or account.closed_at is not None:
+            return _validation_error_response("ไม่พบบัญชีเงินยืมที่เปิดใช้งาน")
+        if account.org_id is None:
+            return _validation_error_response("บัญชีเงินยืมนี้ยังไม่ได้ระบุหน่วยงาน")
 
-            if not any((raw_org_id, raw_account_id, raw_manager_ids)):
-                continue
-            if not raw_org_id.isdigit() or not raw_account_id.isdigit():
-                errors.append(f"แถวที่ {index + 1} กรุณาเลือกหน่วยงานและบัญชีธนาคาร")
-                continue
+        raw_manager_ids = []
+        for raw_value in request.form.getlist("manager_ids[]"):
+            raw_manager_ids.extend(raw_value.split(","))
 
-            org_id = int(raw_org_id)
-            account_id = int(raw_account_id)
-            account = account_by_id.get(account_id)
-            if account is None or account.closed_at is not None:
-                errors.append(f"แถวที่ {index + 1} ไม่พบบัญชีเงินยืมที่เปิดใช้งาน")
+        manager_ids = []
+        for raw_manager_id in raw_manager_ids:
+            raw_manager_id = raw_manager_id.strip()
+            if not raw_manager_id:
                 continue
-            if account.org_id != org_id:
-                errors.append(f"แถวที่ {index + 1} บัญชีธนาคารไม่อยู่ในหน่วยงานที่เลือก")
-                continue
-            if account_id in submitted_manager_ids:
-                errors.append(f"แถวที่ {index + 1} มีบัญชีธนาคารซ้ำกับแถวก่อนหน้า")
-                continue
-
-            manager_ids = []
-            invalid_manager = False
-            for raw_manager_id in raw_manager_ids.split(","):
-                raw_manager_id = raw_manager_id.strip()
-                if not raw_manager_id:
-                    continue
-                if not raw_manager_id.isdigit():
-                    invalid_manager = True
-                    break
-                manager_id = int(raw_manager_id)
-                manager = staff_by_id.get(manager_id)
-                manager_org_id = getattr(getattr(manager, "personal_info", None), "org_id", None)
-                if manager is None or manager_org_id != org_id:
-                    invalid_manager = True
-                    break
-                if manager_id not in manager_ids:
-                    manager_ids.append(manager_id)
-
-            if invalid_manager:
-                errors.append(f"แถวที่ {index + 1} มีผู้จัดการบัญชีที่ไม่อยู่ในหน่วยงานที่เลือก")
-                continue
-            if not manager_ids:
-                errors.append(f"แถวที่ {index + 1} กรุณาเลือกผู้จัดการบัญชีอย่างน้อย 1 คน")
-                continue
-
-            submitted_manager_ids[account_id] = manager_ids
-
-        if errors:
-            return _validation_error_response("; ".join(errors))
+            if not raw_manager_id.isdigit():
+                return _validation_error_response("ข้อมูลผู้ดูแลบัญชีไม่ถูกต้อง")
+            manager_id = int(raw_manager_id)
+            manager = staff_by_id.get(manager_id)
+            manager_org_id = getattr(
+                getattr(manager, "personal_info", None), "org_id", None
+            )
+            if manager is None or manager_org_id != account.org_id:
+                return _validation_error_response(
+                    "ผู้ดูแลบัญชีต้องเป็นบุคลากรที่ยังใช้งานและอยู่ในหน่วยงานเดียวกับบัญชี"
+                )
+            if manager_id not in manager_ids:
+                manager_ids.append(manager_id)
 
         existing_links = (
             db.session.query(CashAdvanceAccountManager)
-            .join(BankAccountInfo)
-            .filter(
-                BankAccountInfo.record_type == "cash_advance",
-                BankAccountInfo.closed_at.is_(None),
-            )
+            .filter(CashAdvanceAccountManager.bank_account_info_id == account_id)
             .all()
         )
-        existing_by_pair = {
-            (link.bank_account_info_id, link.staff_account_id): link
-            for link in existing_links
+        existing_by_manager_id = {
+            link.staff_account_id: link for link in existing_links
         }
-        submitted_pairs = {
-            (account_id, manager_id)
-            for account_id, manager_ids in submitted_manager_ids.items()
-            for manager_id in manager_ids
-        }
+        submitted_manager_ids = set(manager_ids)
 
-        for pair, link in existing_by_pair.items():
-            if pair not in submitted_pairs:
+        # This is deliberately scoped to one bank account. Saving one row must
+        # never remove managers that belong to another cash-advance account.
+        for manager_id, link in existing_by_manager_id.items():
+            if manager_id not in submitted_manager_ids:
                 db.session.delete(link)
-        for account_id, manager_id in submitted_pairs:
-            if (account_id, manager_id) not in existing_by_pair:
+        for manager_id in manager_ids:
+            if manager_id not in existing_by_manager_id:
                 db.session.add(
                     CashAdvanceAccountManager(
                         bank_account_info_id=account_id,
@@ -5403,14 +5555,21 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         except IntegrityError:
             db.session.rollback()
             return _validation_error_response(
-                "ไม่สามารถบันทึกการตั้งค่าได้ เนื่องจากมีบัญชีหรือผู้จัดการบัญชีซ้ำกัน"
+                "ไม่สามารถบันทึกการตั้งค่าได้ เนื่องจากมีข้อมูลผู้ดูแลบัญชีซ้ำกัน"
             )
-        success_message = "บันทึกการตั้งค่าผู้จัดการบัญชีเงินยืมเรียบร้อยแล้ว"
+        success_message = (
+            "บันทึกข้อมูลผู้ดูแลบัญชีเงินยืมเรียบร้อยแล้ว"
+            if manager_ids
+            else "ยกเลิกผู้ดูแลบัญชีเงินยืมเรียบร้อยแล้ว"
+        )
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            account_row = next(
+                row for row in _load_account_rows() if row["id"] == account_id
+            )
             return jsonify(
                 ok=True,
                 message=success_message,
-                settings=_load_setting_rows(),
+                account=account_row,
             )
 
         flash(success_message, "success")
@@ -5418,31 +5577,7 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         # intentionally no redirect in this flow.
         return cash_advance_account_manager_settings(_render_after_post=True)
 
-    setting_rows = _load_setting_rows()
-    org_ids = {
-        account.org_id
-        for account in cash_advance_accounts
-        if account.org_id is not None and account.closed_at is None
-    }
-    org_options = (
-        db.session.query(Org)
-        .filter(Org.id.in_(org_ids))
-        .order_by(Org.name.asc())
-        .all()
-        if org_ids
-        else []
-    )
-    account_options = [
-        {
-            "id": account.id,
-            "org_id": account.org_id,
-            "thai_name": account.thai_name,
-            "account_number": account.account_number,
-            "label": f"{account.thai_name} • {account.account_number}",
-        }
-        for account in cash_advance_accounts
-        if account.org_id is not None and account.closed_at is None
-    ]
+    account_rows = _load_account_rows()
     staff_options = [
         {
             "id": staff.id,
@@ -5458,9 +5593,7 @@ def cash_advance_account_manager_settings(_render_after_post=False):
         "cash_advance_account_manager_settings.html",
         dashboard_title="ตั้งค่าผู้จัดการบัญชีเงินยืม",
         dashboard_role="Finance",
-        setting_rows=setting_rows,
-        org_options=org_options,
-        account_options=account_options,
+        account_rows=account_rows,
         staff_options=staff_options,
     )
 
@@ -7030,6 +7163,14 @@ def filter_actionable_tickets(tickets):
 @bp.route("/proof-file/<int:file_id>/edit-inline", methods=["POST"])
 @flask_login_required
 def edit_receipt_item_inline(file_id):
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _is_cash_mng_finance_open()
+    ):
+        return _validation_error_response(
+            ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
+            status_code=423,
+        )
     source = (request.form.get("source") or "").strip().lower()
     proof_file = None
     receipt_item = None
@@ -7301,6 +7442,14 @@ def edit_receipt_item_inline(file_id):
 def confirm_return_edit(return_id):
     if _selected_system() == FINANCE_SYSTEM:
         abort(403)
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _is_cash_mng_finance_open()
+    ):
+        return _validation_error_response(
+            ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
+            status_code=423,
+        )
     return_detail = db.session.query(ReturnDetail).get(return_id)
     if not return_detail:
         abort(404)
@@ -7848,6 +7997,21 @@ def _get_interest_tracker_data():
 @bp.route("/finance/petty-cash-claim-records", methods=["GET"])
 @module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
 def petty_cash_claim_history():
+    current_fiscal_year = _current_petty_cash_fiscal_year()
+    today = datetime.now().date()
+    fiscal_year_start = date(current_fiscal_year - 1, 10, 1)
+    fiscal_year_end = date(current_fiscal_year, 9, 30)
+    legacy_claim_settings = (
+        db.session.query(PettyCashSetting)
+        .join(Org, Org.id == PettyCashSetting.org_id)
+        .filter(
+            PettyCashSetting.fiscal_year == current_fiscal_year,
+            PettyCashSetting.valid.is_(True),
+            PettyCashSetting.custodian_id.isnot(None),
+        )
+        .order_by(Org.name.asc(), PettyCashSetting.id.asc())
+        .all()
+    )
     org_options = db.session.query(Org).order_by(Org.name.asc()).all()
     # 1. ดึงข้อมูลรายการขอเบิกเงินสดย่อย (PettyCashClaimDetail)
     claim_details = (
@@ -7865,7 +8029,16 @@ def petty_cash_claim_history():
     for claim in claim_details:
         _attach_petty_cash_claim_context(claim)
         closing_doc = claim.closing_document
-        ticket_num = claim.fund_request.ticket_number if claim.fund_request and claim.fund_request.ticket_number else f"PC-{claim.id}"
+        is_direct_legacy = bool(
+            claim.fund_request_id is None
+            and (claim.note or "").strip() == DIRECT_LEGACY_CLAIM_NOTE
+        )
+        first_item = claim.items[0] if claim.items else None
+        ticket_num = (
+            claim.fund_request.ticket_number
+            if claim.fund_request and claim.fund_request.ticket_number
+            else (claim.claim_number or f"PC-{claim.id}")
+        )
         dept_name = (
             claim.setting.department_name
             if claim.setting
@@ -7893,6 +8066,12 @@ def petty_cash_claim_history():
             "total_amount": float(claim.total_amount),
             "status": claim.status,
             "created_at": claim.created_at,
+            "transferred_at": claim.transferred_at,
+            "is_direct_legacy": is_direct_legacy,
+            "category_label": (
+                CATEGORY_CHOICES.get(int(first_item.category_type or 0), "")
+                if first_item else ""
+            ),
             "closed_at": closing_doc.filing_date if closing_doc else None,
             "closing_document_id": claim.closing_document_id or "-",
             "closing_document_name": closing_doc.document_number if closing_doc else "-",
@@ -7983,7 +8162,135 @@ def petty_cash_claim_history():
         pending_interest_count=pending_interest_count,
         current_interest_period=current_interest_period,
         org_options=org_options,
+        legacy_claim_settings=legacy_claim_settings,
+        legacy_claim_category_choices={
+            category_id: label
+            for category_id, label in CATEGORY_CHOICES.items()
+            if category_id in {1, 2, 3, 4, 5}
+        },
+        current_fiscal_year=current_fiscal_year,
+        legacy_transfer_min=fiscal_year_start.isoformat(),
+        legacy_transfer_max=min(today, fiscal_year_end).isoformat(),
     )
+
+
+@bp.route("/finance/petty-cash-claim-records/legacy", methods=["POST"])
+@module_role_required(finance_permission, FINANCE_SYSTEM, FINANCE_SYSTEM)
+def create_legacy_petty_cash_claim():
+    """Create a transferred claim for an off-system legacy transaction."""
+    current_fiscal_year = _current_petty_cash_fiscal_year()
+    today = datetime.now().date()
+    fiscal_year_start = date(current_fiscal_year - 1, 10, 1)
+    fiscal_year_end = date(current_fiscal_year, 9, 30)
+
+    setting_id_raw = (request.form.get("petty_cash_setting_id") or "").strip()
+    claim_number = (request.form.get("claim_number") or "").strip()
+    category_raw = (request.form.get("category_type") or "").strip()
+    amount_raw = (request.form.get("amount") or "").strip().replace(",", "")
+    transferred_at_raw = (request.form.get("transferred_at") or "").strip()
+
+    if not setting_id_raw.isdigit():
+        return _validation_error_response("กรุณาเลือกหน่วยงานเงินสดย่อย")
+
+    if not claim_number:
+        return _validation_error_response("กรุณาระบุเลขที่ใบเบิก")
+    if len(claim_number) > 255:
+        return _validation_error_response("เลขที่ใบเบิกต้องไม่เกิน 255 ตัวอักษร")
+
+    setting = (
+        db.session.query(PettyCashSetting)
+        .filter(
+            PettyCashSetting.id == int(setting_id_raw),
+            PettyCashSetting.fiscal_year == current_fiscal_year,
+            PettyCashSetting.valid.is_(True),
+            PettyCashSetting.custodian_id.isnot(None),
+        )
+        .first()
+    )
+    if setting is None:
+        return _validation_error_response(
+            "ไม่พบ Setting ที่ใช้งานได้สำหรับปีงบประมาณปัจจุบัน"
+        )
+
+    duplicate_claim = (
+        db.session.query(PettyCashClaimDetail.id)
+        .filter(
+            PettyCashClaimDetail.petty_cash_setting_id == setting.id,
+            func.lower(func.trim(PettyCashClaimDetail.claim_number))
+            == claim_number.lower(),
+        )
+        .first()
+    )
+    if duplicate_claim:
+        return _validation_error_response(
+            "เลขที่ใบเบิกนี้มีอยู่แล้วใน Setting ที่เลือก"
+        )
+
+    if not category_raw.isdigit() or int(category_raw) not in {1, 2, 3, 4, 5}:
+        return _validation_error_response("กรุณาเลือกหมวดค่าใช้จ่ายให้ถูกต้อง")
+    category_type = int(category_raw)
+
+    try:
+        amount = Decimal(amount_raw).quantize(Decimal("0.01"))
+    except Exception:
+        return _validation_error_response("กรุณาระบุจำนวนเงินให้ถูกต้อง")
+    if not amount.is_finite() or amount <= 0:
+        return _validation_error_response("จำนวนเงินต้องมากกว่า 0")
+    if amount > Decimal("9999999999.99"):
+        return _validation_error_response("จำนวนเงินเกินขอบเขตที่ระบบรองรับ")
+
+    transferred_at = _coerce_date(transferred_at_raw)
+    if transferred_at is None:
+        return _validation_error_response("กรุณาระบุวันที่โอนเงินสำเร็จให้ถูกต้อง")
+    if transferred_at < fiscal_year_start or transferred_at > fiscal_year_end:
+        return _validation_error_response(
+            "วันที่โอนเงินต้องอยู่ในปีงบประมาณปัจจุบันของ Setting ที่เลือก"
+        )
+    if transferred_at > today:
+        return _validation_error_response("วันที่โอนเงินสำเร็จต้องไม่เป็นวันที่ในอนาคต")
+
+    created_at = datetime.now()
+    try:
+        claim = PettyCashClaimDetail(
+            user_id=setting.custodian_id,
+            petty_cash_setting_id=setting.id,
+            fund_request_id=None,
+            claim_number=claim_number,
+            status=CASH_TRANSFER_STATUS,
+            total_amount=amount,
+            approved_at=created_at,
+            settled_at=None,
+            transferred_at=transferred_at,
+            created_at=created_at,
+            note=DIRECT_LEGACY_CLAIM_NOTE,
+            fiscal_year=setting.fiscal_year,
+        )
+        db.session.add(claim)
+        db.session.flush()
+        db.session.add(
+            PettyCashClaimItem(
+                claim_id=claim.id,
+                receipt_date=transferred_at,
+                description=CATEGORY_CHOICES[category_type],
+                amount=amount,
+                category_type=category_type,
+                created_at=created_at,
+            )
+        )
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("Unable to create a direct legacy petty-cash claim")
+        return _validation_error_response(
+            "ไม่สามารถสร้างรายการย้อนหลังได้ กรุณาลองใหม่อีกครั้ง",
+            status_code=500,
+        )
+
+    flash(
+        f"สร้างรายการย้อนหลัง {claim.claim_number} จำนวน {amount:,.2f} บาทเรียบร้อยแล้ว",
+        "success",
+    )
+    return redirect(url_for("advance_payment.petty_cash_claim_history"))
 
 
 def _parcel_return_history_fallback(parcel_return):
@@ -8316,7 +8623,7 @@ def toggle_cash_mng_finance_state():
         else "ปิดปีงบประมาณเงินสดย่อยเรียบร้อยแล้ว",
         "success",
     )
-    return redirect(url_for("advance_payment.petty_cash_settings"))
+    return redirect(url_for("advance_payment.finance_dashboard"))
 
 
 def _carryover_amount(value):
@@ -8884,7 +9191,7 @@ def staff_fund_request():
         editing_request = db.session.query(FundRequest).get(edit_request_id)
         if not editing_request:
             abort(404)
-        if not _fund_request_can_be_edited_by_creator(user, editing_request):
+        if not _fund_request_can_be_edited(user, editing_request):
             abort(403)
 
     user_display_name = getattr(user, "name", None) or getattr(user, "fullname", None) or getattr(user, "email", None) or "ไม่พบข้อมูลชื่อ"
@@ -9228,8 +9535,10 @@ def staff_fund_request():
                     reference_date=created_at.date(),
                 )
             db.session.commit()
-            if not is_editing:
-                _notify_next_fund_request_actor(new_request)
+            if is_editing:
+                _send_fund_request_edited_notification(new_request, user)
+            else:
+                _send_fund_request_flow_notification(new_request)
 
             flash(
                 "แก้ไขใบเบิกเรียบร้อยแล้ว"
@@ -9311,7 +9620,7 @@ def confirm_fund_request(request_id):
 
     _sync_fund_request_approval_status(fund_req)
     db.session.commit()
-    _notify_next_fund_request_actor(fund_req)
+    _send_fund_request_flow_notification(fund_req)
     flash(
         "ยืนยันใบยืม/ใบเบิกเรียบร้อยแล้ว",
         "success",
@@ -9358,7 +9667,7 @@ def approve_fund_request(request_id):
 
         _sync_fund_request_approval_status(fund_req)
         db.session.commit()
-        _notify_next_fund_request_actor(fund_req)
+        _send_fund_request_flow_notification(fund_req)
         flash(
             "อนุมัติใบยืม/ใบเบิกเรียบร้อยแล้ว"
             if fund_req.status == "อนุมัติแล้ว"
@@ -9569,7 +9878,7 @@ def staff_fund_request_history():
     fund_requests = fund_requests_query.order_by(FundRequest.id.desc()).all()
     for fund_request in fund_requests:
         fund_request.display_requester_name = _fund_request_requester_name(fund_request, "-")
-        fund_request.can_edit = _fund_request_can_be_edited_by_creator(
+        fund_request.can_edit = _fund_request_can_be_edited(
             user,
             fund_request,
         )
@@ -9590,6 +9899,15 @@ def staff_fund_request_history():
     dept_summary = _calculate_petty_cash_balance_summary(
         setting,
         user_id=user.id if not (setting and setting.id) else None,
+    )
+    ledger_running_balance = (
+        _build_petty_cash_ledger(
+            user,
+            selected_month_start=datetime.now().date().replace(day=1),
+            balance_only=True,
+        )
+        if setting
+        else 0.0
     )
     dept_summary["total_claims"] = len(history_items)
     dept_summary["history"] = history_items
@@ -9673,6 +9991,7 @@ def staff_fund_request_history():
         claim_history=claim_history,
         parcel_return_history=parcel_return_history,
         dept_summary=dept_summary,
+        ledger_running_balance=ledger_running_balance,
         can_import_legacy_fund_request=bool(
             carryover_setting
             and getattr(carryover_setting, "id", None)
@@ -9850,16 +10169,8 @@ def export_fund_request_pdf(request_id):
     if not fund_req:
         abort(404)
 
-    if _selected_system() == PETTY_CASH_SYSTEM:
-        staff = current_user
-        setting = _resolve_petty_cash_setting(staff)
-        scoped_query = _fund_request_setting_filter(
-            db.session.query(FundRequest).filter(FundRequest.id == request_id),
-            setting,
-        )
-        scoped_request = scoped_query.first()
-        if scoped_request is None:
-            abort(403)
+    if not _can_download_fund_request_pdf(current_user, fund_req):
+        abort(403)
         
     pdf_bytes = generate_fund_request_pdf(fund_req)
     
@@ -11246,7 +11557,14 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     )
     can_edit_fund_request = bool(
         verification_fund_request
-        and _fund_request_can_be_edited_by_creator(
+        and _fund_request_can_be_edited(
+            current_user,
+            verification_fund_request,
+        )
+    )
+    can_download_fund_request_pdf = bool(
+        verification_fund_request
+        and _can_download_fund_request_pdf(
             current_user,
             verification_fund_request,
         )
@@ -11254,7 +11572,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     can_cancel_fund_request = False
     if (
         verification_fund_request
-        and fund_request_status in {"อนุมัติแล้ว", "เบิกเงินแล้ว"}
+        and fund_request_status == "เบิกเงินแล้ว"
         and current_is_custodian
         and _fund_request_setting_filter(
             db.session.query(FundRequest).filter(
@@ -11343,6 +11661,7 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         can_reject_fund_request=can_reject_fund_request,
         can_record_fund_request_withdrawal=can_record_fund_request_withdrawal,
         can_edit_fund_request=can_edit_fund_request,
+        can_download_fund_request_pdf=can_download_fund_request_pdf,
         current_is_custodian=current_is_custodian,
         current_is_head=current_is_head,
         fund_request_signature_state=(
@@ -11619,6 +11938,14 @@ def reject_petty_claim(claim_id):
 def confirm_petty_claim_edit(claim_id):
     if _selected_system() == FINANCE_SYSTEM:
         abort(403)
+    if (
+        _selected_system() == ADVANCE_PAYMENT_SYSTEM
+        and not _is_cash_mng_finance_open()
+    ):
+        return _validation_error_response(
+            ADVANCE_PAYMENT_READ_ONLY_MESSAGE,
+            status_code=423,
+        )
     claim = db.session.query(PettyCashClaimDetail).get(claim_id)
     if not claim:
         abort(404)
@@ -11674,23 +12001,19 @@ def confirm_petty_claim_edit(claim_id):
     )
     return petty_cash_claim_detail(claim.id)
 
-@bp.route("/staff/petty-cash-ledger", methods=["GET"])
-@module_system_required(PETTY_CASH_SYSTEM)
-def petty_cash_ledger():
-    user_id = _current_user_id()
-    staff = current_user
-    active_setting = _resolve_petty_cash_setting(staff)
-    if not _is_petty_cash_custodian(staff, active_setting):
-        abort(403)
-    selected_month = (request.args.get("month") or "").strip()
+def _build_petty_cash_ledger(staff, *, selected_month_start=None, balance_only=False):
+    """Build the ledger once so other pages can use its exact running balance."""
     today = datetime.now().date()
     default_month = today.replace(day=1)
 
-    try:
-        selected_month_start = datetime.strptime(f"{selected_month}-01", "%Y-%m-%d").date()
-    except ValueError:
-        selected_month_start = default_month
-        selected_month = default_month.strftime("%Y-%m")
+    if selected_month_start is None:
+        selected_month = (request.args.get("month") or "").strip()
+        try:
+            selected_month_start = datetime.strptime(f"{selected_month}-01", "%Y-%m-%d").date()
+        except ValueError:
+            selected_month_start = default_month
+    else:
+        selected_month_start = selected_month_start.replace(day=1)
 
     selected_month = selected_month_start.strftime("%Y-%m")
     fiscal_year = selected_month_start.year + (selected_month_start.month >= 10)
@@ -11924,10 +12247,10 @@ def petty_cash_ledger():
             .filter(PettyCashClaimDetail.petty_cash_setting_id == current_setting.id)
             .all()
         )
-    elif current_user:
+    elif staff:
         all_claims = (
             db.session.query(PettyCashClaimDetail)
-            .filter(PettyCashClaimDetail.user_id == current_user.id)
+            .filter(PettyCashClaimDetail.user_id == staff.id)
             .all()
         )
     # แยกรายการที่เป็นหมวด 6 (โอนคืนบัญชีหน่วย) ออกมาเป็น Row ใหม่
@@ -11969,11 +12292,11 @@ def petty_cash_ledger():
                 "ผ่านการตรวจสอบ",
             }
         ]
-    elif current_user:
+    elif staff:
         transferred_claims = [
             claim
             for claim in db.session.query(PettyCashClaimDetail)
-            .filter(PettyCashClaimDetail.user_id == current_user.id)
+            .filter(PettyCashClaimDetail.user_id == staff.id)
             .all()
             if (claim.status or "").strip() not in {
                 "ฉบับร่าง",
@@ -12020,10 +12343,15 @@ def petty_cash_ledger():
         ) or None
 
         # เพิ่ม Row หลักสำหรับเงินที่ได้รับโอนคืนจากคณะ (หมวด 1-5)
+        claim_reference = (
+            claim.fund_request.ticket_number
+            if claim.fund_request and claim.fund_request.ticket_number
+            else (claim.claim_number or f"PC-{claim.id}")
+        )
         _append_ledger_row(
             receipt_date=claim_receipt_date,
             created_at=claim.created_at,
-            description="คณะคืนเงินสดย่อย (" + (claim.fund_request.ticket_number if claim.fund_request else "-") + ")",
+            description=f"คณะคืนเงินสดย่อย ({claim_reference})",
             doc_number=doc_no,
             bank_income=claim_total,
             cat_7=cat_7,
@@ -12157,6 +12485,9 @@ def petty_cash_ledger():
         item_copy["is_opening_row"] = False
         ledger_items.append(item_copy)
 
+    if balance_only:
+        return running_balance
+
     if request.args.get("download") == "monthly-report":
         if not current_setting or not getattr(current_setting, "id", None):
             flash("ไม่พบการตั้งค่าเงินสดย่อยสำหรับหน่วยงาน", "warning")
@@ -12220,3 +12551,16 @@ def petty_cash_ledger():
         selected_month_start=selected_month_start,
         selected_month_end=next_month_start,
     )
+
+
+@bp.route("/staff/petty-cash-ledger", methods=["GET"])
+@module_system_required(PETTY_CASH_SYSTEM)
+def petty_cash_ledger():
+    staff = current_user
+    active_setting = _resolve_petty_cash_setting(staff)
+    if not (
+        _is_petty_cash_custodian(staff, active_setting)
+        or _is_staff_org_head(staff)
+    ):
+        abort(403)
+    return _build_petty_cash_ledger(staff)

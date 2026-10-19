@@ -99,7 +99,17 @@
               <div class="row g-3 mb-2">
                 <div class="col-md-12">
                   <label for="purpose" class="form-label fw-bold">วัตถุประสงค์ในการเบิก <span class="text-danger">*</span></label>
-                  {{ form.purpose(class="form-control", id="purpose", style="border-radius: 12px;") }}
+                  <div class="input-group py-2">
+                    <span class="input-group-text">เพื่อ</span>
+                    <input
+                        id="purpose"
+                        name="purpose"
+                        type="text"
+                        value="{{ form.purpose.data or '' }}"
+                        class="form-control"
+                        required
+                      >
+                  </div>
                 </div>
                 <div class="col-md-12">
                   <label for="personal_note" class="form-label fw-bold">หมายเหตุส่วนตัว</label>
