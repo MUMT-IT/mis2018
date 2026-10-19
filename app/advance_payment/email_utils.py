@@ -355,12 +355,21 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
             "approve": "กรุณาตรวจสอบและอนุมัติใบเบิก",
             "withdrawal": "ได้รับการอนุมัติเรียบร้อยแล้ว",
             "withdrawn": "บันทึกการเบิกเงินเรียบร้อยแล้ว",
+            "edited": (
+                "ใบเบิกได้รับการแก้ไขโดย "
+                f"{ctx.get('editor_name') or 'ผู้เก็บรักษาเงินสดย่อย'} "
+                "กรุณาตรวจสอบข้อมูลล่าสุด"
+            ),
         }
         action_message = action_messages.get(
             action,
             f"สถานะปัจจุบัน: {status}",
         )
-        subject = f"แจ้งดำเนินการใบเบิกเงินสดย่อย เลขที่ {ticket_number}"
+        subject = (
+            f"แจ้งการแก้ไขใบเบิกเงินสดย่อย เลขที่ {ticket_number}"
+            if action == "edited"
+            else f"แจ้งดำเนินการใบเบิกเงินสดย่อย เลขที่ {ticket_number}"
+        )
         body = f"""{action_message}
 
 รายละเอียดรายการ:

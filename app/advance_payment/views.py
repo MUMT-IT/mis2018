@@ -791,16 +791,21 @@ def _fund_request_signature_state(fund_request):
     }
 
 
-def _fund_request_can_be_edited_by_creator(user, fund_request):
-    """Allow edits only before another person has acted on the request."""
+def _fund_request_can_be_edited(user, fund_request):
+    """Allow creator edits before another actor, or custodian edits pre-approval."""
     user_id = getattr(user, "id", None)
     creator_id = getattr(fund_request, "creator_id", None)
     if (
         not user_id
-        or creator_id != user_id
         or getattr(fund_request, "is_legacy_import", False)
         or (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ"
     ):
+        return False
+
+    if user_id == _fund_request_custodian_id(fund_request):
+        return getattr(fund_request, "approved_at", None) is None
+
+    if creator_id != user_id:
         return False
 
     for timestamp_attr, actor_attr in (
@@ -816,6 +821,28 @@ def _fund_request_can_be_edited_by_creator(user, fund_request):
             return False
 
     return True
+
+
+def _can_download_fund_request_pdf(user, fund_request):
+    """Allow the org head, custodian, creator, or requester to export PDF."""
+    user_id = getattr(user, "id", None)
+    if not user_id or fund_request is None:
+        return False
+
+    if user_id in {
+        getattr(fund_request, "creator_id", None),
+        getattr(fund_request, "requester_id", None),
+    }:
+        return True
+    if _is_fund_request_org_head(user, fund_request):
+        return True
+
+    setting = getattr(fund_request, "petty_cash_setting", None)
+    if setting is None and getattr(fund_request, "petty_cash_setting_id", None):
+        setting = db.session.query(PettyCashSetting).get(
+            fund_request.petty_cash_setting_id
+        )
+    return _is_petty_cash_custodian(user, setting)
 
 
 def _fund_request_expected_confirmer_id(fund_request):
@@ -2882,6 +2909,44 @@ def _send_fund_request_approved_notification(fund_request):
             "recipient_emails": recipient_emails,
             "action": "approved",
             "approver_name": approver_name,
+            "action_url": url_for(
+                "advance_payment.submit_petty_cash_claim",
+                fund_request_id=fund_request.id,
+                _external=True,
+            ),
+        },
+    )
+
+
+def _send_fund_request_edited_notification(fund_request, editor):
+    """Notify the creator and requester when someone else edits a request."""
+    creator = _get_user_by_id(getattr(fund_request, "creator_id", None))
+    requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
+    editor_email = (getattr(editor, "email", None) or "").strip().casefold()
+    recipient_emails = [
+        email
+        for email in (
+            getattr(creator, "email", None),
+            getattr(requester, "email", None),
+        )
+        if email and email.strip().casefold() != editor_email
+    ]
+    if not recipient_emails:
+        return False
+
+    editor_name = (
+        getattr(editor, "name", None)
+        or getattr(editor, "fullname", None)
+        or getattr(editor, "email", None)
+        or "ผู้เก็บรักษาเงินสดย่อย"
+    )
+    return _send_notification_email(
+        fund_request,
+        object_type="fund_request",
+        extra_ctx={
+            "recipient_emails": recipient_emails,
+            "action": "edited",
+            "editor_name": editor_name,
             "action_url": url_for(
                 "advance_payment.submit_petty_cash_claim",
                 fund_request_id=fund_request.id,
@@ -9074,7 +9139,7 @@ def staff_fund_request():
         editing_request = db.session.query(FundRequest).get(edit_request_id)
         if not editing_request:
             abort(404)
-        if not _fund_request_can_be_edited_by_creator(user, editing_request):
+        if not _fund_request_can_be_edited(user, editing_request):
             abort(403)
 
     user_display_name = getattr(user, "name", None) or getattr(user, "fullname", None) or getattr(user, "email", None) or "ไม่พบข้อมูลชื่อ"
@@ -9418,7 +9483,9 @@ def staff_fund_request():
                     reference_date=created_at.date(),
                 )
             db.session.commit()
-            if not is_editing:
+            if is_editing:
+                _send_fund_request_edited_notification(new_request, user)
+            else:
                 if getattr(new_request, "approved_at", None):
                     _send_fund_request_approved_notification(new_request)
                 _notify_next_fund_request_actor(new_request)
@@ -9640,30 +9707,27 @@ def reject_fund_request(request_id):
         abort(404)
 
     staff = current_user
-    setting = getattr(fund_req, "petty_cash_setting", None)
-    if setting is None and getattr(fund_req, "petty_cash_setting_id", None):
-        setting = db.session.query(PettyCashSetting).get(
-            fund_req.petty_cash_setting_id
-        )
+    setting = _resolve_petty_cash_setting_for_fund_request(staff, fund_req)
     is_head = _is_fund_request_org_head(staff, fund_req)
     is_custodian = _is_petty_cash_custodian(staff, setting)
-    expected_confirmer_id = _fund_request_expected_confirmer_id(fund_req)
-    staff_id = getattr(staff, "id", None)
-    can_confirm = bool(
-        expected_confirmer_id == staff_id
-        and not is_head
-    )
-    can_approve = bool(
-        not getattr(fund_req, "approved_at", None)
-        and is_head
-        and expected_confirmer_id in {None, staff_id}
-    )
-    if (
-        not staff.is_authenticated
-        or (fund_req.status or "").strip() != "รอการอนุมัติ"
-        or not (is_custodian or can_confirm or can_approve)
-    ):
+    if not staff.is_authenticated or not (is_head or is_custodian):
         abort(403)
+
+    same_setting = _fund_request_setting_filter(
+        db.session.query(FundRequest).filter(FundRequest.id == fund_req.id),
+        setting,
+    ).first()
+    if not same_setting:
+        abort(403)
+
+    if (fund_req.status or "").strip() != "รอการอนุมัติ":
+        flash("สามารถปฏิเสธได้เฉพาะรายการที่อยู่ในสถานะรอการอนุมัติเท่านั้น", "warning")
+        return redirect(
+            url_for(
+                "advance_payment.submit_petty_cash_claim",
+                fund_request_id=fund_req.id,
+            )
+        )
 
     rejection_comment = (request.form.get("rejection_comment") or "").strip()
     if not rejection_comment:
@@ -9765,7 +9829,7 @@ def staff_fund_request_history():
     fund_requests = fund_requests_query.order_by(FundRequest.id.desc()).all()
     for fund_request in fund_requests:
         fund_request.display_requester_name = _fund_request_requester_name(fund_request, "-")
-        fund_request.can_edit = _fund_request_can_be_edited_by_creator(
+        fund_request.can_edit = _fund_request_can_be_edited(
             user,
             fund_request,
         )
@@ -10046,16 +10110,8 @@ def export_fund_request_pdf(request_id):
     if not fund_req:
         abort(404)
 
-    if _selected_system() == PETTY_CASH_SYSTEM:
-        staff = current_user
-        setting = _resolve_petty_cash_setting(staff)
-        scoped_query = _fund_request_setting_filter(
-            db.session.query(FundRequest).filter(FundRequest.id == request_id),
-            setting,
-        )
-        scoped_request = scoped_query.first()
-        if scoped_request is None:
-            abort(403)
+    if not _can_download_fund_request_pdf(current_user, fund_req):
+        abort(403)
         
     pdf_bytes = generate_fund_request_pdf(fund_req)
     
@@ -11432,38 +11488,8 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     can_reject_fund_request = bool(
         verification_fund_request
         and fund_request_status == "รอการอนุมัติ"
-        and (
-            current_is_custodian
-            or can_confirm_fund_request
-            or can_approve_fund_request
-        )
+        and (current_is_head or current_is_custodian)
     )
-    fund_request_waiting_message = None
-    if verification_fund_request and fund_request_status == "รอการอนุมัติ":
-        expected_confirmer = (
-            _get_user_by_id(expected_confirmer_id)
-            if expected_confirmer_id
-            else None
-        )
-        expected_confirmer_is_head = bool(
-            expected_confirmer
-            and _staff_accounts_match(
-                expected_confirmer,
-                _fund_request_org_head(verification_fund_request),
-            )
-        )
-        if expected_confirmer_is_head:
-            fund_request_waiting_message = "กำลังรอการอนุมัติจากหัวหน้าหน่วยงาน"
-        elif expected_confirmer_id == getattr(
-            verification_fund_request, "requester_id", None
-        ):
-            fund_request_waiting_message = "กำลังรอการยืนยันข้อมูลจากผู้ยืม"
-        elif expected_confirmer_id == _fund_request_custodian_id(
-            verification_fund_request
-        ):
-            fund_request_waiting_message = "กำลังรอการยืนยันข้อมูลจากผู้รักษาบัญชี"
-        elif not getattr(verification_fund_request, "approved_at", None):
-            fund_request_waiting_message = "กำลังรอการอนุมัติจากหัวหน้าหน่วยงาน"
     can_record_fund_request_withdrawal = bool(
         verification_fund_request
         and fund_request_status == "อนุมัติแล้ว"
@@ -11472,7 +11498,14 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
     )
     can_edit_fund_request = bool(
         verification_fund_request
-        and _fund_request_can_be_edited_by_creator(
+        and _fund_request_can_be_edited(
+            current_user,
+            verification_fund_request,
+        )
+    )
+    can_download_fund_request_pdf = bool(
+        verification_fund_request
+        and _can_download_fund_request_pdf(
             current_user,
             verification_fund_request,
         )
@@ -11567,9 +11600,9 @@ def submit_petty_cash_claim(_render_after_post=False, _forced_fund_request_id=No
         can_approve_fund_request=can_approve_fund_request,
         can_confirm_fund_request=can_confirm_fund_request,
         can_reject_fund_request=can_reject_fund_request,
-        fund_request_waiting_message=fund_request_waiting_message,
         can_record_fund_request_withdrawal=can_record_fund_request_withdrawal,
         can_edit_fund_request=can_edit_fund_request,
+        can_download_fund_request_pdf=can_download_fund_request_pdf,
         current_is_custodian=current_is_custodian,
         current_is_head=current_is_head,
         fund_request_signature_state=(
