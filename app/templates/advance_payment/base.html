@@ -943,13 +943,18 @@
           {% endif %}
         </a>
         <div class="header-actions d-flex align-items-center gap-2 ms-auto">
-          {% if not request.endpoint == 'advance_payment.login' or session.get('advance_payment_system') in ['petty_cash', 'advance_payment', 'finance'] %}
-            <a href="{{ url_for('advance_payment.logout') }}" class="header-home-button" aria-label="กลับหน้าเลือกระบบ">
-              <span class="header-action-icon">
-                <i class="bi bi-house-door-fill" aria-hidden="true"></i>
-              </span>
-              <span class="header-home-label">กลับหน้าเลือกระบบ</span>
-            </a>
+          {% if request.endpoint == 'advance_payment.login' or session.get('advance_payment_system') not in ['petty_cash', 'advance_payment', 'finance'] %}
+          <a href="{{ url_for('index') }}" class="header-mumt-button" aria-label="กลับระบบ MUMT MIS">
+              <i class="bi bi-house-fill" aria-hidden="true"></i>
+              <span class="header-mumt-label">หน้าหลัก</span>
+          </a>
+          {% else %}
+              <a href="{{ url_for('advance_payment.logout') }}" class="header-home-button" aria-label="กลับหน้าเลือกระบบ">
+                <span class="header-action-icon">
+                  <i class="bi bi-house-door-fill" aria-hidden="true"></i>
+                </span>
+                <span class="header-home-label">หน้าหลัก</span>
+              </a>
           {% endif %}
           <div class="header-user-chip" title="{{ current_user.personal_info.fullname if current_user.is_authenticated and current_user.personal_info else '' }}">
             <span class="header-user-avatar">

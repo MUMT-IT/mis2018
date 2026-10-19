@@ -306,6 +306,72 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         action = ctx.get("action", "status")
         action_url = ctx.get("action_url")
         action_link = f"\n- เปิดรายการ {action_url}" if action_url else ""
+        bank_account_name = ctx.get("bank_account_name") or "-"
+
+        if action == "approve":
+            subject = "[รออนุมัติ] คำขออนุมัติเบิกถอนเงินจากบัญชีเงินสดย่อย"
+            body = f"""ระบบขอแจ้งให้ทราบว่า มีคำขออนุมัติเบิกเงินสดย่อยรายการใหม่ ซึ่งอยู่ระหว่างรอการพิจารณาอนุมัติจากท่าน
+
+รายละเอียดรายการเบิกถอนเงิน
+
+รายละเอียดรายการ:
+- เลขที่ใบเบิก {ticket_number}
+- ผู้ขอเบิก {requester_name}
+- จำนวนเงิน {_amount(getattr(target_object, 'amount', 0))} บาท
+
+กรุณาตรวจสอบรายละเอียดรายการ และดำเนินการอนุมัติหรือไม่อนุมัติผ่านระบบ โดยคลิกลิงก์ด้านล่าง
+
+{action_url}
+
+{footer}"""
+            return {
+                "to_emails": recipient_emails,
+                "subject": subject,
+                "body": body,
+            }
+
+        if action == "confirm_requester":
+            subject = "[รอยืนยัน] กรุณาตรวจสอบและยืนยันรายการเบิกเงินบัญชีเงินสดย่อย"
+            body = f"""มีคำขออนุมัติเบิกเงินสดย่อยรายการใหม่ซึ่งดำเนินการภายใต้ชื่อของท่าน
+
+รายละเอียดรายการ:
+- เลขที่ใบเบิก {ticket_number}
+- ชื่อบัญชี {bank_account_name}
+- จำนวนเงิน {_amount(getattr(target_object, 'amount', 0))} บาท
+
+กรุณาตรวจสอบรายละเอียดและดำเนินการยืนยันข้อมูล โดยคลิกลิงก์ด้านล่าง
+
+{action_url}
+
+หากข้อมูลไม่ถูกต้อง กรุณาดำเนินการแจ้งแก้ไขหรือปฏิเสธรายการผ่านผู้คุมบัญชี
+
+{footer}"""
+            return {
+                "to_emails": recipient_emails,
+                "subject": subject,
+                "body": body,
+            }
+
+        if action == "confirm_custodian":
+            subject = "[รอดำเนินการ] มีรายการเบิกถอนเงินรอตรวจสอบ"
+            body = f"""มีรายการขออนุมัติเบิกเงินสดย่อยที่รอการตรวจสอบจากท่านก่อนส่งให้ผู้มีอำนาจอนุมัติการถอนเงิน
+
+รายละเอียดรายการ:
+- เลขที่ใบเบิก {ticket_number}
+- ชื่อบัญชี {bank_account_name}
+- ผู้ขอเบิก {requester_name}
+- จำนวนเงิน {_amount(getattr(target_object, 'amount', 0))} บาท
+
+กรุณาตรวจสอบรายละเอียดรายการ และดำเนินการยืนยันข้อมูลผ่านระบบ โดยคลิกลิงก์ด้านล่าง
+
+{action_url}
+
+{footer}"""
+            return {
+                "to_emails": recipient_emails,
+                "subject": subject,
+                "body": body,
+            }
 
         if action == "approved":
             approver_name = ctx.get("approver_name") or "-"
@@ -353,7 +419,6 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         action_messages = {
             "confirm": "กรุณาตรวจสอบและยืนยันข้อมูลใบเบิก",
             "approve": "กรุณาตรวจสอบและอนุมัติใบเบิก",
-            "withdrawal": "ได้รับการอนุมัติเรียบร้อยแล้ว",
             "withdrawn": "บันทึกการเบิกเงินเรียบร้อยแล้ว",
             "edited": (
                 "ใบเบิกได้รับการแก้ไขโดย "
@@ -368,7 +433,7 @@ def generate_notification_email_content(target_object, object_type="ticket", ext
         subject = (
             f"แจ้งการแก้ไขใบเบิกเงินสดย่อย เลขที่ {ticket_number}"
             if action == "edited"
-            else f"แจ้งดำเนินการใบเบิกเงินสดย่อย เลขที่ {ticket_number}"
+            else f"แจ้งดำเนินการยืนยัน/อนุมัติใบเบิกเงินสดย่อย เลขที่ {ticket_number}"
         )
         body = f"""{action_message}
 

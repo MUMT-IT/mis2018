@@ -2851,19 +2851,27 @@ def _send_notification_email(target_object, object_type="ticket", extra_ctx=None
 
 
 def _notify_next_fund_request_actor(fund_request):
+    if (getattr(fund_request, "status", None) or "").strip() != "รอการอนุมัติ":
+        return False
+
     expected_confirmer_id = _fund_request_expected_confirmer_id(fund_request)
+    head = _fund_request_org_head(fund_request)
     if expected_confirmer_id:
         recipient = _get_user_by_id(expected_confirmer_id)
-        action = "confirm"
+        if (
+            _staff_accounts_match(recipient, head)
+            and not getattr(fund_request, "approved_at", None)
+        ):
+            action = "approve"
+        elif expected_confirmer_id == getattr(fund_request, "requester_id", None):
+            action = "confirm_requester"
+        elif expected_confirmer_id == _fund_request_custodian_id(fund_request):
+            action = "confirm_custodian"
+        else:
+            action = "confirm"
     elif not getattr(fund_request, "approved_at", None):
-        recipient = _fund_request_org_head(fund_request)
+        recipient = head
         action = "approve"
-    elif (
-        (getattr(fund_request, "status", None) or "").strip() == "อนุมัติแล้ว"
-        and not getattr(fund_request, "request_date", None)
-    ):
-        recipient = _get_user_by_id(_fund_request_custodian_id(fund_request))
-        action = "withdrawal"
     else:
         return False
 
@@ -2874,12 +2882,29 @@ def _notify_next_fund_request_actor(fund_request):
             getattr(fund_request, "id", None),
         )
         return False
+
+    setting = getattr(fund_request, "petty_cash_setting", None)
+    if setting is None and getattr(fund_request, "petty_cash_setting_id", None):
+        setting = db.session.query(PettyCashSetting).get(
+            fund_request.petty_cash_setting_id
+        )
+    bank_account = getattr(setting, "bank_account_info", None)
+    if bank_account is None and getattr(setting, "account_number", None):
+        bank_account = _get_bank_account_info(
+            account_number=setting.account_number,
+        )
+    bank_account_name = (
+        getattr(bank_account, "thai_name", None)
+        or getattr(setting, "department_name", None)
+        or "-"
+    )
     return _send_notification_email(
         fund_request,
         object_type="fund_request",
         extra_ctx={
             "recipient_emails": [recipient_email],
             "action": action,
+            "bank_account_name": bank_account_name,
             "action_url": url_for(
                 "advance_payment.submit_petty_cash_claim",
                 fund_request_id=fund_request.id,
@@ -2891,6 +2916,12 @@ def _notify_next_fund_request_actor(fund_request):
 
 def _send_fund_request_approved_notification(fund_request):
     """Notify the requester, custodian, and actual approver once approved."""
+    if (
+        (getattr(fund_request, "status", None) or "").strip() != "อนุมัติแล้ว"
+        or not _fund_request_is_fully_approved(fund_request)
+    ):
+        return False
+
     requester = _get_user_by_id(getattr(fund_request, "requester_id", None))
     custodian = _get_user_by_id(_fund_request_custodian_id(fund_request))
     approver = _get_user_by_id(getattr(fund_request, "approved_by_id", None))
@@ -2927,6 +2958,16 @@ def _send_fund_request_approved_notification(fund_request):
             ),
         },
     )
+
+
+def _send_fund_request_flow_notification(fund_request):
+    """Send exactly one notification for the request's current flow state."""
+    if (
+        (getattr(fund_request, "status", None) or "").strip() == "อนุมัติแล้ว"
+        and _fund_request_is_fully_approved(fund_request)
+    ):
+        return _send_fund_request_approved_notification(fund_request)
+    return _notify_next_fund_request_actor(fund_request)
 
 
 def _send_fund_request_edited_notification(fund_request, editor):
@@ -9497,9 +9538,7 @@ def staff_fund_request():
             if is_editing:
                 _send_fund_request_edited_notification(new_request, user)
             else:
-                if getattr(new_request, "approved_at", None):
-                    _send_fund_request_approved_notification(new_request)
-                _notify_next_fund_request_actor(new_request)
+                _send_fund_request_flow_notification(new_request)
 
             flash(
                 "แก้ไขใบเบิกเรียบร้อยแล้ว"
@@ -9581,7 +9620,7 @@ def confirm_fund_request(request_id):
 
     _sync_fund_request_approval_status(fund_req)
     db.session.commit()
-    _notify_next_fund_request_actor(fund_req)
+    _send_fund_request_flow_notification(fund_req)
     flash(
         "ยืนยันใบยืม/ใบเบิกเรียบร้อยแล้ว",
         "success",
@@ -9628,8 +9667,7 @@ def approve_fund_request(request_id):
 
         _sync_fund_request_approval_status(fund_req)
         db.session.commit()
-        _send_fund_request_approved_notification(fund_req)
-        _notify_next_fund_request_actor(fund_req)
+        _send_fund_request_flow_notification(fund_req)
         flash(
             "อนุมัติใบยืม/ใบเบิกเรียบร้อยแล้ว"
             if fund_req.status == "อนุมัติแล้ว"
