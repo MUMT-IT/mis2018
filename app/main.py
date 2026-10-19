@@ -2688,8 +2688,78 @@ def populate_subdistricts():
 
 
 @app.cli.command('test-scb-auth')
-@click.option('--timeout', default=30, show_default=True, type=int)
-def test_scb_auth(timeout):
+@click.option('--timeout', default=30, show_default=True, type=click.IntRange(min=1))
+@click.option('--jwt-only', is_flag=True, help='Skip outbound bank authentication.')
+def test_scb_auth(timeout, jwt_only):
+    """Smoke-test JWT creation/refresh and, by default, bank authentication."""
+    import secrets
+    from types import SimpleNamespace
+    from flask_jwt_extended import create_access_token, create_refresh_token
+    from app.scb_payment_service.views import refresh, test_login
+
+    # A separate app keeps test identities, keys and callbacks out of the live app.
+    test_app = Flask('scb-jwt-smoke-test')
+    test_app.config['JWT_SECRET_KEY'] = secrets.token_hex(32)
+    test_jwt = JWTManager(test_app)
+    client_id = 'scb-jwt-smoke-test'
+
+    @test_jwt.user_lookup_loader
+    def lookup_test_account(_header, payload):
+        if payload.get('sub') == client_id:
+            return SimpleNamespace(account_id=client_id)
+        return None
+
+    test_app.add_url_rule('/scb_payment/api/v1.0/refresh',
+                          view_func=refresh, methods=['POST'])
+    test_app.add_url_rule('/scb_payment/api/v1.0/test-login',
+                          view_func=test_login, methods=['GET'])
+    client = test_app.test_client()
+    base_path = '/scb_payment/api/v1.0'
+
+    def expect_json(response, step):
+        if response.status_code != 200:
+            # Do not print response bodies: login/refresh responses contain tokens.
+            raise click.ClickException('{} failed (HTTP {}).'.format(step, response.status_code))
+        data = response.get_json(silent=True)
+        if not isinstance(data, dict):
+            raise click.ClickException('{} returned an invalid JSON response.'.format(step))
+        return data
+
+    def verify_access(token, step):
+        data = expect_json(client.get(
+            base_path + '/test-login',
+            headers={'Authorization': 'Bearer ' + token},
+        ), step)
+        if data.get('logged_in_as') != client_id:
+            raise click.ClickException('{} returned the wrong client identity.'.format(step))
+        click.echo('{}: passed'.format(step))
+
+    with test_app.app_context():
+        tokens = {
+            'access_token': create_access_token(identity=client_id),
+            'refresh_token': create_refresh_token(identity=client_id),
+        }
+    for name in ('access_token', 'refresh_token'):
+        if not isinstance(tokens.get(name), str) or not tokens[name]:
+            raise click.ClickException('Token creation did not return {}.'.format(name))
+    click.echo('Access and refresh token creation: passed')
+    verify_access(tokens['access_token'], 'Access token verification')
+
+    refreshed = expect_json(client.post(
+        base_path + '/refresh',
+        headers={'Authorization': 'Bearer ' + tokens['refresh_token']},
+    ), 'Token refresh')
+    access_token = refreshed.get('access_token')
+    if not isinstance(access_token, str) or not access_token:
+        raise click.ClickException('Token refresh did not return an access token.')
+    if access_token == tokens['access_token']:
+        raise click.ClickException('Token refresh did not create a new access token.')
+    click.echo('Token refresh: passed')
+    verify_access(access_token, 'Refreshed access token verification')
+
+    if jwt_only:
+        return
+
     def get_fixie_proxies():
         fixie_host = os.environ.get("FIXIE_SOCKS_HOST")
         if not fixie_host:
@@ -2738,7 +2808,7 @@ def test_scb_auth(timeout):
             headers=headers,
             json=payload,
             proxies=get_fixie_proxies(),
-            timeout=30
+            timeout=timeout
         )
     except requests.RequestException as exc:
         raise click.ClickException('SCB auth request failed: {}'.format(exc))
